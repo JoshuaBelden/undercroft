@@ -15,7 +15,7 @@ Flow:
 5. Client sends `ping` every second; `pong` gives round-trip time.
 6. Dev only: client sends `admin` commands; server sends `map` when an admin regenerates the layout.
 
-`GameClient` reconnects every 2 seconds after a drop. In Phase 0 every connection joins one shared session; Phase 1 introduces per-expedition sessions.
+`GameClient` reconnects every 2 seconds after a drop. Each connection joins the current expedition; when everyone has extracted or left, it ends and the next join starts a new one. See [expedition.md](expedition.md).
 
 **Adding a message:** add it to `ClientMessage` or `ServerMessage` in `protocol.ts`, add its `type` to the matching allowed set, handle it in `server/index.ts` or `session.ts`, and in the client.
 

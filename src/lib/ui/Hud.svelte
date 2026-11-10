@@ -1,4 +1,6 @@
 <script lang="ts">
+	import HoldPrompt from './HoldPrompt.svelte';
+
 	interface Props {
 		/** 0..1 */
 		stamina: number;
@@ -11,9 +13,23 @@
 		underwater: boolean;
 		stance: string;
 		creep: boolean;
+		/** Context prompt, e.g. "Hold E to climb out"; null hides it. */
+		prompt: string | null;
+		/** 0..1 progress of a held action (extraction); 0 hides the bar. */
+		progress: number;
 	}
 
-	let { stamina, exhausted, battery, headlamp, underwater, stance, creep }: Props = $props();
+	let {
+		stamina,
+		exhausted,
+		battery,
+		headlamp,
+		underwater,
+		stance,
+		creep,
+		prompt,
+		progress
+	}: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
 	const bars = $derived(Math.ceil(battery * 4));
@@ -24,6 +40,12 @@
 </script>
 
 <div class="crosshair" aria-hidden="true"></div>
+
+{#if prompt}
+	<div class="prompt">
+		<HoldPrompt text={prompt} {progress} />
+	</div>
+{/if}
 
 {#if stamina < 0.999 || underwater}
 	<div
@@ -84,6 +106,14 @@
 
 	.stamina.exhausted .fill {
 		background: rgb(200 90 70 / 0.7);
+	}
+
+	.prompt {
+		position: fixed;
+		left: 50%;
+		top: calc(50% + 40px);
+		transform: translateX(-50%);
+		pointer-events: none;
 	}
 
 	.posture {

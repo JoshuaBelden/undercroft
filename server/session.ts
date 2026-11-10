@@ -9,6 +9,7 @@ import {
 	type CollisionWorld
 } from '../src/lib/shared/map/collision.ts';
 import { generateLayout } from '../src/lib/shared/map/generate.ts';
+import { LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { MapLayout } from '../src/lib/shared/map/types.ts';
@@ -34,6 +35,9 @@ interface Player {
 	 */
 	processed: number;
 	clock: number | null;
+	joinedAt: number;
+	/** Deepest level reached below the start (0 = the start level). */
+	deepestLevel: number;
 }
 
 const DT = 1 / SIM_RATE;
@@ -56,9 +60,19 @@ export class Session {
 	private players = new Map<string, Player>();
 	private tick = 0;
 	private timer: NodeJS.Timeout | null = null;
+	private hadPlayers = false;
 
 	get playerCount(): number {
 		return this.players.size;
+	}
+
+	/** Everyone who joined has extracted or left: this expedition is over. */
+	get ended(): boolean {
+		return this.hadPlayers && this.players.size === 0;
+	}
+
+	has(playerId: string): boolean {
+		return this.players.has(playerId);
 	}
 
 	addPlayer(socket: WebSocket, name: string): Player {
@@ -70,9 +84,12 @@ export class Session {
 			queue: [],
 			ack: -1,
 			processed: 0,
-			clock: null
+			clock: null,
+			joinedAt: Date.now(),
+			deepestLevel: 0
 		};
 		this.players.set(player.id, player);
+		this.hadPlayers = true;
 		this.send(player, {
 			type: 'welcome',
 			playerId: player.id,
@@ -90,7 +107,10 @@ export class Session {
 		if (!player) return;
 		this.players.delete(playerId);
 		log.info(`Player ${player.name} left session ${this.id.slice(0, 8)}`);
-		if (this.players.size === 0) this.stop();
+		if (this.players.size === 0) {
+			this.stop();
+			log.info(`Expedition ${this.id.slice(0, 8)} ended`);
+		}
 	}
 
 	/** Queue untrusted input frames from a client. */
@@ -177,13 +197,26 @@ export class Session {
 			const due = Math.floor(((now - player.clock) / 1000) * SIM_RATE) + 1;
 			// Don't let a long pause bank more than MAX_BANKED frames of catch-up.
 			if (due - player.processed > MAX_BANKED) player.processed = due - MAX_BANKED;
-			while (player.processed < due && player.queue.length > 0) {
+			while (player.processed < due && player.queue.length > 0 && !player.state.extracted) {
 				const frame = player.queue.shift() as InputFrame;
 				stepPlayer(player.state, frame, this.world, DT);
 				player.ack = frame.seq;
 				player.processed++;
 			}
+			const level = Math.round(-player.state.position[1] / LEVEL_HEIGHT);
+			player.deepestLevel = Math.max(player.deepestLevel, level);
 		}
+		for (const player of [...this.players.values()]) {
+			if (!player.state.extracted) continue;
+			this.send(player, {
+				type: 'extracted',
+				seconds: Math.round((Date.now() - player.joinedAt) / 1000),
+				deepestLevel: player.deepestLevel
+			});
+			log.info(`Player ${player.name} extracted from session ${this.id.slice(0, 8)}`);
+			this.removePlayer(player.id);
+		}
+		if (this.players.size === 0) return;
 		const players = [...this.players.values()].map((p) => ({
 			id: p.id,
 			name: p.name,

@@ -6,12 +6,12 @@ import type { MapKit } from '../../shared/map/types.ts';
  * Connector weights are relative chances. See docs/dev/map-generation.md.
  */
 export const MAP_KIT: MapKit = {
-	stairwell: { role: 'start', exit: 'hall-stairs-down' },
+	stairwell: { role: 'start', exit: 'hall-stairs-down', title: 'The Stairwell' },
 
-	'ossuary-hall': { role: 'major' },
-	'quarry-gallery': { role: 'major' },
-	cistern: { role: 'major' },
-	'gloaming-chapel': { role: 'major', final: true },
+	'ossuary-hall': { role: 'major', title: 'Ossuary Hall' },
+	'quarry-gallery': { role: 'major', title: 'Quarry Gallery' },
+	cistern: { role: 'major', title: 'The Cistern' },
+	'gloaming-chapel': { role: 'major', final: true, title: 'Gloaming Chapel' },
 
 	'hall-straight': { role: 'connector', weight: 6 },
 	'hall-corner': { role: 'connector', weight: 4 },

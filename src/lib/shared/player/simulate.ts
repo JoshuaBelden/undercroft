@@ -1,3 +1,4 @@
+import { EXPEDITION } from '../../content/expedition.ts';
 import { DEFAULT_HEADLAMP, type HeadlampModel } from '../../content/items/headlamps.ts';
 import { MOVEMENT, type MovementTuning } from '../../content/player/movement.ts';
 import {
@@ -43,7 +44,9 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		wading: false,
 		underwater: false,
 		sneaking: false,
-		mantle: null
+		mantle: null,
+		extracting: 0,
+		extracted: false
 	};
 }
 
@@ -69,6 +72,7 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		sneak: false,
 		climb: false,
 		swimDown: false,
+		interact: false,
 		stance: s.stance,
 		headlamp: s.headlamp
 	};
@@ -103,6 +107,7 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		sneak: f.sneak === true,
 		climb: f.climb === true,
 		swimDown: f.swimDown === true,
+		interact: f.interact === true,
 		stance,
 		headlamp: lamp
 	};
@@ -124,6 +129,7 @@ export function stepPlayer(
 
 	if (s.mantle) {
 		advanceMantle(s, dt);
+		s.extracting = 0;
 		updateStamina(s, false, false, dt, t);
 		updateBattery(s, dt, lamp);
 		return s;
@@ -183,9 +189,43 @@ export function stepPlayer(
 	}
 
 	s.underwater = surface !== null && s.position[1] + eyeHeight(s, t) < surface;
+	updateExtraction(s, input, world, moving, dt);
 	updateStamina(s, sprinting, s.underwater, dt, t);
 	updateBattery(s, dt, lamp);
 	return s;
+}
+
+/** The extraction point within reach of the player, if any. */
+export function nearExtract(world: CollisionWorld, s: PlayerState): Vec3 | null {
+	const [x, y, z] = s.position;
+	for (const point of world.extracts) {
+		if (
+			Math.hypot(point[0] - x, point[2] - z) <= EXPEDITION.extractRadius &&
+			Math.abs(point[1] - y) <= EXPEDITION.extractHeight
+		) {
+			return point;
+		}
+	}
+	return null;
+}
+
+/** Holding interact, standing still at an extraction point, climbs out after extractSeconds. */
+function updateExtraction(
+	s: PlayerState,
+	input: InputFrame,
+	world: CollisionWorld,
+	moving: boolean,
+	dt: number
+): void {
+	const ready =
+		input.interact &&
+		!moving &&
+		s.grounded &&
+		!s.swimming &&
+		!s.flags.noclip &&
+		nearExtract(world, s) !== null;
+	s.extracting = ready ? s.extracting + dt : 0;
+	if (s.extracting >= EXPEDITION.extractSeconds) s.extracted = true;
 }
 
 /** Enter or leave swimming from the water depth over the feet (with a little hysteresis). */

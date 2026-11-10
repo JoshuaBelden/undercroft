@@ -98,6 +98,20 @@ export class LocalPlayer {
 		}
 	}
 
+	/** The collision world being predicted against (null while not in an expedition). */
+	get collision(): CollisionWorld | null {
+		return this.world;
+	}
+
+	/** Left the expedition (extracted): stop predicting until the next map arrives. */
+	leave(): void {
+		this.world = null;
+		this.state = null;
+		this.previous = null;
+		this.pending = [];
+		this.outbox = [];
+	}
+
 	/** New map: drop prediction and wait for the server's first snapshot. */
 	setWorld(world: CollisionWorld): void {
 		this.world = world;
@@ -212,6 +226,7 @@ export class LocalPlayer {
 			sneak: this.creep,
 			climb: active && input.isDown('climb'),
 			swimDown: active && input.isDown('swimDown'),
+			interact: active && input.isDown('interact'),
 			stance: this.stance,
 			headlamp: this.lamp
 		};

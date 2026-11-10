@@ -20,12 +20,18 @@
 	import { buildCollisionWorld } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 	import { roomPoints } from '#lib/shared/map/points.ts';
-	import type { MapLayout } from '#lib/shared/map/types.ts';
-	import type { PlayerFlags } from '#lib/shared/player/types.ts';
+	import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
+	import { nearExtract } from '#lib/shared/player/simulate.ts';
+	import { EXPEDITION } from '#lib/content/expedition.ts';
+	import { bindingLabel } from '#lib/game/input/actions.ts';
+	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
+	import type { PlayerFlags, PlayerState } from '#lib/shared/player/types.ts';
 	import type { AdminCommand } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
+	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
+	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
@@ -50,8 +56,15 @@
 		headlamp: 1,
 		underwater: false,
 		stance: 'stand',
-		creep: false
+		creep: false,
+		prompt: null as string | null,
+		progress: 0
 	});
+	/** Set when this player has climbed out; shows the results screen. */
+	let result = $state<{ seconds: number; deepestLevel: number } | null>(null);
+	/** Room banner currently showing; `key` restarts the animation for each new room. */
+	let banner = $state<{ title: string; key: number } | null>(null);
+	let descend = (): void => {};
 
 	const audio = new AudioManager({ ...settings.audio });
 	let applyGraphics = (): void => {};
@@ -103,7 +116,15 @@
 				switch (message.type) {
 					case 'welcome':
 						sessionId = message.sessionId;
+						result = null;
 						loadMap(message.layout);
+						break;
+					case 'extracted':
+						result = { seconds: message.seconds, deepestLevel: message.deepestLevel };
+						player.leave();
+						remote.apply([], client.playerId);
+						banner = null;
+						document.exitPointerLock();
 						break;
 					case 'map':
 						loadMap(message.layout);
@@ -123,14 +144,47 @@
 		const sounds = new SoundBank(audio);
 		const playerAudio = new PlayerAudio(sounds, map.root, (amount) => audio.setMuffle(amount));
 
+		/** World cell + level -> title of the room there (titled start and major rooms). */
+		let roomCells: Record<string, string> = {};
+		let seenRooms: Record<string, boolean> = {};
+		let bannerCheck = 0;
+
 		function loadMap(layout: MapLayout): void {
 			seed = layout.seed;
+			roomCells = {};
+			seenRooms = {};
+			for (const placement of layout.placements) {
+				const title = MAP_KIT[placement.piece]?.title;
+				const piece = PIECES[placement.piece];
+				if (!title || !piece) continue;
+				for (const [x, z, level] of occupiedCells(piece, placement)) {
+					roomCells[cellKey(x, z, level)] = title;
+				}
+			}
 			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
 			void map.build(layout);
 			player.setWorld(buildCollisionWorld(layout, PIECES));
 		}
 
 		sendAdmin = (command) => client.send({ type: 'admin', command });
+		descend = () => client.send({ type: 'descend' });
+
+		/** Show a room's banner the first time the player enters it this expedition. */
+		function checkRoom(position: Vec3): void {
+			const [cx, cz] = worldCell(position[0], position[2]);
+			const level = Math.floor((position[1] + 0.5) / LEVEL_HEIGHT);
+			const title = roomCells[cellKey(cx, cz, level)];
+			if (!title || seenRooms[title]) return;
+			seenRooms[title] = true;
+			banner = { title, key: (banner?.key ?? 0) + 1 };
+		}
+
+		function extractPrompt(state: PlayerState): string | null {
+			const world = player.collision;
+			if (!world || state.swimming || !nearExtract(world, state)) return null;
+			const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
+			return state.extracting > 0 ? 'Climbing out...' : `Hold ${key} to climb out`;
+		}
 
 		setMapView = (enabled) => {
 			mapView = enabled;
@@ -180,8 +234,15 @@
 					headlamp: state.headlamp,
 					underwater: state.underwater,
 					stance: state.stance,
-					creep: player.modes.creep
+					creep: player.modes.creep,
+					prompt: extractPrompt(state),
+					progress: state.extracting / EXPEDITION.extractSeconds
 				};
+				bannerCheck -= delta;
+				if (bannerCheck <= 0) {
+					bannerCheck = 0.25;
+					checkRoom(state.position);
+				}
 			}
 			stats = engine.stats;
 			rtt = client.rtt;
@@ -230,7 +291,21 @@
 	<Hud {...hud} />
 {/if}
 
-{#if !locked && !panel && !mapView && status === 'connected'}
+{#if banner && spawned && !mapView}
+	{#key banner.key}
+		<RoomBanner title={banner.title} />
+	{/key}
+{/if}
+
+{#if result}
+	<ExpeditionResult
+		seconds={result.seconds}
+		deepestLevel={result.deepestLevel}
+		ondescend={() => descend()}
+	/>
+{/if}
+
+{#if !locked && !panel && !mapView && !result && status === 'connected'}
 	<button type="button" class="descend" onclick={() => canvas.requestPointerLock()}>
 		Click to descend
 	</button>

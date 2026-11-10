@@ -21,6 +21,8 @@ export interface WorldVolume extends WorldBox {
 export interface CollisionWorld {
 	boxes: WorldBox[];
 	volumes: WorldVolume[];
+	/** Extraction points (extract-* markers) in world space. */
+	extracts: Vec3[];
 	/** Spatial hash: bucket key -> indices into `boxes`. */
 	grid: Map<string, number[]>;
 }
@@ -94,13 +96,14 @@ export function buildCollisionWorld(
 	layout: MapLayout,
 	pieces: Record<string, PieceDef>
 ): CollisionWorld {
-	const world: CollisionWorld = { boxes: [], volumes: [], grid: new Map() };
+	const world: CollisionWorld = { boxes: [], volumes: [], extracts: [], grid: new Map() };
 	for (const placement of layout.placements) {
 		const piece = pieces[placement.piece];
 		if (!piece) continue;
 		for (const box of piece.colliders) {
 			world.boxes.push(toWorldBox(box, placement.rotation, toWorld(placement, box.center)));
 		}
+		for (const point of piece.extracts) world.extracts.push(toWorld(placement, point));
 		for (const volume of piece.volumes) {
 			world.volumes.push({
 				kind: volume.kind,

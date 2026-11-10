@@ -11,7 +11,9 @@ export type ClientMessage =
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
 	| { type: 'input'; frames: InputFrame[] }
 	/** Dev-only commands; the server ignores them unless DEV_MODE=true. */
-	| { type: 'admin'; command: AdminCommand };
+	| { type: 'admin'; command: AdminCommand }
+	/** Join an expedition again after extracting. */
+	| { type: 'descend' };
 
 export type AdminCommand =
 	| { kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery'; enabled: boolean }
@@ -33,7 +35,9 @@ export type ServerMessage =
 	| { type: 'pong'; clientTime: number; serverTime: number }
 	| { type: 'tick'; tick: number; serverTime: number; players: PlayerSnapshot[] }
 	/** The map changed (admin regenerate); players have been respawned. */
-	| { type: 'map'; layout: MapLayout };
+	| { type: 'map'; layout: MapLayout }
+	/** You climbed out: you have left the expedition. */
+	| { type: 'extracted'; seconds: number; deepestLevel: number };
 
 export function encode(message: ClientMessage | ServerMessage): string {
 	return JSON.stringify(message);
@@ -47,8 +51,8 @@ export function decodeServer(raw: string): ServerMessage | null {
 	return decode(raw, SERVER_TYPES) as ServerMessage | null;
 }
 
-const CLIENT_TYPES = new Set<string>(['hello', 'ping', 'input', 'admin']);
-const SERVER_TYPES = new Set<string>(['welcome', 'reject', 'pong', 'tick', 'map']);
+const CLIENT_TYPES = new Set<string>(['hello', 'ping', 'input', 'admin', 'descend']);
+const SERVER_TYPES = new Set<string>(['welcome', 'reject', 'pong', 'tick', 'map', 'extracted']);
 
 function decode(raw: string, allowed: Set<string>): unknown {
 	try {

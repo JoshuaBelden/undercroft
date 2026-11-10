@@ -38,7 +38,7 @@ Aspects:
 
 A generated Gloaming map you can start an expedition into, explore, and extract from.
 
-- Start an expedition: server creates a session, picks a seed, client generates the map
+- [x] Start an expedition: server creates a session, picks a seed, generates the map and sends it to clients
 - [x] First-person controller: walk, sprint, crouch, crawl, look; stamina
 - [x] Collision against map geometry
 - [x] Headlamp with settings (off, low, bright), battery drain, starter flicker
@@ -47,9 +47,9 @@ A generated Gloaming map you can start an expedition into, explore, and extract 
 - Connector kit: halls, square rooms, canals, squeezes, crawlspaces, secret doors, swim sections, depth transitions (done: halls, junctions, square rooms, crypt, side rooms, squeezes, crawlspaces, dead ends, stairs down; still to do: canals, secret doors, swim sections)
 - [x] Map graph: guaranteed path from start to the Chapel, plus loops
 - Start room variants: stairs or rappel rope (rope can be taken)
-- Extraction points defined in room models; extracting ends the expedition
+- [x] Extraction points defined in room models; extracting ends the expedition
 - [x] Swimming with breath tied to stamina (plus mantling to climb ledges and out of water)
-- Room banners on entering major rooms
+- [x] Room banners on entering major rooms
 
 Aspects:
 

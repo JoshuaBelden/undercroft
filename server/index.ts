@@ -3,18 +3,21 @@ import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
 import { config } from './config.ts';
 import { closeDb, connectDb } from './db.ts';
+import { Expeditions } from './expeditions.ts';
 import { log } from './log.ts';
-import { Session } from './session.ts';
+import type { Session } from './session.ts';
 
 await connectDb();
 
-// Phase 0: every connection joins one shared session.
-// Phase 1 replaces this with per-expedition sessions.
-const session = new Session();
+const expeditions = new Expeditions();
 const wss = new WebSocketServer({ port: config.port });
 
 wss.on('connection', (socket) => {
-	let playerId: string | null = null;
+	let name = 'Explorer';
+	/** The expedition this connection is in; null after extracting until it descends again. */
+	let membership: { session: Session; playerId: string } | null = null;
+	const inExpedition = () =>
+		membership && membership.session.has(membership.playerId) ? membership : null;
 
 	socket.on('message', (data) => {
 		const message = decodeClient(data.toString());
@@ -27,15 +30,23 @@ wss.on('connection', (socket) => {
 					socket.close();
 					return;
 				}
-				if (!playerId) playerId = session.addPlayer(socket, message.name.slice(0, 24)).id;
+				name = String(message.name).slice(0, 24);
+				if (!membership) membership = expeditions.join(socket, name);
 				break;
-			case 'input':
-				if (playerId) session.receiveInput(playerId, message.frames);
+			case 'descend':
+				if (!inExpedition()) membership = expeditions.join(socket, name);
 				break;
-			case 'admin':
-				if (playerId && typeof message.command === 'object' && message.command !== null)
-					session.admin(playerId, message.command);
+			case 'input': {
+				const m = inExpedition();
+				if (m) m.session.receiveInput(m.playerId, message.frames);
 				break;
+			}
+			case 'admin': {
+				const m = inExpedition();
+				if (m && typeof message.command === 'object' && message.command !== null)
+					m.session.admin(m.playerId, message.command);
+				break;
+			}
 			case 'ping':
 				socket.send(
 					encode({ type: 'pong', clientTime: message.clientTime, serverTime: Date.now() })
@@ -45,7 +56,8 @@ wss.on('connection', (socket) => {
 	});
 
 	socket.on('close', () => {
-		if (playerId) session.removePlayer(playerId);
+		const m = inExpedition();
+		if (m) m.session.removePlayer(m.playerId);
 	});
 });
 
@@ -53,7 +65,7 @@ log.info(`Game server listening on ws://localhost:${config.port}`);
 
 async function shutdown(): Promise<void> {
 	log.info('Shutting down');
-	session.stop();
+	expeditions.stop();
 	wss.close();
 	await closeDb();
 	process.exit(0);

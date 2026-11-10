@@ -19,6 +19,7 @@ export const ACTIONS = {
 	},
 	climb: { label: 'Climb / swim up', category: 'Movement', defaults: ['Space'] },
 	swimDown: { label: 'Swim down', category: 'Movement', defaults: ['KeyX'] },
+	interact: { label: 'Interact (hold)', category: 'Actions', defaults: ['KeyE'] },
 	headlamp: { label: 'Headlamp mode', category: 'Light', defaults: ['KeyF'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },

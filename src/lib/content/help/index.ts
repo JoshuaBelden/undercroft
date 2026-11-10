@@ -43,6 +43,16 @@ Underwater, your stamina is your breath: it drains and won't come back until you
 Look for steps or a low edge to get out. Every pool has a way out.`
 	},
 	{
+		id: 'extraction',
+		title: 'Getting out',
+		category: 'Basics',
+		body: `The way out is the sealed door you started beside, in the cellar at the top of the stairs. Remember how to get back to it.
+
+Stand at the door and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
+
+Once you're out, your expedition is over. In a group, the others can stay down; the expedition ends when everyone is out.`
+	},
+	{
 		id: 'stamina',
 		title: 'Stamina',
 		category: 'Basics',

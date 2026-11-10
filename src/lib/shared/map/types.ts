@@ -72,6 +72,8 @@ export interface KitEntry {
 	descends?: boolean;
 	/** Major rooms: placed last on the main route, after a descent, so it is the deepest. */
 	final?: boolean;
+	/** Name shown in the room banner when a player first enters it. */
+	title?: string;
 }
 
 export type MapKit = Record<string, KitEntry>;

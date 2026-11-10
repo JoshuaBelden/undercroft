@@ -57,6 +57,10 @@ export interface PlayerState {
 	/** Moving slowly and silently (no footsteps; Thralls will hear less in Phase 2). */
 	sneaking: boolean;
 	mantle: Mantle | null;
+	/** Seconds spent holding interact at an extraction point (resets if interrupted). */
+	extracting: number;
+	/** Climbed out: the server removes the player from the expedition. */
+	extracted: boolean;
 }
 
 /** One fixed simulation step of player input (1 / SIM_RATE seconds). */
@@ -74,6 +78,8 @@ export interface InputFrame {
 	/** Climb a ledge on land; swim up in water (held). */
 	climb: boolean;
 	swimDown: boolean;
+	/** Interact (held): extraction now; doors, items and more later. */
+	interact: boolean;
 	stance: Stance;
 	headlamp: HeadlampMode;
 }
