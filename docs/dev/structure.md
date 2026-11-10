@@ -9,9 +9,12 @@ src/
     shared/                 code shared by client and server
       constants.ts          protocol version, tick rate, ports
       protocol.ts           WebSocket message types, encode/decode
+      rng.ts                seeded PRNG (deterministic on server and client)
+      map/                  map types, grid math, layout generator, generated piece manifest
     game/
       Engine.ts             Three.js renderer, scene, camera, frame loop, stats, light budget
       assets.ts             glTF model loading and cache, asset path registry
+      map/MapRenderer.ts    places map pieces from a layout
       input/
         actions.ts          action definitions and default bindings
         InputMap.ts         raw input -> actions
@@ -23,6 +26,7 @@ src/
       settings.svelte.ts    persisted player settings ($state)
     content/
       help/index.ts         player help topics
+      map/kit.ts            map piece roles and weights
     ui/                     Svelte components (Panel, menus, overlays)
   routes/
     +page.svelte            main menu
@@ -35,7 +39,10 @@ server/
   log.ts                    logging
 scripts/
   make-dev-asset.ts         generates the placeholder dev asset
+  build-assets.ts           optimizes Blender exports, writes the piece manifest
+  blender/kit.py            builds the catacomb kit pieces inside Blender
 static/assets/              models, textures, audio served at /assets
+art/                        raw art sources (gitignored except README)
 ```
 
 ## Imports

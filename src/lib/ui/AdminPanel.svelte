@@ -8,9 +8,10 @@
 		status: string;
 		sessionId: string | null;
 		playerId: string | null;
+		seed: number | null;
 	}
 
-	let { onclose, status, sessionId, playerId }: Props = $props();
+	let { onclose, status, sessionId, playerId, seed }: Props = $props();
 </script>
 
 {#if devMode}
@@ -18,6 +19,7 @@
 		<div class="row"><span>Connection</span><code>{status}</code></div>
 		<div class="row"><span>Session</span><code>{sessionId ?? '—'}</code></div>
 		<div class="row"><span>Player</span><code>{playerId ?? '—'}</code></div>
+		<div class="row"><span>Map seed</span><code>{seed ?? '—'}</code></div>
 		<label class="row">
 			<span>Stats overlay</span>
 			<input type="checkbox" bind:checked={settings.interface.showStats} onchange={saveSettings} />

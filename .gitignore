@@ -21,3 +21,10 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Raw art sources (blend files, 4K textures, raw exports). See art/README.md
+/art/*
+!/art/README.md
+
+# Python bytecode (Blender kit script)
+__pycache__/

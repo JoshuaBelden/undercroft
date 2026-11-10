@@ -10,7 +10,7 @@ Flow:
 
 1. Client opens a WebSocket to `PUBLIC_GAME_SERVER_URL`.
 2. Client sends `hello` with `PROTOCOL_VERSION`. A mismatch gets `reject`.
-3. Server replies `welcome` with player and session IDs and the tick rate.
+3. Server replies `welcome` with player and session IDs, the tick rate, and the map layout.
 4. Server broadcasts `tick` at `TICK_RATE` (20 Hz).
 5. Client sends `ping` every second; `pong` gives round-trip time.
 

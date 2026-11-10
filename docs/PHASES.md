@@ -43,9 +43,9 @@ A generated Gloaming map you can start an expedition into, explore, and extract 
 - Collision against map geometry
 - Headlamp with settings (off, low, bright), battery drain, starter flicker
 - Dynamic lighting with a light budget
-- Grid-based generator: 5 static major rooms (Stairwell, Ossuary Hall, Quarry Gallery, Cistern, Gloaming Chapel), random connections
-- Connector kit: halls, square rooms, canals, squeezes, crawlspaces, secret doors, swim sections, depth transitions
-- Map graph: guaranteed path from start to the Chapel, plus loops
+- [x] Grid-based generator: 5 static major rooms (Stairwell, Ossuary Hall, Quarry Gallery, Cistern, Gloaming Chapel), random connections
+- Connector kit: halls, square rooms, canals, squeezes, crawlspaces, secret doors, swim sections, depth transitions (done: halls, junctions, square rooms, crypt, side rooms, squeezes, crawlspaces, dead ends, stairs down; still to do: canals, secret doors, swim sections)
+- [x] Map graph: guaranteed path from start to the Chapel, plus loops
 - Start room variants: stairs or rappel rope (rope can be taken)
 - Extraction points defined in room models; extracting ends the expedition
 - Swimming with breath tied to stamina

@@ -1,22 +1,77 @@
-import type { Object3D } from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { Material, Mesh, Texture, type Object3D } from 'three';
+import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 /**
- * Loads .glb models exported from Blender (see docs/dev/asset-pipeline.md).
+ * Loads glTF models exported from Blender (see docs/dev/asset-pipeline.md).
  * Each file loads once; callers receive a fresh clone they own.
+ *
+ * Map pieces reference shared, content-hashed texture files. The browser fetches each file
+ * once, and `shareTextures` makes every model that uses the same file share one GPU texture.
  */
 
 const loader = new GLTFLoader();
 const cache = new Map<string, Promise<Object3D>>();
+const textures = new Map<string, Texture>();
+
+const TEXTURE_SLOTS = [
+	'map',
+	'normalMap',
+	'roughnessMap',
+	'metalnessMap',
+	'aoMap',
+	'emissiveMap',
+	'alphaMap'
+] as const;
 
 export async function loadModel(url: string): Promise<Object3D> {
 	let pending = cache.get(url);
 	if (!pending) {
-		pending = loader.loadAsync(url).then((gltf) => gltf.scene);
+		pending = loader.loadAsync(url).then((gltf) => {
+			shareTextures(gltf, url);
+			return gltf.scene;
+		});
 		cache.set(url, pending);
 	}
 	const scene = await pending;
 	return scene.clone(true);
+}
+
+/** Swap each texture for the first one loaded from the same image file. */
+function shareTextures(gltf: GLTF, url: string): void {
+	const json = gltf.parser.json as {
+		textures?: { source?: number; extensions?: Record<string, { source?: number }> }[];
+		images?: { uri?: string }[];
+	};
+	// WebP textures name their image in the EXT_texture_webp extension.
+	const imageOf = (index: number) => {
+		const def = json.textures?.[index];
+		return def?.source ?? def?.extensions?.EXT_texture_webp?.source;
+	};
+	const base = new URL(url, window.location.href);
+	const swap = new Map<Texture, Texture>();
+	for (const [object, ref] of gltf.parser.associations) {
+		if (!(object instanceof Texture) || ref.textures === undefined) continue;
+		const source = imageOf(ref.textures);
+		const uri = source === undefined ? undefined : json.images?.[source]?.uri;
+		if (!uri || uri.startsWith('data:')) continue;
+		const key = `${new URL(uri, base).href}|${object.colorSpace}`;
+		const shared = textures.get(key);
+		if (!shared) textures.set(key, object);
+		else if (shared !== object) swap.set(object, shared);
+	}
+	if (swap.size === 0) return;
+	gltf.scene.traverse((node) => {
+		if (!(node instanceof Mesh)) return;
+		const materials: Material[] = Array.isArray(node.material) ? node.material : [node.material];
+		for (const material of materials) {
+			const slots = material as unknown as Record<string, unknown>;
+			for (const slot of TEXTURE_SLOTS) {
+				const current = slots[slot];
+				if (current instanceof Texture && swap.has(current)) slots[slot] = swap.get(current);
+			}
+		}
+	});
+	for (const unused of swap.keys()) unused.dispose();
 }
 
 export const ASSETS = {

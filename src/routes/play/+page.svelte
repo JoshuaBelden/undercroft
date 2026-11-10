@@ -3,12 +3,16 @@
 	import { onMount } from 'svelte';
 	import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
 	import { devMode } from '#lib/dev.ts';
-	import { ASSETS, loadModel } from '#lib/game/assets.ts';
+	import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
+	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
 	import { GameClient, type ConnectionStatus } from '#lib/game/net/GameClient.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
+	import { toWorld } from '#lib/shared/map/grid.ts';
+	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
+	import type { MapLayout } from '#lib/shared/map/types.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
@@ -20,6 +24,7 @@
 	let statusDetail = $state('');
 	let sessionId = $state<string | null>(null);
 	let playerId = $state<string | null>(null);
+	let seed = $state<number | null>(null);
 	let stats = $state<FrameStats>({ fps: 0, frameMs: 0, drawCalls: 0, triangles: 0, lights: 0 });
 	let rtt = $state(0);
 
@@ -33,19 +38,29 @@
 		const engine = new Engine(canvas);
 		const input = new InputMap();
 
-		// Phase 0 test scene: a dev asset lit by a single point light.
-		engine.scene.add(new THREE.AmbientLight(0xffffff, 0.05));
-		const lamp = new THREE.PointLight(0xffd9a0, 30, 12);
-		lamp.position.set(2, 3, 2);
-		engine.scene.add(lamp);
-		engine.camera.position.set(0, 1.6, 4);
-		engine.camera.lookAt(0, 0.5, 0);
-
-		void loadModel(ASSETS.devCube).then((model) => {
-			model.position.y = 0.5;
-			engine.scene.add(model);
-			engine.onUpdate((delta) => (model.rotation.y += delta * 0.5));
+		// Map preview until the first-person controller lands: orbit camera, dim ambient and a
+		// lantern that follows the orbit target.
+		const map = new MapRenderer();
+		engine.scene.add(map.root);
+		engine.scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+		const lantern = new THREE.PointLight(0xffd9a0, 60, 20);
+		engine.scene.add(lantern);
+		const orbit = new OrbitControls(engine.camera, canvas);
+		orbit.enableDamping = true;
+		engine.onUpdate(() => {
+			orbit.update();
+			lantern.position.copy(orbit.target).add(new THREE.Vector3(0, 2, 0));
 		});
+
+		function showMap(layout: MapLayout): void {
+			seed = layout.seed;
+			void map.build(layout);
+			const start = layout.placements[0];
+			const spawn = PIECES[start.piece].spawns[0] ?? [0, 0, 0];
+			const [x, y, z] = toWorld(start, spawn);
+			orbit.target.set(x, y + 1, z);
+			engine.camera.position.set(x + 10, y + 14, z + 10);
+		}
 
 		const client = new GameClient(PUBLIC_GAME_SERVER_URL, 'Explorer', {
 			onStatus: (next, detail) => {
@@ -54,7 +69,10 @@
 				playerId = client.playerId;
 			},
 			onMessage: (message) => {
-				if (message.type === 'welcome') sessionId = message.sessionId;
+				if (message.type === 'welcome') {
+					sessionId = message.sessionId;
+					if (message.layout.seed !== seed) showMap(message.layout);
+				}
 			}
 		});
 		client.connect();
@@ -89,6 +107,7 @@
 		return () => {
 			unsubscribe();
 			window.removeEventListener('pointerdown', unlockAudio);
+			orbit.dispose();
 			input.dispose();
 			client.dispose();
 			engine.dispose();
@@ -115,7 +134,7 @@
 {:else if panel === 'help'}
 	<HelpPanel onclose={() => (panel = null)} />
 {:else if panel === 'admin'}
-	<AdminPanel onclose={() => (panel = null)} {status} {sessionId} {playerId} />
+	<AdminPanel onclose={() => (panel = null)} {status} {sessionId} {playerId} {seed} />
 {/if}
 
 <style>

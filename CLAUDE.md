@@ -15,7 +15,7 @@ Read `docs/HANDOFF.md` before designing any gameplay feature. Check `docs/PHASES
 - **Game server**: separate Node process using WebSockets, server-authoritative simulation (`/server`)
 - **MongoDB** running in **Docker** (`docker compose`)
 - **pnpm** only. Never use npm or yarn.
-- **Assets**: modeled in Blender, exported as glTF (`.glb`) to `static/assets/`
+- **Assets**: modeled in Blender, exported as glTF to `art/export/`, optimized into `static/assets/` by `pnpm asset:build`
 
 ## Commands
 
@@ -29,6 +29,7 @@ pnpm check              # svelte-check + TypeScript
 pnpm lint               # Prettier check + ESLint
 pnpm format             # Prettier
 pnpm asset:dev          # regenerate the placeholder dev asset
+pnpm asset:build        # art/export/*.glb -> optimized static/assets/map + piece manifest
 ```
 
 ## Development rules
@@ -43,7 +44,7 @@ pnpm asset:dev          # regenerate the placeholder dev asset
 
 - **Server is authoritative** for game state: positions, the Affliction meter, Thralls, items, loot, sanity, rite progress. Clients send inputs and render.
 - **Solo runs use the same server path** as co-op (one client connected). No separate single-player code path.
-- **Map generation is seeded.** The server picks the seed; clients generate geometry from the same seed.
+- **Map generation is seeded and server-side.** The server picks the seed, generates the layout, and sends it to clients. Clients only build geometry from the layout they receive.
 - **Shared types** between client and server live in `src/lib/shared/`.
 - **Imports**: SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions (`#lib/game/Engine.ts`, `#lib/settings/settings.svelte.ts`). The server imports shared code by relative path with `.ts` extensions.
 - **Environment variables**: client-visible variables are declared in `src/env.ts` and read from `$app/env/public`. The server reads `process.env` via `server/config.ts`.
@@ -69,7 +70,8 @@ src/
   routes/       # SvelteKit pages and API routes
 server/         # authoritative game server
 scripts/        # one-off tooling (asset generation)
-static/assets/  # .glb models, textures, audio
+static/assets/  # .glb models, textures, audio (optimized, committed)
+art/            # raw art: .blend, 4K textures, raw exports (gitignored)
 docs/
   HANDOFF.md
   PHASES.md

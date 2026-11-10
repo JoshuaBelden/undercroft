@@ -2,12 +2,20 @@
  * Messages exchanged between client and game server over WebSocket.
  * All messages are JSON with a `type` discriminator.
  */
+import type { MapLayout } from './map/types.ts';
 
 export type ClientMessage =
 	{ type: 'hello'; protocol: number; name: string } | { type: 'ping'; clientTime: number };
 
 export type ServerMessage =
-	| { type: 'welcome'; playerId: string; sessionId: string; tickRate: number }
+	| {
+			type: 'welcome';
+			playerId: string;
+			sessionId: string;
+			tickRate: number;
+			/** The expedition map, generated on the server. Clients only render it. */
+			layout: MapLayout;
+	  }
 	| { type: 'reject'; reason: string }
 	| { type: 'pong'; clientTime: number; serverTime: number }
 	| { type: 'tick'; tick: number; serverTime: number; players: PlayerSummary[] };

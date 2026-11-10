@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto';
 import type { WebSocket } from 'ws';
 import { TICK_RATE } from '../src/lib/shared/constants.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
+import { MAP_KIT } from '../src/lib/content/map/kit.ts';
+import { generateLayout } from '../src/lib/shared/map/generate.ts';
+import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
+import { randomSeed } from '../src/lib/shared/rng.ts';
 import { log } from './log.ts';
 
 interface Player {
@@ -16,6 +20,10 @@ interface Player {
  */
 export class Session {
 	readonly id = randomUUID();
+	/** Map seed, kept for logs, admin tools and reproducing a layout. */
+	readonly seed = randomSeed();
+	/** Authoritative map layout, sent to clients in `welcome`. */
+	readonly layout = generateLayout(this.seed, PIECES, MAP_KIT);
 	private players = new Map<string, Player>();
 	private tick = 0;
 	private timer: NodeJS.Timeout | null = null;
@@ -31,7 +39,8 @@ export class Session {
 			type: 'welcome',
 			playerId: player.id,
 			sessionId: this.id,
-			tickRate: TICK_RATE
+			tickRate: TICK_RATE,
+			layout: this.layout
 		});
 		log.info(`Player ${name} joined session ${this.id.slice(0, 8)}`);
 		if (!this.timer) this.start();
