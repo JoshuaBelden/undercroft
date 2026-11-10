@@ -34,7 +34,7 @@ Aspects:
 - [x] **Settings**: settings store with persistence; settings menu shell.
 - [x] **Keybinds**: input map abstraction; nothing reads raw keys.
 
-## Phase 1: Map and expedition
+## Phase 1: Map and expedition ✅
 
 A generated Gloaming map you can start an expedition into, explore, and extract from.
 
@@ -44,9 +44,9 @@ A generated Gloaming map you can start an expedition into, explore, and extract 
 - [x] Headlamp with settings (off, low, bright), battery drain, starter flicker
 - [x] Dynamic lighting with a light budget
 - [x] Grid-based generator: 5 static major rooms (Stairwell, Ossuary Hall, Quarry Gallery, Cistern, Gloaming Chapel), random connections
-- Connector kit: halls, square rooms, canals, squeezes, crawlspaces, secret doors, swim sections, depth transitions (done: halls, junctions, square rooms, crypt, side rooms, squeezes, crawlspaces, dead ends, stairs down, canals, flooded passages; still to do: secret doors)
+- [x] Connector kit: halls, junctions, square rooms, crypt, side rooms, canals, squeezes, crawlspaces, dead ends, flooded passages (swim sections), stairs down (depth transitions). Secret doors moved to Phase 4.
 - [x] Map graph: guaranteed path from start to the Chapel, plus loops
-- Start room variants: stairs or rappel rope (rope can be taken)
+- [x] Start room with stairs down. The rappel-rope variant moved to Phase 4 (it needs inventory).
 - [x] Extraction points defined in room models; extracting ends the expedition
 - [x] Swimming with breath tied to stamina (plus mantling to climb ledges and out of water)
 - [x] Room banners on entering major rooms
@@ -55,10 +55,10 @@ Aspects:
 
 - **Dev docs**: networking model, movement and prediction, lighting budget, generator algorithm, building and tagging room models and connector pieces in Blender.
 - **Help system**: movement, stamina, headlamp, extraction, squeezes, swimming.
-- **Admin**: seed input, regenerate map, map debug view, noclip, teleport, reveal secret doors, infinite battery/stamina.
+- **Admin**: seed input, regenerate map, map debug view, noclip, teleport, infinite battery/stamina. (Reveal secret doors moved to Phase 4.)
 - **Audio**: footsteps (by surface), breathing tied to stamina, headlamp click, dripping, distant echoes, swim/underwater audio, tight-space muffling. (All done; placeholders where no recording exists yet.)
 - **Settings**: mouse sensitivity, invert Y, FOV, graphics quality, brightness/gamma calibration.
-- **Keybinds**: move, sprint, crouch, crawl, headlamp mode, interact, swim up/down, climb/rappel.
+- **Keybinds**: move, sprint, crouch, crawl, creep, headlamp mode, interact, swim up/down, climb. (Rappel moved to Phase 4.)
 
 ## Phase 2: Creatures and combat
 
@@ -107,6 +107,8 @@ Aspects:
 - Light sources: candles (tiers, burn-down, placeable), lighter, torches, glow sticks (throwable)
 - Chalk marks on walls (one per stick)
 - Crowbar utility: prying niches, coffins, secret doors
+- Secret doors in the connector kit: hidden passages found with interact or pried open (moved from Phase 1)
+- Start room variant: rappel down a rope that can be taken, removing that route back up (moved from Phase 1)
 - Crafting as a player skill: recipes, craft time, requires light, noise
 - Water: wet items, drying near flame, wet batteries short out, waterproof packs, oilcloth pouches
 - Loot spawning by depth
@@ -122,7 +124,7 @@ Aspects:
 
 - **Dev docs**: item data format, recipes, loot tables, rite data format, adding clues and requirements.
 - **Help system**: inventory, crafting, candles, chalk, water, shrines, rites, clues, the holder.
-- **Admin**: spawn item, give all recipes, set wetness, spawn shrine, reveal all clues, reset rite progress, give rite items, teleport to rite room.
+- **Admin**: spawn item, reveal secret doors, give all recipes, set wetness, spawn shrine, reveal all clues, reset rite progress, give rite items, teleport to rite room.
 - **Audio**: pickup/drop, candle light and snuff, chalk scraping, crafting, wet sounds, clue sting, rite initiation and resolution.
 - **Settings**: HUD options (inventory display, item prompts).
 - **Keybinds**: inventory, quick slots, drop, throw, craft menu, place light, chalk mark, rite panel, initiate rite.
