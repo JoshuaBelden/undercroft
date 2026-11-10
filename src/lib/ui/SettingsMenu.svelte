@@ -91,6 +91,17 @@
 			{/each}
 		</select>
 	</label>
+	<label class="row">
+		<span>Camera shake ({Math.round(settings.graphics.cameraShake * 100)}%)</span>
+		<input
+			type="range"
+			min="0"
+			max="1"
+			step="0.05"
+			bind:value={settings.graphics.cameraShake}
+			oninput={saveSettings}
+		/>
+	</label>
 
 	<h3>Mouse</h3>
 	<label class="row">

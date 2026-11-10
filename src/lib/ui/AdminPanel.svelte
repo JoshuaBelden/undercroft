@@ -15,8 +15,11 @@
 		rooms: string[];
 		flags: PlayerFlags | null;
 		mapView: boolean;
+		/** Creature markers drawn through walls. */
+		markers: boolean;
 		onadmin: (command: AdminCommand) => void;
 		onmapview: (enabled: boolean) => void;
+		onmarkers: (enabled: boolean) => void;
 	}
 
 	let {
@@ -28,17 +31,29 @@
 		rooms,
 		flags,
 		mapView,
+		markers,
 		onadmin,
-		onmapview
+		onmapview,
+		onmarkers
 	}: Props = $props();
 
 	let seedInput = $state('');
+	let sanityInput = $state('100');
 
-	const toggles: { kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery'; label: string }[] = [
+	const toggles: {
+		kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery' | 'godMode';
+		label: string;
+	}[] = [
 		{ kind: 'noclip', label: 'Noclip (fly through walls)' },
 		{ kind: 'infiniteStamina', label: 'Infinite stamina' },
-		{ kind: 'infiniteBattery', label: 'Infinite battery' }
+		{ kind: 'infiniteBattery', label: 'Infinite battery' },
+		{ kind: 'godMode', label: 'God mode (no sanity loss)' }
 	];
+
+	function setSanity(): void {
+		const value = Number(sanityInput);
+		if (Number.isFinite(value)) onadmin({ kind: 'setSanity', value });
+	}
 
 	function regenerate(): void {
 		const value = Number(seedInput);
@@ -98,7 +113,27 @@
 				<button type="button" onclick={() => onadmin({ kind: 'teleport', room })}>{room}</button>
 			{/each}
 		</div>
-		<p class="muted">Player commands need DEV_MODE=true on the game server.</p>
+		<div class="row">
+			<input type="text" inputmode="numeric" placeholder="Sanity" bind:value={sanityInput} />
+			<button type="button" onclick={setSanity}>Set sanity</button>
+		</div>
+
+		<h3>Creatures</h3>
+		<div class="row">
+			<button type="button" onclick={() => onadmin({ kind: 'spawnCreature' })}
+				>Spawn in front</button
+			>
+			<button type="button" onclick={() => onadmin({ kind: 'clearCreatures' })}>Remove all</button>
+		</div>
+		<label class="row">
+			<span>Show creatures (through walls)</span>
+			<input
+				type="checkbox"
+				checked={markers}
+				onchange={(event) => onmarkers(event.currentTarget.checked)}
+			/>
+		</label>
+		<p class="muted">Player and creature commands need DEV_MODE=true on the game server.</p>
 	</Panel>
 {/if}
 

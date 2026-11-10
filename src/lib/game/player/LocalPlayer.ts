@@ -221,6 +221,7 @@ export class LocalPlayer {
 			climb: active && input.isDown('climb'),
 			swimDown: active && input.isDown('swimDown'),
 			interact: active && input.isDown('interact'),
+			heal: active && input.isDown('heal'),
 			stance: this.stance,
 			headlamp: this.lamp
 		};

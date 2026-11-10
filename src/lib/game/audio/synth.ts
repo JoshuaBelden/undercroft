@@ -226,6 +226,79 @@ function lap(ctx: BaseAudioContext): AudioBuffer {
 	});
 }
 
+function shuffle(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(83);
+	const a = lowpass(900, ctx.sampleRate);
+	let y = 0;
+	// A slow drag that scuffs at the end.
+	return buffer(ctx, 0.45, (t) => {
+		y += a * (rand() - y);
+		const drag = Math.sin(Math.min(1, t / 0.3) * Math.PI) * 0.6;
+		const scuff = t > 0.28 ? Math.exp(-(t - 0.28) / 0.04) : 0;
+		return y * (drag + scuff * 1.5) * 1.6;
+	});
+}
+
+function rush(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(89);
+	const a = lowpass(2400, ctx.sampleRate);
+	let y = 0;
+	return buffer(ctx, 0.7, (t) => {
+		y += a * (rand() - y);
+		// Fast swell and drop, with quick footfalls through it.
+		const swell = Math.sin(Math.min(1, t / 0.7) * Math.PI);
+		const steps = Math.exp(-((t * 9) % 1) / 0.12);
+		return y * swell * (0.5 + steps) * 1.3;
+	});
+}
+
+function snarl(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(97);
+	const a = lowpass(1400, ctx.sampleRate);
+	let y = 0;
+	let phase = 0;
+	return buffer(ctx, 0.9, (t) => {
+		y += a * (rand() - y);
+		// Rasping voice: noise modulated by a low, wavering buzz.
+		const freq = 95 + 25 * Math.sin(t * 17);
+		phase += (2 * Math.PI * freq) / ctx.sampleRate;
+		const env = Math.min(1, t / 0.06) * Math.exp(-t / 0.45);
+		const strike = t > 0.35 ? Math.exp(-(t - 0.35) / 0.03) * 1.5 : 0;
+		return (y * (1 + Math.sin(phase)) * env + y * strike) * 1.4;
+	});
+}
+
+function hurt(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(101);
+	const a = lowpass(1100, ctx.sampleRate);
+	let y = 0;
+	return buffer(ctx, 0.5, (t) => {
+		y += a * (rand() - y);
+		return y * Math.min(1, t / 0.02) * Math.exp(-t / 0.15) * 2.2;
+	});
+}
+
+function heartbeat(ctx: BaseAudioContext, period: number): AudioBuffer {
+	const beat = (t: number) => (t >= 0 ? Math.sin(2 * Math.PI * 48 * t) * Math.exp(-t / 0.05) : 0);
+	return buffer(ctx, period, (t) => beat(t) + beat(t - 0.24) * 0.7);
+}
+
+function whisper(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(103);
+	const a = lowpass(5000, ctx.sampleRate);
+	const b = lowpass(1800, ctx.sampleRate);
+	let y = 0;
+	let z = 0;
+	return buffer(ctx, 1.8, (t) => {
+		y += a * (rand() - y);
+		z += b * (y - z);
+		// Breathy syllables: high-passed noise gated in uneven bursts.
+		const syllable = Math.max(0, Math.sin(t * 11 + Math.sin(t * 3) * 2));
+		const env = Math.sin((t / 1.8) * Math.PI);
+		return (y - z) * syllable * env * 2.5;
+	});
+}
+
 export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer {
 	switch (spec.kind) {
 		case 'footstep':
@@ -250,5 +323,17 @@ export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer 
 			return groan(ctx);
 		case 'lap':
 			return lap(ctx);
+		case 'shuffle':
+			return shuffle(ctx);
+		case 'rush':
+			return rush(ctx);
+		case 'snarl':
+			return snarl(ctx);
+		case 'hurt':
+			return hurt(ctx);
+		case 'heartbeat':
+			return heartbeat(ctx, spec.period);
+		case 'whisper':
+			return whisper(ctx);
 	}
 }

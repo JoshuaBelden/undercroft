@@ -1,4 +1,5 @@
 import { EXPEDITION } from '../../content/expedition.ts';
+import { SANITY } from '../../content/player/sanity.ts';
 import { DEFAULT_HEADLAMP, type HeadlampModel } from '../../content/items/headlamps.ts';
 import { MOVEMENT, type MovementTuning } from '../../content/player/movement.ts';
 import {
@@ -40,7 +41,7 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		headlamp: 1,
 		battery: 1,
 		lampClock: 0,
-		flags: { noclip: false, infiniteStamina: false, infiniteBattery: false },
+		flags: { noclip: false, infiniteStamina: false, infiniteBattery: false, godMode: false },
 		swimming: false,
 		wading: false,
 		underwater: false,
@@ -48,7 +49,15 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		squeezing: false,
 		mantle: null,
 		extracting: 0,
-		extracted: false
+		extracted: false,
+		sanity: SANITY.max,
+		downed: false,
+		downedTime: 0,
+		dead: false,
+		salts: SANITY.startingSalts,
+		bandages: SANITY.startingBandages,
+		bandaging: 0,
+		reviving: 0
 	};
 }
 
@@ -75,6 +84,7 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		climb: false,
 		swimDown: false,
 		interact: false,
+		heal: false,
 		stance: s.stance,
 		headlamp: s.headlamp
 	};
@@ -110,6 +120,7 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		climb: f.climb === true,
 		swimDown: f.swimDown === true,
 		interact: f.interact === true,
+		heal: f.heal === true,
 		stance,
 		headlamp: lamp
 	};
@@ -128,6 +139,13 @@ export function stepPlayer(
 	s.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, input.pitch));
 	s.headlamp = input.headlamp;
 	s.sneaking = input.sneak && !s.swimming;
+
+	if (s.dead) return s;
+	if (s.downed) {
+		stepDowned(s, world, dt, t);
+		updateBattery(s, dt, lamp);
+		return s;
+	}
 
 	if (s.mantle) {
 		advanceMantle(s, dt);
@@ -206,9 +224,38 @@ export function stepPlayer(
 
 	s.underwater = surface !== null && s.position[1] + eyeHeight(s, t) < surface;
 	updateExtraction(s, input, world, moving, dt);
+	updateBandage(s, input, moving);
+	if (s.bandaging > 0) s.bandaging += dt;
+	if (s.bandaging >= SANITY.bandageSeconds) {
+		s.bandages--;
+		s.sanity = Math.min(SANITY.max, s.sanity + SANITY.bandageHeal);
+		s.bandaging = 0;
+	}
 	updateStamina(s, sprinting, s.underwater, dt, t);
 	updateBattery(s, dt, lamp);
 	return s;
+}
+
+/** Downed: no movement, only look; the floor still holds you; bleed out after SANITY.bleedOut. */
+function stepDowned(s: PlayerState, world: CollisionWorld, dt: number, t: MovementTuning): void {
+	s.stance = 'crawl';
+	s.velocity[0] = 0;
+	s.velocity[2] = 0;
+	s.velocity[1] = s.grounded ? STICK_SPEED : s.velocity[1] - t.gravity * dt;
+	s.position[1] += s.velocity[1] * dt;
+	resolveCollisions(s, world, t);
+	s.extracting = 0;
+	s.bandaging = 0;
+	s.downedTime += dt;
+	if (s.downedTime >= SANITY.bleedOut) s.dead = true;
+}
+
+/** Start or interrupt applying a bandage (hold heal, standing still, with a bandage, hurt). */
+function updateBandage(s: PlayerState, input: InputFrame, moving: boolean): void {
+	const ready =
+		input.heal && !moving && s.grounded && !s.swimming && s.bandages > 0 && s.sanity < SANITY.max;
+	if (!ready) s.bandaging = 0;
+	else if (s.bandaging === 0) s.bandaging = 1e-6;
 }
 
 /** The extraction point within reach of the player, if any. */

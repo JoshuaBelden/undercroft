@@ -62,6 +62,17 @@ export class RemotePlayers {
 		}
 	}
 
+	/** Each remote player's latest state, with the lamp clock advanced to now (for lighting). */
+	*states(): Iterable<PlayerState> {
+		for (const remote of this.bodies.values()) {
+			yield {
+				...remote.state,
+				position: [remote.root.position.x, remote.root.position.y, remote.root.position.z],
+				lampClock: remote.state.lampClock + remote.since
+			};
+		}
+	}
+
 	update(delta: number): void {
 		const t = Math.min(1, delta * 12);
 		for (const remote of this.bodies.values()) {

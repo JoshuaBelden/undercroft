@@ -14,6 +14,8 @@ export interface PlayerFlags {
 	noclip: boolean;
 	infiniteStamina: boolean;
 	infiniteBattery: boolean;
+	/** No sanity loss (admin). */
+	godMode: boolean;
 }
 
 /** An in-progress climb onto a ledge. Position follows a fixed path; input is ignored. */
@@ -54,7 +56,7 @@ export interface PlayerState {
 	wading: boolean;
 	/** Eye below the water surface: breath (stamina) drains. */
 	underwater: boolean;
-	/** Moving slowly and silently (no footsteps; Thralls will hear less in Phase 2). */
+	/** Moving slowly and silently (no footsteps; creatures hear less). */
 	sneaking: boolean;
 	/** Inside a squeeze volume: slowed, no sprinting, grunting through. */
 	squeezing: boolean;
@@ -63,6 +65,21 @@ export interface PlayerState {
 	extracting: number;
 	/** Climbed out: the server removes the player from the expedition. */
 	extracted: boolean;
+	/** Health: 0..SANITY.max. At 0 the player is downed. */
+	sanity: number;
+	/** On the floor: can only look around until revived (or until bleed-out). */
+	downed: boolean;
+	/** Seconds spent downed. */
+	downedTime: number;
+	/** Bled out: the server removes the player from the expedition. */
+	dead: boolean;
+	/** Starting kit until the inventory exists. */
+	salts: number;
+	bandages: number;
+	/** Seconds spent applying a bandage (resets if interrupted). */
+	bandaging: number;
+	/** Seconds spent reviving a downed teammate (server-driven). */
+	reviving: number;
 }
 
 /** One fixed simulation step of player input (1 / SIM_RATE seconds). */
@@ -80,8 +97,10 @@ export interface InputFrame {
 	/** Climb a ledge on land; swim up in water (held). */
 	climb: boolean;
 	swimDown: boolean;
-	/** Interact (held): extraction now; doors, items and more later. */
+	/** Interact (held): extraction, reviving a teammate; doors, items and more later. */
 	interact: boolean;
+	/** Use a bandage (held). */
+	heal: boolean;
 	stance: Stance;
 	headlamp: HeadlampMode;
 }

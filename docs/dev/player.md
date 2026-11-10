@@ -1,4 +1,4 @@
-# Player: movement, collision, networking, headlamp
+# Player: movement, collision, networking, headlamp, sanity
 
 The first-person player. The server is authoritative. The client predicts its own movement with the same code and reconciles with the server.
 
@@ -19,6 +19,8 @@ The first-person player. The server is authoritative. The client predicts its ow
 | Other players (placeholder)          | `src/lib/game/player/RemotePlayers.ts` |
 | Footsteps, breathing, click          | `src/lib/game/player/PlayerAudio.ts`   |
 | HUD                                  | `src/lib/ui/Hud.svelte`                |
+| Sanity tuning (data)                 | `src/lib/content/player/sanity.ts`     |
+| Downed overlay                       | `src/lib/ui/DownedScreen.svelte`       |
 
 ## Simulation
 
@@ -42,7 +44,7 @@ All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye h
 
 - **Stances:** stand (1.75 m), crouch (1.2 m), crawl (0.7 m). The client cycles the wanted stance with one key. Standing up is blocked while the taller capsule wouldn't fit (`capsuleFits`). The wanted stance persists, so you rise (as far as fits) once there's room.
 - **Squeezes:** a `vol-squeeze-*` volume marks the tight part of a piece (currently `hall-squeeze`). Inside it, `state.squeezing` is set, speed is capped at `squeezeSpeed` (0.7 m/s, momentum clamped on entry) and sprinting is impossible. The client grunts as you push through. Heavy packs that won't fit come with inventory (Phase 4).
-- **Sneak ("creep" in game):** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps now and will reduce noise for Thralls in Phase 2.
+- **Sneak ("creep" in game):** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps, and creatures only hear it within `hear.creep` (see [creatures.md](creatures.md)).
 - **Stance key (client):** a tap (released within 350 ms) cycles the wanted stance; while the key is held you creep, and releasing a hold leaves the stance as it was (`LocalPlayer.updateStanceKey`). Holding sprint resets the wanted stance to standing and stops creeping.
 - **Stamina:** sprinting drains it, and it regenerates after a short delay. At zero the player is `exhausted` and can't sprint, climb or dive until stamina recovers to `recoverAt`.
 - **Battery:** drains by headlamp mode. At zero the lamp gives no light.
@@ -151,6 +153,32 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
   - All of it plays on the ambience bus, so the Ambience volume slider controls it. All of them now use recordings; the synthesized versions remain as fallbacks.
 - **Sneaking** plays no footsteps.
 
+## Sanity
+
+Sanity is health (0 to `SANITY.max`). All tuning lives in `SANITY` (`src/lib/content/player/sanity.ts`).
+
+Applied by the server (`server/session.ts`) each tick:
+
+- **Attacks:** a creature's hit takes `attack.damage`.
+- **Darkness:** `darknessDrain`/s while your lamp gives no light (off or flat) and other players' lamps put less than 0.02 on your eye.
+- **Seeing:** `seeingDrain`/s while a creature is in half-light (`creatureLight` in its `visibleBand`), within `seeingRange`, inside your view cone (0.9 rad half-angle) and in line of sight.
+- **God mode** (admin flag) ignores all of it.
+
+At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed player on the floor in crawl stance: look only, no extraction or bandaging. `downedTime` counts up, and at `bleedOut` (60 s) `dead` is set. The server then sends `died` and removes the player, like `extracted`. The expedition still ends when nobody is left.
+
+**Reviving:** the server keeps each player's last simulated input. While a player who isn't downed holds `interact` within `reviveRange` of a downed teammate and has salts, `reviving` counts up. At `reviveSeconds` one salt is used and the teammate gets up with `reviveTo` sanity. If nobody else could help (solo, or everyone else is down too), a downed player with salts uses their own after 3 s.
+
+**Bandages:** hold `heal` standing still with a bandage and less than full sanity. `bandaging` counts up in the shared step (so it predicts), and at `bandageSeconds` one bandage is used for `bandageHeal`. Moving or letting go resets it.
+
+Until the inventory exists (Phase 4), each player starts with `startingSalts` and `startingBandages`.
+
+**Client:**
+
+- The HUD shows a sanity bar (only below max), bandage and salt counts, and a vignette that darkens with lost sanity and pulses below 40%.
+- A hit (a drop of more than 3 in one frame) flashes red, plays `player.hurt` and shakes the camera, scaled by the **Camera shake** setting.
+- `heartbeat` loops louder and faster below 40%; `whisper` plays near you below 20%.
+- Downed, the camera tilts and `DownedScreen` shows the bleed-out bar and what happens next.
+
 ## Admin tools
 
 Admin tools are in the admin panel (F10) and need `PUBLIC_DEV_MODE` on the client. The server only accepts the commands when `DEV_MODE=true` (`server/config.ts`).
@@ -162,3 +190,6 @@ Admin tools are in the admin panel (F10) and need `PUBLIC_DEV_MODE` on the clien
 | Teleport                   | To the start room or any major room. Lands on the nearest clear spot with a floor (`findFreeSpot`). |
 | Regenerate                 | New map, from a given seed or a random one. Everyone respawns; flags are kept.                      |
 | Map debug view             | Client-only orbit camera with flat lighting, for inspecting layouts.                                |
+| God mode                   | No sanity loss.                                                                                     |
+| Set sanity                 | Sets your sanity (0 downs you; above 0 gets you up if downed).                                      |
+| Creatures                  | Spawn one in front of you, remove all, show markers through walls (see creatures.md).               |

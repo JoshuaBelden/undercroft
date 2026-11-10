@@ -314,3 +314,75 @@ export function findMantle(
 	}
 	return null;
 }
+
+/** True if the segment a->b passes through any collision box (line of sight / light occlusion). */
+export function segmentBlocked(world: CollisionWorld, a: Vec3, b: Vec3): boolean {
+	const lo: Vec3 = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.min(a[2], b[2])];
+	const hi: Vec3 = [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.max(a[2], b[2])];
+	for (const box of boxesNear(world, lo, hi)) {
+		// Slab test in the box's local frame.
+		let t0 = 0;
+		let t1 = 1;
+		let hit = true;
+		for (let k = 0; k < 3 && hit; k++) {
+			const axis = box.axes[k];
+			const start =
+				(a[0] - box.center[0]) * axis[0] +
+				(a[1] - box.center[1]) * axis[1] +
+				(a[2] - box.center[2]) * axis[2];
+			const dir = (b[0] - a[0]) * axis[0] + (b[1] - a[1]) * axis[1] + (b[2] - a[2]) * axis[2];
+			// Shrink a hair so grazing a surface (e.g. the floor under a point) doesn't count.
+			const half = box.half[k] - 0.02;
+			if (Math.abs(dir) < 1e-9) {
+				if (Math.abs(start) > half) hit = false;
+				continue;
+			}
+			let e0 = (-half - start) / dir;
+			let e1 = (half - start) / dir;
+			if (e0 > e1) [e0, e1] = [e1, e0];
+			t0 = Math.max(t0, e0);
+			t1 = Math.min(t1, e1);
+			if (t0 > t1) hit = false;
+		}
+		if (hit) return true;
+	}
+	return false;
+}
+
+/**
+ * Height of the highest walkable surface (a box top facing up, ramps included) at (x, z) between
+ * `below` and `above`, or null if there is none.
+ */
+export function floorHeightAt(
+	world: CollisionWorld,
+	x: number,
+	z: number,
+	above: number,
+	below: number
+): number | null {
+	let best: number | null = null;
+	for (const box of boxesNear(world, [x - 0.01, below, z - 0.01], [x + 0.01, above, z + 0.01])) {
+		// The face pointing most upward.
+		let k = 0;
+		for (let i = 1; i < 3; i++) if (Math.abs(box.axes[i][1]) > Math.abs(box.axes[k][1])) k = i;
+		const sign = box.axes[k][1] >= 0 ? 1 : -1;
+		const n: Vec3 = [box.axes[k][0] * sign, box.axes[k][1] * sign, box.axes[k][2] * sign];
+		if (n[1] < 0.7) continue;
+		const top: Vec3 = [
+			box.center[0] + n[0] * box.half[k],
+			box.center[1] + n[1] * box.half[k],
+			box.center[2] + n[2] * box.half[k]
+		];
+		const y = top[1] - (n[0] * (x - top[0]) + n[2] * (z - top[2])) / n[1];
+		if (y > above || y < below) continue;
+		const d: Vec3 = [x - box.center[0], y - box.center[1], z - box.center[2]];
+		const inside = [0, 1, 2].every(
+			(j) =>
+				j === k ||
+				Math.abs(d[0] * box.axes[j][0] + d[1] * box.axes[j][1] + d[2] * box.axes[j][2]) <=
+					box.half[j] + 1e-4
+		);
+		if (inside && (best === null || y > best)) best = y;
+	}
+	return best;
+}

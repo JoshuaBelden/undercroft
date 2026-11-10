@@ -1,5 +1,14 @@
-import { Material, Mesh, Texture, type Object3D } from 'three';
+import {
+	Material,
+	Mesh,
+	SkinnedMesh,
+	Texture,
+	VectorKeyframeTrack,
+	type AnimationClip,
+	type Object3D
+} from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 /**
  * Loads glTF models exported from Blender (see docs/dev/asset-pipeline.md).
@@ -34,6 +43,53 @@ export async function loadModel(url: string): Promise<Object3D> {
 	}
 	const scene = await pending;
 	return scene.clone(true);
+}
+
+export interface CreatureModel {
+	scene: Object3D;
+	clips: AnimationClip[];
+}
+
+const creatureCache = new Map<string, Promise<{ scene: Object3D; clips: AnimationClip[] }>>();
+
+/**
+ * A skinned, animated model (creatures). Cloned with SkeletonUtils so each copy has its own
+ * skeleton. Clips are shared between copies, with horizontal root motion removed: the server
+ * moves the creature, the clip only animates it in place.
+ */
+export async function loadCreature(url: string): Promise<CreatureModel> {
+	let pending = creatureCache.get(url);
+	if (!pending) {
+		pending = loader.loadAsync(url).then((gltf) => {
+			const clips = gltf.animations.map((clip) => stripRootMotion(clip, rootBone(gltf.scene)));
+			return { scene: gltf.scene, clips };
+		});
+		creatureCache.set(url, pending);
+	}
+	const { scene, clips } = await pending;
+	return { scene: cloneSkinned(scene), clips };
+}
+
+function rootBone(scene: Object3D): string | null {
+	let name: string | null = null;
+	scene.traverse((node) => {
+		if (!name && node instanceof SkinnedMesh) name = node.skeleton.bones[0]?.name ?? null;
+	});
+	return name;
+}
+
+/** Pin the root bone's x/z to its first keyframe (keeps the vertical bob). */
+function stripRootMotion(clip: AnimationClip, bone: string | null): AnimationClip {
+	if (!bone) return clip;
+	for (const track of clip.tracks) {
+		if (!(track instanceof VectorKeyframeTrack) || track.name !== `${bone}.position`) continue;
+		const v = track.values;
+		for (let i = 0; i < v.length; i += 3) {
+			v[i] = v[0];
+			v[i + 2] = v[2];
+		}
+	}
+	return clip;
 }
 
 /** Swap each texture for the first one loaded from the same image file. */

@@ -1,23 +1,39 @@
 import { randomUUID } from 'node:crypto';
 import type { WebSocket } from 'ws';
+import { CREATURES } from '../src/lib/content/creatures.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
+import { SANITY } from '../src/lib/content/player/sanity.ts';
 import { MOVEMENT } from '../src/lib/content/player/movement.ts';
 import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import {
 	buildCollisionWorld,
 	findFreeSpot,
+	segmentBlocked,
 	type CollisionWorld
 } from '../src/lib/shared/map/collision.ts';
+import {
+	creatureLight,
+	halfLightVisible,
+	illumination
+} from '../src/lib/shared/creature/visibility.ts';
 import { generateLayout } from '../src/lib/shared/map/generate.ts';
 import { LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
+import { buildNav, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
-import type { MapLayout } from '../src/lib/shared/map/types.ts';
-import { createPlayerState, sanitizeFrame, stepPlayer } from '../src/lib/shared/player/simulate.ts';
+import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
+import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
+import {
+	createPlayerState,
+	eyeHeight,
+	sanitizeFrame,
+	stepPlayer
+} from '../src/lib/shared/player/simulate.ts';
 import type { InputFrame, PlayerState } from '../src/lib/shared/player/types.ts';
 import { encode, type AdminCommand, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import { randomSeed } from '../src/lib/shared/rng.ts';
 import { config } from './config.ts';
+import { CreatureDirector } from './creatures.ts';
 import { log } from './log.ts';
 
 interface Player {
@@ -38,6 +54,8 @@ interface Player {
 	joinedAt: number;
 	/** Deepest level reached below the start (0 = the start level). */
 	deepestLevel: number;
+	/** Most recent input simulated (held buttons the server acts on, like revive). */
+	lastInput: InputFrame | null;
 }
 
 const DT = 1 / SIM_RATE;
@@ -45,6 +63,13 @@ const DT = 1 / SIM_RATE;
 const MAX_BANKED = SIM_RATE / 2;
 const MAX_QUEUE = SIM_RATE * 2;
 const MAX_FRAMES_PER_MESSAGE = 30;
+const TICK_DT = 1 / TICK_RATE;
+/** A downed player with nobody able to help uses their own salts after this many seconds. */
+const SELF_REVIVE_DELAY = 3;
+/** Below this much lamp light from teammates, a player with their lamp off is in the dark. */
+const DARK = 0.02;
+/** Half-angle (radians) of the view cone used for "seeing" a creature. */
+const VIEW_HALF_ANGLE = 0.9;
 
 /**
  * One expedition. Server-authoritative: the map and every player's state live here.
@@ -57,10 +82,16 @@ export class Session {
 	/** Authoritative map layout, sent to clients in `welcome`. */
 	layout: MapLayout = generateLayout(this.seed, PIECES, MAP_KIT);
 	private world: CollisionWorld = buildCollisionWorld(this.layout, PIECES);
+	private nav: NavGrid = this.buildNav();
+	private creatures = new CreatureDirector(this.world, this.nav, this.seed);
 	private players = new Map<string, Player>();
 	private tick = 0;
 	private timer: NodeJS.Timeout | null = null;
 	private hadPlayers = false;
+
+	constructor() {
+		this.creatures.populate(spawnPoint(this.layout, PIECES).position);
+	}
 
 	get playerCount(): number {
 		return this.players.size;
@@ -86,7 +117,8 @@ export class Session {
 			processed: 0,
 			clock: null,
 			joinedAt: Date.now(),
-			deepestLevel: 0
+			deepestLevel: 0,
+			lastInput: null
 		};
 		this.players.set(player.id, player);
 		this.hadPlayers = true;
@@ -136,8 +168,25 @@ export class Session {
 			case 'noclip':
 			case 'infiniteStamina':
 			case 'infiniteBattery':
+			case 'godMode':
 				player.state.flags[command.kind] = command.enabled === true;
 				break;
+			case 'spawnCreature':
+				this.creatures.spawnNear(player.state);
+				break;
+			case 'clearCreatures':
+				this.creatures.clear();
+				break;
+			case 'setSanity': {
+				const value =
+					typeof command.value === 'number' && Number.isFinite(command.value)
+						? command.value
+						: SANITY.max;
+				player.state.sanity = Math.max(0, Math.min(SANITY.max, value));
+				if (player.state.sanity <= 0) this.down(player);
+				else if (player.state.downed) this.revive(player);
+				break;
+			}
 			case 'teleport': {
 				const room = roomPoints(this.layout, PIECES, MAP_KIT).find((r) => r.name === command.room);
 				if (!room) return;
@@ -160,6 +209,9 @@ export class Session {
 		this.seed = seed;
 		this.layout = generateLayout(seed, PIECES, MAP_KIT);
 		this.world = buildCollisionWorld(this.layout, PIECES);
+		this.nav = this.buildNav();
+		this.creatures = new CreatureDirector(this.world, this.nav, seed);
+		this.creatures.populate(spawnPoint(this.layout, PIECES).position);
 		for (const player of this.players.values()) {
 			const flags = player.state.flags;
 			player.state = this.spawnState();
@@ -168,6 +220,15 @@ export class Session {
 		}
 		this.broadcast({ type: 'map', layout: this.layout });
 		log.info(`Session ${this.id.slice(0, 8)} regenerated with seed ${seed}`);
+	}
+
+	private buildNav(): NavGrid {
+		const started = performance.now();
+		const nav = buildNav(this.world, this.layout, PIECES, spawnPoint(this.layout, PIECES).position);
+		log.info(
+			`Nav grid: ${nav.points.length} points in ${Math.round(performance.now() - started)} ms`
+		);
+		return nav;
 	}
 
 	private spawnState(): PlayerState {
@@ -200,20 +261,29 @@ export class Session {
 			while (player.processed < due && player.queue.length > 0 && !player.state.extracted) {
 				const frame = player.queue.shift() as InputFrame;
 				stepPlayer(player.state, frame, this.world, DT);
+				player.lastInput = frame;
 				player.ack = frame.seq;
 				player.processed++;
 			}
 			const level = Math.round(-player.state.position[1] / LEVEL_HEIGHT);
 			player.deepestLevel = Math.max(player.deepestLevel, level);
 		}
+		this.stepCreatures();
+		this.stepSanity();
+		this.stepRevives();
 		for (const player of [...this.players.values()]) {
-			if (!player.state.extracted) continue;
-			this.send(player, {
-				type: 'extracted',
+			if (!player.state.extracted && !player.state.dead) continue;
+			const result = {
 				seconds: Math.round((Date.now() - player.joinedAt) / 1000),
 				deepestLevel: player.deepestLevel
-			});
-			log.info(`Player ${player.name} extracted from session ${this.id.slice(0, 8)}`);
+			};
+			if (player.state.dead) {
+				this.send(player, { type: 'died', ...result });
+				log.info(`Player ${player.name} died in session ${this.id.slice(0, 8)}`);
+			} else {
+				this.send(player, { type: 'extracted', ...result });
+				log.info(`Player ${player.name} extracted from session ${this.id.slice(0, 8)}`);
+			}
 			this.removePlayer(player.id);
 		}
 		if (this.players.size === 0) return;
@@ -223,7 +293,134 @@ export class Session {
 			state: p.state,
 			ack: p.ack
 		}));
-		this.broadcast({ type: 'tick', tick: this.tick, serverTime: Date.now(), players });
+		this.broadcast({
+			type: 'tick',
+			tick: this.tick,
+			serverTime: Date.now(),
+			players,
+			creatures: this.creatures.snapshots()
+		});
+	}
+
+	private stepCreatures(): void {
+		const prey = [...this.players.values()].map((p) => ({ id: p.id, state: p.state }));
+		for (const hit of this.creatures.step(prey)) {
+			const player = this.players.get(hit.playerId);
+			if (player) this.hurt(player, hit.damage);
+		}
+	}
+
+	/** Darkness and seeing creatures wear sanity down. */
+	private stepSanity(): void {
+		const states = [...this.players.values()].map((p) => p.state);
+		const bodies = this.creatures.bodies();
+		for (const player of this.players.values()) {
+			const s = player.state;
+			if (s.downed || s.dead || s.extracted) continue;
+			const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
+			let drain = 0;
+			if (!headlampOutput(s).on) {
+				const others = states.filter((o) => o !== s);
+				if (illumination(this.world, others, eye) < DARK) drain += SANITY.darknessDrain;
+			}
+			if (bodies.some((b) => this.sees(s, eye, b.position, b.kind, states))) {
+				drain += SANITY.seeingDrain;
+			}
+			if (drain > 0) this.hurt(player, drain * TICK_DT);
+		}
+	}
+
+	/** A creature is in front of the player, in line of sight, within range and in half-light. */
+	private sees(
+		s: PlayerState,
+		eye: Vec3,
+		position: Vec3,
+		kind: string,
+		states: PlayerState[]
+	): boolean {
+		const def = CREATURES[kind];
+		if (!def) return false;
+		const mid: Vec3 = [position[0], position[1] + def.height * 0.6, position[2]];
+		const d: Vec3 = [mid[0] - eye[0], mid[1] - eye[1], mid[2] - eye[2]];
+		const dist = Math.hypot(d[0], d[1], d[2]);
+		if (dist > SANITY.seeingRange || dist < 1e-3) return false;
+		const cp = Math.cos(s.pitch);
+		const look: Vec3 = [-Math.sin(s.yaw) * cp, Math.sin(s.pitch), -Math.cos(s.yaw) * cp];
+		const along = (d[0] * look[0] + d[1] * look[1] + d[2] * look[2]) / dist;
+		if (along < Math.cos(VIEW_HALF_ANGLE)) return false;
+		const light = creatureLight(this.world, states, position, def.height);
+		if (!halfLightVisible(light, def.visibleBand)) return false;
+		return !segmentBlocked(this.world, eye, mid);
+	}
+
+	/**
+	 * Holding interact next to a downed teammate (with salts) revives them. When nobody is able
+	 * to help (solo, or everyone else is down), a downed player's own salts are used.
+	 */
+	private stepRevives(): void {
+		const players = [...this.players.values()];
+		const able = players.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
+		for (const reviver of players) {
+			const s = reviver.state;
+			const patient =
+				!s.downed && !s.dead && s.salts > 0 && reviver.lastInput?.interact
+					? players.find(
+							(p) =>
+								p !== reviver &&
+								p.state.downed &&
+								!p.state.dead &&
+								Math.hypot(
+									p.state.position[0] - s.position[0],
+									p.state.position[1] - s.position[1],
+									p.state.position[2] - s.position[2]
+								) <= SANITY.reviveRange
+						)
+					: undefined;
+			if (!patient) {
+				s.reviving = 0;
+				continue;
+			}
+			s.reviving += TICK_DT;
+			if (s.reviving >= SANITY.reviveSeconds) {
+				s.reviving = 0;
+				s.salts--;
+				this.revive(patient);
+				log.info(`${reviver.name} revived ${patient.name}`);
+			}
+		}
+		for (const player of players) {
+			const s = player.state;
+			if (!s.downed || s.dead || s.salts <= 0 || s.downedTime < SELF_REVIVE_DELAY) continue;
+			if (able.some((p) => p !== player)) continue;
+			s.salts--;
+			this.revive(player);
+		}
+	}
+
+	private hurt(player: Player, amount: number): void {
+		const s = player.state;
+		if (s.flags.godMode || s.downed || s.dead) return;
+		s.sanity = Math.max(0, s.sanity - amount);
+		if (s.sanity <= 0) this.down(player);
+	}
+
+	private down(player: Player): void {
+		const s = player.state;
+		s.sanity = 0;
+		s.downed = true;
+		s.downedTime = 0;
+		s.mantle = null;
+		s.extracting = 0;
+		s.bandaging = 0;
+		s.reviving = 0;
+		log.info(`Player ${player.name} is down`);
+	}
+
+	private revive(player: Player): void {
+		const s = player.state;
+		s.downed = false;
+		s.downedTime = 0;
+		s.sanity = Math.max(s.sanity, SANITY.reviveTo);
 	}
 
 	private broadcast(message: ServerMessage): void {

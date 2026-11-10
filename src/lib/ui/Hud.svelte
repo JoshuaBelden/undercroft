@@ -17,6 +17,12 @@
 		prompt: string | null;
 		/** 0..1 progress of a held action (extraction); 0 hides the bar. */
 		progress: number;
+		/** 0..1 */
+		sanity: number;
+		bandages: number;
+		salts: number;
+		/** Changes each time the player is hit (restarts the flash). */
+		hurt: number;
 	}
 
 	let {
@@ -28,16 +34,30 @@
 		stance,
 		creep,
 		prompt,
-		progress
+		progress,
+		sanity,
+		bandages,
+		salts,
+		hurt
 	}: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
 	const bars = $derived(Math.ceil(battery * 4));
 	const STANCE_LABELS: Record<string, string> = { crouch: 'Crouching', crawl: 'Crawling' };
+	// The edges darken as sanity falls, and pulse with the heartbeat when it's low.
+	const vignette = $derived(Math.min(0.92, Math.max(0, (1 - sanity) * 1.15)));
 	const posture = $derived(
 		[STANCE_LABELS[stance], creep ? 'Creeping' : null].filter(Boolean).join(' · ')
 	);
 </script>
+
+<div class="vignette" class:pulse={sanity < 0.4} style:opacity={vignette} aria-hidden="true"></div>
+
+{#if hurt > 0}
+	{#key hurt}
+		<div class="hurt" aria-hidden="true"></div>
+	{/key}
+{/if}
 
 <div class="crosshair" aria-hidden="true"></div>
 
@@ -58,6 +78,12 @@
 	</div>
 {/if}
 
+{#if sanity < 0.999}
+	<div class="sanity" class:low={sanity < 0.4} aria-label="Sanity">
+		<div class="fill" style:width="{sanity * 100}%"></div>
+	</div>
+{/if}
+
 {#if posture}
 	<div class="posture">{posture}</div>
 {/if}
@@ -71,7 +97,98 @@
 	<span>{LAMP_LABELS[headlamp] ?? ''}</span>
 </div>
 
+<div class="kit" aria-label="Supplies">
+	<span>Bandages {bandages}</span>
+	<span>Salts {salts}</span>
+</div>
+
 <style>
+	.vignette {
+		position: fixed;
+		inset: 0;
+		background: radial-gradient(
+			ellipse at center,
+			transparent 35%,
+			rgb(25 4 4 / 0.75) 75%,
+			rgb(8 0 0 / 0.97) 100%
+		);
+		pointer-events: none;
+		transition: opacity 0.6s ease-out;
+	}
+
+	.vignette.pulse {
+		animation: pulse 0.85s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			filter: brightness(1);
+		}
+		18% {
+			filter: brightness(0.55);
+		}
+	}
+
+	.hurt {
+		position: fixed;
+		inset: 0;
+		background: radial-gradient(ellipse at center, transparent 30%, rgb(120 10 10 / 0.55) 100%);
+		pointer-events: none;
+		animation: hurt 0.6s ease-out forwards;
+	}
+
+	@keyframes hurt {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.vignette.pulse {
+			animation: none;
+		}
+	}
+
+	.sanity {
+		position: fixed;
+		left: 50%;
+		bottom: 56px;
+		width: 180px;
+		height: 3px;
+		margin-left: -90px;
+		background: rgb(255 255 255 / 0.08);
+		pointer-events: none;
+	}
+
+	.sanity .fill {
+		height: 100%;
+		background: rgb(190 170 200 / 0.65);
+		transition: width 0.25s ease-out;
+	}
+
+	.sanity.low .fill {
+		background: rgb(190 60 60 / 0.8);
+	}
+
+	.kit {
+		position: fixed;
+		right: 16px;
+		bottom: 34px;
+		display: flex;
+		gap: 14px;
+		font:
+			11px ui-monospace,
+			monospace;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--muted);
+		pointer-events: none;
+	}
+
 	.crosshair {
 		position: fixed;
 		left: 50%;

@@ -77,5 +77,39 @@ Run it all the way down and you're spent: you can't sprint, climb or dive again 
 Bright reaches much further but drains the battery about three times as fast. The cells in the bottom-left corner show the charge left. When it's empty, the lamp dies.
 
 The starter headlamp is cheap: it flickers, and flickers more as the battery runs down. Some things in the dark are easier to see in a flicker.`
+	},
+	{
+		id: 'sanity',
+		title: 'Sanity',
+		category: 'Survival',
+		body: `Sanity is your health. The bar above your stamina shows it once it starts to slip, and the edges of your sight darken as it falls.
+
+It wears down when you're in the dark with your lamp off and no one else's light on you, and when you look at something you shouldn't. Being struck takes a great deal of it at once.
+
+Hold {action:heal} to use a bandage. Stand still: it takes a few seconds, and moving or letting go starts it over. Each one gives back some sanity. Your bandages and smelling salts show in the bottom-right corner.
+
+When your sanity runs out you go down. You can't move, only look around, and you don't have long.`
+	},
+	{
+		id: 'reviving',
+		title: 'Reviving',
+		category: 'Survival',
+		body: `Smelling salts bring someone back from being down.
+
+If a teammate is down, go to them and hold {action:interact}. It takes a few seconds and uses one of your salts. They come back shaken, with little sanity left.
+
+If no one can reach you, because you're alone or everyone else is down too, you use your own salts. Without salts, and without help, you won't get up again.`
+	},
+	{
+		id: 'things-in-the-dark',
+		title: 'Things in the dark',
+		category: 'Survival',
+		body: `You are not alone down here.
+
+They stand very still. Full light shows nothing, and the dark shows nothing. You only see them in the half-light: in the glow of a low lamp, at the far edge of a bright beam, in the moment a lamp flickers.
+
+They notice your light, and they hear you. Running is loud; walking carries; creeping, crouching and crawling are quiet. Very close, they'll find you anyway.
+
+Once one has you, it comes slowly, then all at once.`
 	}
 ];

@@ -97,6 +97,12 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 3. **Writes shared textures:** each piece becomes `static/assets/map/<piece>.gltf` + `<piece>.bin`. Textures go to `static/assets/map/textures/<content-hash>.webp`, so a texture used by many pieces is stored, committed and downloaded once. On the client, `loadModel` (`src/lib/game/assets.ts`) also points every piece at one GPU texture per file. Output is deterministic: rebuilding unchanged pieces produces identical files, so git only stores what actually changed. The output folder is cleared first, so removed pieces and unused textures don't linger.
 4. **Generates `src/lib/shared/map/pieces.generated.ts`:** footprint, sockets, spawns, extracts, rite points, colliders, and volumes per piece. The server and client both read it, so the server never parses model files. Commit it with the built assets.
 
+### Creature models
+
+`art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is written to `static/assets/creatures/<name>.glb`. The witch drops from 11.9 MB to about 1.5 MB.
+
+On the client, `loadCreature` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
+
 ## Audio
 
 Raw recordings go in `art/sfx/` (gitignored), named as downloaded. `pnpm asset:audio` (`scripts/build-audio.ts`) builds the entries listed in `scripts/audio.config.ts`:

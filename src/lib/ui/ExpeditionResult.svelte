@@ -4,10 +4,12 @@
 	interface Props {
 		seconds: number;
 		deepestLevel: number;
+		/** Bled out rather than climbed out. */
+		died?: boolean;
 		ondescend: () => void;
 	}
 
-	let { seconds, deepestLevel, ondescend }: Props = $props();
+	let { seconds, deepestLevel, died = false, ondescend }: Props = $props();
 
 	const time = $derived(`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`);
 	const depth = $derived(
@@ -19,7 +21,7 @@
 
 <div class="screen">
 	<div class="card">
-		<h1>You made it out</h1>
+		<h1>{died ? "You didn't make it out" : 'You made it out'}</h1>
 		<dl>
 			<dt>Time underground</dt>
 			<dd>{time}</dd>

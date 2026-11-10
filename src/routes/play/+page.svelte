@@ -5,10 +5,13 @@
 	import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
 	import { MAP_KIT } from '#lib/content/map/kit.ts';
 	import { MOVEMENT } from '#lib/content/player/movement.ts';
+	import { SANITY } from '#lib/content/player/sanity.ts';
 	import { devMode } from '#lib/dev.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { Ambience } from '#lib/game/audio/Ambience.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
+	import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
+	import { Creatures } from '#lib/game/creatures/Creatures.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
@@ -30,6 +33,7 @@
 	import type { AdminCommand } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
+	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
@@ -49,6 +53,7 @@
 	let rtt = $state(0);
 	let locked = $state(false);
 	let mapView = $state(false);
+	let markers = $state(false);
 	let spawned = $state(false);
 	let hud = $state({
 		stamina: 1,
@@ -59,10 +64,16 @@
 		stance: 'stand',
 		creep: false,
 		prompt: null as string | null,
-		progress: 0
+		progress: 0,
+		sanity: 1,
+		bandages: 0,
+		salts: 0,
+		hurt: 0
 	});
-	/** Set when this player has climbed out; shows the results screen. */
-	let result = $state<{ seconds: number; deepestLevel: number } | null>(null);
+	/** Set while downed: bleed-out time left (0..1) and what happens next. */
+	let downed = $state<{ remaining: number; message: string } | null>(null);
+	/** Set when this player has left the expedition (climbed out or died); shows the results. */
+	let result = $state<{ seconds: number; deepestLevel: number; died: boolean } | null>(null);
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
 	let banner = $state<{ title: string; key: number } | null>(null);
 	let descend = (): void => {};
@@ -71,6 +82,9 @@
 	let applyGraphics = (): void => {};
 	let setMapView = (enabled: boolean): void => {
 		mapView = enabled;
+	};
+	let setMarkers = (enabled: boolean): void => {
+		markers = enabled;
 	};
 	let sendAdmin = (command: AdminCommand): void => {
 		void command;
@@ -121,11 +135,18 @@
 						loadMap(message.layout);
 						break;
 					case 'extracted':
-						result = { seconds: message.seconds, deepestLevel: message.deepestLevel };
+					case 'died':
+						result = {
+							seconds: message.seconds,
+							deepestLevel: message.deepestLevel,
+							died: message.type === 'died'
+						};
 						player.leave();
 						ambience.clear();
 						remote.apply([], client.playerId);
+						creatures.clear();
 						banner = null;
+						downed = null;
 						document.exitPointerLock();
 						break;
 					case 'map':
@@ -138,6 +159,7 @@
 							flags = { ...snap.state.flags };
 						}
 						remote.apply(message.players, client.playerId);
+						creatures.apply(message.creatures);
 						break;
 				}
 			}
@@ -146,6 +168,18 @@
 		const sounds = new SoundBank(audio);
 		const playerAudio = new PlayerAudio(sounds, map.root);
 		const ambience = new Ambience(audio, sounds);
+		const creatures = new Creatures(sounds);
+		engine.scene.add(creatures.root);
+		setMarkers = (enabled) => {
+			markers = enabled;
+			creatures.setMarkers(enabled);
+		};
+		/** Sanity effects: heartbeat loop, hurt reaction, camera shake, whispers. */
+		let heartbeat: SoundHandle | null = null;
+		let heartbeatStarting = false;
+		let lastSanity: number | null = null;
+		let shake = 0;
+		let whisperIn = 8;
 		const lookDir = new THREE.Vector3();
 
 		/** World cell + level -> title of the room there (titled start and major rooms). */
@@ -185,6 +219,75 @@
 			banner = { title, key: (banner?.key ?? 0) + 1 };
 		}
 
+		/** A downed teammate within reach, if any. */
+		function downedNearby(state: PlayerState): PlayerState | null {
+			for (const other of remote.states()) {
+				if (!other.downed || other.dead) continue;
+				const d = Math.hypot(
+					other.position[0] - state.position[0],
+					other.position[1] - state.position[1],
+					other.position[2] - state.position[2]
+				);
+				if (d <= SANITY.reviveRange) return other;
+			}
+			return null;
+		}
+
+		/** The one held-action prompt to show, with its progress. */
+		function heldPrompt(state: PlayerState): { prompt: string | null; progress: number } {
+			if (state.downed) return { prompt: null, progress: 0 };
+			if (state.bandaging > 0) {
+				return { prompt: 'Bandaging...', progress: state.bandaging / SANITY.bandageSeconds };
+			}
+			if (downedNearby(state)) {
+				if (state.salts <= 0) return { prompt: 'No smelling salts', progress: 0 };
+				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
+				return {
+					prompt: state.reviving > 0 ? 'Reviving...' : `Hold ${key} to revive`,
+					progress: state.reviving / SANITY.reviveSeconds
+				};
+			}
+			const extract = extractPrompt(state);
+			if (extract)
+				return { prompt: extract, progress: state.extracting / EXPEDITION.extractSeconds };
+			return { prompt: null, progress: 0 };
+		}
+
+		function downedMessage(state: PlayerState): string {
+			const helpers = [...remote.states()].some((other) => !other.downed && !other.dead);
+			if (helpers) return 'Waiting for help...';
+			if (state.salts > 0) return 'Reaching for your smelling salts...';
+			return 'No one is coming';
+		}
+
+		/** Heartbeat, hurt flash and shake, and whispers, from the current sanity. */
+		function sanityEffects(state: PlayerState, delta: number): void {
+			const sanity = state.sanity / SANITY.max;
+			if (lastSanity !== null && state.sanity < lastSanity - 3) {
+				shake = Math.min(1, shake + (lastSanity - state.sanity) / 30);
+				hud.hurt++;
+				sounds.play('player.hurt');
+			}
+			lastSanity = state.sanity;
+			shake = Math.max(0, shake - delta * 2.5);
+			if (audio.unlocked && !heartbeat && !heartbeatStarting) {
+				heartbeatStarting = true;
+				void sounds.loop('heartbeat').then((handle) => (heartbeat = handle));
+			}
+			const fear = state.downed ? 1 : Math.max(0, (0.4 - sanity) / 0.4);
+			heartbeat?.setVolume(fear);
+			heartbeat?.setRate(1 + fear * 0.45);
+			if (sanity < 0.2 && !state.downed) {
+				whisperIn -= delta;
+				if (whisperIn <= 0) {
+					whisperIn = 6 + Math.random() * 8;
+					const angle = Math.random() * Math.PI * 2;
+					const [x, y, z] = state.position;
+					sounds.playAt('whisper', [x + Math.sin(angle) * 1.5, y + 1.5, z + Math.cos(angle) * 1.5]);
+				}
+			}
+		}
+
 		function extractPrompt(state: PlayerState): string | null {
 			const world = player.collision;
 			if (!world || state.swimming || !nearExtract(world, state)) return null;
@@ -220,13 +323,23 @@
 			const active = locked && !panel && !mapView;
 			player.update(delta, active);
 			remote.update(delta);
+			const self = player.state;
+			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
+			creatures.update(delta, player.collision, lamps);
 			if (mapView) {
 				orbit.update();
 			} else {
 				const eye = player.eyePosition();
 				if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
 				const look = player.look();
-				engine.camera.rotation.set(look.pitch, look.yaw, 0);
+				const amount = shake * shake * 0.05 * settings.graphics.cameraShake;
+				// Downed: the view tilts, lying on the floor.
+				const roll = player.state?.downed ? 0.35 : 0;
+				engine.camera.rotation.set(
+					look.pitch + (Math.random() * 2 - 1) * amount,
+					look.yaw + (Math.random() * 2 - 1) * amount,
+					roll
+				);
 			}
 			const state = player.state;
 			headlamp.update(state);
@@ -237,6 +350,7 @@
 			ambience.update(delta, [cam.x, cam.y, cam.z], state);
 			spawned = !!state;
 			if (state) {
+				sanityEffects(state, delta);
 				hud = {
 					stamina: state.stamina / MOVEMENT.stamina.max,
 					exhausted: state.exhausted,
@@ -245,9 +359,18 @@
 					underwater: state.underwater,
 					stance: state.stance,
 					creep: player.modes.creep,
-					prompt: extractPrompt(state),
-					progress: state.extracting / EXPEDITION.extractSeconds
+					...heldPrompt(state),
+					sanity: state.sanity / SANITY.max,
+					bandages: state.bandages,
+					salts: state.salts,
+					hurt: hud.hurt
 				};
+				downed = state.downed
+					? {
+							remaining: 1 - state.downedTime / SANITY.bleedOut,
+							message: downedMessage(state)
+						}
+					: null;
 				bannerCheck -= delta;
 				if (bannerCheck <= 0) {
 					bannerCheck = 0.25;
@@ -282,6 +405,8 @@
 			document.removeEventListener('pointerlockchange', onLockChange);
 			canvas.removeEventListener('click', requestLock);
 			document.exitPointerLock();
+			heartbeat?.stop();
+			creatures.dispose();
 			playerAudio.dispose();
 			ambience.dispose();
 			player.dispose();
@@ -302,6 +427,10 @@
 	<Hud {...hud} />
 {/if}
 
+{#if downed && spawned && !mapView && !result}
+	<DownedScreen remaining={downed.remaining} message={downed.message} />
+{/if}
+
 {#if banner && spawned && !mapView}
 	{#key banner.key}
 		<RoomBanner title={banner.title} />
@@ -312,6 +441,7 @@
 	<ExpeditionResult
 		seconds={result.seconds}
 		deepestLevel={result.deepestLevel}
+		died={result.died}
 		ondescend={() => descend()}
 	/>
 {/if}
@@ -348,8 +478,10 @@
 		{rooms}
 		{flags}
 		{mapView}
+		{markers}
 		onadmin={(command) => sendAdmin(command)}
 		onmapview={(enabled) => setMapView(enabled)}
+		onmarkers={(enabled) => setMarkers(enabled)}
 	/>
 {/if}
 

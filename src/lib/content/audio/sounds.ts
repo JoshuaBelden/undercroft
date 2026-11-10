@@ -27,7 +27,19 @@ export type SynthSpec =
 	/** Low settling groan of the rock. */
 	| { kind: 'groan' }
 	/** Soft water lapping loop. */
-	| { kind: 'lap' };
+	| { kind: 'lap' }
+	/** Dragging, shuffling step (creatures). */
+	| { kind: 'shuffle' }
+	/** Rushing scuff of a sudden burst of speed. */
+	| { kind: 'rush' }
+	/** Rasping snarl with a strike. */
+	| { kind: 'snarl' }
+	/** Short pained breath when hurt. */
+	| { kind: 'hurt' }
+	/** Heartbeat loop: lub-dub every `period` seconds. */
+	| { kind: 'heartbeat'; period: number }
+	/** Unintelligible breathy whisper. */
+	| { kind: 'whisper' };
 
 export interface SoundDef {
 	/** Built recording id(s) (AUDIO_FILES); a random variant of all of them plays each time. */
@@ -178,6 +190,19 @@ export const SOUNDS = {
 		category: 'ambience',
 		volume: 0.6
 	},
+	// Creatures (played at their position: you hear what you can't see).
+	'creature.step': {
+		synth: { kind: 'shuffle' },
+		category: 'sfx',
+		volume: 0.55,
+		variation: 0.15
+	},
+	'creature.burst': { synth: { kind: 'rush' }, category: 'sfx', volume: 0.8, variation: 0.1 },
+	'creature.attack': { synth: { kind: 'snarl' }, category: 'sfx', volume: 0.9, variation: 0.08 },
+	// Sanity.
+	'player.hurt': { synth: { kind: 'hurt' }, category: 'sfx', volume: 0.8, variation: 0.08 },
+	heartbeat: { synth: { kind: 'heartbeat', period: 0.85 }, category: 'sfx', volume: 0.8 },
+	whisper: { synth: { kind: 'whisper' }, category: 'ambience', volume: 0.5, variation: 0.15 },
 	'headlamp.on': { file: 'headlamp.on', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 },
 	'headlamp.off': { file: 'headlamp.off', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 }
 } satisfies Record<string, SoundDef>;

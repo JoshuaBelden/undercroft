@@ -24,6 +24,8 @@ export interface GraphicsSettings {
 	/** Tone-mapping exposure; calibrated by the player. */
 	brightness: number;
 	quality: GraphicsQuality;
+	/** Camera shake when hurt, 0 (off) .. 1. */
+	cameraShake: number;
 }
 
 export interface Settings {
@@ -42,7 +44,7 @@ function defaults(): Settings {
 		bindings: defaultBindings(),
 		interface: { showStats: false },
 		controls: { mouseSensitivity: 1, invertY: false },
-		graphics: { fov: 75, brightness: 1, quality: 'high' }
+		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1 }
 	};
 }
 

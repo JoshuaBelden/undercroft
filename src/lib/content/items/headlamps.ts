@@ -1,6 +1,6 @@
 /**
- * Headlamp models. The starter lamp is inefficient and flickers a lot (which reveals the
- * Gloaming Thrall). Upgrades are added here. See docs/dev/player.md.
+ * Headlamp models. The starter lamp is inefficient and flickers a lot (which reveals
+ * creatures in half-light). Upgrades are added here. See docs/dev/player.md.
  */
 
 export interface HeadlampModeSpec {

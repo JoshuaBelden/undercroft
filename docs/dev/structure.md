@@ -11,12 +11,14 @@ src/
       protocol.ts           WebSocket message types, encode/decode
       rng.ts                seeded PRNG (deterministic on server and client)
       player/               player state types, fixed-step simulation, headlamp output
-      map/                  map types, grid math, layout generator, generated piece manifest
+      map/                  map types, grid math, layout generator, piece manifest, nav grid
+      creature/             creature snapshot type, half-light visibility
     game/
       Engine.ts             Three.js renderer, scene, camera, frame loop, stats, light budget
       assets.ts             glTF model loading and cache, asset path registry
       map/MapRenderer.ts    places map pieces from a layout
       player/               local player prediction, headlamp light, remote players, player audio
+      creatures/            creature models, animation, half-light fade, sounds
       input/
         actions.ts          action definitions and default bindings
         InputMap.ts         raw input -> actions
@@ -30,6 +32,8 @@ src/
       help/index.ts         player help topics
       map/kit.ts            map piece roles and weights
       player/movement.ts    movement and stamina tuning
+      player/sanity.ts      sanity, downed, revive and bandage tuning
+      creatures.ts          creature definitions
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
     ui/                     Svelte components (Panel, menus, overlays)
@@ -38,7 +42,8 @@ src/
     play/+page.svelte       game view (client-only)
 server/
   index.ts                  WebSocket server entry
-  session.ts                Session: authoritative state and tick loop
+  session.ts                Session: authoritative state and tick loop, sanity, revives
+  creatures.ts              CreatureDirector: creature AI
   config.ts                 environment
   db.ts                     MongoDB connection
   log.ts                    logging
