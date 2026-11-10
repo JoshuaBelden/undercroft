@@ -53,7 +53,7 @@ audio.play('/assets/audio/drip.ogg', { category: 'ambience', loop: true });
 
 Browsers block audio until a user gesture; the game view calls `audio.unlock()` on the first click.
 
-Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played through `SoundBank` (`sounds.play(id)`, `sounds.loop(id)`). A sound is a file or a synthesized placeholder; see [player.md](player.md#audio-placeholders). Positional audio is added in Phase 1.
+Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played through `SoundBank` (`sounds.play(id)`, `sounds.loop(id)`). A sound is a built recording (`pnpm asset:audio`) with a synthesized fallback; see [player.md](player.md#audio). Positional audio is added in Phase 1.
 
 ## Settings
 

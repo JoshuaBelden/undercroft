@@ -1,24 +1,28 @@
+import { AUDIO_FILES } from '#lib/content/audio/files.generated.ts';
 import { SOUNDS, type SoundDef, type SoundId } from '#lib/content/audio/sounds.ts';
 import type { AudioManager, SoundHandle } from './AudioManager.ts';
 import { synthesize } from './synth.ts';
 
 /**
- * Plays registered sounds by id (see src/lib/content/audio/sounds.ts). Resolves each id once,
- * from its file or its synthesized placeholder, and routes it through the AudioManager.
+ * Plays registered sounds by id (see src/lib/content/audio/sounds.ts). Each sound resolves to its
+ * built recording variants, or to its synthesized placeholder if none are built, and plays
+ * through the AudioManager's category buses.
  */
 export class SoundBank {
-	private buffers = new Map<SoundId, Promise<AudioBuffer>>();
+	private variants = new Map<SoundId, Promise<AudioBuffer[]>>();
 
 	constructor(private audio: AudioManager) {}
 
-	private buffer(id: SoundId): Promise<AudioBuffer> {
-		let pending = this.buffers.get(id);
+	private buffers(id: SoundId): Promise<AudioBuffer[]> {
+		let pending = this.variants.get(id);
 		if (!pending) {
 			const def: SoundDef = SOUNDS[id];
-			if (def.url) pending = this.audio.load(def.url);
-			else if (def.synth) pending = Promise.resolve(synthesize(this.audio.audioContext, def.synth));
-			else pending = Promise.reject(new Error(`Sound "${id}" has no url or synth`));
-			this.buffers.set(id, pending);
+			const urls = def.file ? (AUDIO_FILES[def.file] ?? []) : [];
+			if (urls.length) pending = Promise.all(urls.map((url) => this.audio.load(url)));
+			else if (def.synth)
+				pending = Promise.resolve([synthesize(this.audio.audioContext, def.synth)]);
+			else pending = Promise.reject(new Error(`Sound "${id}" has no built file or synth`));
+			this.variants.set(id, pending);
 		}
 		return pending;
 	}
@@ -28,23 +32,28 @@ export class SoundBank {
 		if (!this.audio.unlocked) return;
 		const def: SoundDef = SOUNDS[id];
 		const spread = def.variation ?? 0;
-		void this.buffer(id).then((buffer) =>
-			this.audio.playBuffer(buffer, {
+		void this.buffers(id).then((buffers) =>
+			this.audio.playBuffer(buffers[Math.floor(Math.random() * buffers.length)], {
 				category: def.category,
 				volume: def.volume * volume,
-				rate: 1 + (Math.random() * 2 - 1) * spread
+				rate: (def.rate ?? 1) * (1 + (Math.random() * 2 - 1) * spread)
 			})
 		);
 	}
 
-	/** Start a looping sound; adjust or stop it through the handle. */
+	/** Start a looping sound (first variant); adjust or stop it through the handle. */
 	async loop(id: SoundId, volume = 0): Promise<SoundHandle> {
 		const def: SoundDef = SOUNDS[id];
-		const buffer = await this.buffer(id);
-		const handle = this.audio.playBuffer(buffer, { category: def.category, volume, loop: true });
+		const [buffer] = await this.buffers(id);
+		const handle = this.audio.playBuffer(buffer, {
+			category: def.category,
+			volume: volume * def.volume,
+			rate: def.rate ?? 1,
+			loop: true
+		});
 		return {
 			setVolume: (value) => handle.setVolume(value * def.volume),
-			setRate: (value) => handle.setRate(value),
+			setRate: (value) => handle.setRate(value * (def.rate ?? 1)),
 			stop: () => handle.stop()
 		};
 	}

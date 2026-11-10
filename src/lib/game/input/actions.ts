@@ -11,8 +11,10 @@ export const ACTIONS = {
 	moveRight: { label: 'Move right', category: 'Movement', defaults: ['KeyD', 'ArrowRight'] },
 	sprint: { label: 'Sprint (hold)', category: 'Movement', defaults: ['ShiftLeft'] },
 	// Not Ctrl: Ctrl+W closes the browser tab and pages cannot block it.
-	crouch: { label: 'Crouch (hold)', category: 'Movement', defaults: ['KeyC'] },
-	crawl: { label: 'Crawl (toggle)', category: 'Movement', defaults: ['KeyZ'] },
+	stance: { label: 'Stance (walk / crouch / crawl)', category: 'Movement', defaults: ['KeyC'] },
+	sneak: { label: 'Sneak (hold)', category: 'Movement', defaults: ['KeyZ'] },
+	climb: { label: 'Climb / swim up', category: 'Movement', defaults: ['Space'] },
+	swimDown: { label: 'Swim down', category: 'Movement', defaults: ['KeyX'] },
 	headlamp: { label: 'Headlamp mode', category: 'Light', defaults: ['KeyF'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },

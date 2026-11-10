@@ -4,6 +4,9 @@
  * Voice is intentionally absent until voice chat is in scope.
  */
 
+const OPEN_FREQUENCY = 20000;
+const MUFFLED_FREQUENCY = 500;
+
 export const AUDIO_CATEGORIES = ['master', 'music', 'ambience', 'sfx'] as const;
 export type AudioCategory = (typeof AUDIO_CATEGORIES)[number];
 
@@ -25,6 +28,7 @@ export interface SoundHandle {
 export class AudioManager {
 	private context: AudioContext | null = null;
 	private buses = new Map<AudioCategory, GainNode>();
+	private muffler: BiquadFilterNode | null = null;
 	private buffers = new Map<string, Promise<AudioBuffer>>();
 	private volumes: Record<AudioCategory, number>;
 
@@ -95,6 +99,7 @@ export class AudioManager {
 		void this.context?.close();
 		this.context = null;
 		this.buses.clear();
+		this.muffler = null;
 		this.buffers.clear();
 	}
 
@@ -105,15 +110,30 @@ export class AudioManager {
 			master.gain.value = this.volumes.master;
 			master.connect(this.context.destination);
 			this.buses.set('master', master);
+			// World sounds (sfx, ambience) pass through a low-pass filter used for muffling
+			// (underwater, later tight spaces). Music bypasses it.
+			this.muffler = this.context.createBiquadFilter();
+			this.muffler.type = 'lowpass';
+			this.muffler.frequency.value = OPEN_FREQUENCY;
+			this.muffler.connect(master);
 			for (const category of AUDIO_CATEGORIES) {
 				if (category === 'master') continue;
 				const bus = this.context.createGain();
 				bus.gain.value = this.volumes[category];
-				bus.connect(master);
+				bus.connect(category === 'music' ? master : this.muffler);
 				this.buses.set(category, bus);
 			}
 		}
 		return this.context;
+	}
+
+	/** Muffle world sounds: 0 = clear, 1 = fully muffled (underwater). */
+	setMuffle(amount: number): void {
+		if (!this.context || !this.muffler) return;
+		const a = Math.max(0, Math.min(1, amount));
+		// Interpolate on a log scale so the sweep sounds even.
+		const frequency = OPEN_FREQUENCY * Math.pow(MUFFLED_FREQUENCY / OPEN_FREQUENCY, a);
+		this.muffler.frequency.setTargetAtTime(frequency, this.context.currentTime, 0.08);
 	}
 
 	private bus(category: AudioCategory): GainNode {

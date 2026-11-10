@@ -16,6 +16,17 @@ export interface PlayerFlags {
 	infiniteBattery: boolean;
 }
 
+/** An in-progress climb onto a ledge. Position follows a fixed path; input is ignored. */
+export interface Mantle {
+	from: Vec3;
+	to: Vec3;
+	/** Seconds elapsed. */
+	t: number;
+	duration: number;
+	/** Stance to end in (whatever fits on the ledge). */
+	stance: Stance;
+}
+
 export interface PlayerState {
 	position: Vec3;
 	velocity: Vec3;
@@ -37,6 +48,15 @@ export interface PlayerState {
 	/** Seconds the lamp has been lit; drives the deterministic flicker. */
 	lampClock: number;
 	flags: PlayerFlags;
+	/** In water deeper than the swim threshold. */
+	swimming: boolean;
+	/** In shallower water: slowed, splashy footsteps. */
+	wading: boolean;
+	/** Eye below the water surface: breath (stamina) drains. */
+	underwater: boolean;
+	/** Moving slowly and silently (no footsteps; Thralls will hear less in Phase 2). */
+	sneaking: boolean;
+	mantle: Mantle | null;
 }
 
 /** One fixed simulation step of player input (1 / SIM_RATE seconds). */
@@ -49,6 +69,11 @@ export interface InputFrame {
 	yaw: number;
 	pitch: number;
 	sprint: boolean;
+	/** Slow, silent walk (held). */
+	sneak: boolean;
+	/** Climb a ledge on land; swim up in water (held). */
+	climb: boolean;
+	swimDown: boolean;
 	stance: Stance;
 	headlamp: HeadlampMode;
 }

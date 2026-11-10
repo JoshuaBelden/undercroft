@@ -48,7 +48,7 @@ A generated Gloaming map you can start an expedition into, explore, and extract 
 - [x] Map graph: guaranteed path from start to the Chapel, plus loops
 - Start room variants: stairs or rappel rope (rope can be taken)
 - Extraction points defined in room models; extracting ends the expedition
-- Swimming with breath tied to stamina
+- [x] Swimming with breath tied to stamina (plus mantling to climb ledges and out of water)
 - Room banners on entering major rooms
 
 Aspects:

@@ -27,18 +27,58 @@ The first-person player. The server is authoritative. The client predicts its ow
 Each step:
 
 1. Applies look.
-2. Changes stance if the taller capsule fits.
-3. Accelerates toward the wanted velocity for the stance (or sprint).
-4. Applies gravity, or a small "stick" velocity while grounded so the player stays on slopes and stairs.
-5. Moves and resolves collisions.
-6. Updates stamina and battery.
+2. Advances a mantle in progress, if any, and stops there (see Mantling).
+3. Checks the water at the feet: swimming, wading or dry (see Water).
+4. Changes stance if the taller capsule fits (not while swimming).
+5. Moves:
+   - walking: accelerates toward the wanted velocity for the stance, capped by sneak or sprint and slowed when wading; applies gravity, or a small "stick" velocity while grounded so the player stays on slopes and stairs;
+   - swimming: swims (see Water);
+   - noclip: flies.
+6. Resolves collisions.
+7. On land, tries a mantle while `climb` is held.
+8. Updates stamina (or breath) and battery.
 
-All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, stamina rates, light intensities, drain and flicker.
+All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, swim and mantle settings, stamina rates, light intensities, drain and flicker.
 
-- **Stances:** stand (1.75 m), crouch (1.2 m), crawl (0.7 m). Standing up is blocked while the taller capsule wouldn't fit (`capsuleFits`). From a crawl under a low ceiling, the player rises as far as fits.
-- **Stamina:** sprinting drains it, and it regenerates after a short delay. At zero the player is `exhausted` and can't sprint until stamina recovers to `recoverAt`.
+- **Stances:** stand (1.75 m), crouch (1.2 m), crawl (0.7 m). The client cycles the wanted stance with one key. Standing up is blocked while the taller capsule wouldn't fit (`capsuleFits`). The wanted stance persists, so you rise (as far as fits) once there's room.
+- **Sneak:** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps now and will reduce noise for Thralls in Phase 2.
+- **Stamina:** sprinting drains it, and it regenerates after a short delay. At zero the player is `exhausted` and can't sprint, climb or dive until stamina recovers to `recoverAt`.
 - **Battery:** drains by headlamp mode. At zero the lamp gives no light.
 - **Flags:** `noclip`, `infiniteStamina` and `infiniteBattery` live in the state, so prediction matches the server. Only admin commands set them.
+
+## Water
+
+Water comes from `vol-water-*` volumes in the pieces (the manifest's `volumes`). `waterSurface(world, point)` returns the surface height at the feet, or null.
+
+- **Swimming** starts when the water over the feet is deeper than `swim.depth` (1.2 m). It ends only when you stand on the bottom in shallower water or leave the water, because a floating swimmer's feet are close to the surface.
+- **While swimming:**
+  - the capsule is short (`swim.height`) and there is no gravity;
+  - movement follows the look direction, including pitch;
+  - `climb` swims up and `swimDown` swims down;
+  - buoyancy floats you with the eye `swim.floatEye` above the surface unless you're diving (`swimDown`, or moving forward while looking down);
+  - you can't swim up out of the water;
+  - at the surface, holding `climb` (Space) at an edge mantles out (up to `mantle.maxFromWater` above the surface). Never automatic;
+  - swimmers also step up onto low ledges, so swimming into submerged steps walks you out.
+- **Breath:** while the eye is underwater (`state.underwater`), stamina drains at `swim.breathDrain` and doesn't regenerate. At zero you're `exhausted`, and buoyancy always wins, so you're forced up. Drowning damage comes with sanity in Phase 2.
+- **Wading** (shallower water) slows movement by `wadeSpeed` and switches footsteps to splashes.
+
+## Mantling
+
+`findMantle` (`collision.ts`) looks for a ledge `reach` ahead along the yaw. All of these must hold:
+
+- something blocks a short probe capsule just in front of the feet;
+- the ledge top lies between the minimum and maximum heights;
+- a capsule fits on it, over a floor (tried standing, then crouched, then crawling);
+- there's room to rise straight up from where you are and halfway onto the ledge.
+
+**When it's tried:**
+
+- on land, while `climb` is held: ledges from `stepHeight` up to `mantle.maxHeight` (1.2 m) above the feet;
+- in water: while `climb` is held at the surface.
+
+**What happens:** a successful find starts `state.mantle`. For `duration` seconds the position follows a fixed path (rise, then move over), input is ignored, and collisions are skipped because the target was already validated. At the end you stand on the ledge in the stance that fit. A mantle costs `staminaCost`.
+
+It's part of the deterministic state, so server and prediction agree. The client dips the camera during a mantle.
 
 ## Collision
 
@@ -76,14 +116,26 @@ The camera interpolates between the last two simulation steps, so movement is sm
 
 **Adding a headlamp model:** add an entry to `HEADLAMPS`. The player always uses the starter until inventory exists (Phase 4).
 
-## Audio (placeholders)
+## Audio
 
-Sounds are registered in `src/lib/content/audio/sounds.ts`. Each has either a `url` (a file in `static/assets/audio`) or a `synth` placeholder generated in code (`src/lib/game/audio/synth.ts`). `SoundBank` plays sounds by id through the `AudioManager` category buses.
+Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 
-- **To replace a placeholder with a recording,** add `url` to its entry. No code changes.
-- **Footsteps** fire every `stride` metres travelled while grounded (per stance; sprint uses `sprintStride`). The surface comes from the material under the feet, via a short raycast, mapped in `src/lib/content/audio/surfaces.ts`.
-- **Breathing** is a loop whose volume and rate follow stamina.
-- **The headlamp click** plays when the mode changes.
+- a built recording (`file`, an id from `pnpm asset:audio`; see [asset-pipeline.md](asset-pipeline.md#audio));
+- a `synth` placeholder generated in code (`src/lib/game/audio/synth.ts`), used when no recording is built for it;
+- a volume and category, plus optional `rate` and `variation`.
+
+`SoundBank` plays sounds by id through the `AudioManager` category buses. When a file has several variants (sliced footsteps), a random one plays each time.
+
+- **Footsteps:**
+  - fire every `stride` metres travelled while grounded (per stance; sprint uses `sprintStride` and the running recording);
+  - the surface comes from the material under the feet, via a short raycast, mapped in `src/lib/content/audio/surfaces.ts`;
+  - one walking recording covers all surfaces, pitched per surface with `rate`.
+- **Breathing:** two loops, calm and fast, crossfaded by stamina. Faint at rest, panting when spent, silent underwater.
+- **The headlamp** plays a switch-on click for low and bright, and a switch-off click for off.
+- **Water:** a splash on entering, swim strokes per `swim.stride` (quieter underwater), splashing footsteps while wading, and a gasp when surfacing low on breath.
+- **Climbing:** a scrape and grunt when a mantle starts.
+- **Underwater muffling:** `AudioManager.setMuffle(1)` sweeps a low-pass filter over the sfx and ambience buses (music is unaffected).
+- **Sneaking** plays no footsteps.
 
 ## Admin tools
 

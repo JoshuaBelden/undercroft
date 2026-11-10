@@ -28,15 +28,18 @@ interface Player {
 	queue: InputFrame[];
 	/** Last simulated input `seq`. */
 	ack: number;
-	/** Frames this player may still simulate; refills at SIM_RATE so inputs can't run faster than real time. */
-	budget: number;
+	/**
+	 * Frames simulated so far, measured against wall-clock time since `clock`: a player can never
+	 * be simulated faster than real time, but one that fell behind (network hiccup) catches up.
+	 */
+	processed: number;
+	clock: number | null;
 }
 
 const DT = 1 / SIM_RATE;
-const FRAMES_PER_TICK = SIM_RATE / TICK_RATE;
-/** Catch-up allowance after network jitter, in frames. */
-const BUDGET_CAP = FRAMES_PER_TICK * 3;
-const MAX_QUEUE = SIM_RATE;
+/** Most unused real time a player can bank (e.g. after a pause), in frames: bounds speed bursts. */
+const MAX_BANKED = SIM_RATE / 2;
+const MAX_QUEUE = SIM_RATE * 2;
 const MAX_FRAMES_PER_MESSAGE = 30;
 
 /**
@@ -66,7 +69,8 @@ export class Session {
 			state: this.spawnState(),
 			queue: [],
 			ack: -1,
-			budget: FRAMES_PER_TICK
+			processed: 0,
+			clock: null
 		};
 		this.players.set(player.id, player);
 		this.send(player, {
@@ -166,13 +170,18 @@ export class Session {
 
 	private step(): void {
 		this.tick++;
+		const now = performance.now();
 		for (const player of this.players.values()) {
-			player.budget = Math.min(BUDGET_CAP, player.budget + FRAMES_PER_TICK);
-			while (player.budget >= 1 && player.queue.length > 0) {
+			if (player.queue.length === 0) continue;
+			player.clock ??= now;
+			const due = Math.floor(((now - player.clock) / 1000) * SIM_RATE) + 1;
+			// Don't let a long pause bank more than MAX_BANKED frames of catch-up.
+			if (due - player.processed > MAX_BANKED) player.processed = due - MAX_BANKED;
+			while (player.processed < due && player.queue.length > 0) {
 				const frame = player.queue.shift() as InputFrame;
 				stepPlayer(player.state, frame, this.world, DT);
 				player.ack = frame.seq;
-				player.budget--;
+				player.processed++;
 			}
 		}
 		const players = [...this.players.values()].map((p) => ({

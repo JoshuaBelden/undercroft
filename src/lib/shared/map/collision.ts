@@ -255,3 +255,59 @@ export function hasFloor(world: CollisionWorld, position: Vec3, radius: number):
 		(box) => (sphereVsBox(probe, radius, box)?.normal[1] ?? 0) > 0.7
 	);
 }
+
+/** Height of the water surface if `point` is inside a water volume, else null. */
+export function waterSurface(world: CollisionWorld, point: Vec3): number | null {
+	let top: number | null = null;
+	for (const volume of volumesAt(world, point)) {
+		if (volume.kind !== 'water') continue;
+		const surface = boxTop(volume);
+		top = top === null ? surface : Math.max(top, surface);
+	}
+	return top;
+}
+
+export interface MantleTarget {
+	/** Feet position on the ledge. */
+	to: Vec3;
+	/** Index into the heights tried (0 = tallest). */
+	fit: number;
+}
+
+/**
+ * Find a ledge to climb onto ahead of `position` (feet) along `yaw`.
+ * Something must block the way ahead at foot level; the ledge top must lie between `minTop` and
+ * `maxTop` (world heights); a capsule of one of `heights` (tried tallest first) must fit on it,
+ * over a floor, with room to rise straight up from where the player is.
+ */
+export function findMantle(
+	world: CollisionWorld,
+	position: Vec3,
+	yaw: number,
+	radius: number,
+	reach: number,
+	minTop: number,
+	maxTop: number,
+	heights: number[]
+): MantleTarget | null {
+	const fx = -Math.sin(yaw);
+	const fz = -Math.cos(yaw);
+	const [x, y, z] = position;
+	// Blocked ahead: a short probe capsule just in front of the feet doesn't fit.
+	if (capsuleFits(world, [x + fx * 0.35, y + 0.05, z + fz * 0.35], 0.6, radius)) return null;
+	const ax = x + fx * (radius + reach);
+	const az = z + fz * (radius + reach);
+	for (let fit = 0; fit < heights.length; fit++) {
+		const h = heights[fit];
+		for (let top = Math.max(minTop, y + 0.05); top <= maxTop + 1e-6; top += 0.05) {
+			const to: Vec3 = [ax, top + 0.02, az];
+			if (!capsuleFits(world, to, h, radius) || !hasFloor(world, to, radius)) continue;
+			// Room to rise in place, and halfway onto the ledge, at the ledge height.
+			const mid: Vec3 = [(x + ax) / 2, top + 0.02, (z + az) / 2];
+			if (!capsuleFits(world, [x, top + 0.02, z], Math.min(h, 0.9), radius)) break;
+			if (!capsuleFits(world, mid, Math.min(h, 0.9), radius)) break;
+			return { to, fit };
+		}
+	}
+	return null;
+}

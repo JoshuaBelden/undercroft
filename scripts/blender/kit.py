@@ -1323,6 +1323,9 @@ def build_cistern(force=False):
     walk = LEVEL  # walkway floor height
     bx, by = 4.4, 2.4  # basin half extents
     basin_floor, water = walk - 2.0, walk - 0.45
+    # 8 steps of 0.25 m from the basin floor to the walkway, x 0.5..2.5 (clear of the columns).
+    STEP_RUN, STEP_WIDTH = 0.25, 1.0
+    BASIN_STEPS = [(0.5 + STEP_RUN * k, basin_floor + 0.25 * (k + 1)) for k in range(8)]
     spring = 2.6
     hall = hall_profile()
     mb = MeshBuilder(name + "-mesh")
@@ -1333,6 +1336,10 @@ def build_cistern(force=False):
     mb.face([(bx, -by, walk), (ix, -by, walk), (ix, by, walk), (bx, by, walk)], F, facing=(0, 0, 1))
     # Basin
     mb.box((-bx, -by, basin_floor), (bx, by, walk), B, skip=("+z",), inward=True)
+    # Stone steps up the south side of the basin, between the columns: every water volume needs an
+    # obvious way out (see docs/dev/asset-pipeline.md). Steps climb toward +X onto the walkway.
+    for sx0, sh in BASIN_STEPS:
+        mb.box((sx0, -by, basin_floor), (sx0 + STEP_RUN, -by + STEP_WIDTH, sh), F, skip=("-y", "-z"))
     # Walls + vault above the walkway. s from -ix (n/s) or -iy (e/w).
     notches = {"n": [(ix - 4, hall)], "s": [(ix + 4, hall)], "w": [(iy + 2, hall)], "e": [(iy - 2, hall)]}
     vault_room(mb, -ix, ix, iy, walk, spring, W, W, notches=notches)
@@ -1376,6 +1383,8 @@ def build_cistern(force=False):
     t = WALL_INSET
     top = walk + spring + iy
     col_box(coll, root, "col-basin-floor", (-bx, -by, basin_floor - 0.3), (bx, by, basin_floor))
+    for k, (sx0, sh) in enumerate(BASIN_STEPS):
+        col_box(coll, root, f"col-basin-step-{k}", (sx0, -by, basin_floor - 0.3), (sx0 + STEP_RUN, -by + STEP_WIDTH, sh))
     # Walkways are solid down to the basin floor: they also form the basin walls.
     col_box(coll, root, "col-walk-n", (-6, by, basin_floor - 0.3), (6, 4, walk))
     col_box(coll, root, "col-walk-s", (-6, -4, basin_floor - 0.3), (6, -by, walk))

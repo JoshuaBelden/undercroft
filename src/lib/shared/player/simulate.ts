@@ -4,7 +4,9 @@ import {
 	boxesNear,
 	capsuleFits,
 	capsuleSpheres,
+	findMantle,
 	sphereVsBox,
+	waterSurface,
 	type CollisionWorld
 } from '../map/collision.ts';
 import type { Vec3 } from '../map/types.ts';
@@ -36,7 +38,12 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		headlamp: 1,
 		battery: 1,
 		lampClock: 0,
-		flags: { noclip: false, infiniteStamina: false, infiniteBattery: false }
+		flags: { noclip: false, infiniteStamina: false, infiniteBattery: false },
+		swimming: false,
+		wading: false,
+		underwater: false,
+		sneaking: false,
+		mantle: null
 	};
 }
 
@@ -45,7 +52,8 @@ export function clonePlayerState(s: PlayerState): PlayerState {
 		...s,
 		position: [...s.position],
 		velocity: [...s.velocity],
-		flags: { ...s.flags }
+		flags: { ...s.flags },
+		mantle: s.mantle ? { ...s.mantle, from: [...s.mantle.from], to: [...s.mantle.to] } : null
 	};
 }
 
@@ -58,9 +66,22 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		yaw: s.yaw,
 		pitch: s.pitch,
 		sprint: false,
+		sneak: false,
+		climb: false,
+		swimDown: false,
 		stance: s.stance,
 		headlamp: s.headlamp
 	};
+}
+
+/** Capsule height for the current state (swimming bodies are horizontal and short). */
+export function bodyHeight(s: PlayerState, t: MovementTuning = MOVEMENT): number {
+	return s.swimming ? t.swim.height : t.stances[s.stance].height;
+}
+
+/** Camera height above the feet. */
+export function eyeHeight(s: PlayerState, t: MovementTuning = MOVEMENT): number {
+	return s.swimming ? t.swim.eye : t.stances[s.stance].eye;
 }
 
 /** Clamp untrusted input (from the network) into valid ranges. */
@@ -79,6 +100,9 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		yaw: num(f.yaw, -1e6, 1e6),
 		pitch: num(f.pitch, -MAX_PITCH, MAX_PITCH),
 		sprint: f.sprint === true,
+		sneak: f.sneak === true,
+		climb: f.climb === true,
+		swimDown: f.swimDown === true,
 		stance,
 		headlamp: lamp
 	};
@@ -95,8 +119,20 @@ export function stepPlayer(
 ): PlayerState {
 	s.yaw = input.yaw;
 	s.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, input.pitch));
-	changeStance(s, input.stance, world, t);
 	s.headlamp = input.headlamp;
+	s.sneaking = input.sneak && !s.swimming;
+
+	if (s.mantle) {
+		advanceMantle(s, dt);
+		updateStamina(s, false, false, dt, t);
+		updateBattery(s, dt, lamp);
+		return s;
+	}
+
+	const p = s.position;
+	const surface = s.flags.noclip ? null : waterSurface(world, [p[0], p[1] + 0.05, p[2]]);
+	updateWater(s, surface, world, t);
+	if (!s.swimming) changeStance(s, input.stance, world, t);
 
 	const sin = Math.sin(s.yaw);
 	const cos = Math.cos(s.yaw);
@@ -110,7 +146,12 @@ export function stepPlayer(
 	}
 	const moving = wishLen > 0.01;
 	const sprinting =
-		input.sprint && moving && input.moveZ > 0 && s.stance === 'stand' && !s.exhausted;
+		input.sprint &&
+		!input.sneak &&
+		moving &&
+		input.moveZ > 0 &&
+		(s.stance === 'stand' || s.swimming) &&
+		!s.exhausted;
 
 	if (s.flags.noclip) {
 		const speed = t.noclipSpeed * (input.sprint ? 2 : 1);
@@ -123,19 +164,162 @@ export function stepPlayer(
 		s.position[2] += (-sin * input.moveX + fz * input.moveZ) * speed * dt;
 		s.velocity = [0, 0, 0];
 		s.grounded = false;
+	} else if (s.swimming && surface !== null) {
+		swim(s, input, world, dt, t, surface, sprinting);
 	} else {
-		const speed = sprinting ? t.sprintSpeed : t.stances[s.stance].speed;
+		let speed = sprinting ? t.sprintSpeed : t.stances[s.stance].speed;
+		if (input.sneak) speed = Math.min(speed, t.sneakSpeed);
+		if (s.wading) speed *= t.wadeSpeed;
 		const accel = Math.min(1, (s.grounded ? t.acceleration : t.airAcceleration) * dt);
 		s.velocity[0] += (wx * speed - s.velocity[0]) * accel;
 		s.velocity[2] += (wz * speed - s.velocity[2]) * accel;
 		s.velocity[1] = s.grounded ? STICK_SPEED : s.velocity[1] - t.gravity * dt;
 		for (let i = 0; i < 3; i++) s.position[i] += s.velocity[i] * dt;
 		resolveCollisions(s, world, t);
+		if (input.climb && (s.grounded || s.wading)) {
+			const y = s.position[1];
+			tryMantle(s, world, t, y + t.stepHeight, y + t.mantle.maxHeight);
+		}
 	}
 
-	updateStamina(s, sprinting, dt, t);
+	s.underwater = surface !== null && s.position[1] + eyeHeight(s, t) < surface;
+	updateStamina(s, sprinting, s.underwater, dt, t);
 	updateBattery(s, dt, lamp);
 	return s;
+}
+
+/** Enter or leave swimming from the water depth over the feet (with a little hysteresis). */
+function updateWater(
+	s: PlayerState,
+	surface: number | null,
+	world: CollisionWorld,
+	t: MovementTuning
+): void {
+	const depth = surface === null ? 0 : surface - s.position[1];
+	// Start swimming when the water over the feet is deep. A floating swimmer's feet are near the
+	// surface, so only stop when standing on the bottom in shallower water (or out of the water).
+	const swimming = s.swimming
+		? surface !== null && !(s.grounded && depth < t.swim.depth - 0.25)
+		: depth > t.swim.depth;
+	if (s.swimming && !swimming) {
+		// Climbing out onto steps: take the tallest stance that fits.
+		const order: Stance[] = ['stand', 'crouch', 'crawl'];
+		s.stance =
+			order.find((st) => capsuleFits(world, s.position, t.stances[st].height, t.radius)) ?? 'crawl';
+	}
+	s.swimming = swimming;
+	s.wading = !swimming && depth > 0.15;
+}
+
+function swim(
+	s: PlayerState,
+	input: InputFrame,
+	world: CollisionWorld,
+	dt: number,
+	t: MovementTuning,
+	surface: number,
+	sprinting: boolean
+): void {
+	const sw = t.swim;
+	const sin = Math.sin(s.yaw);
+	const cos = Math.cos(s.yaw);
+	const cp = Math.cos(s.pitch);
+	const sp = Math.sin(s.pitch);
+	// Swim where you look; climb / swimDown add straight up / down.
+	let dx = cos * input.moveX - sin * cp * input.moveZ;
+	let dy = sp * input.moveZ + (input.climb ? 1 : 0) - (input.swimDown ? 1 : 0);
+	let dz = -sin * input.moveX - cos * cp * input.moveZ;
+	const len = Math.hypot(dx, dy, dz);
+	if (len > 1) {
+		dx /= len;
+		dy /= len;
+		dz /= len;
+	}
+	const speed = sprinting ? sw.sprintSpeed : sw.speed;
+	const accel = Math.min(1, 4 * dt);
+	s.velocity[0] += (dx * speed - s.velocity[0]) * accel;
+	s.velocity[2] += (dz * speed - s.velocity[2]) * accel;
+
+	// Float with the eye just above the surface unless diving. Out of breath always floats up.
+	const floatFeet = surface + sw.floatEye - sw.eye;
+	const outOfBreath = s.exhausted || s.stamina <= 0;
+	const diving = !outOfBreath && (input.swimDown || (input.moveZ > 0 && s.pitch < -0.35));
+	if (diving) {
+		s.velocity[1] += (dy * speed - s.velocity[1]) * accel;
+	} else {
+		const target = (floatFeet - s.position[1]) * sw.buoyancy;
+		s.velocity[1] += (target - s.velocity[1]) * Math.min(1, sw.drag * dt);
+	}
+
+	for (let i = 0; i < 3; i++) s.position[i] += s.velocity[i] * dt;
+	// No swimming up out of the water.
+	if (s.position[1] > floatFeet + 0.02) {
+		s.position[1] = floatFeet + 0.02;
+		if (s.velocity[1] > 0) s.velocity[1] = 0;
+	}
+	resolveCollisions(s, world, t);
+
+	// At the surface, climb (Space) at an edge pulls you out. Never automatic.
+	if (input.climb && s.position[1] > floatFeet - 0.3) {
+		tryMantle(s, world, t, surface - 0.2, surface + t.mantle.maxFromWater);
+	}
+}
+
+function tryMantle(
+	s: PlayerState,
+	world: CollisionWorld,
+	t: MovementTuning,
+	minTop: number,
+	maxTop: number
+): void {
+	if (s.exhausted && !s.flags.infiniteStamina) return;
+	const order: Stance[] = ['stand', 'crouch', 'crawl'];
+	const target = findMantle(
+		world,
+		s.position,
+		s.yaw,
+		t.radius,
+		t.mantle.reach,
+		minTop,
+		maxTop,
+		order.map((st) => t.stances[st].height)
+	);
+	if (!target) return;
+	s.mantle = {
+		from: [...s.position],
+		to: target.to,
+		t: 0,
+		duration: t.mantle.duration,
+		stance: order[target.fit]
+	};
+	s.velocity = [0, 0, 0];
+	if (!s.flags.infiniteStamina) s.stamina = Math.max(0, s.stamina - t.mantle.staminaCost);
+	s.staminaDelay = t.stamina.regenDelay;
+}
+
+/** Follow the climb path: rise first, then move onto the ledge. */
+function advanceMantle(s: PlayerState, dt: number): void {
+	const m = s.mantle;
+	if (!m) return;
+	m.t = Math.min(m.duration, m.t + dt);
+	const k = m.t / m.duration;
+	const ease = (x: number) => x * x * (3 - 2 * x);
+	const rise = ease(Math.min(1, k / 0.6));
+	const over = ease(Math.max(0, (k - 0.5) / 0.5));
+	s.position = [
+		m.from[0] + (m.to[0] - m.from[0]) * over,
+		m.from[1] + (m.to[1] - m.from[1]) * rise,
+		m.from[2] + (m.to[2] - m.from[2]) * over
+	];
+	if (m.t >= m.duration) {
+		s.position = [...m.to];
+		s.stance = m.stance;
+		s.swimming = false;
+		s.wading = false;
+		s.underwater = false;
+		s.grounded = true;
+		s.mantle = null;
+	}
 }
 
 function changeStance(
@@ -156,7 +340,7 @@ function changeStance(
 
 function resolveCollisions(s: PlayerState, world: CollisionWorld, t: MovementTuning): void {
 	const r = t.radius;
-	const height = t.stances[s.stance].height;
+	const height = bodyHeight(s, t);
 	const spheres = capsuleSpheres(height, r);
 	const wasGrounded = s.grounded;
 	const p = s.position;
@@ -197,7 +381,8 @@ function resolveCollisions(s: PlayerState, world: CollisionWorld, t: MovementTun
 					si === 0 && ny >= -0.1 && facingUs
 						? stepUp(world, p, nx, nz, c.point[1] - p[1], height, t)
 						: 0;
-				if ((wasGrounded || s.grounded) && rise > 0) {
+				// Swimmers step up too, so swimming into submerged steps walks you out of the water.
+				if ((wasGrounded || s.grounded || s.swimming) && rise > 0) {
 					const hl = Math.hypot(nx, nz) || 1;
 					p[0] -= (nx / hl) * STEP_FORWARD;
 					p[1] += rise;
@@ -259,9 +444,23 @@ function stepUp(
 	return Math.min(hi + 0.04, t.stepHeight + 0.04);
 }
 
-function updateStamina(s: PlayerState, sprinting: boolean, dt: number, t: MovementTuning): void {
+function updateStamina(
+	s: PlayerState,
+	sprinting: boolean,
+	underwater: boolean,
+	dt: number,
+	t: MovementTuning
+): void {
 	const st = t.stamina;
-	if (sprinting) {
+	if (underwater) {
+		// Breath: drains, and nothing comes back until you surface.
+		if (!s.flags.infiniteStamina) s.stamina -= t.swim.breathDrain * dt;
+		s.staminaDelay = st.regenDelay;
+		if (s.stamina <= 0) {
+			s.stamina = 0;
+			s.exhausted = true;
+		}
+	} else if (sprinting) {
 		if (!s.flags.infiniteStamina) s.stamina -= st.sprintDrain * dt;
 		s.staminaDelay = st.regenDelay;
 		if (s.stamina <= 0) {

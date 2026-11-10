@@ -77,6 +77,7 @@ Then run `pnpm asset:build`.
   - `spawn-<n>`: player start. `extract-<n>`: extraction point. `rite-<n>`: where the rite is initiated.
 - **Collision:** `col-*` meshes are unit cubes scaled and rotated into place. They go into the manifest as oriented boxes and are stripped from the shipped model.
 - **Volumes:** `vol-<kind>-<n>` unit cubes mark gameplay volumes, such as `vol-water-0` (swimmable water) in the Cistern. Like colliders, they go into the manifest and are stripped from the model.
+- **Every water volume needs a way out:** steps, or an edge no more than 0.9 m above the water surface (the swim-out mantle height, `MOVEMENT.mantle.maxFromWater`). The Cistern has both: steps on the south side of the basin and a walkway 0.45 m above the water.
 - **Caps** (`cap-hall`) have footprint 0×0. Their single socket is at the origin facing north, and their geometry fills the -Y side (inside the piece they seal).
 - **Materials:** single-sided (backface culling on, so they export with `doubleSided: false`). Name them by use (`mat-wall-tunnel`), not by texture, so a texture can be swapped without renaming. Texture sets per material are listed in `MATERIALS` in `kit.py`.
 - **UVs:** world-scale, one texture repeat per `tile` metres per material.
@@ -92,3 +93,23 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 2. **Optimizes:** strips collision meshes, volumes and Blender scene properties, runs dedup, weld, and prune, and re-encodes textures to WebP at 1024 px. The 4K sources are never touched.
 3. **Writes shared textures:** each piece becomes `static/assets/map/<piece>.gltf` + `<piece>.bin`. Textures go to `static/assets/map/textures/<content-hash>.webp`, so a texture used by many pieces is stored, committed and downloaded once. On the client, `loadModel` (`src/lib/game/assets.ts`) also points every piece at one GPU texture per file. Output is deterministic: rebuilding unchanged pieces produces identical files, so git only stores what actually changed. The output folder is cleared first, so removed pieces and unused textures don't linger.
 4. **Generates `src/lib/shared/map/pieces.generated.ts`:** footprint, sockets, spawns, extracts, rite points, colliders, and volumes per piece. The server and client both read it, so the server never parses model files. Commit it with the built assets.
+
+## Audio
+
+Raw recordings go in `art/sfx/` (gitignored), named as downloaded. `pnpm asset:audio` (`scripts/build-audio.ts`) builds the entries listed in `scripts/audio.config.ts`:
+
+1. Reads 16-bit PCM WAV (any channel count or sample rate) and mixes to mono.
+2. Low-pass filters and resamples to 32 kHz.
+3. Trims silence relative to the peak, or slices a recording of several hits into one file per hit. Slicing uses onset detection (`slice: { minGap, maxLength, threshold }`), for example one footstep per file from a walking recording. Loops can set `keepSilence`.
+4. Normalizes to -1 dBFS, adds short fades, and writes mono WAV to `static/assets/audio/<id>.wav` (or `<id>-<n>.wav` for slices).
+5. Writes `src/lib/content/audio/files.generated.ts`, mapping each id to its variant URLs.
+
+The build uses no encoder, so it needs nothing beyond Node. Mono 32 kHz WAV is small for short effects, about 0.75 MB for the current set. If the library grows (music, long ambience), switch the output to a compressed format; that needs an encoder such as ffmpeg.
+
+**Adding a sound:**
+
+1. Drop the WAV in `art/sfx/` and add an entry to `scripts/audio.config.ts`.
+2. Run `pnpm asset:audio`.
+3. Point a sound in `src/lib/content/audio/sounds.ts` at it with `file: '<id>'`.
+
+Only sounds listed in the config are built and committed. Recordings for later features stay in `art/sfx/` until they're used.

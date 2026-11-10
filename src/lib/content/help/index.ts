@@ -18,17 +18,35 @@ export const HELP_TOPICS: HelpTopic[] = [
 		category: 'Basics',
 		body: `Click the screen to take control. Look with the mouse; move with {action:moveForward} {action:moveLeft} {action:moveBack} {action:moveRight}.
 
-Hold {action:sprint} to run. Hold {action:crouch} to crouch. Press {action:crawl} to drop to a crawl, and again to get up.
+Hold {action:sprint} to run. Hold {action:sneak} to sneak: a slow walk that makes no footstep sound.
 
-Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk. You can't stand up while something is overhead; you'll rise as soon as there is room.`
+Press {action:stance} to change stance: walking, crouching, crawling, then back to walking. Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk. You can't stand up while something is overhead; you'll rise as soon as there is room.`
+	},
+	{
+		id: 'climbing',
+		title: 'Climbing',
+		category: 'Basics',
+		body: `Walk up to a ledge or a low wall and hold {action:climb} to pull yourself up onto it, if there's room on top. Climbing costs a little stamina, and you can't do it while you're spent.
+
+In the water, swim up to an edge and hold {action:climb} to pull yourself out.`
+	},
+	{
+		id: 'swimming',
+		title: 'Swimming',
+		category: 'Basics',
+		body: `In deep water you swim where you look. You float with your head just above the surface. Hold {action:climb} to swim up and {action:swimDown} to dive; looking down while swimming forward also takes you under.
+
+Underwater, your stamina is your breath: it drains and won't come back until you surface. When it runs out you're forced up for air, and you can't dive again until you've recovered.
+
+Look for steps or a low edge to get out. Every pool has a way out.`
 	},
 	{
 		id: 'stamina',
 		title: 'Stamina',
 		category: 'Basics',
-		body: `Sprinting uses stamina. It comes back after you stop running for a moment, and your breathing tells you how winded you are.
+		body: `Sprinting and climbing use stamina, and underwater it's your breath. It comes back after you stop for a moment, and your breathing tells you how winded you are.
 
-Run it all the way down and you're spent: you can't sprint again until you've caught your breath. Don't empty it when something might be chasing you.`
+Run it all the way down and you're spent: you can't sprint, climb or dive again until you've caught your breath. Don't empty it when something might be chasing you.`
 	},
 	{
 		id: 'headlamp',

@@ -31,6 +31,14 @@ export const PIECES: Record<string, PieceDef> = {
 		rites: [],
 		colliders: [
 			{ center: [0, 1.85, 0], halfExtents: [4.4, 0.15, 2.4], rotation: [0, 0, 0, 1] },
+			{ center: [0.625, 1.975, 1.9], halfExtents: [0.125, 0.275, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0.875, 2.1, 1.9], halfExtents: [0.125, 0.4, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [1.125, 2.225, 1.9], halfExtents: [0.125, 0.525, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [1.375, 2.35, 1.9], halfExtents: [0.125, 0.65, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [1.625, 2.475, 1.9], halfExtents: [0.125, 0.775, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [1.875, 2.6, 1.9], halfExtents: [0.125, 0.9, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [2.125, 2.725, 1.9], halfExtents: [0.125, 1.025, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [2.375, 2.85, 1.9], halfExtents: [0.125, 1.15, 0.5], rotation: [0, 0, 0, 1] },
 			{ center: [-3, 5.991, 1.2], halfExtents: [0.35, 3.991, 0.35], rotation: [0, 0, 0, 1] },
 			{ center: [-3, 5.991, -1.2], halfExtents: [0.35, 3.991, 0.35], rotation: [0, 0, 0, 1] },
 			{ center: [0, 5.991, 1.2], halfExtents: [0.35, 3.991, 0.35], rotation: [0, 0, 0, 1] },
@@ -62,7 +70,7 @@ export const PIECES: Record<string, PieceDef> = {
 				rotation: [0, 0, 0, 1]
 			}
 		],
-		triangles: 718
+		triangles: 782
 	},
 	'gloaming-chapel': {
 		name: 'gloaming-chapel',

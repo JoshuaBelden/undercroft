@@ -43,7 +43,7 @@
 	let locked = $state(false);
 	let mapView = $state(false);
 	let spawned = $state(false);
-	let hud = $state({ stamina: 1, exhausted: false, battery: 1, headlamp: 1 });
+	let hud = $state({ stamina: 1, exhausted: false, battery: 1, headlamp: 1, underwater: false });
 
 	const audio = new AudioManager({ ...settings.audio });
 	let applyGraphics = (): void => {};
@@ -112,7 +112,7 @@
 		});
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
-		const playerAudio = new PlayerAudio(sounds, map.root);
+		const playerAudio = new PlayerAudio(sounds, map.root, (amount) => audio.setMuffle(amount));
 
 		function loadMap(layout: MapLayout): void {
 			seed = layout.seed;
@@ -168,7 +168,8 @@
 					stamina: state.stamina / MOVEMENT.stamina.max,
 					exhausted: state.exhausted,
 					battery: state.battery,
-					headlamp: state.headlamp
+					headlamp: state.headlamp,
+					underwater: state.underwater
 				};
 			}
 			stats = engine.stats;

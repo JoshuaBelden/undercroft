@@ -7,9 +7,11 @@
 		battery: number;
 		/** 0 off, 1 low, 2 bright */
 		headlamp: number;
+		/** Stamina is breath while underwater. */
+		underwater: boolean;
 	}
 
-	let { stamina, exhausted, battery, headlamp }: Props = $props();
+	let { stamina, exhausted, battery, headlamp, underwater }: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
 	const bars = $derived(Math.ceil(battery * 4));
@@ -17,8 +19,13 @@
 
 <div class="crosshair" aria-hidden="true"></div>
 
-{#if stamina < 0.999}
-	<div class="stamina" class:exhausted aria-label="Stamina">
+{#if stamina < 0.999 || underwater}
+	<div
+		class="stamina"
+		class:exhausted
+		class:underwater
+		aria-label={underwater ? 'Breath' : 'Stamina'}
+	>
 		<div class="fill" style:width="{stamina * 100}%"></div>
 	</div>
 {/if}
@@ -59,6 +66,10 @@
 	.stamina .fill {
 		height: 100%;
 		background: rgb(220 210 190 / 0.6);
+	}
+
+	.stamina.underwater .fill {
+		background: rgb(120 170 210 / 0.75);
 	}
 
 	.stamina.exhausted .fill {

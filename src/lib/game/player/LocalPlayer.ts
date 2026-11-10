@@ -5,7 +5,7 @@ import { settings } from '#lib/settings/settings.svelte.ts';
 import { SIM_RATE } from '#lib/shared/constants.ts';
 import type { CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
-import { clonePlayerState, stepPlayer } from '#lib/shared/player/simulate.ts';
+import { clonePlayerState, eyeHeight, stepPlayer } from '#lib/shared/player/simulate.ts';
 import type {
 	HeadlampMode,
 	InputFrame,
@@ -25,6 +25,7 @@ const SMOOTHING = 0.1;
 /** Stop buffering if the server stops acknowledging (disconnected). */
 const MAX_PENDING = SIM_RATE * 3;
 const MAX_STEPS_PER_FRAME = 10;
+const STANCE_CYCLE: Stance[] = ['stand', 'crouch', 'crawl'];
 
 /**
  * The local player: samples input every fixed step, predicts movement with the shared
@@ -42,7 +43,8 @@ export class LocalPlayer {
 	private accumulator = 0;
 	private yaw = 0;
 	private pitch = 0;
-	private crawl = false;
+	/** Wanted stance, cycled by the stance key; the simulation rises only when there is room. */
+	private stance: Stance = 'stand';
 	private lamp: HeadlampMode = 1;
 	private offset: Vec3 = [0, 0, 0];
 	private eye: number = MOVEMENT.stances.stand.eye;
@@ -54,7 +56,8 @@ export class LocalPlayer {
 	) {
 		this.unsubscribe = input.onPressed((action) => {
 			if (!this.state) return;
-			if (action === 'crawl') this.crawl = !this.crawl;
+			if (action === 'stance')
+				this.stance = STANCE_CYCLE[(STANCE_CYCLE.indexOf(this.stance) + 1) % 3];
 			if (action === 'headlamp') this.lamp = ((this.lamp + 1) % 3) as HeadlampMode;
 		});
 	}
@@ -77,7 +80,7 @@ export class LocalPlayer {
 			this.yaw = snapshot.state.yaw;
 			this.pitch = snapshot.state.pitch;
 			this.lamp = snapshot.state.headlamp;
-			this.crawl = snapshot.state.stance === 'crawl';
+			this.stance = snapshot.state.stance;
 			return;
 		}
 		const corrected = clonePlayerState(snapshot.state);
@@ -132,7 +135,7 @@ export class LocalPlayer {
 
 		const decay = Math.exp(-delta / SMOOTHING);
 		for (let i = 0; i < 3; i++) this.offset[i] *= decay;
-		const targetEye = MOVEMENT.stances[state.stance].eye;
+		const targetEye = eyeHeight(state);
 		this.eye += (targetEye - this.eye) * Math.min(1, delta * 10);
 	}
 
@@ -147,7 +150,10 @@ export class LocalPlayer {
 	}
 
 	look(): { yaw: number; pitch: number } {
-		return { yaw: this.yaw, pitch: this.pitch };
+		// Dip the view while hauling up onto a ledge.
+		const mantle = this.state?.mantle;
+		const dip = mantle ? Math.sin((mantle.t / mantle.duration) * Math.PI) * 0.18 : 0;
+		return { yaw: this.yaw, pitch: this.pitch - dip };
 	}
 
 	dispose(): void {
@@ -159,9 +165,6 @@ export class LocalPlayer {
 		const axis = (pos: boolean, neg: boolean) => (pos ? 1 : 0) - (neg ? 1 : 0);
 		const moveX = active ? axis(input.isDown('moveRight'), input.isDown('moveLeft')) : 0;
 		const moveZ = active ? axis(input.isDown('moveForward'), input.isDown('moveBack')) : 0;
-		let stance: Stance = 'stand';
-		if (this.crawl) stance = 'crawl';
-		else if (active && input.isDown('crouch')) stance = 'crouch';
 		return {
 			seq: this.seq++,
 			moveX,
@@ -169,7 +172,10 @@ export class LocalPlayer {
 			yaw: this.yaw,
 			pitch: this.pitch,
 			sprint: active && input.isDown('sprint'),
-			stance,
+			sneak: active && input.isDown('sneak'),
+			climb: active && input.isDown('climb'),
+			swimDown: active && input.isDown('swimDown'),
+			stance: this.stance,
 			headlamp: this.lamp
 		};
 	}

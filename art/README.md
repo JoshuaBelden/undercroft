@@ -7,6 +7,7 @@ Only optimized exports in `static/assets/` are committed.
 art/
   blender/catacomb-kit.blend   # map kit source: one collection per piece
   textures/<SetName>_4K-JPG/   # raw ambientCG / Poly Haven downloads, untouched
+  sfx/*.wav                    # raw sound recordings, input to `pnpm asset:audio`
   export/<piece>.glb           # raw Blender exports (full-res textures), input to `pnpm asset:build`
 ```
 

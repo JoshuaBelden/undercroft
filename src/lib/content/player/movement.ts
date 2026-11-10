@@ -23,6 +23,38 @@ export interface MovementTuning {
 	stances: Record<Stance, StanceTuning>;
 	sprintSpeed: number;
 	sprintStride: number;
+	/** Speed cap while sneaking (silent footsteps). */
+	sneakSpeed: number;
+	/** Speed multiplier while wading. */
+	wadeSpeed: number;
+	swim: {
+		/** Capsule while swimming (body horizontal). */
+		height: number;
+		eye: number;
+		speed: number;
+		sprintSpeed: number;
+		/** Water deeper than this over the feet means swimming rather than wading. */
+		depth: number;
+		/** Upward acceleration back toward the floating height. */
+		buoyancy: number;
+		/** Velocity damping per second. */
+		drag: number;
+		/** Eye height above the water surface when floating. */
+		floatEye: number;
+		/** Stamina drained per second while underwater (breath). */
+		breathDrain: number;
+		stride: number;
+	};
+	mantle: {
+		/** Highest ledge (above the feet) that can be climbed on land. */
+		maxHeight: number;
+		/** Highest ledge above the water surface that can be climbed out of water. */
+		maxFromWater: number;
+		/** How far ahead to look for the ledge top. */
+		reach: number;
+		duration: number;
+		staminaCost: number;
+	};
 	/** Horizontal acceleration toward the wanted velocity, per second. */
 	acceleration: number;
 	airAcceleration: number;
@@ -52,6 +84,21 @@ export const MOVEMENT: MovementTuning = {
 	},
 	sprintSpeed: 4.2,
 	sprintStride: 1.05,
+	sneakSpeed: 1.0,
+	wadeSpeed: 0.55,
+	swim: {
+		height: 0.9,
+		eye: 0.7,
+		speed: 1.6,
+		sprintSpeed: 2.4,
+		depth: 1.2,
+		buoyancy: 6,
+		drag: 3,
+		floatEye: 0.12,
+		breathDrain: 6,
+		stride: 1.1
+	},
+	mantle: { maxHeight: 1.2, maxFromWater: 0.9, reach: 0.6, duration: 0.7, staminaCost: 10 },
 	acceleration: 12,
 	airAcceleration: 2,
 	gravity: 18,
