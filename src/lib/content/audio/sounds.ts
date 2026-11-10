@@ -17,11 +17,21 @@ export type SynthSpec =
 	/** Stone scrape plus an effort grunt, for climbing. */
 	| { kind: 'scrape' }
 	/** Sharp inhale, for surfacing out of breath. */
-	| { kind: 'gasp' };
+	| { kind: 'gasp' }
+	/** Water drop plink. */
+	| { kind: 'drip' }
+	/** Distant knock with echoes. */
+	| { kind: 'knock' }
+	/** Distant trickle of falling stones. */
+	| { kind: 'rockfall' }
+	/** Low settling groan of the rock. */
+	| { kind: 'groan' }
+	/** Soft water lapping loop. */
+	| { kind: 'lap' };
 
 export interface SoundDef {
-	/** Built recording id (AUDIO_FILES); a random variant plays each time. */
-	file?: string;
+	/** Built recording id(s) (AUDIO_FILES); a random variant of all of them plays each time. */
+	file?: string | string[];
 	/** Placeholder used when `file` isn't built. */
 	synth?: SynthSpec;
 	category: Exclude<AudioCategory, 'master'>;
@@ -98,7 +108,20 @@ export const SOUNDS = {
 		rate: 0.85,
 		variation: 0.05
 	},
-	mantle: { synth: { kind: 'scrape' }, category: 'sfx', volume: 0.6, variation: 0.08 },
+	mantle: {
+		file: 'exertion',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.06
+	},
+	'squeeze.grunt': {
+		file: 'exertion',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.1
+	},
 	gasp: { file: 'gasp', synth: { kind: 'gasp' }, category: 'sfx', volume: 0.8 },
 	// Breathing loops, crossfaded by stamina.
 	'breath.slow': {
@@ -112,6 +135,48 @@ export const SOUNDS = {
 		synth: { kind: 'breath', period: 1.6 },
 		category: 'sfx',
 		volume: 0.7
+	},
+	// Ambience (played around the listener by Ambience.ts).
+	'ambience.drip': {
+		file: 'ambience.drip',
+		synth: { kind: 'drip' },
+		category: 'ambience',
+		volume: 0.6,
+		variation: 0.25
+	},
+	'ambience.knock': {
+		file: 'ambience.knock',
+		synth: { kind: 'knock' },
+		category: 'ambience',
+		volume: 0.8,
+		variation: 0.1
+	},
+	'ambience.rockfall': {
+		file: 'ambience.rockfall',
+		synth: { kind: 'rockfall' },
+		category: 'ambience',
+		volume: 0.7,
+		variation: 0.1
+	},
+	'ambience.creak': {
+		file: 'ambience.creak',
+		synth: { kind: 'groan' },
+		category: 'ambience',
+		volume: 0.8,
+		variation: 0.08
+	},
+	'ambience.lap': {
+		file: 'ambience.lap',
+		synth: { kind: 'lap' },
+		category: 'ambience',
+		volume: 0.5
+	},
+	// Rare unsettling ambient swells, played at random times (not placed in the world).
+	'ambience.creepy': {
+		file: ['ambience.creepy', 'ambience.horror'],
+		synth: { kind: 'groan' },
+		category: 'ambience',
+		volume: 0.6
 	},
 	'headlamp.on': { file: 'headlamp.on', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 },
 	'headlamp.off': { file: 'headlamp.off', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 }

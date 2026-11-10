@@ -138,6 +138,94 @@ function gasp(ctx: BaseAudioContext): AudioBuffer {
 	return buffer;
 }
 
+function buffer(
+	ctx: BaseAudioContext,
+	seconds: number,
+	fill: (t: number, i: number) => number
+): AudioBuffer {
+	const rate = ctx.sampleRate;
+	const n = Math.floor(rate * seconds);
+	const out = ctx.createBuffer(1, n, rate);
+	const data = out.getChannelData(0);
+	for (let i = 0; i < n; i++) data[i] = fill(i / rate, i);
+	return out;
+}
+
+/** Add decaying echoes (delay in seconds, feedback 0..1) to a mono buffer in place. */
+function echo(b: AudioBuffer, delay: number, feedback: number, taps: number): AudioBuffer {
+	const data = b.getChannelData(0);
+	const step = Math.floor(delay * b.sampleRate);
+	for (let tap = 1; tap <= taps; tap++) {
+		const gain = Math.pow(feedback, tap);
+		for (let i = data.length - 1; i >= step * tap; i--) data[i] += data[i - step * tap] * gain;
+	}
+	return b;
+}
+
+function drip(ctx: BaseAudioContext): AudioBuffer {
+	let phase = 0;
+	return buffer(ctx, 0.25, (t) => {
+		// Fast downward chirp: the "plink" of a drop hitting water.
+		const freq = 900 + 1400 * Math.exp(-t / 0.012);
+		phase += (2 * Math.PI * freq) / ctx.sampleRate;
+		return Math.sin(phase) * Math.exp(-t / 0.04) * 0.8;
+	});
+}
+
+function knock(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(41);
+	const a = lowpass(400, ctx.sampleRate);
+	let y = 0;
+	const b = buffer(ctx, 2.2, (t) => {
+		y += a * (rand() - y);
+		const hit = t < 0.35 ? Math.exp(-t / 0.06) : 0;
+		return (Math.sin(2 * Math.PI * 70 * t) * 0.7 + y * 2) * hit;
+	});
+	return echo(b, 0.31, 0.45, 4);
+}
+
+function rockfall(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(53);
+	const a = lowpass(1600, ctx.sampleRate);
+	let y = 0;
+	// Stones landing at irregular times, thinning out.
+	const hits = [0, 0.11, 0.19, 0.34, 0.41, 0.6, 0.77, 1.02, 1.3];
+	const b = buffer(ctx, 2.6, (t) => {
+		y += a * (rand() - y);
+		let env = 0;
+		for (const h of hits) if (t >= h) env += Math.exp(-(t - h) / 0.05) * (1 - h / 1.6);
+		return y * env * 1.4;
+	});
+	return echo(b, 0.27, 0.35, 3);
+}
+
+function groan(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(67);
+	const a = lowpass(180, ctx.sampleRate);
+	let y = 0;
+	let phase = 0;
+	return buffer(ctx, 3.5, (t) => {
+		y += a * (rand() - y);
+		const freq = 48 + 10 * Math.sin(t * 1.3);
+		phase += (2 * Math.PI * freq) / ctx.sampleRate;
+		const swell = Math.sin((t / 3.5) * Math.PI);
+		return (Math.sin(phase) * 0.5 + y * 3) * swell * 0.8;
+	});
+}
+
+function lap(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(79);
+	const a = lowpass(700, ctx.sampleRate);
+	let y = 0;
+	const seconds = 4;
+	return buffer(ctx, seconds, (t) => {
+		y += a * (rand() - y);
+		// Two slow overlapping laps per loop; starts and ends quiet so it loops cleanly.
+		const env = Math.pow(Math.sin((t / seconds) * Math.PI * 2), 2);
+		return y * env * 1.6;
+	});
+}
+
 export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer {
 	switch (spec.kind) {
 		case 'footstep':
@@ -152,5 +240,15 @@ export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer 
 			return scrape(ctx);
 		case 'gasp':
 			return gasp(ctx);
+		case 'drip':
+			return drip(ctx);
+		case 'knock':
+			return knock(ctx);
+		case 'rockfall':
+			return rockfall(ctx);
+		case 'groan':
+			return groan(ctx);
+		case 'lap':
+			return lap(ctx);
 	}
 }

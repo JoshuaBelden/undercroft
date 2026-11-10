@@ -26,7 +26,7 @@ const SMOOTHING = 0.1;
 const MAX_PENDING = SIM_RATE * 3;
 const MAX_STEPS_PER_FRAME = 10;
 const STANCE_CYCLE: Stance[] = ['stand', 'crouch', 'crawl'];
-/** Holding the stance key this long toggles creep instead of changing stance. */
+/** Releasing the stance key within this many ms counts as a tap (cycle stance) rather than a hold (creep). */
 const LONG_PRESS_MS = 350;
 
 /**
@@ -48,10 +48,9 @@ export class LocalPlayer {
 	/** Wanted stance, cycled by the stance key; the simulation rises only when there is room. */
 	private stance: Stance = 'stand';
 	private lamp: HeadlampMode = 1;
-	/** Creep (slow, silent walk) mode, toggled by a long press of the stance key. */
+	/** Creeping (slow, silent walk): true while the stance key is held. */
 	private creep = false;
 	private stancePressedAt: number | null = null;
-	private longPressFired = false;
 	private offset: Vec3 = [0, 0, 0];
 	private eye: number = MOVEMENT.stances.stand.eye;
 	private unsubscribe: () => void;
@@ -74,28 +73,23 @@ export class LocalPlayer {
 	}
 
 	/**
-	 * Stance key: a tap cycles walk -> crouch -> crawl; holding it toggles creep (slow, silent).
-	 * Sprinting drops back to a normal walk.
+	 * Stance key: a tap (released within LONG_PRESS_MS) cycles walk -> crouch -> crawl; while the
+	 * key is held, you creep (slow, silent), and releasing a hold leaves the stance unchanged.
+	 * Sprinting stops creeping and drops back to a normal walk.
 	 */
 	private updateStanceKey(active: boolean): void {
 		const input = this.input;
-		if (this.stancePressedAt !== null) {
+		const sprinting = active && input.isDown('sprint');
+		if (this.stancePressedAt !== null && !input.isDown('stance')) {
 			const held = performance.now() - this.stancePressedAt;
-			if (!input.isDown('stance')) {
-				if (!this.longPressFired) {
-					this.stance = STANCE_CYCLE[(STANCE_CYCLE.indexOf(this.stance) + 1) % 3];
-				}
-				this.stancePressedAt = null;
-				this.longPressFired = false;
-			} else if (!this.longPressFired && held >= LONG_PRESS_MS) {
-				this.creep = !this.creep;
-				this.longPressFired = true;
+			if (held < LONG_PRESS_MS) {
+				this.stance = STANCE_CYCLE[(STANCE_CYCLE.indexOf(this.stance) + 1) % 3];
 			}
+			this.stancePressedAt = null;
 		}
-		if (active && input.isDown('sprint')) {
-			this.stance = 'stand';
-			this.creep = false;
-		}
+		// Creep starts on press so it responds immediately; a tap only creeps for its brief moment.
+		this.creep = this.stancePressedAt !== null && !sprinting;
+		if (sprinting) this.stance = 'stand';
 	}
 
 	/** The collision world being predicted against (null while not in an expedition). */

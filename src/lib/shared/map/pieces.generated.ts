@@ -112,6 +112,51 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 673
 	},
+	'hall-canal': {
+		name: 'hall-canal',
+		url: '/assets/map/hall-canal.gltf',
+		footprint: [1, 2],
+		levels: 2,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 1, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 1, edge: 's' }
+		],
+		spawns: [],
+		extracts: [],
+		rites: [],
+		colliders: [
+			{ center: [0, 7.6, 0], halfExtents: [2, 0.2, 2.4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7, -3.2], halfExtents: [2, 0.2, 0.8], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7, 3.2], halfExtents: [2, 0.2, 0.8], rotation: [0, 0, 0, 1] },
+			{ center: [0.7, 2.25, 0], halfExtents: [1.3, 0.15, 2.2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.05, -3.1], halfExtents: [2, 0.95, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.05, 3.1], halfExtents: [2, 0.95, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 5.5, -3.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 5.5, -3.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 5.5, 3.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 5.5, 3.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-1.3, 3.05, 0], halfExtents: [0.7, 0.95, 2.2], rotation: [0, 0, 0, 1] },
+			{ center: [1.46, 5.5, -2.72], halfExtents: [0.2, 1.5, 0.5], rotation: [0, 0.316, 0, 0.949] },
+			{
+				center: [-1.46, 5.5, -2.72],
+				halfExtents: [0.2, 1.5, 0.5],
+				rotation: [0, -0.316, 0, 0.949]
+			},
+			{ center: [1.46, 5.5, 2.72], halfExtents: [0.2, 1.5, 0.5], rotation: [0, 0.949, 0, 0.316] },
+			{ center: [-1.46, 5.5, 2.72], halfExtents: [0.2, 1.5, 0.5], rotation: [0, -0.949, 0, 0.316] },
+			{ center: [1.8, 4.55, 0], halfExtents: [0.2, 2.45, 2.4], rotation: [0, 0, 0, 1] },
+			{ center: [-1.8, 5.5, 0], halfExtents: [0.2, 1.5, 2.4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [
+			{
+				kind: 'water',
+				center: [0.5, 3.05, 0],
+				halfExtents: [1.1, 0.65, 2.2],
+				rotation: [0, 0, 0, 1]
+			}
+		],
+		triangles: 882
+	},
 	'hall-corner': {
 		name: 'hall-corner',
 		url: '/assets/map/hall-corner.gltf',
@@ -244,6 +289,42 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 334
 	},
+	'hall-flooded': {
+		name: 'hall-flooded',
+		url: '/assets/map/hall-flooded.gltf',
+		footprint: [1, 2],
+		levels: 2,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 1, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 1, edge: 's' }
+		],
+		spawns: [],
+		extracts: [],
+		rites: [],
+		colliders: [
+			{ center: [0, 1.85, 0], halfExtents: [1.5, 0.15, 0.8], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7, -3.5], halfExtents: [1.5, 0.2, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7, 3.5], halfExtents: [1.5, 0.2, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.85, -3.5], halfExtents: [1.5, 0.15, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.85, 3.5], halfExtents: [1.5, 0.15, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.85, -1.9], halfExtents: [1.5, 0.15, 1.487], rotation: [0.361, 0, 0, 0.933] },
+			{ center: [0, 2.85, 1.9], halfExtents: [1.5, 0.15, 1.487], rotation: [-0.361, 0, 0, 0.933] },
+			{ center: [0, 3.85, 0], halfExtents: [1.5, 0.65, 0.8], rotation: [0, 0, 0, 1] },
+			{ center: [0.9, 3, 0], halfExtents: [0.1, 1, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [-0.9, 3, 0], halfExtents: [0.1, 1, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.25, 4.35, 0], halfExtents: [0.25, 2.65, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-1.25, 4.35, 0], halfExtents: [0.25, 2.65, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [
+			{
+				kind: 'water',
+				center: [0, 2.825, 0],
+				halfExtents: [1, 0.925, 2.725],
+				rotation: [0, 0, 0, 1]
+			}
+		],
+		triangles: 1150
+	},
 	'hall-side-room': {
 		name: 'hall-side-room',
 		url: '/assets/map/hall-side-room.gltf',
@@ -298,7 +379,9 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [0.925, 1.5, 0], halfExtents: [0.575, 1.5, 0.7], rotation: [0, 0, 0, 1] },
 			{ center: [-0.925, 1.5, 0], halfExtents: [0.575, 1.5, 0.7], rotation: [0, 0, 0, 1] }
 		],
-		volumes: [],
+		volumes: [
+			{ kind: 'squeeze', center: [0, 1, 0], halfExtents: [0.6, 1, 1], rotation: [0, 0, 0, 1] }
+		],
 		triangles: 272
 	},
 	'hall-stairs-down': {

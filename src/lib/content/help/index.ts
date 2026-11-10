@@ -20,9 +20,9 @@ export const HELP_TOPICS: HelpTopic[] = [
 
 Hold {action:sprint} to run.
 
-Tap {action:stance} to change stance: walking, crouching, crawling, then back to walking. Hold {action:stance} to start or stop creeping: a slow walk that makes no footstep sound. Your stance and creep show in the bottom-left corner. Running puts you back on your feet and ends creeping.
+Tap {action:stance} to change stance: walking, crouching, crawling, then back to walking. Hold {action:stance} to creep: a slow walk that makes no footstep sound, for as long as you hold it. Your stance and creep show in the bottom-left corner. Running puts you back on your feet.
 
- Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk. You can't stand up while something is overhead; you'll rise as soon as there is room.`
+ Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk: you have to work your way through slowly, and you can't run. You can't stand up while something is overhead; you'll rise as soon as there is room.`
 	},
 	{
 		id: 'climbing',
@@ -51,6 +51,14 @@ Look for steps or a low edge to get out. Every pool has a way out.`
 Stand at the door and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
 
 Once you're out, your expedition is over. In a group, the others can stay down; the expedition ends when everyone is out.`
+	},
+	{
+		id: 'water-passages',
+		title: 'Water passages',
+		category: 'Basics',
+		body: `Canals run beside a narrow stone ledge. Keep to the ledge, or slip into the channel and swim; hold {action:climb} at the edge to pull yourself back out.
+
+Flooded passages dip under the water: the ceiling comes down to meet it, and the only way on is to dive and swim through. It's only a few metres, but you're holding your breath the whole way. If your breath runs low, turn back.`
 	},
 	{
 		id: 'stamina',

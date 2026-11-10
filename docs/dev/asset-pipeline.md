@@ -61,7 +61,7 @@ kit.build_all()    # build pieces that do not exist yet; existing ones are skipp
 kit.export_all()   # write art/export/<piece>.glb
 ```
 
-Then run `pnpm asset:build`.
+Then run `pnpm asset:build`. Exports with no root empty named after the file (for example a character model) are skipped with a warning; only map pieces go through this build.
 
 **The .blend file is the source of truth.** `kit.py` only bootstrapped the first pieces. Edit pieces by hand in Blender. `build_all()` never touches a collection that already exists. Regenerating one (`kit.build_stairwell(force=True)`) wipes its hand edits, so only do it deliberately. Nothing in the pnpm scripts runs Blender. `export_all()` and `pnpm asset:build` only read your work.
 
@@ -76,8 +76,11 @@ Then run `pnpm asset:build`.
   - `socket-<type>-<n>`: an opening, at floor level, on the footprint boundary, centred on a cell edge. The edge and cell are derived from the position.
   - `spawn-<n>`: player start. `extract-<n>`: extraction point. `rite-<n>`: where the rite is initiated.
 - **Collision:** `col-*` meshes are unit cubes scaled and rotated into place. They go into the manifest as oriented boxes and are stripped from the shipped model.
-- **Volumes:** `vol-<kind>-<n>` unit cubes mark gameplay volumes, such as `vol-water-0` (swimmable water) in the Cistern. Like colliders, they go into the manifest and are stripped from the model.
+- **Volumes:** `vol-<kind>-<n>` unit cubes mark gameplay volumes, such as `vol-water-0` (swimmable water) in the Cistern or `vol-squeeze-0` (slow, no sprinting) in `hall-squeeze`. Like colliders, they go into the manifest and are stripped from the model.
 - **Every water volume needs a way out:** steps, or an edge no more than 0.9 m above the water surface (the swim-out mantle height, `MOVEMENT.mantle.maxFromWater`). The Cistern has both: steps on the south side of the basin and a walkway 0.45 m above the water.
+- **Water connectors dip below their sockets,** so they declare an extra level with the origin at the bottom and sockets at level 1, like the Cistern:
+  - `hall-canal`: a widened passage with a 1 m ledge beside a water channel; the water is 0.3 m below the ledge.
+  - `hall-flooded`: a sump. The floor slopes 2 m down and the ceiling dips under the water for about 2 m, so you dive through; the slopes are the shores.
 - **Caps** (`cap-hall`) have footprint 0×0. Their single socket is at the origin facing north, and their geometry fills the -Y side (inside the piece they seal).
 - **Materials:** single-sided (backface culling on, so they export with `doubleSided: false`). Name them by use (`mat-wall-tunnel`), not by texture, so a texture can be swapped without renaming. Texture sets per material are listed in `MATERIALS` in `kit.py`.
 - **UVs:** world-scale, one texture repeat per `tile` metres per material.
@@ -98,13 +101,13 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 
 Raw recordings go in `art/sfx/` (gitignored), named as downloaded. `pnpm asset:audio` (`scripts/build-audio.ts`) builds the entries listed in `scripts/audio.config.ts`:
 
-1. Reads 16-bit PCM WAV (any channel count or sample rate) and mixes to mono.
-2. Low-pass filters and resamples to 32 kHz.
-3. Trims silence relative to the peak, or slices a recording of several hits into one file per hit. Slicing uses onset detection (`slice: { minGap, maxLength, threshold }`), for example one footstep per file from a walking recording. Loops can set `keepSilence`.
+1. Reads 16-bit PCM WAV or MP3 (any channel count or sample rate; MP3 is decoded with `mpg123-decoder`, mpg123 compiled to WebAssembly) and mixes to mono.
+2. Low-pass filters and resamples to 32 kHz, or to the entry's `rate` (22050 for long, dark ambience: about half the size).
+3. Optionally `crop`s to a section. Then it trims silence relative to the peak, or slices a recording of several hits into one file per hit (`maxClips` keeps at most that many, spread through the recording). `loopCrossfade` crossfades a clip's end into its start, for seamless loops such as water lapping. An entry can also list several source files, each becoming a variant of the same sound. Slicing uses onset detection (`slice: { minGap, maxLength, threshold }`), for example one footstep per file from a walking recording. Loops can set `keepSilence`.
 4. Normalizes to -1 dBFS, adds short fades, and writes mono WAV to `static/assets/audio/<id>.wav` (or `<id>-<n>.wav` for slices).
 5. Writes `src/lib/content/audio/files.generated.ts`, mapping each id to its variant URLs.
 
-The build uses no encoder, so it needs nothing beyond Node. Mono 32 kHz WAV is small for short effects, about 0.75 MB for the current set. If the library grows (music, long ambience), switch the output to a compressed format; that needs an encoder such as ffmpeg.
+The build writes uncompressed mono WAV: no native encoder or downloaded binary is needed. The current set is about 3.2 MB. If the library grows (music, long ambience), switch the output to a compressed format. A pure-JavaScript MP3 encoder would avoid native binaries, but MP3 adds a short silence at the start of each file, so seamless loops would need to stay WAV.
 
 **Adding a sound:**
 

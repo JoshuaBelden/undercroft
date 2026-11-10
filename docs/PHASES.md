@@ -44,7 +44,7 @@ A generated Gloaming map you can start an expedition into, explore, and extract 
 - [x] Headlamp with settings (off, low, bright), battery drain, starter flicker
 - [x] Dynamic lighting with a light budget
 - [x] Grid-based generator: 5 static major rooms (Stairwell, Ossuary Hall, Quarry Gallery, Cistern, Gloaming Chapel), random connections
-- Connector kit: halls, square rooms, canals, squeezes, crawlspaces, secret doors, swim sections, depth transitions (done: halls, junctions, square rooms, crypt, side rooms, squeezes, crawlspaces, dead ends, stairs down; still to do: canals, secret doors, swim sections)
+- Connector kit: halls, square rooms, canals, squeezes, crawlspaces, secret doors, swim sections, depth transitions (done: halls, junctions, square rooms, crypt, side rooms, squeezes, crawlspaces, dead ends, stairs down, canals, flooded passages; still to do: secret doors)
 - [x] Map graph: guaranteed path from start to the Chapel, plus loops
 - Start room variants: stairs or rappel rope (rope can be taken)
 - [x] Extraction points defined in room models; extracting ends the expedition
@@ -56,7 +56,7 @@ Aspects:
 - **Dev docs**: networking model, movement and prediction, lighting budget, generator algorithm, building and tagging room models and connector pieces in Blender.
 - **Help system**: movement, stamina, headlamp, extraction, squeezes, swimming.
 - **Admin**: seed input, regenerate map, map debug view, noclip, teleport, reveal secret doors, infinite battery/stamina.
-- **Audio**: footsteps (by surface), breathing tied to stamina, headlamp click, dripping, distant echoes, swim/underwater audio, tight-space muffling.
+- **Audio**: footsteps (by surface), breathing tied to stamina, headlamp click, dripping, distant echoes, swim/underwater audio, tight-space muffling. (All done; placeholders where no recording exists yet.)
 - **Settings**: mouse sensitivity, invert Y, FOV, graphics quality, brightness/gamma calibration.
 - **Keybinds**: move, sprint, crouch, crawl, headlamp mode, interact, swim up/down, climb/rappel.
 

@@ -74,7 +74,11 @@ export interface KitEntry {
 	final?: boolean;
 	/** Name shown in the room banner when a player first enters it. */
 	title?: string;
+	/** How the space sounds (reverb, damping); default 'tunnel'. See src/lib/content/audio/ambience.ts. */
+	acoustics?: Acoustics;
 }
+
+export type Acoustics = 'tight' | 'tunnel' | 'hall' | 'vast';
 
 export type MapKit = Record<string, KitEntry>;
 

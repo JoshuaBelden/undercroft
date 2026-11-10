@@ -49,6 +49,9 @@ const MARKER_PREFIXES = ['socket-', 'spawn-', 'extract-', 'rite-', 'col-', 'vol-
 
 class PieceError extends Error {}
 
+/** An export that isn't a map piece (e.g. a character model): skipped, not an error. */
+class NotAPiece extends Error {}
+
 /** Blender appends .001 etc. to duplicate names across collections; strip it. */
 function baseName(node: Node): string {
 	return node.getName().replace(/\.\d{3}$/, '');
@@ -139,7 +142,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const doc = await io.read(file);
 	const scene = doc.getRoot().getDefaultScene() ?? doc.getRoot().listScenes()[0];
 	const root = scene?.listChildren().find((n) => baseName(n) === name);
-	if (!root) throw new PieceError(`${name}: no root empty named "${name}"`);
+	if (!root) throw new NotAPiece(name);
 	const t = root.getTranslation();
 	if (t.some((v) => Math.abs(v) > EPS)) throw new PieceError(`${name}: root must be at the origin`);
 
@@ -314,9 +317,16 @@ async function main(): Promise<void> {
 		try {
 			pieces.push(await buildPiece(io, path.join(SOURCE_DIR, f)));
 		} catch (error) {
-			if (!(error instanceof PieceError)) throw error;
-			console.error(`  ✗ ${error.message}`);
-			failed = true;
+			if (error instanceof NotAPiece) {
+				console.warn(
+					`  - ${error.message}: skipped (no root empty named after the file, so not a map piece)`
+				);
+			} else if (error instanceof PieceError) {
+				console.error(`  ✗ ${error.message}`);
+				failed = true;
+			} else {
+				throw error;
+			}
 		}
 	}
 	if (failed) process.exit(1);

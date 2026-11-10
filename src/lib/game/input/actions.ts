@@ -11,7 +11,7 @@ export const ACTIONS = {
 	moveRight: { label: 'Move right', category: 'Movement', defaults: ['KeyD', 'ArrowRight'] },
 	sprint: { label: 'Sprint (hold)', category: 'Movement', defaults: ['ShiftLeft'] },
 	// Not Ctrl: Ctrl+W closes the browser tab and pages cannot block it.
-	// Tap: walk / crouch / crawl. Hold: toggle creep (slow, silent walk). Sprint cancels both.
+	// Tap: walk / crouch / crawl. Hold: creep while held (slow, silent walk). Sprint cancels both.
 	stance: {
 		label: 'Stance (tap: walk/crouch/crawl, hold: creep)',
 		category: 'Movement',

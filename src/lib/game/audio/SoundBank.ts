@@ -17,7 +17,8 @@ export class SoundBank {
 		let pending = this.variants.get(id);
 		if (!pending) {
 			const def: SoundDef = SOUNDS[id];
-			const urls = def.file ? (AUDIO_FILES[def.file] ?? []) : [];
+			const ids = def.file === undefined ? [] : Array.isArray(def.file) ? def.file : [def.file];
+			const urls = ids.flatMap((fileId) => AUDIO_FILES[fileId] ?? []);
 			if (urls.length) pending = Promise.all(urls.map((url) => this.audio.load(url)));
 			else if (def.synth)
 				pending = Promise.resolve([synthesize(this.audio.audioContext, def.synth)]);
@@ -37,6 +38,21 @@ export class SoundBank {
 				category: def.category,
 				volume: def.volume * volume,
 				rate: (def.rate ?? 1) * (1 + (Math.random() * 2 - 1) * spread)
+			})
+		);
+	}
+
+	/** One-shot from a point in the world (3D panned, quieter with distance). */
+	playAt(id: SoundId, position: [number, number, number], volume = 1, refDistance?: number): void {
+		if (!this.audio.unlocked) return;
+		const def: SoundDef = SOUNDS[id];
+		const spread = def.variation ?? 0;
+		void this.buffers(id).then((buffers) =>
+			this.audio.playBufferAt(buffers[Math.floor(Math.random() * buffers.length)], position, {
+				category: def.category,
+				volume: def.volume * volume,
+				rate: (def.rate ?? 1) * (1 + (Math.random() * 2 - 1) * spread),
+				refDistance
 			})
 		);
 	}

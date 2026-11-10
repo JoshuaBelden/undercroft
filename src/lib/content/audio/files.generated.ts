@@ -23,6 +23,7 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'breath.slow': ['/assets/audio/breath.slow.wav'],
 	'breath.fast': ['/assets/audio/breath.fast.wav'],
 	gasp: ['/assets/audio/gasp.wav'],
+	exertion: ['/assets/audio/exertion-1.wav', '/assets/audio/exertion-2.wav'],
 	'headlamp.on': ['/assets/audio/headlamp.on.wav'],
 	'headlamp.off': ['/assets/audio/headlamp.off.wav'],
 	'water.slosh': ['/assets/audio/water.slosh.wav'],
@@ -31,5 +32,31 @@ export const AUDIO_FILES: Record<string, string[]> = {
 		'/assets/audio/water.splash-2.wav',
 		'/assets/audio/water.splash-3.wav',
 		'/assets/audio/water.splash-4.wav'
-	]
+	],
+	'ambience.drip': [
+		'/assets/audio/ambience.drip-1.wav',
+		'/assets/audio/ambience.drip-2.wav',
+		'/assets/audio/ambience.drip-3.wav',
+		'/assets/audio/ambience.drip-4.wav',
+		'/assets/audio/ambience.drip-5.wav',
+		'/assets/audio/ambience.drip-6.wav',
+		'/assets/audio/ambience.drip-7.wav',
+		'/assets/audio/ambience.drip-8.wav',
+		'/assets/audio/ambience.drip-9.wav',
+		'/assets/audio/ambience.drip-10.wav',
+		'/assets/audio/ambience.drip-11.wav',
+		'/assets/audio/ambience.drip-12.wav'
+	],
+	'ambience.knock': ['/assets/audio/ambience.knock.wav'],
+	'ambience.rockfall': ['/assets/audio/ambience.rockfall.wav'],
+	'ambience.creak': [
+		'/assets/audio/ambience.creak-1.wav',
+		'/assets/audio/ambience.creak-2.wav',
+		'/assets/audio/ambience.creak-3.wav',
+		'/assets/audio/ambience.creak-4.wav',
+		'/assets/audio/ambience.creak-5.wav'
+	],
+	'ambience.lap': ['/assets/audio/ambience.lap.wav'],
+	'ambience.creepy': ['/assets/audio/ambience.creepy-1.wav', '/assets/audio/ambience.creepy-2.wav'],
+	'ambience.horror': ['/assets/audio/ambience.horror.wav']
 };

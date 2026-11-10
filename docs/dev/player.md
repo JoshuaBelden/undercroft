@@ -41,8 +41,9 @@ Each step:
 All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, swim and mantle settings, stamina rates, light intensities, drain and flicker.
 
 - **Stances:** stand (1.75 m), crouch (1.2 m), crawl (0.7 m). The client cycles the wanted stance with one key. Standing up is blocked while the taller capsule wouldn't fit (`capsuleFits`). The wanted stance persists, so you rise (as far as fits) once there's room.
+- **Squeezes:** a `vol-squeeze-*` volume marks the tight part of a piece (currently `hall-squeeze`). Inside it, `state.squeezing` is set, speed is capped at `squeezeSpeed` (0.7 m/s, momentum clamped on entry) and sprinting is impossible. The client grunts as you push through. Heavy packs that won't fit come with inventory (Phase 4).
 - **Sneak ("creep" in game):** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps now and will reduce noise for Thralls in Phase 2.
-- **Stance key (client):** a tap cycles the wanted stance; holding it for 350 ms toggles creep instead (`LocalPlayer.updateStanceKey`). Holding sprint resets the wanted stance to standing and turns creep off.
+- **Stance key (client):** a tap (released within 350 ms) cycles the wanted stance; while the key is held you creep, and releasing a hold leaves the stance as it was (`LocalPlayer.updateStanceKey`). Holding sprint resets the wanted stance to standing and stops creeping.
 - **Stamina:** sprinting drains it, and it regenerates after a short delay. At zero the player is `exhausted` and can't sprint, climb or dive until stamina recovers to `recoverAt`.
 - **Battery:** drains by headlamp mode. At zero the lamp gives no light.
 - **Flags:** `noclip`, `infiniteStamina` and `infiniteBattery` live in the state, so prediction matches the server. Only admin commands set them.
@@ -138,8 +139,16 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 - **Breathing:** two loops, calm and fast, crossfaded by stamina. Silent at full stamina (it fades in over the first 10% used), panting when nearly spent, silent underwater. A gasp plays the moment stamina hits zero, or on surfacing if it ran out underwater.
 - **The headlamp** plays a switch-on click for low and bright, and a switch-off click for off.
 - **Water:** a splash on entering, swim strokes per `swim.stride` (quieter underwater), and splashing footsteps while wading.
-- **Climbing:** a scrape and grunt when a mantle starts.
-- **Underwater muffling:** `AudioManager.setMuffle(1)` sweeps a low-pass filter over the sfx and ambience buses (music is unaffected).
+- **Climbing and squeezes:** an exertion grunt (`exertion`, sliced into variants) when a mantle starts, and every 1.3–2.2 s while pushing through a squeeze.
+- **Muffling and reverb:** the sfx and ambience buses pass through a low-pass filter (`AudioManager.setMuffle`) and send to a convolution reverb with a synthetic stone-room impulse (`setReverb`). Music bypasses both.
+- **Acoustics:** each kit entry can set `acoustics` (`tight`, `tunnel` (default), `hall`, `vast`). `ACOUSTICS` in `src/lib/content/audio/ambience.ts` maps each to reverb and muffle. `Ambience` finds the piece the player is in and eases toward its values: crawlspaces and squeezes sound close and damped, the Cistern and the Chapel echo. Underwater forces full muffle and no reverb.
+- **Positional audio:** `AudioManager.playBufferAt` / `SoundBank.playAt` place a sound in 3D (HRTF panning, inverse distance falloff). The page updates the listener from the camera every frame (`setListener`).
+- **Ambience** (`src/lib/game/audio/Ambience.ts`, tuning in `AMBIENCE`):
+  - drips around the listener every few seconds, more often near water;
+  - every 25–70 s, a distant knock, rockfall or creak from a random direction;
+  - every 60–150 s, an unsettling ambient swell (`ambience.creepy`) around the listener, not from a point;
+  - a lapping loop that fades in near water volumes.
+  - All of it plays on the ambience bus, so the Ambience volume slider controls it. All of them now use recordings; the synthesized versions remain as fallbacks.
 - **Sneaking** plays no footsteps.
 
 ## Admin tools

@@ -7,6 +7,7 @@
 	import { MOVEMENT } from '#lib/content/player/movement.ts';
 	import { devMode } from '#lib/dev.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
+	import { Ambience } from '#lib/game/audio/Ambience.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
@@ -122,6 +123,7 @@
 					case 'extracted':
 						result = { seconds: message.seconds, deepestLevel: message.deepestLevel };
 						player.leave();
+						ambience.clear();
 						remote.apply([], client.playerId);
 						banner = null;
 						document.exitPointerLock();
@@ -142,7 +144,9 @@
 		});
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
-		const playerAudio = new PlayerAudio(sounds, map.root, (amount) => audio.setMuffle(amount));
+		const playerAudio = new PlayerAudio(sounds, map.root);
+		const ambience = new Ambience(audio, sounds);
+		const lookDir = new THREE.Vector3();
 
 		/** World cell + level -> title of the room there (titled start and major rooms). */
 		let roomCells: Record<string, string> = {};
@@ -163,7 +167,9 @@
 			}
 			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
 			void map.build(layout);
-			player.setWorld(buildCollisionWorld(layout, PIECES));
+			const world = buildCollisionWorld(layout, PIECES);
+			player.setWorld(world);
+			ambience.setMap(layout, world);
 		}
 
 		sendAdmin = (command) => client.send({ type: 'admin', command });
@@ -225,6 +231,10 @@
 			const state = player.state;
 			headlamp.update(state);
 			playerAudio.update(state, audio.unlocked);
+			const cam = engine.camera.position;
+			engine.camera.getWorldDirection(lookDir);
+			audio.setListener([cam.x, cam.y, cam.z], [lookDir.x, lookDir.y, lookDir.z]);
+			ambience.update(delta, [cam.x, cam.y, cam.z], state);
 			spawned = !!state;
 			if (state) {
 				hud = {
@@ -273,6 +283,7 @@
 			canvas.removeEventListener('click', requestLock);
 			document.exitPointerLock();
 			playerAudio.dispose();
+			ambience.dispose();
 			player.dispose();
 			headlamp.dispose();
 			remote.dispose();

@@ -17,6 +17,8 @@ export class PlayerAudio {
 	private swimming = false;
 	private underwater = false;
 	private mantling = false;
+	/** performance.now() of the next squeeze grunt; null when not squeezing through. */
+	private nextGrunt: number | null = null;
 	private exhausted = false;
 	private gaspPending = false;
 	private breathSlow: SoundHandle | null = null;
@@ -28,9 +30,7 @@ export class PlayerAudio {
 
 	constructor(
 		private sounds: SoundBank,
-		private map: THREE.Object3D,
-		/** Muffle world sounds (0..1), e.g. AudioManager.setMuffle. */
-		private muffle: (amount: number) => void
+		private map: THREE.Object3D
 	) {
 		this.ray.far = 1.2;
 	}
@@ -57,8 +57,8 @@ export class PlayerAudio {
 			this.gaspPending = false;
 		}
 		this.exhausted = state.exhausted;
-		if (state.underwater !== this.underwater) this.muffle(state.underwater ? 1 : 0);
 		if (state.mantle && !this.mantling) this.sounds.play('mantle');
+		this.updateSqueeze(state);
 		this.swimming = state.swimming;
 		this.underwater = state.underwater;
 		this.mantling = !!state.mantle;
@@ -89,6 +89,20 @@ export class PlayerAudio {
 			}
 		}
 		this.last = [x, y, z];
+	}
+
+	/** Grunt while pushing through a squeeze: once on starting to move, then every 1.3-2.2 s. */
+	private updateSqueeze(state: PlayerState): void {
+		const pushing = state.squeezing && Math.hypot(state.velocity[0], state.velocity[2]) > 0.2;
+		if (!pushing) {
+			this.nextGrunt = null;
+			return;
+		}
+		const now = performance.now();
+		if (this.nextGrunt === null || now >= this.nextGrunt) {
+			this.sounds.play('squeeze.grunt');
+			this.nextGrunt = now + 1300 + Math.random() * 900;
+		}
 	}
 
 	dispose(): void {

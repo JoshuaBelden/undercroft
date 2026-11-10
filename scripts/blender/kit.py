@@ -71,6 +71,8 @@ PIECES = [
     "hall-stairs-down",
     "hall-crawl",
     "hall-squeeze",
+    "hall-canal",
+    "hall-flooded",
     "hall-side-room",
     "room-small",
     "room-crypt",
@@ -489,6 +491,22 @@ def col_box(coll, parent, name, lo, hi, rot_x=0.0):
     obj.hide_render = True
     coll.objects.link(obj)
     obj.parent = parent
+    return obj
+
+
+def col_segment(coll, parent, name, a, b, z0, z1, thickness, outward):
+    """Collision wall along an arbitrary horizontal segment a->b, extending `thickness` toward the
+    `outward` side (a 2D direction hint), from z0 to z1."""
+    a, b = Vector((a[0], a[1])), Vector((b[0], b[1]))
+    d = b - a
+    length = d.length
+    n = Vector((-d.y, d.x)).normalized()
+    if n.dot(Vector(outward)) < 0:
+        n = -n
+    centre = (a + b) / 2 + n * (thickness / 2)
+    obj = col_box(coll, parent, name, (-thickness / 2, -length / 2, z0), (thickness / 2, length / 2, z1))
+    obj.location = (centre.x, centre.y, (z0 + z1) / 2)
+    obj.rotation_euler = (0, 0, math.atan2(-d.x, d.y))
     return obj
 
 
@@ -1078,6 +1096,8 @@ def build_hall_squeeze(force=False):
     hall_cols(coll, root, tight, half, prefix="end-n")
     col_box(coll, root, "col-squeeze-wall-w", (-1.5, -tight, 0), (-0.35, tight, 3.0))
     col_box(coll, root, "col-squeeze-wall-e", (0.35, -tight, 0), (1.5, tight, 3.0))
+    # The tight part: movement slows (and you grunt) while inside it. See docs/dev/player.md.
+    vol_box(coll, root, "vol-squeeze-0", (-0.6, -1.0, 0), (0.6, 1.0, 2.0))
     return coll
 
 
@@ -1492,6 +1512,145 @@ def build_gloaming_chapel(force=False):
     return coll
 
 
+# ---------------------------------------------------------------------------
+# Water connectors. Both dip below their entrances, so they are 2 levels with the origin at the
+# lowest level and the hall sockets at level 1 (y = LEVEL), like the Cistern.
+
+
+def path_frames(points):
+    """Frames along a polyline (x, y, z) heading through the points; profiles stay vertical."""
+    frames = []
+    dist = 0.0
+    for i, p in enumerate(points):
+        p = Vector(p)
+        if i:
+            dist += (p - Vector(points[i - 1])).length
+        nxt = Vector(points[min(i + 1, len(points) - 1)])
+        prv = Vector(points[max(i - 1, 0)])
+        d = nxt - prv
+        fwd = Vector((d.x, d.y, 0)).normalized()
+        frames.append((p, fwd.cross(Vector((0, 0, 1))).normalized(), dist))
+    return frames
+
+
+def build_hall_canal(force=False):
+    """1x2 cells: the passage widens around a water channel with a stone ledge along one side.
+    The water is 0.3 m below the ledge, so you can climb out anywhere (Space)."""
+    name = "hall-canal"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 1, 2, levels=2)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    floor = LEVEL
+    hw_wide, mid, ledge_x = 1.6, 2.2, -0.6
+    channel_floor, water = floor - 1.6, floor - 0.3
+    hall = hall_profile()
+    wide = arch_profile(hw_wide, HALL_SPRING, hw_wide)
+    mb = MeshBuilder(name + "-mesh")
+
+    def widen(d_from_end):
+        return morph(hall, wide, smoothstep(1.0, 4.0 - mid, d_from_end))
+
+    # Ends (solid floor) morphing from the hall profile to the wide one, then the wide middle.
+    for sign in (1, -1):
+        ys = [sign * (4.0 - 0.2 * k) for k in range(round((4.0 - mid) / 0.2) + 1)]
+        frames = straight_frames((0, ys[0], floor), (0, ys[-1], floor), len(ys) - 1)
+        profiles = [widen(abs(4.0 - abs(y))) for y in ys]
+        sweep(mb, hall, frames, W, F, profiles=profiles)
+    frames = straight_frames((0, mid, floor), (0, -mid, floor), 8)
+    sweep(mb, wide, frames, W, None, jitter=0.1, seed=21.0, profiles=[wide] * len(frames))
+    # Ledge along the west side, channel to the east.
+    mb.face([(-hw_wide, -mid, floor), (ledge_x, -mid, floor), (ledge_x, mid, floor), (-hw_wide, mid, floor)], F, facing=(0, 0, 1))
+    mb.box((ledge_x, -mid, channel_floor), (hw_wide, mid, floor), "mat-basin", skip=("+z",), inward=True)
+    mb.finish(coll, root)
+    wm = MeshBuilder(name + "-water")
+    wm.face([(ledge_x, -mid, water), (hw_wide, -mid, water), (hw_wide, mid, water), (ledge_x, mid, water)], "mat-water", facing=(0, 0, 1))
+    wm.finish(coll, root)
+    vol_box(coll, root, "vol-water-0", (ledge_x, -mid, channel_floor), (hw_wide, mid, water))
+
+    socket(coll, root, "hall", 0, (0, 4, floor))
+    socket(coll, root, "hall", 1, (0, -4, floor))
+    # Collision: solid ends (also the channel's end walls), ledge block (its west wall),
+    # channel floor and east wall, tunnel walls and ceiling.
+    col_box(coll, root, "col-end-n", (-2, mid, channel_floor - 0.3), (2, 4, floor))
+    col_box(coll, root, "col-end-s", (-2, -4, channel_floor - 0.3), (2, -mid, floor))
+    col_box(coll, root, "col-ledge", (-2, -mid, channel_floor - 0.3), (ledge_x, mid, floor))
+    col_box(coll, root, "col-channel-floor", (ledge_x, -mid, channel_floor - 0.3), (2, mid, channel_floor))
+    # Middle walls overlap the hall-end walls (|y| 2.2..2.4) so there is no gap at the seam.
+    col_box(coll, root, "col-wall-e", (hw_wide, -2.4, channel_floor - 0.3), (2, 2.4, floor + 3.0))
+    col_box(coll, root, "col-wall-w", (-2, -2.4, floor), (-hw_wide, 2.4, floor + 3.0))
+    for side, sy in (("n", 1), ("s", -1)):
+        y0, y1 = sorted((sy * 3.0, sy * 4.0))
+        col_box(coll, root, f"col-hall-{side}-w", (-2, y0, floor), (-HALL_HALF_W, y1, floor + 3.0))
+        col_box(coll, root, f"col-hall-{side}-e", (HALL_HALF_W, y0, floor), (2, y1, floor + 3.0))
+        yc0, yc1 = sorted((sy * 2.4, sy * 4.0))
+        col_box(coll, root, f"col-ceiling-{side}", (-2, yc0, floor + 2.8), (2, yc1, floor + 3.2))
+        # Angled walls where the passage narrows from the wide middle back to the hall.
+        for sx, label in ((-1, "w"), (1, "e")):
+            col_segment(coll, root, f"col-taper-{side}-{label}", (sx * hw_wide, sy * mid), (sx * HALL_HALF_W, sy * 3.0), floor, floor + 3.0, 0.4, (sx, 0))
+    col_box(coll, root, "col-ceiling-mid", (-2, -2.4, floor + 3.4), (2, 2.4, floor + 3.8))
+    return coll
+
+
+def build_hall_flooded(force=False):
+    """1x2 cells: a sump. The floor slopes 2 m down into a dip where the ceiling drops below the
+    water, so you must dive and swim a few metres underwater; slopes either side are shores."""
+    name = "hall-flooded"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 1, 2, levels=2)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    top, bottom = LEVEL, LEVEL - 2.0
+    water = top - 0.25
+    flat, foot = 3.0, 0.8  # slope runs from |y| = 3.0 (top) down to |y| = 0.8 (bottom)
+    hall = hall_profile()
+    low = arch_profile(0.8, 0.8, 0.4)  # 1.2 m: the ceiling sits under the water through the dip
+
+    def floor_z(y):
+        a = abs(y)
+        if a >= flat:
+            return top
+        if a <= foot:
+            return bottom
+        return bottom + (top - bottom) * (a - foot) / (flat - foot)
+
+    ys = [4.0 - 0.25 * k for k in range(33)]
+    points = [(0, y, floor_z(y)) for y in ys]
+    frames = path_frames(points)
+    profiles = [morph(hall, low, 1 - smoothstep(foot, foot + 1.0, abs(y))) for y in ys]
+    mb = MeshBuilder(name + "-mesh")
+    sweep(mb, hall, frames, W, F, jitter=0.08, seed=33.0, profiles=profiles)
+    for k, (x, y, s) in enumerate([(0.55, 2.2, 0.22), (-0.6, -2.0, 0.25), (0.4, -0.2, 0.2)]):
+        rubble(mb, x, y, floor_z(y), s, seed=k + 140)
+    mb.finish(coll, root)
+    shore = foot + (flat - foot) * (water - bottom) / (top - bottom)  # where the slope meets the water
+    wm = MeshBuilder(name + "-water")
+    wm.face([(-1, -shore, water), (1, -shore, water), (1, shore, water), (-1, shore, water)], "mat-water", facing=(0, 0, 1))
+    wm.finish(coll, root)
+    vol_box(coll, root, "vol-water-0", (-1, -shore, bottom - 0.1), (1, shore, water))
+
+    socket(coll, root, "hall", 0, (0, 4, top))
+    socket(coll, root, "hall", 1, (0, -4, top))
+    # Collision: flat ends, two ramps, the dip floor, walls, and ceilings (low over the sump).
+    col_box(coll, root, "col-end-n", (-1.5, flat, top - 0.3), (1.5, 4, top))
+    col_box(coll, root, "col-end-s", (-1.5, -4, top - 0.3), (1.5, -flat, top))
+    col_box(coll, root, "col-bottom", (-1.5, -foot, bottom - 0.3), (1.5, foot, bottom))
+    run = flat - foot
+    length = math.hypot(run, top - bottom)
+    angle = math.atan2(top - bottom, run)
+    for side, sign in (("n", 1), ("s", -1)):
+        cy = sign * (flat + foot) / 2
+        cz = (top + bottom) / 2 - 0.15
+        ramp = col_box(coll, root, f"col-ramp-{side}", (-1.5, cy - length / 2, cz - 0.15), (1.5, cy + length / 2, cz + 0.15))
+        ramp.rotation_euler = (sign * angle, 0, 0)
+    col_box(coll, root, "col-wall-w", (-1.5, -4, bottom - 0.3), (-HALL_HALF_W, 4, top + 3.0))
+    col_box(coll, root, "col-wall-e", (HALL_HALF_W, -4, bottom - 0.3), (1.5, 4, top + 3.0))
+    col_box(coll, root, "col-sump-w", (-HALL_HALF_W, -foot - 0.3, bottom), (-0.8, foot + 0.3, top))
+    col_box(coll, root, "col-sump-e", (0.8, -foot - 0.3, bottom), (HALL_HALF_W, foot + 0.3, top))
+    col_box(coll, root, "col-sump-ceiling", (-1.5, -foot, bottom + 1.2), (1.5, foot, top + 0.5))
+    for side, y0, y1 in (("n", flat, 4), ("s", -4, -flat)):
+        col_box(coll, root, f"col-ceiling-{side}", (-1.5, y0, top + 2.8), (1.5, y1, top + 3.2))
+    return coll
+
+
 BUILDERS = {
     "hall-straight": build_hall_straight,
     "hall-corner": build_hall_corner,
@@ -1501,6 +1660,8 @@ BUILDERS = {
     "hall-stairs-down": build_hall_stairs_down,
     "hall-crawl": build_hall_crawl,
     "hall-squeeze": build_hall_squeeze,
+    "hall-canal": build_hall_canal,
+    "hall-flooded": build_hall_flooded,
     "hall-side-room": build_hall_side_room,
     "room-small": build_room_small,
     "room-crypt": build_room_crypt,

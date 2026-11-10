@@ -27,6 +27,8 @@ export interface MovementTuning {
 	sneakSpeed: number;
 	/** Speed multiplier while wading. */
 	wadeSpeed: number;
+	/** Speed cap inside a squeeze (vol-squeeze-* volumes); sprinting is impossible there. */
+	squeezeSpeed: number;
 	swim: {
 		/** Capsule while swimming (body horizontal). */
 		height: number;
@@ -86,6 +88,7 @@ export const MOVEMENT: MovementTuning = {
 	sprintStride: 1.05,
 	sneakSpeed: 1.0,
 	wadeSpeed: 0.55,
+	squeezeSpeed: 0.7,
 	swim: {
 		height: 0.9,
 		eye: 0.7,

@@ -56,6 +56,8 @@ export interface PlayerState {
 	underwater: boolean;
 	/** Moving slowly and silently (no footsteps; Thralls will hear less in Phase 2). */
 	sneaking: boolean;
+	/** Inside a squeeze volume: slowed, no sprinting, grunting through. */
+	squeezing: boolean;
 	mantle: Mantle | null;
 	/** Seconds spent holding interact at an extraction point (resets if interrupted). */
 	extracting: number;

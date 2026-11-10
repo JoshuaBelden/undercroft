@@ -1,11 +1,12 @@
 /**
- * Turns raw recordings (art/sfx/*.wav) into game sounds. Run with `pnpm asset:audio`.
+ * Turns raw recordings (art/sfx/*.wav, *.mp3) into game sounds. Run with `pnpm asset:audio`.
  * See docs/dev/asset-pipeline.md.
  *
  * For each entry in scripts/audio.config.ts:
- *  1. Reads 16-bit PCM WAV (any channel count / sample rate) and mixes it to mono.
+ *  1. Reads 16-bit PCM WAV or MP3 (any channel count / sample rate) and mixes it to mono.
  *  2. Low-pass filters and resamples to OUTPUT_RATE.
- *  3. Trims leading/trailing silence (unless keepSilence), or slices it into one file per hit.
+ *  3. Optionally crops; trims leading/trailing silence (unless keepSilence) or slices it into one
+ *     file per hit; optionally crossfades the ends into a seamless loop.
  *  4. Normalizes the peak, adds short fades, and writes 16-bit mono WAV to static/assets/audio.
  *  5. Writes src/lib/content/audio/files.generated.ts: sound file id -> list of URLs.
  *
@@ -14,6 +15,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { MPEGDecoder } from 'mpg123-decoder';
 import * as prettier from 'prettier';
 import { AUDIO_SOURCES, type AudioSource } from './audio.config.ts';
 
@@ -180,6 +182,57 @@ function slice(pcm: Pcm, options: NonNullable<AudioSource['slice']>): Pcm[] {
 	});
 }
 
+/** Read a recording: 16-bit PCM WAV, or MP3 (decoded with mpg123 compiled to WebAssembly). */
+async function readAudio(file: string): Promise<Pcm> {
+	if (!file.toLowerCase().endsWith('.mp3')) return readWav(file);
+	const decoder = new MPEGDecoder();
+	await decoder.ready;
+	try {
+		const decoded = decoder.decode(new Uint8Array(readFileSync(file)));
+		if (decoded.errors.length) {
+			console.warn(`  ! ${path.basename(file)}: ${decoded.errors.length} decode error(s)`);
+		}
+		const samples = new Float32Array(decoded.samplesDecoded);
+		for (const channel of decoded.channelData) {
+			for (let i = 0; i < samples.length; i++)
+				samples[i] += channel[i] / decoded.channelData.length;
+		}
+		return { rate: decoded.sampleRate, samples };
+	} finally {
+		decoder.free();
+	}
+}
+
+function crop(pcm: Pcm, start: number, length: number): Pcm {
+	const from = Math.floor(start * pcm.rate);
+	return { rate: pcm.rate, samples: pcm.samples.slice(from, from + Math.floor(length * pcm.rate)) };
+}
+
+/** At most `max` items, evenly spread through the list (so variants cover the whole recording). */
+function pick<T>(items: T[], max?: number): T[] {
+	if (!max || items.length <= max) return items;
+	return Array.from({ length: max }, (_, i) => items[Math.floor((i * items.length) / max)]);
+}
+
+/** Crossfade the last `seconds` into the start so the clip loops without a seam. */
+function loopable(pcm: Pcm, seconds: number): Pcm {
+	const n = Math.floor(seconds * pcm.rate);
+	const s = pcm.samples;
+	const out = s.slice(0, s.length - n);
+	for (let i = 0; i < n; i++) {
+		const t = i / n;
+		out[i] = s[i] * t + s[s.length - n + i] * (1 - t);
+	}
+	return { rate: pcm.rate, samples: out };
+}
+
+function normalize(pcm: Pcm): Pcm {
+	let peak = 0;
+	for (const v of pcm.samples) peak = Math.max(peak, Math.abs(v));
+	const gain = peak > 0 ? PEAK / peak : 1;
+	return { rate: pcm.rate, samples: pcm.samples.map((v) => v * gain) };
+}
+
 function finish(pcm: Pcm, fadeOut = FADE): Pcm {
 	const s = pcm.samples.slice();
 	let peak = 0;
@@ -232,21 +285,32 @@ async function main(): Promise<void> {
 	const files: Record<string, string[]> = {};
 	let total = 0;
 	for (const source of AUDIO_SOURCES) {
-		const input = path.join(SOURCE_DIR, source.file);
-		if (!existsSync(input)) {
-			console.error(`  ✗ ${source.id}: missing ${path.relative(ROOT, input)}`);
-			process.exit(1);
+		const clips: Pcm[] = [];
+		for (const file of Array.isArray(source.file) ? source.file : [source.file]) {
+			const input = path.join(SOURCE_DIR, file);
+			if (!existsSync(input)) {
+				console.error(`  ✗ ${source.id}: missing ${path.relative(ROOT, input)}`);
+				process.exit(1);
+			}
+			let pcm = resample(await readAudio(input), source.rate ?? OUTPUT_RATE);
+			if (source.crop) pcm = crop(pcm, source.crop.start, source.crop.length);
+			if (source.slice) {
+				clips.push(
+					...pick(slice(pcm, source.slice), source.slice.maxClips).map((c) => finish(c, 0.03))
+				);
+			} else {
+				let clip = source.keepSilence ? pcm : trim(pcm);
+				if (source.loopCrossfade) clip = loopable(clip, source.loopCrossfade);
+				// Loops must start and end on the same sample: no fades.
+				clips.push(source.loopCrossfade ? normalize(clip) : finish(clip));
+			}
 		}
-		const pcm = resample(readWav(input), OUTPUT_RATE);
-		const clips = source.slice
-			? slice(pcm, source.slice).map((clip) => finish(clip, 0.03))
-			: [finish(source.keepSilence ? pcm : trim(pcm))];
 		files[source.id] = clips.map((clip, i) => {
 			const name = clips.length > 1 ? `${source.id}-${i + 1}.wav` : `${source.id}.wav`;
 			total += writeWav(path.join(OUT_DIR, name), clip);
 			return `${URL_BASE}/${name}`;
 		});
-		const seconds = clips.reduce((sum, c) => sum + c.samples.length, 0) / OUTPUT_RATE;
+		const seconds = clips.reduce((sum, c) => sum + c.samples.length / c.rate, 0);
 		console.log(`  ${source.id}: ${clips.length} clip(s), ${seconds.toFixed(2)} s`);
 	}
 

@@ -7,6 +7,7 @@ import {
 	capsuleSpheres,
 	findMantle,
 	sphereVsBox,
+	volumesAt,
 	waterSurface,
 	type CollisionWorld
 } from '../map/collision.ts';
@@ -44,6 +45,7 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		wading: false,
 		underwater: false,
 		sneaking: false,
+		squeezing: false,
 		mantle: null,
 		extracting: 0,
 		extracted: false
@@ -151,7 +153,12 @@ export function stepPlayer(
 		wz /= wishLen;
 	}
 	const moving = wishLen > 0.01;
+	s.squeezing =
+		!s.swimming &&
+		!s.flags.noclip &&
+		volumesAt(world, [p[0], p[1] + 0.9, p[2]]).some((v) => v.kind === 'squeeze');
 	const sprinting =
+		!s.squeezing &&
 		input.sprint &&
 		!input.sneak &&
 		moving &&
@@ -175,10 +182,19 @@ export function stepPlayer(
 	} else {
 		let speed = sprinting ? t.sprintSpeed : t.stances[s.stance].speed;
 		if (input.sneak) speed = Math.min(speed, t.sneakSpeed);
+		if (s.squeezing) speed = Math.min(speed, t.squeezeSpeed);
 		if (s.wading) speed *= t.wadeSpeed;
 		const accel = Math.min(1, (s.grounded ? t.acceleration : t.airAcceleration) * dt);
 		s.velocity[0] += (wx * speed - s.velocity[0]) * accel;
 		s.velocity[2] += (wz * speed - s.velocity[2]) * accel;
+		if (s.squeezing) {
+			// No carrying momentum into a squeeze: clamp to the squeeze speed straight away.
+			const h = Math.hypot(s.velocity[0], s.velocity[2]);
+			if (h > t.squeezeSpeed) {
+				s.velocity[0] *= t.squeezeSpeed / h;
+				s.velocity[2] *= t.squeezeSpeed / h;
+			}
+		}
 		s.velocity[1] = s.grounded ? STICK_SPEED : s.velocity[1] - t.gravity * dt;
 		for (let i = 0; i < 3; i++) s.position[i] += s.velocity[i] * dt;
 		resolveCollisions(s, world, t);
