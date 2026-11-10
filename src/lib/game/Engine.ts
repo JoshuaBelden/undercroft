@@ -129,6 +129,7 @@ export class Engine {
 			if (
 				object instanceof THREE.Light &&
 				object.visible &&
+				object.intensity > 0 &&
 				!(object instanceof THREE.AmbientLight)
 			)
 				lights++;

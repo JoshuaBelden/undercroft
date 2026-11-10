@@ -41,7 +41,8 @@ Each step:
 All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, swim and mantle settings, stamina rates, light intensities, drain and flicker.
 
 - **Stances:** stand (1.75 m), crouch (1.2 m), crawl (0.7 m). The client cycles the wanted stance with one key. Standing up is blocked while the taller capsule wouldn't fit (`capsuleFits`). The wanted stance persists, so you rise (as far as fits) once there's room.
-- **Sneak:** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps now and will reduce noise for Thralls in Phase 2.
+- **Sneak ("creep" in game):** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps now and will reduce noise for Thralls in Phase 2.
+- **Stance key (client):** a tap cycles the wanted stance; holding it for 350 ms toggles creep instead (`LocalPlayer.updateStanceKey`). Holding sprint resets the wanted stance to standing and turns creep off.
 - **Stamina:** sprinting drains it, and it regenerates after a short delay. At zero the player is `exhausted` and can't sprint, climb or dive until stamina recovers to `recoverAt`.
 - **Battery:** drains by headlamp mode. At zero the lamp gives no light.
 - **Flags:** `noclip`, `infiniteStamina` and `infiniteBattery` live in the state, so prediction matches the server. Only admin commands set them.
@@ -114,6 +115,10 @@ The camera interpolates between the last two simulation steps, so movement is sm
 
 `Headlamp.ts` puts a `SpotLight` on the camera. It casts one shadow on medium and high quality, and it counts toward `LIGHT_BUDGET`. The scene's ambient light is almost black, so the headlamp is the light.
 
+**Other players' headlamps:** `RemotePlayers` gives each remote player a head pivot (eye height, yaw, pitch from their snapshot) with its own `Headlamp`. Their flicker uses the same `headlampOutput`, with the lamp clock advanced locally between 20 Hz snapshots so it stays smooth. Remote lamps cast shadows (at most 512 px) so their light doesn't leak through walls, and each one counts toward `LIGHT_BUDGET`.
+
+A lamp that is off has zero intensity rather than `visible = false`. Changing the number of visible lights makes Three.js recompile every material, which would hitch every time someone toggles a lamp.
+
 **Adding a headlamp model:** add an entry to `HEADLAMPS`. The player always uses the starter until inventory exists (Phase 4).
 
 ## Audio
@@ -130,9 +135,9 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
   - fire every `stride` metres travelled while grounded (per stance; sprint uses `sprintStride` and the running recording);
   - the surface comes from the material under the feet, via a short raycast, mapped in `src/lib/content/audio/surfaces.ts`;
   - one walking recording covers all surfaces, pitched per surface with `rate`.
-- **Breathing:** two loops, calm and fast, crossfaded by stamina. Faint at rest, panting when spent, silent underwater.
+- **Breathing:** two loops, calm and fast, crossfaded by stamina. Silent at full stamina (it fades in over the first 10% used), panting when nearly spent, silent underwater. A gasp plays the moment stamina hits zero, or on surfacing if it ran out underwater.
 - **The headlamp** plays a switch-on click for low and bright, and a switch-off click for off.
-- **Water:** a splash on entering, swim strokes per `swim.stride` (quieter underwater), splashing footsteps while wading, and a gasp when surfacing low on breath.
+- **Water:** a splash on entering, swim strokes per `swim.stride` (quieter underwater), and splashing footsteps while wading.
 - **Climbing:** a scrape and grunt when a mantle starts.
 - **Underwater muffling:** `AudioManager.setMuffle(1)` sweeps a low-pass filter over the sfx and ambience buses (music is unaffected).
 - **Sneaking** plays no footsteps.

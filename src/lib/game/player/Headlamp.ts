@@ -4,14 +4,15 @@ import { headlampOutput } from '#lib/shared/player/headlamp.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 
 /**
- * The player's headlamp: a shadow-casting spotlight on the camera, driven by the shared
- * `headlampOutput` so flicker matches the simulation. Counts toward the light budget.
+ * A player's headlamp: a shadow-casting spotlight on a head object (the camera for the local
+ * player, a head pivot for remote players), driven by the shared `headlampOutput` so flicker
+ * matches the simulation on every client. Counts toward the light budget.
  */
 export class Headlamp {
 	readonly light: THREE.SpotLight;
 
 	constructor(
-		camera: THREE.Camera,
+		head: THREE.Object3D,
 		private model: HeadlampModel = DEFAULT_HEADLAMP
 	) {
 		this.light = new THREE.SpotLight(model.color, 0, 10, 0.5, 0.45, 2);
@@ -22,8 +23,8 @@ export class Headlamp {
 		this.light.castShadow = true;
 		this.light.shadow.camera.near = 0.1;
 		this.light.shadow.bias = -0.0005;
-		camera.add(this.light);
-		camera.add(this.light.target);
+		head.add(this.light);
+		head.add(this.light.target);
 	}
 
 	setShadows(enabled: boolean, mapSize: number): void {
@@ -37,8 +38,12 @@ export class Headlamp {
 
 	update(state: PlayerState | null): void {
 		const out = state ? headlampOutput(state, this.model) : null;
-		this.light.visible = !!out?.on;
-		if (!out?.on) return;
+		// Off = zero intensity, never `visible = false`: changing the number of visible lights
+		// makes Three.js recompile every material, which hitches each time a lamp is toggled.
+		if (!out?.on) {
+			this.light.intensity = 0;
+			return;
+		}
 		this.light.intensity = out.intensity;
 		this.light.distance = out.range;
 		this.light.angle = out.angle;

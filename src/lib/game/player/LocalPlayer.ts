@@ -26,6 +26,8 @@ const SMOOTHING = 0.1;
 const MAX_PENDING = SIM_RATE * 3;
 const MAX_STEPS_PER_FRAME = 10;
 const STANCE_CYCLE: Stance[] = ['stand', 'crouch', 'crawl'];
+/** Holding the stance key this long toggles creep instead of changing stance. */
+const LONG_PRESS_MS = 350;
 
 /**
  * The local player: samples input every fixed step, predicts movement with the shared
@@ -46,6 +48,10 @@ export class LocalPlayer {
 	/** Wanted stance, cycled by the stance key; the simulation rises only when there is room. */
 	private stance: Stance = 'stand';
 	private lamp: HeadlampMode = 1;
+	/** Creep (slow, silent walk) mode, toggled by a long press of the stance key. */
+	private creep = false;
+	private stancePressedAt: number | null = null;
+	private longPressFired = false;
 	private offset: Vec3 = [0, 0, 0];
 	private eye: number = MOVEMENT.stances.stand.eye;
 	private unsubscribe: () => void;
@@ -56,10 +62,40 @@ export class LocalPlayer {
 	) {
 		this.unsubscribe = input.onPressed((action) => {
 			if (!this.state) return;
-			if (action === 'stance')
-				this.stance = STANCE_CYCLE[(STANCE_CYCLE.indexOf(this.stance) + 1) % 3];
+			// Tap vs. long press is decided in `updateStanceKey` once we know how long it's held.
+			if (action === 'stance') this.stancePressedAt = performance.now();
 			if (action === 'headlamp') this.lamp = ((this.lamp + 1) % 3) as HeadlampMode;
 		});
+	}
+
+	/** Wanted stance and creep, for the HUD. */
+	get modes(): { stance: Stance; creep: boolean } {
+		return { stance: this.stance, creep: this.creep };
+	}
+
+	/**
+	 * Stance key: a tap cycles walk -> crouch -> crawl; holding it toggles creep (slow, silent).
+	 * Sprinting drops back to a normal walk.
+	 */
+	private updateStanceKey(active: boolean): void {
+		const input = this.input;
+		if (this.stancePressedAt !== null) {
+			const held = performance.now() - this.stancePressedAt;
+			if (!input.isDown('stance')) {
+				if (!this.longPressFired) {
+					this.stance = STANCE_CYCLE[(STANCE_CYCLE.indexOf(this.stance) + 1) % 3];
+				}
+				this.stancePressedAt = null;
+				this.longPressFired = false;
+			} else if (!this.longPressFired && held >= LONG_PRESS_MS) {
+				this.creep = !this.creep;
+				this.longPressFired = true;
+			}
+		}
+		if (active && input.isDown('sprint')) {
+			this.stance = 'stand';
+			this.creep = false;
+		}
 	}
 
 	/** New map: drop prediction and wait for the server's first snapshot. */
@@ -103,6 +139,7 @@ export class LocalPlayer {
 	 * menu is open: the player then stands still (but the simulation keeps running).
 	 */
 	update(delta: number, active: boolean): void {
+		this.updateStanceKey(active);
 		const [dx, dy] = this.input.consumeLook();
 		if (active) {
 			const speed = LOOK_SPEED * settings.controls.mouseSensitivity;
@@ -172,7 +209,7 @@ export class LocalPlayer {
 			yaw: this.yaw,
 			pitch: this.pitch,
 			sprint: active && input.isDown('sprint'),
-			sneak: active && input.isDown('sneak'),
+			sneak: this.creep,
 			climb: active && input.isDown('climb'),
 			swimDown: active && input.isDown('swimDown'),
 			stance: this.stance,

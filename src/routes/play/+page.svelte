@@ -43,7 +43,15 @@
 	let locked = $state(false);
 	let mapView = $state(false);
 	let spawned = $state(false);
-	let hud = $state({ stamina: 1, exhausted: false, battery: 1, headlamp: 1, underwater: false });
+	let hud = $state({
+		stamina: 1,
+		exhausted: false,
+		battery: 1,
+		headlamp: 1,
+		underwater: false,
+		stance: 'stand',
+		creep: false
+	});
 
 	const audio = new AudioManager({ ...settings.audio });
 	let applyGraphics = (): void => {};
@@ -81,6 +89,7 @@
 		applyGraphics = () => {
 			engine.applyGraphics(settings.graphics);
 			headlamp.setShadows(settings.graphics.quality !== 'low', engine.shadowMapSize);
+			remote.setShadows(settings.graphics.quality !== 'low', engine.shadowMapSize);
 		};
 		applyGraphics();
 
@@ -169,7 +178,9 @@
 					exhausted: state.exhausted,
 					battery: state.battery,
 					headlamp: state.headlamp,
-					underwater: state.underwater
+					underwater: state.underwater,
+					stance: state.stance,
+					creep: player.modes.creep
 				};
 			}
 			stats = engine.stats;

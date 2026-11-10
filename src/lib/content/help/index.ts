@@ -18,9 +18,11 @@ export const HELP_TOPICS: HelpTopic[] = [
 		category: 'Basics',
 		body: `Click the screen to take control. Look with the mouse; move with {action:moveForward} {action:moveLeft} {action:moveBack} {action:moveRight}.
 
-Hold {action:sprint} to run. Hold {action:sneak} to sneak: a slow walk that makes no footstep sound.
+Hold {action:sprint} to run.
 
-Press {action:stance} to change stance: walking, crouching, crawling, then back to walking. Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk. You can't stand up while something is overhead; you'll rise as soon as there is room.`
+Tap {action:stance} to change stance: walking, crouching, crawling, then back to walking. Hold {action:stance} to start or stop creeping: a slow walk that makes no footstep sound. Your stance and creep show in the bottom-left corner. Running puts you back on your feet and ends creeping.
+
+ Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk. You can't stand up while something is overhead; you'll rise as soon as there is room.`
 	},
 	{
 		id: 'climbing',

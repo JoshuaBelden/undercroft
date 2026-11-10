@@ -9,12 +9,18 @@
 		headlamp: number;
 		/** Stamina is breath while underwater. */
 		underwater: boolean;
+		stance: string;
+		creep: boolean;
 	}
 
-	let { stamina, exhausted, battery, headlamp, underwater }: Props = $props();
+	let { stamina, exhausted, battery, headlamp, underwater, stance, creep }: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
 	const bars = $derived(Math.ceil(battery * 4));
+	const STANCE_LABELS: Record<string, string> = { crouch: 'Crouching', crawl: 'Crawling' };
+	const posture = $derived(
+		[STANCE_LABELS[stance], creep ? 'Creeping' : null].filter(Boolean).join(' · ')
+	);
 </script>
 
 <div class="crosshair" aria-hidden="true"></div>
@@ -28,6 +34,10 @@
 	>
 		<div class="fill" style:width="{stamina * 100}%"></div>
 	</div>
+{/if}
+
+{#if posture}
+	<div class="posture">{posture}</div>
 {/if}
 
 <div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
@@ -74,6 +84,19 @@
 
 	.stamina.exhausted .fill {
 		background: rgb(200 90 70 / 0.7);
+	}
+
+	.posture {
+		position: fixed;
+		left: 16px;
+		bottom: 34px;
+		font:
+			11px ui-monospace,
+			monospace;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--muted);
+		pointer-events: none;
 	}
 
 	.lamp {

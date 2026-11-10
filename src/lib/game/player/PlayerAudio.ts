@@ -17,6 +17,8 @@ export class PlayerAudio {
 	private swimming = false;
 	private underwater = false;
 	private mantling = false;
+	private exhausted = false;
+	private gaspPending = false;
 	private breathSlow: SoundHandle | null = null;
 	private breathFast: SoundHandle | null = null;
 	private breathStarting = false;
@@ -48,9 +50,13 @@ export class PlayerAudio {
 		this.lamp = state.headlamp;
 
 		if (state.swimming && !this.swimming) this.sounds.play('water.enter');
-		if (this.underwater && !state.underwater) {
-			if (state.stamina / MOVEMENT.stamina.max < 0.3) this.sounds.play('gasp');
+		// Gasp the moment stamina runs out (held until surfacing if it ran out underwater).
+		if (state.exhausted && !this.exhausted) this.gaspPending = true;
+		if (this.gaspPending && !state.underwater) {
+			this.sounds.play('gasp');
+			this.gaspPending = false;
 		}
+		this.exhausted = state.exhausted;
 		if (state.underwater !== this.underwater) this.muffle(state.underwater ? 1 : 0);
 		if (state.mantle && !this.mantling) this.sounds.play('mantle');
 		this.swimming = state.swimming;
@@ -92,13 +98,18 @@ export class PlayerAudio {
 		this.breathFast = null;
 	}
 
-	/** Calm breathing at rest, crossfading to panting as stamina runs down; silent underwater. */
+	/**
+	 * Breathing only while stamina is below full: calm at first, crossfading to panting as it runs
+	 * down; silent at full stamina and underwater.
+	 */
 	private updateBreath(state: PlayerState): void {
 		const tired = 1 - state.stamina / MOVEMENT.stamina.max;
 		const t = Math.max(0, Math.min(1, (tired - 0.3) / 0.45));
 		const fast = state.exhausted ? 1 : t * t * (3 - 2 * t);
-		const air = state.underwater ? 0 : 1;
-		this.breathSlow?.setVolume(air * (1 - fast) * (0.2 + 0.5 * tired));
+		// Fades in over the first 10% of stamina used, so full stamina is silent.
+		const winded = Math.min(1, tired / 0.1);
+		const air = state.underwater ? 0 : winded;
+		this.breathSlow?.setVolume(air * (1 - fast) * (0.25 + 0.5 * tired));
 		this.breathFast?.setVolume(air * fast * (0.6 + 0.4 * tired));
 		this.breathFast?.setRate(0.9 + 0.2 * tired);
 	}
