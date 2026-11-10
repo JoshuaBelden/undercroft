@@ -14,7 +14,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { NodeIO, type Document, type Node } from '@gltf-transform/core';
+import { NodeIO, getBounds, type Document, type Node } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, prune, textureCompress, weld } from '@gltf-transform/functions';
 import * as prettier from 'prettier';
@@ -44,6 +44,7 @@ const EXTENSIONS: Record<string, string> = {
 const DEFAULT_TEXTURE = 1024;
 const TRI_BUDGET = { connector: 5000, room: 40000 };
 const EPS = 0.01;
+const FLOOR_SLACK = 0.3;
 const MARKER_PREFIXES = ['socket-', 'spawn-', 'extract-', 'rite-', 'col-', 'vol-'];
 
 class PieceError extends Error {}
@@ -110,6 +111,15 @@ function boxFromNode(node: Node): ColliderBox {
 		halfExtents: [round(s[0] / 2), round(s[1] / 2), round(s[2] / 2)],
 		rotation: [round(r[0]), round(r[1]), round(r[2]), round(r[3])]
 	};
+}
+
+/** Vertical extent of an oriented box (its 8 corners, rotated). */
+function boxYRange(box: ColliderBox): [number, number] {
+	const [x, y, z, w] = box.rotation;
+	// Y row of the rotation matrix
+	const r = [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)];
+	const ext = r.reduce((sum, v, i) => sum + Math.abs(v) * box.halfExtents[i], 0);
+	return [box.center[1] - ext, box.center[1] + ext];
 }
 
 function triangleCount(doc: Document): number {
@@ -181,6 +191,21 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 
 	// Blender scene custom properties (addon state etc.) are not game data.
 	for (const s of doc.getRoot().listScenes()) s.setExtras({});
+
+	// The generator reserves `levels` grid levels; geometry outside them would intrude on other pieces.
+	const bounds = getBounds(root);
+	const ceiling = levels * LEVEL_HEIGHT;
+	for (const box of [...colliders, ...volumes]) {
+		const [lo, hi] = boxYRange(box);
+		bounds.min[1] = Math.min(bounds.min[1], lo);
+		bounds.max[1] = Math.max(bounds.max[1], hi);
+	}
+	// Floor colliders may sit up to FLOOR_SLACK below the origin (they are slabs under the floor).
+	if (bounds.max[1] > ceiling + EPS || bounds.min[1] < -FLOOR_SLACK) {
+		throw new PieceError(
+			`${name}: geometry spans y ${round(bounds.min[1])}..${round(bounds.max[1])} but levels=${levels} allows 0..${ceiling}; raise the root's levels property`
+		);
+	}
 
 	const triangles = triangleCount(doc);
 	const budget = w * d <= 1 ? TRI_BUDGET.connector : TRI_BUDGET.room;

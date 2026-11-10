@@ -11,8 +11,9 @@ Flow:
 1. Client opens a WebSocket to `PUBLIC_GAME_SERVER_URL`.
 2. Client sends `hello` with `PROTOCOL_VERSION`. A mismatch gets `reject`.
 3. Server replies `welcome` with player and session IDs, the tick rate, and the map layout.
-4. Server broadcasts `tick` at `TICK_RATE` (20 Hz).
+4. Client sends `input` frames (fixed 60 Hz steps); server broadcasts `tick` at `TICK_RATE` (20 Hz) with every player's snapshot. See [player.md](player.md) for prediction and reconciliation.
 5. Client sends `ping` every second; `pong` gives round-trip time.
+6. Dev only: client sends `admin` commands; server sends `map` when an admin regenerates the layout.
 
 `GameClient` reconnects every 2 seconds after a drop. In Phase 0 every connection joins one shared session; Phase 1 introduces per-expedition sessions.
 
@@ -21,6 +22,8 @@ Flow:
 ## Rendering
 
 `Engine` owns the renderer, scene, camera and frame loop. Register per-frame work with `engine.onUpdate(fn)`; it returns an unsubscribe function. Call `dispose()` on teardown.
+
+**Graphics settings:** `engine.applyGraphics(settings.graphics)` applies FOV, brightness (tone-mapping exposure) and quality (pixel ratio, shadows, shadow map size). Call it again when the settings change.
 
 **Light budget:** `LIGHT_BUDGET` caps active dynamic lights (ambient excluded). The stats overlay shows the count and turns red when over budget. Every candle, headlamp, torch and glow stick counts.
 
@@ -36,6 +39,7 @@ Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. B
 
 - `input.isDown(action)` for held input.
 - `input.onPressed(fn)` for presses; returns an unsubscribe function.
+- `input.consumeLook()` returns mouse movement since the last call while the pointer is locked (mouse look is an axis, not an action).
 
 **Adding an action:** add it to `ACTIONS`. It appears in the settings controls list automatically. Use `{action:name}` in help text to show the player's binding.
 
@@ -47,11 +51,13 @@ All sound goes through `AudioManager`. Categories: `master`, `music`, `ambience`
 audio.play('/assets/audio/drip.ogg', { category: 'ambience', loop: true });
 ```
 
-Browsers block audio until a user gesture; the game view calls `audio.unlock()` on the first pointer press. Positional audio is added in Phase 1.
+Browsers block audio until a user gesture; the game view calls `audio.unlock()` on the first click.
+
+Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played through `SoundBank` (`sounds.play(id)`, `sounds.loop(id)`). A sound is a file or a synthesized placeholder; see [player.md](player.md#audio-placeholders). Positional audio is added in Phase 1.
 
 ## Settings
 
-`settings` is a persisted `$state` object in `settings.svelte.ts`. Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
+`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y) and `graphics` (FOV, brightness, quality). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
 
 **Adding a setting:** add it to `Settings` and `defaults()`, then add a control in `SettingsMenu.svelte`.
 
@@ -69,4 +75,4 @@ Blank lines separate paragraphs. `{action:name}` renders the current binding. `H
 
 `devMode` (`src/lib/dev.ts`) is true on the dev server or when `PUBLIC_DEV_MODE=true`. `AdminPanel` (F10) renders nothing unless `devMode` is true. Gate every debug tool the same way.
 
-Current tools: connection, session and player IDs; stats overlay toggle (F3).
+Current tools: connection, session and player IDs; stats overlay toggle (F3); map seed and regenerate; map debug view; noclip, infinite stamina and battery, and teleport to rooms. Player commands are sent to the server, which only accepts them when its own `DEV_MODE=true` (see [player.md](player.md)).

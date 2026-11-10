@@ -11,6 +11,7 @@ export class InputMap {
 	private down = new Set<string>();
 	private listeners = new Set<Listener>();
 	private target: Window;
+	private look = { x: 0, y: 0 };
 
 	constructor(target: Window = window) {
 		this.target = target;
@@ -19,11 +20,20 @@ export class InputMap {
 		target.addEventListener('mousedown', this.onMouseDown);
 		target.addEventListener('mouseup', this.onMouseUp);
 		target.addEventListener('blur', this.onBlur);
+		target.addEventListener('mousemove', this.onMouseMove);
 	}
 
 	/** True while any key bound to the action is held. */
 	isDown(action: Action): boolean {
 		return settings.bindings[action].some((code) => this.down.has(code));
+	}
+
+	/** Mouse movement (pixels) since the last call, while the pointer is locked. */
+	consumeLook(): [number, number] {
+		const delta: [number, number] = [this.look.x, this.look.y];
+		this.look.x = 0;
+		this.look.y = 0;
+		return delta;
 	}
 
 	/** Called once each time a bound key is pressed. Returns an unsubscribe function. */
@@ -38,6 +48,7 @@ export class InputMap {
 		this.target.removeEventListener('mousedown', this.onMouseDown);
 		this.target.removeEventListener('mouseup', this.onMouseUp);
 		this.target.removeEventListener('blur', this.onBlur);
+		this.target.removeEventListener('mousemove', this.onMouseMove);
 		this.listeners.clear();
 	}
 
@@ -67,6 +78,12 @@ export class InputMap {
 
 	private onMouseUp = (event: MouseEvent): void => {
 		this.down.delete(`Mouse${event.button}`);
+	};
+
+	private onMouseMove = (event: MouseEvent): void => {
+		if (!document.pointerLockElement) return;
+		this.look.x += event.movementX;
+		this.look.y += event.movementY;
 	};
 
 	private onBlur = (): void => {

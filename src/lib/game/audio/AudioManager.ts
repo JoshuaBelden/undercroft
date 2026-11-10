@@ -11,6 +11,15 @@ export interface PlayOptions {
 	category?: Exclude<AudioCategory, 'master'>;
 	volume?: number;
 	loop?: boolean;
+	/** Playback rate (1 = normal); also shifts pitch. */
+	rate?: number;
+}
+
+/** A playing sound whose volume and rate can change while it plays (loops, breathing). */
+export interface SoundHandle {
+	setVolume(value: number): void;
+	setRate(value: number): void;
+	stop(): void;
 }
 
 export class AudioManager {
@@ -47,17 +56,39 @@ export class AudioManager {
 		return pending;
 	}
 
-	async play(url: string, options: PlayOptions = {}): Promise<AudioBufferSourceNode> {
+	async play(url: string, options: PlayOptions = {}): Promise<SoundHandle> {
+		return this.playBuffer(await this.load(url), options);
+	}
+
+	/** Play an already-decoded or generated buffer on a category bus. */
+	playBuffer(buffer: AudioBuffer, options: PlayOptions = {}): SoundHandle {
 		const context = this.ensureContext();
-		const buffer = await this.load(url);
 		const source = context.createBufferSource();
 		source.buffer = buffer;
 		source.loop = options.loop ?? false;
+		source.playbackRate.value = options.rate ?? 1;
 		const gain = context.createGain();
 		gain.gain.value = options.volume ?? 1;
 		source.connect(gain).connect(this.bus(options.category ?? 'sfx'));
 		source.start();
-		return source;
+		const ramp = 0.05;
+		return {
+			setVolume: (value) => gain.gain.setTargetAtTime(value, context.currentTime, ramp),
+			setRate: (value) => source.playbackRate.setTargetAtTime(value, context.currentTime, ramp),
+			stop: () => {
+				source.stop();
+				source.disconnect();
+			}
+		};
+	}
+
+	/** The Web Audio context (created on first use); synthesized sounds are built against it. */
+	get audioContext(): AudioContext {
+		return this.ensureContext();
+	}
+
+	get unlocked(): boolean {
+		return this.context?.state === 'running';
 	}
 
 	dispose(): void {

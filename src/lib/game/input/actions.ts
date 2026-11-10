@@ -5,6 +5,15 @@
  */
 
 export const ACTIONS = {
+	moveForward: { label: 'Move forward', category: 'Movement', defaults: ['KeyW', 'ArrowUp'] },
+	moveBack: { label: 'Move back', category: 'Movement', defaults: ['KeyS', 'ArrowDown'] },
+	moveLeft: { label: 'Move left', category: 'Movement', defaults: ['KeyA', 'ArrowLeft'] },
+	moveRight: { label: 'Move right', category: 'Movement', defaults: ['KeyD', 'ArrowRight'] },
+	sprint: { label: 'Sprint (hold)', category: 'Movement', defaults: ['ShiftLeft'] },
+	// Not Ctrl: Ctrl+W closes the browser tab and pages cannot block it.
+	crouch: { label: 'Crouch (hold)', category: 'Movement', defaults: ['KeyC'] },
+	crawl: { label: 'Crawl (toggle)', category: 'Movement', defaults: ['KeyZ'] },
+	headlamp: { label: 'Headlamp mode', category: 'Light', defaults: ['KeyF'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },

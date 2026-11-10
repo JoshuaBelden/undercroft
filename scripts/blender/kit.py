@@ -680,7 +680,7 @@ def build_ossuary_hall(force=False):
     """3x2 cells. Barrel-vaulted hall lined with bone stacks; 4 hall sockets."""
     name = "ossuary-hall"
     coll = piece_collection(name, force)
-    root = root_empty(coll, name, 3, 2)
+    root = root_empty(coll, name, 3, 2, levels=2)  # vault apex 6.35 m
     W, F = "mat-wall-ossuary", "mat-floor-ossuary"
     ix, iy = 6.0 - WALL_INSET, 4.0 - WALL_INSET  # 5.75, 3.75
     spring = 2.6
@@ -1233,7 +1233,7 @@ def build_stairwell(force=False):
     top = spring + iy
     t = WALL_INSET
     col_box(coll, root, "col-floor", (-4, -2, -0.2), (4, 2, 0))
-    col_box(coll, root, "col-ceiling", (-4, -2, top), (4, 2, top + 0.4))
+    col_box(coll, root, "col-ceiling", (-4, -2, top), (4, 2, min(top + 0.4, LEVEL)))  # stay inside the piece's level
     wall_cols(coll, root, "wall-n", (-4, iy), (4, iy), 0, top, t, (0, 1))
     wall_cols(coll, root, "wall-s", (-4, -iy), (4, -iy), 0, top, t, (0, -1))
     wall_cols(coll, root, "wall-w", (-ix, -2), (-ix, 2), 0, top, t, (-1, 0))
@@ -1245,7 +1245,7 @@ def build_quarry_gallery(force=False):
     """3x3 cells: a rough-cut quarry cavern with rock pillars left to hold up an uneven ceiling."""
     name = "quarry-gallery"
     coll = piece_collection(name, force)
-    root = root_empty(coll, name, 3, 3)
+    root = root_empty(coll, name, 3, 3, levels=2)  # ceiling up to ~6.6 m
     W, F = "mat-wall-quarry", "mat-floor-quarry"
     i = 6 - WALL_INSET
     wall_h = 4.0
@@ -1317,7 +1317,7 @@ def build_cistern(force=False):
     marble columns stand in a sunken basin. vol-water-0 marks the swimmable water."""
     name = "cistern"
     coll = piece_collection(name, force)
-    root = root_empty(coll, name, 3, 2, levels=2)
+    root = root_empty(coll, name, 3, 2, levels=3)  # basin below the walkway, vault to ~10.4 m
     W, F, B = "mat-wall-cistern", "mat-floor-cistern", "mat-basin"
     ix, iy = 6 - WALL_INSET, 4 - WALL_INSET
     walk = LEVEL  # walkway floor height
@@ -1376,10 +1376,11 @@ def build_cistern(force=False):
     t = WALL_INSET
     top = walk + spring + iy
     col_box(coll, root, "col-basin-floor", (-bx, -by, basin_floor - 0.3), (bx, by, basin_floor))
-    col_box(coll, root, "col-walk-n", (-6, by, walk - 0.3), (6, 4, walk))
-    col_box(coll, root, "col-walk-s", (-6, -4, walk - 0.3), (6, -by, walk))
-    col_box(coll, root, "col-walk-w", (-6, -by, walk - 0.3), (-bx, by, walk))
-    col_box(coll, root, "col-walk-e", (bx, -by, walk - 0.3), (6, by, walk))
+    # Walkways are solid down to the basin floor: they also form the basin walls.
+    col_box(coll, root, "col-walk-n", (-6, by, basin_floor - 0.3), (6, 4, walk))
+    col_box(coll, root, "col-walk-s", (-6, -4, basin_floor - 0.3), (6, -by, walk))
+    col_box(coll, root, "col-walk-w", (-6, -by, basin_floor - 0.3), (-bx, by, walk))
+    col_box(coll, root, "col-walk-e", (bx, -by, basin_floor - 0.3), (6, by, walk))
     wall_cols(coll, root, "wall-n", (-6, iy), (6, iy), walk, top, t, (0, 1), openings=[(2.0, 1.0, 2.8)])
     wall_cols(coll, root, "wall-s", (-6, -iy), (6, -iy), walk, top, t, (0, -1), openings=[(10.0, 1.0, 2.8)])
     wall_cols(coll, root, "wall-w", (-ix, -4), (-ix, 4), walk, top, t, (-1, 0), openings=[(6.0, 1.0, 2.8)])
@@ -1394,7 +1395,7 @@ def build_gloaming_chapel(force=False):
     altar where the rite is performed (rite-0). Entrances: south, and west/east near the south end."""
     name = "gloaming-chapel"
     coll = piece_collection(name, force)
-    root = root_empty(coll, name, 3, 3)
+    root = root_empty(coll, name, 3, 3, levels=2)  # vault apex 7.75 m
     W, F, M = "mat-wall-chapel", "mat-floor-chapel", "mat-trim-marble"
     hx = 3.75  # nave half width
     y0 = -6 + WALL_INSET  # south wall
@@ -1464,7 +1465,7 @@ def build_gloaming_chapel(force=False):
     top = spring + hx
     t = WALL_INSET
     col_box(coll, root, "col-floor", (-6, -6, -0.2), (6, 6, 0))
-    col_box(coll, root, "col-ceiling", (-6, -6, top), (6, 6, top + 0.4))
+    col_box(coll, root, "col-ceiling", (-6, -6, top), (6, 6, min(top + 0.4, 2 * LEVEL)))  # stay inside the piece's 2 levels
     wall_cols(coll, root, "wall-s", (-6, y0), (6, y0), 0, top, t, (0, -1), openings=[(6.0, 1.0, 2.8)])
     col_box(coll, root, "col-side-w", (-6, -6, 0), (-hx, -5, top))
     col_box(coll, root, "col-side-w2", (-6, -3, 0), (-hx, 6, top))

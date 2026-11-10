@@ -10,11 +10,13 @@ src/
       constants.ts          protocol version, tick rate, ports
       protocol.ts           WebSocket message types, encode/decode
       rng.ts                seeded PRNG (deterministic on server and client)
+      player/               player state types, fixed-step simulation, headlamp output
       map/                  map types, grid math, layout generator, generated piece manifest
     game/
       Engine.ts             Three.js renderer, scene, camera, frame loop, stats, light budget
       assets.ts             glTF model loading and cache, asset path registry
       map/MapRenderer.ts    places map pieces from a layout
+      player/               local player prediction, headlamp light, remote players, player audio
       input/
         actions.ts          action definitions and default bindings
         InputMap.ts         raw input -> actions
@@ -27,6 +29,9 @@ src/
     content/
       help/index.ts         player help topics
       map/kit.ts            map piece roles and weights
+      player/movement.ts    movement and stamina tuning
+      items/headlamps.ts    headlamp models
+      audio/                sound registry and footstep surfaces
     ui/                     Svelte components (Panel, menus, overlays)
   routes/
     +page.svelte            main menu

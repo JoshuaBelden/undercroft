@@ -1,20 +1,31 @@
 <script lang="ts">
 	import * as THREE from 'three';
 	import { onMount } from 'svelte';
-	import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
-	import { devMode } from '#lib/dev.ts';
 	import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+	import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
+	import { MAP_KIT } from '#lib/content/map/kit.ts';
+	import { MOVEMENT } from '#lib/content/player/movement.ts';
+	import { devMode } from '#lib/dev.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
+	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
 	import { GameClient, type ConnectionStatus } from '#lib/game/net/GameClient.ts';
+	import { Headlamp } from '#lib/game/player/Headlamp.ts';
+	import { LocalPlayer } from '#lib/game/player/LocalPlayer.ts';
+	import { PlayerAudio } from '#lib/game/player/PlayerAudio.ts';
+	import { RemotePlayers } from '#lib/game/player/RemotePlayers.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
-	import { toWorld } from '#lib/shared/map/grid.ts';
+	import { buildCollisionWorld } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
+	import { roomPoints } from '#lib/shared/map/points.ts';
 	import type { MapLayout } from '#lib/shared/map/types.ts';
+	import type { PlayerFlags } from '#lib/shared/player/types.ts';
+	import type { AdminCommand } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
+	import Hud from '#lib/ui/Hud.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
@@ -25,42 +36,53 @@
 	let sessionId = $state<string | null>(null);
 	let playerId = $state<string | null>(null);
 	let seed = $state<number | null>(null);
+	let rooms = $state<string[]>([]);
+	let flags = $state<PlayerFlags | null>(null);
 	let stats = $state<FrameStats>({ fps: 0, frameMs: 0, drawCalls: 0, triangles: 0, lights: 0 });
 	let rtt = $state(0);
+	let locked = $state(false);
+	let mapView = $state(false);
+	let spawned = $state(false);
+	let hud = $state({ stamina: 1, exhausted: false, battery: 1, headlamp: 1 });
 
 	const audio = new AudioManager({ ...settings.audio });
+	let applyGraphics = (): void => {};
+	let setMapView = (enabled: boolean): void => {
+		mapView = enabled;
+	};
+	let sendAdmin = (command: AdminCommand): void => {
+		void command;
+	};
 
 	function toggle(name: 'settings' | 'help' | 'admin'): void {
 		panel = panel === name ? null : name;
+		if (panel) document.exitPointerLock();
 	}
 
 	onMount(() => {
 		const engine = new Engine(canvas);
+		engine.camera.rotation.order = 'YXZ';
 		const input = new InputMap();
 
-		// Map preview until the first-person controller lands: orbit camera, dim ambient and a
-		// lantern that follows the orbit target.
 		const map = new MapRenderer();
 		engine.scene.add(map.root);
-		engine.scene.add(new THREE.AmbientLight(0xffffff, 0.15));
-		const lantern = new THREE.PointLight(0xffd9a0, 60, 20);
-		engine.scene.add(lantern);
+		const remote = new RemotePlayers();
+		engine.scene.add(remote.root);
+		// Near-black: the headlamp is the light. The debug light only shows in map view.
+		engine.scene.add(new THREE.AmbientLight(0xffffff, 0.012));
+		const debugLight = new THREE.HemisphereLight(0xfff2e0, 0x202020, 1.6);
+		debugLight.visible = false;
+		engine.scene.add(debugLight);
 		const orbit = new OrbitControls(engine.camera, canvas);
 		orbit.enableDamping = true;
-		engine.onUpdate(() => {
-			orbit.update();
-			lantern.position.copy(orbit.target).add(new THREE.Vector3(0, 2, 0));
-		});
+		orbit.enabled = false;
 
-		function showMap(layout: MapLayout): void {
-			seed = layout.seed;
-			void map.build(layout);
-			const start = layout.placements[0];
-			const spawn = PIECES[start.piece].spawns[0] ?? [0, 0, 0];
-			const [x, y, z] = toWorld(start, spawn);
-			orbit.target.set(x, y + 1, z);
-			engine.camera.position.set(x + 10, y + 14, z + 10);
-		}
+		const headlamp = new Headlamp(engine.camera);
+		applyGraphics = () => {
+			engine.applyGraphics(settings.graphics);
+			headlamp.setShadows(settings.graphics.quality !== 'low', engine.shadowMapSize);
+		};
+		applyGraphics();
 
 		const client = new GameClient(PUBLIC_GAME_SERVER_URL, 'Explorer', {
 			onStatus: (next, detail) => {
@@ -69,15 +91,86 @@
 				playerId = client.playerId;
 			},
 			onMessage: (message) => {
-				if (message.type === 'welcome') {
-					sessionId = message.sessionId;
-					if (message.layout.seed !== seed) showMap(message.layout);
+				switch (message.type) {
+					case 'welcome':
+						sessionId = message.sessionId;
+						loadMap(message.layout);
+						break;
+					case 'map':
+						loadMap(message.layout);
+						break;
+					case 'tick':
+						for (const snap of message.players) {
+							if (snap.id !== client.playerId) continue;
+							player.onSnapshot(snap);
+							flags = { ...snap.state.flags };
+						}
+						remote.apply(message.players, client.playerId);
+						break;
 				}
 			}
 		});
+		const player = new LocalPlayer(input, client);
+		const sounds = new SoundBank(audio);
+		const playerAudio = new PlayerAudio(sounds, map.root);
+
+		function loadMap(layout: MapLayout): void {
+			seed = layout.seed;
+			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
+			void map.build(layout);
+			player.setWorld(buildCollisionWorld(layout, PIECES));
+		}
+
+		sendAdmin = (command) => client.send({ type: 'admin', command });
+
+		setMapView = (enabled) => {
+			mapView = enabled;
+			orbit.enabled = enabled;
+			debugLight.visible = enabled;
+			if (enabled) {
+				document.exitPointerLock();
+				const eye = player.eyePosition();
+				if (eye) {
+					orbit.target.set(eye[0], eye[1], eye[2]);
+					engine.camera.position.set(eye[0] + 8, eye[1] + 12, eye[2] + 8);
+				}
+			}
+		};
+
 		client.connect();
 
-		engine.onUpdate(() => {
+		const onLockChange = () => (locked = document.pointerLockElement === canvas);
+		document.addEventListener('pointerlockchange', onLockChange);
+		const requestLock = () => {
+			void audio.unlock();
+			if (!panel && !mapView) void canvas.requestPointerLock();
+		};
+		canvas.addEventListener('click', requestLock);
+
+		engine.onUpdate((delta) => {
+			const active = locked && !panel && !mapView;
+			player.update(delta, active);
+			remote.update(delta);
+			if (mapView) {
+				orbit.update();
+			} else {
+				const eye = player.eyePosition();
+				if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
+				const look = player.look();
+				engine.camera.rotation.set(look.pitch, look.yaw, 0);
+			}
+			const state = player.state;
+			headlamp.update(state);
+			playerAudio.update(state, audio.unlocked);
+			spawned = !!state;
+			if (state) {
+				hud = {
+					stamina: state.stamina / MOVEMENT.stamina.max,
+					exhausted: state.exhausted,
+					battery: state.battery,
+					headlamp: state.headlamp
+				};
+			}
 			stats = engine.stats;
 			rtt = client.rtt;
 		});
@@ -101,12 +194,15 @@
 			}
 		});
 
-		const unlockAudio = () => void audio.unlock();
-		window.addEventListener('pointerdown', unlockAudio, { once: true });
-
 		return () => {
 			unsubscribe();
-			window.removeEventListener('pointerdown', unlockAudio);
+			document.removeEventListener('pointerlockchange', onLockChange);
+			canvas.removeEventListener('click', requestLock);
+			document.exitPointerLock();
+			playerAudio.dispose();
+			player.dispose();
+			headlamp.dispose();
+			remote.dispose();
 			orbit.dispose();
 			input.dispose();
 			client.dispose();
@@ -117,6 +213,16 @@
 </script>
 
 <canvas bind:this={canvas}></canvas>
+
+{#if spawned && !mapView}
+	<Hud {...hud} />
+{/if}
+
+{#if !locked && !panel && !mapView && status === 'connected'}
+	<button type="button" class="descend" onclick={() => canvas.requestPointerLock()}>
+		Click to descend
+	</button>
+{/if}
 
 <div class="status" class:ok={status === 'connected'}>
 	{status}{statusDetail ? `: ${statusDetail}` : ''}
@@ -130,11 +236,23 @@
 	<SettingsMenu
 		onclose={() => (panel = null)}
 		onvolume={(category, value) => audio.setVolume(category, value)}
+		ongraphics={() => applyGraphics()}
 	/>
 {:else if panel === 'help'}
 	<HelpPanel onclose={() => (panel = null)} />
 {:else if panel === 'admin'}
-	<AdminPanel onclose={() => (panel = null)} {status} {sessionId} {playerId} {seed} />
+	<AdminPanel
+		onclose={() => (panel = null)}
+		{status}
+		{sessionId}
+		{playerId}
+		{seed}
+		{rooms}
+		{flags}
+		{mapView}
+		onadmin={(command) => sendAdmin(command)}
+		onmapview={(enabled) => setMapView(enabled)}
+	/>
 {/if}
 
 <style>
@@ -144,6 +262,25 @@
 		width: 100vw;
 		height: 100vh;
 		display: block;
+		cursor: crosshair;
+	}
+
+	.descend {
+		position: fixed;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		padding: 14px 28px;
+		font:
+			14px ui-monospace,
+			monospace;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: #e8dfcf;
+		background: rgb(0 0 0 / 0.6);
+		border: 1px solid rgb(232 223 207 / 0.3);
+		cursor: pointer;
+		z-index: 5;
 	}
 
 	.status {

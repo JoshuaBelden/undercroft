@@ -29,6 +29,13 @@ wss.on('connection', (socket) => {
 				}
 				if (!playerId) playerId = session.addPlayer(socket, message.name.slice(0, 24)).id;
 				break;
+			case 'input':
+				if (playerId) session.receiveInput(playerId, message.frames);
+				break;
+			case 'admin':
+				if (playerId && typeof message.command === 'object' && message.command !== null)
+					session.admin(playerId, message.command);
+				break;
 			case 'ping':
 				socket.send(
 					encode({ type: 'pong', clientTime: message.clientTime, serverTime: Date.now() })

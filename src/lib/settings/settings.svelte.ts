@@ -10,11 +10,29 @@ import type { AudioCategory } from '#lib/game/audio/AudioManager.ts';
 const STORAGE_KEY = 'undercroft.settings';
 const SETTINGS_VERSION = 1;
 
+export type GraphicsQuality = 'low' | 'medium' | 'high';
+
+export interface ControlSettings {
+	/** Multiplier on the base look speed. */
+	mouseSensitivity: number;
+	invertY: boolean;
+}
+
+export interface GraphicsSettings {
+	/** Vertical field of view in degrees. */
+	fov: number;
+	/** Tone-mapping exposure; calibrated by the player. */
+	brightness: number;
+	quality: GraphicsQuality;
+}
+
 export interface Settings {
 	version: number;
 	audio: Record<AudioCategory, number>;
 	bindings: Bindings;
 	interface: { showStats: boolean };
+	controls: ControlSettings;
+	graphics: GraphicsSettings;
 }
 
 function defaults(): Settings {
@@ -22,7 +40,9 @@ function defaults(): Settings {
 		version: SETTINGS_VERSION,
 		audio: { master: 0.8, music: 0.6, ambience: 0.8, sfx: 0.8 },
 		bindings: defaultBindings(),
-		interface: { showStats: false }
+		interface: { showStats: false },
+		controls: { mouseSensitivity: 1, invertY: false },
+		graphics: { fov: 75, brightness: 1, quality: 'high' }
 	};
 }
 
@@ -37,7 +57,9 @@ function load(): Settings {
 			...base,
 			audio: { ...base.audio, ...saved.audio },
 			bindings: { ...base.bindings, ...saved.bindings },
-			interface: { ...base.interface, ...saved.interface }
+			interface: { ...base.interface, ...saved.interface },
+			controls: { ...base.controls, ...saved.controls },
+			graphics: { ...base.graphics, ...saved.graphics }
 		};
 	} catch {
 		return base;

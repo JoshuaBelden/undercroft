@@ -1,15 +1,29 @@
 <script lang="ts">
 	import { AUDIO_CATEGORIES, type AudioCategory } from '#lib/game/audio/AudioManager.ts';
 	import { ACTIONS, bindingLabel, type Action } from '#lib/game/input/actions.ts';
-	import { resetSettings, saveSettings, settings } from '#lib/settings/settings.svelte.ts';
+	import {
+		resetSettings,
+		saveSettings,
+		settings,
+		type GraphicsQuality
+	} from '#lib/settings/settings.svelte.ts';
 	import Panel from './Panel.svelte';
 
 	interface Props {
 		onclose: () => void;
 		onvolume?: (category: AudioCategory, value: number) => void;
+		/** Graphics settings changed; re-apply them to the renderer. */
+		ongraphics?: () => void;
 	}
 
-	let { onclose, onvolume }: Props = $props();
+	let { onclose, onvolume, ongraphics }: Props = $props();
+
+	const QUALITIES: GraphicsQuality[] = ['low', 'medium', 'high'];
+
+	function graphicsChanged(): void {
+		saveSettings();
+		ongraphics?.();
+	}
 
 	const actions = Object.keys(ACTIONS) as Action[];
 	const AUDIO_LABELS: Record<AudioCategory, string> = {
@@ -42,6 +56,59 @@
 		</label>
 	{/each}
 
+	<h3>Graphics</h3>
+	<label class="row">
+		<span>Field of view ({settings.graphics.fov}°)</span>
+		<input
+			type="range"
+			min="60"
+			max="100"
+			step="1"
+			bind:value={settings.graphics.fov}
+			oninput={graphicsChanged}
+		/>
+	</label>
+	<label class="row">
+		<span>Brightness</span>
+		<input
+			type="range"
+			min="0.5"
+			max="2"
+			step="0.05"
+			bind:value={settings.graphics.brightness}
+			oninput={graphicsChanged}
+		/>
+	</label>
+	<p class="muted">
+		Calibrate in the dark with your headlamp on low: shadows should be black, but the rock right in
+		front of you should show detail.
+	</p>
+	<label class="row">
+		<span>Quality</span>
+		<select bind:value={settings.graphics.quality} onchange={graphicsChanged}>
+			{#each QUALITIES as quality (quality)}
+				<option value={quality}>{quality}</option>
+			{/each}
+		</select>
+	</label>
+
+	<h3>Mouse</h3>
+	<label class="row">
+		<span>Sensitivity ({settings.controls.mouseSensitivity.toFixed(2)})</span>
+		<input
+			type="range"
+			min="0.2"
+			max="3"
+			step="0.05"
+			bind:value={settings.controls.mouseSensitivity}
+			oninput={saveSettings}
+		/>
+	</label>
+	<label class="row">
+		<span>Invert Y</span>
+		<input type="checkbox" bind:checked={settings.controls.invertY} onchange={saveSettings} />
+	</label>
+
 	<h3>Interface</h3>
 	<label class="row">
 		<span>Show performance stats</span>
@@ -58,7 +125,13 @@
 	{/each}
 
 	<div class="footer">
-		<button type="button" onclick={resetSettings}>Reset to defaults</button>
+		<button
+			type="button"
+			onclick={() => {
+				resetSettings();
+				ongraphics?.();
+			}}>Reset to defaults</button
+		>
 	</div>
 </Panel>
 

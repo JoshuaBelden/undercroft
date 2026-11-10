@@ -39,10 +39,10 @@ Aspects:
 A generated Gloaming map you can start an expedition into, explore, and extract from.
 
 - Start an expedition: server creates a session, picks a seed, client generates the map
-- First-person controller: walk, sprint, crouch, crawl, look; stamina
-- Collision against map geometry
-- Headlamp with settings (off, low, bright), battery drain, starter flicker
-- Dynamic lighting with a light budget
+- [x] First-person controller: walk, sprint, crouch, crawl, look; stamina
+- [x] Collision against map geometry
+- [x] Headlamp with settings (off, low, bright), battery drain, starter flicker
+- [x] Dynamic lighting with a light budget
 - [x] Grid-based generator: 5 static major rooms (Stairwell, Ossuary Hall, Quarry Gallery, Cistern, Gloaming Chapel), random connections
 - Connector kit: halls, square rooms, canals, squeezes, crawlspaces, secret doors, swim sections, depth transitions (done: halls, junctions, square rooms, crypt, side rooms, squeezes, crawlspaces, dead ends, stairs down; still to do: canals, secret doors, swim sections)
 - [x] Map graph: guaranteed path from start to the Chapel, plus loops

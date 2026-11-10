@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { GraphicsSettings } from '#lib/settings/settings.svelte.ts';
 
 export interface FrameStats {
 	fps: number;
@@ -10,6 +11,13 @@ export interface FrameStats {
 
 /** Max dynamic lights active at once. Candles, headlamps, torches and glow sticks all count. */
 export const LIGHT_BUDGET = 8;
+
+/** Per-quality render settings. */
+const QUALITY = {
+	low: { pixelRatio: 1, shadows: false, shadowMapSize: 512 },
+	medium: { pixelRatio: 1.5, shadows: true, shadowMapSize: 512 },
+	high: { pixelRatio: 2, shadows: true, shadowMapSize: 1024 }
+} as const;
 
 /**
  * Owns the Three.js renderer, scene, camera and frame loop.
@@ -32,11 +40,37 @@ export class Engine {
 		this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 		this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
 		this.renderer.shadowMap.enabled = true;
-		this.scene.background = new THREE.Color(0x050505);
+		this.scene.background = new THREE.Color(0x000000);
 		this.camera = new THREE.PerspectiveCamera(75, 1, 0.05, 200);
+		// In the scene so lights attached to it (the headlamp) render.
+		this.scene.add(this.camera);
 
 		this.resizeObserver = new ResizeObserver(() => this.resize());
 		this.resizeObserver.observe(canvas);
+		this.resize();
+	}
+
+	/** Shadow map size for the current quality; lights read it when casting shadows. */
+	shadowMapSize = 1024;
+
+	/** Apply player graphics settings (FOV, brightness, quality). Safe to call any time. */
+	applyGraphics(graphics: GraphicsSettings): void {
+		const quality = QUALITY[graphics.quality] ?? QUALITY.high;
+		this.camera.fov = graphics.fov;
+		this.camera.updateProjectionMatrix();
+		this.renderer.toneMappingExposure = graphics.brightness;
+		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.pixelRatio));
+		this.shadowMapSize = quality.shadowMapSize;
+		if (this.renderer.shadowMap.enabled !== quality.shadows) {
+			this.renderer.shadowMap.enabled = quality.shadows;
+			// Materials compile shadow support in; force a rebuild.
+			this.scene.traverse((object) => {
+				if (object instanceof THREE.Mesh) {
+					const materials = Array.isArray(object.material) ? object.material : [object.material];
+					for (const material of materials) material.needsUpdate = true;
+				}
+			});
+		}
 		this.resize();
 	}
 
