@@ -204,7 +204,7 @@ At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed p
 
 **Bandages:** hold `heal` standing still with a bandage and less than full sanity. `bandaging` counts up in the shared step (so it predicts), and at `bandageSeconds` one bandage is used for `bandageHeal`. Moving or letting go resets it.
 
-Bandages and smelling salts are pocket items in the inventory (see [items.md](items.md)); the starting kit is `STARTING_LOADOUT`.
+Bandages and smelling salts are pocket items in the inventory (see [items.md](items.md)); players bring them down in their loadout (see [economy.md](economy.md)).
 
 **Client:**
 

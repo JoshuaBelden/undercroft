@@ -129,8 +129,8 @@ The bare minimum that makes it a repeating game. The hub is overlays on the surf
 - [x] Accounts: email and password sign-up, the whole game behind sign-in, a gamer tag that can be changed (`docs/dev/accounts.md`)
 - [x] One explorer per account (more later); rite progress kept under the explorer
 - [x] Affliction view on the surface: resolved or not, rite hints learned so far
-- [ ] Stash and loadout before descent; a new explorer starts with nothing and no money
-- [ ] Death and extraction outcomes applied to the stash
+- [x] Stash and loadout before descent; a new explorer starts with nothing and no money (`docs/dev/economy.md`)
+- [x] Death and extraction outcomes applied to the stash
 - [ ] Stand-in loot to carry out; loot carried feeds the Affliction meter
 - [ ] Shop: buy gear, sell loot; money
 

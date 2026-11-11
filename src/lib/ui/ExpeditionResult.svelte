@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import type { ItemStack } from '#lib/shared/player/types.ts';
+	import { stackLabel } from './items.ts';
 
 	interface Props {
 		seconds: number;
@@ -8,11 +10,13 @@
 		outcome: 'extracted' | 'died' | 'banished' | 'resolved';
 		/** After watching the rest of the expedition: how many of the others got out alive. */
 		escaped?: number | null;
+		/** What was carried out (kept); null when it was lost. */
+		carried: ItemStack[] | null;
 		/** Back to the party on the surface. */
 		oncontinue: () => void;
 	}
 
-	let { seconds, deepestLevel, outcome, escaped = null, oncontinue }: Props = $props();
+	let { seconds, deepestLevel, outcome, escaped = null, carried, oncontinue }: Props = $props();
 
 	const TITLES = {
 		extracted: 'You made it out',
@@ -47,6 +51,13 @@
 			<dt>Deepest point</dt>
 			<dd>{depth}</dd>
 		</dl>
+		{#if carried === null}
+			<p class="note">Everything you carried is lost.</p>
+		{:else if carried.length === 0}
+			<p class="note">You brought nothing out.</p>
+		{:else}
+			<p class="note">You brought out: {carried.map(stackLabel).join(', ')}.</p>
+		{/if}
 		<div class="actions">
 			<button type="button" class="primary" onclick={oncontinue}>Continue</button>
 			<a href={resolve('/')}>Main menu</a>

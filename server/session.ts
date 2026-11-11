@@ -44,7 +44,12 @@ import {
 	sanitizeFrame,
 	stepPlayer
 } from '../src/lib/shared/player/simulate.ts';
-import type { InputFrame, PlayerState, SimEvent } from '../src/lib/shared/player/types.ts';
+import type {
+	InputFrame,
+	Inventory,
+	PlayerState,
+	SimEvent
+} from '../src/lib/shared/player/types.ts';
 import { encode, type AdminCommand, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import { randomSeed } from '../src/lib/shared/rng.ts';
 import { config } from './config.ts';
@@ -57,6 +62,8 @@ import { log } from './log.ts';
 
 interface Player {
 	id: string;
+	/** Whose player this is, for the session's owner (the explorer id). */
+	owner: string;
 	name: string;
 	socket: WebSocket;
 	state: PlayerState;
@@ -92,8 +99,11 @@ const VIEW_HALF_ANGLE = 0.9;
 
 /** Lets the owner (the party) follow who is still down there. */
 export interface SessionHooks {
-	/** A player extracted, died, was banished out or disconnected. */
-	onPlayerLeft?: (playerId: string) => void;
+	/**
+	 * A player extracted, died, was carried out or left. `carried` is what they brought out with
+	 * them; null if they didn't make it (it stays in the catacombs).
+	 */
+	onPlayerLeft?: (owner: string, carried: Inventory | null) => void;
 	/** The last player left: the expedition is over. */
 	onEnded?: () => void;
 	/** A clue was found (or revealed by an admin): this many are now known. */
@@ -185,12 +195,14 @@ export class Session {
 		return this.players.has(playerId);
 	}
 
-	addPlayer(socket: WebSocket, name: string): Player {
+	/** `inventory` is what they bring down: their loadout. */
+	addPlayer(socket: WebSocket, name: string, owner: string, inventory: Inventory): Player {
 		const player: Player = {
 			id: randomUUID(),
+			owner,
 			name,
 			socket,
-			state: this.spawnState(),
+			state: this.spawnState(inventory),
 			queue: [],
 			ack: -1,
 			processed: 0,
@@ -242,13 +254,17 @@ export class Session {
 		this.spectators.delete(playerId);
 	}
 
-	removePlayer(playerId: string): void {
+	/**
+	 * Take a player out of the expedition. `carried` is what they got out with; left out (they
+	 * died, dropped for good, or walked away from the party) it is lost.
+	 */
+	removePlayer(playerId: string, carried: Inventory | null = null): void {
 		this.spectators.delete(playerId);
 		const player = this.players.get(playerId);
 		if (!player) return;
 		this.players.delete(playerId);
 		log.info(`Player ${player.name} left session ${this.id.slice(0, 8)}`);
-		this.hooks.onPlayerLeft?.(playerId);
+		this.hooks.onPlayerLeft?.(player.owner, carried);
 		if (this.players.size === 0) {
 			this.stop();
 			log.info(`Expedition ${this.id.slice(0, 8)} ended`);
@@ -399,7 +415,7 @@ export class Session {
 		this.revealClues(clues);
 		for (const player of this.players.values()) {
 			const flags = player.state.flags;
-			player.state = this.spawnState();
+			player.state = this.spawnState(player.state.inventory);
 			player.state.flags = flags;
 			player.queue = [];
 		}
@@ -416,9 +432,9 @@ export class Session {
 		return nav;
 	}
 
-	private spawnState(): PlayerState {
+	private spawnState(inventory: Inventory): PlayerState {
 		const spawn = spawnPoint(this.layout, PIECES);
-		return createPlayerState(this.freeSpot(spawn.position), spawn.yaw);
+		return createPlayerState(this.freeSpot(spawn.position), spawn.yaw, inventory);
 	}
 
 	private freeSpot(position: PlayerState['position']): PlayerState['position'] {
@@ -481,10 +497,14 @@ export class Session {
 				log.info(`Player ${player.name} died in session ${this.id.slice(0, 8)}`);
 			} else {
 				this.escaped++;
-				this.send(player, { type: 'extracted', ...result });
+				this.send(player, {
+					type: 'extracted',
+					...result,
+					carried: allStacks(player.state.inventory)
+				});
 				log.info(`Player ${player.name} extracted from session ${this.id.slice(0, 8)}`);
 			}
-			this.removePlayer(player.id);
+			this.removePlayer(player.id, player.state.dead ? null : player.state.inventory);
 			if (player.state.dead && alive) {
 				this.spectators.set(player.id, { name: player.name, socket: player.socket });
 			}
@@ -497,9 +517,10 @@ export class Session {
 				this.send(player, {
 					type: 'resolved',
 					seconds: Math.round((Date.now() - player.joinedAt) / 1000),
-					deepestLevel: player.deepestLevel
+					deepestLevel: player.deepestLevel,
+					carried: allStacks(player.state.inventory)
 				});
-				this.removePlayer(player.id);
+				this.removePlayer(player.id, player.state.inventory);
 			}
 		}
 		if (this.affliction.banished && this.players.size > 0) {
@@ -509,9 +530,10 @@ export class Session {
 				this.send(player, {
 					type: 'banished',
 					seconds: Math.round((Date.now() - player.joinedAt) / 1000),
-					deepestLevel: player.deepestLevel
+					deepestLevel: player.deepestLevel,
+					carried: allStacks(player.state.inventory)
 				});
-				this.removePlayer(player.id);
+				this.removePlayer(player.id, player.state.inventory);
 			}
 		}
 		if (this.players.size === 0) return;

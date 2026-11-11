@@ -2,12 +2,14 @@ import { WebSocketServer } from 'ws';
 import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
 import { currentTag, identify } from './accounts.ts';
+import { releaseAll } from './belongings.ts';
 import { config } from './config.ts';
 import { closeDb, connectDb } from './db.ts';
 import { log } from './log.ts';
 import { Parties, type Member } from './parties.ts';
 
 await connectDb();
+await releaseAll();
 
 const parties = new Parties();
 const wss = new WebSocketServer({ port: config.port });

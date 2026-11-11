@@ -1,4 +1,5 @@
 import type { AccountView } from '#lib/shared/account/types.ts';
+import type { ItemRef } from '#lib/shared/items/types.ts';
 
 /**
  * The signed-in account as the browser knows it: gamer tag, explorer, rite progress. Loaded from
@@ -35,6 +36,15 @@ export async function loadAccount(): Promise<AccountView | null> {
 export async function changeGamerTag(gamerTag: string): Promise<void> {
 	const result = await api<{ gamerTag: string }>('/api/account', 'PATCH', { gamerTag });
 	if (session.account) session.account.gamerTag = result.gamerTag;
+}
+
+/** Move something between the stash and the loadout. Throws `ApiError` if it is refused. */
+export async function changeLoadout(
+	change:
+		| { action: 'take'; index: number; count: number }
+		| { action: 'stow'; from: ItemRef; count: number }
+): Promise<void> {
+	session.account = await api<AccountView>('/api/explorer/loadout', 'POST', change);
 }
 
 export async function signOut(): Promise<void> {

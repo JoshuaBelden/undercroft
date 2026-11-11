@@ -4,6 +4,7 @@ import { PARTY } from '../src/lib/content/party.ts';
 import { canDescend, normalizeCode, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import type { Identity } from './accounts.ts';
+import { giveBack, takeKit } from './belongings.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
 import { Session } from './session.ts';
@@ -166,7 +167,8 @@ export class Parties {
 			onClues: (clues) => this.progress.record(descended(), session.afflictionId, { clues }),
 			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
 			onRiteReset: () => this.progress.reset(descended(), session.afflictionId),
-			onPlayerLeft: () => {
+			onPlayerLeft: (explorer, carried) => {
+				giveBack(explorer, session.id, carried);
 				this.sweep(party);
 				this.broadcast(party);
 			},
@@ -185,9 +187,31 @@ export class Parties {
 		log.info(
 			`Party ${party.code}: expedition ${session.id.slice(0, 8)} started with seed ${session.seed} (${party.members.length} players)`
 		);
-		for (const m of party.members) {
-			m.ready = false;
-			m.playerId = session.addPlayer(m.socket, m.name).id;
+		for (const m of party.members) m.ready = false;
+		this.broadcast(party);
+		void this.begin(party, session, descended);
+	}
+
+	/**
+	 * Everyone's loadout leaves the surface with them, then they appear underground. Fetching the
+	 * loadouts takes a moment, so someone can have left by the time they arrive.
+	 */
+	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
+		const going = [...party.members];
+		const kits = await Promise.all(going.map((m) => takeKit(m.explorer, session.id)));
+		going.forEach((m, i) => {
+			if (party.session !== session || !party.members.includes(m)) {
+				// Gone before the descent: their things stay on the surface.
+				giveBack(m.explorer, session.id, kits[i]);
+				return;
+			}
+			m.playerId = session.addPlayer(m.socket, m.name, m.explorer, kits[i]).id;
+		});
+		if (party.session !== session) return;
+		if (session.playerCount === 0) {
+			party.session = null;
+			this.broadcast(party);
+			return;
 		}
 		// What any of them learned on earlier runs, all of them know now.
 		void this.progress.best(descended(), session.afflictionId).then(({ clues }) => {

@@ -1,6 +1,5 @@
 import { BACKPACKS, CARRY, DEFAULT_BACKPACK } from '../../content/carry.ts';
 import { HOTBAR_SLOTS, ITEMS } from '../../content/items.ts';
-import { STARTING_LOADOUT } from '../../content/loadout.ts';
 import type { Inventory, ItemStack } from '../player/types.ts';
 import type { InventoryAction, ItemRef } from './types.ts';
 
@@ -20,20 +19,6 @@ export function emptyInventory(): Inventory {
 		hotbar: new Array<ItemStack | null>(HOTBAR_SLOTS).fill(null),
 		selected: 0,
 		pockets: {},
-		pack: [],
-		backpack: DEFAULT_BACKPACK
-	};
-}
-
-export function startingInventory(): Inventory {
-	const hotbar: (ItemStack | null)[] = new Array(HOTBAR_SLOTS).fill(null);
-	STARTING_LOADOUT.hotbar.forEach((entry, i) => {
-		if (i < HOTBAR_SLOTS && ITEMS[entry.item]) hotbar[i] = newStack(entry.item, 1, entry.loaded);
-	});
-	return {
-		hotbar,
-		selected: 0,
-		pockets: { ...STARTING_LOADOUT.pockets },
 		pack: [],
 		backpack: DEFAULT_BACKPACK
 	};

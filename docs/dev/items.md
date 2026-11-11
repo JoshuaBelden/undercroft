@@ -8,7 +8,7 @@ What players carry (quick slots, pack, pockets, weight), weapons, ammo and heali
 | ----------------------------------- | -------------------------------------------------------------------- |
 | `src/lib/content/items.ts`          | Item definitions (data): melee, firearm, throwable, ammo, consumable |
 | `src/lib/content/carry.ts`          | Backpacks (capacity) and `CARRY` (weight limits, slowdown)           |
-| `src/lib/content/loadout.ts`        | Starting kit (until the hub) and how many bricks lie around          |
+| `src/lib/content/loadout.ts`        | How many bricks lie around                                           |
 | `src/lib/shared/items/inventory.ts` | Inventory rules: add, move, take, weight, bulk, what fits            |
 | `src/lib/ui/InventoryScreen.svelte` | The pack screen                                                      |
 | `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread |
@@ -61,7 +61,7 @@ The server checks the request (`sanitizeAction`), applies it in `Session.invento
 
 Handing something to another player is dropping it for them to pick up.
 
-`startingInventory()` builds it from `STARTING_LOADOUT` (knife and revolver loaded with 6, 2 bandages, 1 salts).
+A player goes down with their explorer's loadout, chosen on the surface (see [economy.md](economy.md)); a new explorer has nothing. `emptyInventory()` is carrying nothing.
 
 Bandages and smelling salts are pocket items. The bandage rule in `stepPlayer` and the revive rules in `server/session.ts` spend them with `takePocket`.
 

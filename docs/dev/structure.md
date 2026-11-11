@@ -39,6 +39,7 @@ src/
       db.ts                 MongoDB connection
       session.ts            session cookie
       store/accounts.ts     accounts, sessions, tickets, explorers (also used by the game server)
+      store/explorers.ts    stash and loadout; descent and return (also used by the game server)
     content/
       help/index.ts         player help topics
       map/kit.ts            map piece roles and weights
@@ -48,7 +49,7 @@ src/
       afflictions.ts        Affliction definitions: meter, omen stages, manifestation
       items.ts              item definitions (weapons, ammo, consumables)
       carry.ts              backpacks and how weight slows you
-      loadout.ts            starting kit until the hub
+      loadout.ts            what lies around the map (bricks)
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
     ui/                     Svelte components (Panel, menus, overlays)
@@ -57,10 +58,11 @@ src/
     +page.svelte            main menu
     play/+page.svelte       game view (client-only)
     auth/                   sign-in and sign-up pages
-    api/                    JSON endpoints: auth, account, ticket
+    api/                    JSON endpoints: auth, account, ticket, explorer (stash and loadout)
 server/
   index.ts                  WebSocket server entry
   accounts.ts               who a connection is, from the ticket in its hello
+  belongings.ts             loadouts taken down at descent, belongings given back after
   session.ts                Session: authoritative state and tick loop, sanity, revives
   creatures.ts              CreatureDirector: creature AI, damage, noise
   combat.ts                 resolves shots, swings, throws and drops

@@ -15,6 +15,8 @@
 		onleave: () => void;
 		/** Open the Afflictions overlay. */
 		onafflictions: () => void;
+		/** Open the stash and loadout. */
+		onoutfit: () => void;
 		onsettings: () => void;
 		onhelp: () => void;
 	}
@@ -28,6 +30,7 @@
 		onjoin,
 		onleave,
 		onafflictions,
+		onoutfit,
 		onsettings,
 		onhelp
 	}: Props = $props();
@@ -72,6 +75,7 @@
 		<h1>The surface</h1>
 
 		<div class="hub">
+			<button type="button" onclick={onoutfit}>Outfitting</button>
 			<button type="button" onclick={onafflictions}>Afflictions</button>
 		</div>
 

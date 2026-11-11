@@ -45,7 +45,7 @@
 	import { EXPEDITION } from '#lib/content/expedition.ts';
 	import { bindingLabel } from '#lib/game/input/actions.ts';
 	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
-	import type { Inventory, PlayerFlags, PlayerState } from '#lib/shared/player/types.ts';
+	import type { Inventory, ItemStack, PlayerFlags, PlayerState } from '#lib/shared/player/types.ts';
 	import type { PartyState } from '#lib/shared/party/types.ts';
 	import type { AdminCommand, ClientMessage } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
@@ -56,6 +56,7 @@
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
+	import OutfitPanel from '#lib/ui/OutfitPanel.svelte';
 	import PartyLobby from '#lib/ui/PartyLobby.svelte';
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
@@ -64,7 +65,7 @@
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
-	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'rite' | 'afflictions';
+	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'rite' | 'afflictions' | 'outfit';
 	let panel = $state<PanelName | null>(null);
 	/** The rite as known so far, and (while its panel is open) who carries each requirement. */
 	let rite = $state<RiteSnapshot | null>(null);
@@ -116,6 +117,8 @@
 		outcome: 'extracted' | 'died' | 'banished' | 'resolved';
 		/** Set after spectating: how many of the others got out. */
 		escaped: number | null;
+		/** What was carried out and kept; null when it was lost. */
+		carried: ItemStack[] | null;
 	} | null>(null);
 	/** Dead and watching a teammate; `name` is who (empty while nobody can be shown). */
 	let spectating = $state<{ name: string } | null>(null);
@@ -162,6 +165,8 @@
 		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
 		panel = closing ? null : name;
 		if (panel) document.exitPointerLock();
+		// The surface overlays show the account as it is now.
+		if (panel === 'outfit' || panel === 'afflictions') void loadAccount();
 		// Putting the pack away goes straight back to play.
 		else if ((name === 'inventory' || name === 'rite') && expedition) {
 			void canvas.requestPointerLock();
@@ -255,7 +260,8 @@
 							seconds: message.seconds,
 							deepestLevel: message.deepestLevel,
 							outcome: message.type,
-							escaped: null
+							escaped: null,
+							carried: message.type === 'died' ? null : message.carried
 						};
 						if (message.type === 'resolved') sounds.play('rite.resolve');
 						if (message.type === 'died' && message.spectating) startSpectating();
@@ -879,7 +885,11 @@
 		deepestLevel={result.deepestLevel}
 		outcome={result.outcome}
 		escaped={result.escaped}
-		oncontinue={() => (result = null)}
+		carried={result.carried}
+		oncontinue={() => {
+			result = null;
+			void loadAccount();
+		}}
 	/>
 {:else if party && memberId && !expedition && status === 'connected'}
 	<PartyLobby
@@ -891,6 +901,7 @@
 		onjoin={(code) => send({ type: 'joinParty', code })}
 		onleave={() => send({ type: 'leaveParty' })}
 		onafflictions={() => toggle('afflictions')}
+		onoutfit={() => toggle('outfit')}
 		onsettings={() => toggle('settings')}
 		onhelp={() => toggle('help')}
 	/>
@@ -923,6 +934,8 @@
 		ongraphics={() => applyGraphics()}
 		onaccount={() => send({ type: 'rename' })}
 	/>
+{:else if panel === 'outfit' && session.account}
+	<OutfitPanel explorer={session.account.explorer} onclose={() => (panel = null)} />
 {:else if panel === 'afflictions'}
 	<AfflictionsPanel
 		progress={session.account?.explorer.afflictions ?? []}

@@ -12,10 +12,10 @@ import {
 	waterSurface,
 	type CollisionWorld
 } from '../map/collision.ts';
-import { cloneInventory, speedFactor, startingInventory, takePocket } from '../items/inventory.ts';
+import { cloneInventory, emptyInventory, speedFactor, takePocket } from '../items/inventory.ts';
 import { idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
-import type { InputFrame, PlayerState, SimEvent, Stance } from './types.ts';
+import type { InputFrame, Inventory, PlayerState, SimEvent, Stance } from './types.ts';
 
 /**
  * The player simulation. A pure, fixed-step function run by the server (authoritative) and by
@@ -29,7 +29,11 @@ const MAX_PITCH = 1.5;
 /** How far onto a ledge a step-up moves the player (must be <= the radius stepUp checks). */
 const STEP_FORWARD = 0.15;
 
-export function createPlayerState(position: Vec3, yaw: number): PlayerState {
+export function createPlayerState(
+	position: Vec3,
+	yaw: number,
+	inventory: Inventory = emptyInventory()
+): PlayerState {
 	return {
 		position: [...position],
 		velocity: [0, 0, 0],
@@ -63,7 +67,7 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		downed: false,
 		downedTime: 0,
 		dead: false,
-		inventory: startingInventory(),
+		inventory,
 		weapon: idleWeapon(),
 		bandaging: 0,
 		reviving: 0,

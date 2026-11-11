@@ -12,7 +12,7 @@ import type {
 } from './items/types.ts';
 import type { MapLayout } from './map/types.ts';
 import type { PartyState } from './party/types.ts';
-import type { InputFrame, PlayerSnapshot } from './player/types.ts';
+import type { InputFrame, ItemStack, PlayerSnapshot } from './player/types.ts';
 
 export type ClientMessage =
 	/**
@@ -104,19 +104,22 @@ export type ServerMessage =
 	  }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }
-	/** You climbed out: you have left the expedition. */
-	| { type: 'extracted'; seconds: number; deepestLevel: number }
 	/**
-	 * You bled out: you have left the expedition. If `spectating`, others are still down there and
+	 * You climbed out: you have left the expedition. `carried` (here and below) is what you
+	 * brought out, which you keep.
+	 */
+	| { type: 'extracted'; seconds: number; deepestLevel: number; carried: ItemStack[] }
+	/**
+	 * You bled out: you have left the expedition and lost what you carried. If `spectating`, others are still down there and
 	 * you keep getting `tick` to watch them, until `spectateEnd` or you send `stopSpectating`.
 	 */
 	| { type: 'died'; seconds: number; deepestLevel: number; spectating: boolean }
 	/** The expedition you were watching is over; `escaped` players got out alive. */
 	| { type: 'spectateEnd'; escaped: number }
 	/** The manifestation was banished: everyone leaves the expedition. */
-	| { type: 'banished'; seconds: number; deepestLevel: number }
+	| { type: 'banished'; seconds: number; deepestLevel: number; carried: ItemStack[] }
 	/** The rite was performed: the Affliction is resolved and everyone leaves the expedition. */
-	| { type: 'resolved'; seconds: number; deepestLevel: number };
+	| { type: 'resolved'; seconds: number; deepestLevel: number; carried: ItemStack[] };
 
 export function encode(message: ClientMessage | ServerMessage): string {
 	return JSON.stringify(message);

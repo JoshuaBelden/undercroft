@@ -79,6 +79,18 @@ Bright reaches much further but drains the battery about three times as fast. Th
 The starter headlamp is cheap: it flickers, and flickers more as the battery runs down. Some things in the dark are easier to see in a flicker.`
 	},
 	{
+		id: 'the-surface',
+		title: 'What you keep',
+		category: 'Basics',
+		body: `You start with nothing: a headlamp and your hands.
+
+Whatever you carry out of the catacombs is yours. Your kit stays packed the way you carried it, ready for the next descent. Anything else you found goes into your stash on the surface.
+
+Before you go down, open "Outfitting" on the surface to choose what to take. Take something from the stash to carry it down; leave it behind to keep it safe. You can only take what you could carry.
+
+What you take down and don't bring back is gone. If you die, everything you carried stays where you fell, and so does anything you left lying down there.`
+	},
+	{
 		id: 'parties',
 		title: 'Going down together',
 		category: 'Basics',

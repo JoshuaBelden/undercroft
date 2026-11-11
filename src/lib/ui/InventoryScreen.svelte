@@ -4,6 +4,7 @@
 	import { carriedWeight, packBulk, packCapacity } from '#lib/shared/items/inventory.ts';
 	import type { InventoryAction, ItemRef } from '#lib/shared/items/types.ts';
 	import type { Inventory, ItemStack } from '#lib/shared/player/types.ts';
+	import { stackKilos, stackLabel } from './items.ts';
 	import Panel from './Panel.svelte';
 
 	interface Props {
@@ -40,16 +41,8 @@
 		return ref.area !== 'pocket' && chosen.index === ref.index;
 	}
 
-	function label(stack: ItemStack): string {
-		const def = ITEMS[stack.item];
-		const name = def?.name ?? stack.item;
-		if (def?.firearm) return `${name} (${stack.loaded ?? 0}/${def.firearm.magazine})`;
-		return stack.count > 1 ? `${name} × ${stack.count}` : name;
-	}
-
-	function kilos(stack: ItemStack): string {
-		return `${((ITEMS[stack.item]?.weight ?? 0) * stack.count).toFixed(1)} kg`;
-	}
+	const label = stackLabel;
+	const kilos = stackKilos;
 
 	function act(action: InventoryAction): void {
 		onaction(action);
