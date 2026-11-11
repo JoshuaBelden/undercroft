@@ -39,8 +39,9 @@
 		align-items: center;
 		justify-content: center;
 		gap: 8px;
-		background: rgb(6 5 5 / 0.72);
-		backdrop-filter: blur(4px);
+		background: rgb(6 5 5 / 0.78);
+		/* Heavy: what is behind is only shapes, so nothing competes with the count. */
+		backdrop-filter: blur(18px);
 		text-shadow: 0 2px 16px rgb(0 0 0 / 0.9);
 	}
 

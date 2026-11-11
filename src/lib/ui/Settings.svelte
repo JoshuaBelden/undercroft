@@ -32,9 +32,11 @@
 		ongraphics?: () => void;
 		/** The gamer tag was changed (the game server should read it again). */
 		onaccount?: () => void;
+		/** Underground: offer to abandon the expedition (asked to confirm first). */
+		onabandon?: () => void;
 	}
 
-	let { onclose, dim = false, onvolume, ongraphics, onaccount }: Props = $props();
+	let { onclose, dim = false, onvolume, ongraphics, onaccount, onabandon }: Props = $props();
 
 	const GROUPS = [
 		'Account',
@@ -51,6 +53,8 @@
 	let tagMessage = $state('');
 	/** Asking whether to really reset everything. */
 	let confirmingReset = $state(false);
+	/** Asking whether to really abandon the expedition. */
+	let confirmingAbandon = $state(false);
 	if (!session.account) void loadAccount().then((account) => (gamerTag = account?.gamerTag ?? ''));
 
 	async function saveTag(event: SubmitEvent): Promise<void> {
@@ -190,6 +194,11 @@
 				</button>
 			{/each}
 		</nav>
+		{#if onabandon}
+			<button type="button" class="back abandon" onclick={() => (confirmingAbandon = true)}>
+				Abandon expedition
+			</button>
+		{/if}
 		<button type="button" class="back" onclick={onclose}>Back</button>
 	</header>
 
@@ -384,6 +393,26 @@
 	</Dialog>
 {/if}
 
+{#if confirmingAbandon}
+	<Dialog title="Abandon the expedition" onclose={() => (confirmingAbandon = false)}>
+		<p>You go back to the surface now, alone. Anyone with you stays down there.</p>
+		<p>Everything you carry is left where you stand, as if you had died.</p>
+		{#snippet footer()}
+			<button type="button" onclick={() => (confirmingAbandon = false)}>Stay</button>
+			<button
+				type="button"
+				class="primary"
+				onclick={() => {
+					confirmingAbandon = false;
+					onabandon?.();
+				}}
+			>
+				Abandon
+			</button>
+		{/snippet}
+	</Dialog>
+{/if}
+
 <style>
 	.settings {
 		/* How wide every setting's pill is. */
@@ -437,6 +466,10 @@
 
 	nav button.current {
 		border-color: var(--text);
+	}
+
+	.abandon {
+		color: #ff9a70;
 	}
 
 	.back {

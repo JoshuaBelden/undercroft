@@ -15,5 +15,7 @@ export const SANITY = {
 	reviveSeconds: 3,
 	reviveRange: 1.5,
 	/** Seconds a downed player lasts before dying. */
-	bleedOut: 60
+	bleedOut: 60,
+	/** Seconds a downed player holds climb to give up and die at once. */
+	surrenderSeconds: 1
 };

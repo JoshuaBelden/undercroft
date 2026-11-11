@@ -44,6 +44,8 @@ export type ClientMessage =
 	| { type: 'rename' }
 	/** Dead and watching the others: stop, and go back to the surface. */
 	| { type: 'stopSpectating' }
+	/** Give up on the expedition: back to the surface, leaving what you carried where you stood. */
+	| { type: 'abandon' }
 	/** Rearrange or drop what you carry (the inventory screen). */
 	| { type: 'inventory'; action: InventoryAction };
 
@@ -125,6 +127,8 @@ export type ServerMessage =
 	 * you keep getting `tick` to watch them, until `spectateEnd` or you send `stopSpectating`.
 	 */
 	| { type: 'died'; seconds: number; deepestLevel: number; spectating: boolean }
+	/** You abandoned the expedition: you have left it and lost what you carried. */
+	| { type: 'abandoned'; seconds: number; deepestLevel: number }
 	/** The expedition you were watching is over; `escaped` players got out alive. */
 	| { type: 'spectateEnd'; escaped: number }
 	/** The manifestation was banished: everyone leaves the expedition. */
@@ -156,6 +160,7 @@ const CLIENT_TYPES = new Set<string>([
 	'social',
 	'rename',
 	'stopSpectating',
+	'abandon',
 	'inventory'
 ]);
 const SERVER_TYPES = new Set<string>([
@@ -170,6 +175,7 @@ const SERVER_TYPES = new Set<string>([
 	'map',
 	'extracted',
 	'died',
+	'abandoned',
 	'spectateEnd',
 	'banished',
 	'resolved'

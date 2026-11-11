@@ -18,7 +18,8 @@ export const ACTIONS = {
 		category: 'Movement',
 		defaults: ['KeyC']
 	},
-	climb: { label: 'Climb / swim up', category: 'Movement', defaults: ['Space'] },
+	// Held while downed, it surrenders.
+	climb: { label: 'Climb / swim up / surrender', category: 'Movement', defaults: ['Space'] },
 	swimDown: { label: 'Swim down', category: 'Movement', defaults: ['KeyX'] },
 	interact: { label: 'Interact / revive (hold)', category: 'Actions', defaults: ['KeyE'] },
 	headlamp: { label: 'Headlamp mode', category: 'Light', defaults: ['KeyF'] },

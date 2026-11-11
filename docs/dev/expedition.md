@@ -48,8 +48,8 @@ All checks are on the server (`Parties`); `allReady` is shared so both sides use
 1. Signing in lands on the Expedition page. The site-wide connection (`src/lib/game/net/connection.svelte.ts`, see [systems.md](systems.md#networking)) sends `hello` with its ticket (see [accounts.md](accounts.md)), lands in a party and gets `party`.
 2. Everyone readies up and the countdown runs out (above). `Parties.descend` creates a `Session` against the party's Affliction (new seed, generated layout), takes each member's loadout from their explorer (see [economy.md](economy.md)) and adds them with it. Each gets `welcome` with the layout: that message means "you are underground now", and the client opens `/play`.
 3. Players explore. The session simulates them and broadcasts `tick` snapshots to the players in it.
-4. A player climbs out (see Extraction), dies, the manifestation is banished, or the rite is performed (see [rite.md](rite.md)). The server sends them `extracted`, `died`, `banished` or `resolved` with `{ seconds, deepestLevel }` and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
-5. What they carried out goes back to their explorer; if they died it is lost (see [economy.md](economy.md)). The client shows the results screen (after spectating, for the dead; see Spectating), with what was brought out, then goes back to the Expedition page. While others are still underground their panes say so, and nobody can launch.
+4. A player climbs out (see Extraction), dies, abandons (see Abandoning), the manifestation is banished, or the rite is performed (see [rite.md](rite.md)). The server sends them `extracted`, `died`, `abandoned`, `banished` or `resolved` with `{ seconds, deepestLevel }` and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
+5. What they carried out goes back to their explorer; if they died or abandoned it is lost (see [economy.md](economy.md)). The client shows the results screen (after spectating, for the dead; see Spectating), with what was brought out, then goes back to the Expedition page. While others are still underground their panes say so, and nobody can launch.
 6. When the session's last player is out (or has disconnected), it stops. The party is back on the surface and can launch again.
 
 `/play` is only the expedition: opened with none to show, it goes back to the dashboard.
@@ -76,6 +76,11 @@ A player who dies while others are still alive underground watches through a tea
 - **Server:** `died` carries `spectating`: whether anyone alive is left in the session after that tick. If so the session keeps the dead player's socket in `spectators`: they are out of the simulation (and show as on the surface in the party), but still receive every `tick`.
 - When the session's last player is out, each spectator gets `spectateEnd { escaped }`, the number of players who got out alive (climbed out or carried out by a banishing).
 - `stopSpectating` (the Leave button) or disconnecting removes a spectator early.
+
+## Abandoning
+
+The settings screen underground has an Abandon expedition button (`onabandon` on `Settings`), with a dialog to confirm. The client sends `abandon`; `Session.abandon` drops everything the player carried where they stand (as on death), sends `abandoned` with `{ seconds, deepestLevel }` and removes them. Nothing comes back to the surface with them, and they do not spectate. The others carry on; if they were the last one down, the expedition ends.
+
 - **Client:** on `died` with `spectating`, the page keeps the map, creatures, items and other players, drops the local player, and puts the camera at the watched player's interpolated head (`RemotePlayers.view`), hiding that player's body (`setHidden`). `SpectateBar` shows who is being watched, with Next (cycle teammates) and Leave. If the watched player dies or leaves, the view moves to the next one.
 - The results screen is held back until spectating ends, then shows how many of the others made it out.
 

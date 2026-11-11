@@ -4,7 +4,7 @@ import type { Inventory } from '../player/types.ts';
 import type { RiteSnapshot } from './types.ts';
 
 /**
- * Rite rules shared by the server (authoritative) and the client (prompt, rite panel).
+ * Rite rules shared by the server (authoritative) and the client (prompt, rite overlay).
  * See docs/dev/rite.md.
  */
 

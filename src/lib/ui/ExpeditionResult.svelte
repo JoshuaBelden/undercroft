@@ -7,7 +7,7 @@
 		seconds: number;
 		deepestLevel: number;
 		/** How the expedition ended for this player. */
-		outcome: 'extracted' | 'died' | 'banished' | 'resolved';
+		outcome: 'extracted' | 'died' | 'abandoned' | 'banished' | 'resolved';
 		/** After watching the rest of the expedition: how many of the others got out alive. */
 		escaped?: number | null;
 		/** What was carried out (kept); null when it was lost. */
@@ -21,6 +21,7 @@
 	const TITLES = {
 		extracted: 'You made it out',
 		died: "You didn't make it out",
+		abandoned: 'You abandoned the expedition',
 		banished: 'The dark recedes',
 		resolved: 'The rite is done'
 	};

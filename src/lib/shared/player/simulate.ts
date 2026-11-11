@@ -73,6 +73,7 @@ export function createPlayerState(
 		sanity: SANITY.max,
 		downed: false,
 		downedTime: 0,
+		surrendering: 0,
 		dead: false,
 		inventory,
 		weapon: idleWeapon(),
@@ -176,7 +177,7 @@ export function stepPlayer(
 	if (s.dead) return s;
 	if (s.downed) {
 		stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
-		stepDowned(s, world, dt, t);
+		stepDowned(s, input, world, dt, t);
 		updateBattery(s, dt, lamp);
 		return s;
 	}
@@ -279,18 +280,40 @@ export function stepPlayer(
 	return s;
 }
 
-/** Downed: no movement, only look; the floor still holds you; bleed out after SANITY.bleedOut. */
-function stepDowned(s: PlayerState, world: CollisionWorld, dt: number, t: MovementTuning): void {
+/**
+ * Downed: on the floor, dragging yourself along slowly (toward help, out of the way). Bleed out
+ * after SANITY.bleedOut, or hold climb for SANITY.surrenderSeconds to give up at once.
+ */
+function stepDowned(
+	s: PlayerState,
+	input: InputFrame,
+	world: CollisionWorld,
+	dt: number,
+	t: MovementTuning
+): void {
 	s.stance = 'crawl';
-	s.velocity[0] = 0;
-	s.velocity[2] = 0;
+	const sin = Math.sin(s.yaw);
+	const cos = Math.cos(s.yaw);
+	let wx = cos * input.moveX - sin * input.moveZ;
+	let wz = -sin * input.moveX - cos * input.moveZ;
+	const wishLen = Math.hypot(wx, wz);
+	if (wishLen > 1) {
+		wx /= wishLen;
+		wz /= wishLen;
+	}
+	const accel = Math.min(1, (s.grounded ? t.acceleration : t.airAcceleration) * dt);
+	s.velocity[0] += (wx * t.downedSpeed - s.velocity[0]) * accel;
+	s.velocity[2] += (wz * t.downedSpeed - s.velocity[2]) * accel;
 	s.velocity[1] = s.grounded ? STICK_SPEED : s.velocity[1] - t.gravity * dt;
-	s.position[1] += s.velocity[1] * dt;
+	for (let i = 0; i < 3; i++) s.position[i] += s.velocity[i] * dt;
 	resolveCollisions(s, world, t);
 	s.extracting = 0;
 	s.bandaging = 0;
 	s.downedTime += dt;
-	if (s.downedTime >= SANITY.bleedOut) s.dead = true;
+	// A key held since before going down doesn't count: it has to be let go first.
+	if (!input.climb) s.surrendering = 0;
+	else if (s.surrendering >= 0) s.surrendering += dt;
+	if (s.downedTime >= SANITY.bleedOut || s.surrendering >= SANITY.surrenderSeconds) s.dead = true;
 }
 
 /** The healing spec of what is in the hand (a bandage), if it heals. */

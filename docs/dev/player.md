@@ -198,7 +198,9 @@ Applied by the server (`server/session.ts`) each tick:
 - **Seeing:** `seeingDrain`/s while a creature is in half-light (`creatureLight` in its `visibleBand`), within `seeingRange`, inside your view cone (0.9 rad half-angle) and in line of sight.
 - **God mode** (admin flag) ignores all of it.
 
-At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed player on the floor in crawl stance: look only, no extraction or bandaging. `downedTime` counts up, and at `bleedOut` (60 s) `dead` is set. The server then sends `died` and removes the player, like `extracted`. The expedition still ends when nobody is left.
+At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed player on the floor in crawl stance: they can look around and drag themselves along at `MOVEMENT.downedSpeed`, with no extraction, bandaging or items. `downedTime` counts up, and at `bleedOut` (60 s) `dead` is set. The server then sends `died` and removes the player, like `extracted`. The expedition still ends when nobody is left.
+
+**Surrender:** holding `climb` while downed counts `surrendering` up; at `SANITY.surrenderSeconds` (1 s) `dead` is set at once. `Session.down` sets `surrendering` to -1, which means the key has to be let go once first, so a key already held when going down (mid-climb) does not surrender. Both are in the shared step, so the client predicts them.
 
 **Reviving:** the server keeps each player's last simulated input. While a player who isn't downed holds `interact` within `reviveRange` of a downed teammate and has salts (an item with `revive`) in a quick-use slot, `reviving` counts up. At `reviveSeconds` one is used and the teammate gets up with `reviveTo` sanity. If nobody else could help (solo, or everyone else is down too), a downed player with salts in a quick-use slot uses their own after 3 s. Salts in the backpack don't count.
 
@@ -211,7 +213,7 @@ Bandages and smelling salts are quick-use items (see [items.md](items.md)); play
 - The HUD shows a sanity bar (only below max) and a vignette that darkens with lost sanity and pulses below 40%.
 - A hit (a drop of more than 3 in one frame) flashes red, plays `player.hurt` and shakes the camera, scaled by the **Camera shake** setting.
 - `heartbeat` loops louder and faster below 40%; `whisper` plays near you below 20%.
-- Downed, the camera tilts and `DownedScreen` shows the bleed-out bar and what happens next.
+- Downed, the camera tilts and `DownedScreen` shows the bleed-out bar, what happens next and the hold-to-surrender prompt.
 
 ## Admin tools
 

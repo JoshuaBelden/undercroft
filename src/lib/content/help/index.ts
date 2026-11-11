@@ -50,7 +50,9 @@ Look for steps or a low edge to get out. Every pool has a way out.`
 
 Stand at the door and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
 
-Once you're out, your expedition is over. In a group, the others can stay down; the expedition ends when everyone is out.`
+Once you're out, your expedition is over. In a group, the others can stay down; the expedition ends when everyone is out.
+
+You can also give up from anywhere: open the settings ({action:toggleSettings}) and choose Abandon expedition. You go back to the surface, but everything you carried stays where you stood.`
 	},
 	{
 		id: 'water-passages',
@@ -138,7 +140,9 @@ It wears down when you're in the dark with your lamp off and no one else's light
 
 A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel.
 
-When your sanity runs out you go down. You can't move, only look around, and you don't have long.`
+When your sanity runs out you go down. You can only look around and drag yourself slowly across the floor, and you don't have long.
+
+If there is nothing to wait for, hold {action:climb} for a moment to surrender. It ends at once, as if your time had run out.`
 	},
 	{
 		id: 'reviving',
@@ -238,7 +242,7 @@ Drive it off and you'll all be carried out. It isn't over, though. Only the rite
 		id: 'the-rite',
 		title: 'The rite',
 		category: 'Survival',
-		body: `The rite is what ends it. Press {action:ritePanel} at any time down here to see what is known about it.
+		body: `The rite is what ends it. Press {action:ritePanel} at any time down here to see what is known about it, at the corner of your view; press it again to put it away.
 
 At first, nothing is. Scraps of writing lie about the catacombs, left by those who came before. Press {action:interact} on one to read it: each tells you something the rite needs, and the last tells you where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
 

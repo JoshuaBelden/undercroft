@@ -74,11 +74,16 @@ export interface PlayerState {
 	extracted: boolean;
 	/** Health: 0..SANITY.max. At 0 the player is downed. */
 	sanity: number;
-	/** On the floor: can only look around until revived (or until bleed-out). */
+	/** On the floor: can only look around and drag themselves along, until revived (or bleed-out). */
 	downed: boolean;
 	/** Seconds spent downed. */
 	downedTime: number;
-	/** Bled out: the server removes the player from the expedition. */
+	/**
+	 * Seconds a downed player has held climb to surrender; at SANITY.surrenderSeconds they die.
+	 * -1 until climb is let go once after going down, so a key already held doesn't count.
+	 */
+	surrendering: number;
+	/** Bled out or surrendered: the server removes the player from the expedition. */
 	dead: boolean;
 	/** What the player carries (see docs/dev/items.md). */
 	inventory: Inventory;
@@ -162,7 +167,7 @@ export interface InputFrame {
 	sprint: boolean;
 	/** Slow, silent walk (held). */
 	sneak: boolean;
-	/** Climb a ledge on land; swim up in water (held). */
+	/** Climb a ledge on land; swim up in water; surrender while downed (held). */
 	climb: boolean;
 	swimDown: boolean;
 	/** Interact (held): extraction, reviving a teammate; doors, items and more later. */

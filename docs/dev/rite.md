@@ -12,7 +12,7 @@ The rite is how an Affliction is resolved (see `docs/HANDOFF.md`). Players learn
 | `src/lib/shared/affliction/types.ts` | `RiteSnapshot` (part of `AfflictionSnapshot`)                    |
 | `server/rite.ts`                     | `RiteDirector` (clues found, the room, who can perform), scatter |
 | `server/progress.ts`                 | `Progress`: clues found and resolutions, kept across expeditions |
-| `src/lib/ui/RitePanel.svelte`        | The rite panel                                                   |
+| `src/lib/ui/RiteOverlay.svelte`      | The rite overlay                                                 |
 
 ## Data
 
@@ -50,7 +50,7 @@ Each pane has the Affliction's picture across the top (`AfflictionDef.image`, se
 
 After the real Afflictions come `UNKNOWN_PANES` (4) panes for ones nobody has met: "Unknown", `UNKNOWN_SLOTS` question-mark slots, and the `affliction-unknown-banner` picture. Lower the number as Afflictions are added to `AFFLICTIONS`; a new one needs only `flavor`, `image` and its picture.
 
-The rite panel (`ritePanel` action) shows it any time underground, including while spectating: each requirement or "Unknown", who in the party carries it (from the player snapshots), and the room.
+The rite overlay (`ritePanel` action shows and hides it) sits in the top right corner any time underground, including while spectating: each requirement or "Unknown", who in the party carries it (from the player snapshots), and the room. It is an overlay, not a menu: it takes no clicks, the pointer stays locked and play goes on under it. It is hidden while a menu or the results are showing.
 
 ## The holder and performing it
 

@@ -1,13 +1,22 @@
 <script lang="ts">
-	/** Shown while the player is downed: what's happening and how long they have left. */
+	import HoldPrompt from './HoldPrompt.svelte';
+
+	/**
+	 * Shown while the player is downed: what's happening, how long they have left, and the way to
+	 * give up.
+	 */
 	interface Props {
 		/** 0..1 of the bleed-out time remaining. */
 		remaining: number;
 		/** What happens next ("Waiting for help...", "Reaching for your salts..."). */
 		message: string;
+		/** Label of the key that surrenders when held. */
+		surrenderKey: string;
+		/** 0..1 of the hold to surrender. */
+		surrender: number;
 	}
 
-	let { remaining, message }: Props = $props();
+	let { remaining, message, surrenderKey, surrender }: Props = $props();
 </script>
 
 <div class="downed" role="status">
@@ -15,6 +24,12 @@
 	<p>{message}</p>
 	<div class="bar" aria-label="Time left">
 		<div class="fill" style:width="{Math.max(0, Math.min(1, remaining)) * 100}%"></div>
+	</div>
+	<div class="surrender">
+		<HoldPrompt
+			text={surrender > 0 ? 'Surrendering...' : `Hold ${surrenderKey} to surrender`}
+			progress={surrender}
+		/>
 	</div>
 </div>
 
@@ -57,5 +72,9 @@
 	.fill {
 		height: 100%;
 		background: rgb(190 60 60 / 0.8);
+	}
+
+	.surrender {
+		margin-top: 28px;
 	}
 </style>

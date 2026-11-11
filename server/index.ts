@@ -80,6 +80,11 @@ wss.on('connection', (socket) => {
 			case 'stopSpectating':
 				parties.stopSpectating(member);
 				break;
+			case 'abandon': {
+				const e = parties.expedition(member);
+				if (e) e.session.abandon(e.playerId);
+				break;
+			}
 			case 'input': {
 				const e = parties.expedition(member);
 				if (e) e.session.receiveInput(e.playerId, message.frames);

@@ -49,6 +49,12 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	},
 	// Something put down in an inventory slot.
 	{ id: 'inventory.drop', file: 'slot-drop.mp3' },
+	// Going through the pack: one handful of the recording per variant.
+	{
+		id: 'inventory.rummage',
+		file: 'rummage.mp3',
+		slice: { minGap: 0.9, maxLength: 1.3, threshold: 0.3, maxClips: 4 }
+	},
 	// Ambience
 	{
 		id: 'ambience.drip',

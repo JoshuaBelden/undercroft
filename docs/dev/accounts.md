@@ -56,7 +56,7 @@ On the client, `session.account` (`account.svelte.ts`) holds the last `AccountVi
 
 ## The gamer tag
 
-The gamer tag is the name other players see: in the lobby, while spectating, in the rite panel. It is 3 to 24 letters, numbers, spaces, `-` or `_`, and unique regardless of case (`cleanTag`). It is set at sign-up and changed in Settings. After a change the client sends `rename` to the game server, which reads the tag from the database again; the client never sends a name.
+The gamer tag is the name other players see: in the lobby, while spectating, in the rite overlay. It is 3 to 24 letters, numbers, spaces, `-` or `_`, and unique regardless of case (`cleanTag`). It is set at sign-up and changed in Settings. After a change the client sends `rename` to the game server, which reads the tag from the database again; the client never sends a name.
 
 ## The game server
 

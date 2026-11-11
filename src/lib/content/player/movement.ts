@@ -29,6 +29,8 @@ export interface MovementTuning {
 	aimSpeed: number;
 	/** Speed multiplier while wading. */
 	wadeSpeed: number;
+	/** Top speed of a downed player dragging themselves along the floor. */
+	downedSpeed: number;
 	/** Speed cap inside a squeeze (vol-squeeze-* volumes); sprinting is impossible there. */
 	squeezeSpeed: number;
 	swim: {
@@ -92,6 +94,7 @@ export const MOVEMENT: MovementTuning = {
 	aimSpeed: 1.4,
 	wadeSpeed: 0.55,
 	squeezeSpeed: 0.7,
+	downedSpeed: 0.35,
 	swim: {
 		height: 0.9,
 		eye: 0.7,

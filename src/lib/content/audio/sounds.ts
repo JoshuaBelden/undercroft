@@ -335,6 +335,14 @@ export const SOUNDS = {
 		volume: 0.35,
 		variation: 0.12
 	},
+	// Opening the pack underground.
+	'inventory.rummage': {
+		file: 'inventory.rummage',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.4,
+		variation: 0.1
+	},
 	// The surface.
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
 	'shop.sell': { synth: { kind: 'bell', pitch: 1320, length: 0.5 }, category: 'sfx', volume: 0.3 },

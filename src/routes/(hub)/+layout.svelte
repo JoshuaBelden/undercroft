@@ -117,18 +117,6 @@
 	</main>
 
 	<div class="corner">
-		<a class="icon" href={resolve('/settings')} aria-label="Settings" title="Settings">
-			<svg viewBox="0 0.2 24 24" width="22" height="22" aria-hidden="true">
-				<path
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.6"
-					stroke-linejoin="round"
-					d="M10.3 2.5h3.4l.5 2.6 1.9.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.9 2.6.5v3.4l-2.6.5-.8 1.9 1.5 2.2-2.4 2.4-2.2-1.5-1.9.8-.5 2.6h-3.4l-.5-2.6-1.9-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.9-2.6-.5v-3.4l2.6-.5.8-1.9-1.5-2.2 2.4-2.4 2.2 1.5 1.9-.8z"
-				/>
-				<circle cx="12" cy="12.2" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6" />
-			</svg>
-		</a>
 		<a
 			class="pill"
 			class:open={social}
@@ -150,6 +138,18 @@
 			{#if waiting > 0}
 				<span class="badge" aria-hidden="true">{waiting}</span>
 			{/if}
+		</a>
+		<a class="icon" href={resolve('/settings')} aria-label="Settings" title="Settings">
+			<svg viewBox="0 0.2 24 24" width="22" height="22" aria-hidden="true">
+				<path
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.6"
+					stroke-linejoin="round"
+					d="M10.3 2.5h3.4l.5 2.6 1.9.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.9 2.6.5v3.4l-2.6.5-.8 1.9 1.5 2.2-2.4 2.4-2.2-1.5-1.9.8-.5 2.6h-3.4l-.5-2.6-1.9-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.9-2.6-.5v-3.4l2.6-.5.8-1.9-1.5-2.2 2.4-2.4 2.2 1.5 1.9-.8z"
+				/>
+				<circle cx="12" cy="12.2" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6" />
+			</svg>
 		</a>
 		<button
 			type="button"
@@ -304,7 +304,7 @@
 		border-color: var(--accent);
 	}
 
-	/* The social button: a pill between the round ones, with its name and what is waiting. */
+	/* The social button: a pill to the left of the round ones, with its name and what is waiting. */
 	.pill {
 		height: 44px;
 		display: flex;

@@ -62,17 +62,19 @@
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
-	import RitePanel from '#lib/ui/RitePanel.svelte';
+	import RiteOverlay from '#lib/ui/RiteOverlay.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
-	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'rite';
+	type PanelName = 'settings' | 'help' | 'admin' | 'inventory';
 	let panel = $state<PanelName | null>(null);
-	/** The rite as known so far, and (while its panel is open) who carries each requirement. */
+	/** The rite as known so far, and (while its overlay shows) who carries each requirement. */
 	let rite = $state<RiteSnapshot | null>(null);
+	/** The rite overlay is wanted: it shows over play whenever there is a rite to show. */
+	let riteShown = $state(false);
 	let riteCarriers = $state<{ name: string; count: number }[][]>([]);
 	let afflictionName = $state('');
 	/** What the player carries, for the inventory screen (kept up to date while it is open). */
@@ -115,13 +117,13 @@
 	} | null>(null);
 	let meter = $state<number | null>(null);
 	let omen = $state(0);
-	/** Set while downed: bleed-out time left (0..1) and what happens next. */
-	let downed = $state<{ remaining: number; message: string } | null>(null);
+	/** Set while downed: bleed-out time left (0..1), what happens next, and the hold to surrender. */
+	let downed = $state<{ remaining: number; message: string; surrender: number } | null>(null);
 	/** Set when this player has left the expedition (climbed out or died); shows the results. */
 	let result = $state<{
 		seconds: number;
 		deepestLevel: number;
-		outcome: 'extracted' | 'died' | 'banished' | 'resolved';
+		outcome: 'extracted' | 'died' | 'abandoned' | 'banished' | 'resolved';
 		/** Set after spectating: how many of the others got out. */
 		escaped: number | null;
 		/** What was carried out and kept; null when it was lost. */
@@ -165,18 +167,18 @@
 		void action;
 	};
 
+	/** Opening the pack is heard. */
+	let rummage = (): void => {};
+
 	function toggle(name: PanelName): void {
 		const closing = panel === name;
-		// The rite can be looked at any time underground, alive or watching.
-		if (name === 'rite' && !closing && !rite) return;
 		// The pack can only be opened while you are down there and not on the floor.
 		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
 		panel = closing ? null : name;
+		if (panel === 'inventory') rummage();
 		if (panel) document.exitPointerLock();
 		// Putting the pack away goes straight back to play.
-		else if ((name === 'inventory' || name === 'rite') && expedition) {
-			void canvas.requestPointerLock();
-		}
+		else if (name === 'inventory' && expedition) void canvas.requestPointerLock();
 	}
 
 	onMount(() => {
@@ -225,6 +227,7 @@
 						break;
 					case 'extracted':
 					case 'died':
+					case 'abandoned':
 					case 'banished':
 					case 'resolved':
 						result = {
@@ -232,7 +235,8 @@
 							deepestLevel: message.deepestLevel,
 							outcome: message.type,
 							escaped: null,
-							carried: message.type === 'died' ? null : message.carried
+							carried:
+								message.type === 'died' || message.type === 'abandoned' ? null : message.carried
 						};
 						if (message.type === 'resolved') sounds.play('rite.resolve');
 						if (message.type === 'died' && message.spectating) startSpectating();
@@ -274,6 +278,7 @@
 		});
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
+		rummage = () => sounds.play('inventory.rummage');
 		sounds.oncaption = (cue) => {
 			if (settings.accessibility.captions) captions.push(cue);
 		};
@@ -344,7 +349,7 @@
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
-			if (panel === 'inventory' || panel === 'rite') panel = null;
+			if (panel === 'inventory') panel = null;
 			rite = null;
 			performing = false;
 			spectating = null;
@@ -428,7 +433,7 @@
 			return roomCells[cellKey(cx, cz, level)] === title;
 		}
 
-		/** Who carries each thing the rite needs, for the rite panel. */
+		/** Who carries each thing the rite needs, for the rite overlay. */
 		function carriers(state: PlayerState | null): { name: string; count: number }[][] {
 			const everyone = [...(state ? [{ name: 'you', state }] : []), ...remote.players()];
 			return (rite?.requirements ?? []).map((requirement) =>
@@ -773,7 +778,8 @@
 				downed = state.downed
 					? {
 							remaining: 1 - state.downedTime / SANITY.bleedOut,
-							message: downedMessage(state)
+							message: downedMessage(state),
+							surrender: Math.max(0, state.surrendering) / SANITY.surrenderSeconds
 						}
 					: null;
 				if (state.performing > 0 && !performing) sounds.play('rite.begin');
@@ -795,7 +801,7 @@
 					checkRoom(state.position);
 				}
 			}
-			if (panel === 'rite') {
+			if (riteShown && rite) {
 				const now = carriers(state);
 				if (JSON.stringify(now) !== JSON.stringify(riteCarriers)) riteCarriers = now;
 			}
@@ -816,7 +822,8 @@
 					toggle('inventory');
 					break;
 				case 'ritePanel':
-					toggle('rite');
+					// An overlay, not a menu: play goes on under it.
+					riteShown = !riteShown;
 					break;
 				case 'toggleStats':
 					settings.interface.showStats = !settings.interface.showStats;
@@ -868,7 +875,22 @@
 {/if}
 
 {#if downed && spawned && !mapView && !result}
-	<DownedScreen remaining={downed.remaining} message={downed.message} />
+	<DownedScreen
+		remaining={downed.remaining}
+		message={downed.message}
+		surrender={downed.surrender}
+		surrenderKey={settings.bindings.climb.map(bindingLabel).join(' / ') || 'Climb'}
+	/>
+{/if}
+
+{#if riteShown && rite && !panel && !mapView && !result}
+	<RiteOverlay
+		affliction={afflictionName}
+		{rite}
+		carriers={riteCarriers}
+		interactKey={settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact'}
+		toggleKey={settings.bindings.ritePanel.map(bindingLabel).join(' / ')}
+	/>
 {/if}
 
 {#if banner && spawned && !mapView}
@@ -901,7 +923,7 @@
 
 {#if !locked && !panel && !mapView && !result && expedition && status === 'connected'}
 	<button type="button" class="descend" onclick={() => canvas.requestPointerLock()}>
-		Click to descend
+		Take Control
 	</button>
 {/if}
 
@@ -926,17 +948,15 @@
 		onvolume={(category, value) => audio.setVolume(category, value)}
 		ongraphics={() => applyGraphics()}
 		onaccount={() => send({ type: 'rename' })}
+		onabandon={expedition
+			? () => {
+					panel = null;
+					send({ type: 'abandon' });
+				}
+			: undefined}
 	/>
 {:else if panel === 'help'}
 	<HelpPanel onclose={() => (panel = null)} />
-{:else if panel === 'rite' && rite}
-	<RitePanel
-		affliction={afflictionName}
-		{rite}
-		carriers={riteCarriers}
-		interactKey={settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact'}
-		onclose={() => toggle('rite')}
-	/>
 {:else if panel === 'inventory' && inventory}
 	<InventoryScreen
 		{inventory}

@@ -289,6 +289,23 @@ export class Session {
 		}
 	}
 
+	/**
+	 * A player gives up and goes back to the surface. It costs what dying costs: everything they
+	 * carried stays where they stood, for the others to pick up.
+	 */
+	abandon(playerId: string): void {
+		const player = this.players.get(playerId);
+		if (!player || player.state.dead || player.state.extracted) return;
+		this.items.dropAll(allStacks(player.state.inventory), player.state.position);
+		this.send(player, {
+			type: 'abandoned',
+			seconds: Math.round((Date.now() - player.joinedAt) / 1000),
+			deepestLevel: player.deepestLevel
+		});
+		log.info(`Player ${player.name} abandoned session ${this.id.slice(0, 8)}`);
+		this.removePlayer(player.id);
+	}
+
 	/** Queue untrusted input frames from a client. */
 	receiveInput(playerId: string, frames: unknown): void {
 		const player = this.players.get(playerId);
@@ -766,6 +783,8 @@ export class Session {
 		s.sanity = 0;
 		s.downed = true;
 		s.downedTime = 0;
+		// Whatever is held as they fall (climb, mid-scramble) must be let go before it surrenders.
+		s.surrendering = -1;
 		s.mantle = null;
 		s.extracting = 0;
 		s.bandaging = 0;
@@ -777,6 +796,7 @@ export class Session {
 		const s = player.state;
 		s.downed = false;
 		s.downedTime = 0;
+		s.surrendering = 0;
 		s.sanity = Math.max(s.sanity, SANITY.reviveTo);
 	}
 
