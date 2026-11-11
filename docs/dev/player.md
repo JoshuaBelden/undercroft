@@ -43,7 +43,7 @@ Each step:
 All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, swim and mantle settings, stamina rates, light intensities, drain and flicker.
 
 - **Stances:** stand (1.75 m), crouch (1.2 m), crawl (0.7 m). The client cycles the wanted stance with one key. Standing up is blocked while the taller capsule wouldn't fit (`capsuleFits`). The wanted stance persists, so you rise (as far as fits) once there's room.
-- **Squeezes:** a `vol-squeeze-*` volume marks the tight part of a piece (currently `hall-squeeze`). Inside it, `state.squeezing` is set, speed is capped at `squeezeSpeed` (0.7 m/s, momentum clamped on entry) and sprinting is impossible. The client grunts as you push through. Heavy packs that won't fit come with inventory (Phase 4).
+- **Squeezes:** a `vol-squeeze-*` volume marks the tight part of a piece (currently `hall-squeeze`). Inside it, `state.squeezing` is set, speed is capped at `squeezeSpeed` (0.7 m/s, momentum clamped on entry) and sprinting is impossible. The client grunts as you push through. Heavy packs that won't fit come with backpack tiers (Phase 5).
 - **Sneak ("creep" in game):** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps, and creatures only hear it within `hear.creep` (see [creatures.md](creatures.md)).
 - **Stance key (client):** a tap (released within 350 ms) cycles the wanted stance; while the key is held you creep, and releasing a hold leaves the stance as it was (`LocalPlayer.updateStanceKey`). Holding sprint resets the wanted stance to standing and stops creeping.
 - **Stamina:** sprinting drains it, and it regenerates after a short delay. At zero the player is `exhausted` and can't sprint, climb or dive until stamina recovers to `recoverAt`.
@@ -132,7 +132,7 @@ So you see teammates about 100 ms plus latency in the past, and the local player
 
 A lamp that is off has zero intensity rather than `visible = false`. Changing the number of visible lights makes Three.js recompile every material, which would hitch every time someone toggles a lamp.
 
-**Adding a headlamp model:** add an entry to `HEADLAMPS`. The player always uses the starter until inventory exists (Phase 4).
+**Adding a headlamp model:** add an entry to `HEADLAMPS`. The player always uses the starter until the hub sells others (Phase 5).
 
 ## Audio
 

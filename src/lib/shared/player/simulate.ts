@@ -12,7 +12,7 @@ import {
 	waterSurface,
 	type CollisionWorld
 } from '../map/collision.ts';
-import { cloneInventory, startingInventory, takePocket } from '../items/inventory.ts';
+import { cloneInventory, speedFactor, startingInventory, takePocket } from '../items/inventory.ts';
 import { idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { InputFrame, PlayerState, SimEvent, Stance } from './types.ts';
@@ -229,6 +229,8 @@ export function stepPlayer(
 		if (input.sneak) speed = Math.min(speed, t.sneakSpeed);
 		if (s.squeezing) speed = Math.min(speed, t.squeezeSpeed);
 		if (s.wading) speed *= t.wadeSpeed;
+		// A heavy load slows you (see CARRY).
+		speed *= speedFactor(s.inventory);
 		const accel = Math.min(1, (s.grounded ? t.acceleration : t.airAcceleration) * dt);
 		s.velocity[0] += (wx * speed - s.velocity[0]) * accel;
 		s.velocity[2] += (wz * speed - s.velocity[2]) * accel;

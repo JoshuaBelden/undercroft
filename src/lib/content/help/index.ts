@@ -136,9 +136,21 @@ Once one has you, it comes slowly, then all at once.`
 
 Ammunition, bandages and smelling salts go in your pockets; the counts are in the bottom-right corner.
 
-Look at something on the floor and press {action:interact} to pick it up. Press {action:drop} to put down what you're holding.
+Look at something on the floor and press {action:interact} to pick it up. Press {action:drop} to put down what you're holding. What doesn't fit in your hands goes in your pack.
 
 If you die down here, everything you carried stays where you fell. Someone else might find it.`
+	},
+	{
+		id: 'pack',
+		title: 'Your pack',
+		category: 'Survival',
+		body: `Press {action:inventory} to open your pack. The catacombs don't wait while you look through it.
+
+You carry things in three places. The quick slots are what you can have in your hands at a moment's notice. The pack holds everything else, and it only holds so much: bigger things take more room. Small things like rounds and bandages go in your pockets.
+
+Choose something to move it between the pack and a quick slot, or to drop it. To hand something to someone, drop it and let them pick it up.
+
+Everything weighs something. Past the mark on the weight bar you start to slow down, and the more you carry the slower you get. There's a limit to what you can lift at all: when the game says something is too heavy, you'll have to leave something else behind.`
 	},
 	{
 		id: 'captions',

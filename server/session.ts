@@ -23,9 +23,18 @@ import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
-import { addItem, allStacks, newStack, takePocket } from '../src/lib/shared/items/inventory.ts';
+import {
+	addItem,
+	allStacks,
+	held,
+	moveItem,
+	newStack,
+	sanitizeAction,
+	takePocket,
+	takeStack
+} from '../src/lib/shared/items/inventory.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
-import { aimRay } from '../src/lib/shared/items/weapons.ts';
+import { aimRay, reequip } from '../src/lib/shared/items/weapons.ts';
 import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
@@ -230,6 +239,29 @@ export class Session {
 		}
 		// A client far ahead of real time loses its oldest frames rather than growing the queue.
 		if (player.queue.length > MAX_QUEUE) player.queue.splice(0, player.queue.length - MAX_QUEUE);
+	}
+
+	/** A request from the inventory screen: move something between slots and pack, or drop it. */
+	inventory(playerId: string, raw: unknown): void {
+		const player = this.players.get(playerId);
+		const action = sanitizeAction(raw);
+		if (!player || !action) return;
+		const s = player.state;
+		if (s.downed || s.dead || s.extracted) return;
+		const inv = s.inventory;
+		const inHand = held(inv);
+		if (action.kind === 'move') {
+			moveItem(inv, action.from, action.to);
+		} else {
+			const stack = takeStack(inv, action.from, action.count);
+			if (stack) {
+				const { origin, direction } = aimRay(s, eyeHeight(s));
+				this.items.drop(stack, origin, direction);
+				this.events.push({ kind: 'drop', player: player.id, item: stack.item, position: origin });
+			}
+		}
+		// What's in the hand changed: whatever it was doing stops and the new item comes up.
+		if (held(inv) !== inHand) reequip(s.weapon);
 	}
 
 	admin(playerId: string, command: AdminCommand): void {

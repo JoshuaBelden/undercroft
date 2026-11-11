@@ -19,9 +19,9 @@
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
-	import { held, pocketCount } from '#lib/shared/items/inventory.ts';
+	import { canTake, held, pocketCount } from '#lib/shared/items/inventory.ts';
 	import { lookedAtItem } from '#lib/shared/items/pickup.ts';
-	import type { GameEvent } from '#lib/shared/items/types.ts';
+	import type { GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
 	import { eyeHeight } from '#lib/shared/player/simulate.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
@@ -41,12 +41,13 @@
 	import { EXPEDITION } from '#lib/content/expedition.ts';
 	import { bindingLabel } from '#lib/game/input/actions.ts';
 	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
-	import type { PlayerFlags, PlayerState } from '#lib/shared/player/types.ts';
+	import type { Inventory, PlayerFlags, PlayerState } from '#lib/shared/player/types.ts';
 	import type { PartyState } from '#lib/shared/party/types.ts';
 	import type { AdminCommand, ClientMessage } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
+	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
@@ -57,7 +58,9 @@
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
-	let panel = $state<'settings' | 'help' | 'admin' | null>(null);
+	let panel = $state<'settings' | 'help' | 'admin' | 'inventory' | null>(null);
+	/** What the player carries, for the inventory screen (kept up to date while it is open). */
+	let inventory = $state<Inventory | null>(null);
 	let status = $state<ConnectionStatus>('connecting');
 	let statusDetail = $state('');
 	let sessionId = $state<string | null>(null);
@@ -132,9 +135,22 @@
 		void command;
 	};
 
-	function toggle(name: 'settings' | 'help' | 'admin'): void {
-		panel = panel === name ? null : name;
+	const SLOT_ACTIONS = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5'] as const;
+	const slotKeys = $derived(
+		SLOT_ACTIONS.map((action) => settings.bindings[action].map(bindingLabel)[0] ?? '')
+	);
+	let sendInventory = (action: InventoryAction): void => {
+		void action;
+	};
+
+	function toggle(name: 'settings' | 'help' | 'admin' | 'inventory'): void {
+		const closing = panel === name;
+		// The pack can only be opened while you are down there and not on the floor.
+		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
+		panel = closing ? null : name;
 		if (panel) document.exitPointerLock();
+		// Putting the pack away goes straight back to play.
+		else if (name === 'inventory' && expedition) void canvas.requestPointerLock();
 	}
 
 	onMount(() => {
@@ -318,10 +334,14 @@
 
 		sendAdmin = (command) => client.send({ type: 'admin', command });
 		send = (message) => client.send(message);
+		sendInventory = (action) => client.send({ type: 'inventory', action });
+		/** The inventory last shown, as JSON: the screen only updates when it changes. */
+		let shownInventory = '';
 
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
+			if (panel === 'inventory') panel = null;
 			spectating = null;
 			watchId = null;
 			remote.setHidden(null);
@@ -343,6 +363,7 @@
 		/** Dead, with others still down there: keep the world and watch through their eyes. */
 		function startSpectating(): void {
 			expedition = false;
+			if (panel === 'inventory') panel = null;
 			spectating = { name: '' };
 			watchId = null;
 			player.leave();
@@ -461,6 +482,9 @@
 				case 'pickup':
 					sounds.playAt('item.pickup', event.position, 1, 2);
 					break;
+				case 'drop':
+					sounds.playAt('item.drop', event.position, 1, 2);
+					break;
 				case 'creatureHit':
 					if (event.id === 'manifestation') {
 						darkness.hit();
@@ -484,14 +508,15 @@
 			state: PlayerState
 		): Pick<typeof hud, 'hotbar' | 'selected' | 'ammo' | 'aiming'> {
 			const inv = state.inventory;
-			const keys = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5'] as const;
 			const stack = held(inv);
 			const gun = stack ? ITEMS[stack.item]?.firearm : undefined;
 			return {
-				hotbar: inv.hotbar.map((slot, i) => ({
-					name: slot ? (ITEMS[slot.item]?.name ?? slot.item) : null,
-					key: settings.bindings[keys[i]]?.map(bindingLabel)[0] ?? ''
-				})),
+				hotbar: settings.interface.quickSlots
+					? inv.hotbar.map((slot, i) => ({
+							name: slot ? (ITEMS[slot.item]?.name ?? slot.item) : null,
+							key: slotKeys[i] ?? ''
+						}))
+					: [],
 				selected: inv.selected,
 				ammo:
 					gun && stack ? { loaded: stack.loaded ?? 0, spare: pocketCount(inv, gun.ammo) } : null,
@@ -530,9 +555,12 @@
 			const extract = extractPrompt(state);
 			if (extract)
 				return { prompt: extract, progress: state.extracting / EXPEDITION.extractSeconds };
-			if (pickupTarget) {
+			if (pickupTarget && settings.interface.itemPrompts) {
 				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
 				const name = ITEMS[pickupTarget.item]?.name ?? pickupTarget.item;
+				const fit = canTake(state.inventory, { item: pickupTarget.item, count: 1 });
+				if (fit === 'heavy') return { prompt: name + ': too heavy to carry', progress: 0 };
+				if (fit === 'full') return { prompt: name + ': no room for it', progress: 0 };
 				return { prompt: `Press ${key} to pick up ${name}`, progress: 0 };
 			}
 			return { prompt: null, progress: 0 };
@@ -671,6 +699,17 @@
 							message: downedMessage(state)
 						}
 					: null;
+				if (panel === 'inventory') {
+					if (state.downed) {
+						panel = null;
+					} else {
+						const json = JSON.stringify(state.inventory);
+						if (json !== shownInventory || !inventory) {
+							shownInventory = json;
+							inventory = JSON.parse(json) as Inventory;
+						}
+					}
+				}
 				bannerCheck -= delta;
 				if (bannerCheck <= 0) {
 					bannerCheck = 0.25;
@@ -689,6 +728,9 @@
 					break;
 				case 'toggleHelp':
 					toggle('help');
+					break;
+				case 'inventory':
+					toggle('inventory');
 					break;
 				case 'toggleStats':
 					settings.interface.showStats = !settings.interface.showStats;
@@ -804,6 +846,13 @@
 	/>
 {:else if panel === 'help'}
 	<HelpPanel onclose={() => (panel = null)} />
+{:else if panel === 'inventory' && inventory}
+	<InventoryScreen
+		{inventory}
+		{slotKeys}
+		onaction={(action) => sendInventory(action)}
+		onclose={() => toggle('inventory')}
+	/>
 {:else if panel === 'admin'}
 	<AdminPanel
 		onclose={() => (panel = null)}

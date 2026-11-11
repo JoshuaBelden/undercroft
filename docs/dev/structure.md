@@ -41,6 +41,7 @@ src/
       creatures.ts          creature definitions
       afflictions.ts        Affliction definitions: meter, omen stages, manifestation
       items.ts              item definitions (weapons, ammo, consumables)
+      carry.ts              backpacks and how weight slows you
       loadout.ts            starting kit until the hub
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces

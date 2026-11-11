@@ -17,6 +17,19 @@ export interface ProjectileSnapshot {
 	position: Vec3;
 }
 
+/** Where something is in an inventory. */
+export type ItemRef =
+	| { area: 'hotbar'; index: number }
+	| { area: 'pack'; index: number }
+	| { area: 'pocket'; item: string };
+
+/** Rearranging what you carry, sent by the inventory screen (`inventory` message). */
+export type InventoryAction =
+	/** Between a quick slot and the pack, or two quick slots (they swap). */
+	| { kind: 'move'; from: ItemRef; to: ItemRef }
+	/** Put `count` of it on the floor in front of you. */
+	| { kind: 'drop'; from: ItemRef; count: number };
+
 /**
  * Something that happened this tick, for every client to show and hear (their own predicted
  * actions included: clients skip the local player's swing/shot/reload sounds they already
@@ -39,6 +52,7 @@ export type GameEvent =
 	| { kind: 'reload'; player: string; item: string; position: Vec3 }
 	| { kind: 'empty'; player: string; item: string; position: Vec3 }
 	| { kind: 'pickup'; player: string; item: string; position: Vec3 }
+	| { kind: 'drop'; player: string; item: string; position: Vec3 }
 	| { kind: 'creatureHit'; id: string; position: Vec3 }
 	| { kind: 'creatureDie'; id: string; position: Vec3 }
 	/** The Affliction reached a new omen stage. */

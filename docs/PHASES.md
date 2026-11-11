@@ -44,9 +44,9 @@ A generated Gloaming map you can start an expedition into, explore, and extract 
 - [x] Headlamp with settings (off, low, bright), battery drain, starter flicker
 - [x] Dynamic lighting with a light budget
 - [x] Grid-based generator: 5 static major rooms (Stairwell, Ossuary Hall, Quarry Gallery, Cistern, Gloaming Chapel), random connections
-- [x] Connector kit: halls, junctions, square rooms, crypt, side rooms, canals, squeezes, crawlspaces, dead ends, flooded passages (swim sections), stairs down (depth transitions). Secret doors moved to Phase 4.
+- [x] Connector kit: halls, junctions, square rooms, crypt, side rooms, canals, squeezes, crawlspaces, dead ends, flooded passages (swim sections), stairs down (depth transitions). Secret doors moved to Phase 6.
 - [x] Map graph: guaranteed path from start to the Chapel, plus loops
-- [x] Start room with stairs down. The rappel-rope variant moved to Phase 4 (it needs inventory).
+- [x] Start room with stairs down. The rappel-rope variant moved to Phase 6.
 - [x] Extraction points defined in room models; extracting ends the expedition
 - [x] Swimming with breath tied to stamina (plus mantling to climb ledges and out of water)
 - [x] Room banners on entering major rooms
@@ -55,10 +55,10 @@ Aspects:
 
 - **Dev docs**: networking model, movement and prediction, lighting budget, generator algorithm, building and tagging room models and connector pieces in Blender.
 - **Help system**: movement, stamina, headlamp, extraction, squeezes, swimming.
-- **Admin**: seed input, regenerate map, map debug view, noclip, teleport, infinite battery/stamina. (Reveal secret doors moved to Phase 4.)
+- **Admin**: seed input, regenerate map, map debug view, noclip, teleport, infinite battery/stamina. (Reveal secret doors moved to Phase 6.)
 - **Audio**: footsteps (by surface), breathing tied to stamina, headlamp click, dripping, distant echoes, swim/underwater audio, tight-space muffling. (All done; placeholders where no recording exists yet.)
 - **Settings**: mouse sensitivity, invert Y, FOV, graphics quality, brightness/gamma calibration.
-- **Keybinds**: move, sprint, crouch, crawl, creep, headlamp mode, interact, swim up/down, climb. (Rappel moved to Phase 4.)
+- **Keybinds**: move, sprint, crouch, crawl, creep, headlamp mode, interact, swim up/down, climb. (Rappel moved to Phase 6.)
 
 ## Phase 2: Creatures and combat ✅
 
@@ -66,9 +66,9 @@ Aspects:
 - [x] Minimal inventory to support weapons, ammo, and healing (full inventory comes in Phase 4)
 - [x] Gloaming Thrall (the `witch` creature): half-light visibility, slow approach and fast bursts, melee attack
 - [x] Thrall AI on the server: perception (light, sound), pathing on the grid (nav grid + A\*)
-- [x] Melee: crowbar, knife, brick (prying with the crowbar comes with containers in Phase 4)
+- [x] Melee: crowbar, knife, brick (prying with the crowbar comes with containers in Phase 6)
 - [x] Ranged: revolver, shotgun, ammo; gunfire noise
-- [x] Affliction meter (~30 min): time, loot carried, kills (the loot term is wired at weight 0 until loot exists in Phase 4)
+- [x] Affliction meter (~30 min): time, loot carried, kills (the loot term is wired at weight 0 until loot exists in Phase 6)
 - [x] Omens: escalating effects by meter stage (sounds, flicker, failing lights, whispers)
 - [x] Manifestation at 100%: spawns somewhere and hunts (the Gloaming: living darkness that snuffs lamps)
 - [x] Banishing the manifestation → extraction without resolving (expose it with bright light, then weapons hurt it)
@@ -89,8 +89,8 @@ Aspects:
 - [ ] Session hosting on DigitalOcean (game server + MongoDB in Docker)
 - [x] Reconnection handling
 - [x] Spectating when dead until the team extracts or wipes
-- [ ] Text chat and pings (no voice chat)
-- [ ] Solo vs. co-op balance (Thrall aggression, meter pacing)
+- [ ] Text chat and pings (no voice chat). Skipped for now: revisit before the beta.
+- [ ] Solo vs. co-op balance (Thrall aggression, meter pacing). Skipped for now: revisit before the beta.
 
 Aspects:
 
@@ -101,33 +101,26 @@ Aspects:
 - **Settings**: chat options (on/off, size), name display. (Player name done, set in the lobby.)
 - **Keybinds**: ping, chat, scoreboard/party view.
 
-## Phase 4: Items and the rite
+## Phase 4: Inventory and the rite
 
-- Full inventory: weight and size, pick up, drop, hand off (any player can pick up dropped loot)
-- Light sources: candles (tiers, burn-down, placeable), lighter, torches, glow sticks (throwable)
-- Chalk marks on walls (one per stick)
-- Crowbar utility: prying niches, coffins, secret doors
-- Secret doors in the connector kit: hidden passages found with interact or pried open (moved from Phase 1)
-- Start room variant: rappel down a rope that can be taken, removing that route back up (moved from Phase 1)
-- Crafting as a player skill: recipes, craft time, requires light, noise
-- Water: wet items, drying near flame, wet batteries short out, waterproof packs, oilcloth pouches
-- Loot spawning by depth
-- Shrines: hold one item through death or extraction
-- Rite panel: viewable by every player any time
-- Generic clues reveal requirement slots; last clue reveals rite location
-- Rite progress recorded across runs
-- Item pooling to the rite holder; holder initiates in the valid room
-- Gloaming rite: 5 candles, 1 chalk, the Pendant
-- Resolution → automatic extraction and progression unlock
+The bare minimum for a complete loop: carry things, find what the rite needs, perform it. The rest of the item systems moved to Phase 6.
+
+- [x] Full inventory: weight and size, pick up, drop, hand off (any player can pick up dropped loot)
+- [ ] Rite panel: viewable by every player any time
+- [ ] Generic clues reveal requirement slots; last clue reveals rite location
+- [ ] Rite progress recorded across runs
+- [ ] Item pooling to the rite holder; holder initiates in the valid room
+- [ ] Gloaming rite: a single clue and the Pendant (the full list, 5 candles, 1 chalk and the Pendant, comes back in Phase 6)
+- [ ] Resolution → automatic extraction and progression unlock
 
 Aspects:
 
-- **Dev docs**: item data format, recipes, loot tables, rite data format, adding clues and requirements.
-- **Help system**: inventory, crafting, candles, chalk, water, shrines, rites, clues, the holder.
-- **Admin**: spawn item, reveal secret doors, give all recipes, set wetness, spawn shrine, reveal all clues, reset rite progress, give rite items, teleport to rite room.
-- **Audio**: pickup/drop, candle light and snuff, chalk scraping, crafting, wet sounds, clue sting, rite initiation and resolution.
-- **Settings**: HUD options (inventory display, item prompts).
-- **Keybinds**: inventory, quick slots, drop, throw, craft menu, place light, chalk mark, rite panel, initiate rite.
+- **Dev docs**: item data format, rite data format, adding clues and requirements. (Inventory done: `docs/dev/items.md`.)
+- **Help system**: inventory, rites, clues, the holder. (Inventory done.)
+- **Admin**: spawn item, reveal all clues, reset rite progress, give rite items, teleport to rite room. (Spawn item done: Give.)
+- **Audio**: pickup/drop, clue sting, rite initiation and resolution. (Pickup and drop done.)
+- **Settings**: HUD options (inventory display, item prompts). (Done.)
+- **Keybinds**: inventory, quick slots, drop, throw, rite panel, initiate rite. (All but the rite done.)
 
 ## Phase 5: Hub, economy, persistence
 
@@ -147,7 +140,30 @@ Aspects:
 - **Settings**: account settings.
 - **Keybinds**: hub navigation, UI shortcuts.
 
-## Phase 6: Beta polish
+## Phase 6: Items in depth
+
+Moved out of Phase 4, to come back to once the whole game is playable end to end.
+
+- Light sources: candles (tiers, burn-down, placeable), lighter, torches, glow sticks (throwable)
+- Chalk marks on walls (one per stick)
+- Crowbar utility: prying niches, coffins, secret doors
+- Secret doors in the connector kit: hidden passages found with interact or pried open (moved from Phase 1)
+- Start room variant: rappel down a rope that can be taken, removing that route back up (moved from Phase 1)
+- Crafting as a player skill: recipes, craft time, requires light, noise
+- Water: wet items, drying near flame, wet batteries short out, waterproof packs, oilcloth pouches
+- Loot spawning by depth
+- Shrines: hold one item through death or extraction
+- Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant
+
+Aspects:
+
+- **Dev docs**: recipes, loot tables.
+- **Help system**: crafting, candles, chalk, water, shrines.
+- **Admin**: reveal secret doors, give all recipes, set wetness, spawn shrine.
+- **Audio**: candle light and snuff, chalk scraping, crafting, wet sounds.
+- **Keybinds**: craft menu, place light, chalk mark.
+
+## Phase 7: Beta polish
 
 - Full audio pass and mix
 - Help system complete and reviewed

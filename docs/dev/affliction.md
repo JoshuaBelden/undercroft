@@ -19,7 +19,7 @@ An Affliction is the force behind an expedition (see `docs/HANDOFF.md`). In code
 
 - time adds `1 / meter.seconds` per second (1800 s for the Gloaming), while anyone is underground;
 - each creature killed adds `meter.perKill` (0.04);
-- loot carried will add `meter.perLoot` per unit of value (0 until loot exists, Phase 4).
+- loot carried will add `meter.perLoot` per unit of value (0 until loot exists, Phase 6).
 
 At 1 it manifests and the meter stops. Clients only receive the omen stage. In dev mode the snapshot also carries `meter`, for the admin panel.
 

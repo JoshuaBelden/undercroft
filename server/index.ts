@@ -58,6 +58,11 @@ wss.on('connection', (socket) => {
 				if (e) e.session.receiveInput(e.playerId, message.frames);
 				break;
 			}
+			case 'inventory': {
+				const e = parties.expedition(member);
+				if (e) e.session.inventory(e.playerId, message.action);
+				break;
+			}
 			case 'admin': {
 				const e = parties.expedition(member);
 				if (e && typeof message.command === 'object' && message.command !== null)

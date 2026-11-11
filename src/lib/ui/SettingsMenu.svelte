@@ -142,6 +142,14 @@
 
 	<h3>Interface</h3>
 	<label class="row">
+		<span>Show quick slots</span>
+		<input type="checkbox" bind:checked={settings.interface.quickSlots} onchange={saveSettings} />
+	</label>
+	<label class="row">
+		<span>Show pick-up prompts</span>
+		<input type="checkbox" bind:checked={settings.interface.itemPrompts} onchange={saveSettings} />
+	</label>
+	<label class="row">
 		<span>Show performance stats</span>
 		<input type="checkbox" bind:checked={settings.interface.showStats} onchange={saveSettings} />
 	</label>

@@ -56,7 +56,7 @@ export interface AfflictionDef {
 		seconds: number;
 		/** Meter added per creature killed. */
 		perKill: number;
-		/** Meter added per unit of loot value carried (loot arrives in Phase 4). */
+		/** Meter added per unit of loot value carried (loot arrives in Phase 6). */
 		perLoot: number;
 	};
 	/** Omen stages, ascending by `at`. Stage 0 (no omens) is implicit below the first. */

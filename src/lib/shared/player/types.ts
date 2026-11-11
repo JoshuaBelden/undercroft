@@ -90,7 +90,7 @@ export interface PlayerState {
 	reviving: number;
 }
 
-/** One hotbar slot's contents. */
+/** One hotbar slot's or pack entry's contents. */
 export interface ItemStack {
 	/** Key into ITEMS. */
 	item: string;
@@ -108,6 +108,10 @@ export interface Inventory {
 	selected: number;
 	/** Counted items: ammo, bandages, salts. Item id -> count. */
 	pockets: Record<string, number>;
+	/** Everything else carried, limited by the backpack's capacity (bulk). */
+	pack: ItemStack[];
+	/** Key into BACKPACKS. */
+	backpack: string;
 }
 
 export type WeaponAction = 'none' | 'equip' | 'swing' | 'shot' | 'reload' | 'throw';

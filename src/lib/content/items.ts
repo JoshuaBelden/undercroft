@@ -68,6 +68,10 @@ export interface ItemDef {
 	stack: number;
 	/** Hotbar items are held in the hand; pocket items (ammo, consumables) are only counted. */
 	pocket: boolean;
+	/** Weight of one, in kg: everything carried counts toward the load (see CARRY). */
+	weight: number;
+	/** Room one takes in the pack, in bulk units. Pocket items take none. */
+	bulk: number;
 	melee?: MeleeSpec;
 	firearm?: FirearmSpec;
 	throwable?: ThrowSpec;
@@ -84,6 +88,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		stack: 1,
 		pocket: false,
+		weight: 0.3,
+		bulk: 1,
 		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2 }
 	},
 	crowbar: {
@@ -94,6 +100,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		stack: 1,
 		pocket: false,
+		weight: 2.5,
+		bulk: 3,
 		melee: { damage: 40, range: 1.8, arc: 0.6, windup: 0.45, recovery: 0.65, noise: 6 }
 	},
 	brick: {
@@ -104,6 +112,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		stack: 1,
 		pocket: false,
+		weight: 2.5,
+		bulk: 2,
 		melee: {
 			damage: 25,
 			range: 1.5,
@@ -123,6 +133,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		stack: 1,
 		pocket: false,
+		weight: 1.1,
+		bulk: 2,
 		firearm: {
 			damage: 32,
 			pellets: 1,
@@ -145,6 +157,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: { offset: [0.2, -0.24, -0.5], scale: 1 },
 		stack: 1,
 		pocket: false,
+		weight: 3.2,
+		bulk: 4,
 		firearm: {
 			damage: 9,
 			pellets: 8,
@@ -166,7 +180,9 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: '/assets/items/ammo-revolver.glb',
 		hold: HOLD_RIGHT,
 		stack: 60,
-		pocket: true
+		pocket: true,
+		weight: 0.015,
+		bulk: 0
 	},
 	'ammo.shotgun': {
 		id: 'ammo.shotgun',
@@ -175,7 +191,9 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: '/assets/items/ammo-shotgun.glb',
 		hold: HOLD_RIGHT,
 		stack: 30,
-		pocket: true
+		pocket: true,
+		weight: 0.045,
+		bulk: 0
 	},
 	bandage: {
 		id: 'bandage',
@@ -184,7 +202,9 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: '/assets/items/bandage.glb',
 		hold: HOLD_RIGHT,
 		stack: 10,
-		pocket: true
+		pocket: true,
+		weight: 0.05,
+		bulk: 0
 	},
 	salts: {
 		id: 'salts',
@@ -193,7 +213,9 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: '/assets/items/salts.glb',
 		hold: HOLD_RIGHT,
 		stack: 5,
-		pocket: true
+		pocket: true,
+		weight: 0.05,
+		bulk: 0
 	}
 };
 

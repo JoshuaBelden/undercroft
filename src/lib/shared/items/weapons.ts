@@ -25,6 +25,11 @@ export function idleWeapon(): WeaponState {
 	};
 }
 
+/** What's in the hand changed (the inventory screen): bring the new item up. */
+export function reequip(w: WeaponState): void {
+	start(w, 'equip');
+}
+
 /** Where shots and swings come from and where they go. */
 export function aimRay(s: PlayerState, eye: number): { origin: Vec3; direction: Vec3 } {
 	const cp = Math.cos(s.pitch);

@@ -310,6 +310,14 @@ export const SOUNDS = {
 		caption: 'brick shatters'
 	},
 	'item.pickup': { synth: { kind: 'rustle' }, category: 'sfx', volume: 0.5, variation: 0.1 },
+	'item.drop': {
+		synth: { kind: 'thud', cutoff: 700 },
+		category: 'sfx',
+		volume: 0.4,
+		variation: 0.15,
+		caption: 'something dropped',
+		captionOthers: true
+	},
 	// The Affliction.
 	'omen.drone': {
 		synth: { kind: 'drone', pitch: 41 },

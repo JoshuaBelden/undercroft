@@ -4,7 +4,12 @@
  */
 import type { AfflictionSnapshot } from './affliction/types.ts';
 import type { CreatureSnapshot } from './creature/types.ts';
-import type { GameEvent, ProjectileSnapshot, WorldItemSnapshot } from './items/types.ts';
+import type {
+	GameEvent,
+	InventoryAction,
+	ProjectileSnapshot,
+	WorldItemSnapshot
+} from './items/types.ts';
 import type { MapLayout } from './map/types.ts';
 import type { PartyState } from './party/types.ts';
 import type { InputFrame, PlayerSnapshot } from './player/types.ts';
@@ -33,7 +38,9 @@ export type ClientMessage =
 	/** Party leader: start the expedition for everyone (all others must be ready). */
 	| { type: 'descend' }
 	/** Dead and watching the others: stop, and go back to the surface. */
-	| { type: 'stopSpectating' };
+	| { type: 'stopSpectating' }
+	/** Rearrange or drop what you carry (the inventory screen). */
+	| { type: 'inventory'; action: InventoryAction };
 
 export type AdminCommand =
 	| {
@@ -131,7 +138,8 @@ const CLIENT_TYPES = new Set<string>([
 	'ready',
 	'rename',
 	'descend',
-	'stopSpectating'
+	'stopSpectating',
+	'inventory'
 ]);
 const SERVER_TYPES = new Set<string>([
 	'party',

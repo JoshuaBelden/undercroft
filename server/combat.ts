@@ -42,6 +42,12 @@ export function resolve(ctx: CombatContext, player: Prey, events: SimEvent[]): v
 				break;
 			case 'drop':
 				ctx.items.drop(event.stack, event.origin, event.direction);
+				ctx.out.push({
+					kind: 'drop',
+					player: player.id,
+					item: event.stack.item,
+					position: event.origin
+				});
 				break;
 			case 'reloaded':
 				ctx.out.push({

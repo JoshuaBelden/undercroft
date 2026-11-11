@@ -40,7 +40,13 @@ export interface Settings {
 	version: number;
 	audio: Record<AudioCategory, number>;
 	bindings: Bindings;
-	interface: { showStats: boolean };
+	interface: {
+		showStats: boolean;
+		/** The quick-slot bar at the bottom of the screen. */
+		quickSlots: boolean;
+		/** "Press E to pick up ..." prompts for things on the floor. */
+		itemPrompts: boolean;
+	};
 	controls: ControlSettings;
 	graphics: GraphicsSettings;
 	accessibility: AccessibilitySettings;
@@ -53,7 +59,7 @@ function defaults(): Settings {
 		version: SETTINGS_VERSION,
 		audio: { master: 0.8, music: 0.6, ambience: 0.8, sfx: 0.8 },
 		bindings: defaultBindings(),
-		interface: { showStats: false },
+		interface: { showStats: false, quickSlots: true, itemPrompts: true },
 		controls: { mouseSensitivity: 1, invertY: false },
 		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1 },
 		accessibility: { captions: false, captionSize: 'medium' },

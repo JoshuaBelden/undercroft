@@ -34,6 +34,7 @@ export const ACTIONS = {
 	slot5: { label: 'Item slot 5', category: 'Items', defaults: ['Digit5'] },
 	nextItem: { label: 'Next item', category: 'Items', defaults: ['WheelDown'] },
 	prevItem: { label: 'Previous item', category: 'Items', defaults: ['WheelUp'] },
+	inventory: { label: 'Pack (inventory)', category: 'Items', defaults: ['Tab', 'KeyI'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },
