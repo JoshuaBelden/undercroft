@@ -79,6 +79,13 @@ export function carriedWeight(inv: Inventory): number {
 	return weight;
 }
 
+/** What the loot carried would sell for. */
+export function lootValue(inv: Inventory): number {
+	let value = 0;
+	for (const stack of allStacks(inv)) value += (ITEMS[stack.item]?.value ?? 0) * stack.count;
+	return value;
+}
+
 /** Bulk units used in the pack. */
 export function packBulk(inv: Inventory): number {
 	let bulk = 0;
@@ -107,13 +114,14 @@ export function canTake(inv: Inventory, stack: ItemStack): 'ok' | 'heavy' | 'ful
 	if (!def) return 'full';
 	if (unitsByWeight(inv, def.weight) < 1) return 'heavy';
 	if (def.pocket) return pocketCount(inv, stack.item) < def.stack ? 'ok' : 'full';
-	if (inv.hotbar.includes(null)) return 'ok';
+	if ((def.melee || def.firearm || def.throwable) && inv.hotbar.includes(null)) return 'ok';
 	return packRoom(inv, stack) ? 'ok' : 'full';
 }
 
 /**
- * Add an item. Pocket items stack up to their limit. Held items take an empty quick slot (the
- * selected one first), and go in the pack when there is none. Nothing is taken past the maximum
+ * Add an item. Pocket items stack up to their limit. Things used in the hand take an empty quick
+ * slot (the selected one first), and go in the pack when there is none; everything else goes
+ * straight in the pack. Nothing is taken past the maximum
  * weight. Returns how many didn't fit.
  */
 export function addItem(inv: Inventory, stack: ItemStack): number {
@@ -127,10 +135,12 @@ export function addItem(inv: Inventory, stack: ItemStack): number {
 		return stack.count - added;
 	}
 	let left = stack.count;
+	// Only things you can use in the hand take a quick slot; the rest (loot) goes in the pack.
+	const handy = !!(def.melee || def.firearm || def.throwable);
 	while (left > 0 && unitsByWeight(inv, def.weight) >= 1) {
 		const one = { ...stack, count: 1 };
 		const order = [inv.selected, ...inv.hotbar.keys()];
-		const slot = order.find((i) => inv.hotbar[i] === null);
+		const slot = handy ? order.find((i) => inv.hotbar[i] === null) : undefined;
 		if (slot !== undefined) inv.hotbar[slot] = one;
 		else if (packRoom(inv, one)) stow(inv, one);
 		else break;

@@ -48,7 +48,7 @@ Two limits, both in `src/lib/shared/items/inventory.ts`:
 - **Bulk:** the `bulk` of everything in the pack can't exceed the backpack's `capacity` (`packBulk`, `packCapacity`). Quick slots and pockets don't use bulk.
 - **Weight:** everything carried counts (`carriedWeight`). Up to `CARRY.comfortable` kg there is no effect. From there to `CARRY.max` the ground speed falls evenly to `CARRY.slowest` (`speedFactor`, applied in `stepPlayer`, so it is predicted). Nothing can be picked up past `CARRY.max`.
 
-`addItem` fills an empty quick slot first (the selected one, then the others), then the pack. `canTake` says whether one more would fit, or why not (`heavy`, `full`); the client uses it for the pick-up prompt.
+`addItem` puts things used in the hand (melee, firearm, throwable) in an empty quick slot first (the selected one, then the others), then the pack. Everything else that isn't a pocket item, such as loot, goes straight in the pack. `canTake` says whether one more would fit, or why not (`heavy`, `full`); the client uses it for the pick-up prompt.
 
 ### The pack screen
 

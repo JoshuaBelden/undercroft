@@ -88,6 +88,8 @@ Whatever you carry out of the catacombs is yours. Your kit stays packed the way 
 
 Before you go down, open "Outfitting" on the surface to choose what to take. Take something from the stash to carry it down; leave it behind to keep it safe. You can only take what you could carry.
 
+Relics lie about the catacombs, more of them the deeper you go. They are worth money on the surface, but they are heavy, they fill your pack, and the more of them you carry the sooner the Gloaming comes.
+
 What you take down and don't bring back is gone. If you die, everything you carried stays where you fell, and so does anything you left lying down there.`
 	},
 	{

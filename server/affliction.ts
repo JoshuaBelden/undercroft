@@ -2,6 +2,7 @@ import { AFFLICTIONS, type AfflictionDef } from '../src/lib/content/afflictions.
 import { TICK_RATE } from '../src/lib/shared/constants.ts';
 import type { AfflictionSnapshot } from '../src/lib/shared/affliction/types.ts';
 import { illumination } from '../src/lib/shared/creature/visibility.ts';
+import { lootValue } from '../src/lib/shared/items/inventory.ts';
 import type { CollisionWorld } from '../src/lib/shared/map/collision.ts';
 import { findPath, gridDistances, nearestPoint, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
@@ -97,11 +98,18 @@ export class AfflictionDirector {
 	 */
 	step(players: Prey[]): AfflictionHit[] {
 		const def = this.def;
-		// The meter: time underground, kills, loot carried (Phase 4).
+		// The meter: time underground, kills, loot carried.
 		const kills = this.creatures.kills - this.lastKills;
 		this.lastKills = this.creatures.kills;
 		if (!this.darkness) {
-			this.meter = Math.min(1, this.meter + DT / def.meter.seconds + kills * def.meter.perKill);
+			const loot = players.reduce((sum, p) => sum + lootValue(p.state.inventory), 0);
+			this.meter = Math.min(
+				1,
+				this.meter +
+					DT / def.meter.seconds +
+					kills * def.meter.perKill +
+					loot * def.meter.perLoot * DT
+			);
 		}
 		this.updateStage(players);
 		if (this.meter >= 1 && !this.darkness) this.manifest(players);

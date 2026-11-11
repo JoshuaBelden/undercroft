@@ -68,7 +68,7 @@ Aspects:
 - [x] Thrall AI on the server: perception (light, sound), pathing on the grid (nav grid + A\*)
 - [x] Melee: crowbar, knife, brick (prying with the crowbar comes with containers in Phase 6)
 - [x] Ranged: revolver, shotgun, ammo; gunfire noise
-- [x] Affliction meter (~30 min): time, loot carried, kills (the loot term is wired at weight 0 until loot exists in Phase 6)
+- [x] Affliction meter (~30 min): time, loot carried, kills
 - [x] Omens: escalating effects by meter stage (sounds, flicker, failing lights, whispers)
 - [x] Manifestation at 100%: spawns somewhere and hunts (the Gloaming: living darkness that snuffs lamps)
 - [x] Banishing the manifestation → extraction without resolving (expose it with bright light, then weapons hurt it)
@@ -131,7 +131,7 @@ The bare minimum that makes it a repeating game. The hub is overlays on the surf
 - [x] Affliction view on the surface: resolved or not, rite hints learned so far
 - [x] Stash and loadout before descent; a new explorer starts with nothing and no money (`docs/dev/economy.md`)
 - [x] Death and extraction outcomes applied to the stash
-- [ ] Stand-in loot to carry out; loot carried feeds the Affliction meter
+- [x] Stand-in loot to carry out; loot carried feeds the Affliction meter
 - [ ] Shop: buy gear, sell loot; money
 
 Aspects:

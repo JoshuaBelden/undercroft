@@ -78,7 +78,7 @@ export interface AfflictionDef {
 		seconds: number;
 		/** Meter added per creature killed. */
 		perKill: number;
-		/** Meter added per unit of loot value carried (loot arrives in Phase 6). */
+		/** Meter added per second for each unit of loot value the players carry between them. */
 		perLoot: number;
 	};
 	/** Omen stages, ascending by `at`. Stage 0 (no omens) is implicit below the first. */
@@ -91,7 +91,8 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 	gloaming: {
 		id: 'gloaming',
 		name: 'The Gloaming',
-		meter: { seconds: 1800, perKill: 0.04, perLoot: 0 },
+		// Carrying 150 of loot (a full pack) fills it about half as fast again as time alone.
+		meter: { seconds: 1800, perKill: 0.04, perLoot: 0.000002 },
 		stages: [
 			{
 				at: 0.25,

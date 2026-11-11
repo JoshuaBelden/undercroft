@@ -1,5 +1,6 @@
 import { ITEMS } from '../src/lib/content/items.ts';
 import { BRICKS_PER_CELL } from '../src/lib/content/loadout.ts';
+import { LOOT } from '../src/lib/content/loot.ts';
 import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import { addItem, newStack } from '../src/lib/shared/items/inventory.ts';
 import { lookedAtItem } from '../src/lib/shared/items/pickup.ts';
@@ -11,7 +12,7 @@ import {
 	type CollisionWorld
 } from '../src/lib/shared/map/collision.ts';
 import { LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
-import type { NavGrid } from '../src/lib/shared/map/nav.ts';
+import { gridDistances, nearestPoint, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import type { ItemStack, PlayerState } from '../src/lib/shared/player/types.ts';
 import { Rng } from '../src/lib/shared/rng.ts';
@@ -78,6 +79,37 @@ export class WorldItems {
 				[position[0], position[1], position[2]],
 				rng.next() * Math.PI * 2
 			);
+		}
+	}
+
+	/**
+	 * Scatter loot (seeded by the map seed): by walls, away from the start, and more of it the
+	 * farther in you go (see LOOT).
+	 */
+	scatterLoot(nav: NavGrid, seed: number, start: Vec3, cells: number): void {
+		if (!ITEMS[LOOT.item]) return;
+		const rng = new Rng(seed ^ 0x100f);
+		const distance = gridDistances(nav, [nearestPoint(nav, start)]);
+		const spots = nav.points
+			.map((point, index) => ({ point, distance: distance[index] }))
+			.filter(
+				({ point, distance: d }) =>
+					d !== undefined &&
+					d >= LOOT.minDistance &&
+					point.clearance === 'stand' &&
+					!point.water &&
+					point.neighbours.length <= 5
+			);
+		const far = spots.reduce((most, spot) => Math.max(most, spot.distance), 0);
+		const want = Math.round(cells * LOOT.perCell);
+		const placed: Vec3[] = [];
+		for (let tries = 0; tries < want * 60 && placed.length < want && spots.length; tries++) {
+			const { point, distance: d } = rng.pick(spots);
+			if (rng.next() > Math.pow(d / far, LOOT.depthBias)) continue;
+			const [x, y, z] = point.position;
+			if (placed.some((q) => Math.hypot(q[0] - x, q[2] - z) < LOOT.spacing)) continue;
+			placed.push(point.position);
+			this.place(newStack(LOOT.item), [x, y, z], rng.next() * Math.PI * 2);
 		}
 	}
 

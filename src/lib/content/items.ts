@@ -6,7 +6,8 @@ import type { SoundId } from './audio/sounds.ts';
  * viewmodel, sounds) all read them. See docs/dev/items.md.
  */
 
-export type ItemKind = 'melee' | 'firearm' | 'throwable' | 'ammo' | 'consumable' | 'rite' | 'clue';
+export type ItemKind =
+	'melee' | 'firearm' | 'throwable' | 'ammo' | 'consumable' | 'rite' | 'clue' | 'loot';
 
 export interface MeleeSpec {
 	damage: number;
@@ -74,6 +75,8 @@ export interface ItemDef {
 	weight: number;
 	/** Room one takes in the pack, in bulk units. Pocket items take none. */
 	bulk: number;
+	/** What one sells for on the surface (loot). */
+	value?: number;
 	melee?: MeleeSpec;
 	firearm?: FirearmSpec;
 	throwable?: ThrowSpec;
@@ -207,6 +210,20 @@ export const ITEMS: Record<string, ItemDef> = {
 		pocket: true,
 		weight: 0.05,
 		bulk: 0
+	},
+	// Loot: a stand-in until there are real things to find (see docs/dev/economy.md).
+	relic: {
+		id: 'relic',
+		name: 'Relic',
+		kind: 'loot',
+		model: null,
+		placeholder: { size: [0.2, 0.2, 0.2], color: 0x8a7a5a },
+		hold: HOLD_RIGHT,
+		stack: 6,
+		pocket: false,
+		weight: 1.5,
+		bulk: 2,
+		value: 25
 	},
 	// Rite items (see docs/dev/rite.md).
 	pendant: {

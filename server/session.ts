@@ -159,6 +159,7 @@ export class Session {
 			for (const [x, z, level] of occupiedCells(piece, placement)) cells.add(`${x},${z},${level}`);
 		}
 		this.items.scatter(this.nav, this.seed, start, cells.size);
+		this.items.scatterLoot(this.nav, this.seed, start, cells.size);
 		scatterRite(
 			this.affliction.def.rite,
 			this.layout,

@@ -49,6 +49,7 @@ src/
       afflictions.ts        Affliction definitions: meter, omen stages, manifestation
       items.ts              item definitions (weapons, ammo, consumables)
       carry.ts              backpacks and how weight slows you
+      loot.ts               what loot is scattered and how densely
       loadout.ts            what lies around the map (bricks)
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces

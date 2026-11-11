@@ -43,6 +43,17 @@ The `extracted`, `banished` and `resolved` messages carry `carried` (stacks) for
 
 When the game server starts, `releaseAll` clears every `underground` marker: nobody can be underground yet, and a crash would otherwise lock those explorers out of the hub. What they had taken down is gone.
 
+## Loot
+
+Loot is what explorers carry out to sell. For now there is one stand-in item, the `relic` (`kind: 'loot'`, drawn as a plain cube), with a `value`, a weight and a bulk so that carrying it is a choice. Real loot types, containers and loot tables are Phase 6.
+
+- **Where:** `WorldItems.scatterLoot` (`server/items.ts`), seeded by the map seed, driven by `LOOT` in `src/lib/content/loot.ts`: about `perCell` per map cell, on standing dry nav points by walls, none within `minDistance` of the start, `spacing` apart. A spot is used with probability (its floor distance from the start ÷ the farthest) to the power `depthBias`, so most of it lies far in.
+- **Carrying:** loot is not used in the hand, so it never takes a quick slot: `addItem` puts anything without a melee, firearm or throw spec straight in the pack.
+- **The meter:** loot carried hastens the Affliction. Each tick the meter gains `meter.perLoot` × the value all players carry between them (`lootValue`) × the tick length. See [affliction.md](affliction.md).
+- **Coming back:** loot goes to the stash, not the loadout (see above).
+
+To add a loot item, add an `ItemDef` with `kind: 'loot'` and a `value`. Scattering more than one kind needs `LOOT` to become a table.
+
 ## Testing
 
 A new explorer has nothing, so in dev mode use Give in the admin panel underground and carry it out. Dying needs no salts: set sanity to 0 and wait out the bleed-out.
