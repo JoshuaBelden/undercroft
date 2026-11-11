@@ -3,6 +3,7 @@
 	import { afterNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
+	import { send } from '#lib/game/net/connection.svelte.ts';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import Settings from '#lib/ui/Settings.svelte';
 
@@ -29,7 +30,8 @@
 </script>
 
 <div class="page backdrop-art" use:parallax>
-	<Settings onclose={close} />
+	<!-- A new gamer tag is told to the game server, so the party sees it. -->
+	<Settings onclose={close} onaccount={() => send({ type: 'rename' })} />
 </div>
 
 <style>

@@ -36,6 +36,7 @@ export const ACTIONS = {
 	ritePanel: { label: 'The rite', category: 'Items', defaults: ['KeyJ'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },
+	toggleSocial: { label: 'Friends and invites', category: 'Interface', defaults: ['KeyO'] },
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },
 	toggleAdmin: { label: 'Admin panel (dev)', category: 'Interface', defaults: ['F10'] }
 } as const satisfies Record<string, ActionDefinition>;

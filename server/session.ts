@@ -129,8 +129,8 @@ export class Session {
 	private nav: NavGrid = this.buildNav();
 	private creatures = new CreatureDirector(this.world, this.nav, this.seed);
 	private items = new WorldItems(this.world);
-	private affliction = new AfflictionDirector(this.world, this.nav, this.creatures, this.seed);
-	private rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
+	private affliction: AfflictionDirector;
+	private rite: RiteDirector;
 	/** The rite has been performed: everyone is carried out at the end of this tick. */
 	private resolved = false;
 	/** Events this tick, broadcast with it. */
@@ -145,8 +145,19 @@ export class Session {
 	private timer: NodeJS.Timeout | null = null;
 	private hadPlayers = false;
 
-	constructor(private hooks: SessionHooks = {}) {
+	/** `affliction` is the one the party's host chose (key into AFFLICTIONS). */
+	constructor(
+		private chosen: string,
+		private hooks: SessionHooks = {}
+	) {
+		this.affliction = this.direct();
+		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
 		this.populate();
+	}
+
+	/** The chosen Affliction, at work in the current map. */
+	private direct(): AfflictionDirector {
+		return new AfflictionDirector(this.world, this.nav, this.creatures, this.seed, this.chosen);
 	}
 
 	/** Creatures and loose items for the current map. */
@@ -405,7 +416,7 @@ export class Session {
 		this.nav = this.buildNav();
 		this.creatures = new CreatureDirector(this.world, this.nav, seed);
 		this.items = new WorldItems(this.world);
-		this.affliction = new AfflictionDirector(this.world, this.nav, this.creatures, seed);
+		this.affliction = this.direct();
 		const clues = this.rite.clues;
 		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
 		this.populate();

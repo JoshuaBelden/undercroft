@@ -27,14 +27,15 @@ The explorer document is described in [accounts.md](accounts.md).
 
 Signing in lands on the dashboard. It is the `(hub)` route group: `+layout.svelte` draws the frame and each tab is its own page.
 
-- **Frame:** the tabs (Expedition, Loadout, Afflictions) top-left, then money and the gamer tag top-right. Settings (a gear) and Help (a question mark) sit bottom-right. The gear is a link to the `/settings` page, which is outside the group and so replaces the frame (see [systems.md](systems.md#settings)); Help opens as an overlay. The `toggleSettings` (Escape) and `toggleHelp` actions do the same, and `inventory` (Tab: the key that opens the pack underground) goes to the Loadout page, through an `InputMap` limited to those three actions so the pages keep every other key.
-- **Page width:** the frame gives each page the whole window under the bar, less 50px of padding on each side (none on narrow screens). A page that wants the centred 900px column wraps itself in the global `.page-column` class (`src/app.css`), as Expedition does; a full-width page (Loadout, Store, Afflictions) lays itself out.
-- **Expedition** (`/`, the default): the setup screen. It shows the Affliction, what you are taking, and two ways out: "Start an expedition" (opens `/play`) or join one by invite code (opens `/play?code=...`). Nothing starts until then.
+- **Frame:** the tabs (Expedition, Loadout, Afflictions) top-left, then money and the gamer tag top-right. Settings (a gear), Social (a pill with a speech bubble and the number of requests and invites waiting) and Help (a question mark) sit bottom-right. Social is a link to the Social page, as is the `toggleSocial` action (O). The gear is a link to the `/settings` page, which is outside the group and so replaces the frame (see [systems.md](systems.md#settings)); Help opens as an overlay. The `toggleHelp` action does the same as its button. `toggleSettings` (Escape) backs out one step: it closes Help if it is open, otherwise returns to the Expedition page, and only from the Expedition page opens `/settings`. `inventory` (Tab: the key that opens the pack underground) goes to the Loadout page, through an `InputMap` limited to those four actions so the pages keep every other key.
+- **Page width:** the frame gives each page the whole window under the bar, less 50px of padding on each side (none on narrow screens). A page that wants the centred 900px column wraps itself in the global `.page-column` class (`src/app.css`); the pages there are now are all full-width (Expedition, Loadout, Store, Afflictions) and lay themselves out.
+- **Expedition** (`/`, the default): the lobby. Everyone in the party as a pane (`ExplorerPane`), centred, and the launch panel in the lower right: the Affliction the host chose, and Launch Expedition (see [expedition.md](expedition.md#parties)).
 - **Loadout** (`/loadout`): `Outfit`.
 - **Afflictions** (`/afflictions`): `Afflictions` (see [rite.md](rite.md)).
+- **Social** (`/social`): `Social`: the party, friends and finding players (see [social.md](social.md)). It has no tab: the Social button in the frame is the link to it.
 - **Store** (`/store`): `Shop`. It has no tab: the money in the frame is the link to it.
 
-`/play` is the party screen and then the game: invite friends, ready up, descend (see [expedition.md](expedition.md)). It is the only place to descend from. It shows what you are taking down and links back to Loadout; it has no stash or store of its own. Leaving it for the dashboard leaves the party.
+`/play` is the game and nothing else: the browser is sent there when an expedition starts, and back to the dashboard when it is over (see [expedition.md](expedition.md)). The party lives on the game server connection, which every page shares, so moving between dashboard pages keeps it.
 
 Links inside the group use route ids with `resolve` (`resolve('/(hub)/loadout')`), and the current tab is found from `page.route.id`: `resolve` returns relative paths during server rendering, so comparing it with the URL does not work.
 
@@ -70,7 +71,7 @@ Moves show at once. `Outfit` runs the request through `applyAction` on a copy of
 
 `arrange` (`explorers.ts`) runs it with `applyAction`. A refusal is `noRoom` (not allowed there, or nowhere to put it) or `heavy` (past `CARRY.max`).
 
-Every hub change goes through `changeExplorer`, which refuses while the explorer is underground and only writes if the money, stash and loadout are as they were when it read them.
+Every hub change goes through `changeExplorer`, which refuses while the explorer is underground or `ready` (ready to descend with their party: the game server sets it when they confirm their loadout and clears it when they cancel, leave, drop or descend, `lockKit` in `server/belongings.ts`) and only writes if the money, stash and loadout are as they were when it read them.
 
 Explorers from before slots (a stash list; a loadout of quick slots, pack and pockets) are converted the first time they are read (`upgrade` in `accounts.ts`, marked by `layout`): everything they own goes into the stash, which gets extra rows if it needs them, and the loadout starts empty.
 
@@ -118,7 +119,7 @@ Loot values are on the items (`value` in `src/lib/content/items.ts`), and how mu
 - `{ action: 'buy', item, lots }`: charges `price × lots` and puts `lot × lots` in the stash. Refused if you can't afford it, the shop doesn't sell it, or it won't all fit in the stash (`stashFull`).
 - `{ action: 'sell', from, count }`: sells up to `count` from a slot. `from` is a `SlotRef` in the stash or the loadout. Selling is done from the Loadout page's menu; the Store page only buys.
 
-The client only says what to buy or sell. Prices are looked up on the server, and the Store page shows the same table. Like every hub change it is refused while underground.
+The client only says what to buy or sell. Prices are looked up on the server, and the Store page shows the same table. Like every hub change it is refused while underground or ready to descend.
 
 ### The Store page
 

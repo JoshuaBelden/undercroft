@@ -59,9 +59,9 @@ src/
   hooks.server.ts           finds the account for each request; everything is behind sign-in
   routes/
     (hub)/                  dashboard: frame (+layout) and a page per tab
-      +page.svelte          Expedition: set out or join by code
-      loadout/ afflictions/ store/
-    play/+page.svelte       expedition: party screen, then the game view (client-only)
+      +page.svelte          Expedition: the party, the Affliction, launch
+      loadout/ afflictions/ store/ social/
+    play/+page.svelte       expedition: the game view (client-only)
     auth/                   sign-in and sign-up pages
     api/                    JSON endpoints: auth, account, ticket, explorer, shop, admin (dev)
 server/

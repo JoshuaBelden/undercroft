@@ -1,5 +1,6 @@
 import {
 	clearUnderground,
+	markReady,
 	returnFromExpedition,
 	takeLoadout
 } from '../src/lib/server/store/explorers.ts';
@@ -34,7 +35,28 @@ export function giveBack(explorer: string, session: string, carried: Inventory |
 	);
 }
 
-/** At start: nobody is underground, whatever a crash left marked. */
+/**
+ * Ready to descend (or not any more): the hub stops (or starts again) letting them change their
+ * stash and loadout. Resolves once it is in place.
+ */
+export function lockKit(explorer: string, ready: boolean): Promise<void> {
+	const db = getDb();
+	if (!db) return Promise.resolve();
+	// One at a time per explorer, in the order asked: the last one asked for is what holds.
+	const next = (locking.get(explorer) ?? Promise.resolve())
+		.then(() => markReady(db, explorer, ready))
+		.catch((error: Error) => log.warn(`Could not mark an explorer ready: ${error.message}`))
+		.finally(() => {
+			if (locking.get(explorer) === next) locking.delete(explorer);
+		});
+	locking.set(explorer, next);
+	return next;
+}
+
+/** The last lock or unlock under way for each explorer. */
+const locking = new Map<string, Promise<void>>();
+
+/** At start: nobody is underground or ready, whatever a crash left marked. */
 export async function releaseAll(): Promise<void> {
 	const db = getDb();
 	if (!db) return;

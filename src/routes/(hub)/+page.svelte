@@ -1,179 +1,302 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { session } from '#lib/account/account.svelte.ts';
-	import { AFFLICTIONS, DEFAULT_AFFLICTION } from '#lib/content/afflictions.ts';
-	import { PARTY } from '#lib/content/party.ts';
-	import { allStacks } from '#lib/shared/items/inventory.ts';
-	import { normalizeCode } from '#lib/shared/party/types.ts';
-	import { stackLabel } from '#lib/ui/items.ts';
+	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
+	import { connection, me, send } from '#lib/game/net/connection.svelte.ts';
+	import AfflictionPicker from '#lib/ui/AfflictionPicker.svelte';
+	import { dragScroll } from '#lib/ui/dragScroll.ts';
+	import ExplorerPane from '#lib/ui/ExplorerPane.svelte';
+	import { launch } from '#lib/ui/launch.svelte.ts';
 
-	let code = $state('');
+	/*
+	 * The Expedition page: the party, one pane each, and the launch panel in the lower right. The
+	 * host chooses the Affliction; anyone presses Launch, confirms their loadout on the Loadout
+	 * page and is then ready; once everyone is, the descent counts down (the countdown itself is
+	 * drawn by the root layout, over whatever page is open). See docs/dev/expedition.md.
+	 */
 
 	const explorer = $derived(session.account?.explorer ?? null);
-	const carrying = $derived(explorer ? allStacks(explorer.loadout).map(stackLabel) : []);
-	/** The Affliction an expedition goes against (there is only one to choose so far). */
-	const affliction = AFFLICTIONS[DEFAULT_AFFLICTION.id];
+	const party = $derived(connection.party);
+	const you = $derived(me());
+	const host = $derived(party !== null && party.leader === connection.memberId);
+	const affliction = $derived(party?.affliction ? (AFFLICTIONS[party.affliction] ?? null) : null);
 	const resolved = $derived(
-		explorer?.afflictions.some((entry) => entry.id === affliction.id && entry.resolved) ?? false
+		explorer?.afflictions.find((entry) => entry.id === affliction?.id)?.resolved ?? false
 	);
+	/** Members who have not readied up yet. */
+	const waitingFor = $derived(party?.members.filter((member) => !member.ready).length ?? 0);
+
+	/** The host is choosing the Affliction. */
+	let picking = $state(false);
+
+	function choose(id: string): void {
+		send({ type: 'affliction', id });
+		picking = false;
+	}
+
+	/** Launch: on to the Loadout page, to confirm what goes down. */
+	function confirmLoadout(): void {
+		launch.confirming = true;
+		void goto(resolve('/(hub)/loadout'));
+	}
 </script>
 
-<div class="page-column">
-	<section class="card">
-		<h2>Against</h2>
-		<p class="lead">
-			{affliction.name}
-			<span class="status" class:resolved>{resolved ? 'Resolved' : 'Unresolved'}</span>
-		</p>
-		<p class="muted">
-			What you know of its rite is under <a href={resolve('/(hub)/afflictions')}>Afflictions</a>.
-		</p>
-	</section>
-
-	<section class="card">
-		<h2>What you're taking</h2>
-		{#if !explorer}
-			<p class="muted">Loading...</p>
-		{:else if carrying.length === 0}
-			<p class="lead">Nothing but your headlamp.</p>
-		{:else}
-			<p class="lead">{carrying.join(', ')}</p>
-		{/if}
-		<p class="muted">
-			Change it under <a href={resolve('/(hub)/loadout')}>Loadout</a> before you set out.
-		</p>
-	</section>
-
-	{#if explorer?.underground}
-		<section class="card">
-			<h2>Under way</h2>
-			<p class="lead">You're already on an expedition.</p>
-			<a class="button primary" href={resolve('/play')}>Return to it</a>
-		</section>
-	{:else}
-		<div class="ways">
-			<section class="card">
-				<h2>Start one</h2>
-				<p class="muted">
-					You'll gather on the surface with an invite code to share. Nobody goes down until the
-					party is ready and you choose to descend. Go alone, or with up to {PARTY.maxSize - 1}
-					others.
-				</p>
-				<a class="button primary" href={resolve('/play')}>Start an expedition</a>
-			</section>
-
-			<section class="card">
-				<h2>Join one</h2>
-				<p class="muted">Enter the invite code a friend gave you.</p>
-				<!-- A plain GET form: it opens the party screen with ?code=..., like an invite link. -->
-				<form method="get" action={resolve('/play')}>
-					<input
-						type="text"
-						name="code"
-						placeholder="Code"
-						aria-label="Invite code"
-						maxlength={PARTY.codeLength + 2}
-						autocomplete="off"
-						bind:value={code}
-					/>
-					<button type="submit" disabled={!normalizeCode(code)}>Join</button>
-				</form>
-			</section>
+<div class="expedition">
+	{#if party && you}
+		<div class="track" use:dragScroll>
+			{#each party.members as member (member.id)}
+				<ExplorerPane {member} host={member.id === party.leader} you={member.id === you.id} />
+			{/each}
 		</div>
+
+		<aside class="launch" aria-label="Launch">
+			<h2>Affliction</h2>
+			{#if affliction}
+				<div class="chosen" style:--art="url('/assets/images/{affliction.image}.webp')">
+					<span class="name">{affliction.name}</span>
+					<span class="state" class:resolved>{resolved ? 'Resolved' : 'Unresolved'}</span>
+				</div>
+				{#if host && !party.expedition}
+					<button type="button" class="pill" onclick={() => (picking = true)}>
+						Change Affliction
+					</button>
+				{/if}
+			{:else if host}
+				<button type="button" class="pill" onclick={() => (picking = true)}>
+					Select Affliction
+				</button>
+			{:else}
+				<p class="note">The host has not chosen one yet.</p>
+			{/if}
+
+			{#if party.expedition}
+				<p class="note">Your party is underground. You can launch again once they are back.</p>
+			{:else if you.ready}
+				<p class="ready" role="status">
+					{#if waitingFor === 0}
+						Everyone is ready.
+					{:else}
+						You're ready. Waiting for {waitingFor} more.
+					{/if}
+				</p>
+				<button type="button" class="pill" onclick={() => send({ type: 'ready', ready: false })}>
+					Cancel
+				</button>
+			{:else}
+				<button
+					type="button"
+					class="pill go"
+					disabled={!affliction}
+					title={affliction ? undefined : 'An Affliction has to be chosen first'}
+					onclick={confirmLoadout}
+				>
+					Launch Expedition
+				</button>
+			{/if}
+
+			{#if connection.error}
+				<p class="note error" role="alert">{connection.error}</p>
+			{/if}
+
+			{#if party.members.length > 1 && !you.inExpedition}
+				<button type="button" class="leave" onclick={() => send({ type: 'leaveParty' })}>
+					Leave party
+				</button>
+			{/if}
+		</aside>
+	{:else}
+		<p class="connecting" role="status">
+			{connection.status === 'rejected'
+				? connection.detail || 'The game server turned the connection away.'
+				: 'Connecting...'}
+		</p>
 	{/if}
 </div>
 
+{#if picking && explorer && party}
+	<AfflictionPicker
+		progress={explorer.afflictions}
+		selected={party.affliction}
+		onselect={choose}
+		onclose={() => (picking = false)}
+	/>
+{/if}
+
 <style>
-	.card {
-		margin-bottom: 16px;
-		padding: 20px;
-		background: rgb(10 9 8 / 0.82);
-		border: 1px solid var(--border);
+	/* A full-width page: the strip of panes in the middle of everything under the bar. */
+	.expedition {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		min-width: 0;
+		padding: 24px 0 84px;
 	}
 
-	.ways {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 16px;
+	/* The party, centred; it scrolls sideways (dragScroll, touch, the scrollbar) if it has to. */
+	.track {
+		flex: none;
+		display: flex;
+		justify-content: safe center;
+		gap: 20px;
+		padding: 0 0 14px;
+		overflow-x: auto;
+		cursor: grab;
+		user-select: none;
+		scrollbar-width: thin;
+		scrollbar-color: var(--border) transparent;
 	}
 
-	.ways .card {
-		margin-bottom: 0;
+	.track:global(.dragging) {
+		cursor: grabbing;
+	}
+
+	/* The launch panel: lower right, above the corner buttons. */
+	.launch {
+		position: fixed;
+		right: 20px;
+		bottom: 84px;
+		width: 320px;
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-	}
-
-	@media (max-width: 640px) {
-		.ways {
-			grid-template-columns: 1fr;
-		}
+		padding: 18px 20px 20px;
+		border: 1px solid var(--border);
+		border-radius: 18px;
+		background: rgb(14 12 10 / 0.72);
+		backdrop-filter: blur(6px);
 	}
 
 	h2 {
-		margin: 0 0 8px;
-		font-size: 0.8rem;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		color: var(--muted);
-	}
-
-	.ways h2 {
 		margin: 0;
-	}
-
-	.lead {
-		margin: 0 0 6px;
-		font-size: 1.1rem;
-	}
-
-	.status {
-		margin-left: 12px;
 		font-size: 0.8rem;
+		font-family: var(--font-ui);
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: var(--muted);
 	}
 
-	.status.resolved {
+	/* The chosen Affliction: its name over a strip of its picture. */
+	.chosen {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		padding: 22px 16px;
+		border-radius: 12px;
+		text-align: center;
+		text-shadow: 0 2px 12px rgb(0 0 0 / 0.9);
+		background:
+			linear-gradient(rgb(10 9 8 / 0.35), rgb(10 9 8 / 0.7)),
+			var(--art) center 30% / cover no-repeat,
+			#211c18;
+	}
+
+	.name {
+		font-family: var(--font-lore);
+		font-size: 1.5rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+	}
+
+	.state {
+		font-family: var(--font-ui);
+		font-size: 0.75rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		opacity: 0.75;
+	}
+
+	.state.resolved {
+		color: var(--accent);
+		opacity: 1;
+	}
+
+	.pill {
+		padding: 10px 20px;
+		border-color: var(--text);
+		border-radius: 999px;
+		font-size: 0.9rem;
+		font-weight: 600;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+	}
+
+	.pill:hover:not(:disabled),
+	.pill:focus-visible {
+		border-color: var(--text);
+		background: rgb(255 255 255 / 0.1);
+	}
+
+	/* Launch: the one dark yellow button. */
+	.pill.go {
+		padding: 14px 20px;
+		border-color: var(--launch);
+		background: var(--launch);
+		color: #14110f;
+		font-size: 1rem;
+		font-weight: 700;
+	}
+
+	.pill.go:hover:not(:disabled),
+	.pill.go:focus-visible {
+		border-color: var(--launch-bright);
+		background: var(--launch-bright);
+	}
+
+	button:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+
+	.note,
+	.ready {
+		margin: 0;
+		color: var(--muted);
+	}
+
+	.ready {
+		font-weight: 600;
 		color: var(--accent);
 	}
 
-	.muted {
-		margin: 0;
+	.note.error {
+		color: #ff9a70;
+	}
+
+	.leave {
+		align-self: center;
+		padding: 2px 8px;
+		border-color: transparent;
+		font-size: 0.85rem;
 		color: var(--muted);
 	}
 
-	.muted a {
+	.leave:hover,
+	.leave:focus-visible {
+		border-color: transparent;
 		color: var(--text);
+		text-decoration: underline;
 	}
 
-	.button {
-		align-self: flex-start;
-		margin-top: auto;
-		padding: 8px 16px;
-		border: 1px solid var(--border);
-		color: var(--text);
-		text-decoration: none;
+	.connecting {
+		margin: 0;
+		text-align: center;
+		color: var(--muted);
 	}
 
-	.button.primary {
-		border-color: var(--accent);
-	}
+	@media (max-width: 720px) {
+		.expedition {
+			justify-content: flex-start;
+			padding: 16px 16px 24px;
+		}
 
-	form {
-		display: flex;
-		gap: 8px;
-		margin-top: auto;
-	}
-
-	input {
-		width: 110px;
-		padding: 6px 8px;
-		font: inherit;
-		color: inherit;
-		text-transform: uppercase;
-		background: rgb(255 255 255 / 0.04);
-		border: 1px solid var(--border);
+		/* No room beside the panes: the panel goes under them, in the page. */
+		.launch {
+			position: static;
+			width: auto;
+			margin: 16px 0 64px;
+		}
 	}
 </style>

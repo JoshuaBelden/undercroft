@@ -13,28 +13,35 @@ import type {
 import type { MapLayout } from './map/types.ts';
 import type { PartyState } from './party/types.ts';
 import type { InputFrame, ItemStack, PlayerSnapshot } from './player/types.ts';
+import type { Person, SocialAction, SocialState } from './social/types.ts';
 
 export type ClientMessage =
 	/**
 	 * First message. `ticket` says who this is (from the site's `/api/ticket`); without a valid one
-	 * the connection is rejected. `code` joins that party; without one (or if it fails) you get
-	 * your own.
+	 * the connection is rejected. You get the party you were in if your place is still held,
+	 * otherwise one of your own.
 	 */
-	| { type: 'hello'; protocol: number; ticket: string; code?: string }
+	| { type: 'hello'; protocol: number; ticket: string }
 	| { type: 'ping'; clientTime: number }
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
 	| { type: 'input'; frames: InputFrame[] }
 	/** Dev-only commands; the server ignores them unless DEV_MODE=true. */
 	| { type: 'admin'; command: AdminCommand }
-	/** Move to the party with this invite code. */
-	| { type: 'joinParty'; code: string }
 	/** Leave the party for a new one of your own. */
 	| { type: 'leaveParty' }
+	/** Party host: put this member (by member id) out of the party. */
+	| { type: 'kick'; member: string }
+	/**
+	 * Ready to descend (the loadout is confirmed), or not after all. Needs an Affliction chosen.
+	 * Once everyone is ready the descent counts down and starts by itself.
+	 */
 	| { type: 'ready'; ready: boolean }
+	/** Party host: choose the Affliction the expedition is against. Everyone becomes not ready. */
+	| { type: 'affliction'; id: string }
+	/** Friends and party invites (see docs/dev/social.md). */
+	| { type: 'social'; action: SocialAction }
 	/** The gamer tag was changed on the site: read it again. */
 	| { type: 'rename' }
-	/** Party leader: start the expedition for everyone (all others must be ready). */
-	| { type: 'descend' }
 	/** Dead and watching the others: stop, and go back to the surface. */
 	| { type: 'stopSpectating' }
 	/** Rearrange or drop what you carry (the inventory screen). */
@@ -75,8 +82,12 @@ export type ServerMessage =
 			you: string;
 			party: PartyState;
 	  }
-	/** A party request was refused (bad code, full, not ready...). */
+	/** A party or social request was refused (no Affliction chosen, party full...). */
 	| { type: 'partyError'; reason: string }
+	/** Your friends, requests and invites, sent on connecting and whenever they change. */
+	| { type: 'social'; state: SocialState }
+	/** Answer to a `search`. */
+	| { type: 'socialSearch'; query: string; results: Person[] }
 	/** The expedition has started and you are in it. */
 	| {
 			type: 'welcome';
@@ -138,17 +149,20 @@ const CLIENT_TYPES = new Set<string>([
 	'ping',
 	'input',
 	'admin',
-	'joinParty',
 	'leaveParty',
+	'kick',
 	'ready',
+	'affliction',
+	'social',
 	'rename',
-	'descend',
 	'stopSpectating',
 	'inventory'
 ]);
 const SERVER_TYPES = new Set<string>([
 	'party',
 	'partyError',
+	'social',
+	'socialSearch',
 	'welcome',
 	'reject',
 	'pong',

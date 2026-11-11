@@ -1,10 +1,12 @@
-import { randomInt, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { WebSocket } from 'ws';
+import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { PARTY } from '../src/lib/content/party.ts';
-import { canDescend, normalizeCode, type PartyState } from '../src/lib/shared/party/types.ts';
+import { allReady, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
+import type { FriendStatus } from '../src/lib/shared/social/types.ts';
 import type { Identity } from './accounts.ts';
-import { giveBack, takeKit } from './belongings.ts';
+import { giveBack, lockKit, takeKit } from './belongings.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
 import { Session } from './session.ts';
@@ -19,8 +21,11 @@ export interface Member {
 	/** Their gamer tag. */
 	name: string;
 	socket: WebSocket;
+	/** Their loadout is confirmed and locked, and they are waiting to descend. */
 	ready: boolean;
-	/** False while the connection is down and their place in the expedition is held. */
+	/** What they last asked for; `ready` follows once their loadout is locked. */
+	wantReady: boolean;
+	/** False while the connection is down and their place is held. */
 	connected: boolean;
 	/** Runs out when a dropped member has been gone too long. */
 	dropTimer: NodeJS.Timeout | null;
@@ -30,25 +35,36 @@ export interface Member {
 }
 
 interface Party {
-	code: string;
-	/** Member id. */
+	id: string;
+	/** Member id of the host, who chooses the Affliction. */
 	leader: string;
 	members: Member[];
+	/** The Affliction the host chose (key into AFFLICTIONS); null until they choose. */
+	affliction: string | null;
 	/** The running expedition; null on the surface. */
 	session: Session | null;
+	/** When the descent starts, while everyone is ready and it is counting down. */
+	launchAt: number | null;
+	launchTimer: NodeJS.Timeout | null;
 }
 
 /**
- * Parties and their expeditions. Every connection is in a party from the moment it says hello: a
- * new one of its own, or the one whose invite code it gave. The leader starts the descent once
- * everyone else is ready; that creates a `Session` (new seed and map) with every member in it.
- * Solo play is a party of one.
+ * Parties and their expeditions. Every connection is in a party from the moment it says hello:
+ * one of its own, until it accepts a friend's invite (server/social.ts). The host chooses the
+ * Affliction; each member readies up, which locks their loadout; once everyone is ready the
+ * descent counts down and starts. That creates a `Session` (new seed and map) with every member
+ * in it. Solo play is a party of one.
  *
- * A member whose connection drops while underground keeps their place for
- * `PARTY.reconnectSeconds`; a new connection from the same account takes it back. On the surface
- * a drop just removes them. See docs/dev/expedition.md.
+ * A member whose connection drops keeps their place for a while (`PARTY.reconnectSeconds`
+ * underground, `PARTY.lobbyGraceSeconds` on the surface: long enough to reload the page); a new
+ * connection from the same account takes it back. See docs/dev/expedition.md.
  */
 export class Parties {
+	/**
+	 * Called when what these accounts are doing may have changed (joined, left, dropped, went
+	 * down, came back), so their friends can be told.
+	 */
+	onPresence: (accounts: string[]) => void = () => {};
 	private parties = new Map<string, Party>();
 	/** Every member, by account: connecting again takes the same member back. */
 	private byAccount = new Map<string, Member>();
@@ -58,14 +74,10 @@ export class Parties {
 	/**
 	 * A new connection from a signed-in player. If their account is already here (a dropped
 	 * connection whose place is held, or another tab), this connection becomes that member and the
-	 * old one is closed. Otherwise they join the party with `code` if they can, or start their own.
+	 * old one is closed. Otherwise they start a party of their own.
 	 */
-	connect(socket: WebSocket, identity: Identity, code: unknown): Member {
-		const known = this.byAccount.get(identity.account);
-		// Someone who left (closed the page, or wasn't back in time) is not here any more: they
-		// start again like anyone else, instead of being put back in a party they are not in.
-		const back = known?.party.members.includes(known) ? known : undefined;
-		if (known && !back) this.byAccount.delete(identity.account);
+	connect(socket: WebSocket, identity: Identity): Member {
+		const back = this.find(identity.account);
 		if (back) {
 			const old = back.socket;
 			if (back.dropTimer) clearTimeout(back.dropTimer);
@@ -77,13 +89,10 @@ export class Parties {
 				old.send(encode({ type: 'reject', reason: 'You connected from somewhere else' }));
 				old.close();
 			}
-			this.broadcast(back.party);
+			this.changed(back.party);
 			if (back.playerId) back.party.session?.reattach(back.playerId, socket);
 			return back;
 		}
-		const wanted = typeof code === 'string' ? normalizeCode(code) : '';
-		const found = wanted ? this.joinable(wanted, null) : null;
-		const party = found && typeof found !== 'string' ? found : this.create();
 		const member: Member = {
 			id: randomUUID(),
 			account: identity.account,
@@ -91,29 +100,27 @@ export class Parties {
 			name: identity.gamerTag,
 			socket,
 			ready: false,
+			wantReady: false,
 			connected: true,
 			dropTimer: null,
-			party,
+			party: this.create(),
 			playerId: null
 		};
-		this.byAccount.set(member.account, member);
-		this.add(party, member);
-		if (typeof found === 'string') this.send(member, { type: 'partyError', reason: found });
+		this.add(member.party, member);
 		return member;
 	}
 
-	/** The connection closed. Underground, their place is held for a while; otherwise they go. */
+	/** The connection closed. Their place is held for a while: longer underground. */
 	disconnect(member: Member, socket: WebSocket): void {
 		// A member who connected again has a new socket: the old one closing is not them leaving.
-		if (member.socket !== socket) return;
-		if (!this.expedition(member)) {
-			this.remove(member);
-			return;
-		}
+		if (member.socket !== socket || !member.party.members.includes(member)) return;
+		const seconds = this.expedition(member) ? PARTY.reconnectSeconds : PARTY.lobbyGraceSeconds;
 		member.connected = false;
-		member.dropTimer = setTimeout(() => this.remove(member), PARTY.reconnectSeconds * 1000);
-		log.info(`Party ${member.party.code}: ${member.name} dropped; holding their place`);
-		this.broadcast(member.party);
+		// Whoever comes back confirms their loadout again.
+		this.unready(member);
+		member.dropTimer = setTimeout(() => this.remove(member), seconds * 1000);
+		log.info(`Party ${tag(member.party)}: ${member.name} dropped; holding their place`);
+		this.changed(member.party);
 	}
 
 	/** A dead member who was watching the others goes back to the surface. */
@@ -121,78 +128,135 @@ export class Parties {
 		if (member.playerId) member.party.session?.removeSpectator(member.playerId);
 	}
 
-	/** Move to the party with this invite code. */
-	join(member: Member, code: unknown): void {
-		const found = this.joinable(typeof code === 'string' ? normalizeCode(code) : '', member.party);
-		if (typeof found === 'string') {
-			this.send(member, { type: 'partyError', reason: found });
-			return;
-		}
-		this.remove(member);
-		this.add(found, member);
+	/** Move `member` to `host`'s party (they accepted an invite). Returns why not, if they can't. */
+	join(member: Member, host: Member): string | null {
+		const party = host.party;
+		if (!party.members.includes(host)) return 'That party is gone';
+		if (party === member.party) return "You're already in that party";
+		if (this.expedition(member)) return "You can't join a party while you're underground";
+		if (party.session) return 'That party is underground';
+		if (party.members.length >= PARTY.maxSize) return 'That party is full';
+		this.remove(member, true);
+		this.add(party, member);
+		return null;
 	}
 
 	/** Leave the current party for a new one of your own. */
 	leave(member: Member): void {
-		if (member.party.members.length === 1) return;
-		this.remove(member);
+		if (member.party.members.length === 1 || this.expedition(member)) return;
+		this.remove(member, true);
 		this.add(this.create(), member);
 	}
 
-	setReady(member: Member, ready: boolean): void {
-		if (member.ready === ready || this.expedition(member)) return;
-		member.ready = ready;
-		this.broadcast(member.party);
+	/** The host puts someone out of the party: they are on their own again. */
+	kick(member: Member, id: unknown): void {
+		const party = member.party;
+		const target = party.members.find((m) => m.id === id);
+		let problem: string | null = null;
+		if (party.leader !== member.id) problem = 'Only the host can remove someone from the party';
+		else if (!target || target === member) problem = 'They are not in your party';
+		else if (party.session) problem = "You can't remove anyone during an expedition";
+		if (problem !== null || !target) {
+			this.send(member, { type: 'partyError', reason: problem ?? 'They are not in your party' });
+			return;
+		}
+		this.remove(target, true);
+		// Still connected (or with their place held): a party of their own, as when they arrived.
+		this.add(this.create(), target);
+		this.send(target, { type: 'partyError', reason: `${member.name} removed you from the party` });
+		log.info(`Party ${tag(party)}: ${member.name} removed ${target.name}`);
+	}
+
+	/** The host chooses what the expedition is against. Everyone confirms again after a change. */
+	setAffliction(member: Member, id: unknown): void {
+		const party = member.party;
+		let problem: string | null = null;
+		if (party.leader !== member.id) problem = 'Only the host chooses the Affliction';
+		else if (party.session) problem = 'An expedition is already under way';
+		else if (typeof id !== 'string' || !Object.hasOwn(AFFLICTIONS, id)) {
+			problem = 'No such Affliction';
+		}
+		if (problem !== null || typeof id !== 'string') {
+			this.send(member, { type: 'partyError', reason: problem ?? 'No such Affliction' });
+			return;
+		}
+		if (party.affliction === id) return;
+		party.affliction = id;
+		for (const m of party.members) this.unready(m);
+		this.changed(party);
+	}
+
+	/**
+	 * Ready to descend, or not after all. Becoming ready first locks their loadout (the hub
+	 * refuses changes to it), so what they confirmed is what goes down; only then do the others
+	 * see them as ready.
+	 */
+	async setReady(member: Member, ready: boolean): Promise<void> {
+		const party = member.party;
+		if (!ready) {
+			if (!member.ready && !member.wantReady) return;
+			this.unready(member);
+			this.changed(party);
+			return;
+		}
+		if (member.wantReady || this.expedition(member)) return;
+		let problem: string | null = null;
+		if (party.session) problem = 'An expedition is already under way';
+		else if (!party.affliction) problem = 'No Affliction has been chosen yet';
+		if (problem) {
+			this.send(member, { type: 'partyError', reason: problem });
+			return;
+		}
+		member.wantReady = true;
+		await lockKit(member.explorer, true);
+		// They changed their mind, left or dropped meanwhile: `unready` has unlocked it again.
+		if (!member.wantReady || member.ready) return;
+		member.ready = true;
+		this.changed(member.party);
 	}
 
 	/** Their gamer tag changed. */
 	rename(member: Member, name: string): void {
 		if (name === member.name) return;
 		member.name = name;
-		this.broadcast(member.party);
+		this.changed(member.party);
 	}
 
-	/** The leader starts the expedition for the whole party. */
-	descend(member: Member): void {
-		const party = member.party;
-		const state = this.state(party);
-		let problem: string | null = null;
-		if (party.session) problem = 'An expedition is already under way';
-		else if (party.leader !== member.id) problem = 'Only the party leader can start the descent';
-		else if (!canDescend(state)) problem = 'Not everyone is ready';
-		if (problem) {
-			this.send(member, { type: 'partyError', reason: problem });
-			return;
-		}
+	/** The countdown ran out with everyone still ready: the expedition starts for the whole party. */
+	private descend(party: Party): void {
+		party.launchTimer = null;
+		party.launchAt = null;
+		if (!party.affliction || !allReady(this.state(party))) return;
 		/** Everyone who went down, whether or not they are still alive. */
 		const descended = (): string[] =>
 			party.members.filter((m) => m.playerId).map((m) => m.explorer);
-		const session = new Session({
+		const session = new Session(party.affliction, {
 			onClues: (clues) => this.progress.record(descended(), session.afflictionId, { clues }),
 			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
 			onRiteReset: () => this.progress.reset(descended(), session.afflictionId),
 			onPlayerLeft: (explorer, carried) => {
 				giveBack(explorer, session.id, carried);
 				this.sweep(party);
-				this.broadcast(party);
+				this.changed(party);
 			},
 			onEnded: () => {
 				if (party.session !== session) return;
 				party.session = null;
-				for (const m of party.members) {
-					m.ready = false;
-					m.playerId = null;
-				}
+				for (const m of party.members) m.playerId = null;
 				this.sweep(party);
-				this.broadcast(party);
+				this.changed(party);
 			}
 		});
 		party.session = session;
 		log.info(
-			`Party ${party.code}: expedition ${session.id.slice(0, 8)} started with seed ${session.seed} (${party.members.length} players)`
+			`Party ${tag(party)}: expedition ${session.id.slice(0, 8)} against ${party.affliction} started with seed ${session.seed} (${party.members.length} players)`
 		);
-		for (const m of party.members) m.ready = false;
-		this.broadcast(party);
+		// Taking each loadout (in `begin`) is also what unlocks it again.
+		for (const m of party.members) {
+			m.ready = false;
+			m.wantReady = false;
+		}
+		this.changed(party);
 		void this.begin(party, session, descended);
 	}
 
@@ -214,7 +278,7 @@ export class Parties {
 		if (party.session !== session) return;
 		if (session.playerCount === 0) {
 			party.session = null;
-			this.broadcast(party);
+			this.changed(party);
 			return;
 		}
 		// What any of them learned on earlier runs, all of them know now.
@@ -223,7 +287,7 @@ export class Parties {
 			session.revealClues(clues);
 			this.progress.record(descended(), session.afflictionId, { clues });
 		});
-		this.broadcast(party);
+		this.changed(party);
 	}
 
 	/** The expedition this member is down in, if any. */
@@ -233,11 +297,58 @@ export class Parties {
 		return { session, playerId: member.playerId };
 	}
 
+	/** The member for this account, if they are in a party (connected, or with their place held). */
+	find(account: string): Member | undefined {
+		const member = this.byAccount.get(account);
+		return member?.party.members.includes(member) ? member : undefined;
+	}
+
+	/** What this account is doing, as their friends see it. */
+	presence(account: string): FriendStatus {
+		const member = this.find(account);
+		if (!member?.connected) return 'offline';
+		if (this.expedition(member)) return 'underground';
+		return member.party.members.length > 1 ? 'inParty' : 'online';
+	}
+
+	/** Tell a member something only they should hear. */
+	tell(member: Member, message: ServerMessage): void {
+		this.send(member, message);
+	}
+
 	stop(): void {
 		for (const member of this.byAccount.values()) {
 			if (member.dropTimer) clearTimeout(member.dropTimer);
 		}
-		for (const party of this.parties.values()) party.session?.stop();
+		for (const party of this.parties.values()) {
+			if (party.launchTimer) clearTimeout(party.launchTimer);
+			party.session?.stop();
+		}
+	}
+
+	/** Not ready any more: their loadout can be changed again. */
+	private unready(member: Member): void {
+		if (!member.ready && !member.wantReady) return;
+		member.ready = false;
+		member.wantReady = false;
+		void lockKit(member.explorer, false);
+	}
+
+	/**
+	 * Something about the party changed: start the countdown if everyone is now ready, stop it if
+	 * not, and tell everyone.
+	 */
+	private changed(party: Party): void {
+		const ready = allReady(this.state(party));
+		if (ready && !party.launchTimer) {
+			party.launchAt = Date.now() + PARTY.countdownSeconds * 1000;
+			party.launchTimer = setTimeout(() => this.descend(party), PARTY.countdownSeconds * 1000);
+		} else if (!ready && party.launchTimer) {
+			clearTimeout(party.launchTimer);
+			party.launchTimer = null;
+			party.launchAt = null;
+		}
+		this.broadcast(party);
 	}
 
 	/** Dropped members with no place left to hold (they died, or it ended) leave the party. */
@@ -248,62 +359,66 @@ export class Parties {
 	}
 
 	private create(): Party {
-		let code: string;
-		do {
-			code = Array.from(
-				{ length: PARTY.codeLength },
-				() => PARTY.codeAlphabet[randomInt(PARTY.codeAlphabet.length)]
-			).join('');
-		} while (this.parties.has(code));
-		const party: Party = { code, leader: '', members: [], session: null };
-		this.parties.set(code, party);
-		return party;
-	}
-
-	/** The party with `code` if `from`'s member may join it, or the reason they can't. */
-	private joinable(code: string, from: Party | null): Party | string {
-		const party = this.parties.get(code);
-		if (!party) return 'No party has that code';
-		if (party === from) return "You're already in that party";
-		if (party.members.length >= PARTY.maxSize) return 'That party is full';
+		const party: Party = {
+			id: randomUUID(),
+			leader: '',
+			members: [],
+			affliction: null,
+			session: null,
+			launchAt: null,
+			launchTimer: null
+		};
+		this.parties.set(party.id, party);
 		return party;
 	}
 
 	private add(party: Party, member: Member): void {
+		this.unready(member);
 		member.party = party;
-		member.ready = false;
 		member.playerId = null;
 		party.members.push(member);
+		this.byAccount.set(member.account, member);
 		if (!party.leader) party.leader = member.id;
-		this.broadcast(party);
+		this.changed(party);
 	}
 
-	/** Take a member out of their party (and its expedition); an empty party is gone. */
-	private remove(member: Member): void {
+	/**
+	 * Take a member out of their party (and its expedition); an empty party is gone. `moving`
+	 * means they are about to be put in another party: they have not gone anywhere, so nobody is
+	 * told they left (joining the next party tells everyone where they are).
+	 */
+	private remove(member: Member, moving = false): void {
 		const party = member.party;
 		if (!party.members.includes(member)) return;
 		if (member.dropTimer) clearTimeout(member.dropTimer);
 		member.dropTimer = null;
+		this.unready(member);
 		party.members = party.members.filter((m) => m !== member);
+		if (this.byAccount.get(member.account) === member) this.byAccount.delete(member.account);
 		if (party.leader === member.id) party.leader = party.members[0]?.id ?? '';
 		// Leaving the session last: its hooks broadcast the party without this member.
 		const playerId = member.playerId;
 		member.playerId = null;
 		if (playerId) party.session?.removePlayer(playerId);
 		if (party.members.length === 0) {
+			if (party.launchTimer) clearTimeout(party.launchTimer);
+			party.launchTimer = null;
 			party.session?.stop();
-			this.parties.delete(party.code);
-			return;
+			this.parties.delete(party.id);
+		} else {
+			this.changed(party);
 		}
-		this.broadcast(party);
+		if (!moving) this.onPresence([member.account]);
 	}
 
 	private state(party: Party): PartyState {
 		return {
-			code: party.code,
 			leader: party.leader,
+			affliction: party.affliction,
+			launchIn: party.launchAt === null ? null : Math.max(0, party.launchAt - Date.now()),
 			members: party.members.map((m) => ({
 				id: m.id,
+				account: m.account,
 				name: m.name,
 				ready: m.ready,
 				inExpedition: !!m.playerId && !!party.session?.has(m.playerId),
@@ -318,9 +433,15 @@ export class Parties {
 		for (const m of party.members) {
 			this.send(m, { type: 'party', you: m.id, party: state });
 		}
+		this.onPresence(party.members.map((m) => m.account));
 	}
 
 	private send(member: Member, message: ServerMessage): void {
 		if (member.socket.readyState === member.socket.OPEN) member.socket.send(encode(message));
 	}
+}
+
+/** A party, for the log. */
+function tag(party: Party): string {
+	return party.id.slice(0, 8);
 }

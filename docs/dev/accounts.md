@@ -62,15 +62,15 @@ The gamer tag is the name other players see: in the lobby, while spectating, in 
 
 The game server is a different origin and can't see the session cookie. So:
 
-1. The play page asks the site for a ticket (`POST /api/ticket`).
+1. The connection module (`src/lib/game/net/connection.svelte.ts`) asks the site for a ticket (`POST /api/ticket`).
 2. It sends the ticket in `hello`.
 3. The game server looks the ticket up in MongoDB (`identify` in `server/accounts.ts`) and gets the account, its explorer and the gamer tag.
 
-A `hello` without a valid ticket gets `reject { reason: 'Sign in to play' }`. The client then asks for a new ticket and tries once more (the old one may have expired); if the site says it isn't signed in, it goes to the sign-in page.
+A `hello` without a valid ticket gets `reject { reason: 'Sign in to play' }`. The client then asks for a new ticket and tries once more (the old one may have expired); if the site says it isn't signed in (401), it goes to the sign-in page. Any other failure to get a ticket is retried: it is not a reason to sign anyone out.
 
 A ticket can be used again until it expires, so a dropped connection reconnects with the same one.
 
-An account is one `Member` on the game server (`Parties.byAccount`). If the account connects again while it is already there, the new connection becomes that member and the old one is closed with `reject { reason: 'You connected from somewhere else' }`. This is also how a dropped player takes their place back underground (see [expedition.md](expedition.md#reconnection)), and it stops one account being in two places.
+An account is one `Member` on the game server (`Parties.byAccount`). If the account connects again while it is already there, the new connection becomes that member and the old one is closed with `reject { reason: 'You connected from somewhere else' }`. This is also how a dropped player takes their place back, in the party and underground (see [expedition.md](expedition.md#reconnection)), and it stops one account being in two places.
 
 Both processes need MongoDB. Without it the site can't sign anyone in and the game server rejects every `hello`.
 

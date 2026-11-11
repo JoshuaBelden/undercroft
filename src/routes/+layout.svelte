@@ -1,10 +1,28 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
+	import { connection, start } from '#lib/game/net/connection.svelte.ts';
+	import LaunchCountdown from '#lib/ui/LaunchCountdown.svelte';
 	import type { LayoutProps } from './$types';
 
-	let { children }: LayoutProps = $props();
+	let { data, children }: LayoutProps = $props();
+
+	/*
+	 * Signed in, on any page: one connection to the game server, kept while moving between pages,
+	 * so the party (and an expedition under way) survives it. See docs/dev/systems.md.
+	 */
+	$effect(() => {
+		if (data.account) start();
+	});
+
+	/* The expedition has begun, or was already under way when the page loaded: go to it. */
+	$effect(() => {
+		if (connection.welcome && page.route.id !== '/play') void goto(resolve('/play'));
+	});
 
 	/*
 	 * Tab never moves the browser's focus, anywhere: it is a game key (by default the pack
@@ -40,3 +58,7 @@
 </svelte:head>
 
 {@render children()}
+
+{#if page.route.id !== '/play'}
+	<LaunchCountdown />
+{/if}

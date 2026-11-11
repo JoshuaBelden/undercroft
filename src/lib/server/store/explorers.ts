@@ -9,11 +9,12 @@ import type { ExplorerDoc } from './accounts.ts';
  * What an explorer owns between expeditions: the stash (kept on the surface) and the loadout
  * (what goes down next). The site changes them from the hub; the game server takes the loadout
  * at descent and hands back what was carried out. Only one of them writes at a time: an explorer
- * marked `underground` can't be changed from the hub. See docs/dev/economy.md.
+ * marked `underground` or `ready` can't be changed from the hub. See docs/dev/economy.md.
  */
 
 export type ExplorerError =
 	| 'underground'
+	| 'ready'
 	| 'missing'
 	| 'noRoom'
 	| 'heavy'
@@ -25,6 +26,7 @@ export type ExplorerError =
 
 export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	underground: "You can't do that while you're underground",
+	ready: "You can't do that once you're ready to descend. Cancel first",
 	missing: "That isn't there any more",
 	noRoom: "That doesn't go there, or there is no room for it",
 	heavy: 'That is more than you can carry',
@@ -42,7 +44,8 @@ const NOT_KIT = new Set(['loot', 'rite', 'clue']);
 
 /**
  * Change an explorer from the hub. `change` edits a copy and returns an error to refuse. The
- * write only lands if nothing else changed the explorer meanwhile, and never while underground.
+ * write only lands if nothing else changed the explorer meanwhile, and never while underground
+ * or ready to descend.
  */
 export async function changeExplorer(
 	db: Db,
@@ -52,6 +55,7 @@ export async function changeExplorer(
 	const before = await explorers(db).findOne({ _id: explorerId });
 	if (!before) return { error: 'missing' };
 	if (before.underground !== null) return { error: 'underground' };
+	if (before.ready) return { error: 'ready' };
 	const after: ExplorerDoc = structuredClone(before);
 	const error = change(after);
 	if (error) return { error };
@@ -59,6 +63,7 @@ export async function changeExplorer(
 		{
 			_id: explorerId,
 			underground: null,
+			ready: { $ne: true },
 			money: before.money,
 			stash: before.stash,
 			loadout: before.loadout
@@ -100,7 +105,7 @@ export async function arrange(
 export async function takeLoadout(db: Db, explorerId: string, session: string): Promise<Inventory> {
 	const before = await explorers(db).findOneAndUpdate(
 		{ _id: explorerId, underground: null },
-		{ $set: { underground: session, loadout: emptyInventory() } },
+		{ $set: { underground: session, ready: false, loadout: emptyInventory() } },
 		{ returnDocument: 'before' }
 	);
 	return before?.loadout ?? emptyInventory();
@@ -142,10 +147,19 @@ export async function returnFromExpedition(
 }
 
 /**
- * Nobody is underground when the game server starts: clear markers a crash left behind, so
- * those explorers aren't locked out of the hub. (What they carried is gone.)
+ * Ready to descend, or not any more. While it is set the hub can't change the explorer, so the
+ * loadout they confirmed is the one that goes down.
+ */
+export async function markReady(db: Db, explorerId: string, ready: boolean): Promise<void> {
+	await explorers(db).updateOne({ _id: explorerId, underground: null }, { $set: { ready } });
+}
+
+/**
+ * Nobody is underground or ready when the game server starts: clear markers a crash left
+ * behind, so those explorers aren't locked out of the hub. (What they carried is gone.)
  */
 export async function clearUnderground(db: Db): Promise<number> {
+	await explorers(db).updateMany({ ready: true }, { $set: { ready: false } });
 	const result = await explorers(db).updateMany(
 		{ underground: { $ne: null } },
 		{ $set: { underground: null } }

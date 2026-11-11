@@ -15,11 +15,13 @@
 	 */
 	interface Props {
 		explorer: ExplorerView;
+		/** Ready to descend with the party: nothing can be bought until they cancel. */
+		ready?: boolean;
 		/** Something was bought (for a sound). */
 		onbuy?: () => void;
 	}
 
-	let { explorer, onbuy }: Props = $props();
+	let { explorer, ready = false, onbuy }: Props = $props();
 
 	/** The most lots the server sells at once. */
 	const MAX_LOTS = 99;
@@ -110,6 +112,8 @@
 		</div>
 		{#if explorer.underground}
 			<p class="note">You're underground: the store is closed to you until you're back.</p>
+		{:else if ready}
+			<p class="note">You're ready to descend: the store is closed to you unless you cancel.</p>
 		{/if}
 	</section>
 </div>
@@ -202,7 +206,7 @@
 				<button
 					type="button"
 					class="purchase"
-					disabled={busy || explorer.underground || explorer.money < total}
+					disabled={busy || explorer.underground || ready || explorer.money < total}
 					onclick={() => void purchase(entry)}
 				>
 					Purchase

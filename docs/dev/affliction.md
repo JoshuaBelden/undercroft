@@ -72,7 +72,7 @@ When the meter fills:
 
 1. Add an `AfflictionDef` to `AFFLICTIONS` (meter, stages, manifestation spec).
 2. The meter, stages, gloom and omen sounds work from data.
-3. A different manifestation (not darkness) needs its own behaviour in `AfflictionDirector` and its own client renderer, chosen by the Affliction id. Expeditions currently always use the Gloaming; the hub will choose.
+3. A different manifestation (not darkness) needs its own behaviour in `AfflictionDirector` and its own client renderer, chosen by the Affliction id. An expedition is against the Affliction its party's host chose on the Expedition page (`PartyState.affliction`, passed to `Session`); every entry in `AFFLICTIONS` appears in the picker.
 
 ## Admin
 

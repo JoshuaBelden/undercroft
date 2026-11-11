@@ -85,7 +85,7 @@ Aspects:
 ## Phase 3: Multiplayer
 
 - [x] Multiple clients per session; other players interpolated, local player predicted
-- [x] Parties: create, invite by code, ready up, descend together
+- [x] Parties: friends list and invites (no codes), the host chooses the Affliction, everyone readies up (which locks their loadout), countdown, descend together
 - [ ] Session hosting on DigitalOcean (game server + MongoDB in Docker)
 - [x] Reconnection handling
 - [x] Spectating when dead until the team extracts or wipes
@@ -94,7 +94,7 @@ Aspects:
 
 Aspects:
 
-- **Dev docs**: session lifecycle, party flow, hosting and deployment on DigitalOcean. (Session lifecycle, party flow, reconnection and spectating done: `docs/dev/expedition.md`; interpolation in `docs/dev/player.md`.)
+- **Dev docs**: session lifecycle, party flow, hosting and deployment on DigitalOcean. (Session lifecycle, party flow, reconnection and spectating done: `docs/dev/expedition.md`; friends and invites in `docs/dev/social.md`; interpolation in `docs/dev/player.md`.)
 - **Help system**: co-op, parties, reviving teammates, pings. (Parties, reviving, spectating and reconnecting done.)
 - **Admin**: session list, kick, server health, force-end session, network stats.
 - **Audio**: other players' footsteps, breathing, and actions with distance attenuation; ping sounds.

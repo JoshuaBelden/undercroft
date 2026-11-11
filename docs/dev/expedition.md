@@ -4,58 +4,70 @@ A **party** is the group that descends together (one to `PARTY.maxSize` players;
 
 ## Files
 
-| What                                            | Where                                                                              |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Parties (codes, ready, starting expeditions)    | `server/parties.ts`                                                                |
-| Session (map, players, simulation, extraction)  | `server/session.ts`                                                                |
-| Connection routing                              | `server/index.ts`                                                                  |
-| Party rules (size, code format, reconnect time) | `src/lib/content/party.ts`                                                         |
-| Party state sent to clients                     | `src/lib/shared/party/types.ts`                                                    |
-| Lobby screen                                    | `src/lib/ui/PartyLobby.svelte`                                                     |
-| Spectating bar                                  | `src/lib/ui/SpectateBar.svelte`                                                    |
-| Rules (extract time and radius)                 | `src/lib/content/expedition.ts`                                                    |
-| Extraction in the simulation                    | `src/lib/shared/player/simulate.ts` (`updateExtraction`, `nearExtract`)            |
-| Extract points                                  | `CollisionWorld.extracts` (`src/lib/shared/map/collision.ts`)                      |
-| Results screen                                  | `src/lib/ui/ExpeditionResult.svelte`                                               |
-| Room banner                                     | `src/lib/ui/RoomBanner.svelte`, titles in `MAP_KIT` (`src/lib/content/map/kit.ts`) |
+| What                                             | Where                                                                                  |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Parties (ready, countdown, starting expeditions) | `server/parties.ts`                                                                    |
+| Session (map, players, simulation, extraction)   | `server/session.ts`                                                                    |
+| Connection routing                               | `server/index.ts`                                                                      |
+| Party rules (size, countdown, reconnect times)   | `src/lib/content/party.ts`                                                             |
+| Party state sent to clients                      | `src/lib/shared/party/types.ts`                                                        |
+| Lobby: the Expedition page                       | `src/routes/(hub)/+page.svelte`, `ExplorerPane`, `AfflictionPicker`, `LaunchCountdown` |
+| Spectating bar                                   | `src/lib/ui/SpectateBar.svelte`                                                        |
+| Rules (extract time and radius)                  | `src/lib/content/expedition.ts`                                                        |
+| Extraction in the simulation                     | `src/lib/shared/player/simulate.ts` (`updateExtraction`, `nearExtract`)                |
+| Extract points                                   | `CollisionWorld.extracts` (`src/lib/shared/map/collision.ts`)                          |
+| Results screen                                   | `src/lib/ui/ExpeditionResult.svelte`                                                   |
+| Room banner                                      | `src/lib/ui/RoomBanner.svelte`, titles in `MAP_KIT` (`src/lib/content/map/kit.ts`)     |
 
 ## Parties
 
-Every connection is in exactly one party from its `hello` on. The server owns parties and sends each member the whole `PartyState` (`party` message) whenever anything in it changes; the client only renders it.
+Every connection is in exactly one party from its `hello` on. The server owns parties and sends each member the whole `PartyState` (`party` message) whenever anything in it changes; the client only renders it. The lobby is the dashboard's Expedition page: one `ExplorerPane` per member, and the launch panel in the lower right.
 
-- **Creating:** `hello` without a code makes a new party with a fresh invite code. Codes are `PARTY.codeLength` characters from `PARTY.codeAlphabet` (no look-alike characters), unique among live parties.
-- **Joining:** `hello { code }` (an invite link, `/play?code=ABCDE`) or `joinParty { code }` from the lobby. Codes are normalised (`normalizeCode`), so case and spaces don't matter. A bad code, a full party or your own party gets `partyError { reason }`; on `hello` you still get a party of your own.
-- **Leaving:** `leaveParty` moves you to a new party of one. Disconnecting on the surface removes you (underground, see Reconnection). A party with no members is deleted and its code freed.
-- **Leader:** the first member. If the leader leaves, the longest-standing member takes over.
-- **Ready:** `ready { ready }`. Everyone but the leader readies up; flags reset when an expedition starts and when it ends.
+- **Creating:** `hello` puts you in a party of one. That is "not in a group": the page shows only you.
+- **Joining:** by accepting a friend's invite (see [social.md](social.md)), which moves you into their party (`Parties.join`). There are no invite codes.
+- **Leaving:** `leaveParty` moves you to a new party of one. The host can do the same to someone else with `kick { member }` (see [social.md](social.md#kicking)). A party with no members is deleted.
+- **Host:** the first member (`PartyState.leader`). If the host leaves, the longest-standing member takes over. The host chooses the Affliction.
+- **Affliction:** `affliction { id }`, host only. `PartyState.affliction` is null until then. Changing it makes everyone not ready. It stays chosen after an expedition.
+- **Ready:** `ready { ready }`, for every member including the host. Refused until an Affliction is chosen. Becoming ready first marks the explorer `ready` in MongoDB, which locks the stash, loadout and store (see [economy.md](economy.md)); only then does the party see them as ready. `ready { ready: false }` cancels at any time and unlocks. Joining or leaving a party, dropping, and a change of Affliction all clear it.
+- **Countdown:** after every change `Parties.changed` checks `allReady` (an Affliction is chosen, nobody is underground, every member is connected and ready). When it becomes true a timer of `PARTY.countdownSeconds` (5) starts and `PartyState.launchIn` carries the milliseconds left; when it stops being true (someone cancels, joins, leaves or drops) the timer is cleared. When it runs out the expedition starts. Nobody presses a descend button.
 - **Names:** a member's name is their account's gamer tag, read from the database when they connect and again when they send `rename` (after changing it in Settings). See [accounts.md](accounts.md).
 
-All checks are on the server (`Parties`); `canDescend` is shared so the lobby can grey out the button with the same rule.
+All checks are on the server (`Parties`); `allReady` is shared so both sides use the same rule.
+
+### Launching, on the client
+
+1. The launch panel shows the chosen Affliction. The host's "Select Affliction" opens `AfflictionPicker` (the Afflictions' panes; click one). The Launch Expedition button is disabled until one is chosen.
+2. Launch Expedition sets `launch.confirming` (`src/lib/ui/launch.svelte.ts`) and goes to the Loadout page, which shows a "Confirm loadout" bar while it is set.
+3. Confirm waits for any loadout change still on its way to the server (`Outfit.settled()`), sends `ready { ready: true }` and returns to the Expedition page. The pane shows Ready to everyone.
+4. While ready, the Loadout page and the Store are locked and the money in the frame is not a link. Cancel (in the launch panel, or on the countdown) sends `ready { ready: false }`.
+5. `LaunchCountdown` (in the root layout, so on every page but `/play`) shows the seconds from `connection.launchAt`.
+6. `welcome` arrives and the root layout goes to `/play`.
 
 ## Lifecycle
 
-1. The player chooses "Start an expedition" (or joins by code) on the dashboard's Expedition page, which opens `/play`. The client connects and sends `hello` with its ticket (see [accounts.md](accounts.md)). It lands in a party and gets `party`. The client shows the lobby (`PartyLobby`).
-2. The leader sends `descend`. If no expedition is running and everyone else is ready, `Parties.descend` creates a `Session` (new seed, generated layout), takes each member's loadout from their explorer (see [economy.md](economy.md)) and adds them with it. Each gets `welcome` with the layout: that message means "you are underground now".
+1. Signing in lands on the Expedition page. The site-wide connection (`src/lib/game/net/connection.svelte.ts`, see [systems.md](systems.md#networking)) sends `hello` with its ticket (see [accounts.md](accounts.md)), lands in a party and gets `party`.
+2. Everyone readies up and the countdown runs out (above). `Parties.descend` creates a `Session` against the party's Affliction (new seed, generated layout), takes each member's loadout from their explorer (see [economy.md](economy.md)) and adds them with it. Each gets `welcome` with the layout: that message means "you are underground now", and the client opens `/play`.
 3. Players explore. The session simulates them and broadcasts `tick` snapshots to the players in it.
 4. A player climbs out (see Extraction), dies, the manifestation is banished, or the rite is performed (see [rite.md](rite.md)). The server sends them `extracted`, `died`, `banished` or `resolved` with `{ seconds, deepestLevel }` and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
-5. What they carried out goes back to their explorer; if they died it is lost (see [economy.md](economy.md)). The client shows the results screen (after spectating, for the dead; see Spectating), with what was brought out, then the lobby. While others are still underground the lobby shows who, and nobody can descend.
-6. When the session's last player is out (or has disconnected), it stops. The party is back on the surface and can descend again into a new expedition.
+5. What they carried out goes back to their explorer; if they died it is lost (see [economy.md](economy.md)). The client shows the results screen (after spectating, for the dead; see Spectating), with what was brought out, then goes back to the Expedition page. While others are still underground their panes say so, and nobody can launch.
+6. When the session's last player is out (or has disconnected), it stops. The party is back on the surface and can launch again.
+
+`/play` is only the expedition: opened with none to show, it goes back to the dashboard.
 
 `Session` tells its party what happens through `SessionHooks` (`onPlayerLeft`, `onEnded`); it knows nothing about parties.
 
-Someone who joins a party mid-expedition waits in the lobby for the next descent.
+Nobody can join a party while it is underground.
 
 ## Reconnection
 
-A player whose connection drops while underground keeps their place for `PARTY.reconnectSeconds` (60 s).
+A player whose connection drops keeps their place: for `PARTY.reconnectSeconds` (60 s) underground, and for `PARTY.lobbyGraceSeconds` (15 s) on the surface, which is long enough to reload the page. So a refresh keeps you in your party, and in your expedition.
 
-- **Server:** `Parties.disconnect` marks the member `connected: false` (the lobby shows "Disconnected") and starts a timer. Their player stays in the `Session`, standing where they were: nothing is simulated for them without input, but creatures can still reach them. When the timer runs out they are removed, as a disconnect used to do at once.
-- **Resuming:** an account is one member (see [accounts.md](accounts.md)). A `hello` from the account of a dropped member becomes that member again: same member id, same player. `Session.reattach` swaps in the new socket, restarts input acknowledgement (a reloaded page numbers its frames from 0 again) and sends `welcome` with the layout. The client rebuilds the map and the next `tick` puts it back where it stood.
+- **Server:** `Parties.disconnect` marks the member `connected: false` (their pane shows "Reconnecting"), makes them not ready (which unlocks their loadout and stops a countdown) and starts a timer. Underground their player stays in the `Session`, standing where they were: nothing is simulated for them without input, but creatures can still reach them. When the timer runs out they are removed.
+- **Resuming:** an account is one member (see [accounts.md](accounts.md)). A `hello` from the account of a dropped member becomes that member again: same member id, same party, same player. Underground, `Session.reattach` swaps in the new socket, restarts input acknowledgement (a reloaded page numbers its frames from 0 again) and sends `welcome` with the layout. The client (on whatever page it loaded) goes to `/play`, rebuilds the map, and the next `tick` puts it back where it stood.
 - The same happens if the account connects while its old connection is still open (another tab): the new one takes over and the old one is closed.
 - A dropped member whose player dies, or whose expedition ends, has nothing left to hold and leaves the party (`Parties.sweep`).
-- On the surface there is nothing to hold: a drop removes the member, and the client asks for the same party by code when it reconnects, if others were in it.
 
-**Client:** `GameClient` retries every 2 s. While the connection is down the page shows "Connection lost. Reconnecting..." and drops the expedition view; `welcome` brings it back. Reloading the tab, or signing in on another browser, also resumes.
+**Client:** `GameClient` retries every 2 s, and the connection module gets a ticket first each time it starts. Only the site answering "not signed in" (401) sends the browser to the sign-in page; any other failure (the site restarting, the network) is retried. While the connection is down `/play` shows "Connection lost. Reconnecting..." and drops the expedition view; `welcome` brings it back.
 
 ## Spectating
 
@@ -67,7 +79,7 @@ A player who dies while others are still alive underground watches through a tea
 - **Client:** on `died` with `spectating`, the page keeps the map, creatures, items and other players, drops the local player, and puts the camera at the watched player's interpolated head (`RemotePlayers.view`), hiding that player's body (`setHidden`). `SpectateBar` shows who is being watched, with Next (cycle teammates) and Leave. If the watched player dies or leaves, the view moves to the next one.
 - The results screen is held back until spectating ends, then shows how many of the others made it out.
 
-Only the dead spectate. Players who climbed out go straight to the results and the lobby.
+Only the dead spectate. Players who climbed out go straight to the results and then back to the Expedition page.
 
 ## Extraction
 

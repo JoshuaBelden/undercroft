@@ -3,6 +3,7 @@
 	import { session } from '#lib/account/account.svelte.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
+	import { me } from '#lib/game/net/connection.svelte.ts';
 	import { settings } from '#lib/settings/settings.svelte.ts';
 	import Shop from '#lib/ui/Shop.svelte';
 
@@ -23,7 +24,7 @@
 
 <!-- A full-width page: no centred column. -->
 {#if explorer}
-	<Shop {explorer} onbuy={bought} />
+	<Shop {explorer} ready={me()?.ready ?? false} onbuy={bought} />
 {:else}
 	<p class="muted">Loading...</p>
 {/if}

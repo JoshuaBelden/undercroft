@@ -7,11 +7,13 @@ import { config } from './config.ts';
 import { closeDb, connectDb } from './db.ts';
 import { log } from './log.ts';
 import { Parties, type Member } from './parties.ts';
+import { Social } from './social.ts';
 
 await connectDb();
 await releaseAll();
 
 const parties = new Parties();
+const social = new Social(parties);
 const wss = new WebSocketServer({ port: config.port });
 
 wss.on('connection', (socket) => {
@@ -32,7 +34,7 @@ wss.on('connection', (socket) => {
 			}
 			if (member || identifying) return;
 			identifying = true;
-			const { ticket, code } = message;
+			const { ticket } = message;
 			void identify(ticket).then((identity) => {
 				identifying = false;
 				if (socket.readyState !== socket.OPEN) return;
@@ -41,7 +43,8 @@ wss.on('connection', (socket) => {
 					socket.close();
 					return;
 				}
-				member = parties.connect(socket, identity, code);
+				member = parties.connect(socket, identity);
+				void social.connected(member);
 			});
 			return;
 		}
@@ -52,14 +55,20 @@ wss.on('connection', (socket) => {
 		if (!member) return;
 
 		switch (message.type) {
-			case 'joinParty':
-				parties.join(member, message.code);
-				break;
 			case 'leaveParty':
 				parties.leave(member);
 				break;
 			case 'ready':
-				parties.setReady(member, message.ready === true);
+				void parties.setReady(member, message.ready === true);
+				break;
+			case 'kick':
+				parties.kick(member, message.member);
+				break;
+			case 'affliction':
+				parties.setAffliction(member, message.id);
+				break;
+			case 'social':
+				void social.act(member, message.action);
 				break;
 			case 'rename': {
 				const renamed = member;
@@ -68,9 +77,6 @@ wss.on('connection', (socket) => {
 				});
 				break;
 			}
-			case 'descend':
-				parties.descend(member);
-				break;
 			case 'stopSpectating':
 				parties.stopSpectating(member);
 				break;
@@ -102,6 +108,7 @@ log.info(`Game server listening on ws://localhost:${config.port}`);
 
 async function shutdown(): Promise<void> {
 	log.info('Shutting down');
+	social.stop();
 	parties.stop();
 	wss.close();
 	await closeDb();

@@ -13,11 +13,8 @@ interface Handlers {
 	onMessage?: (message: ServerMessage) => void;
 }
 
-/**
- * What we say on connecting: the ticket that proves who we are (from the site), and the party to
- * join, if any.
- */
-export type Hello = () => { ticket: string; code?: string };
+/** What we say on connecting: the ticket that proves who we are (from the site). */
+export type Hello = () => { ticket: string };
 
 /**
  * WebSocket connection to the authoritative game server.

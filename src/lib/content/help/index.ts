@@ -102,7 +102,7 @@ What you take down and don't bring back is gone. If you die, everything you carr
 		id: 'the-shop',
 		title: 'The store',
 		category: 'Basics',
-		body: `Click your money, at the top right of the dashboard, to open the store. The round buttons beside it show only weapons, ammunition, protection, quick-use items or everything else. Click something to see what it is and what it costs, choose how many, and press Purchase.
+		body: `Click your money, at the top right of the dashboard, to open the store. It is closed to you once you are ready to descend. The round buttons beside it show only weapons, ammunition, protection, quick-use items or everything else. Click something to see what it is and what it costs, choose how many, and press Purchase.
 
 What you buy goes to your stash, which only has so many slots: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
 
@@ -114,17 +114,19 @@ A first descent with nothing is a short one. Bring out a relic or two, and buy a
 		id: 'parties',
 		title: 'Going down together',
 		category: 'Basics',
-		body: `The dashboard's "Expedition" page is where you set out from. "Start an expedition" puts you in a party of your own, and that party screen is the only place you can descend from. To join a friend instead, enter their invite code. Descend alone, or bring up to three others.
+		body: `The dashboard's "Expedition" page is where you set out from. It shows everyone in your party: at first, only you. Descend alone, or bring up to three friends.
 
-To invite someone, give them your invite code, or use "Copy link" and send them the link. To join someone else, type their code under "Join a party". The others see your gamer tag, which you can change in the settings ({action:toggleSettings}).
+To bring someone, open the Social page ({action:toggleSocial}, or the Social button at the bottom right). Search for their gamer tag and add them; once they accept, they are your friend. The page lists all your friends, online or not. Invite one who is online and not already in a party and, when they accept, they join your party. Once you have invited someone, the page shows your party: who is in it, and who has yet to accept. The host can kick someone out of it, and anyone can leave. The others see your gamer tag, which you can change in the settings ({action:toggleSettings}).
 
-Everyone but the leader presses Ready. When all are ready the leader presses Descend, and the whole party goes down together.
+The host, whoever started the party, chooses the Affliction you go against. Then each of you presses Launch Expedition and confirms your loadout: that makes you ready, and the others see it. Once you are ready you can't change your loadout or use the store, unless you cancel.
 
-Whoever climbs out waits on the surface until the rest are out. Nobody can descend again until then. Join a party that is already underground and you wait for them too.
+When everyone is ready, a short countdown starts and the whole party goes down together. Anyone can cancel until it runs out.
+
+Whoever climbs out waits on the surface until the rest are out. Nobody can launch again until then.
 
 If you die while others are still down there, you watch through their eyes until it is over. "Next" changes who you watch; "Leave" takes you back to the surface.
 
-If your connection drops underground, your place is held for a minute. You're still standing there, so come back quickly: the game reconnects on its own, and reloading the page works too.`
+If your connection drops underground, your place is held for a minute. You're still standing there, so come back quickly: the game reconnects on its own, and reloading the page works too. On the surface, reloading the page keeps you in your party.`
 	},
 	{
 		id: 'sanity',

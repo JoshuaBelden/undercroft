@@ -9,14 +9,16 @@ The game server (`server/`) is authoritative. Clients send messages, the server 
 Flow:
 
 1. Client opens a WebSocket to `PUBLIC_GAME_SERVER_URL`.
-2. Client sends `hello` with `PROTOCOL_VERSION`, its name and optionally a party invite code. A mismatch gets `reject`.
-3. Server puts the connection in a party and replies `party` (sent again whenever the party changes). The client shows the lobby.
-4. The party leader sends `descend`. Server replies `welcome` to every member with their player ID, the session ID, the tick rate and the map layout.
+2. Client sends `hello` with `PROTOCOL_VERSION` and its ticket. A mismatch gets `reject`.
+3. Server puts the connection in a party (the one it was in, if its place is still held) and replies `party` (sent again whenever the party changes) and `social` (friends and invites, see [social.md](social.md)). The Expedition page shows the party.
+4. Everyone sends `ready`; after the countdown the server sends `welcome` to every member with their player ID, the session ID, the tick rate and the map layout.
 5. Client sends `input` frames (fixed 60 Hz steps); server broadcasts `tick` at `TICK_RATE` (20 Hz) with every player's snapshot. See [player.md](player.md) for prediction, reconciliation and how other players are interpolated.
 6. Client sends `ping` every second; `pong` gives round-trip time.
 7. Dev only: client sends `admin` commands; server sends `map` when an admin regenerates the layout.
 
-`GameClient` reconnects every 2 seconds after a drop, and a player who dropped while underground takes their place back (see [expedition.md](expedition.md#reconnection)). Parties and the expedition lifecycle are in [expedition.md](expedition.md).
+**One connection for the whole site.** `src/lib/game/net/connection.svelte.ts` owns the single `GameClient`. The root layout calls `start()` on every signed-in page, and the connection stays open while moving between pages, so the party survives going to the Loadout page, the Store or the settings. It keeps the reactive `connection` state (`status`, `party`, `memberId`, `error`, `launchAt`, `social`, `search`, `welcome`) that the dashboard renders, and `/play` listens in with `subscribe()` for the messages of the expedition (`tick`, `map`, the results). The root layout goes to `/play` whenever `connection.welcome` is set.
+
+`GameClient` reconnects every 2 seconds after a drop, and a player who dropped takes their place back, in the party and underground (see [expedition.md](expedition.md#reconnection)). Parties and the expedition lifecycle are in [expedition.md](expedition.md).
 
 **Adding a message:** add it to `ClientMessage` or `ServerMessage` in `protocol.ts`, add its `type` to the matching allowed set, handle it in `server/index.ts`, `parties.ts` or `session.ts`, and in the client.
 
@@ -65,7 +67,7 @@ Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played
 **The settings screen** is `src/lib/ui/Settings.svelte`. It fills the window: a top bar whose tabs are the groups (Account, Audio, Graphics, Mouse, Accessibility, Interface, Controls) and a Back button, the selected group's title, then that group's settings in a container that scrolls on its own, so the screen never grows past the window.
 
 - **On the dashboard** it is the `/settings` page (`src/routes/settings/`), outside the `(hub)` group so it replaces the dashboard's bar. Back (or the `toggleSettings` key) returns to the page you came from.
-- **In `/play`** (the party screen and underground) it is laid over the game with the `dim` prop, opened by `toggleSettings` or the party screen's Settings button. It is not a navigation there: leaving `/play` would leave the party and the expedition. The page passes `onvolume`, `ongraphics` and `onaccount` so changes apply at once.
+- **In `/play`** (underground) it is laid over the game with the `dim` prop, opened by `toggleSettings`. It is not a navigation there, so the game keeps running behind it. The page passes `onvolume`, `ongraphics` and `onaccount` so changes apply at once.
 
 Every setting is a pill (`--setting-width`, 400px) with its name on the left and its value on the right, and no value needs the keyboard except the gamer tag. Two snippets draw them:
 

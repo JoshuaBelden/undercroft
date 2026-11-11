@@ -10,6 +10,7 @@ import {
 	type Slots
 } from '../../shared/items/inventory.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
+import { ensureFriendIndexes } from './friends.ts';
 
 /**
  * Accounts, sessions, game tickets and explorers in MongoDB. Used by the SvelteKit server (sign-in,
@@ -43,6 +44,11 @@ export interface ExplorerDoc {
 	layout: typeof LAYOUT;
 	/** Session id of the expedition they are in; the hub can't change anything while it is set. */
 	underground: string | null;
+	/**
+	 * Ready to descend with their party: the hub can't change anything while it is set, so what
+	 * they confirmed is what goes down. Set and cleared by the game server.
+	 */
+	ready?: boolean;
 	createdAt: Date;
 }
 
@@ -87,6 +93,7 @@ export async function ensureIndexes(db: Db): Promise<void> {
 	// MongoDB removes these itself once they expire.
 	await sessions(db).createIndex({ expires: 1 }, { expireAfterSeconds: 0 });
 	await tickets(db).createIndex({ expires: 1 }, { expireAfterSeconds: 0 });
+	await ensureFriendIndexes(db);
 }
 
 export async function createAccount(

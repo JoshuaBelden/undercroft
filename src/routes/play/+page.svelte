@@ -2,7 +2,6 @@
 	import * as THREE from 'three';
 	import { onMount } from 'svelte';
 	import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-	import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
 	import { MAP_KIT } from '#lib/content/map/kit.ts';
 	import { MOVEMENT } from '#lib/content/player/movement.ts';
 	import { SANITY } from '#lib/content/player/sanity.ts';
@@ -19,14 +18,7 @@
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
-	import {
-		allStacks,
-		canTake,
-		carriedCount,
-		held,
-		quickWith
-	} from '#lib/shared/items/inventory.ts';
-	import { stackLabel } from '#lib/ui/items.ts';
+	import { canTake, carriedCount, held, quickWith } from '#lib/shared/items/inventory.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
 	import { lookedAtItem } from '#lib/shared/items/pickup.ts';
@@ -36,14 +28,15 @@
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
-	import { GameClient, type ConnectionStatus } from '#lib/game/net/GameClient.ts';
+	import { connection, gameClient, me, start, subscribe } from '#lib/game/net/connection.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
 	import { LocalPlayer } from '#lib/game/player/LocalPlayer.ts';
 	import { PlayerAudio } from '#lib/game/player/PlayerAudio.ts';
 	import { RemotePlayers } from '#lib/game/player/RemotePlayers.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { gameTicket, loadAccount, session } from '#lib/account/account.svelte.ts';
+	import { loadAccount } from '#lib/account/account.svelte.ts';
 	import { buildCollisionWorld } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 	import { roomPoints } from '#lib/shared/map/points.ts';
@@ -59,8 +52,7 @@
 		type PlayerFlags,
 		type PlayerState
 	} from '#lib/shared/player/types.ts';
-	import type { PartyState } from '#lib/shared/party/types.ts';
-	import type { AdminCommand, ClientMessage } from '#lib/shared/protocol.ts';
+	import type { AdminCommand, ClientMessage, ServerMessage } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
@@ -70,7 +62,6 @@
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
-	import PartyLobby from '#lib/ui/PartyLobby.svelte';
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
@@ -86,8 +77,8 @@
 	let afflictionName = $state('');
 	/** What the player carries, for the inventory screen (kept up to date while it is open). */
 	let inventory = $state<Inventory | null>(null);
-	let status = $state<ConnectionStatus>('connecting');
-	let statusDetail = $state('');
+	const status = $derived(connection.status);
+	const statusDetail = $derived(connection.detail);
 	let sessionId = $state<string | null>(null);
 	let playerId = $state<string | null>(null);
 	let seed = $state<number | null>(null);
@@ -142,10 +133,6 @@
 	let spectateStop = (): void => {};
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
 	let banner = $state<{ title: string; key: number } | null>(null);
-	/** The party we're in, as the server last described it; null until connected. */
-	let party = $state<PartyState | null>(null);
-	let memberId = $state<string | null>(null);
-	let partyError = $state('');
 	/** Down in the catacombs (between `welcome` and extracting, dying or being banished out). */
 	let expedition = $state(false);
 	let send = (message: ClientMessage): void => {
@@ -165,13 +152,14 @@
 		void command;
 	};
 
-	/** What we are taking down: the loadout chosen on the dashboard, as a sentence. */
-	const kit = $derived.by(() => {
-		const loadout = session.account?.explorer.loadout;
-		if (!loadout) return '';
-		const stacks = allStacks(loadout);
-		if (stacks.length === 0) return 'You are going down with nothing but your headlamp.';
-		return `You are going down with: ${stacks.map(stackLabel).join(', ')}.`;
+	/*
+	 * This page is the expedition and nothing else: with none to show (it is over and its result
+	 * has been read, or the page was opened on the surface), go back to the dashboard and the party.
+	 */
+	$effect(() => {
+		if (connection.status !== 'connected' || !connection.party) return;
+		if (expedition || spectating || result || connection.welcome || me()?.inExpedition) return;
+		void goto(resolve('/(hub)'));
 	});
 	let sendInventory = (action: InventoryAction): void => {
 		void action;
@@ -217,53 +205,17 @@
 		};
 		applyGraphics();
 
-		/** Party to ask for on connecting: an invite link's code, then the party we were last in. */
-		let rejoin = new URLSearchParams(location.search).get('code') ?? undefined;
-		/** Proof of who we are for the game server (from the site; see docs/dev/accounts.md). */
-		let ticket = '';
-		/** A rejected ticket has been replaced once already. */
-		let ticketRetried = false;
-		const connect = (): void => {
-			gameTicket()
-				.then((fresh) => {
-					ticket = fresh;
-					void loadAccount();
-					// Again, with the ticket this time. (`connect` is declared before the client.)
-					client.connect();
-				})
-				// Not signed in any more (or the site is down): back to the sign-in page.
-				.catch(() => (location.href = resolve('/auth/sign-in')));
-		};
 		/** Player being watched while spectating. */
 		let watchId: string | null = null;
-		const client = new GameClient(PUBLIC_GAME_SERVER_URL, () => ({ ticket, code: rejoin }), {
-			onStatus: (next, detail) => {
-				status = next;
-				statusDetail = detail ?? '';
+		/** The site-wide connection (the dashboard's too): this page only listens in on it. */
+		const client = gameClient();
+		const unsubscribeNet = subscribe({
+			onStatus: (next) => {
 				playerId = client.playerId;
-				if (next === 'connected') ticketRetried = false;
-				// An expired ticket: get a new one and try again, once.
-				if (next === 'rejected' && detail === 'Sign in to play' && !ticketRetried) {
-					ticketRetried = true;
-					connect();
-				}
-				if (next !== 'connected') {
-					party = null;
-					if (expedition || spectating) endExpedition();
-				}
+				if (next !== 'connected' && (expedition || spectating)) endExpedition();
 			},
-			onMessage: (message) => {
+			onMessage: (message: ServerMessage) => {
 				switch (message.type) {
-					case 'party':
-						party = message.party;
-						memberId = message.you;
-						partyError = '';
-						// After a dropped connection, go back to the same party if others are in it.
-						rejoin = message.party.members.length > 1 ? message.party.code : undefined;
-						break;
-					case 'partyError':
-						partyError = message.reason;
-						break;
 					case 'welcome':
 						sessionId = message.sessionId;
 						playerId = message.playerId;
@@ -740,7 +692,15 @@
 			}
 		};
 
-		client.connect();
+		// Usually the expedition began while the dashboard was showing: its `welcome` is waiting.
+		start();
+		if (connection.welcome) {
+			const { sessionId: id, playerId: self, layout } = connection.welcome;
+			sessionId = id;
+			playerId = self;
+			expedition = true;
+			loadMap(layout);
+		}
 
 		const onLockChange = () => (locked = document.pointerLockElement === canvas);
 		document.addEventListener('pointerlockchange', onLockChange);
@@ -886,7 +846,7 @@
 			remote.dispose();
 			orbit.dispose();
 			input.dispose();
-			client.dispose();
+			unsubscribeNet();
 			engine.dispose();
 			audio.dispose();
 		};
@@ -936,19 +896,6 @@
 			result = null;
 			void loadAccount();
 		}}
-	/>
-{:else if party && memberId && !expedition && status === 'connected'}
-	<PartyLobby
-		{party}
-		you={memberId}
-		error={partyError}
-		onready={(ready) => send({ type: 'ready', ready })}
-		ondescend={() => send({ type: 'descend' })}
-		onjoin={(code) => send({ type: 'joinParty', code })}
-		onleave={() => send({ type: 'leaveParty' })}
-		{kit}
-		onsettings={() => toggle('settings')}
-		onhelp={() => toggle('help')}
 	/>
 {/if}
 

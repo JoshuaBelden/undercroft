@@ -23,11 +23,13 @@
 	 */
 	interface Props {
 		explorer: ExplorerView;
+		/** Ready to descend with the party: nothing can be changed until they cancel. */
+		ready?: boolean;
 		/** Something was moved, sold or dropped (for a sound). */
 		onchange?: (kind: 'move' | 'sell' | 'drop') => void;
 	}
 
-	let { explorer, onchange }: Props = $props();
+	let { explorer, ready = false, onchange }: Props = $props();
 
 	let filter = $state<ItemFilter>('all');
 	let error = $state('');
@@ -48,6 +50,11 @@
 	/** Requests not yet answered; they are sent one at a time, in order. */
 	let waiting = 0;
 	let queue: Promise<void> = Promise.resolve();
+
+	/** Resolves once every change made so far has been answered by the server. */
+	export function settled(): Promise<void> {
+		return queue;
+	}
 
 	/** Send a change after those before it. What the server says is shown once nothing is waiting. */
 	function send(path: string, body: unknown): void {
@@ -100,7 +107,7 @@
 		belongings: () => ({ inventory: explorer.loadout, stash: explorer.stash }),
 		act: arrange,
 		sell,
-		locked: () => explorer.underground,
+		locked: () => explorer.underground || ready,
 		price: money,
 		confirmDrop: true
 	});
@@ -132,9 +139,12 @@
 			<CarriedWeight inventory={explorer.loadout} />
 		</header>
 		<LoadoutPanel inventory={explorer.loadout} {board} />
-		{#if error || explorer.underground}
+		{#if error || explorer.underground || ready}
 			<p class="note" class:error={!!error} role={error ? 'alert' : undefined}>
-				{error || "You're underground: nothing can be changed until you're back."}
+				{error ||
+					(explorer.underground
+						? "You're underground: nothing can be changed until you're back."
+						: "You're ready to descend: nothing can be changed unless you cancel.")}
 			</p>
 		{/if}
 	</section>

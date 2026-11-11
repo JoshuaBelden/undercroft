@@ -7,8 +7,20 @@ import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
  */
 export const session: { account: AccountView | null } = $state({ account: null });
 
-/** A failed request, with the message the server gave. */
-export class ApiError extends Error {}
+/** A failed request, with the message the server gave and its HTTP status. */
+export class ApiError extends Error {
+	constructor(
+		message: string,
+		readonly status: number
+	) {
+		super(message);
+	}
+
+	/** The server no longer knows who we are: the session ended. */
+	get signedOut(): boolean {
+		return this.status === 401;
+	}
+}
 
 /** Call this site's JSON API. Throws `ApiError` with the server's message when it refuses. */
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
@@ -18,16 +30,22 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
 		body: body === undefined ? undefined : JSON.stringify(body)
 	});
 	const data = (await response.json().catch(() => ({}))) as { error?: string; message?: string };
-	if (!response.ok) throw new ApiError(data.error ?? data.message ?? 'Something went wrong');
+	if (!response.ok) {
+		throw new ApiError(data.error ?? data.message ?? 'Something went wrong', response.status);
+	}
 	return data as T;
 }
 
-/** Fetch the account again (after an expedition, a purchase, a change of gamer tag). */
+/**
+ * Fetch the account again (after an expedition, a purchase, a change of gamer tag). If the
+ * request fails for any reason but being signed out (the site restarting, the network), what
+ * was known before is kept.
+ */
 export async function loadAccount(): Promise<AccountView | null> {
 	try {
 		session.account = await api<AccountView>('/api/account');
-	} catch {
-		session.account = null;
+	} catch (error) {
+		if (error instanceof ApiError && error.signedOut) session.account = null;
 	}
 	return session.account;
 }

@@ -5,6 +5,9 @@
 	--text: #e2dccc;
 	--muted: #8f8577;
 	--accent: #00819d;
+	/* Dark yellow: the button that launches an expedition (and confirms the loadout for it). */
+	--launch: #b08a1e;
+	--launch-bright: #cda42a;
 	/*
 	 * Typefaces (the Barlow family and Cinzel, loaded in src/routes/+layout.svelte):
 	 * display for headings and numbers, body for running text, ui for controls and labels,

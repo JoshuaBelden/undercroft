@@ -1,5 +1,5 @@
 /** Bump when the client/server message format changes incompatibly. */
-export const PROTOCOL_VERSION = 14;
+export const PROTOCOL_VERSION = 16;
 
 /** Server simulation ticks per second. */
 export const TICK_RATE = 20;

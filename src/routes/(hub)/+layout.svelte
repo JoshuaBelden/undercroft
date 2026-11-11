@@ -6,6 +6,7 @@
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { money } from '#lib/content/economy.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
+	import { connection, me } from '#lib/game/net/connection.svelte.ts';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import type { LayoutProps } from './$types';
@@ -13,6 +14,14 @@
 	let { data, children }: LayoutProps = $props();
 
 	let help = $state(false);
+	/** On the Social page (friends, the party, invites). */
+	const social = $derived(page.route.id === '/(hub)/social');
+	/** Friend requests and party invites waiting for an answer: the number on the social button. */
+	const waiting = $derived(
+		(connection.social?.incoming.length ?? 0) + (connection.social?.invites.length ?? 0)
+	);
+	/** Ready to descend: the store is closed until they cancel. */
+	const ready = $derived(me()?.ready ?? false);
 	/** How tall the bar is, for pages that put something right under it (`--hub-bar`). */
 	let bar = $state(0);
 
@@ -29,14 +38,26 @@
 	onMount(() => {
 		void loadAccount();
 		// Only these actions: every other key and click is left to the page.
-		const input = new InputMap(window, ['toggleSettings', 'toggleHelp', 'inventory']);
+		const input = new InputMap(window, [
+			'toggleSettings',
+			'toggleHelp',
+			'toggleSocial',
+			'inventory'
+		]);
 		const unsubscribe = input.onPressed((action) => {
-			// With Help open the key closes it; otherwise it opens the settings page.
+			// The key backs out one step: it closes Help, then returns to the Expedition page, and
+			// only from there opens the settings page.
 			if (action === 'toggleSettings') {
 				if (help) help = false;
+				else if (page.route.id !== '/(hub)') void goto(resolve('/(hub)'));
 				else void goto(resolve('/settings'));
 			}
 			if (action === 'toggleHelp') help = !help;
+			// To the Social page; from there, the same key goes back to the party.
+			if (action === 'toggleSocial') {
+				help = false;
+				void goto(resolve(social ? '/(hub)' : '/(hub)/social'));
+			}
 			// The key that opens the pack underground opens the Loadout page up here.
 			if (action === 'inventory') {
 				help = false;
@@ -64,7 +85,17 @@
 			{/each}
 		</nav>
 		<div class="who">
-			{#if explorer}
+			{#if explorer && ready}
+				<!-- Ready to descend: the store is closed, so the money is not a link. -->
+				<span
+					class="coins closed"
+					aria-label="You have {money(explorer.money)}. The store is closed while you are ready"
+					title="The store is closed while you are ready to descend"
+				>
+					<span class="sign" aria-hidden="true">＄</span>
+					<span aria-hidden="true">{explorer.money}</span>
+				</span>
+			{:else if explorer}
 				<a
 					class="coins"
 					class:current={page.route.id === '/(hub)/store'}
@@ -97,6 +128,28 @@
 				/>
 				<circle cx="12" cy="12.2" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6" />
 			</svg>
+		</a>
+		<a
+			class="pill"
+			class:open={social}
+			href={resolve('/(hub)/social')}
+			aria-label={waiting > 0 ? `Social: ${waiting} waiting for an answer` : 'Social'}
+			aria-current={social ? 'page' : undefined}
+			title="Friends, your party and invites"
+		>
+			<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+				<path
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.6"
+					stroke-linejoin="round"
+					d="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5h-8.2L7 21.5v-4H4A1.5 1.5 0 0 1 2.5 16V6A1.5 1.5 0 0 1 4 4.5z"
+				/>
+			</svg>
+			<span>Social</span>
+			{#if waiting > 0}
+				<span class="badge" aria-hidden="true">{waiting}</span>
+			{/if}
 		</a>
 		<button
 			type="button"
@@ -192,6 +245,15 @@
 		border-color: var(--accent);
 	}
 
+	.coins.closed {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.coins.closed:hover {
+		background: none;
+	}
+
 	.sign {
 		margin-right: -0.12em;
 	}
@@ -240,6 +302,46 @@
 	.icon:hover,
 	.icon:focus-visible {
 		border-color: var(--accent);
+	}
+
+	/* The social button: a pill between the round ones, with its name and what is waiting. */
+	.pill {
+		height: 44px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 0 16px 0 14px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: rgb(4 3 3 / 0.92);
+		color: var(--text);
+		font-family: var(--font-ui);
+		font-size: 0.85rem;
+		font-weight: 600;
+		letter-spacing: 0.12em;
+		text-decoration: none;
+		text-transform: uppercase;
+	}
+
+	.pill:hover,
+	.pill:focus-visible,
+	.pill.open {
+		border-color: var(--accent);
+	}
+
+	.pill svg {
+		display: block;
+	}
+
+	.badge {
+		min-width: 20px;
+		padding: 2px 6px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: #fff;
+		font-size: 0.75rem;
+		letter-spacing: 0;
+		text-align: center;
 	}
 
 	/* Inline boxes sit on the text baseline, which pushes them off centre: make them blocks. */

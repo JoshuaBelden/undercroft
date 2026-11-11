@@ -17,7 +17,7 @@ pnpm dev:server
 pnpm dev
 ```
 
-Open http://localhost:5173, create an account, and choose **Descend**. The status in the bottom-right shows the game server connection.
+Open http://localhost:5173, create an account, choose an Affliction and press **Launch Expedition**. The status in the bottom-right shows the game server connection.
 
 MongoDB is required: accounts, sessions and everything a player keeps live there. Without it the site can't sign anyone in and the game server rejects every connection (it logs a warning at start). If the container is up but the connection is refused, recreate it: `docker compose up -d --force-recreate mongo` (the data is in a volume and survives).
 
