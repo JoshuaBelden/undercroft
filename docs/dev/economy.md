@@ -16,7 +16,8 @@ Between expeditions an explorer owns a **stash** (kept on the surface) and a **l
 | `src/lib/server/store/shop.ts`      | Buying, selling, admin grants, the ledger                      |
 | `src/routes/api/shop/`              | Shop endpoint                                                  |
 | `src/routes/api/admin/`             | Dev-mode account tools                                         |
-| `src/lib/ui/Shop.svelte`            | The shop (the dashboard's Store page)                          |
+| `src/lib/ui/Shop.svelte`            | The shop (the dashboard's Store page): buying only             |
+| `src/lib/ui/ItemFilters.svelte`     | The round category filters beside the stash and the store      |
 | `src/routes/(hub)/`                 | The dashboard: its layout and one page per tab                 |
 | `src/lib/account/account.svelte.ts` | Client: `session.account.explorer`, `changeLoadout`            |
 
@@ -26,8 +27,8 @@ The explorer document is described in [accounts.md](accounts.md).
 
 Signing in lands on the dashboard. It is the `(hub)` route group: `+layout.svelte` draws the frame and each tab is its own page.
 
-- **Frame:** the tabs (Expedition, Loadout, Afflictions) top-left, then money and the gamer tag top-right. Settings (a gear) and Help (a question mark) sit bottom-right. The gear is a link to the `/settings` page, which is outside the group and so replaces the frame (see [systems.md](systems.md#settings)); Help opens as an overlay. The `toggleSettings` (Escape) and `toggleHelp` actions do the same, through an `InputMap` limited to those two actions so the pages keep every other key.
-- **Page width:** the frame gives each page the whole window under the bar, less 50px of padding on each side (none on narrow screens). A page that wants the centred 900px column wraps itself in the global `.page-column` class (`src/app.css`), as Expedition and Store do; a full-width page (Loadout, Afflictions) lays itself out.
+- **Frame:** the tabs (Expedition, Loadout, Afflictions) top-left, then money and the gamer tag top-right. Settings (a gear) and Help (a question mark) sit bottom-right. The gear is a link to the `/settings` page, which is outside the group and so replaces the frame (see [systems.md](systems.md#settings)); Help opens as an overlay. The `toggleSettings` (Escape) and `toggleHelp` actions do the same, and `inventory` (Tab: the key that opens the pack underground) goes to the Loadout page, through an `InputMap` limited to those three actions so the pages keep every other key.
+- **Page width:** the frame gives each page the whole window under the bar, less 50px of padding on each side (none on narrow screens). A page that wants the centred 900px column wraps itself in the global `.page-column` class (`src/app.css`), as Expedition does; a full-width page (Loadout, Store, Afflictions) lays itself out.
 - **Expedition** (`/`, the default): the setup screen. It shows the Affliction, what you are taking, and two ways out: "Start an expedition" (opens `/play`) or join one by invite code (opens `/play?code=...`). Nothing starts until then.
 - **Loadout** (`/loadout`): `Outfit`.
 - **Afflictions** (`/afflictions`): `Afflictions` (see [rite.md](rite.md)).
@@ -44,7 +45,7 @@ Links inside the group use route ids with `resolve` (`resolve('/(hub)/loadout')`
 
 ### The Loadout page
 
-`Outfit` fills the page with two rounded, see-through panels. STASH on the left is as wide as its slots: a column of round filter buttons (all, weapons, defense, quick use, other) and the slots, 5 across, in a container that scrolls. A filter shows the stacks of that category first and then the empty slots, so there is still somewhere to drop things. LOADOUT takes the rest of the width and is a `LoadoutPanel`, with the weight of it (`CarriedWeight`) beside the title. The two are always side by side: in a narrower window the slots shrink (`--slot-size`, set on the page and read by `Slot`).
+`Outfit` fills the page with two rounded, see-through panels. STASH on the left is as wide as its slots: a column of round filter buttons (`ItemFilters`: all, weapons, ammunition, defense, quick use, other) and the slots, 5 across, in a container that scrolls. A filter shows the stacks of that category first and then the empty slots, so there is still somewhere to drop things. LOADOUT takes the rest of the width and is a `LoadoutPanel`, with the weight of it (`CarriedWeight`) beside the title. The two are always side by side: in a narrower window the slots shrink (`--slot-size`, set on the page and read by `Slot`).
 
 Everything is drag and drop; there are no buttons. Slots are `ItemSlot`s on one `ItemBoard` (see [systems.md](systems.md#item-slots)):
 
@@ -115,9 +116,15 @@ Loot values are on the items (`value` in `src/lib/content/items.ts`), and how mu
 `POST /api/shop` returns the `AccountView` afterwards:
 
 - `{ action: 'buy', item, lots }`: charges `price × lots` and puts `lot × lots` in the stash. Refused if you can't afford it, the shop doesn't sell it, or it won't all fit in the stash (`stashFull`).
-- `{ action: 'sell', from, count }`: sells up to `count` from a slot. `from` is a `SlotRef` in the stash or the loadout: the store page sells from the stash, the Loadout page's menu from either.
+- `{ action: 'sell', from, count }`: sells up to `count` from a slot. `from` is a `SlotRef` in the stash or the loadout. Selling is done from the Loadout page's menu; the Store page only buys.
 
-The client only says what to buy or sell. Prices are looked up on the server, and the shop overlay shows the same table. Like every hub change it is refused while underground.
+The client only says what to buy or sell. Prices are looked up on the server, and the Store page shows the same table. Like every hub change it is refused while underground.
+
+### The Store page
+
+`Shop` is for buying only. It draws one panel in the same style as the stash, titled STORE: the `ItemFilters` column and a grid of `SHOP` entries, `SLOTS.stashColumns` across. Each entry is a `Slot` in a button, with the lot size as the count and the price as the small print in the corner. A filter shows only the entries of that category (`matchesFilter`).
+
+Clicking an entry slides a light panel in from the right edge of the window, from the bottom of the dashboard's bar down (the frame measures the bar and sets `--hub-bar` for this) (clicking it again, the close button or Escape takes it away; Escape is caught in the capture phase so the dashboard does not open Settings). It shows the picture, name, category, flavor and `itemStats(stack, true)`: the `forSale` form leaves out what only applies to a stack you own (rounds loaded, how full the stack is, what it sells for). Its footer has the total, what you have, a quantity (in lots, 1 to 99, the server's limit) and Purchase, which sends `buy`, plays `shop.buy` and closes the panel (a refused purchase leaves it open). Purchase is disabled while underground or when the total is more than you have; a refusal from the server (no room in the stash) is shown above it.
 
 ### The ledger
 

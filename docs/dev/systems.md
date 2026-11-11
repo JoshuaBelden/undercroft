@@ -42,6 +42,8 @@ Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. M
 - `input.onPressed(fn)` for presses; returns an unsubscribe function.
 - `input.consumeLook()` returns mouse movement since the last call while the pointer is locked (mouse look is an axis, not an action).
 
+**Tab** never moves the browser's focus: `src/routes/+layout.svelte` cancels it on every page (in the capture phase, so dialogs can't let it through), and the input map treats it as any other key. By default it is the `inventory` action: the pack underground, and the Loadout page on the dashboard. Nothing happens while a text field has focus, since the input map ignores keys typed there.
+
 **Adding an action:** add it to `ACTIONS`. It appears in the settings controls list automatically. Use `{action:name}` in help text to show the player's binding.
 
 ## Audio
@@ -98,10 +100,13 @@ Render it only while it should be open. It is a native modal `<dialog>`: focus s
 
 ### Item slots
 
-Slots that things are dragged between (the Loadout page, the pack screen) are built from four pieces:
+The browser's own context menu is turned off on every page (`src/routes/+layout.svelte` cancels `contextmenu` on the window), so the alternate click only ever opens the game's menus.
+
+Slots that things are dragged between (the Loadout page, the pack screen) are built from these pieces:
 
 - `ItemBoard` (`itemBoard.svelte.ts`): one per screen. It holds what is being dragged, which slot the tooltip is for, the open menu and the question being asked, and turns what the player does into `InventoryAction`s. Give it `belongings` (what the slots show), `act` (send a request) and, where they apply, `sell`, `locked`, `price` and `confirmDrop`.
 - `ItemSlot`: a `Slot` in a button. Takes the `board`, its `SlotRef`, the `stack` and a `label` to read out. Dragging, dropping (slots that would take the dragged thing are marked in dark blue, the one under the cursor is lit, the rest dim), shift-click, the context menu (also the keyboard's menu key) and the tooltip (hover or focus) all report to the board.
+- `ItemFilters`: the column of round category buttons beside a grid of items. Bind its `filter` (`ItemFilter`: `all`, a category, or `ammo`) and filter the grid with `matchesFilter`. Ammunition is in the `other` category for slotting but is listed under its own filter, not under Other. The stash and the store use it.
 - `ItemOverlays`: put one beside the slots. It draws the board's `ItemTooltip`, `ItemMenu` and dialogs.
 - `LoadoutPanel`: an `Inventory` as EQUIPMENT, BACKPACK and QUICK USE, in a row.
 - `CarriedWeight`: what an inventory weighs against the most that can be carried ("3.3 / 30 kg"), in the accent colour once it is enough to slow you. It sits beside the title of the loadout and of the pack screen.

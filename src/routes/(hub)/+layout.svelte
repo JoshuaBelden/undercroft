@@ -13,6 +13,8 @@
 	let { data, children }: LayoutProps = $props();
 
 	let help = $state(false);
+	/** How tall the bar is, for pages that put something right under it (`--hub-bar`). */
+	let bar = $state(0);
 
 	const explorer = $derived(session.account?.explorer ?? null);
 	const gamerTag = $derived(session.account?.gamerTag ?? data.account?.gamerTag ?? '');
@@ -26,8 +28,8 @@
 
 	onMount(() => {
 		void loadAccount();
-		// Only the two interface actions: every other key and click is left to the page.
-		const input = new InputMap(window, ['toggleSettings', 'toggleHelp']);
+		// Only these actions: every other key and click is left to the page.
+		const input = new InputMap(window, ['toggleSettings', 'toggleHelp', 'inventory']);
 		const unsubscribe = input.onPressed((action) => {
 			// With Help open the key closes it; otherwise it opens the settings page.
 			if (action === 'toggleSettings') {
@@ -35,6 +37,11 @@
 				else void goto(resolve('/settings'));
 			}
 			if (action === 'toggleHelp') help = !help;
+			// The key that opens the pack underground opens the Loadout page up here.
+			if (action === 'inventory') {
+				help = false;
+				void goto(resolve('/(hub)/loadout'));
+			}
 		});
 		return () => {
 			unsubscribe();
@@ -43,8 +50,8 @@
 	});
 </script>
 
-<div class="hub backdrop-art" use:parallax>
-	<header>
+<div class="hub backdrop-art" style:--hub-bar="{bar}px" use:parallax>
+	<header bind:clientHeight={bar}>
 		<nav aria-label="Dashboard">
 			{#each TABS as tab (tab.path)}
 				<a

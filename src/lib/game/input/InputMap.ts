@@ -76,7 +76,7 @@ export class InputMap {
 	}
 
 	private onKeyDown = (event: KeyboardEvent): void => {
-		if (event.repeat || isTyping(event) || isFocusMove(event)) return;
+		if (event.repeat || isTyping(event)) return;
 		this.press(event.code, event);
 	};
 
@@ -116,16 +116,6 @@ export class InputMap {
 	private onBlur = (): void => {
 		this.down.clear();
 	};
-}
-
-/**
- * Tab pressed while a button or other control has focus, outside play: the browser's move to the
- * next control, which menus need for keyboard use. Not a game key press, whatever Tab is bound to.
- */
-function isFocusMove(event: KeyboardEvent): boolean {
-	if (event.code !== 'Tab' || document.pointerLockElement) return false;
-	const focused = document.activeElement;
-	return focused !== null && focused !== document.body;
 }
 
 function isTyping(event: KeyboardEvent): boolean {

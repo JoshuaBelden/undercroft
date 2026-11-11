@@ -86,13 +86,13 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 
 Whatever you carry out of the catacombs is yours. Your kit stays packed the way you carried it, ready for the next descent. Anything else you found goes into your stash.
 
-The dashboard is where you land when you sign in. Its "Loadout" page shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
+The dashboard is where you land when you sign in. Its "Loadout" page ({action:inventory} from anywhere on the dashboard) shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
 
 The loadout has a place for everything. Two weapons, and one thing worn for protection. A backpack that takes anything. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
 
 Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to equip it, split a stack, sell it or drop it. Dropping something on the surface throws it away for good.
 
-Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, protection, quick-use items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
+Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
 
 Relics lie about the catacombs, more of them the deeper you go. They are worth money on the surface, but they are heavy, they fill your backpack, and the more of them you carry the sooner the Gloaming comes.
 
@@ -102,11 +102,11 @@ What you take down and don't bring back is gone. If you die, everything you carr
 		id: 'the-shop',
 		title: 'The store',
 		category: 'Basics',
-		body: `Click your money, at the top right of the dashboard, to open the store. Sell what you've brought out and buy what you need.
-
-Relics are what sell. Gear you bought can be sold back, for less than you paid. Some things nobody wants. You can also sell from the "Loadout" page: right-click something and choose Sell.
+		body: `Click your money, at the top right of the dashboard, to open the store. The round buttons beside it show only weapons, ammunition, protection, quick-use items or everything else. Click something to see what it is and what it costs, choose how many, and press Purchase.
 
 What you buy goes to your stash, which only has so many slots: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
+
+Selling is done on the "Loadout" page: right-click something and choose Sell. Relics are what sell. Gear you bought can be sold back, for less than you paid. Some things nobody wants.
 
 A first descent with nothing is a short one. Bring out a relic or two, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
 	},

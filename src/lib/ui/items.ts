@@ -32,8 +32,26 @@ export const CATEGORY_LABELS: Record<ItemCategory, string> = {
 	other: 'Other'
 };
 
-/** The figures that matter for a stack, for the tooltip: only those that apply to it. */
-export function itemStats(stack: ItemStack): { label: string; value: string }[] {
+/**
+ * What a grid of items is showing: everything, one category, or ammunition (`ItemFilters`).
+ * Ammunition is in the `other` category for slotting, but has a filter of its own.
+ */
+export type ItemFilter = 'all' | ItemCategory | 'ammo';
+
+/** Whether an item is shown under a filter. Ammunition is listed under `ammo`, not `other`. */
+export function matchesFilter(item: string, filter: ItemFilter): boolean {
+	if (filter === 'all') return true;
+	const def = ITEMS[item];
+	if (!def) return false;
+	if (def.kind === 'ammo') return filter === 'ammo';
+	return def.category === filter;
+}
+
+/**
+ * The figures that matter for a stack, for the tooltip: only those that apply to it. `forSale` is
+ * a stack in the store, not one you own: what it holds and stacks to, not what is in it now.
+ */
+export function itemStats(stack: ItemStack, forSale = false): { label: string; value: string }[] {
 	const def = ITEMS[stack.item];
 	if (!def) return [];
 	const stats: { label: string; value: string }[] = [];
@@ -42,7 +60,8 @@ export function itemStats(stack: ItemStack): { label: string; value: string }[] 
 		const gun = def.firearm;
 		add('Damage', gun.pellets > 1 ? `${gun.damage} × ${gun.pellets}` : `${gun.damage}`);
 		add('Range', `${gun.range} m`);
-		add('Loaded', `${stack.loaded ?? 0} / ${gun.magazine}`);
+		if (forSale) add('Holds', `${gun.magazine}`);
+		else add('Loaded', `${stack.loaded ?? 0} / ${gun.magazine}`);
 		add('Takes', ITEMS[gun.ammo]?.name ?? gun.ammo);
 	}
 	if (def.melee) {
@@ -50,7 +69,10 @@ export function itemStats(stack: ItemStack): { label: string; value: string }[] 
 		add('Reach', `${def.melee.range} m`);
 		add('Swing', `${(def.melee.windup + def.melee.recovery).toFixed(1)} s`);
 		if (def.melee.breaksAfter) {
-			add('Blows left', `${Math.max(0, def.melee.breaksAfter - (stack.uses ?? 0))}`);
+			add(
+				forSale ? 'Breaks after' : 'Blows left',
+				`${Math.max(0, def.melee.breaksAfter - (stack.uses ?? 0))}`
+			);
 		}
 	}
 	if (def.throwable) add('Thrown', `${def.throwable.damage} damage`);
@@ -61,8 +83,12 @@ export function itemStats(stack: ItemStack): { label: string; value: string }[] 
 	if (def.revive) add('Use', 'Revives the downed');
 	if (def.defense) add('Protection', `${Math.round(def.defense.reduction * 100)}% off attacks`);
 	add('Weight', stackKilos(stack));
-	if (def.maxStack > 1) add('Stack', `${stack.count} / ${def.maxStack}`);
+	if (def.maxStack > 1) {
+		if (forSale) add('Stacks to', `${def.maxStack}`);
+		else add('Stack', `${stack.count} / ${def.maxStack}`);
+	}
 	const price = sellPrice(stack.item);
-	if (price > 0) add('Sells for', stack.count > 1 ? `${money(price)} each` : money(price));
+	if (price > 0 && !forSale)
+		add('Sells for', stack.count > 1 ? `${money(price)} each` : money(price));
 	return stats;
 }

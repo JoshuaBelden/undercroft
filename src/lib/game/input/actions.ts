@@ -32,7 +32,7 @@ export const ACTIONS = {
 	prevItem: { label: 'Other weapon (back)', category: 'Items', defaults: ['WheelUp'] },
 	// Hold: the wheel of quick-use items; move the mouse to one and let go to take it in hand.
 	quickUse: { label: 'Quick-use wheel (hold)', category: 'Items', defaults: ['KeyQ'] },
-	inventory: { label: 'Pack (inventory)', category: 'Items', defaults: ['Tab', 'KeyI'] },
+	inventory: { label: 'Pack / Loadout', category: 'Items', defaults: ['Tab', 'KeyI'] },
 	ritePanel: { label: 'The rite', category: 'Items', defaults: ['KeyJ'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },
