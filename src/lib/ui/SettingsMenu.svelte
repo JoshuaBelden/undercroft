@@ -1,4 +1,12 @@
 <script lang="ts">
+	import { ACCOUNT } from '#lib/content/account.ts';
+	import {
+		ApiError,
+		changeGamerTag,
+		loadAccount,
+		session,
+		signOut
+	} from '#lib/account/account.svelte.ts';
 	import { AUDIO_CATEGORIES, type AudioCategory } from '#lib/game/audio/AudioManager.ts';
 	import { ACTIONS, bindingLabel, type Action } from '#lib/game/input/actions.ts';
 	import {
@@ -15,9 +23,28 @@
 		onvolume?: (category: AudioCategory, value: number) => void;
 		/** Graphics settings changed; re-apply them to the renderer. */
 		ongraphics?: () => void;
+		/** The gamer tag was changed (the game server should read it again). */
+		onaccount?: () => void;
 	}
 
-	let { onclose, onvolume, ongraphics }: Props = $props();
+	let { onclose, onvolume, ongraphics, onaccount }: Props = $props();
+
+	let gamerTag = $state(session.account?.gamerTag ?? '');
+	let tagMessage = $state('');
+	if (!session.account) void loadAccount().then((account) => (gamerTag = account?.gamerTag ?? ''));
+
+	async function saveTag(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		tagMessage = '';
+		try {
+			await changeGamerTag(gamerTag);
+			gamerTag = session.account?.gamerTag ?? gamerTag;
+			tagMessage = 'Saved';
+			onaccount?.();
+		} catch (caught) {
+			tagMessage = caught instanceof ApiError ? caught.message : 'Could not reach the server';
+		}
+	}
 
 	const QUALITIES: GraphicsQuality[] = ['low', 'medium', 'high'];
 	const CAPTION_SIZES: CaptionSize[] = ['small', 'medium', 'large'];
@@ -43,6 +70,33 @@
 </script>
 
 <Panel title="Settings" {onclose}>
+	<h3>Account</h3>
+	<div class="row">
+		<span>Signed in as</span>
+		<span>{session.account?.email ?? '...'}</span>
+	</div>
+	<form class="row" onsubmit={saveTag}>
+		<label for="gamer-tag">Gamer tag</label>
+		<span class="tag">
+			<input
+				id="gamer-tag"
+				type="text"
+				minlength={ACCOUNT.tagMin}
+				maxlength={ACCOUNT.tagMax}
+				required
+				bind:value={gamerTag}
+			/>
+			<button type="submit" disabled={gamerTag === session.account?.gamerTag}>Save</button>
+		</span>
+	</form>
+	{#if tagMessage}
+		<p class="muted" role="status">{tagMessage}</p>
+	{/if}
+	<div class="row">
+		<span class="muted">The name other players see.</span>
+		<button type="button" onclick={() => void signOut()}>Sign out</button>
+	</div>
+
 	<h3>Audio</h3>
 	{#each AUDIO_CATEGORIES as category (category)}
 		<label class="row">
@@ -204,6 +258,11 @@
 	.muted {
 		color: var(--muted);
 		font-size: 0.9rem;
+	}
+
+	.tag {
+		display: flex;
+		gap: 8px;
 	}
 
 	.footer {

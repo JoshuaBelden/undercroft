@@ -1,21 +1,28 @@
 import { MongoClient, type Db } from 'mongodb';
+import { ensureIndexes } from '../src/lib/server/store/accounts.ts';
 import { config } from './config.ts';
 import { log } from './log.ts';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
 
-/** Connects to MongoDB. The server keeps running without a database in Phase 0. */
+/**
+ * Connects to MongoDB. Players are identified through it, so without it the server runs but
+ * nobody can connect.
+ */
 export async function connectDb(): Promise<Db | null> {
 	try {
 		client = new MongoClient(config.mongoUri, { serverSelectionTimeoutMS: 3000 });
 		await client.connect();
 		db = client.db(config.mongoDb);
 		await db.command({ ping: 1 });
+		await ensureIndexes(db);
 		log.info(`MongoDB connected (${config.mongoDb})`);
 		return db;
 	} catch (error) {
-		log.warn(`MongoDB unavailable: ${(error as Error).message}. Run "docker compose up -d".`);
+		log.warn(
+			`MongoDB unavailable: ${(error as Error).message}. Nobody can sign in without it: run "docker compose up -d".`
+		);
 		client = null;
 		db = null;
 		return null;

@@ -14,6 +14,17 @@ import type { InventoryAction, ItemRef } from './types.ts';
  * See docs/dev/items.md.
  */
 
+/** Carrying nothing. */
+export function emptyInventory(): Inventory {
+	return {
+		hotbar: new Array<ItemStack | null>(HOTBAR_SLOTS).fill(null),
+		selected: 0,
+		pockets: {},
+		pack: [],
+		backpack: DEFAULT_BACKPACK
+	};
+}
+
 export function startingInventory(): Inventory {
 	const hotbar: (ItemStack | null)[] = new Array(HOTBAR_SLOTS).fill(null);
 	STARTING_LOADOUT.hotbar.forEach((entry, i) => {

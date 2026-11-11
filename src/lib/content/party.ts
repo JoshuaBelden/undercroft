@@ -13,9 +13,5 @@ export const PARTY = {
 	 * Seconds a player who drops out of an expedition is kept in it, standing where they were,
 	 * before they are removed for good.
 	 */
-	reconnectSeconds: 60,
-	/** Longest player name. */
-	nameLength: 24,
-	/** Name used when a player hasn't chosen one. */
-	defaultName: 'Explorer'
+	reconnectSeconds: 60
 };

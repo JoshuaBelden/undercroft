@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { PARTY } from '#lib/content/party.ts';
-	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import { canDescend, normalizeCode, type PartyState } from '#lib/shared/party/types.ts';
 
 	interface Props {
@@ -14,7 +13,8 @@
 		ondescend: () => void;
 		onjoin: (code: string) => void;
 		onleave: () => void;
-		onrename: (name: string) => void;
+		/** Open the Afflictions overlay. */
+		onafflictions: () => void;
 		onsettings: () => void;
 		onhelp: () => void;
 	}
@@ -27,7 +27,7 @@
 		ondescend,
 		onjoin,
 		onleave,
-		onrename,
+		onafflictions,
 		onsettings,
 		onhelp
 	}: Props = $props();
@@ -38,11 +38,6 @@
 	const ready = $derived(canDescend(party));
 	let code = $state('');
 	let copied = $state(false);
-
-	function rename(): void {
-		saveSettings();
-		onrename(settings.profile.name);
-	}
 
 	function join(event: SubmitEvent): void {
 		event.preventDefault();
@@ -76,16 +71,9 @@
 	<div class="card">
 		<h1>The surface</h1>
 
-		<label class="row">
-			<span>Your name</span>
-			<input
-				type="text"
-				maxlength={PARTY.nameLength}
-				placeholder={PARTY.defaultName}
-				bind:value={settings.profile.name}
-				onchange={rename}
-			/>
-		</label>
+		<div class="hub">
+			<button type="button" onclick={onafflictions}>Afflictions</button>
+		</div>
 
 		<h2>Party</h2>
 		<ul>
@@ -149,6 +137,12 @@
 </div>
 
 <style>
+	.hub {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
 	.screen {
 		position: fixed;
 		inset: 0;
@@ -191,7 +185,6 @@
 		color: var(--muted);
 	}
 
-	.row,
 	.invite,
 	.join,
 	.join label {
@@ -200,12 +193,10 @@
 		gap: 12px;
 	}
 
-	.row,
 	.invite {
 		justify-content: space-between;
 	}
 
-	.row span,
 	.invite span,
 	.join span {
 		color: var(--muted);
@@ -218,10 +209,6 @@
 		border: 1px solid var(--border);
 		padding: 6px 8px;
 		min-width: 0;
-	}
-
-	.row input {
-		width: 200px;
 	}
 
 	.join input {

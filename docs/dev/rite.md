@@ -44,6 +44,8 @@ Neither the Pendant nor the clue has a model yet. On the floor they are drawn as
 
 Each tick's `affliction.rite` is a `RiteSnapshot`: `requirements` with `null` for slots no clue has revealed, `room` (`null` until the last clue), and `seconds`. Hidden information is never sent.
 
+On the surface, the Afflictions overlay (`AfflictionsPanel`, from the lobby) shows the same thing from saved progress: each Affliction, whether it is resolved, and what the clues found so far have revealed. It builds the view with `riteSnapshot`, like the server does.
+
 The rite panel (`ritePanel` action) shows it any time underground, including while spectating: each requirement or "Unknown", who in the party carries it (from the player snapshots), and the room.
 
 ## The holder and performing it
@@ -66,7 +68,7 @@ The client shows "Hold E to perform the rite" under the same conditions, with it
 
 `Progress` (`server/progress.ts`) keeps, per player and Affliction, the clues found and whether the rite has been performed. It is stored in the MongoDB collection `progress` (`_id` is `<player>:<affliction>`). Without a database it is kept in memory until the server restarts.
 
-- **Who a player is:** until accounts exist (Phase 5), the browser makes up an id once (`playerIdentity()` in the settings store, kept in `settings.profile.id`) and sends it as `hello.player`. Phase 5 replaces it with the account id.
+- **Who a player is:** their explorer (see [accounts.md](accounts.md)). The `player` field of a progress record is the explorer id.
 - **On descent** (`Parties.descend`): the expedition starts with the most clues any member has found, and that is recorded for all of them.
 - **When a clue is found:** recorded for everyone who went down on that expedition (`SessionHooks.onClues`).
 - **On resolution:** `resolved` is recorded for each of them (`onResolved`). That record is the progression unlock; nothing reads it until a second Affliction exists.

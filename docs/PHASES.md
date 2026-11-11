@@ -122,23 +122,26 @@ Aspects:
 - [x] **Settings**: HUD options (inventory display, item prompts).
 - [x] **Keybinds**: inventory, quick slots, drop, throw, rite panel, initiate rite (interact).
 
-## Phase 5: Hub, economy, persistence
+## Phase 5: Accounts, hub, economy
 
-- Accounts and player persistence (MongoDB)
-- Hub: shop (purchased gear), selling loot, repair, stash, out-of-expedition crafting
-- Gear durability and repair costs
-- Loadout before descent
-- Death and extraction outcomes applied to stash and money
-- Crafting skill progression saved
+The bare minimum that makes it a repeating game. The hub is overlays on the surface screen. Durability, repair and hub crafting moved to Phase 6; Discord and Steam sign-in to Phase 8.
+
+- [x] Accounts: email and password sign-up, the whole game behind sign-in, a gamer tag that can be changed (`docs/dev/accounts.md`)
+- [x] One explorer per account (more later); rite progress kept under the explorer
+- [x] Affliction view on the surface: resolved or not, rite hints learned so far
+- [ ] Stash and loadout before descent; a new explorer starts with nothing and no money
+- [ ] Death and extraction outcomes applied to the stash
+- [ ] Stand-in loot to carry out; loot carried feeds the Affliction meter
+- [ ] Shop: buy gear, sell loot; money
 
 Aspects:
 
-- **Dev docs**: data models, economy values and where to tune them.
-- **Help system**: hub, shop, repair, loadouts, death penalties.
-- **Admin**: grant money/items, edit player data, reset account, economy logs.
-- **Audio**: hub ambience and music, shop/UI sounds.
-- **Settings**: account settings.
-- **Keybinds**: hub navigation, UI shortcuts.
+- **Dev docs**: data models, economy values and where to tune them. (Accounts done.)
+- **Help system**: hub, shop, loadouts, death penalties.
+- **Admin**: grant money/items, reset explorer, reset a password, economy log.
+- **Audio**: shop/UI sounds (placeholders). Hub ambience and music wait for Phase 7.
+- **Settings**: account settings. (Done: gamer tag, sign out.)
+- **Keybinds**: none needed: the hub is mouse-driven overlays.
 
 ## Phase 6: Items in depth
 
@@ -154,6 +157,9 @@ Moved out of Phase 4, to come back to once the whole game is playable end to end
 - Loot spawning by depth
 - Shrines: hold one item through death or extraction
 - Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant
+- Gear durability and repair costs; repair in the hub (moved from Phase 5)
+- Out-of-expedition crafting, and crafting skill progression saved (moved from Phase 5)
+- Real loot types, containers and loot tables (Phase 5 has one stand-in item)
 
 Aspects:
 
@@ -183,3 +189,11 @@ Aspects:
 - **Audio**: final mix, music cues.
 - **Settings**: complete.
 - **Keybinds**: complete, remappable, conflict-checked.
+
+## Phase 8: Sign-in providers
+
+- Sign in with Discord
+- Sign in with Steam
+- Link a provider to an existing email account
+- Several explorers per account
+- Password recovery (needs an email service)

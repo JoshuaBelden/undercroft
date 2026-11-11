@@ -84,7 +84,7 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 		category: 'Basics',
 		body: `You start on the surface, in a party of your own. Descend alone, or bring up to three others.
 
-To invite someone, give them your invite code, or use "Copy link" and send them the link. To join someone else, type their code under "Join a party". Set the name the others will see at the top.
+To invite someone, give them your invite code, or use "Copy link" and send them the link. To join someone else, type their code under "Join a party". The others see your gamer tag, which you can change in the settings ({action:toggleSettings}).
 
 Everyone but the leader presses Ready. When all are ready the leader presses Descend, and the whole party goes down together.
 

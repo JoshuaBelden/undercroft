@@ -17,21 +17,23 @@ pnpm dev:server
 pnpm dev
 ```
 
-Open http://localhost:5173 and choose **Descend**. The status in the bottom-right shows the game server connection.
+Open http://localhost:5173, create an account, and choose **Descend**. The status in the bottom-right shows the game server connection.
 
-The game server keeps running if MongoDB is down; it logs a warning. Nothing persists to the database yet.
+MongoDB is required: accounts, sessions and everything a player keeps live there. Without it the site can't sign anyone in and the game server rejects every connection (it logs a warning at start). If the container is up but the connection is refused, recreate it: `docker compose up -d --force-recreate mongo` (the data is in a volume and survives).
+
+To play co-op on one machine, sign in to a second account in another browser profile or a private window. See [accounts.md](accounts.md).
 
 ## Environment variables
 
 | Variable                 | Used by | Default                                 |
 | ------------------------ | ------- | --------------------------------------- |
 | `GAME_SERVER_PORT`       | server  | `8787`                                  |
-| `MONGODB_URI`            | server  | `mongodb://localhost:27017`             |
-| `MONGODB_DB`             | server  | `undercroft`                            |
+| `MONGODB_URI`            | both    | `mongodb://localhost:27017`             |
+| `MONGODB_DB`             | both    | `undercroft`                            |
 | `PUBLIC_GAME_SERVER_URL` | client  | `ws://localhost:8787`                   |
 | `PUBLIC_DEV_MODE`        | client  | `false` (dev server is always dev mode) |
 
-Client variables are declared in `src/env.ts` and imported from `$app/env/public`. Add new client variables there. Server variables are read in `server/config.ts`.
+The SvelteKit app's variables are declared in `src/env.ts`: public ones are imported from `$app/env/public`, server-only ones from `$app/env/private`. The game server reads its variables in `server/config.ts`. The two MongoDB variables are read by both and must match.
 
 ## Quality gates
 

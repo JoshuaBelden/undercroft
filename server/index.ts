@@ -1,6 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
+import { currentTag, identify } from './accounts.ts';
 import { config } from './config.ts';
 import { closeDb, connectDb } from './db.ts';
 import { log } from './log.ts';
@@ -14,6 +15,8 @@ const wss = new WebSocketServer({ port: config.port });
 wss.on('connection', (socket) => {
 	/** Set by `hello`; every other message needs it. */
 	let member: Member | null = null;
+	/** Looking up who they are (a `hello` is being checked). */
+	let identifying = false;
 
 	socket.on('message', (data) => {
 		const message = decodeClient(data.toString());
@@ -25,13 +28,19 @@ wss.on('connection', (socket) => {
 				socket.close();
 				return;
 			}
-			member ??= parties.connect(
-				socket,
-				message.name,
-				message.code,
-				message.resume,
-				message.player
-			);
+			if (member || identifying) return;
+			identifying = true;
+			const { ticket, code } = message;
+			void identify(ticket).then((identity) => {
+				identifying = false;
+				if (socket.readyState !== socket.OPEN) return;
+				if (!identity) {
+					socket.send(encode({ type: 'reject', reason: 'Sign in to play' }));
+					socket.close();
+					return;
+				}
+				member = parties.connect(socket, identity, code);
+			});
 			return;
 		}
 		if (message.type === 'ping') {
@@ -50,9 +59,13 @@ wss.on('connection', (socket) => {
 			case 'ready':
 				parties.setReady(member, message.ready === true);
 				break;
-			case 'rename':
-				parties.rename(member, message.name);
+			case 'rename': {
+				const renamed = member;
+				void currentTag(renamed.account).then((tag) => {
+					if (tag) parties.rename(renamed, tag);
+				});
 				break;
+			}
 			case 'descend':
 				parties.descend(member);
 				break;

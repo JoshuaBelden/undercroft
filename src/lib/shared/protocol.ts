@@ -15,17 +15,12 @@ import type { PartyState } from './party/types.ts';
 import type { InputFrame, PlayerSnapshot } from './player/types.ts';
 
 export type ClientMessage =
-	/** First message. `code` joins that party; without one (or if it fails) you get your own. */
-	| {
-			type: 'hello';
-			protocol: number;
-			name: string;
-			code?: string;
-			/** Token from an earlier `party` message: take back the place a dropped connection held. */
-			resume?: string;
-			/** Who this is across visits (rite progress), until accounts exist: an id the browser keeps. */
-			player?: string;
-	  }
+	/**
+	 * First message. `ticket` says who this is (from the site's `/api/ticket`); without a valid one
+	 * the connection is rejected. `code` joins that party; without one (or if it fails) you get
+	 * your own.
+	 */
+	| { type: 'hello'; protocol: number; ticket: string; code?: string }
 	| { type: 'ping'; clientTime: number }
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
 	| { type: 'input'; frames: InputFrame[] }
@@ -36,7 +31,8 @@ export type ClientMessage =
 	/** Leave the party for a new one of your own. */
 	| { type: 'leaveParty' }
 	| { type: 'ready'; ready: boolean }
-	| { type: 'rename'; name: string }
+	/** The gamer tag was changed on the site: read it again. */
+	| { type: 'rename' }
 	/** Party leader: start the expedition for everyone (all others must be ready). */
 	| { type: 'descend' }
 	/** Dead and watching the others: stop, and go back to the surface. */
@@ -77,8 +73,6 @@ export type ServerMessage =
 	| {
 			type: 'party';
 			you: string;
-			/** Secret for `hello.resume`, should this connection drop. */
-			token: string;
 			party: PartyState;
 	  }
 	/** A party request was refused (bad code, full, not ready...). */

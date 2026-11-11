@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { signOut } from '#lib/account/account.svelte.ts';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
+	import type { PageProps } from './$types';
 
+	let { data }: PageProps = $props();
 	let panel = $state<'settings' | 'help' | null>(null);
 </script>
 
@@ -12,7 +15,11 @@
 		<a class="button" href={resolve('/play')}>Descend</a>
 		<button type="button" onclick={() => (panel = 'settings')}>Settings</button>
 		<button type="button" onclick={() => (panel = 'help')}>Help</button>
+		<button type="button" onclick={() => void signOut()}>Sign out</button>
 	</nav>
+	{#if data.account}
+		<p class="who">Signed in as {data.account.gamerTag}</p>
+	{/if}
 </main>
 
 {#if panel === 'settings'}
@@ -47,6 +54,11 @@
 
 	nav > * {
 		width: 200px;
+	}
+
+	.who {
+		margin: 0;
+		color: var(--muted);
 	}
 
 	.button {

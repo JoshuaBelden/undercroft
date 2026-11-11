@@ -33,6 +33,12 @@ src/
         GameClient.ts       WebSocket client, reconnect, RTT
     settings/
       settings.svelte.ts    persisted player settings ($state)
+    account/
+      account.svelte.ts     the signed-in account on the client, API helper
+    server/                 SvelteKit server only
+      db.ts                 MongoDB connection
+      session.ts            session cookie
+      store/accounts.ts     accounts, sessions, tickets, explorers (also used by the game server)
     content/
       help/index.ts         player help topics
       map/kit.ts            map piece roles and weights
@@ -46,11 +52,15 @@ src/
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
     ui/                     Svelte components (Panel, menus, overlays)
+  hooks.server.ts           finds the account for each request; everything is behind sign-in
   routes/
     +page.svelte            main menu
     play/+page.svelte       game view (client-only)
+    auth/                   sign-in and sign-up pages
+    api/                    JSON endpoints: auth, account, ticket
 server/
   index.ts                  WebSocket server entry
+  accounts.ts               who a connection is, from the ticket in its hello
   session.ts                Session: authoritative state and tick loop, sanity, revives
   creatures.ts              CreatureDirector: creature AI, damage, noise
   combat.ts                 resolves shots, swings, throws and drops

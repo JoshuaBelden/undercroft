@@ -34,7 +34,9 @@
 	import { LocalPlayer } from '#lib/game/player/LocalPlayer.ts';
 	import { PlayerAudio } from '#lib/game/player/PlayerAudio.ts';
 	import { RemotePlayers } from '#lib/game/player/RemotePlayers.ts';
-	import { playerIdentity, saveSettings, settings } from '#lib/settings/settings.svelte.ts';
+	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
+	import { resolve } from '$app/paths';
+	import { gameTicket, loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { buildCollisionWorld } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 	import { roomPoints } from '#lib/shared/map/points.ts';
@@ -47,6 +49,7 @@
 	import type { PartyState } from '#lib/shared/party/types.ts';
 	import type { AdminCommand, ClientMessage } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
+	import AfflictionsPanel from '#lib/ui/AfflictionsPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
@@ -61,7 +64,8 @@
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
-	let panel = $state<'settings' | 'help' | 'admin' | 'inventory' | 'rite' | null>(null);
+	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'rite' | 'afflictions';
+	let panel = $state<PanelName | null>(null);
 	/** The rite as known so far, and (while its panel is open) who carries each requirement. */
 	let rite = $state<RiteSnapshot | null>(null);
 	let riteCarriers = $state<{ name: string; count: number }[][]>([]);
@@ -150,7 +154,7 @@
 		void action;
 	};
 
-	function toggle(name: 'settings' | 'help' | 'admin' | 'inventory' | 'rite'): void {
+	function toggle(name: PanelName): void {
 		const closing = panel === name;
 		// The rite can be looked at any time underground, alive or watching.
 		if (name === 'rite' && !closing && !rite) return;
@@ -192,111 +196,105 @@
 
 		/** Party to ask for on connecting: an invite link's code, then the party we were last in. */
 		let rejoin = new URLSearchParams(location.search).get('code') ?? undefined;
-		/**
-		 * Token of our place on the server, kept for this tab so a dropped connection or a reload
-		 * takes us back into the expedition we were in.
-		 */
-		const RESUME_KEY = 'undercroft.resume';
-		const resumeToken = (): string | undefined => {
-			try {
-				return sessionStorage.getItem(RESUME_KEY) ?? undefined;
-			} catch {
-				return undefined;
-			}
+		/** Proof of who we are for the game server (from the site; see docs/dev/accounts.md). */
+		let ticket = '';
+		/** A rejected ticket has been replaced once already. */
+		let ticketRetried = false;
+		const connect = (): void => {
+			gameTicket()
+				.then((fresh) => {
+					ticket = fresh;
+					void loadAccount();
+					connect();
+				})
+				// Not signed in any more (or the site is down): back to the sign-in page.
+				.catch(() => (location.href = resolve('/auth/sign-in')));
 		};
 		/** Player being watched while spectating. */
 		let watchId: string | null = null;
-		const client = new GameClient(
-			PUBLIC_GAME_SERVER_URL,
-			() => ({
-				name: settings.profile.name,
-				code: rejoin,
-				resume: resumeToken(),
-				player: playerIdentity()
-			}),
-			{
-				onStatus: (next, detail) => {
-					status = next;
-					statusDetail = detail ?? '';
-					playerId = client.playerId;
-					if (next !== 'connected') {
-						party = null;
-						if (expedition || spectating) endExpedition();
-					}
-				},
-				onMessage: (message) => {
-					switch (message.type) {
-						case 'party':
-							party = message.party;
-							memberId = message.you;
-							partyError = '';
-							// After a dropped connection, go back to the same party if others are in it.
-							rejoin = message.party.members.length > 1 ? message.party.code : undefined;
-							try {
-								sessionStorage.setItem(RESUME_KEY, message.token);
-							} catch {
-								// No storage (private mode): a drop still rejoins the party by its code.
-							}
-							break;
-						case 'partyError':
-							partyError = message.reason;
-							break;
-						case 'welcome':
-							sessionId = message.sessionId;
-							playerId = message.playerId;
-							result = null;
-							expedition = true;
-							loadMap(message.layout);
-							break;
-						case 'extracted':
-						case 'died':
-						case 'banished':
-						case 'resolved':
-							result = {
-								seconds: message.seconds,
-								deepestLevel: message.deepestLevel,
-								outcome: message.type,
-								escaped: null
-							};
-							if (message.type === 'resolved') sounds.play('rite.resolve');
-							if (message.type === 'died' && message.spectating) startSpectating();
-							else endExpedition();
-							break;
-						case 'spectateEnd':
-							if (!spectating) break;
-							if (result) result.escaped = message.escaped;
-							endExpedition();
-							break;
-						case 'map':
-							loadMap(message.layout);
-							break;
-						case 'tick':
-							// A tick still in flight after we left is not ours to show.
-							if (!expedition && !spectating) break;
-							for (const snap of message.players) {
-								if (snap.id !== client.playerId) continue;
-								player.onSnapshot(snap);
-								flags = { ...snap.state.flags };
-							}
-							remote.apply(message.players, client.playerId, message.serverTime);
-							creatures.apply(message.creatures);
-							worldItems.apply(message.items, message.projectiles);
-							for (const event of message.events) onGameEvent(event);
-							darkness.apply(message.affliction.manifestation);
-							if (JSON.stringify(message.affliction.rite) !== JSON.stringify(rite)) {
-								rite = message.affliction.rite;
-							}
-							afflictionName = AFFLICTIONS[message.affliction.id]?.name ?? '';
-							omen = message.affliction.omen;
-							meter = message.affliction.meter ?? null;
-							ambience.setOmen(
-								AFFLICTIONS[message.affliction.id]?.stages[omen - 1]?.ambience ?? null
-							);
-							break;
-					}
+		const client = new GameClient(PUBLIC_GAME_SERVER_URL, () => ({ ticket, code: rejoin }), {
+			onStatus: (next, detail) => {
+				status = next;
+				statusDetail = detail ?? '';
+				playerId = client.playerId;
+				if (next === 'connected') ticketRetried = false;
+				// An expired ticket: get a new one and try again, once.
+				if (next === 'rejected' && detail === 'Sign in to play' && !ticketRetried) {
+					ticketRetried = true;
+					connect();
+				}
+				if (next !== 'connected') {
+					party = null;
+					if (expedition || spectating) endExpedition();
+				}
+			},
+			onMessage: (message) => {
+				switch (message.type) {
+					case 'party':
+						party = message.party;
+						memberId = message.you;
+						partyError = '';
+						// After a dropped connection, go back to the same party if others are in it.
+						rejoin = message.party.members.length > 1 ? message.party.code : undefined;
+						break;
+					case 'partyError':
+						partyError = message.reason;
+						break;
+					case 'welcome':
+						sessionId = message.sessionId;
+						playerId = message.playerId;
+						result = null;
+						expedition = true;
+						loadMap(message.layout);
+						break;
+					case 'extracted':
+					case 'died':
+					case 'banished':
+					case 'resolved':
+						result = {
+							seconds: message.seconds,
+							deepestLevel: message.deepestLevel,
+							outcome: message.type,
+							escaped: null
+						};
+						if (message.type === 'resolved') sounds.play('rite.resolve');
+						if (message.type === 'died' && message.spectating) startSpectating();
+						else endExpedition();
+						break;
+					case 'spectateEnd':
+						if (!spectating) break;
+						if (result) result.escaped = message.escaped;
+						endExpedition();
+						break;
+					case 'map':
+						loadMap(message.layout);
+						break;
+					case 'tick':
+						// A tick still in flight after we left is not ours to show.
+						if (!expedition && !spectating) break;
+						for (const snap of message.players) {
+							if (snap.id !== client.playerId) continue;
+							player.onSnapshot(snap);
+							flags = { ...snap.state.flags };
+						}
+						remote.apply(message.players, client.playerId, message.serverTime);
+						creatures.apply(message.creatures);
+						worldItems.apply(message.items, message.projectiles);
+						for (const event of message.events) onGameEvent(event);
+						darkness.apply(message.affliction.manifestation);
+						if (JSON.stringify(message.affliction.rite) !== JSON.stringify(rite)) {
+							rite = message.affliction.rite;
+						}
+						afflictionName = AFFLICTIONS[message.affliction.id]?.name ?? '';
+						omen = message.affliction.omen;
+						meter = message.affliction.meter ?? null;
+						ambience.setOmen(
+							AFFLICTIONS[message.affliction.id]?.stages[omen - 1]?.ambience ?? null
+						);
+						break;
 				}
 			}
-		);
+		});
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
 		sounds.oncaption = (cue) => {
@@ -384,6 +382,8 @@
 			downed = null;
 			captions.clear();
 			document.exitPointerLock();
+			// What was learned or carried out shows on the surface.
+			void loadAccount();
 		}
 
 		/** Dead, with others still down there: keep the world and watch through their eyes. */
@@ -890,7 +890,7 @@
 		ondescend={() => send({ type: 'descend' })}
 		onjoin={(code) => send({ type: 'joinParty', code })}
 		onleave={() => send({ type: 'leaveParty' })}
-		onrename={(name) => send({ type: 'rename', name })}
+		onafflictions={() => toggle('afflictions')}
 		onsettings={() => toggle('settings')}
 		onhelp={() => toggle('help')}
 	/>
@@ -921,6 +921,12 @@
 		onclose={() => (panel = null)}
 		onvolume={(category, value) => audio.setVolume(category, value)}
 		ongraphics={() => applyGraphics()}
+		onaccount={() => send({ type: 'rename' })}
+	/>
+{:else if panel === 'afflictions'}
+	<AfflictionsPanel
+		progress={session.account?.explorer.afflictions ?? []}
+		onclose={() => (panel = null)}
 	/>
 {:else if panel === 'help'}
 	<HelpPanel onclose={() => (panel = null)} />

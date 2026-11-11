@@ -3,22 +3,24 @@ import type { WebSocket } from 'ws';
 import { PARTY } from '../src/lib/content/party.ts';
 import { canDescend, normalizeCode, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
+import type { Identity } from './accounts.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
 import { Session } from './session.ts';
 
-/** One connection: always in exactly one party, even alone. */
+/** One signed-in player: always in exactly one party, even alone. */
 export interface Member {
 	id: string;
-	/** Who they are across visits: the id their browser sends, or one made up for this visit. */
-	player: string;
+	/** Their account; an account is only ever one member. */
+	account: string;
+	/** The explorer they play: what progress and belongings are kept under. */
+	explorer: string;
+	/** Their gamer tag. */
 	name: string;
 	socket: WebSocket;
 	ready: boolean;
 	/** False while the connection is down and their place in the expedition is held. */
 	connected: boolean;
-	/** Secret the client presents (`hello.resume`) to take this member back after a drop. */
-	token: string;
 	/** Runs out when a dropped member has been gone too long. */
 	dropTimer: NodeJS.Timeout | null;
 	party: Party;
@@ -42,34 +44,34 @@ interface Party {
  * Solo play is a party of one.
  *
  * A member whose connection drops while underground keeps their place for
- * `PARTY.reconnectSeconds`; a new connection with their token takes it back. On the surface a
- * drop just removes them. See docs/dev/expedition.md.
+ * `PARTY.reconnectSeconds`; a new connection from the same account takes it back. On the surface
+ * a drop just removes them. See docs/dev/expedition.md.
  */
 export class Parties {
 	private parties = new Map<string, Party>();
-	/** Members whose connection dropped, by resume token. */
-	private dropped = new Map<string, Member>();
+	/** Every member, by account: connecting again takes the same member back. */
+	private byAccount = new Map<string, Member>();
 	/** What players have learned about the rite on earlier expeditions. */
 	private progress = new Progress();
 
 	/**
-	 * A new connection. With the token of a dropped member it becomes that member again;
-	 * otherwise it joins the party with `code` if it can, or starts its own.
+	 * A new connection from a signed-in player. If their account is already here (a dropped
+	 * connection whose place is held, or another tab), this connection becomes that member and the
+	 * old one is closed. Otherwise they join the party with `code` if they can, or start their own.
 	 */
-	connect(
-		socket: WebSocket,
-		name: unknown,
-		code: unknown,
-		resume: unknown,
-		player: unknown
-	): Member {
-		const back = typeof resume === 'string' ? this.dropped.get(resume) : undefined;
+	connect(socket: WebSocket, identity: Identity, code: unknown): Member {
+		const back = this.byAccount.get(identity.account);
 		if (back) {
-			this.dropped.delete(back.token);
+			const old = back.socket;
 			if (back.dropTimer) clearTimeout(back.dropTimer);
 			back.dropTimer = null;
 			back.socket = socket;
 			back.connected = true;
+			back.name = identity.gamerTag;
+			if (old !== socket && old.readyState === old.OPEN) {
+				old.send(encode({ type: 'reject', reason: 'You connected from somewhere else' }));
+				old.close();
+			}
 			this.broadcast(back.party);
 			if (back.playerId) back.party.session?.reattach(back.playerId, socket);
 			return back;
@@ -79,16 +81,17 @@ export class Parties {
 		const party = found && typeof found !== 'string' ? found : this.create();
 		const member: Member = {
 			id: randomUUID(),
-			player: cleanPlayer(player),
-			name: cleanName(name),
+			account: identity.account,
+			explorer: identity.explorer,
+			name: identity.gamerTag,
 			socket,
 			ready: false,
 			connected: true,
-			token: randomUUID(),
 			dropTimer: null,
 			party,
 			playerId: null
 		};
+		this.byAccount.set(member.account, member);
 		this.add(party, member);
 		if (typeof found === 'string') this.send(member, { type: 'partyError', reason: found });
 		return member;
@@ -96,14 +99,13 @@ export class Parties {
 
 	/** The connection closed. Underground, their place is held for a while; otherwise they go. */
 	disconnect(member: Member, socket: WebSocket): void {
-		// A resumed member's old socket can close late: it is no longer theirs.
+		// A member who connected again has a new socket: the old one closing is not them leaving.
 		if (member.socket !== socket) return;
 		if (!this.expedition(member)) {
 			this.remove(member);
 			return;
 		}
 		member.connected = false;
-		this.dropped.set(member.token, member);
 		member.dropTimer = setTimeout(() => this.remove(member), PARTY.reconnectSeconds * 1000);
 		log.info(`Party ${member.party.code}: ${member.name} dropped; holding their place`);
 		this.broadcast(member.party);
@@ -138,10 +140,10 @@ export class Parties {
 		this.broadcast(member.party);
 	}
 
-	rename(member: Member, name: unknown): void {
-		const cleaned = cleanName(name);
-		if (cleaned === member.name) return;
-		member.name = cleaned;
+	/** Their gamer tag changed. */
+	rename(member: Member, name: string): void {
+		if (name === member.name) return;
+		member.name = name;
 		this.broadcast(member.party);
 	}
 
@@ -158,7 +160,8 @@ export class Parties {
 			return;
 		}
 		/** Everyone who went down, whether or not they are still alive. */
-		const descended = (): string[] => party.members.filter((m) => m.playerId).map((m) => m.player);
+		const descended = (): string[] =>
+			party.members.filter((m) => m.playerId).map((m) => m.explorer);
 		const session = new Session({
 			onClues: (clues) => this.progress.record(descended(), session.afflictionId, { clues }),
 			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
@@ -203,7 +206,7 @@ export class Parties {
 	}
 
 	stop(): void {
-		for (const member of this.dropped.values()) {
+		for (const member of this.byAccount.values()) {
 			if (member.dropTimer) clearTimeout(member.dropTimer);
 		}
 		for (const party of this.parties.values()) party.session?.stop();
@@ -253,7 +256,6 @@ export class Parties {
 		if (!party.members.includes(member)) return;
 		if (member.dropTimer) clearTimeout(member.dropTimer);
 		member.dropTimer = null;
-		this.dropped.delete(member.token);
 		party.members = party.members.filter((m) => m !== member);
 		if (party.leader === member.id) party.leader = party.members[0]?.id ?? '';
 		// Leaving the session last: its hooks broadcast the party without this member.
@@ -286,21 +288,11 @@ export class Parties {
 	private broadcast(party: Party): void {
 		const state = this.state(party);
 		for (const m of party.members) {
-			this.send(m, { type: 'party', you: m.id, token: m.token, party: state });
+			this.send(m, { type: 'party', you: m.id, party: state });
 		}
 	}
 
 	private send(member: Member, message: ServerMessage): void {
 		if (member.socket.readyState === member.socket.OPEN) member.socket.send(encode(message));
 	}
-}
-
-/** A browser's own id for its player; anything else gets an id that lasts only this visit. */
-function cleanPlayer(player: unknown): string {
-	return typeof player === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(player) ? player : randomUUID();
-}
-
-function cleanName(name: unknown): string {
-	const cleaned = typeof name === 'string' ? name.trim().slice(0, PARTY.nameLength) : '';
-	return cleaned || PARTY.defaultName;
 }
