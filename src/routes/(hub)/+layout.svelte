@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
@@ -7,12 +8,11 @@
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import { parallax } from '#lib/ui/parallax.ts';
-	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
 
-	let panel = $state<'settings' | 'help' | null>(null);
+	let help = $state(false);
 
 	const explorer = $derived(session.account?.explorer ?? null);
 	const gamerTag = $derived(session.account?.gamerTag ?? data.account?.gamerTag ?? '');
@@ -24,17 +24,17 @@
 		{ path: '/(hub)/afflictions', label: 'Afflictions' }
 	] as const;
 
-	function toggle(name: 'settings' | 'help'): void {
-		panel = panel === name ? null : name;
-	}
-
 	onMount(() => {
 		void loadAccount();
 		// Only the two interface actions: every other key and click is left to the page.
 		const input = new InputMap(window, ['toggleSettings', 'toggleHelp']);
 		const unsubscribe = input.onPressed((action) => {
-			if (action === 'toggleSettings') toggle('settings');
-			if (action === 'toggleHelp') toggle('help');
+			// With Help open the key closes it; otherwise it opens the settings page.
+			if (action === 'toggleSettings') {
+				if (help) help = false;
+				else void goto(resolve('/settings'));
+			}
+			if (action === 'toggleHelp') help = !help;
 		});
 		return () => {
 			unsubscribe();
@@ -45,7 +45,6 @@
 
 <div class="hub backdrop-art" use:parallax>
 	<header>
-		<a class="title" href={resolve('/(hub)')}>Undercroft</a>
 		<nav aria-label="Dashboard">
 			{#each TABS as tab (tab.path)}
 				<a
@@ -80,13 +79,7 @@
 	</main>
 
 	<div class="corner">
-		<button
-			type="button"
-			class="icon"
-			aria-label="Settings"
-			title="Settings"
-			onclick={() => toggle('settings')}
-		>
+		<a class="icon" href={resolve('/settings')} aria-label="Settings" title="Settings">
 			<svg viewBox="0 0.2 24 24" width="22" height="22" aria-hidden="true">
 				<path
 					fill="none"
@@ -97,23 +90,21 @@
 				/>
 				<circle cx="12" cy="12.2" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6" />
 			</svg>
-		</button>
+		</a>
 		<button
 			type="button"
 			class="icon"
 			aria-label="Help"
 			title="Help"
-			onclick={() => toggle('help')}
+			onclick={() => (help = !help)}
 		>
 			<span aria-hidden="true">?</span>
 		</button>
 	</div>
 </div>
 
-{#if panel === 'settings'}
-	<SettingsMenu onclose={() => (panel = null)} />
-{:else if panel === 'help'}
-	<HelpPanel onclose={() => (panel = null)} />
+{#if help}
+	<HelpPanel onclose={() => (help = false)} />
 {/if}
 
 <style>
@@ -129,15 +120,6 @@
 		gap: 28px;
 		padding: 0 24px;
 		background: rgb(10 9 8 / 0.78);
-	}
-
-	.title {
-		font-family: var(--font-lore);
-		font-size: 1rem;
-		letter-spacing: 0.3em;
-		text-transform: uppercase;
-		text-decoration: none;
-		color: var(--text);
 	}
 
 	nav {
@@ -234,10 +216,17 @@
 		align-items: center;
 		justify-content: center;
 		padding: 0;
+		border: 1px solid var(--border);
 		border-radius: 50%;
 		background: rgb(4 3 3 / 0.92);
+		color: var(--text);
 		font-size: 1.3rem;
 		line-height: 1;
+	}
+
+	.icon:hover,
+	.icon:focus-visible {
+		border-color: var(--accent);
 	}
 
 	/* Inline boxes sit on the text baseline, which pushes them off centre: make them blocks. */

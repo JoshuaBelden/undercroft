@@ -182,7 +182,7 @@ Everything weighs something. Past the mark on the weight bar you start to slow d
 		id: 'captions',
 		title: 'Sound captions',
 		category: 'Survival',
-		body: `Down here you hear things long before you see them. If you can't rely on your ears, turn on "Subtitles and sound captions" in the settings ({action:toggleSettings}).
+		body: `Down here you hear things long before you see them. If you can't rely on your ears, turn on "Captions" under Accessibility in the settings ({action:toggleSettings}).
 
 What you would have heard appears as text above your items, with an arrow for where it came from: ahead, behind, to either side, or on the floor above or below. Sounds too far away to hear aren't shown.
 

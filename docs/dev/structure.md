@@ -55,7 +55,7 @@ src/
       loadout.ts            what lies around the map (bricks)
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
-    ui/                     Svelte components (Panel, menus, overlays)
+    ui/                     Svelte components (Panel, Dialog, menus, overlays)
   hooks.server.ts           finds the account for each request; everything is behind sign-in
   routes/
     (hub)/                  dashboard: frame (+layout) and a page per tab

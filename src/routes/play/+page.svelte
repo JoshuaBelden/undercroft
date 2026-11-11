@@ -65,7 +65,7 @@
 	import PartyLobby from '#lib/ui/PartyLobby.svelte';
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
-	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
+	import Settings from '#lib/ui/Settings.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
@@ -938,7 +938,8 @@
 {/if}
 
 {#if panel === 'settings'}
-	<SettingsMenu
+	<Settings
+		dim
 		onclose={() => (panel = null)}
 		onvolume={(category, value) => audio.setVolume(category, value)}
 		ongraphics={() => applyGraphics()}

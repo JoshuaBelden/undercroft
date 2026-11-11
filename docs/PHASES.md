@@ -174,7 +174,7 @@ Aspects:
 - Full audio pass and mix
 - Help system complete and reviewed
 - Settings complete: graphics, audio, controls, accessibility
-- Keybinding screen with conflict detection and reset to defaults
+- Keybinding screen with conflict detection and reset to defaults: players can change every keyboard shortcut themselves. It goes in the Controls group of the settings screen, which only lists the current bindings for now. Not needed before this phase.
 - Performance pass (light budget, model LODs, network bandwidth)
 - Balance pass: meter pacing, loot values, Thrall difficulty, candle tiers
 - Admin tools consolidated into one admin panel

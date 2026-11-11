@@ -60,7 +60,37 @@ Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played
 
 `settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y), `graphics` (FOV, brightness, quality, camera shake) and `accessibility` (subtitles and sound captions, caption size; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
 
-**Adding a setting:** add it to `Settings` and `defaults()`, then add a control in `SettingsMenu.svelte`.
+**The settings screen** is `src/lib/ui/Settings.svelte`. It fills the window: a top bar whose tabs are the groups (Account, Audio, Graphics, Mouse, Accessibility, Interface, Controls) and a Back button, the selected group's title, then that group's settings in a container that scrolls on its own, so the screen never grows past the window.
+
+- **On the dashboard** it is the `/settings` page (`src/routes/settings/`), outside the `(hub)` group so it replaces the dashboard's bar. Back (or the `toggleSettings` key) returns to the page you came from.
+- **In `/play`** (the party screen and underground) it is laid over the game with the `dim` prop, opened by `toggleSettings` or the party screen's Settings button. It is not a navigation there: leaving `/play` would leave the party and the expedition. The page passes `onvolume`, `ongraphics` and `onaccount` so changes apply at once.
+
+Every setting is a pill (`--setting-width`, 400px) with its name on the left and its value on the right, and no value needs the keyboard except the gamer tag. Two snippets draw them:
+
+- `slider` for numbers: the pill itself is the slider, filled up to the value.
+- `stepper` for choices and on/off: `<` and `>` either side of the value step through the options and wrap round.
+
+An optional `hint` is shown beside the pill.
+
+**Adding a setting:** add it to `Settings` and `defaults()`, then render a `slider` or `stepper` for it in its group in `Settings.svelte`. Keep the label short enough for the pill and put the explanation in `hint`.
+
+## Dialogs
+
+`src/lib/ui/Dialog.svelte` is the one dialog for questions and confirmations anywhere in the game: rounded, with a header (the title), the content, and a footer of commands. Buttons put in the footer are drawn as pills; give the one that carries out the action `class="primary"`.
+
+```svelte
+{#if asking}
+	<Dialog title="Reset to defaults" onclose={() => (asking = false)}>
+		<p>Every setting goes back to how it was.</p>
+		{#snippet footer()}
+			<button type="button" onclick={() => (asking = false)}>Cancel</button>
+			<button type="button" class="primary" onclick={reset}>Reset</button>
+		{/snippet}
+	</Dialog>
+{/if}
+```
+
+Render it only while it should be open. It is a native modal `<dialog>`: focus stays inside it, the page behind cannot be clicked, and Escape calls `onclose`. Key presses inside it do not reach the `InputMap`, so Escape closes the dialog and not the screen under it. The settings screen's "Reset to defaults" is the first use.
 
 ## Help system
 

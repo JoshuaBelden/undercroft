@@ -40,7 +40,6 @@
 </script>
 
 <main class="backdrop-art" use:parallax>
-	<h1>Undercroft</h1>
 	<form onsubmit={submit}>
 		<h2>{signingUp ? 'Create an account' : 'Sign in'}</h2>
 
@@ -103,18 +102,6 @@
 		justify-items: center;
 		gap: 32px;
 		padding: 24px;
-	}
-
-	h1 {
-		margin: 0;
-		text-align: center;
-		font-family: var(--font-lore);
-		font-size: clamp(2rem, 6vw, 3.5rem);
-		font-weight: normal;
-		letter-spacing: 0.3em;
-		/* Letter spacing adds a gap after the last letter: pull it back so the word is centred. */
-		margin-right: -0.3em;
-		text-transform: uppercase;
 	}
 
 	form {

@@ -25,7 +25,7 @@ The explorer document is described in [accounts.md](accounts.md).
 
 Signing in lands on the dashboard. It is the `(hub)` route group: `+layout.svelte` draws the frame and each tab is its own page.
 
-- **Frame:** the title top-left, the tabs (Expedition, Loadout, Afflictions), then money and the gamer tag top-right. Settings (a gear) and Help (a question mark) sit bottom-right and open as overlays; the `toggleSettings` (Escape) and `toggleHelp` actions open them too, through an `InputMap` limited to those two actions so the pages keep every other key.
+- **Frame:** the tabs (Expedition, Loadout, Afflictions) top-left, then money and the gamer tag top-right. Settings (a gear) and Help (a question mark) sit bottom-right. The gear is a link to the `/settings` page, which is outside the group and so replaces the frame (see [systems.md](systems.md#settings)); Help opens as an overlay. The `toggleSettings` (Escape) and `toggleHelp` actions do the same, through an `InputMap` limited to those two actions so the pages keep every other key.
 - **Expedition** (`/`, the default): the setup screen. It shows the Affliction, what you are taking, and two ways out: "Start an expedition" (opens `/play`) or join one by invite code (opens `/play?code=...`). Nothing starts until then.
 - **Loadout** (`/loadout`): `Outfit`.
 - **Afflictions** (`/afflictions`): `Afflictions` (see [rite.md](rite.md)).
