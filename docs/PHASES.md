@@ -101,26 +101,26 @@ Aspects:
 - **Settings**: chat options (on/off, size), name display. (Player name done, set in the lobby.)
 - **Keybinds**: ping, chat, scoreboard/party view.
 
-## Phase 4: Inventory and the rite
+## Phase 4: Inventory and the rite ✅
 
 The bare minimum for a complete loop: carry things, find what the rite needs, perform it. The rest of the item systems moved to Phase 6.
 
 - [x] Full inventory: weight and size, pick up, drop, hand off (any player can pick up dropped loot)
-- [ ] Rite panel: viewable by every player any time
-- [ ] Generic clues reveal requirement slots; last clue reveals rite location
-- [ ] Rite progress recorded across runs
-- [ ] Item pooling to the rite holder; holder initiates in the valid room
-- [ ] Gloaming rite: a single clue and the Pendant (the full list, 5 candles, 1 chalk and the Pendant, comes back in Phase 6)
-- [ ] Resolution → automatic extraction and progression unlock
+- [x] Rite panel: viewable by every player any time
+- [x] Generic clues reveal requirement slots; last clue reveals rite location
+- [x] Rite progress recorded across runs
+- [x] Item pooling to the rite holder; holder initiates in the valid room
+- [x] Gloaming rite: a single clue and the Pendant (the full list, 5 candles, 1 chalk and the Pendant, comes back in Phase 6)
+- [x] Resolution → automatic extraction and progression unlock
 
 Aspects:
 
-- **Dev docs**: item data format, rite data format, adding clues and requirements. (Inventory done: `docs/dev/items.md`.)
-- **Help system**: inventory, rites, clues, the holder. (Inventory done.)
-- **Admin**: spawn item, reveal all clues, reset rite progress, give rite items, teleport to rite room. (Spawn item done: Give.)
-- **Audio**: pickup/drop, clue sting, rite initiation and resolution. (Pickup and drop done.)
-- **Settings**: HUD options (inventory display, item prompts). (Done.)
-- **Keybinds**: inventory, quick slots, drop, throw, rite panel, initiate rite. (All but the rite done.)
+- [x] **Dev docs**: item data format (`docs/dev/items.md`), rite data format, adding clues and requirements (`docs/dev/rite.md`).
+- [x] **Help system**: inventory, rites, clues, the holder.
+- [x] **Admin**: spawn item, reveal all clues, reset rite progress, give rite items, teleport to rite room.
+- [x] **Audio**: pickup/drop, clue sting, rite initiation and resolution (placeholders).
+- [x] **Settings**: HUD options (inventory display, item prompts).
+- [x] **Keybinds**: inventory, quick slots, drop, throw, rite panel, initiate rite (interact).
 
 ## Phase 5: Hub, economy, persistence
 

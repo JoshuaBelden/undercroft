@@ -122,6 +122,16 @@ export class WorldItems {
 		});
 	}
 
+	/** Take an item out of the map without anyone getting it (a clue that was read). */
+	remove(id: string): void {
+		this.items.delete(id);
+	}
+
+	/** Take every item of a kind out of the map. */
+	removeAll(item: string): void {
+		for (const [id, entry] of this.items) if (entry.stack.item === item) this.items.delete(id);
+	}
+
 	/** Drop in front of a player (from a drop event's origin and look direction). */
 	drop(stack: ItemStack, origin: Vec3, direction: Vec3): void {
 		const ahead: Vec3 = [origin[0] + direction[0] * 0.7, origin[1], origin[2] + direction[2] * 0.7];

@@ -19,7 +19,9 @@
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
-	import { canTake, held, pocketCount } from '#lib/shared/items/inventory.ts';
+	import { canTake, carriedCount, held, pocketCount } from '#lib/shared/items/inventory.ts';
+	import { carriesAll } from '#lib/shared/affliction/rite.ts';
+	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
 	import { lookedAtItem } from '#lib/shared/items/pickup.ts';
 	import type { GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
@@ -32,7 +34,7 @@
 	import { LocalPlayer } from '#lib/game/player/LocalPlayer.ts';
 	import { PlayerAudio } from '#lib/game/player/PlayerAudio.ts';
 	import { RemotePlayers } from '#lib/game/player/RemotePlayers.ts';
-	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
+	import { playerIdentity, saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import { buildCollisionWorld } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 	import { roomPoints } from '#lib/shared/map/points.ts';
@@ -52,13 +54,18 @@
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
 	import PartyLobby from '#lib/ui/PartyLobby.svelte';
+	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
-	let panel = $state<'settings' | 'help' | 'admin' | 'inventory' | null>(null);
+	let panel = $state<'settings' | 'help' | 'admin' | 'inventory' | 'rite' | null>(null);
+	/** The rite as known so far, and (while its panel is open) who carries each requirement. */
+	let rite = $state<RiteSnapshot | null>(null);
+	let riteCarriers = $state<{ name: string; count: number }[][]>([]);
+	let afflictionName = $state('');
 	/** What the player carries, for the inventory screen (kept up to date while it is open). */
 	let inventory = $state<Inventory | null>(null);
 	let status = $state<ConnectionStatus>('connecting');
@@ -102,7 +109,7 @@
 	let result = $state<{
 		seconds: number;
 		deepestLevel: number;
-		outcome: 'extracted' | 'died' | 'banished';
+		outcome: 'extracted' | 'died' | 'banished' | 'resolved';
 		/** Set after spectating: how many of the others got out. */
 		escaped: number | null;
 	} | null>(null);
@@ -143,14 +150,18 @@
 		void action;
 	};
 
-	function toggle(name: 'settings' | 'help' | 'admin' | 'inventory'): void {
+	function toggle(name: 'settings' | 'help' | 'admin' | 'inventory' | 'rite'): void {
 		const closing = panel === name;
+		// The rite can be looked at any time underground, alive or watching.
+		if (name === 'rite' && !closing && !rite) return;
 		// The pack can only be opened while you are down there and not on the floor.
 		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
 		panel = closing ? null : name;
 		if (panel) document.exitPointerLock();
 		// Putting the pack away goes straight back to play.
-		else if (name === 'inventory' && expedition) void canvas.requestPointerLock();
+		else if ((name === 'inventory' || name === 'rite') && expedition) {
+			void canvas.requestPointerLock();
+		}
 	}
 
 	onMount(() => {
@@ -197,7 +208,12 @@
 		let watchId: string | null = null;
 		const client = new GameClient(
 			PUBLIC_GAME_SERVER_URL,
-			() => ({ name: settings.profile.name, code: rejoin, resume: resumeToken() }),
+			() => ({
+				name: settings.profile.name,
+				code: rejoin,
+				resume: resumeToken(),
+				player: playerIdentity()
+			}),
 			{
 				onStatus: (next, detail) => {
 					status = next;
@@ -235,12 +251,14 @@
 						case 'extracted':
 						case 'died':
 						case 'banished':
+						case 'resolved':
 							result = {
 								seconds: message.seconds,
 								deepestLevel: message.deepestLevel,
 								outcome: message.type,
 								escaped: null
 							};
+							if (message.type === 'resolved') sounds.play('rite.resolve');
 							if (message.type === 'died' && message.spectating) startSpectating();
 							else endExpedition();
 							break;
@@ -265,6 +283,10 @@
 							worldItems.apply(message.items, message.projectiles);
 							for (const event of message.events) onGameEvent(event);
 							darkness.apply(message.affliction.manifestation);
+							if (JSON.stringify(message.affliction.rite) !== JSON.stringify(rite)) {
+								rite = message.affliction.rite;
+							}
+							afflictionName = AFFLICTIONS[message.affliction.id]?.name ?? '';
 							omen = message.affliction.omen;
 							meter = message.affliction.meter ?? null;
 							ambience.setOmen(
@@ -337,11 +359,15 @@
 		sendInventory = (action) => client.send({ type: 'inventory', action });
 		/** The inventory last shown, as JSON: the screen only updates when it changes. */
 		let shownInventory = '';
+		/** Whether the rite was being performed last frame (to ring its bell once). */
+		let performing = false;
 
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
-			if (panel === 'inventory') panel = null;
+			if (panel === 'inventory' || panel === 'rite') panel = null;
+			rite = null;
+			performing = false;
 			spectating = null;
 			watchId = null;
 			remote.setHidden(null);
@@ -408,6 +434,30 @@
 			if (!title || seenRooms[title]) return;
 			seenRooms[title] = true;
 			banner = { title, key: (banner?.key ?? 0) + 1 };
+		}
+
+		/** Standing in the room the rite is held in (once a clue has told where that is). */
+		function inRiteRoom(position: Vec3): boolean {
+			const title = rite?.room ? MAP_KIT[rite.room]?.title : undefined;
+			if (!title) return false;
+			const [cx, cz] = worldCell(position[0], position[2]);
+			const level = Math.floor((position[1] + 0.5) / LEVEL_HEIGHT);
+			return roomCells[cellKey(cx, cz, level)] === title;
+		}
+
+		/** Who carries each thing the rite needs, for the rite panel. */
+		function carriers(state: PlayerState | null): { name: string; count: number }[][] {
+			const everyone = [...(state ? [{ name: 'you', state }] : []), ...remote.players()];
+			return (rite?.requirements ?? []).map((requirement) =>
+				requirement
+					? everyone
+							.map((one) => ({
+								name: one.name,
+								count: carriedCount(one.state.inventory, requirement.item)
+							}))
+							.filter((carrier) => carrier.count > 0)
+					: []
+			);
 		}
 
 		/** A downed teammate within reach, if any. */
@@ -485,6 +535,14 @@
 				case 'drop':
 					sounds.playAt('item.drop', event.position, 1, 2);
 					break;
+				case 'clue': {
+					// Everyone learns it at once, wherever they are.
+					sounds.play('clue.sting');
+					const learned = event.requirements.map((item) => ITEMS[item]?.name ?? item);
+					if (event.room) learned.push(MAP_KIT[event.room]?.title ?? event.room);
+					banner = { title: 'A clue: ' + learned.join(' · '), key: (banner?.key ?? 0) + 1 };
+					break;
+				}
 				case 'creatureHit':
 					if (event.id === 'manifestation') {
 						darkness.hit();
@@ -552,12 +610,23 @@
 					progress: state.reviving / SANITY.reviveSeconds
 				};
 			}
+			if (rite && inRiteRoom(state.position) && carriesAll(state.inventory, rite.requirements)) {
+				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
+				return {
+					prompt:
+						state.performing > 0 ? 'Performing the rite...' : `Hold ${key} to perform the rite`,
+					progress: state.performing / rite.seconds
+				};
+			}
 			const extract = extractPrompt(state);
 			if (extract)
 				return { prompt: extract, progress: state.extracting / EXPEDITION.extractSeconds };
 			if (pickupTarget && settings.interface.itemPrompts) {
 				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
 				const name = ITEMS[pickupTarget.item]?.name ?? pickupTarget.item;
+				if (ITEMS[pickupTarget.item]?.kind === 'clue') {
+					return { prompt: `Press ${key} to read the ${name.toLowerCase()}`, progress: 0 };
+				}
 				const fit = canTake(state.inventory, { item: pickupTarget.item, count: 1 });
 				if (fit === 'heavy') return { prompt: name + ': too heavy to carry', progress: 0 };
 				if (fit === 'full') return { prompt: name + ': no room for it', progress: 0 };
@@ -699,6 +768,8 @@
 							message: downedMessage(state)
 						}
 					: null;
+				if (state.performing > 0 && !performing) sounds.play('rite.begin');
+				performing = state.performing > 0;
 				if (panel === 'inventory') {
 					if (state.downed) {
 						panel = null;
@@ -716,6 +787,10 @@
 					checkRoom(state.position);
 				}
 			}
+			if (panel === 'rite') {
+				const now = carriers(state);
+				if (JSON.stringify(now) !== JSON.stringify(riteCarriers)) riteCarriers = now;
+			}
 			stats = engine.stats;
 			rtt = client.rtt;
 		});
@@ -731,6 +806,9 @@
 					break;
 				case 'inventory':
 					toggle('inventory');
+					break;
+				case 'ritePanel':
+					toggle('rite');
 					break;
 				case 'toggleStats':
 					settings.interface.showStats = !settings.interface.showStats;
@@ -846,6 +924,14 @@
 	/>
 {:else if panel === 'help'}
 	<HelpPanel onclose={() => (panel = null)} />
+{:else if panel === 'rite' && rite}
+	<RitePanel
+		affliction={afflictionName}
+		{rite}
+		carriers={riteCarriers}
+		interactKey={settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact'}
+		onclose={() => toggle('rite')}
+	/>
 {:else if panel === 'inventory' && inventory}
 	<InventoryScreen
 		{inventory}

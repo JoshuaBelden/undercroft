@@ -4,11 +4,14 @@ import { PARTY } from '../src/lib/content/party.ts';
 import { canDescend, normalizeCode, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import { log } from './log.ts';
+import { Progress } from './progress.ts';
 import { Session } from './session.ts';
 
 /** One connection: always in exactly one party, even alone. */
 export interface Member {
 	id: string;
+	/** Who they are across visits: the id their browser sends, or one made up for this visit. */
+	player: string;
 	name: string;
 	socket: WebSocket;
 	ready: boolean;
@@ -46,12 +49,20 @@ export class Parties {
 	private parties = new Map<string, Party>();
 	/** Members whose connection dropped, by resume token. */
 	private dropped = new Map<string, Member>();
+	/** What players have learned about the rite on earlier expeditions. */
+	private progress = new Progress();
 
 	/**
 	 * A new connection. With the token of a dropped member it becomes that member again;
 	 * otherwise it joins the party with `code` if it can, or starts its own.
 	 */
-	connect(socket: WebSocket, name: unknown, code: unknown, resume: unknown): Member {
+	connect(
+		socket: WebSocket,
+		name: unknown,
+		code: unknown,
+		resume: unknown,
+		player: unknown
+	): Member {
 		const back = typeof resume === 'string' ? this.dropped.get(resume) : undefined;
 		if (back) {
 			this.dropped.delete(back.token);
@@ -68,6 +79,7 @@ export class Parties {
 		const party = found && typeof found !== 'string' ? found : this.create();
 		const member: Member = {
 			id: randomUUID(),
+			player: cleanPlayer(player),
 			name: cleanName(name),
 			socket,
 			ready: false,
@@ -145,7 +157,12 @@ export class Parties {
 			this.send(member, { type: 'partyError', reason: problem });
 			return;
 		}
+		/** Everyone who went down, whether or not they are still alive. */
+		const descended = (): string[] => party.members.filter((m) => m.playerId).map((m) => m.player);
 		const session = new Session({
+			onClues: (clues) => this.progress.record(descended(), session.afflictionId, { clues }),
+			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
+			onRiteReset: () => this.progress.reset(descended(), session.afflictionId),
 			onPlayerLeft: () => {
 				this.sweep(party);
 				this.broadcast(party);
@@ -169,6 +186,12 @@ export class Parties {
 			m.ready = false;
 			m.playerId = session.addPlayer(m.socket, m.name).id;
 		}
+		// What any of them learned on earlier runs, all of them know now.
+		void this.progress.best(descended(), session.afflictionId).then(({ clues }) => {
+			if (party.session !== session || clues <= 0) return;
+			session.revealClues(clues);
+			this.progress.record(descended(), session.afflictionId, { clues });
+		});
 		this.broadcast(party);
 	}
 
@@ -270,6 +293,11 @@ export class Parties {
 	private send(member: Member, message: ServerMessage): void {
 		if (member.socket.readyState === member.socket.OPEN) member.socket.send(encode(message));
 	}
+}
+
+/** A browser's own id for its player; anything else gets an id that lasts only this visit. */
+function cleanPlayer(player: unknown): string {
+	return typeof player === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(player) ? player : randomUUID();
 }
 
 function cleanName(name: unknown): string {

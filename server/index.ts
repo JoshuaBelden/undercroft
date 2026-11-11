@@ -25,7 +25,13 @@ wss.on('connection', (socket) => {
 				socket.close();
 				return;
 			}
-			member ??= parties.connect(socket, message.name, message.code, message.resume);
+			member ??= parties.connect(
+				socket,
+				message.name,
+				message.code,
+				message.resume,
+				message.player
+			);
 			return;
 		}
 		if (message.type === 'ping') {

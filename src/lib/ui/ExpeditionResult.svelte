@@ -5,7 +5,7 @@
 		seconds: number;
 		deepestLevel: number;
 		/** How the expedition ended for this player. */
-		outcome: 'extracted' | 'died' | 'banished';
+		outcome: 'extracted' | 'died' | 'banished' | 'resolved';
 		/** After watching the rest of the expedition: how many of the others got out alive. */
 		escaped?: number | null;
 		/** Back to the party on the surface. */
@@ -17,7 +17,8 @@
 	const TITLES = {
 		extracted: 'You made it out',
 		died: "You didn't make it out",
-		banished: 'The dark recedes'
+		banished: 'The dark recedes',
+		resolved: 'The rite is done'
 	};
 
 	const time = $derived(`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`);
@@ -33,6 +34,8 @@
 		<h1>{TITLES[outcome]}</h1>
 		{#if outcome === 'banished'}
 			<p class="note">You drove it back, for now. The Gloaming is not resolved.</p>
+		{:else if outcome === 'resolved'}
+			<p class="note">The Gloaming is resolved. The dark lets go of this place.</p>
 		{:else if escaped !== null}
 			<p class="note">
 				{escaped === 0 ? 'No one made it out.' : `${escaped} of the others made it out.`}

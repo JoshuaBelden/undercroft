@@ -23,6 +23,8 @@ export type ClientMessage =
 			code?: string;
 			/** Token from an earlier `party` message: take back the place a dropped connection held. */
 			resume?: string;
+			/** Who this is across visits (rite progress), until accounts exist: an id the browser keeps. */
+			player?: string;
 	  }
 	| { type: 'ping'; clientTime: number }
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
@@ -61,6 +63,10 @@ export type AdminCommand =
 	| { kind: 'spawnCreature' }
 	| { kind: 'clearCreatures' }
 	| { kind: 'setSanity'; value: number }
+	/** Reveal everything the clues would. */
+	| { kind: 'revealClues' }
+	/** Forget the rite's clues, for this expedition and for everyone in it afterwards. */
+	| { kind: 'resetRite' }
 	/** Teleport to a start or major room by piece name. */
 	| { kind: 'teleport'; room: string }
 	/** New map; omit the seed for a random one. */
@@ -114,7 +120,9 @@ export type ServerMessage =
 	/** The expedition you were watching is over; `escaped` players got out alive. */
 	| { type: 'spectateEnd'; escaped: number }
 	/** The manifestation was banished: everyone leaves the expedition. */
-	| { type: 'banished'; seconds: number; deepestLevel: number };
+	| { type: 'banished'; seconds: number; deepestLevel: number }
+	/** The rite was performed: the Affliction is resolved and everyone leaves the expedition. */
+	| { type: 'resolved'; seconds: number; deepestLevel: number };
 
 export function encode(message: ClientMessage | ServerMessage): string {
 	return JSON.stringify(message);
@@ -152,7 +160,8 @@ const SERVER_TYPES = new Set<string>([
 	'extracted',
 	'died',
 	'spectateEnd',
-	'banished'
+	'banished',
+	'resolved'
 ]);
 
 function decode(raw: string, allowed: Set<string>): unknown {

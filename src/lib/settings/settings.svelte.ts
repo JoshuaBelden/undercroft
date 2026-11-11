@@ -50,8 +50,11 @@ export interface Settings {
 	controls: ControlSettings;
 	graphics: GraphicsSettings;
 	accessibility: AccessibilitySettings;
-	/** Who the player is to others, until accounts exist. */
-	profile: { name: string };
+	/**
+	 * Who the player is, until accounts exist: the name others see, and an id made up once for
+	 * this browser that the server keeps rite progress under.
+	 */
+	profile: { name: string; id: string };
 }
 
 function defaults(): Settings {
@@ -63,7 +66,7 @@ function defaults(): Settings {
 		controls: { mouseSensitivity: 1, invertY: false },
 		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1 },
 		accessibility: { captions: false, captionSize: 'medium' },
-		profile: { name: '' }
+		profile: { name: '', id: '' }
 	};
 }
 
@@ -100,8 +103,19 @@ export function saveSettings(): void {
 }
 
 export function resetSettings(): void {
-	Object.assign(settings, defaults());
+	// Who you are is not a preference: it survives a reset.
+	const profile = { ...settings.profile };
+	Object.assign(settings, defaults(), { profile });
 	saveSettings();
+}
+
+/** This browser's player id, made up the first time it is needed. */
+export function playerIdentity(): string {
+	if (!settings.profile.id) {
+		settings.profile.id = crypto.randomUUID();
+		saveSettings();
+	}
+	return settings.profile.id;
 }
 
 export function setBinding(action: Action, codes: string[]): void {

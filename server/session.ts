@@ -50,6 +50,7 @@ import { randomSeed } from '../src/lib/shared/rng.ts';
 import { config } from './config.ts';
 import { hurt as hurtCreature, resolve, targets, type CombatContext } from './combat.ts';
 import { AfflictionDirector } from './affliction.ts';
+import { RiteDirector, scatterRite } from './rite.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
 import { log } from './log.ts';
@@ -95,6 +96,12 @@ export interface SessionHooks {
 	onPlayerLeft?: (playerId: string) => void;
 	/** The last player left: the expedition is over. */
 	onEnded?: () => void;
+	/** A clue was found (or revealed by an admin): this many are now known. */
+	onClues?: (clues: number) => void;
+	/** The rite was performed: the Affliction is resolved for everyone in the expedition. */
+	onResolved?: () => void;
+	/** An admin wiped what is known about the rite. */
+	onRiteReset?: () => void;
 }
 
 /**
@@ -112,6 +119,9 @@ export class Session {
 	private creatures = new CreatureDirector(this.world, this.nav, this.seed);
 	private items = new WorldItems(this.world);
 	private affliction = new AfflictionDirector(this.world, this.nav, this.creatures, this.seed);
+	private rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
+	/** The rite has been performed: everyone is carried out at the end of this tick. */
+	private resolved = false;
 	/** Events this tick, broadcast with it. */
 	private events: GameEvent[] = [];
 	private dropped = new Set<string>();
@@ -139,6 +149,27 @@ export class Session {
 			for (const [x, z, level] of occupiedCells(piece, placement)) cells.add(`${x},${z},${level}`);
 		}
 		this.items.scatter(this.nav, this.seed, start, cells.size);
+		scatterRite(
+			this.affliction.def.rite,
+			this.layout,
+			PIECES,
+			MAP_KIT,
+			this.nav,
+			start,
+			this.seed,
+			this.items
+		);
+	}
+
+	/** Which Affliction this expedition is against (key into AFFLICTIONS). */
+	get afflictionId(): string {
+		return this.affliction.def.id;
+	}
+
+	/** Start from the clues the party already found on earlier runs. */
+	revealClues(clues: number): void {
+		this.rite.reveal(clues);
+		if (this.rite.complete) this.items.removeAll('clue');
 	}
 
 	get playerCount(): number {
@@ -328,6 +359,14 @@ export class Session {
 				else if (player.state.downed) this.revive(player);
 				break;
 			}
+			case 'revealClues':
+				this.revealClues(Infinity);
+				this.hooks.onClues?.(this.rite.clues);
+				break;
+			case 'resetRite':
+				this.rite.reset();
+				this.hooks.onRiteReset?.();
+				break;
 			case 'teleport': {
 				const room = roomPoints(this.layout, PIECES, MAP_KIT).find((r) => r.name === command.room);
 				if (!room) return;
@@ -354,7 +393,10 @@ export class Session {
 		this.creatures = new CreatureDirector(this.world, this.nav, seed);
 		this.items = new WorldItems(this.world);
 		this.affliction = new AfflictionDirector(this.world, this.nav, this.creatures, seed);
+		const clues = this.rite.clues;
+		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
 		this.populate();
+		this.revealClues(clues);
 		for (const player of this.players.values()) {
 			const flags = player.state.flags;
 			player.state = this.spawnState();
@@ -420,6 +462,7 @@ export class Session {
 		this.stepProjectiles();
 		this.stepSanity();
 		this.stepRevives();
+		this.stepRite();
 		// Anyone still alive down here after this tick? The dead can watch them.
 		const alive = [...this.players.values()].some((p) => !p.state.dead && !p.state.extracted);
 		for (const player of [...this.players.values()]) {
@@ -444,6 +487,19 @@ export class Session {
 			this.removePlayer(player.id);
 			if (player.state.dead && alive) {
 				this.spectators.set(player.id, { name: player.name, socket: player.socket });
+			}
+		}
+		if (this.resolved && this.players.size > 0) {
+			log.info(`Session ${this.id.slice(0, 8)}: the rite is performed`);
+			this.hooks.onResolved?.();
+			for (const player of [...this.players.values()]) {
+				this.escaped++;
+				this.send(player, {
+					type: 'resolved',
+					seconds: Math.round((Date.now() - player.joinedAt) / 1000),
+					deepestLevel: player.deepestLevel
+				});
+				this.removePlayer(player.id);
 			}
 		}
 		if (this.affliction.banished && this.players.size > 0) {
@@ -474,7 +530,7 @@ export class Session {
 			items: this.items.snapshots(),
 			projectiles: this.items.projectileSnapshots(),
 			events: this.events,
-			affliction: this.affliction.snapshot(config.devMode)
+			affliction: { ...this.affliction.snapshot(config.devMode), rite: this.rite.snapshot() }
 		});
 		this.events = [];
 	}
@@ -497,6 +553,17 @@ export class Session {
 		const item = this.items.lookedAt(s, origin, direction);
 		if (!item) return;
 		const position: Vec3 = [...item.position];
+		if (ITEMS[item.stack.item]?.kind === 'clue') {
+			// Read where it lies. One that tells nothing new (another copy) is left alone.
+			const found = this.rite.find();
+			if (!found) return;
+			this.items.remove(item.id);
+			if (this.rite.complete) this.items.removeAll('clue');
+			this.events.push({ kind: 'clue', player: player.id, position, ...found });
+			this.hooks.onClues?.(this.rite.clues);
+			log.info(`${player.name} found a clue (${this.rite.clues}) in ${this.id.slice(0, 8)}`);
+			return;
+		}
 		const taken = this.items.pickUp(s, item);
 		if (taken) this.events.push({ kind: 'pickup', player: player.id, item: taken, position });
 	}
@@ -628,6 +695,27 @@ export class Session {
 			if (able.some((p) => p !== player)) continue;
 			takePocket(s.inventory, 'salts', 1);
 			this.revive(player);
+		}
+	}
+
+	/**
+	 * The rite: whoever carries everything it needs, in its room, holds interact. When it is done
+	 * the Affliction is resolved and everyone is carried out (see `step`).
+	 */
+	private stepRite(): void {
+		const seconds = this.affliction.def.rite.seconds;
+		for (const player of this.players.values()) {
+			const s = player.state;
+			const able = !s.downed && !s.dead && !s.extracted;
+			if (!able || !player.lastInput?.interact || !this.rite.canPerform(s)) {
+				s.performing = 0;
+				continue;
+			}
+			s.performing += TICK_DT;
+			if (s.performing < seconds || this.resolved) continue;
+			this.rite.take(s);
+			this.resolved = true;
+			log.info(`${player.name} performed the rite in ${this.id.slice(0, 8)}`);
 		}
 	}
 

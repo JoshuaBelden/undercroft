@@ -55,6 +55,8 @@ export type GameEvent =
 	| { kind: 'drop'; player: string; item: string; position: Vec3 }
 	| { kind: 'creatureHit'; id: string; position: Vec3 }
 	| { kind: 'creatureDie'; id: string; position: Vec3 }
+	/** A clue was found: the requirements (item ids) and room (piece id) it revealed. */
+	| { kind: 'clue'; player: string; position: Vec3; requirements: string[]; room: string | null }
 	/** The Affliction reached a new omen stage. */
 	| { kind: 'omen'; stage: number }
 	/** The Affliction manifests (it gathers, then hunts). */

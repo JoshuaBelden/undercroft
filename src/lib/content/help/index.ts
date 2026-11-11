@@ -195,5 +195,19 @@ Near it, lamps die and the mind goes. Its touch is worse.
 Light is how you fight it. Hold a bright beam on it from a distance, before it gets close enough to put your lamp out, and keep it there. Only while the light holds does steel or shot bite. Two lamps are better than one.
 
 Drive it off and you'll all be carried out. It isn't over, though. Only the rite ends the Gloaming.`
+	},
+	{
+		id: 'the-rite',
+		title: 'The rite',
+		category: 'Survival',
+		body: `The rite is what ends it. Press {action:ritePanel} at any time down here to see what is known about it.
+
+At first, nothing is. Scraps of writing lie about the catacombs, left by those who came before. Press {action:interact} on one to read it: each tells you something the rite needs, and the last tells you where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
+
+For the Gloaming, the rite needs the Pendant. It lies in one of the great rooms.
+
+One person has to carry everything the rite needs. If it's spread between you, drop things for that person to pick up. If they die, what they carried lies where they fell.
+
+That person goes to the place and holds {action:interact}. Nothing has to be set down, and nothing has to be fought. When it's done, you are all carried out, and it is over.`
 	}
 ];

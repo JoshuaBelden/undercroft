@@ -6,7 +6,7 @@ import type { SoundId } from './audio/sounds.ts';
  * viewmodel, sounds) all read them. See docs/dev/items.md.
  */
 
-export type ItemKind = 'melee' | 'firearm' | 'throwable' | 'ammo' | 'consumable';
+export type ItemKind = 'melee' | 'firearm' | 'throwable' | 'ammo' | 'consumable' | 'rite' | 'clue';
 
 export interface MeleeSpec {
 	damage: number;
@@ -204,6 +204,30 @@ export const ITEMS: Record<string, ItemDef> = {
 		stack: 10,
 		pocket: true,
 		weight: 0.05,
+		bulk: 0
+	},
+	// Rite items (see docs/dev/rite.md).
+	pendant: {
+		id: 'pendant',
+		name: 'The Pendant',
+		kind: 'rite',
+		model: null,
+		hold: HOLD_RIGHT,
+		stack: 1,
+		pocket: true,
+		weight: 0.2,
+		bulk: 0
+	},
+	// A clue is read where it lies and never carried: nothing can be added to an inventory.
+	clue: {
+		id: 'clue',
+		name: 'Scrap of writing',
+		kind: 'clue',
+		model: null,
+		hold: HOLD_RIGHT,
+		stack: 0,
+		pocket: true,
+		weight: 0,
 		bulk: 0
 	},
 	salts: {

@@ -37,7 +37,7 @@ All checks are on the server (`Parties`); `canDescend` is shared so the lobby ca
 1. A client connects and sends `hello`. It lands in a party and gets `party`. The client shows the lobby (`PartyLobby`).
 2. The leader sends `descend`. If no expedition is running and everyone else is ready, `Parties.descend` creates a `Session` (new seed, generated layout) and adds every member. Each gets `welcome` with the layout: that message means "you are underground now".
 3. Players explore. The session simulates them and broadcasts `tick` snapshots to the players in it.
-4. A player climbs out (see Extraction), dies, or the manifestation is banished. The server sends them `extracted`, `died` or `banished` with `{ seconds, deepestLevel }` and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
+4. A player climbs out (see Extraction), dies, the manifestation is banished, or the rite is performed (see [rite.md](rite.md)). The server sends them `extracted`, `died`, `banished` or `resolved` with `{ seconds, deepestLevel }` and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
 5. The client shows the results screen (after spectating, for the dead; see Spectating), then the lobby. While others are still underground the lobby shows who, and nobody can descend.
 6. When the session's last player is out (or has disconnected), it stops. The party is back on the surface and can descend again into a new expedition.
 

@@ -66,7 +66,8 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		inventory: startingInventory(),
 		weapon: idleWeapon(),
 		bandaging: 0,
-		reviving: 0
+		reviving: 0,
+		performing: 0
 	};
 }
 

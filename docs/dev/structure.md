@@ -55,6 +55,8 @@ server/
   creatures.ts              CreatureDirector: creature AI, damage, noise
   combat.ts                 resolves shots, swings, throws and drops
   affliction.ts             AfflictionDirector: meter, omens, manifestation, banishing
+  rite.ts                   RiteDirector: clues, the rite room, performing; places rite items
+  progress.ts               rite progress per player, kept across expeditions (MongoDB)
   items.ts                  WorldItems: items in the map, pickups, thrown items
   config.ts                 environment
   db.ts                     MongoDB connection

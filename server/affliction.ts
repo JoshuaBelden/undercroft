@@ -142,9 +142,10 @@ export class AfflictionDirector {
 		return (this.darkness?.exposed ?? 0) > 0;
 	}
 
-	snapshot(dev: boolean): AfflictionSnapshot {
+	/** Everything but the rite, which the session adds (see server/rite.ts). */
+	snapshot(dev: boolean): Omit<AfflictionSnapshot, 'rite'> {
 		const d = this.darkness;
-		const snap: AfflictionSnapshot = {
+		const snap: Omit<AfflictionSnapshot, 'rite'> = {
 			id: this.def.id,
 			omen: this.stage,
 			manifestation: d

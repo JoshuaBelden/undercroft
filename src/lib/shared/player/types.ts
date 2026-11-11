@@ -88,6 +88,8 @@ export interface PlayerState {
 	bandaging: number;
 	/** Seconds spent reviving a downed teammate (server-driven). */
 	reviving: number;
+	/** Seconds spent performing the rite (server-driven). */
+	performing: number;
 }
 
 /** One hotbar slot's or pack entry's contents. */

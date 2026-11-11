@@ -17,7 +17,7 @@ interface Handlers {
  * Who we say we are on connecting: the player's name, the party to join (if any), and the token
  * of the connection we are resuming (if any).
  */
-export type Hello = () => { name: string; code?: string; resume?: string };
+export type Hello = () => { name: string; code?: string; resume?: string; player?: string };
 
 /**
  * WebSocket connection to the authoritative game server.

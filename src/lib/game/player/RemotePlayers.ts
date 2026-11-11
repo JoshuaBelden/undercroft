@@ -107,6 +107,11 @@ export class RemotePlayers {
 		return [...this.bodies].map(([id, remote]) => ({ id, name: remote.name }));
 	}
 
+	/** Everyone here with their latest state (for showing who carries what). */
+	players(): { name: string; state: PlayerState }[] {
+		return [...this.bodies.values()].map((remote) => ({ name: remote.name, state: remote.state }));
+	}
+
 	/** A remote player's eyes as drawn this frame: where they are and which way they look. */
 	view(id: string): { position: [number, number, number]; yaw: number; pitch: number } | null {
 		const remote = this.bodies.get(id);

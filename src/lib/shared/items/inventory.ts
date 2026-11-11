@@ -203,6 +203,25 @@ export function takeStack(inv: Inventory, from: ItemRef, count: number): ItemSta
 	return taken > 0 ? { item: from.item, count: taken } : null;
 }
 
+/** Remove up to `count` of an item from wherever it is carried; returns how many were removed. */
+export function removeItem(inv: Inventory, item: string, count: number): number {
+	let left = count - takePocket(inv, item, count);
+	for (let i = inv.pack.length - 1; i >= 0 && left > 0; i--) {
+		const stack = inv.pack[i];
+		if (stack.item !== item) continue;
+		const taken = Math.min(stack.count, left);
+		left -= taken;
+		if (taken >= stack.count) inv.pack.splice(i, 1);
+		else stack.count -= taken;
+	}
+	for (let i = 0; i < inv.hotbar.length && left > 0; i++) {
+		if (inv.hotbar[i]?.item !== item) continue;
+		inv.hotbar[i] = null;
+		left--;
+	}
+	return count - left;
+}
+
 /** Everything carried, as stacks (for dropping on death). */
 export function allStacks(inv: Inventory): ItemStack[] {
 	const stacks = inv.hotbar.filter((s): s is ItemStack => s !== null).map((s) => ({ ...s }));

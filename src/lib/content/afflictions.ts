@@ -47,6 +47,23 @@ export interface ManifestationSpec {
 	hitHeight: number;
 }
 
+/** The rite that resolves an Affliction. See docs/dev/rite.md. */
+export interface RiteSpec {
+	/** What the holder must carry (item ids). Clues reveal these slots in this order. */
+	requirements: { item: string; count: number }[];
+	/** Piece id of the room the rite is performed in. */
+	room: string;
+	/** Seconds the holder holds interact to perform it. */
+	seconds: number;
+	/**
+	 * Clues it takes to know everything. Each reveals one requirement; the last reveals any that
+	 * are left and the room.
+	 */
+	clues: number;
+	/** Copies of each clue placed in the map: finding any one of them counts. */
+	clueCopies: number;
+}
+
 export interface AfflictionDef {
 	id: string;
 	/** Player-facing name (results screen, help). */
@@ -62,6 +79,7 @@ export interface AfflictionDef {
 	/** Omen stages, ascending by `at`. Stage 0 (no omens) is implicit below the first. */
 	stages: OmenStage[];
 	manifestation: ManifestationSpec;
+	rite: RiteSpec;
 }
 
 export const AFFLICTIONS: Record<string, AfflictionDef> = {
@@ -116,6 +134,14 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			spawnDistance: 30,
 			hitRadius: 1,
 			hitHeight: 2.2
+		},
+		// The full rite (5 candles, 1 chalk, the Pendant) comes back with those items in Phase 6.
+		rite: {
+			requirements: [{ item: 'pendant', count: 1 }],
+			room: 'gloaming-chapel',
+			seconds: 5,
+			clues: 1,
+			clueCopies: 3
 		}
 	}
 };

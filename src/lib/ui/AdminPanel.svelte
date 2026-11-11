@@ -53,7 +53,8 @@
 	}
 	let giveItem = $state('crowbar');
 	let giveCount = $state('1');
-	const itemIds = Object.keys(ITEMS);
+	// Clues are read where they lie; they can't be given.
+	const itemIds = Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'clue');
 
 	const toggles: {
 		kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery' | 'godMode' | 'infiniteAmmo';
@@ -175,6 +176,17 @@
 			>
 			<button type="button" onclick={() => onadmin({ kind: 'banish' })}>Banish</button>
 		</div>
+
+		<h3>Rite</h3>
+		<div class="row">
+			<button type="button" onclick={() => onadmin({ kind: 'revealClues' })}
+				>Reveal all clues</button
+			>
+			<button type="button" onclick={() => onadmin({ kind: 'resetRite' })}
+				>Reset rite progress</button
+			>
+		</div>
+		<p class="muted">Give "The Pendant" above; teleport to gloaming-chapel to perform it.</p>
 
 		<h3>Creatures</h3>
 		<div class="row">

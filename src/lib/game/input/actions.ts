@@ -35,6 +35,7 @@ export const ACTIONS = {
 	nextItem: { label: 'Next item', category: 'Items', defaults: ['WheelDown'] },
 	prevItem: { label: 'Previous item', category: 'Items', defaults: ['WheelUp'] },
 	inventory: { label: 'Pack (inventory)', category: 'Items', defaults: ['Tab', 'KeyI'] },
+	ritePanel: { label: 'The rite', category: 'Items', defaults: ['KeyJ'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },

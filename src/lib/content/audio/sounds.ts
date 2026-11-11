@@ -57,7 +57,9 @@ export type SynthSpec =
 	/** A huge, distant exhalation through the stone: something has arrived. */
 	| { kind: 'signal' }
 	/** Hissing recoil (light burning darkness). */
-	| { kind: 'hiss' };
+	| { kind: 'hiss' }
+	/** A struck bell at `pitch` Hz ringing out over `length` seconds. */
+	| { kind: 'bell'; pitch: number; length: number };
 
 export interface SoundDef {
 	/** Built recording id(s) (AUDIO_FILES); a random variant of all of them plays each time. */
@@ -324,6 +326,25 @@ export const SOUNDS = {
 		category: 'ambience',
 		volume: 0.6,
 		caption: 'low hum'
+	},
+	// The rite.
+	'clue.sting': {
+		synth: { kind: 'bell', pitch: 660, length: 1.6 },
+		category: 'sfx',
+		volume: 0.5,
+		caption: 'a clear, small chime'
+	},
+	'rite.begin': {
+		synth: { kind: 'bell', pitch: 196, length: 3 },
+		category: 'sfx',
+		volume: 0.6,
+		caption: 'a low bell'
+	},
+	'rite.resolve': {
+		synth: { kind: 'bell', pitch: 98, length: 7 },
+		category: 'sfx',
+		volume: 0.9,
+		caption: 'a deep bell tolls'
 	},
 	'manifest.signal': {
 		synth: { kind: 'signal' },

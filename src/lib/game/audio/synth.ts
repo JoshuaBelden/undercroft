@@ -428,6 +428,26 @@ function hiss(ctx: BaseAudioContext): AudioBuffer {
 	});
 }
 
+function bell(ctx: BaseAudioContext, pitch: number, length: number): AudioBuffer {
+	// Inharmonic partials, the higher ones dying sooner, like struck metal.
+	const partials = [
+		{ ratio: 1, gain: 1, decay: 1 },
+		{ ratio: 2.01, gain: 0.5, decay: 0.6 },
+		{ ratio: 2.76, gain: 0.35, decay: 0.4 },
+		{ ratio: 5.4, gain: 0.2, decay: 0.2 }
+	];
+	return buffer(ctx, length, (t) => {
+		let sample = 0;
+		for (const partial of partials) {
+			sample +=
+				Math.sin(2 * Math.PI * pitch * partial.ratio * t) *
+				partial.gain *
+				Math.exp((-t * 5) / (length * partial.decay));
+		}
+		return sample * Math.min(1, t / 0.004) * 0.45;
+	});
+}
+
 export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer {
 	switch (spec.kind) {
 		case 'footstep':
@@ -482,5 +502,7 @@ export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer 
 			return signal(ctx);
 		case 'hiss':
 			return hiss(ctx);
+		case 'bell':
+			return bell(ctx, spec.pitch, spec.length);
 	}
 }

@@ -13,6 +13,18 @@ export interface ManifestationSnapshot {
 }
 
 /**
+ * The rite as players know it so far. Slots no clue has revealed are null, and `room` is null
+ * until the last clue is found. See docs/dev/rite.md.
+ */
+export interface RiteSnapshot {
+	requirements: ({ item: string; count: number } | null)[];
+	/** Piece id of the room the rite is performed in. */
+	room: string | null;
+	/** Seconds the holder holds interact. */
+	seconds: number;
+}
+
+/**
  * The Affliction as broadcast in each tick. The meter itself is hidden from players: only the
  * omen stage is sent (and `meter` in dev mode, for the admin panel).
  */
@@ -21,6 +33,7 @@ export interface AfflictionSnapshot {
 	/** 0 = no omens yet, 1.. = the def's stages. */
 	omen: number;
 	manifestation: ManifestationSnapshot | null;
+	rite: RiteSnapshot;
 	/** Dev mode only. */
 	meter?: number;
 }
