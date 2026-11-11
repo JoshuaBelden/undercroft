@@ -121,6 +121,28 @@ export function scatterRite(
 		items.place(newStack(item), [x, y, z], rng.next() * Math.PI * 2);
 	};
 
+	const distance = gridDistances(nav, [nearestPoint(nav, start)]);
+	if (spec.atStart) {
+		// Laid out a few steps from the start, each on its own spot.
+		const near = floor
+			.filter(({ index }) => distance[index] >= 1.5 && distance[index] <= 4)
+			.sort((a, b) => distance[a.index] - distance[b.index]);
+		const used: Vec3[] = [];
+		const lay = (item: string): void => {
+			const apart = near.filter(({ point }) =>
+				used.every((u) => Math.hypot(u[0] - point.position[0], u[2] - point.position[2]) >= 1)
+			);
+			const spot = (apart.length ? apart : near)[0];
+			if (!ITEMS[item] || !spot) return;
+			used.push(spot.point.position);
+			const [x, y, z] = spot.point.position;
+			items.place(newStack(item), [x, y, z], rng.next() * Math.PI * 2);
+		};
+		for (let i = 0; i < spec.clues; i++) lay('clue');
+		for (const { item, count } of spec.requirements) for (let i = 0; i < count; i++) lay(item);
+		return;
+	}
+
 	const majors = [
 		...new Set(
 			layout.placements
@@ -136,7 +158,6 @@ export function scatterRite(
 		}
 	}
 
-	const distance = gridDistances(nav, [nearestPoint(nav, start)]);
 	const reachable = floor.filter(
 		({ point, index }) => distance[index] !== undefined && !riteCells.has(cellOf(point.position))
 	);

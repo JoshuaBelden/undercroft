@@ -62,6 +62,11 @@ export interface RiteSpec {
 	clues: number;
 	/** Copies of each clue placed in the map: finding any one of them counts. */
 	clueCopies: number;
+	/**
+	 * Testing aid: put one clue and every required item a few steps from where players start,
+	 * instead of out in the map.
+	 */
+	atStart: boolean;
 }
 
 export interface AfflictionDef {
@@ -141,7 +146,9 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			room: 'gloaming-chapel',
 			seconds: 5,
 			clues: 1,
-			clueCopies: 3
+			clueCopies: 3,
+			// For now, so the rite is quick to try. Turn off to hide them in the map again.
+			atStart: true
 		}
 	}
 };

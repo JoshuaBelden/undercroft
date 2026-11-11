@@ -31,7 +31,7 @@ An `ItemDef` has a `kind` and the specs that apply to it:
 - `pocket: true` items (ammo, bandages, salts) are counted, not held. Everything else takes a quick slot or goes in the pack.
 - `weight` is kg for one of it. `bulk` is the room one takes in the pack (pocket items use 0).
 
-`hold` places the model in the viewmodel. `model` points at `static/assets/items/<id>.glb`; `null` draws a grey placeholder.
+`hold` places the model in the viewmodel. `model` points at `static/assets/items/<id>.glb`. With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).
 
 ## Inventory
 

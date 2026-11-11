@@ -13,6 +13,8 @@ interface Shown {
 }
 
 const HIGHLIGHT = new THREE.Color(0x2a2418);
+/** Box drawn for an item with no model and no placeholder of its own. */
+const PLACEHOLDER = { size: [0.2, 0.1, 0.2] as [number, number, number], color: 0x777777 };
 
 /**
  * Items on the floor and in flight, drawn from server snapshots. The item you'd pick up glows
@@ -24,6 +26,11 @@ export class WorldItems {
 	private flying = new Map<string, Shown>();
 	/** Per model: how far its lowest point sits below its origin. */
 	private rest = new Map<string, number>();
+	/** Per item without a model: the box drawn in its place (shared by every one of them). */
+	private placeholders = new Map<
+		string,
+		{ geometry: THREE.BoxGeometry; material: THREE.MeshStandardMaterial }
+	>();
 	/** Latest snapshots (for the pickup rule on the client). */
 	snapshots: WorldItemSnapshot[] = [];
 
@@ -56,6 +63,11 @@ export class WorldItems {
 
 	dispose(): void {
 		this.clear();
+		for (const { geometry, material } of this.placeholders.values()) {
+			geometry.dispose();
+			material.dispose();
+		}
+		this.placeholders.clear();
 	}
 
 	private sync(
@@ -125,6 +137,23 @@ export class WorldItems {
 				if (!flying) root.position.y = shown.target.y + (this.rest.get(item) ?? 0);
 				if (shown.highlighted) this.applyGlow(shown, true);
 			});
+		} else {
+			// No model yet: a plain box, so it can still be seen and picked up.
+			const { size, color } = ITEMS[item]?.placeholder ?? PLACEHOLDER;
+			let parts = this.placeholders.get(item);
+			if (!parts) {
+				parts = {
+					geometry: new THREE.BoxGeometry(...size),
+					material: new THREE.MeshStandardMaterial({ color, roughness: 0.8 })
+				};
+				this.placeholders.set(item, parts);
+			}
+			const mesh = new THREE.Mesh(parts.geometry, parts.material);
+			mesh.castShadow = true;
+			mesh.receiveShadow = true;
+			root.add(mesh);
+			this.rest.set(item, size[1] / 2);
+			if (!flying) root.position.y = shown.target.y + size[1] / 2;
 		}
 		return shown;
 	}

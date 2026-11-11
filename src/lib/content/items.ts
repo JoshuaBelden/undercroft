@@ -62,6 +62,8 @@ export interface ItemDef {
 	kind: ItemKind;
 	/** Model in static/assets/items (world and held); null draws a placeholder. */
 	model: string | null;
+	/** How it looks on the floor until it has a model: a box of this size (m) and colour. */
+	placeholder?: { size: [number, number, number]; color: number };
 	/** Viewmodel placement: offset from the camera (m) and scale. */
 	hold: { offset: [number, number, number]; scale: number };
 	/** Max per hotbar slot or pocket. */
@@ -212,6 +214,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'The Pendant',
 		kind: 'rite',
 		model: null,
+		placeholder: { size: [0.1, 0.03, 0.14], color: 0xb08a3a },
 		hold: HOLD_RIGHT,
 		stack: 1,
 		pocket: true,
@@ -224,6 +227,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'Scrap of writing',
 		kind: 'clue',
 		model: null,
+		placeholder: { size: [0.21, 0.01, 0.3], color: 0xcfc4a6 },
 		hold: HOLD_RIGHT,
 		stack: 0,
 		pocket: true,

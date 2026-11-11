@@ -23,6 +23,7 @@ The rite is how an Affliction is resolved (see `docs/HANDOFF.md`). Players learn
 - `seconds`: how long the holder holds interact.
 - `clues`: how many clues it takes to know everything. Each one reveals one requirement; the last reveals any requirements left and the room (`revealed` in `rite.ts`).
 - `clueCopies`: copies of each clue placed in the map. Finding any one counts.
+- `atStart`: testing aid. When true, one of each clue and every required item is laid out a few steps from where players start instead (see below). **Currently on for the Gloaming.**
 
 Changing what a rite needs is a change to this data. A new requirement needs an `ItemDef` with `kind: 'rite'`.
 
@@ -33,9 +34,11 @@ Changing what a rite needs is a change to this data. A new requirement needs an 
 - **Required items:** each in one of the major rooms other than the rite's own, on a standing, dry nav point.
 - **Clues:** `clues × clueCopies` of the `clue` item, one in each distance band from 15% to 85% of the way from the start to the farthest reachable point, never in the rite's room.
 
+With `atStart` set, none of that applies: the clues and the required items are placed on separate nav points 1.5 to 4 m from the start.
+
 A clue is a world item that is never carried. Pressing interact on one (`Session.pickUp`) removes it and calls `RiteDirector.find()`. That raises the `clue` game event, with the requirements and room it revealed, to every player. Once everything is known, the remaining clue copies are removed from the map.
 
-Both the Pendant and the clue are drawn as the grey placeholder until they have models.
+Neither the Pendant nor the clue has a model yet. On the floor they are drawn as boxes from `ItemDef.placeholder` (size and colour): a small brass-coloured block and a pale sheet.
 
 ## What clients know
 
