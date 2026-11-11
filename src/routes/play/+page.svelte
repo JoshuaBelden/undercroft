@@ -24,7 +24,7 @@
 		canTake,
 		carriedCount,
 		held,
-		pocketCount
+		quickWith
 	} from '#lib/shared/items/inventory.ts';
 	import { stackLabel } from '#lib/ui/items.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
@@ -32,7 +32,7 @@
 	import { lookedAtItem } from '#lib/shared/items/pickup.ts';
 	import type { GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
-	import { eyeHeight } from '#lib/shared/player/simulate.ts';
+	import { eyeHeight, healing } from '#lib/shared/player/simulate.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
@@ -52,13 +52,21 @@
 	import { EXPEDITION } from '#lib/content/expedition.ts';
 	import { bindingLabel } from '#lib/game/input/actions.ts';
 	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
-	import type { Inventory, ItemStack, PlayerFlags, PlayerState } from '#lib/shared/player/types.ts';
+	import {
+		HAND,
+		type Inventory,
+		type ItemStack,
+		type PlayerFlags,
+		type PlayerState
+	} from '#lib/shared/player/types.ts';
 	import type { PartyState } from '#lib/shared/party/types.ts';
 	import type { AdminCommand, ClientMessage } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
+	import QuickWheel from '#lib/ui/QuickWheel.svelte';
+	import { wheelChoice } from '#lib/ui/wheel.ts';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
@@ -102,15 +110,18 @@
 		prompt: null as string | null,
 		progress: 0,
 		sanity: 1,
-		bandages: 0,
-		salts: 0,
 		hurt: 0,
-		hotbar: [] as { name: string | null; key: string }[],
-		selected: 0,
+		hand: null as { name: string; count: number } | null,
 		ammo: null as { loaded: number; spare: number } | null,
 		aiming: false,
 		gloom: 0
 	});
+	/** The quick-use wheel while its key is held: the slots, the pointer and the slot it is on. */
+	let wheel = $state<{
+		slots: (ItemStack | null)[];
+		pointer: { x: number; y: number };
+		chosen: number;
+	} | null>(null);
 	let meter = $state<number | null>(null);
 	let omen = $state(0);
 	/** Set while downed: bleed-out time left (0..1) and what happens next. */
@@ -154,10 +165,6 @@
 		void command;
 	};
 
-	const SLOT_ACTIONS = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5'] as const;
-	const slotKeys = $derived(
-		SLOT_ACTIONS.map((action) => settings.bindings[action].map(bindingLabel)[0] ?? '')
-	);
 	/** What we are taking down: the loadout chosen on the dashboard, as a sentence. */
 	const kit = $derived.by(() => {
 		const loadout = session.account?.explorer.loadout;
@@ -221,7 +228,8 @@
 				.then((fresh) => {
 					ticket = fresh;
 					void loadAccount();
-					connect();
+					// Again, with the ticket this time. (`connect` is declared before the client.)
+					client.connect();
 				})
 				// Not signed in any more (or the site is down): back to the sign-in page.
 				.catch(() => (location.href = resolve('/auth/sign-in')));
@@ -371,7 +379,11 @@
 
 		sendAdmin = (command) => client.send({ type: 'admin', command });
 		send = (message) => client.send(message);
-		sendInventory = (action) => client.send({ type: 'inventory', action });
+		sendInventory = (action) => {
+			client.send({ type: 'inventory', action });
+			// Something put down in a slot. (A drop is heard when it lands on the floor.)
+			if (action.kind !== 'drop') sounds.play('inventory.drop');
+		};
 		/** The inventory last shown, as JSON: the screen only updates when it changes. */
 		let shownInventory = '';
 		/** Whether the rite was being performed last frame (to ring its bell once). */
@@ -398,6 +410,8 @@
 			banner = null;
 			downed = null;
 			captions.clear();
+			player.closeWheel();
+			wheel = null;
 			document.exitPointerLock();
 			// What was learned or carried out shows on the surface.
 			void loadAccount();
@@ -578,25 +592,42 @@
 			}
 		}
 
-		/** Hotbar, ammo and aiming for the HUD. */
-		function itemHud(
-			state: PlayerState
-		): Pick<typeof hud, 'hotbar' | 'selected' | 'ammo' | 'aiming'> {
+		/** What is in the hand, ammo and aiming for the HUD. */
+		function itemHud(state: PlayerState): Pick<typeof hud, 'hand' | 'ammo' | 'aiming'> {
 			const inv = state.inventory;
 			const stack = held(inv);
 			const gun = stack ? ITEMS[stack.item]?.firearm : undefined;
 			return {
-				hotbar: settings.interface.quickSlots
-					? inv.hotbar.map((slot, i) => ({
-							name: slot ? (ITEMS[slot.item]?.name ?? slot.item) : null,
-							key: slotKeys[i] ?? ''
-						}))
-					: [],
-				selected: inv.selected,
+				hand:
+					stack && settings.interface.quickSlots
+						? { name: ITEMS[stack.item]?.name ?? stack.item, count: stack.count }
+						: null,
 				ammo:
-					gun && stack ? { loaded: stack.loaded ?? 0, spare: pocketCount(inv, gun.ammo) } : null,
+					gun && stack ? { loaded: stack.loaded ?? 0, spare: carriedCount(inv, gun.ammo) } : null,
 				aiming: state.weapon.aiming
 			};
+		}
+
+		/**
+		 * The quick-use wheel: open while its key is held (and there is something to choose);
+		 * letting go takes the slot the pointer is on in the hand.
+		 */
+		function updateWheel(state: PlayerState | null, active: boolean): void {
+			const holding = active && !!state && !state.downed && input.isDown('quickUse');
+			if (!wheel) {
+				if (!holding || !state.inventory.quick.some((slot) => slot)) return;
+				player.openWheel();
+			}
+			const slots = state?.inventory.quick ?? [];
+			const pointer = player.wheelPointer ?? { x: 0, y: 0 };
+			const chosen = wheelChoice(pointer, slots);
+			if (holding) {
+				wheel = { slots: slots.map((slot) => (slot ? { ...slot } : null)), pointer, chosen };
+				return;
+			}
+			player.closeWheel();
+			wheel = null;
+			if (state && chosen >= 0) player.take(HAND.quick + chosen);
 		}
 
 		/** The floor item in reach that interact would pick up (same rule as the server). */
@@ -614,12 +645,13 @@
 		/** The one held-action prompt to show, with its progress. */
 		function heldPrompt(state: PlayerState): { prompt: string | null; progress: number } {
 			if (state.downed) return { prompt: null, progress: 0 };
-			if (state.bandaging > 0) {
-				return { prompt: 'Bandaging...', progress: state.bandaging / SANITY.bandageSeconds };
+			const heal = healing(state);
+			if (heal && state.bandaging > 0) {
+				return { prompt: 'Bandaging...', progress: state.bandaging / heal.seconds };
 			}
 			if (downedNearby(state)) {
-				if (pocketCount(state.inventory, 'salts') <= 0) {
-					return { prompt: 'No smelling salts', progress: 0 };
+				if (quickWith(state.inventory, 'revive') < 0) {
+					return { prompt: 'No smelling salts to hand', progress: 0 };
 				}
 				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
 				return {
@@ -655,7 +687,7 @@
 		function downedMessage(state: PlayerState): string {
 			const helpers = [...remote.states()].some((other) => !other.downed && !other.dead);
 			if (helpers) return 'Waiting for help...';
-			if (pocketCount(state.inventory, 'salts') > 0) return 'Reaching for your smelling salts...';
+			if (quickWith(state.inventory, 'revive') >= 0) return 'Reaching for your smelling salts...';
 			return 'No one is coming';
 		}
 
@@ -720,6 +752,7 @@
 
 		engine.onUpdate((delta) => {
 			const active = locked && !panel && !mapView;
+			updateWheel(player.state, active);
 			player.update(delta, active);
 			remote.update(delta);
 			const self = player.state;
@@ -773,8 +806,6 @@
 					creep: player.modes.creep,
 					...heldPrompt(state),
 					sanity: state.sanity / SANITY.max,
-					bandages: pocketCount(state.inventory, 'bandage'),
-					salts: pocketCount(state.inventory, 'salts'),
 					hurt: hud.hurt,
 					...itemHud(state),
 					gloom: state.gloom
@@ -868,6 +899,10 @@
 	<Hud {...hud} />
 {/if}
 
+{#if wheel && spawned && !mapView && !result}
+	<QuickWheel slots={wheel.slots} pointer={wheel.pointer} chosen={wheel.chosen} />
+{/if}
+
 {#if settings.accessibility.captions && spawned && !mapView && !result}
 	<Captions captions={captions.list} size={settings.accessibility.captionSize} />
 {/if}
@@ -958,7 +993,6 @@
 {:else if panel === 'inventory' && inventory}
 	<InventoryScreen
 		{inventory}
-		{slotKeys}
 		onaction={(action) => sendInventory(action)}
 		onclose={() => toggle('inventory')}
 	/>

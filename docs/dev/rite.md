@@ -54,7 +54,7 @@ The rite panel (`ritePanel` action) shows it any time underground, including whi
 
 ## The holder and performing it
 
-There is no holder role. Whoever carries every requirement (in quick slots, pack or pockets: `carriesAll`) can perform the rite. Players pool items by dropping them for that person to pick up. If they die, the items drop where they fell like everything else.
+There is no holder role. Whoever carries every requirement (in any slot: `carriesAll`) can perform the rite. Players pool items by dropping them for that person to pick up. If they die, the items drop where they fell like everything else.
 
 `Session.stepRite` runs each tick. A player performs while they:
 

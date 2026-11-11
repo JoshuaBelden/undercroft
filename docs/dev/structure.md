@@ -45,7 +45,7 @@ src/
       help/index.ts         player help topics
       map/kit.ts            map piece roles and weights
       player/movement.ts    movement and stamina tuning
-      player/sanity.ts      sanity, downed, revive and bandage tuning
+      player/sanity.ts      sanity, downed and revive tuning
       creatures.ts          creature definitions
       afflictions.ts        Affliction definitions: meter, omen stages, manifestation
       items.ts              item definitions (weapons, ammo, consumables)

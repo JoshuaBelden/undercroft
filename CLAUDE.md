@@ -24,6 +24,7 @@ pnpm install            # install deps
 docker compose up -d    # start MongoDB
 pnpm dev                # SvelteKit client
 pnpm dev:server         # game server (watch mode)
+pnpm dev:seed [email]   # dev: fill explorers' stashes with items to test with
 pnpm build              # production build (adapter-node)
 pnpm check              # svelte-check + TypeScript
 pnpm lint               # Prettier check + ESLint

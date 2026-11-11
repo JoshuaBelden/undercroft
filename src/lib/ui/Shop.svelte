@@ -3,6 +3,8 @@
 	import { SHOP, money, sellPrice } from '#lib/content/economy.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
+	import type { SlotRef } from '#lib/shared/items/types.ts';
+	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import { stackLabel } from './items.ts';
 
 	interface Props {
@@ -19,7 +21,7 @@
 	async function run(
 		change:
 			| { action: 'buy'; item: string; lots: number }
-			| { action: 'sell'; index: number; count: number }
+			| { action: 'sell'; from: SlotRef; count: number }
 	): Promise<void> {
 		if (busy) return;
 		busy = true;
@@ -64,47 +66,55 @@
 					</li>
 				{/each}
 			</ul>
-			<p class="muted">What you buy goes to your stash. Firearms come empty.</p>
+			<p class="muted">
+				What you buy goes to your stash, if there is room for it. Firearms come empty.
+			</p>
 		</section>
 
 		<section>
 			<h3>Your stash</h3>
-			{#if explorer.stash.length === 0}
+			{#if explorer.stash.every((stack) => !stack)}
 				<p class="muted">Nothing to sell. Bring something back.</p>
 			{:else}
 				<ul>
 					{#each explorer.stash as stack, index (index)}
-						{@const each = sellPrice(stack.item)}
-						<li>
-							<span class="name">{stackLabel(stack)}</span>
-							{#if each > 0}
-								<span class="price">{money(each)}{stack.count > 1 ? ' each' : ''}</span>
-								<button
-									type="button"
-									disabled={busy || explorer.underground}
-									onclick={() => void run({ action: 'sell', index, count: 1 })}
-								>
-									Sell
-								</button>
-								{#if stack.count > 1}
-									<button
-										type="button"
-										disabled={busy || explorer.underground}
-										onclick={() => void run({ action: 'sell', index, count: stack.count })}
-									>
-										All
-									</button>
-								{/if}
-							{:else}
-								<span class="price">No one wants it</span>
-							{/if}
-						</li>
+						{#if stack}
+							{@render selling(stack, { area: 'stash', index })}
+						{/if}
 					{/each}
 				</ul>
 			{/if}
 		</section>
 	</div>
 </div>
+
+{#snippet selling(stack: ItemStack, from: SlotRef)}
+	{@const each = sellPrice(stack.item)}
+	<li>
+		<span class="name">{stackLabel(stack)}</span>
+		{#if each > 0}
+			<span class="price">{money(each)}{stack.count > 1 ? ' each' : ''}</span>
+			<button
+				type="button"
+				disabled={busy || explorer.underground}
+				onclick={() => void run({ action: 'sell', from, count: 1 })}
+			>
+				Sell
+			</button>
+			{#if stack.count > 1}
+				<button
+					type="button"
+					disabled={busy || explorer.underground}
+					onclick={() => void run({ action: 'sell', from, count: stack.count })}
+				>
+					All
+				</button>
+			{/if}
+		{:else}
+			<span class="price">No one wants it</span>
+		{/if}
+	</li>
+{/snippet}
 
 <style>
 	.purse {

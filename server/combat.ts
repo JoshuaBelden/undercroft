@@ -1,4 +1,5 @@
 import { ITEMS } from '../src/lib/content/items.ts';
+import { held, spendHeld } from '../src/lib/shared/items/inventory.ts';
 import { pelletDirections } from '../src/lib/shared/items/weapons.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { rayVsCapsule, segmentHit, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
@@ -183,16 +184,13 @@ function swing(
 }
 
 function wear(ctx: CombatContext, player: Prey, item: string, breaksAfter: number): void {
+	// A swing is made with what is in the hand.
 	const inv = player.state.inventory;
-	const index =
-		inv.hotbar[inv.selected]?.item === item
-			? inv.selected
-			: inv.hotbar.findIndex((s) => s?.item === item);
-	const stack = index >= 0 ? inv.hotbar[index] : null;
-	if (!stack) return;
+	const stack = held(inv);
+	if (stack?.item !== item) return;
 	stack.uses = (stack.uses ?? 0) + 1;
 	if (stack.uses >= breaksAfter) {
-		inv.hotbar[index] = null;
+		spendHeld(inv, true);
 		ctx.out.push({ kind: 'break', item, position: [...player.state.position] });
 	}
 }

@@ -26,12 +26,13 @@ import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import {
 	addItem,
 	allStacks,
+	applyAction,
+	defenseReduction,
 	held,
-	moveItem,
 	newStack,
+	quickWith,
 	sanitizeAction,
-	takePocket,
-	takeStack
+	spendQuick
 } from '../src/lib/shared/items/inventory.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { aimRay, reequip } from '../src/lib/shared/items/weapons.ts';
@@ -289,7 +290,7 @@ export class Session {
 		if (player.queue.length > MAX_QUEUE) player.queue.splice(0, player.queue.length - MAX_QUEUE);
 	}
 
-	/** A request from the inventory screen: move something between slots and pack, or drop it. */
+	/** A request from the pack screen: move, equip or split something, or drop it on the floor. */
 	inventory(playerId: string, raw: unknown): void {
 		const player = this.players.get(playerId);
 		const action = sanitizeAction(raw);
@@ -298,15 +299,11 @@ export class Session {
 		if (s.downed || s.dead || s.extracted) return;
 		const inv = s.inventory;
 		const inHand = held(inv);
-		if (action.kind === 'move') {
-			moveItem(inv, action.from, action.to);
-		} else {
-			const stack = takeStack(inv, action.from, action.count);
-			if (stack) {
-				const { origin, direction } = aimRay(s, eyeHeight(s));
-				this.items.drop(stack, origin, direction);
-				this.events.push({ kind: 'drop', player: player.id, item: stack.item, position: origin });
-			}
+		const { dropped } = applyAction({ inventory: inv }, action);
+		if (dropped) {
+			const { origin, direction } = aimRay(s, eyeHeight(s));
+			this.items.drop(dropped, origin, direction);
+			this.events.push({ kind: 'drop', player: player.id, item: dropped.item, position: origin });
 		}
 		// What's in the hand changed: whatever it was doing stops and the new item comes up.
 		if (held(inv) !== inHand) reequip(s.weapon);
@@ -352,14 +349,13 @@ export class Session {
 			case 'give': {
 				if (typeof command.item !== 'string' || !ITEMS[command.item]) return;
 				const count = Math.max(1, Math.min(99, Math.floor(Number(command.count) || 1)));
-				const def = ITEMS[command.item];
-				const stack = newStack(command.item, def.pocket ? count : 1, def.firearm?.magazine);
-				if (def.pocket) addItem(player.state.inventory, stack);
-				else for (let i = 0; i < count; i++) addItem(player.state.inventory, { ...stack });
+				const magazine = ITEMS[command.item].firearm?.magazine;
+				addItem(player.state.inventory, newStack(command.item, count, magazine));
 				break;
 			}
 			case 'refillAmmo':
-				for (const stack of player.state.inventory.hotbar) {
+				for (const slot of ['primary', 'secondary'] as const) {
+					const stack = player.state.inventory.equipment[slot];
 					const gun = stack ? ITEMS[stack.item]?.firearm : undefined;
 					if (!stack || !gun) continue;
 					stack.loaded = gun.magazine;
@@ -629,7 +625,10 @@ export class Session {
 		const prey = [...this.players.values()].map((p) => ({ id: p.id, state: p.state }));
 		for (const hit of this.creatures.step(prey)) {
 			const player = this.players.get(hit.playerId);
-			if (player) this.hurt(player, hit.damage);
+			// What is worn takes some of a blow.
+			if (player) {
+				this.hurt(player, hit.damage * (1 - defenseReduction(player.state.inventory)));
+			}
 		}
 	}
 
@@ -677,8 +676,9 @@ export class Session {
 	}
 
 	/**
-	 * Holding interact next to a downed teammate (with salts) revives them. When nobody is able
-	 * to help (solo, or everyone else is down), a downed player's own salts are used.
+	 * Holding interact next to a downed teammate, with something that revives (smelling salts) in
+	 * a quick-use slot, revives them. When nobody is able to help (solo, or everyone else is
+	 * down), a downed player's own are used.
 	 */
 	private stepRevives(): void {
 		const players = [...this.players.values()];
@@ -686,7 +686,7 @@ export class Session {
 		for (const reviver of players) {
 			const s = reviver.state;
 			const patient =
-				!s.downed && !s.dead && (s.inventory.pockets.salts ?? 0) > 0 && reviver.lastInput?.interact
+				!s.downed && !s.dead && quickWith(s.inventory, 'revive') >= 0 && reviver.lastInput?.interact
 					? players.find(
 							(p) =>
 								p !== reviver &&
@@ -706,7 +706,7 @@ export class Session {
 			s.reviving += TICK_DT;
 			if (s.reviving >= SANITY.reviveSeconds) {
 				s.reviving = 0;
-				takePocket(s.inventory, 'salts', 1);
+				spendQuick(s.inventory, quickWith(s.inventory, 'revive'));
 				this.revive(patient);
 				log.info(`${reviver.name} revived ${patient.name}`);
 			}
@@ -714,9 +714,10 @@ export class Session {
 		for (const player of players) {
 			const s = player.state;
 			if (!s.downed || s.dead || s.downedTime < SELF_REVIVE_DELAY) continue;
-			if ((s.inventory.pockets.salts ?? 0) <= 0) continue;
+			const salts = quickWith(s.inventory, 'revive');
+			if (salts < 0) continue;
 			if (able.some((p) => p !== player)) continue;
-			takePocket(s.inventory, 'salts', 1);
+			spendQuick(s.inventory, salts);
 			this.revive(player);
 		}
 	}

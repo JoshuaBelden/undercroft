@@ -1,13 +1,7 @@
 import type { Collection, Db } from 'mongodb';
 import { ITEMS } from '../../content/items.ts';
-import {
-	addItem,
-	allStacks,
-	emptyInventory,
-	removeItem,
-	takeStack
-} from '../../shared/items/inventory.ts';
-import type { ItemRef } from '../../shared/items/types.ts';
+import { addToSlots, applyAction, emptyInventory } from '../../shared/items/inventory.ts';
+import type { InventoryAction } from '../../shared/items/types.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
 import type { ExplorerDoc } from './accounts.ts';
 
@@ -19,12 +13,22 @@ import type { ExplorerDoc } from './accounts.ts';
  */
 
 export type ExplorerError =
-	'underground' | 'missing' | 'noRoom' | 'busy' | 'money' | 'worthless' | 'unsold';
+	| 'underground'
+	| 'missing'
+	| 'noRoom'
+	| 'heavy'
+	| 'stashFull'
+	| 'busy'
+	| 'money'
+	| 'worthless'
+	| 'unsold';
 
 export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	underground: "You can't do that while you're underground",
 	missing: "That isn't there any more",
-	noRoom: "That doesn't fit: too heavy, or no room for it",
+	noRoom: "That doesn't go there, or there is no room for it",
+	heavy: 'That is more than you can carry',
+	stashFull: 'Your stash is full',
 	busy: 'Something else changed at the same time. Try again',
 	money: "You can't afford that",
 	worthless: 'No one will buy that',
@@ -35,17 +39,6 @@ const explorers = (db: Db): Collection<ExplorerDoc> => db.collection<ExplorerDoc
 
 /** Item kinds that never stay in a loadout: they go to the stash when you come back up. */
 const NOT_KIT = new Set(['loot', 'rite', 'clue']);
-
-/** Put a stack in a stash, joining one of the same item unless it has its own state. */
-export function addToStash(stash: ItemStack[], stack: ItemStack): void {
-	if (stack.count <= 0) return;
-	const plain = stack.loaded === undefined && stack.uses === undefined;
-	const entry = plain
-		? stash.find((s) => s.item === stack.item && s.loaded === undefined && s.uses === undefined)
-		: undefined;
-	if (entry) entry.count += stack.count;
-	else stash.push({ ...stack });
-}
 
 /**
  * Change an explorer from the hub. `change` edits a copy and returns an error to refuse. The
@@ -63,45 +56,40 @@ export async function changeExplorer(
 	const error = change(after);
 	if (error) return { error };
 	const result = await explorers(db).updateOne(
-		{ _id: explorerId, underground: null, money: before.money, stash: before.stash },
+		{
+			_id: explorerId,
+			underground: null,
+			money: before.money,
+			stash: before.stash,
+			loadout: before.loadout
+		},
 		{ $set: { money: after.money, stash: after.stash, loadout: after.loadout } }
 	);
 	return result.matchedCount === 1 ? { explorer: after } : { error: 'busy' };
 }
 
-/** Stash to loadout: as many of the stack as will fit, up to `count`. */
-export function takeFromStash(
+/**
+ * A request from the Loadout page: move, equip or split something in the stash or the loadout,
+ * or throw it away (`drop`: on the surface it is gone for good). `dropped` is what was thrown
+ * away, for the ledger.
+ */
+export async function arrange(
 	db: Db,
 	explorerId: string,
-	index: number,
-	count: number
-): Promise<{ explorer: ExplorerDoc } | { error: ExplorerError }> {
-	return changeExplorer(db, explorerId, (explorer) => {
-		const stack = explorer.stash[index];
-		if (!stack || !ITEMS[stack.item]) return 'missing';
-		const wanted = Math.max(1, Math.min(stack.count, Math.floor(count)));
-		const left = addItem(explorer.loadout, { ...stack, count: wanted });
-		const moved = wanted - left;
-		if (moved <= 0) return 'noRoom';
-		if (moved >= stack.count) explorer.stash.splice(index, 1);
-		else stack.count -= moved;
+	action: InventoryAction
+): Promise<{ explorer: ExplorerDoc; dropped?: ItemStack } | { error: ExplorerError }> {
+	let thrown: ItemStack | undefined;
+	const result = await changeExplorer(db, explorerId, (explorer) => {
+		const { result, dropped } = applyAction(
+			{ inventory: explorer.loadout, stash: explorer.stash },
+			action
+		);
+		thrown = dropped;
+		if (result === 'heavy') return 'heavy';
+		if (result === 'refused') return action.kind === 'drop' ? 'missing' : 'noRoom';
 		return null;
 	});
-}
-
-/** Loadout to stash. */
-export function stowInStash(
-	db: Db,
-	explorerId: string,
-	from: ItemRef,
-	count: number
-): Promise<{ explorer: ExplorerDoc } | { error: ExplorerError }> {
-	return changeExplorer(db, explorerId, (explorer) => {
-		const stack = takeStack(explorer.loadout, from, count);
-		if (!stack) return 'missing';
-		addToStash(explorer.stash, stack);
-		return null;
-	});
+	return 'explorer' in result ? { ...result, dropped: thrown } : result;
 }
 
 /**
@@ -121,7 +109,7 @@ export async function takeLoadout(db: Db, explorerId: string, session: string): 
 /**
  * Back from an expedition. `carried` is what they brought out (null if they died or were lost:
  * it stays in the catacombs). Their kit stays arranged as their loadout for next time; loot and
- * rite items go to the stash.
+ * rite items go to the stash, as far as it has room (the rest stays in the backpack).
  */
 export async function returnFromExpedition(
 	db: Db,
@@ -141,11 +129,12 @@ export async function returnFromExpedition(
 	const loadout = structuredClone(carried);
 	loadout.selected = 0;
 	const stash = explorer.stash;
-	for (const stack of allStacks(loadout)) {
-		if (!NOT_KIT.has(ITEMS[stack.item]?.kind ?? '')) continue;
-		removeItem(loadout, stack.item, stack.count);
-		addToStash(stash, stack);
-	}
+	// Only the backpack can hold these: they belong in no other slot.
+	loadout.backpack.forEach((stack, index) => {
+		if (!stack || !NOT_KIT.has(ITEMS[stack.item]?.kind ?? '')) return;
+		const left = addToSlots(stash, stack);
+		loadout.backpack[index] = left > 0 ? { ...stack, count: left } : null;
+	});
 	await explorers(db).updateOne(
 		{ _id: explorerId, underground: session },
 		{ $set: { underground: null, loadout, stash } }

@@ -1,4 +1,5 @@
 import type { Vec3 } from '../map/types.ts';
+import type { EquipmentSlot } from '../player/types.ts';
 
 /** An item lying in the map, as broadcast in each tick. See docs/dev/items.md. */
 export interface WorldItemSnapshot {
@@ -17,18 +18,33 @@ export interface ProjectileSnapshot {
 	position: Vec3;
 }
 
-/** Where something is in an inventory. */
-export type ItemRef =
-	| { area: 'hotbar'; index: number }
-	| { area: 'pack'; index: number }
-	| { area: 'pocket'; item: string };
+/** A slot: in the stash (on the surface only) or somewhere in an inventory. */
+export type SlotRef =
+	| { area: 'stash'; index: number }
+	| { area: 'backpack'; index: number }
+	| { area: 'quick'; index: number }
+	| { area: 'equipment'; slot: EquipmentSlot };
 
-/** Rearranging what you carry, sent by the inventory screen (`inventory` message). */
+export type SlotArea = SlotRef['area'];
+
+/**
+ * Rearranging what you have. The same requests serve the pack screen underground (the
+ * `inventory` message) and the Loadout page on the surface (`POST /api/explorer/loadout`).
+ */
 export type InventoryAction =
-	/** Between a quick slot and the pack, or two quick slots (they swap). */
-	| { kind: 'move'; from: ItemRef; to: ItemRef }
-	/** Put `count` of it on the floor in front of you. */
-	| { kind: 'drop'; from: ItemRef; count: number };
+	/**
+	 * Onto another slot: into it if it is empty (`count` moves part of a stack), onto a stack of
+	 * the same item, or swapping places with what is there.
+	 */
+	| { kind: 'move'; from: SlotRef; to: SlotRef; count?: number }
+	/** Shift-click: stash to loadout and back; underground, backpack to its slot and back. */
+	| { kind: 'quick'; from: SlotRef }
+	/** Into the weapon, defense or quick-use slot it belongs in. */
+	| { kind: 'equip'; from: SlotRef }
+	/** `count` of a stack into an empty slot beside it. */
+	| { kind: 'split'; from: SlotRef; count: number }
+	/** Underground: onto the floor in front of you. On the surface: gone for good. */
+	| { kind: 'drop'; from: SlotRef; count: number };
 
 /**
  * Something that happened this tick, for every client to show and hear (their own predicted

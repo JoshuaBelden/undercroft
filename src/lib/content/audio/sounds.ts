@@ -327,6 +327,14 @@ export const SOUNDS = {
 		volume: 0.6,
 		caption: 'low hum'
 	},
+	// Putting something down in a slot: the Loadout page and the pack screen.
+	'inventory.drop': {
+		file: 'inventory.drop',
+		synth: { kind: 'thud', cutoff: 900 },
+		category: 'sfx',
+		volume: 0.35,
+		variation: 0.12
+	},
 	// The surface.
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
 	'shop.sell': { synth: { kind: 'bell', pitch: 1320, length: 0.5 }, category: 'sfx', volume: 0.3 },

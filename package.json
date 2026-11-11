@@ -10,6 +10,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"dev:server": "tsx watch --env-file-if-exists=.env server/index.ts",
+		"dev:seed": "tsx --env-file-if-exists=.env scripts/seed-items.ts",
 		"start:server": "tsx --env-file-if-exists=.env server/index.ts",
 		"build": "vite build",
 		"preview": "vite preview",

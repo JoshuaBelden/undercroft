@@ -12,7 +12,14 @@ import {
 	waterSurface,
 	type CollisionWorld
 } from '../map/collision.ts';
-import { cloneInventory, emptyInventory, speedFactor, takePocket } from '../items/inventory.ts';
+import { ITEMS } from '../../content/items.ts';
+import {
+	cloneInventory,
+	emptyInventory,
+	held,
+	speedFactor,
+	spendHeld
+} from '../items/inventory.ts';
 import { idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { InputFrame, Inventory, PlayerState, SimEvent, Stance } from './types.ts';
@@ -100,7 +107,6 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		climb: false,
 		swimDown: false,
 		interact: false,
-		heal: false,
 		attack: false,
 		aim: false,
 		reload: false,
@@ -141,7 +147,6 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		climb: f.climb === true,
 		swimDown: f.swimDown === true,
 		interact: f.interact === true,
-		heal: f.heal === true,
 		attack: f.attack === true,
 		aim: f.aim === true,
 		reload: f.reload === true,
@@ -262,10 +267,11 @@ export function stepPlayer(
 	const able =
 		!s.swimming && !s.mantle && s.stance !== 'crawl' && s.bandaging === 0 && s.reviving === 0;
 	stepWeapon(s, input, dt, able, eyeHeight(s, t), events);
+	const heal = healing(s);
 	if (s.bandaging > 0) s.bandaging += dt;
-	if (s.bandaging >= SANITY.bandageSeconds) {
-		takePocket(s.inventory, 'bandage', 1);
-		s.sanity = Math.min(SANITY.max, s.sanity + SANITY.bandageHeal);
+	if (heal && s.bandaging >= heal.seconds) {
+		spendHeld(s.inventory);
+		s.sanity = Math.min(SANITY.max, s.sanity + heal.amount);
 		s.bandaging = 0;
 	}
 	updateStamina(s, sprinting, s.underwater, dt, t);
@@ -287,15 +293,19 @@ function stepDowned(s: PlayerState, world: CollisionWorld, dt: number, t: Moveme
 	if (s.downedTime >= SANITY.bleedOut) s.dead = true;
 }
 
-/** Start or interrupt applying a bandage (hold heal, standing still, with a bandage, hurt). */
+/** The healing spec of what is in the hand (a bandage), if it heals. */
+export function healing(s: PlayerState): { amount: number; seconds: number } | undefined {
+	const stack = held(s.inventory);
+	return stack ? ITEMS[stack.item]?.heal : undefined;
+}
+
+/**
+ * Start or interrupt applying the healing item in the hand: hold attack, standing still, hurt.
+ * Taking something else in the hand interrupts it.
+ */
 function updateBandage(s: PlayerState, input: InputFrame, moving: boolean): void {
 	const ready =
-		input.heal &&
-		!moving &&
-		s.grounded &&
-		!s.swimming &&
-		(s.inventory.pockets.bandage ?? 0) > 0 &&
-		s.sanity < SANITY.max;
+		input.attack && !moving && s.grounded && !s.swimming && !!healing(s) && s.sanity < SANITY.max;
 	if (!ready) s.bandaging = 0;
 	else if (s.bandaging === 0) s.bandaging = 1e-6;
 }

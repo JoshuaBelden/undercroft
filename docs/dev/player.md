@@ -173,7 +173,7 @@ One setting (`settings.accessibility.captions`, off by default; `captionSize` se
 - **Audibility:** a cue is only raised when `level × volume × distance falloff` reaches `CAPTION_THRESHOLD`. The falloff is `AudioManager.distanceGain`, the same inverse curve the panner uses, so a sound is captioned about as far as it is heard.
 - **Direction:** positional cues carry `ahead`, `behind`, `left`, `right`, `above` or `below`, from `captionDirection` (listener position and facing from `AudioManager.listener`). Non-positional sounds and loops have none.
 - **Loops** (heartbeat, omen drone, the manifestation's rumble) re-raise their cue every 0.5 s while audible, which keeps the caption up.
-- `CaptionFeed` (`src/lib/game/audio/captions.svelte.ts`) holds up to 4 captions, one per sound id; a repeat refreshes its timer and direction instead of adding a line. `Captions.svelte` draws them above the hotbar.
+- `CaptionFeed` (`src/lib/game/audio/captions.svelte.ts`) holds up to 4 captions, one per sound id; a repeat refreshes its timer and direction instead of adding a line. `Captions.svelte` draws them at the bottom of the screen.
 
 **Adding a caption:** add `caption` to the sound in `sounds.ts`. Describe the sound, not its source; captions must not give away more than hearing it would. Never name creatures.
 
@@ -185,7 +185,7 @@ One setting (`settings.accessibility.captions`, off by default; `captionSize` se
 
 ## Items
 
-`PlayerState` carries `inventory` (hotbar, selected slot, pockets) and `weapon` (the held item's action). `InputFrame` has `attack`, `aim`, `reload`, `drop` and `select`. `stepPlayer` advances the held item with `stepWeapon` and can collect `SimEvent`s for the server to resolve. Aiming a firearm caps speed at `aimSpeed` and blocks sprinting. All of it is described in [items.md](items.md).
+`PlayerState` carries `inventory` (equipment, backpack, quick-use slots and which of them is in the hand) and `weapon` (the held item's action). `InputFrame` has `attack`, `aim`, `reload`, `drop` and `select`. The `primaryWeapon` and `secondaryWeapon` actions and the quick-use wheel (`quickUse`, held) set `select`. `stepPlayer` advances the held item with `stepWeapon` and can collect `SimEvent`s for the server to resolve. Aiming a firearm caps speed at `aimSpeed` and blocks sprinting. All of it is described in [items.md](items.md).
 
 ## Sanity
 
@@ -193,22 +193,22 @@ Sanity is health (0 to `SANITY.max`). All tuning lives in `SANITY` (`src/lib/con
 
 Applied by the server (`server/session.ts`) each tick:
 
-- **Attacks:** a creature's hit takes `attack.damage`.
+- **Attacks:** a creature's hit takes `attack.damage`, less what the item in the defense slot takes off (`defenseReduction`).
 - **Darkness:** `darknessDrain`/s while your lamp gives no light (off or flat) and other players' lamps put less than 0.02 on your eye.
 - **Seeing:** `seeingDrain`/s while a creature is in half-light (`creatureLight` in its `visibleBand`), within `seeingRange`, inside your view cone (0.9 rad half-angle) and in line of sight.
 - **God mode** (admin flag) ignores all of it.
 
 At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed player on the floor in crawl stance: look only, no extraction or bandaging. `downedTime` counts up, and at `bleedOut` (60 s) `dead` is set. The server then sends `died` and removes the player, like `extracted`. The expedition still ends when nobody is left.
 
-**Reviving:** the server keeps each player's last simulated input. While a player who isn't downed holds `interact` within `reviveRange` of a downed teammate and has salts, `reviving` counts up. At `reviveSeconds` one salt is used and the teammate gets up with `reviveTo` sanity. If nobody else could help (solo, or everyone else is down too), a downed player with salts uses their own after 3 s.
+**Reviving:** the server keeps each player's last simulated input. While a player who isn't downed holds `interact` within `reviveRange` of a downed teammate and has salts (an item with `revive`) in a quick-use slot, `reviving` counts up. At `reviveSeconds` one is used and the teammate gets up with `reviveTo` sanity. If nobody else could help (solo, or everyone else is down too), a downed player with salts in a quick-use slot uses their own after 3 s. Salts in the backpack don't count.
 
-**Bandages:** hold `heal` standing still with a bandage and less than full sanity. `bandaging` counts up in the shared step (so it predicts), and at `bandageSeconds` one bandage is used for `bandageHeal`. Moving or letting go resets it.
+**Bandages:** take one in the hand from the quick-use wheel and hold `attack`, standing still, with less than full sanity. `bandaging` counts up in the shared step (so it predicts), and at the item's `heal.seconds` one is used for `heal.amount`. Moving, letting go or switching what is in the hand resets it.
 
-Bandages and smelling salts are pocket items in the inventory (see [items.md](items.md)); players bring them down in their loadout (see [economy.md](economy.md)).
+Bandages and smelling salts are quick-use items (see [items.md](items.md)); players bring them down in their loadout (see [economy.md](economy.md)).
 
 **Client:**
 
-- The HUD shows a sanity bar (only below max), bandage and salt counts, and a vignette that darkens with lost sanity and pulses below 40%.
+- The HUD shows a sanity bar (only below max) and a vignette that darkens with lost sanity and pulses below 40%.
 - A hit (a drop of more than 3 in one frame) flashes red, plays `player.hurt` and shakes the camera, scaled by the **Camera shake** setting.
 - `heartbeat` loops louder and faster below 40%; `whisper` plays near you below 20%.
 - Downed, the camera tilts and `DownedScreen` shows the bleed-out bar and what happens next.

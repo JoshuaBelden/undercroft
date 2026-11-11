@@ -61,7 +61,11 @@ export class Parties {
 	 * old one is closed. Otherwise they join the party with `code` if they can, or start their own.
 	 */
 	connect(socket: WebSocket, identity: Identity, code: unknown): Member {
-		const back = this.byAccount.get(identity.account);
+		const known = this.byAccount.get(identity.account);
+		// Someone who left (closed the page, or wasn't back in time) is not here any more: they
+		// start again like anyone else, instead of being put back in a party they are not in.
+		const back = known?.party.members.includes(known) ? known : undefined;
+		if (known && !back) this.byAccount.delete(identity.account);
 		if (back) {
 			const old = back.socket;
 			if (back.dropTimer) clearTimeout(back.dropTimer);

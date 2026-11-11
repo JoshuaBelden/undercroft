@@ -19,14 +19,11 @@
 		progress: number;
 		/** 0..1 */
 		sanity: number;
-		bandages: number;
-		salts: number;
 		/** Changes each time the player is hit (restarts the flash). */
 		hurt: number;
-		/** Hotbar slots: item name (null = empty) and the key that selects it. */
-		hotbar: { name: string | null; key: string }[];
-		selected: number;
-		/** Held firearm's rounds: loaded and spare; null when not holding one. */
+		/** What is in the hand, and how many of it; null for empty hands (or the setting is off). */
+		hand: { name: string; count: number } | null;
+		/** Held firearm's rounds: loaded and spare (in the backpack); null when not holding one. */
 		ammo: { loaded: number; spare: number } | null;
 		aiming: boolean;
 		/** 0..1 lamp failure from the Affliction: the edges close in. */
@@ -44,11 +41,8 @@
 		prompt,
 		progress,
 		sanity,
-		bandages,
-		salts,
 		hurt,
-		hotbar,
-		selected,
+		hand,
 		ammo,
 		aiming,
 		gloom
@@ -74,14 +68,11 @@
 
 <div class="crosshair" class:aiming aria-hidden="true"></div>
 
-<div class="hotbar" aria-label="Items">
-	{#each hotbar as slot, i (i)}
-		<div class="slot" class:selected={i === selected} class:empty={!slot.name}>
-			<span class="key">{slot.key}</span>
-			<span class="name">{slot.name ?? ''}</span>
-		</div>
-	{/each}
-</div>
+{#if hand}
+	<div class="hand" aria-label="In your hand">
+		{hand.name}{#if hand.count > 1}<span class="count">×{hand.count}</span>{/if}
+	</div>
+{/if}
 
 {#if ammo}
 	<div class="ammo" class:dry={ammo.loaded === 0} aria-label="Ammunition">
@@ -124,11 +115,6 @@
 		{/each}
 	</span>
 	<span>{LAMP_LABELS[headlamp] ?? ''}</span>
-</div>
-
-<div class="kit" aria-label="Supplies">
-	<span>Bandages {bandages}</span>
-	<span>Salts {salts}</span>
 </div>
 
 <style>
@@ -203,66 +189,23 @@
 		background: rgb(190 60 60 / 0.8);
 	}
 
-	.kit {
+	/* What is in the hand, bottom-right under the ammunition. */
+	.hand {
 		position: fixed;
 		right: 16px;
 		bottom: 34px;
 		display: flex;
-		gap: 14px;
+		align-items: baseline;
+		gap: 6px;
 		font: 11px var(--font-ui);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--muted);
-		pointer-events: none;
-	}
-
-	.hotbar {
-		position: fixed;
-		left: 50%;
-		bottom: 72px;
-		transform: translateX(-50%);
-		display: flex;
-		gap: 4px;
-		pointer-events: none;
-	}
-
-	.slot {
-		position: relative;
-		width: 76px;
-		height: 30px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: 1px solid rgb(255 255 255 / 0.12);
-		background: rgb(0 0 0 / 0.35);
-		font: 10px var(--font-ui);
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--muted);
-	}
-
-	.slot.selected {
-		border-color: rgb(230 220 203 / 0.6);
 		color: #efe6d6;
+		pointer-events: none;
 	}
 
-	.slot.empty {
-		opacity: 0.45;
-	}
-
-	.slot .key {
-		position: absolute;
-		left: 4px;
-		top: 2px;
-		font-size: 8px;
-		opacity: 0.7;
-	}
-
-	.slot .name {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		max-width: 66px;
+	.hand .count {
+		color: var(--muted);
 	}
 
 	.ammo {

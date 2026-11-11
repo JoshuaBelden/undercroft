@@ -23,7 +23,7 @@ The whole game is behind sign-in. An account is an email, a password and a gamer
 ## Data (MongoDB)
 
 - `accounts`: `_id`, `email` (lower-cased, unique), `password` (`scrypt$<salt>$<hash>`, from `node:crypto`), `gamerTag`, `tagKey` (lower-cased tag, unique, so tags can't differ only by case).
-- `explorers`: `_id`, `account`, `money`, `stash`, `loadout`, `underground`. One per account today, created the first time it is needed (`explorerFor`). It is a separate collection, keyed by its own id, so an account can have several later.
+- `explorers`: `_id`, `account`, `money`, `stash` (one entry per stash slot: a stack or null), `loadout` (an `Inventory`), `layout` (how those two are stored; older documents are converted when read, see [economy.md](economy.md)), `underground`. One per account today, created the first time it is needed (`explorerFor`). It is a separate collection, keyed by its own id, so an account can have several later.
 - `sessions`: `_id` is the cookie value; `account`, `expires` (30 days).
 - `tickets`: `_id` is the ticket; `account`, `expires` (12 hours).
 - `progress`: rite progress, keyed by explorer (see [rite.md](rite.md)).

@@ -1,11 +1,11 @@
 import { ITEMS } from '../../content/items.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { InputFrame, PlayerState, SimEvent, WeaponState } from '../player/types.ts';
-import { held, pocketCount, takePocket } from './inventory.ts';
+import { carriedCount, handRef, held, removeItem, spendHeld } from './inventory.ts';
 
 /**
  * The held item's actions, advanced each simulation step: switching, swinging, firing,
- * reloading, throwing and dropping. Deterministic (part of `stepPlayer`), so ammo and timing are
+ * reloading, throwing and dropping. (Applying a healing item is in `stepPlayer`.) Deterministic (part of `stepPlayer`), so ammo and timing are
  * predicted on the client exactly as the server runs them. What happens (a swing landing, a
  * shot) is reported as SimEvents; the server resolves hits and noise from them.
  * See docs/dev/items.md.
@@ -64,12 +64,7 @@ export function stepWeapon(
 	const ray = () => aimRay(s, eye);
 
 	// Switching items always works (even mid-action), except while downed.
-	if (
-		!s.downed &&
-		input.select >= 0 &&
-		input.select < inv.hotbar.length &&
-		input.select !== inv.selected
-	) {
+	if (!s.downed && input.select !== inv.selected && handRef(inv, input.select)) {
 		inv.selected = input.select;
 		start(w, 'equip');
 	}
@@ -84,7 +79,7 @@ export function stepWeapon(
 
 	if (pressed.drop && stack) {
 		const { origin, direction } = ray();
-		inv.hotbar[inv.selected] = null;
+		spendHeld(inv, true);
 		emit({ kind: 'drop', origin, direction, stack: { ...stack } });
 		start(w, 'equip');
 		return;
@@ -122,7 +117,7 @@ export function stepWeapon(
 				}
 				if (w.time >= gun.reloadTime) {
 					const want = gun.magazine - (stack.loaded ?? 0);
-					stack.loaded = (stack.loaded ?? 0) + takePocket(inv, gun.ammo, want);
+					stack.loaded = (stack.loaded ?? 0) + removeItem(inv, gun.ammo, want);
 					emit({ kind: 'reloaded', item: stack.item });
 					start(w, 'none');
 				}
@@ -138,8 +133,15 @@ export function stepWeapon(
 				if (!w.done && w.time >= spec.duration * 0.4) {
 					w.done = true;
 					const { origin, direction } = ray();
-					inv.hotbar[inv.selected] = null;
-					emit({ kind: 'throw', item: stack.item, origin, direction, stack: { ...stack } });
+					// One leaves the hand; when it was the last, the hand goes back to the weapon.
+					spendHeld(inv);
+					emit({
+						kind: 'throw',
+						item: stack.item,
+						origin,
+						direction,
+						stack: { ...stack, count: 1 }
+					});
 				}
 				if (w.time >= spec.duration) start(w, 'none');
 				break;
@@ -152,7 +154,7 @@ export function stepWeapon(
 	if (def.firearm) {
 		const gun = def.firearm;
 		const loaded = stack.loaded ?? 0;
-		const canReload = loaded < gun.magazine && pocketCount(inv, gun.ammo) > 0;
+		const canReload = loaded < gun.magazine && carriedCount(inv, gun.ammo) > 0;
 		if (pressed.attack) {
 			if (loaded > 0) {
 				if (!s.flags.infiniteAmmo) stack.loaded = loaded - 1;

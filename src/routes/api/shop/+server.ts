@@ -7,7 +7,8 @@ import type { RequestHandler } from './$types';
 
 /**
  * The shop. Body: `{ action: 'buy', item, lots }` (into the stash) or
- * `{ action: 'sell', index, count }` (stash entry `index`). Returns the account afterwards.
+ * `{ action: 'sell', from, count }` (`from`: a SlotRef in the stash or the loadout). Returns the
+ * account afterwards.
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const db = await database();
@@ -18,7 +19,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	let result;
 	if (body.action === 'buy') result = await buy(db, explorer._id, body.item, body.lots);
-	else if (body.action === 'sell') result = await sell(db, explorer._id, body.index, body.count);
+	else if (body.action === 'sell') result = await sell(db, explorer._id, body.from, body.count);
 	else error(400, 'Bad request');
 	if ('error' in result) return json({ error: EXPLORER_ERRORS[result.error] }, { status: 400 });
 	return json(await accountView(db, account));

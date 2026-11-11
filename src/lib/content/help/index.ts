@@ -86,9 +86,15 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 
 Whatever you carry out of the catacombs is yours. Your kit stays packed the way you carried it, ready for the next descent. Anything else you found goes into your stash.
 
-The dashboard is where you land when you sign in. Its "Loadout" page shows what you own and what you're taking down: choose what to take before you start an expedition. Take something from the stash to carry it down; leave it behind to keep it safe. You can only take what you could carry.
+The dashboard is where you land when you sign in. Its "Loadout" page shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
 
-Relics lie about the catacombs, more of them the deeper you go. They are worth money on the surface, but they are heavy, they fill your pack, and the more of them you carry the sooner the Gloaming comes.
+The loadout has a place for everything. Two weapons, and one thing worn for protection. A backpack that takes anything. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
+
+Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to equip it, split a stack, sell it or drop it. Dropping something on the surface throws it away for good.
+
+Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, protection, quick-use items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
+
+Relics lie about the catacombs, more of them the deeper you go. They are worth money on the surface, but they are heavy, they fill your backpack, and the more of them you carry the sooner the Gloaming comes.
 
 What you take down and don't bring back is gone. If you die, everything you carried stays where you fell, and so does anything you left lying down there.`
 	},
@@ -98,9 +104,9 @@ What you take down and don't bring back is gone. If you die, everything you carr
 		category: 'Basics',
 		body: `Click your money, at the top right of the dashboard, to open the store. Sell what you've brought out and buy what you need.
 
-Relics are what sell. Gear you bought can be sold back, for less than you paid. Some things nobody wants.
+Relics are what sell. Gear you bought can be sold back, for less than you paid. Some things nobody wants. You can also sell from the "Loadout" page: right-click something and choose Sell.
 
-What you buy goes to your stash: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
+What you buy goes to your stash, which only has so many slots: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
 
 A first descent with nothing is a short one. Bring out a relic or two, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
 	},
@@ -128,7 +134,7 @@ If your connection drops underground, your place is held for a minute. You're st
 
 It wears down when you're in the dark with your lamp off and no one else's light on you, and when you look at something you shouldn't. Being struck takes a great deal of it at once.
 
-Hold {action:heal} to use a bandage. Stand still: it takes a few seconds, and moving or letting go starts it over. Each one gives back some sanity. Your bandages and smelling salts show in the bottom-right corner.
+A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel.
 
 When your sanity runs out you go down. You can't move, only look around, and you don't have long.`
 	},
@@ -140,7 +146,9 @@ When your sanity runs out you go down. You can't move, only look around, and you
 
 If a teammate is down, go to them and hold {action:interact}. It takes a few seconds and uses one of your salts. They come back shaken, with little sanity left.
 
-If no one can reach you, because you're alone or everyone else is down too, you use your own salts. Without salts, and without help, you won't get up again.`
+If no one can reach you, because you're alone or everyone else is down too, you use your own salts. Without salts, and without help, you won't get up again.
+
+Salts only count when they are to hand, in a quick-use slot. At the bottom of your backpack they are no use to anyone.`
 	},
 	{
 		id: 'things-in-the-dark',
@@ -158,11 +166,13 @@ Once one has you, it comes slowly, then all at once.`
 		id: 'items',
 		title: 'Items',
 		category: 'Survival',
-		body: `The bar at the bottom of the screen holds what's in your hands: weapons and anything you can throw. Press {action:slot1} to {action:slot5}, or use {action:nextItem} and {action:prevItem}, to switch.
+		body: `You carry two weapons. Press {action:primaryWeapon} or {action:secondaryWeapon} to take one in your hand, or {action:nextItem} for the other one.
 
-Ammunition, bandages and smelling salts go in your pockets; the counts are in the bottom-right corner.
+Everything else you can use is on the quick-use wheel. Hold {action:quickUse} and the wheel opens; move the mouse toward what you want and let go, and it is in your hand in place of your weapon. {action:attack} uses it: hold it to bind a wound, swing with a brick. {action:aim} throws what can be thrown. Press a weapon key to go back.
 
-Look at something on the floor and press {action:interact} to pick it up. Press {action:drop} to put down what you're holding. What doesn't fit in your hands goes in your pack.
+What is in your hand is named in the bottom-right corner, with the rounds loaded and spare when it is a firearm. Spare rounds are taken from your backpack.
+
+Look at something on the floor and press {action:interact} to pick it up. It goes where it belongs if there is room: a weapon to an empty weapon slot, quick-use things to the wheel, the rest to your backpack. Press {action:drop} to put down what you're holding.
 
 If you die down here, everything you carried stays where you fell. Someone else might find it.`
 	},
@@ -172,11 +182,11 @@ If you die down here, everything you carried stays where you fell. Someone else 
 		category: 'Survival',
 		body: `Press {action:inventory} to open your pack. The catacombs don't wait while you look through it.
 
-You carry things in three places. The quick slots are what you can have in your hands at a moment's notice. The pack holds everything else, and it only holds so much: bigger things take more room. Small things like rounds and bandages go in your pockets.
+It is laid out like your loadout on the surface. Equipment: two weapons, and what you wear for protection. The backpack, which takes anything. And the quick-use slots, which are what the wheel offers. The slot in your hand is outlined.
 
-Choose something to move it between the pack and a quick slot, or to drop it. To hand something to someone, drop it and let them pick it up.
+Drag things between slots. Hold Shift and click to send something between the backpack and the slot it belongs in. Right-click to equip it, split a stack or drop it. Things of a kind share a slot, up to a few of each; drop one stack on another to join them. To hand something to someone, drop it and let them pick it up.
 
-Everything weighs something. Past the mark on the weight bar you start to slow down, and the more you carry the slower you get. There's a limit to what you can lift at all: when the game says something is too heavy, you'll have to leave something else behind.`
+Everything weighs something, and the weight you carry is shown beside the title. Once it turns blue you have started to slow down, and the more you carry the slower you get. There's a limit to what you can lift at all: when the game says something is too heavy, you'll have to leave something else behind.`
 	},
 	{
 		id: 'captions',

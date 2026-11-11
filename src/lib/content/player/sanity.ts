@@ -14,9 +14,6 @@ export const SANITY = {
 	/** Seconds to hold revive on a downed teammate. */
 	reviveSeconds: 3,
 	reviveRange: 1.5,
-	/** Bandage: seconds to apply (standing still) and sanity restored. */
-	bandageSeconds: 3,
-	bandageHeal: 25,
 	/** Seconds a downed player lasts before dying. */
 	bleedOut: 60
 };

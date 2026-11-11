@@ -133,6 +133,7 @@ The bare minimum that makes it a repeating game. The hub is the dashboard you la
 - [x] Death and extraction outcomes applied to the stash
 - [x] Stand-in loot to carry out; loot carried feeds the Affliction meter
 - [x] Shop: buy gear, sell loot; money
+- [x] Slots: a 30-slot stash and a loadout of equipment (two weapons, defense), a 16-slot backpack and 6 quick-use slots; drag and drop, stacking, split, sell and drop, tooltips, stash filters. Underground, weapon keys and a quick-use wheel replace the item bar (`docs/dev/items.md`, `docs/dev/economy.md`)
 
 Aspects:
 

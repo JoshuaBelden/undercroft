@@ -27,6 +27,7 @@ export const SHOP: ShopEntry[] = [
 	{ item: 'salts', price: 40, lot: 1 },
 	{ item: 'knife', price: 20, lot: 1 },
 	{ item: 'crowbar', price: 60, lot: 1 },
+	{ item: 'coat', price: 90, lot: 1 },
 	{ item: 'revolver', price: 150, lot: 1 },
 	{ item: 'ammo.revolver', price: 12, lot: 6 },
 	{ item: 'shotgun', price: 250, lot: 1 },

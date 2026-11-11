@@ -84,7 +84,7 @@ export interface PlayerState {
 	inventory: Inventory;
 	/** The held item's action in progress (swing, shot, reload...). */
 	weapon: WeaponState;
-	/** Seconds spent applying a bandage (resets if interrupted). */
+	/** Seconds spent applying the healing item in the hand (resets if interrupted). */
 	bandaging: number;
 	/** Seconds spent reviving a downed teammate (server-driven). */
 	reviving: number;
@@ -92,7 +92,7 @@ export interface PlayerState {
 	performing: number;
 }
 
-/** One hotbar slot's or pack entry's contents. */
+/** What one slot holds. */
 export interface ItemStack {
 	/** Key into ITEMS. */
 	item: string;
@@ -103,20 +103,29 @@ export interface ItemStack {
 	uses?: number;
 }
 
+export type EquipmentSlot = 'primary' | 'secondary' | 'defense';
+
+/**
+ * What a player carries, and an explorer's loadout on the surface: the same thing. Every place is
+ * a slot holding one stack or nothing. See docs/dev/items.md.
+ */
 export interface Inventory {
-	/** Held items (weapons, bricks): one per slot. */
-	hotbar: (ItemStack | null)[];
-	/** Hotbar index in hand. */
+	/** Two weapons (only items in the weapon category) and what is worn (the defense category). */
+	equipment: Record<EquipmentSlot, ItemStack | null>;
+	/** Anything; as many slots as the pack has (BACKPACKS). */
+	backpack: (ItemStack | null)[];
+	/** Quick-use items only: what the wheel offers. SLOTS.quick of them. */
+	quick: (ItemStack | null)[];
+	/** What is in the hand: 0 the primary weapon, 1 the secondary, 2 and up a quick-use slot. */
 	selected: number;
-	/** Counted items: ammo, bandages, salts. Item id -> count. */
-	pockets: Record<string, number>;
-	/** Everything else carried, limited by the backpack's capacity (bulk). */
-	pack: ItemStack[];
 	/** Key into BACKPACKS. */
-	backpack: string;
+	pack: string;
 }
 
 export type WeaponAction = 'none' | 'equip' | 'swing' | 'shot' | 'reload' | 'throw';
+
+/** `Inventory.selected` for the weapons; quick-use slot `i` is `HAND.quick + i`. */
+export const HAND = { primary: 0, secondary: 1, quick: 2 } as const;
 
 export interface WeaponState {
 	action: WeaponAction;
@@ -158,16 +167,14 @@ export interface InputFrame {
 	swimDown: boolean;
 	/** Interact (held): extraction, reviving a teammate; doors, items and more later. */
 	interact: boolean;
-	/** Use a bandage (held). */
-	heal: boolean;
-	/** Swing or fire (held; firearms fire once per press). */
+	/** Swing, fire or apply what is in the hand (held; firearms fire once per press). */
 	attack: boolean;
 	/** Aim a firearm (held); throw a throwable (press). */
 	aim: boolean;
 	reload: boolean;
 	/** Drop the held item (press). */
 	drop: boolean;
-	/** Hotbar slot to switch to this frame, or -1. */
+	/** What to take in the hand this frame (see `Inventory.selected`), or -1. */
 	select: number;
 	stance: Stance;
 	headlamp: HeadlampMode;

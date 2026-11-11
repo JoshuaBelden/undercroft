@@ -42,7 +42,7 @@ export interface Settings {
 	bindings: Bindings;
 	interface: {
 		showStats: boolean;
-		/** The quick-slot bar at the bottom of the screen. */
+		/** What is in your hand, named at the bottom of the screen. */
 		quickSlots: boolean;
 		/** "Press E to pick up ..." prompts for things on the floor. */
 		itemPrompts: boolean;
@@ -74,7 +74,7 @@ function load(): Settings {
 		return {
 			...base,
 			audio: { ...base.audio, ...saved.audio },
-			bindings: { ...base.bindings, ...saved.bindings },
+			bindings: knownBindings(base.bindings, saved.bindings),
 			interface: { ...base.interface, ...saved.interface },
 			controls: { ...base.controls, ...saved.controls },
 			graphics: { ...base.graphics, ...saved.graphics },
@@ -83,6 +83,16 @@ function load(): Settings {
 	} catch {
 		return base;
 	}
+}
+
+/** Saved bindings over the defaults, leaving out actions that no longer exist. */
+function knownBindings(base: Bindings, saved: Partial<Bindings> | undefined): Bindings {
+	const result = { ...base };
+	for (const action of Object.keys(base) as Action[]) {
+		const codes = saved?.[action];
+		if (Array.isArray(codes)) result[action] = codes;
+	}
+	return result;
 }
 
 export const settings: Settings = $state(load());

@@ -324,13 +324,13 @@
 				})}
 			{:else if group === 'Interface'}
 				{@render stepper({
-					label: 'Quick slots',
+					label: 'Held item',
 					text: onOff(settings.interface.quickSlots),
 					onstep: () => {
 						settings.interface.quickSlots = !settings.interface.quickSlots;
 						saveSettings();
 					},
-					hint: 'The bar of items at the bottom of the screen.'
+					hint: 'Names what is in your hand at the bottom of the screen.'
 				})}
 				{@render stepper({
 					label: 'Pick-up prompts',

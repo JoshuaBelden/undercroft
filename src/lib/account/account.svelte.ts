@@ -1,5 +1,5 @@
 import type { AccountView } from '#lib/shared/account/types.ts';
-import type { ItemRef } from '#lib/shared/items/types.ts';
+import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
 
 /**
  * The signed-in account as the browser knows it: gamer tag, explorer, rite progress. Loaded from
@@ -38,19 +38,18 @@ export async function changeGamerTag(gamerTag: string): Promise<void> {
 	if (session.account) session.account.gamerTag = result.gamerTag;
 }
 
-/** Move something between the stash and the loadout. Throws `ApiError` if it is refused. */
-export async function changeLoadout(
-	change:
-		| { action: 'take'; index: number; count: number }
-		| { action: 'stow'; from: ItemRef; count: number }
-): Promise<void> {
-	session.account = await api<AccountView>('/api/explorer/loadout', 'POST', change);
+/**
+ * Rearrange the stash and the loadout: move, equip or split something, or throw it away
+ * (`drop`). Throws `ApiError` if it is refused.
+ */
+export async function changeLoadout(action: InventoryAction): Promise<void> {
+	session.account = await api<AccountView>('/api/explorer/loadout', 'POST', action);
 }
 
-/** Buy from the shop or sell from the stash. Throws `ApiError` if it is refused. */
+/** Buy from the shop, or sell from a stash or loadout slot. Throws `ApiError` if it is refused. */
 export async function trade(
 	change:
-		{ action: 'buy'; item: string; lots: number } | { action: 'sell'; index: number; count: number }
+		{ action: 'buy'; item: string; lots: number } | { action: 'sell'; from: SlotRef; count: number }
 ): Promise<void> {
 	session.account = await api<AccountView>('/api/shop', 'POST', change);
 }

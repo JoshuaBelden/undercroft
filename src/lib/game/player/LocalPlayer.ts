@@ -6,13 +6,14 @@ import { SIM_RATE } from '#lib/shared/constants.ts';
 import type { CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
 import { clonePlayerState, eyeHeight, stepPlayer } from '#lib/shared/player/simulate.ts';
-import type {
-	HeadlampMode,
-	InputFrame,
-	PlayerSnapshot,
-	PlayerState,
-	SimEvent,
-	Stance
+import {
+	HAND,
+	type HeadlampMode,
+	type InputFrame,
+	type PlayerSnapshot,
+	type PlayerState,
+	type SimEvent,
+	type Stance
 } from '#lib/shared/player/types.ts';
 import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
 
@@ -30,7 +31,8 @@ const MAX_STEPS_PER_FRAME = 10;
 const STANCE_CYCLE: Stance[] = ['stand', 'crouch', 'crawl'];
 /** Releasing the stance key within this many ms counts as a tap (cycle stance) rather than a hold (creep). */
 const LONG_PRESS_MS = 350;
-const SLOT_ACTIONS = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5'] as const;
+/** How far (pixels of mouse movement) the quick-use wheel's pointer can go from the centre. */
+const WHEEL_REACH = 120;
 
 /**
  * The local player: samples input every fixed step, predicts movement with the shared
@@ -57,8 +59,13 @@ export class LocalPlayer {
 	private offset: Vec3 = [0, 0, 0];
 	private eye: number = MOVEMENT.stances.stand.eye;
 	private unsubscribe: () => void;
-	/** Hotbar slot chosen since the last sim step (sent once), or -1. */
+	/** What to take in the hand, chosen since the last sim step (sent once), or -1. */
 	private select = -1;
+	/**
+	 * While the quick-use wheel is open: where its pointer is, from the centre (pixels). The mouse
+	 * moves the pointer instead of the view.
+	 */
+	private wheel: { x: number; y: number } | null = null;
 	/** What the predicted simulation did since the last `drainEvents` (for instant feedback). */
 	private events: SimEvent[] = [];
 
@@ -71,25 +78,36 @@ export class LocalPlayer {
 			// Tap vs. long press is decided in `updateStanceKey` once we know how long it's held.
 			if (action === 'stance') this.stancePressedAt = performance.now();
 			if (action === 'headlamp') this.lamp = ((this.lamp + 1) % 3) as HeadlampMode;
-			const slot = SLOT_ACTIONS.indexOf(action as (typeof SLOT_ACTIONS)[number]);
-			if (slot >= 0) this.select = slot;
+			if (action === 'primaryWeapon') this.select = HAND.primary;
+			if (action === 'secondaryWeapon') this.select = HAND.secondary;
+			// Two weapons: either direction is the other one (the primary, from a quick-use item).
 			if (action === 'nextItem' || action === 'prevItem') {
-				this.select = this.cycle(action === 'nextItem' ? 1 : -1);
+				const now = this.select >= 0 ? this.select : this.state.inventory.selected;
+				this.select = now === HAND.primary ? HAND.secondary : HAND.primary;
 			}
 		});
 	}
 
-	/** Next occupied hotbar slot in a direction (wrapping), from the pending or current one. */
-	private cycle(step: number): number {
-		const inv = this.state?.inventory;
-		if (!inv) return -1;
-		const n = inv.hotbar.length;
-		let i = this.select >= 0 ? this.select : inv.selected;
-		for (let k = 0; k < n; k++) {
-			i = (i + step + n) % n;
-			if (inv.hotbar[i]) return i;
-		}
-		return -1;
+	/** Take something in the hand (see `Inventory.selected`): what the quick-use wheel chose. */
+	take(selected: number): void {
+		this.select = selected;
+	}
+
+	/** Open the quick-use wheel: until it closes, the mouse moves its pointer, not the view. */
+	openWheel(): void {
+		this.wheel = { x: 0, y: 0 };
+	}
+
+	/** Close the wheel. Returns where its pointer was (null if it wasn't open). */
+	closeWheel(): { x: number; y: number } | null {
+		const pointer = this.wheel;
+		this.wheel = null;
+		return pointer;
+	}
+
+	/** The wheel's pointer from its centre, each axis -1..1; null while the wheel is closed. */
+	get wheelPointer(): { x: number; y: number } | null {
+		return this.wheel ? { x: this.wheel.x / WHEEL_REACH, y: this.wheel.y / WHEEL_REACH } : null;
 	}
 
 	/** Predicted simulation events since the last call: shots, swings, reloads (local feedback). */
@@ -181,7 +199,12 @@ export class LocalPlayer {
 	update(delta: number, active: boolean): void {
 		this.updateStanceKey(active);
 		const [dx, dy] = this.input.consumeLook();
-		if (active) {
+		if (this.wheel) {
+			const x = this.wheel.x + dx;
+			const y = this.wheel.y + dy;
+			const scale = Math.min(1, WHEEL_REACH / (Math.hypot(x, y) || 1));
+			this.wheel = { x: x * scale, y: y * scale };
+		} else if (active) {
 			const speed = LOOK_SPEED * settings.controls.mouseSensitivity;
 			this.yaw -= dx * speed;
 			this.pitch -= dy * speed * (settings.controls.invertY ? -1 : 1);
@@ -259,9 +282,9 @@ export class LocalPlayer {
 			climb: active && input.isDown('climb'),
 			swimDown: active && input.isDown('swimDown'),
 			interact: active && input.isDown('interact'),
-			heal: active && input.isDown('heal'),
-			attack: active && input.isDown('attack'),
-			aim: active && input.isDown('aim'),
+			// Choosing from the wheel is not a swing or a shot.
+			attack: active && !this.wheel && input.isDown('attack'),
+			aim: active && !this.wheel && input.isDown('aim'),
 			reload: active && input.isDown('reload'),
 			drop: active && input.isDown('drop'),
 			select: this.takeSelect(),

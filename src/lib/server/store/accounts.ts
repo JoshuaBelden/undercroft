@@ -2,7 +2,13 @@ import { randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import type { Collection, Db } from 'mongodb';
 import { ACCOUNT, cleanEmail, cleanTag } from '../../content/account.ts';
 import type { AccountView, ExplorerView } from '../../shared/account/types.ts';
-import { emptyInventory } from '../../shared/items/inventory.ts';
+import { SLOTS } from '../../content/items.ts';
+import {
+	addToSlots,
+	emptyInventory,
+	emptySlots,
+	type Slots
+} from '../../shared/items/inventory.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
 
 /**
@@ -29,10 +35,12 @@ export interface ExplorerDoc {
 	_id: string;
 	account: string;
 	money: number;
-	/** What is kept on the surface. */
-	stash: ItemStack[];
+	/** What is kept on the surface: one entry per stash slot (more slots can be added later). */
+	stash: Slots;
 	/** What goes down on the next descent. */
 	loadout: Inventory;
+	/** How the stash and loadout are stored (see `upgrade`). */
+	layout: typeof LAYOUT;
 	/** Session id of the expedition they are in; the hub can't change anything while it is set. */
 	underground: string | null;
 	createdAt: Date;
@@ -62,6 +70,9 @@ export const ACCOUNT_ERRORS: Record<AccountError, string> = {
 	emailTaken: 'That email already has an account',
 	tagTaken: 'That gamer tag is taken'
 };
+
+/** The stash and loadout are slots. Explorers from before that are converted when next read. */
+const LAYOUT = 2;
 
 const accounts = (db: Db): Collection<AccountDoc> => db.collection<AccountDoc>('accounts');
 const explorers = (db: Db): Collection<ExplorerDoc> => db.collection<ExplorerDoc>('explorers');
@@ -210,17 +221,58 @@ export async function redeemTicket(
 /** The account's explorer, created with nothing the first time it is asked for. */
 export async function explorerFor(db: Db, accountId: string): Promise<ExplorerDoc> {
 	const existing = await explorers(db).findOne({ account: accountId });
-	if (existing) return existing;
+	if (existing) return existing.layout === LAYOUT ? existing : upgrade(db, existing);
 	const explorer: ExplorerDoc = {
 		_id: randomUUID(),
 		account: accountId,
 		money: 0,
-		stash: [],
+		stash: emptySlots(SLOTS.stash),
 		loadout: emptyInventory(),
+		layout: LAYOUT,
 		underground: null,
 		createdAt: new Date()
 	};
 	await explorers(db).insertOne(explorer);
+	return explorer;
+}
+
+/**
+ * An explorer from before slots (a stash list, and a loadout of quick slots, pack and pockets):
+ * everything they own goes into a slot stash, with more slots than usual if it takes them, so
+ * nothing is lost. The loadout starts empty.
+ */
+async function upgrade(db: Db, old: ExplorerDoc): Promise<ExplorerDoc> {
+	const before = old as unknown as {
+		stash?: (ItemStack | null)[];
+		loadout?: {
+			hotbar?: (ItemStack | null)[];
+			pack?: (ItemStack | null)[];
+			pockets?: Record<string, number>;
+		};
+	};
+	const owned = [
+		...(before.stash ?? []),
+		...(before.loadout?.hotbar ?? []),
+		...(Array.isArray(before.loadout?.pack) ? before.loadout.pack : []),
+		...Object.entries(before.loadout?.pockets ?? {}).map(([item, count]) => ({ item, count }))
+	];
+	const stash = emptySlots(SLOTS.stash);
+	for (const stack of owned) {
+		if (!stack || !(stack.count > 0)) continue;
+		let left = addToSlots(stash, stack);
+		// Out of room: another row, until it is in (or it turns out not to be something to keep).
+		while (left > 0) {
+			stash.push(...emptySlots(SLOTS.stashColumns));
+			const now = addToSlots(stash, { ...stack, count: left });
+			if (now === left) break;
+			left = now;
+		}
+	}
+	const explorer: ExplorerDoc = { ...old, stash, loadout: emptyInventory(), layout: LAYOUT };
+	await explorers(db).updateOne(
+		{ _id: old._id },
+		{ $set: { stash, loadout: explorer.loadout, layout: LAYOUT } }
+	);
 	return explorer;
 }
 
