@@ -6,6 +6,7 @@ import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import type { SimEvent } from '../src/lib/shared/player/types.ts';
 import type { CreatureDirector, CreatureBody, Prey } from './creatures.ts';
 import type { WorldItems } from './items.ts';
+import { MANIFESTATION_ID, type AfflictionDirector } from './affliction.ts';
 
 /**
  * Resolves what players did with their items (SimEvents from the shared simulation): shots and
@@ -16,6 +17,8 @@ import type { WorldItems } from './items.ts';
 export interface CombatContext {
 	world: CollisionWorld;
 	creatures: CreatureDirector;
+	/** The Affliction's manifestation is a target too, while it's out. */
+	affliction: AfflictionDirector;
 	items: WorldItems;
 	/** Broadcast to every client this tick. */
 	out: GameEvent[];
@@ -79,7 +82,7 @@ function shoot(ctx: CombatContext, player: Prey, event: Extract<SimEvent, { kind
 	const gun = ITEMS[event.item]?.firearm;
 	if (!gun) return;
 	const spread = event.aimed ? gun.spread.aimed : gun.spread.hip;
-	const bodies = ctx.creatures.hitBodies();
+	const bodies = targets(ctx);
 	const maxRange = gun.range * OVERRANGE;
 	const damage = new Map<string, number>();
 	let firstEnd: Vec3 | null = null;
@@ -128,7 +131,7 @@ function swing(
 ): void {
 	const melee = ITEMS[event.item]?.melee;
 	if (!melee) return;
-	const bodies = ctx.creatures.hitBodies();
+	const bodies = targets(ctx);
 	const [ox, oy, oz] = event.origin;
 	let target: CreatureBody | null = null;
 	let targetDistance = Infinity;
@@ -194,12 +197,23 @@ export function hurt(
 	id: string,
 	amount: number,
 	from: Prey | null,
-	bodies: CreatureBody[] = ctx.creatures.hitBodies()
+	bodies: CreatureBody[] = targets(ctx)
 ): void {
 	const body = bodies.find((b) => b.id === id);
 	const position: Vec3 = body
 		? [body.position[0], body.position[1] + 1, body.position[2]]
 		: [0, 0, 0];
-	const killed = ctx.creatures.damage(id, amount, from);
+	const killed =
+		id === MANIFESTATION_ID
+			? ctx.affliction.damage(amount)
+			: ctx.creatures.damage(id, amount, from);
 	ctx.out.push({ kind: killed ? 'creatureDie' : 'creatureHit', id, position });
+}
+
+/** Everything that can be hit: living creatures and the manifestation. */
+export function targets(ctx: CombatContext): CreatureBody[] {
+	const bodies = ctx.creatures.hitBodies();
+	const darkness = ctx.affliction.hitBody();
+	if (darkness) bodies.push(darkness);
+	return bodies;
 }

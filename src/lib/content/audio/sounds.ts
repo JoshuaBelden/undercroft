@@ -51,7 +51,13 @@ export type SynthSpec =
 	/** Mechanical clicks: rounds going in, cylinder or breech closing. */
 	| { kind: 'reload' }
 	/** Cloth and small things being picked up. */
-	| { kind: 'rustle' };
+	| { kind: 'rustle' }
+	/** Low, beating drone loop (`pitch` Hz). */
+	| { kind: 'drone'; pitch: number }
+	/** A huge, distant exhalation through the stone: something has arrived. */
+	| { kind: 'signal' }
+	/** Hissing recoil (light burning darkness). */
+	| { kind: 'hiss' };
 
 export interface SoundDef {
 	/** Built recording id(s) (AUDIO_FILES); a random variant of all of them plays each time. */
@@ -262,6 +268,13 @@ export const SOUNDS = {
 	},
 	'brick.break': { synth: { kind: 'crack' }, category: 'sfx', volume: 0.8, variation: 0.1 },
 	'item.pickup': { synth: { kind: 'rustle' }, category: 'sfx', volume: 0.5, variation: 0.1 },
+	// The Affliction.
+	'omen.drone': { synth: { kind: 'drone', pitch: 41 }, category: 'ambience', volume: 0.6 },
+	'manifest.signal': { synth: { kind: 'signal' }, category: 'ambience', volume: 1 },
+	'manifest.presence': { synth: { kind: 'drone', pitch: 33 }, category: 'sfx', volume: 0.9 },
+	'manifest.hiss': { synth: { kind: 'hiss' }, category: 'sfx', volume: 0.7, variation: 0.1 },
+	'manifest.touch': { synth: { kind: 'snarl' }, category: 'sfx', volume: 1, rate: 0.5 },
+	'manifest.banish': { synth: { kind: 'signal' }, category: 'sfx', volume: 1, rate: 1.6 },
 	// Sanity.
 	'player.hurt': { synth: { kind: 'hurt' }, category: 'sfx', volume: 0.8, variation: 0.08 },
 	heartbeat: { synth: { kind: 'heartbeat', period: 0.85 }, category: 'sfx', volume: 0.8 },

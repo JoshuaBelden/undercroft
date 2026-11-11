@@ -12,6 +12,8 @@
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 	import { Creatures } from '#lib/game/creatures/Creatures.ts';
+	import { Darkness } from '#lib/game/affliction/Darkness.ts';
+	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 	import { Effects } from '#lib/game/items/Effects.ts';
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
@@ -81,12 +83,19 @@
 		hotbar: [] as { name: string | null; key: string }[],
 		selected: 0,
 		ammo: null as { loaded: number; spare: number } | null,
-		aiming: false
+		aiming: false,
+		gloom: 0
 	});
+	let meter = $state<number | null>(null);
+	let omen = $state(0);
 	/** Set while downed: bleed-out time left (0..1) and what happens next. */
 	let downed = $state<{ remaining: number; message: string } | null>(null);
 	/** Set when this player has left the expedition (climbed out or died); shows the results. */
-	let result = $state<{ seconds: number; deepestLevel: number; died: boolean } | null>(null);
+	let result = $state<{
+		seconds: number;
+		deepestLevel: number;
+		outcome: 'extracted' | 'died' | 'banished';
+	} | null>(null);
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
 	let banner = $state<{ title: string; key: number } | null>(null);
 	let descend = (): void => {};
@@ -149,11 +158,14 @@
 						break;
 					case 'extracted':
 					case 'died':
+					case 'banished':
 						result = {
 							seconds: message.seconds,
 							deepestLevel: message.deepestLevel,
-							died: message.type === 'died'
+							outcome: message.type
 						};
+						darkness.clear();
+						ambience.setOmen(null);
 						player.leave();
 						ambience.clear();
 						remote.apply([], client.playerId);
@@ -176,6 +188,12 @@
 						creatures.apply(message.creatures);
 						worldItems.apply(message.items, message.projectiles);
 						for (const event of message.events) onGameEvent(event);
+						darkness.apply(message.affliction.manifestation);
+						omen = message.affliction.omen;
+						meter = message.affliction.meter ?? null;
+						ambience.setOmen(
+							AFFLICTIONS[message.affliction.id]?.stages[omen - 1]?.ambience ?? null
+						);
 						break;
 				}
 			}
@@ -186,6 +204,8 @@
 		const ambience = new Ambience(audio, sounds);
 		const creatures = new Creatures(sounds);
 		engine.scene.add(creatures.root);
+		const darkness = new Darkness(sounds);
+		engine.scene.add(darkness.root);
 		const viewModel = new ViewModel(engine.viewScene, engine.viewCamera);
 		const worldItems = new WorldItems();
 		engine.scene.add(worldItems.root);
@@ -318,11 +338,19 @@
 					sounds.playAt('item.pickup', event.position, 1, 2);
 					break;
 				case 'creatureHit':
+					if (event.id === 'manifestation') {
+						darkness.hit();
+						break;
+					}
 					creatures.hit(event.id);
 					sounds.playAt('creature.hurt', event.position, 1, 4);
 					break;
+				case 'manifest':
+					// Heard everywhere: something has arrived.
+					sounds.play('manifest.signal');
+					break;
 				case 'creatureDie':
-					sounds.playAt('creature.die', event.position, 1, 5);
+					if (event.id !== 'manifestation') sounds.playAt('creature.die', event.position, 1, 5);
 					break;
 			}
 		}
@@ -484,6 +512,7 @@
 			engine.camera.getWorldDirection(lookDir);
 			audio.setListener([cam.x, cam.y, cam.z], [lookDir.x, lookDir.y, lookDir.z]);
 			ambience.update(delta, [cam.x, cam.y, cam.z], state);
+			darkness.update(delta, [cam.x, cam.y, cam.z]);
 			spawned = !!state;
 			if (state) {
 				sanityEffects(state, delta);
@@ -502,7 +531,8 @@
 					bandages: pocketCount(state.inventory, 'bandage'),
 					salts: pocketCount(state.inventory, 'salts'),
 					hurt: hud.hurt,
-					...itemHud(state)
+					...itemHud(state),
+					gloom: state.gloom
 				};
 				downed = state.downed
 					? {
@@ -547,6 +577,7 @@
 			heartbeat?.stop();
 			creatures.dispose();
 			viewModel.dispose();
+			darkness.dispose();
 			worldItems.dispose();
 			effects.dispose();
 			playerAudio.dispose();
@@ -583,7 +614,7 @@
 	<ExpeditionResult
 		seconds={result.seconds}
 		deepestLevel={result.deepestLevel}
-		died={result.died}
+		outcome={result.outcome}
 		ondescend={() => descend()}
 	/>
 {/if}
@@ -621,6 +652,8 @@
 		{flags}
 		{mapView}
 		{markers}
+		{meter}
+		{omen}
 		onadmin={(command) => sendAdmin(command)}
 		onmapview={(enabled) => setMapView(enabled)}
 		onmarkers={(enabled) => setMarkers(enabled)}

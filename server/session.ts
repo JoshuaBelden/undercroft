@@ -39,7 +39,8 @@ import type { InputFrame, PlayerState, SimEvent } from '../src/lib/shared/player
 import { encode, type AdminCommand, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import { randomSeed } from '../src/lib/shared/rng.ts';
 import { config } from './config.ts';
-import { hurt as hurtCreature, resolve, type CombatContext } from './combat.ts';
+import { hurt as hurtCreature, resolve, targets, type CombatContext } from './combat.ts';
+import { AfflictionDirector } from './affliction.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
 import { log } from './log.ts';
@@ -93,6 +94,7 @@ export class Session {
 	private nav: NavGrid = this.buildNav();
 	private creatures = new CreatureDirector(this.world, this.nav, this.seed);
 	private items = new WorldItems(this.world);
+	private affliction = new AfflictionDirector(this.world, this.nav, this.creatures, this.seed);
 	/** Events this tick, broadcast with it. */
 	private events: GameEvent[] = [];
 	private dropped = new Set<string>();
@@ -205,6 +207,17 @@ export class Session {
 			case 'killCreatures':
 				this.creatures.killAll();
 				break;
+			case 'setMeter':
+				if (typeof command.value === 'number' && Number.isFinite(command.value)) {
+					this.affliction.setMeter(command.value);
+				}
+				break;
+			case 'manifest':
+				this.affliction.setMeter(1);
+				break;
+			case 'banish':
+				this.affliction.banish();
+				break;
 			case 'infiniteAmmo':
 				player.state.flags.infiniteAmmo = command.enabled === true;
 				break;
@@ -260,6 +273,7 @@ export class Session {
 		this.nav = this.buildNav();
 		this.creatures = new CreatureDirector(this.world, this.nav, seed);
 		this.items = new WorldItems(this.world);
+		this.affliction = new AfflictionDirector(this.world, this.nav, this.creatures, seed);
 		this.populate();
 		for (const player of this.players.values()) {
 			const flags = player.state.flags;
@@ -322,6 +336,7 @@ export class Session {
 			player.deepestLevel = Math.max(player.deepestLevel, level);
 		}
 		this.stepCreatures();
+		this.stepAffliction();
 		this.stepProjectiles();
 		this.stepSanity();
 		this.stepRevives();
@@ -345,6 +360,17 @@ export class Session {
 			}
 			this.removePlayer(player.id);
 		}
+		if (this.affliction.banished && this.players.size > 0) {
+			log.info(`Session ${this.id.slice(0, 8)}: banished`);
+			for (const player of [...this.players.values()]) {
+				this.send(player, {
+					type: 'banished',
+					seconds: Math.round((Date.now() - player.joinedAt) / 1000),
+					deepestLevel: player.deepestLevel
+				});
+				this.removePlayer(player.id);
+			}
+		}
 		if (this.players.size === 0) return;
 		const players = [...this.players.values()].map((p) => ({
 			id: p.id,
@@ -360,13 +386,20 @@ export class Session {
 			creatures: this.creatures.snapshots(),
 			items: this.items.snapshots(),
 			projectiles: this.items.projectileSnapshots(),
-			events: this.events
+			events: this.events,
+			affliction: this.affliction.snapshot(config.devMode)
 		});
 		this.events = [];
 	}
 
 	private combat(): CombatContext {
-		return { world: this.world, creatures: this.creatures, items: this.items, out: this.events };
+		return {
+			world: this.world,
+			creatures: this.creatures,
+			affliction: this.affliction,
+			items: this.items,
+			out: this.events
+		};
 	}
 
 	/** Interact pressed: pick up the item the player is looking at, if any. */
@@ -381,10 +414,29 @@ export class Session {
 		if (taken) this.events.push({ kind: 'pickup', player: player.id, item: taken, position });
 	}
 
+	/** The meter, omens and the manifestation; banishing it ends the expedition for everyone. */
+	private stepAffliction(): void {
+		const before = this.affliction.stage;
+		const manifested = this.affliction.manifested;
+		const prey = [...this.players.values()].map((p) => ({ id: p.id, state: p.state }));
+		for (const hit of this.affliction.step(prey)) {
+			const player = this.players.get(hit.playerId);
+			if (player) this.hurt(player, hit.amount);
+		}
+		if (this.affliction.stage !== before) {
+			this.events.push({ kind: 'omen', stage: this.affliction.stage });
+			log.info(`Session ${this.id.slice(0, 8)} omen stage ${this.affliction.stage}`);
+		}
+		if (!manifested && this.affliction.manifested) {
+			this.events.push({ kind: 'manifest' });
+			log.info(`Session ${this.id.slice(0, 8)}: the Affliction manifests`);
+		}
+	}
+
 	/** Thrown items: hit creatures, land, make noise. */
 	private stepProjectiles(): void {
 		const ctx = this.combat();
-		for (const result of this.items.stepProjectiles(this.creatures.hitBodies())) {
+		for (const result of this.items.stepProjectiles(targets(ctx))) {
 			if (result.kind === 'hitCreature') {
 				const thrower = this.players.get(result.thrower);
 				hurtCreature(ctx, result.creature, result.damage, thrower ?? null);

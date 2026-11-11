@@ -51,6 +51,11 @@ export interface PlayerState {
 	battery: number;
 	/** Seconds the lamp has been lit; drives the deterministic flicker. */
 	lampClock: number;
+	/**
+	 * Lamp failure from the Affliction, 0..1 (server-set each tick): more flicker, less light,
+	 * cut-outs above 0.7. See docs/dev/affliction.md.
+	 */
+	gloom: number;
 	flags: PlayerFlags;
 	/** In water deeper than the swim threshold. */
 	swimming: boolean;

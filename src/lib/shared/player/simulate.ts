@@ -43,6 +43,7 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		headlamp: 1,
 		battery: 1,
 		lampClock: 0,
+		gloom: 0,
 		flags: {
 			noclip: false,
 			infiniteStamina: false,

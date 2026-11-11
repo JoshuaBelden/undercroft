@@ -29,6 +29,8 @@
 		/** Held firearm's rounds: loaded and spare; null when not holding one. */
 		ammo: { loaded: number; spare: number } | null;
 		aiming: boolean;
+		/** 0..1 lamp failure from the Affliction: the edges close in. */
+		gloom: number;
 	}
 
 	let {
@@ -48,14 +50,15 @@
 		hotbar,
 		selected,
 		ammo,
-		aiming
+		aiming,
+		gloom
 	}: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
 	const bars = $derived(Math.ceil(battery * 4));
 	const STANCE_LABELS: Record<string, string> = { crouch: 'Crouching', crawl: 'Crawling' };
 	// The edges darken as sanity falls, and pulse with the heartbeat when it's low.
-	const vignette = $derived(Math.min(0.92, Math.max(0, (1 - sanity) * 1.15)));
+	const vignette = $derived(Math.min(0.92, Math.max(0, (1 - sanity) * 1.15, gloom * 0.75)));
 	const posture = $derived(
 		[STANCE_LABELS[stance], creep ? 'Creeping' : null].filter(Boolean).join(' · ')
 	);

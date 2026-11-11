@@ -4,12 +4,18 @@
 	interface Props {
 		seconds: number;
 		deepestLevel: number;
-		/** Bled out rather than climbed out. */
-		died?: boolean;
+		/** How the expedition ended for this player. */
+		outcome: 'extracted' | 'died' | 'banished';
 		ondescend: () => void;
 	}
 
-	let { seconds, deepestLevel, died = false, ondescend }: Props = $props();
+	let { seconds, deepestLevel, outcome, ondescend }: Props = $props();
+
+	const TITLES = {
+		extracted: 'You made it out',
+		died: "You didn't make it out",
+		banished: 'The dark recedes'
+	};
 
 	const time = $derived(`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`);
 	const depth = $derived(
@@ -21,7 +27,10 @@
 
 <div class="screen">
 	<div class="card">
-		<h1>{died ? "You didn't make it out" : 'You made it out'}</h1>
+		<h1>{TITLES[outcome]}</h1>
+		{#if outcome === 'banished'}
+			<p class="note">You drove it back, for now. The Gloaming is not resolved.</p>
+		{/if}
 		<dl>
 			<dt>Time underground</dt>
 			<dd>{time}</dd>
@@ -76,6 +85,15 @@
 	}
 
 	dt {
+		color: var(--muted);
+	}
+
+	.note {
+		margin: -12px 0 24px;
+		font:
+			italic 0.95rem Georgia,
+			'Times New Roman',
+			serif;
 		color: var(--muted);
 	}
 

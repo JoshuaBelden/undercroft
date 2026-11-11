@@ -18,6 +18,9 @@
 		mapView: boolean;
 		/** Creature markers drawn through walls. */
 		markers: boolean;
+		/** Affliction meter 0..1 (dev only) and omen stage. */
+		meter: number | null;
+		omen: number;
 		onadmin: (command: AdminCommand) => void;
 		onmapview: (enabled: boolean) => void;
 		onmarkers: (enabled: boolean) => void;
@@ -33,6 +36,8 @@
 		flags,
 		mapView,
 		markers,
+		meter,
+		omen,
 		onadmin,
 		onmapview,
 		onmarkers
@@ -40,6 +45,12 @@
 
 	let seedInput = $state('');
 	let sanityInput = $state('100');
+	let meterInput = $state('70');
+
+	function setMeter(): void {
+		const value = Number(meterInput);
+		if (Number.isFinite(value)) onadmin({ kind: 'setMeter', value: value / 100 });
+	}
 	let giveItem = $state('crowbar');
 	let giveCount = $state('1');
 	const itemIds = Object.keys(ITEMS);
@@ -140,6 +151,29 @@
 		</div>
 		<div class="row">
 			<button type="button" onclick={() => onadmin({ kind: 'refillAmmo' })}>Refill ammo</button>
+		</div>
+
+		<h3>Affliction</h3>
+		<div class="row">
+			<span>Meter</span><code
+				>{meter === null ? '—' : `${(meter * 100).toFixed(1)}%`} · omen {omen}</code
+			>
+		</div>
+		<div class="row">
+			<input
+				type="text"
+				inputmode="numeric"
+				aria-label="Meter percent"
+				bind:value={meterInput}
+				size="4"
+			/>
+			<button type="button" onclick={setMeter}>Set meter %</button>
+		</div>
+		<div class="row">
+			<button type="button" onclick={() => onadmin({ kind: 'manifest' })}
+				>Force manifestation</button
+			>
+			<button type="button" onclick={() => onadmin({ kind: 'banish' })}>Banish</button>
 		</div>
 
 		<h3>Creatures</h3>

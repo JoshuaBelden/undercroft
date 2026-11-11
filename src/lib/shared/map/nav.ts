@@ -310,6 +310,27 @@ export function findPath(grid: NavGrid, from: number, to: number, maxNodes = 200
 	return null;
 }
 
+/**
+ * Distance (m, along the grid) from the nearest of `from` to every point; undefined where
+ * unreachable. A breadth-first walk summing horizontal step lengths: close enough for spawning.
+ */
+export function gridDistances(grid: NavGrid, from: number[]): number[] {
+	const distance: number[] = new Array(grid.points.length);
+	const queue = from.filter((f) => f >= 0);
+	for (const f of queue) distance[f] = 0;
+	for (let i = 0; i < queue.length; i++) {
+		const at = queue[i];
+		const p = grid.points[at].position;
+		for (const n of grid.points[at].neighbours) {
+			if (distance[n] !== undefined) continue;
+			const q = grid.points[n].position;
+			distance[n] = distance[at] + Math.hypot(q[0] - p[0], q[2] - p[2]);
+			queue.push(n);
+		}
+	}
+	return distance;
+}
+
 /** Path length (m) of a list of points. */
 export function pathLength(path: Vec3[]): number {
 	let total = 0;

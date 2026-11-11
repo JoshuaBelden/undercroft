@@ -13,6 +13,7 @@ src/
       player/               player state types, fixed-step simulation, headlamp output
       map/                  map types, grid math, layout generator, piece manifest, nav grid
       creature/             creature snapshot type, half-light visibility
+      affliction/           Affliction snapshot type
       items/                inventory helpers, weapon step, pickup rule, item/event types
     game/
       Engine.ts             Three.js renderer, scene, camera, frame loop, stats, light budget
@@ -20,6 +21,7 @@ src/
       map/MapRenderer.ts    places map pieces from a layout
       player/               local player prediction, headlamp light, remote players, player audio
       creatures/            creature models, animation, half-light fade, sounds
+      affliction/           the manifestation (living darkness) renderer
       items/                viewmodel (held item), world items, muzzle flash and impacts
       input/
         actions.ts          action definitions and default bindings
@@ -36,6 +38,7 @@ src/
       player/movement.ts    movement and stamina tuning
       player/sanity.ts      sanity, downed, revive and bandage tuning
       creatures.ts          creature definitions
+      afflictions.ts        Affliction definitions: meter, omen stages, manifestation
       items.ts              item definitions (weapons, ammo, consumables)
       loadout.ts            starting kit until the hub
       items/headlamps.ts    headlamp models
@@ -49,6 +52,7 @@ server/
   session.ts                Session: authoritative state and tick loop, sanity, revives
   creatures.ts              CreatureDirector: creature AI, damage, noise
   combat.ts                 resolves shots, swings, throws and drops
+  affliction.ts             AfflictionDirector: meter, omens, manifestation, banishing
   items.ts                  WorldItems: items in the map, pickups, thrown items
   config.ts                 environment
   db.ts                     MongoDB connection

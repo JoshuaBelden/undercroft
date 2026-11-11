@@ -2,6 +2,7 @@
  * Messages exchanged between client and game server over WebSocket.
  * All messages are JSON with a `type` discriminator.
  */
+import type { AfflictionSnapshot } from './affliction/types.ts';
 import type { CreatureSnapshot } from './creature/types.ts';
 import type { GameEvent, ProjectileSnapshot, WorldItemSnapshot } from './items/types.ts';
 import type { MapLayout } from './map/types.ts';
@@ -27,6 +28,11 @@ export type AdminCommand =
 	/** Fill your guns and add spare ammo. */
 	| { kind: 'refillAmmo' }
 	| { kind: 'killCreatures' }
+	/** Set the Affliction meter (0..1). */
+	| { kind: 'setMeter'; value: number }
+	/** Fill the meter: it manifests. */
+	| { kind: 'manifest' }
+	| { kind: 'banish' }
 	/** Put a creature a few metres in front of you. */
 	| { kind: 'spawnCreature' }
 	| { kind: 'clearCreatures' }
@@ -59,13 +65,16 @@ export type ServerMessage =
 			projectiles: ProjectileSnapshot[];
 			/** What happened this tick (shots, hits, pickups...). */
 			events: GameEvent[];
+			affliction: AfflictionSnapshot;
 	  }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }
 	/** You climbed out: you have left the expedition. */
 	| { type: 'extracted'; seconds: number; deepestLevel: number }
 	/** You bled out: you have left the expedition. */
-	| { type: 'died'; seconds: number; deepestLevel: number };
+	| { type: 'died'; seconds: number; deepestLevel: number }
+	/** The manifestation was banished: everyone leaves the expedition. */
+	| { type: 'banished'; seconds: number; deepestLevel: number };
 
 export function encode(message: ClientMessage | ServerMessage): string {
 	return JSON.stringify(message);
@@ -87,7 +96,8 @@ const SERVER_TYPES = new Set<string>([
 	'tick',
 	'map',
 	'extracted',
-	'died'
+	'died',
+	'banished'
 ]);
 
 function decode(raw: string, allowed: Set<string>): unknown {

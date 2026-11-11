@@ -382,6 +382,52 @@ function rustle(ctx: BaseAudioContext): AudioBuffer {
 	});
 }
 
+function drone(ctx: BaseAudioContext, pitch: number): AudioBuffer {
+	const rand = noise(139);
+	const a = lowpass(120, ctx.sampleRate);
+	let y = 0;
+	const seconds = 6;
+	// Whole cycles of every partial in the loop, so it repeats seamlessly.
+	const f1 = Math.round(pitch * seconds) / seconds;
+	const f2 = Math.round(pitch * 1.5 * seconds + 1) / seconds;
+	return buffer(ctx, seconds, (t) => {
+		y += a * (rand() - y);
+		const beat = 0.6 + 0.4 * Math.sin((2 * Math.PI * t) / seconds);
+		return (
+			(Math.sin(2 * Math.PI * f1 * t) * 0.5 + Math.sin(2 * Math.PI * f2 * t) * 0.25 + y * 2) * beat
+		);
+	});
+}
+
+function signal(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(149);
+	const a = lowpass(90, ctx.sampleRate);
+	let y = 0;
+	let phase = 0;
+	const b = buffer(ctx, 5, (t) => {
+		y += a * (rand() - y);
+		// A slow swell that falls in pitch, like the whole place breathing out.
+		const freq = 55 - t * 6;
+		phase += (2 * Math.PI * freq) / ctx.sampleRate;
+		const env = Math.sin(Math.min(1, t / 5) * Math.PI) ** 0.7;
+		return (Math.sin(phase) * 0.6 + y * 4) * env;
+	});
+	return echo(b, 0.43, 0.35, 3);
+}
+
+function hiss(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(151);
+	const a = lowpass(6000, ctx.sampleRate);
+	const b = lowpass(1500, ctx.sampleRate);
+	let y = 0;
+	let z = 0;
+	return buffer(ctx, 0.9, (t) => {
+		y += a * (rand() - y);
+		z += b * (y - z);
+		return (y - z) * Math.min(1, t / 0.05) * Math.exp(-t / 0.35) * 2.5;
+	});
+}
+
 export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer {
 	switch (spec.kind) {
 		case 'footstep':
@@ -430,5 +476,11 @@ export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer 
 			return reload(ctx);
 		case 'rustle':
 			return rustle(ctx);
+		case 'drone':
+			return drone(ctx, spec.pitch);
+		case 'signal':
+			return signal(ctx);
+		case 'hiss':
+			return hiss(ctx);
 	}
 }

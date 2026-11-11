@@ -135,5 +135,27 @@ A knife is quick and quiet. A crowbar is slow but hits hard enough to stop somet
 Guns are loud. Every shot is heard a long way off, on the floors above and below, and whatever hears it will come. A thrown brick makes noise where it lands, not where you are.
 
 They can be put down. It takes more than you'd like.`
+	},
+	{
+		id: 'omens',
+		title: 'Omens',
+		category: 'Survival',
+		body: `The longer you stay down here, the worse it gets.
+
+Listen. Knocking that comes more often. Whispers where no one is. A low hum under everything. Lamps that won't hold steady, that dim and fail for no reason.
+
+These are warnings. When they come thick and close together, it is time to think about the way out.`
+	},
+	{
+		id: 'the-gloaming',
+		title: 'The Gloaming',
+		category: 'Survival',
+		body: `Stay too long and the Gloaming comes for you itself: a darkness that moves. You'll know when it arrives. Every lamp falters at once, and something vast breathes out through the stone.
+
+Near it, lamps die and the mind goes. Its touch is worse.
+
+Light is how you fight it. Hold a bright beam on it from a distance, before it gets close enough to put your lamp out, and keep it there. Only while the light holds does steel or shot bite. Two lamps are better than one.
+
+Drive it off and you'll all be carried out. It isn't over, though. Only the rite ends the Gloaming.`
 	}
 ];

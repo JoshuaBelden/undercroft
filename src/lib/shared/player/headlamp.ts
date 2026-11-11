@@ -29,6 +29,8 @@ function hash(n: number): number {
 
 const SLOTS_PER_SECOND = 8;
 const STUTTER_PER_SECOND = 40;
+/** Above this gloom, a lamp starts cutting out completely for moments at a time. */
+const GLOOM_CUTOUT = 0.7;
 
 export function headlampOutput(
 	state: PlayerState,
@@ -40,10 +42,22 @@ export function headlampOutput(
 	}
 	const { rate, depth, lowBattery } = model.flicker;
 	const weak = state.battery < lowBattery ? 1 - state.battery / lowBattery : 0;
+	// Gloom (the Affliction pressing in): flickers more, burns lower, and cuts out entirely.
+	const gloom = Math.max(0, Math.min(1, state.gloom));
 	const slot = Math.floor(state.lampClock * SLOTS_PER_SECOND);
-	const chance = (rate + weak * 2) / SLOTS_PER_SECOND;
+	if (gloom > GLOOM_CUTOUT && hash(slot + 524287) < (gloom - GLOOM_CUTOUT) / (1 - GLOOM_CUTOUT)) {
+		return {
+			on: true,
+			level: 0,
+			intensity: 0,
+			range: mode.range,
+			angle: mode.angle,
+			flickering: true
+		};
+	}
+	const chance = (rate + weak * 2 + gloom * 4) / SLOTS_PER_SECOND;
 	const flickering = hash(slot) < chance;
-	let level = 1 - weak * 0.5;
+	let level = (1 - weak * 0.5) * (1 - 0.6 * gloom);
 	if (flickering) {
 		const dip = depth * (0.5 + 0.5 * hash(slot + 7919));
 		const stutter = hash(Math.floor(state.lampClock * STUTTER_PER_SECOND) + 104729) > 0.5;

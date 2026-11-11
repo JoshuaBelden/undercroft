@@ -73,6 +73,10 @@ Players hurt creatures through `CreatureDirector.damage(id, amount, from)`, call
 
 Hit tests use `hitBodies()`: a vertical capsule of `height` and `hitRadius` per living creature.
 
+## Boldness and extra spawns
+
+`CreatureDirector.boldness` (1 by default) is set by the Affliction's omen stage. Perception radii (lamp sight, hearing) scale by it, and the creep phase between bursts is divided by it. `spawnFar(players, minDistance)` adds a creature at a corner at least that far (along the grid) from every player; omen stages use it. See [affliction.md](affliction.md).
+
 ## Noise
 
 `hear(position, radius, source)` is called for gunfire, melee impacts and thrown items landing. Every living creature within `radius` and 5 m up or down (gunfire carries to the floors above and below) reacts:

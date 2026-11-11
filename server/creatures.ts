@@ -4,7 +4,13 @@ import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import type { CreatureSnapshot } from '../src/lib/shared/creature/types.ts';
 import { lampIllumination } from '../src/lib/shared/creature/visibility.ts';
 import { segmentBlocked, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
-import { findPath, lowerStance, nearestPoint, type NavGrid } from '../src/lib/shared/map/nav.ts';
+import {
+	findPath,
+	gridDistances,
+	lowerStance,
+	nearestPoint,
+	type NavGrid
+} from '../src/lib/shared/map/nav.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { createPlayerState, idleFrame, stepPlayer } from '../src/lib/shared/player/simulate.ts';
 import type { PlayerState } from '../src/lib/shared/player/types.ts';
@@ -166,6 +172,33 @@ export class CreatureDirector {
 	/** Creatures killed this expedition (feeds the Affliction meter). */
 	kills = 0;
 
+	/**
+	 * How bold creatures are (the Affliction's omen stage): they perceive and hear this much
+	 * further, and creep for this much less time between bursts.
+	 */
+	boldness = 1;
+
+	/** Add a creature far (along the grid) from every player, e.g. when an omen stage begins. */
+	spawnFar(players: Vec3[], minDistance: number, kind = 'witch'): boolean {
+		const def = CREATURES[kind];
+		if (!def) return false;
+		const starts = players.map((p) => nearestPoint(this.nav, p)).filter((i) => i >= 0);
+		const distance = this.gridDistances(...starts);
+		const spots = this.nav.points
+			.map((point, index) => ({ point, index }))
+			.filter(
+				({ point, index }) =>
+					point.clearance === 'stand' &&
+					!point.water &&
+					point.neighbours.length <= 4 &&
+					(distance[index] ?? 0) >= minDistance
+			);
+		if (!spots.length) return false;
+		const { point, index } = this.rng.pick(spots);
+		this.add(def, point.position, this.wallYaw(index));
+		return true;
+	}
+
 	clear(): void {
 		this.creatures = [];
 	}
@@ -291,7 +324,7 @@ export class CreatureDirector {
 					if (c.rhythm <= 0) {
 						c.bursting = !c.bursting;
 						const [lo, hi] = c.bursting ? c.def.burstTime : c.def.creepTime;
-						c.rhythm = lo + this.rng.next() * (hi - lo);
+						c.rhythm = (lo + this.rng.next() * (hi - lo)) / (c.bursting ? 1 : this.boldness);
 					}
 					// Close enough to see it: go straight at them; otherwise follow the grid.
 					const goal = c.lastKnown ?? target.state.position;
@@ -412,13 +445,14 @@ export class CreatureDirector {
 				s.position[1] - c.body.position[1],
 				s.position[2] - c.body.position[2]
 			);
-			if (d > Math.max(p.lampSight, p.hear.sprint, p.touch) + 1) continue;
+			const bold = this.boldness;
+			if (d > Math.max(p.lampSight * bold, p.hear.sprint * bold, p.touch) + 1) continue;
 			const sensed =
 				d <= p.touch ||
-				(Math.abs(s.position[1] - c.body.position[1]) < 3 && d <= noiseRadius(s, c.def)) ||
+				(Math.abs(s.position[1] - c.body.position[1]) < 3 && d <= noiseRadius(s, c.def) * bold) ||
 				(s.headlamp > 0 &&
 					s.battery > 0 &&
-					d <= p.lampSight &&
+					d <= p.lampSight * bold &&
 					(lampIllumination(this.world, s, mid) > 0.01 ||
 						!segmentBlocked(this.world, eye, [
 							s.position[0],
@@ -573,22 +607,8 @@ export class CreatureDirector {
 		}
 	}
 
-	/** Grid distance (m) from one point to every reachable point (Dijkstra-lite: BFS by hops). */
-	private gridDistances(from: number): number[] {
-		const distance: number[] = new Array(this.nav.points.length);
-		distance[from] = 0;
-		const queue = [from];
-		for (let i = 0; i < queue.length; i++) {
-			const at = queue[i];
-			const p = this.nav.points[at].position;
-			for (const n of this.nav.points[at].neighbours) {
-				if (distance[n] !== undefined) continue;
-				const q = this.nav.points[n].position;
-				distance[n] = distance[at] + Math.hypot(q[0] - p[0], q[2] - p[2]);
-				queue.push(n);
-			}
-		}
-		return distance;
+	private gridDistances(...from: number[]): number[] {
+		return gridDistances(this.nav, from);
 	}
 
 	/** Facing into the corner: away from the open directions around a point. */

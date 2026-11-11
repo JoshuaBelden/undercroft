@@ -68,18 +68,18 @@ Aspects:
 - [x] Thrall AI on the server: perception (light, sound), pathing on the grid (nav grid + A\*)
 - [x] Melee: crowbar, knife, brick (prying with the crowbar comes with containers in Phase 4)
 - [x] Ranged: revolver, shotgun, ammo; gunfire noise
-- [ ] Affliction meter (~30 min): time, loot carried, kills
-- [ ] Omens: escalating effects by meter stage (sounds, flicker, failing lights, whispers)
-- [ ] Manifestation at 100%: spawns somewhere and hunts
-- [ ] Banishing the manifestation → extraction without resolving
+- [x] Affliction meter (~30 min): time, loot carried, kills (the loot term is wired at weight 0 until loot exists in Phase 4)
+- [x] Omens: escalating effects by meter stage (sounds, flicker, failing lights, whispers)
+- [x] Manifestation at 100%: spawns somewhere and hunts (the Gloaming: living darkness that snuffs lamps)
+- [x] Banishing the manifestation → extraction without resolving (expose it with bright light, then weapons hurt it)
 
 Aspects:
 
-- **Dev docs**: Thrall AI, half-light visibility system, combat, Affliction meter and omen staging. (Creature AI, nav grid and half-light done: `docs/dev/creatures.md`; sanity in `docs/dev/player.md`; items and combat in `docs/dev/items.md`.)
-- **Help system**: sanity, reviving, combat, Thralls (light behavior), what omens mean (vaguely). (Sanity, Reviving, "Things in the dark", "Items" and "Fighting back" done.)
-- **Admin**: set meter %, force manifestation, spawn Thrall, god mode, show Thrall positions, give weapons/ammo. (Spawn, kill, remove, show creatures, god mode, set sanity, give items, refill and infinite ammo done.)
-- **Audio**: Thrall tells and attacks, sanity effects (heartbeat, whispers), omen layers by stage, manifestation signal, melee and weapon sounds. (Creature steps, burst, attack, hurt and death, heartbeat, whispers, gunshots, reload, dry fire, swings, impacts, brick throw, land and break, pickup done as synthesized placeholders.)
-- **Settings**: subtitles and sound captions, camera shake intensity. (Camera shake done.)
+- **Dev docs**: Thrall AI, half-light visibility system, combat, Affliction meter and omen staging. (Creature AI, nav grid and half-light done: `docs/dev/creatures.md`; sanity in `docs/dev/player.md`; items and combat in `docs/dev/items.md`; meter, omens and manifestation in `docs/dev/affliction.md`.)
+- **Help system**: sanity, reviving, combat, Thralls (light behavior), what omens mean (vaguely). (Sanity, Reviving, "Things in the dark", "Items", "Fighting back", "Omens" and "The Gloaming" done.)
+- **Admin**: set meter %, force manifestation, spawn Thrall, god mode, show Thrall positions, give weapons/ammo. (Spawn, kill, remove, show creatures, god mode, set sanity, give items, refill and infinite ammo, meter readout and set, force manifestation, banish done.)
+- **Audio**: Thrall tells and attacks, sanity effects (heartbeat, whispers), omen layers by stage, manifestation signal, melee and weapon sounds. (Creature steps, burst, attack, hurt and death, heartbeat, whispers, gunshots, reload, dry fire, swings, impacts, brick throw, land and break, pickup, omen drone, manifestation signal, presence, hiss, banish done as synthesized placeholders.)
+- **Settings**: subtitles and sound captions, camera shake intensity. (Camera shake done. Subtitles and captions still to do.)
 - **Keybinds**: attack, aim, reload, revive, use item, weapon slots. (Revive on interact, bandage on Q, attack, aim/throw, reload, drop, slots 1-5 and the wheel done.)
 
 ## Phase 3: Multiplayer

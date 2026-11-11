@@ -40,4 +40,8 @@ export type GameEvent =
 	| { kind: 'empty'; player: string; item: string; position: Vec3 }
 	| { kind: 'pickup'; player: string; item: string; position: Vec3 }
 	| { kind: 'creatureHit'; id: string; position: Vec3 }
-	| { kind: 'creatureDie'; id: string; position: Vec3 };
+	| { kind: 'creatureDie'; id: string; position: Vec3 }
+	/** The Affliction reached a new omen stage. */
+	| { kind: 'omen'; stage: number }
+	/** The Affliction manifests (it gathers, then hunts). */
+	| { kind: 'manifest' };
