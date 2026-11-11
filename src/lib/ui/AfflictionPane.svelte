@@ -20,9 +20,13 @@
 		onselect?: () => void;
 		/** It is the one chosen. */
 		selected?: boolean;
+		/** Given, a known pane has a Join Expedition button that calls this. */
+		onjoin?: () => void;
+		/** Why joining is not possible right now; the button is disabled and says so. */
+		joinBlocked?: string;
 	}
 
-	let { id, progress, onselect, selected = false }: Props = $props();
+	let { id, progress, onselect, selected = false, onjoin, joinBlocked }: Props = $props();
 
 	/** Question-mark slots on an unknown pane. */
 	const UNKNOWN_SLOTS = 3;
@@ -37,7 +41,11 @@
 		rite
 			? rite.requirements.map((requirement) =>
 					requirement
-						? { name: ITEMS[requirement.item]?.name ?? requirement.item, count: requirement.count }
+						? {
+								name: ITEMS[requirement.item]?.name ?? requirement.item,
+								image: ITEMS[requirement.item]?.image,
+								count: requirement.count
+							}
 						: null
 				)
 			: Array.from({ length: UNKNOWN_SLOTS }, () => null)
@@ -63,15 +71,33 @@
 	<div class="content">
 		<p class="flavor">{def?.flavor ?? 'Nothing is written of this one. Not yet.'}</p>
 
-		<h3>What its rite needs</h3>
+		<h3>Requirements</h3>
 		<ul class="slots">
 			{#each requirements as requirement, index (index)}
-				<li><Slot name={requirement?.name ?? null} count={requirement?.count} /></li>
+				<li>
+					<Slot
+						name={requirement?.name ?? null}
+						image={requirement?.image}
+						count={requirement?.count}
+					/>
+				</li>
 			{/each}
 		</ul>
 
-		<h3>Where it is held</h3>
+		<h3>Location</h3>
 		<p class="room" class:hidden={!room}>{room ?? 'Unknown'}</p>
+
+		{#if onjoin && def}
+			<button
+				type="button"
+				class="join"
+				disabled={joinBlocked !== undefined}
+				title={joinBlocked}
+				onclick={onjoin}
+			>
+				Join Expedition
+			</button>
+		{/if}
 	</div>
 
 	{#if onselect && def}
@@ -89,7 +115,7 @@
 <style>
 	/*
 	 * A pane: the picture across the top (--art), the name in the middle of the first 250px of
-	 * it, then the content on a fade that ends solid.
+	 * it, then the content on a fade. The pane is a little see-through: the page shows behind it.
 	 */
 	.pane {
 		flex: none;
@@ -100,7 +126,7 @@
 		overflow: hidden;
 		background:
 			var(--art) top center / 100% auto no-repeat,
-			linear-gradient(#211c18, var(--bg) 70%);
+			linear-gradient(rgb(33 28 24 / 0.8), rgb(10 9 8 / 0.8) 70%);
 	}
 
 	header {
@@ -140,8 +166,10 @@
 
 	.content {
 		flex: 1;
+		display: flex;
+		flex-direction: column;
 		padding: 72px 24px 24px;
-		background: linear-gradient(transparent, rgb(10 9 8 / 0.88) 110px, var(--bg));
+		background: linear-gradient(transparent, rgb(10 9 8 / 0.72) 110px, rgb(10 9 8 / 0.85));
 	}
 
 	.flavor {
@@ -179,6 +207,29 @@
 	.room.hidden {
 		color: var(--muted);
 		font-style: italic;
+	}
+
+	/* At the foot of the pane: on to the Expedition page with this Affliction chosen. */
+	.join {
+		align-self: center;
+		margin-top: auto;
+		padding: 10px 20px;
+		border-color: var(--text);
+		border-radius: 999px;
+		font-size: 0.9rem;
+		font-weight: 600;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+	}
+
+	.join:hover:not(:disabled),
+	.join:focus-visible {
+		background: rgb(255 255 255 / 0.1);
+	}
+
+	.join:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
 	}
 
 	.pane.unknown h2,

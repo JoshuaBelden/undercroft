@@ -1,5 +1,5 @@
 /**
- * Turns raw interface art (art/images/*.png, *.jpg) into WebP in static/assets/images, keeping
+ * Turns raw interface art (art/images/*.png, *.jpg, *.webp) into WebP in static/assets/images, keeping
  * each file's name. Run with `pnpm asset:images`. See docs/dev/asset-pipeline.md.
  */
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
@@ -20,7 +20,7 @@ if (!existsSync(SOURCE_DIR)) {
 mkdirSync(OUT_DIR, { recursive: true });
 
 for (const file of readdirSync(SOURCE_DIR)) {
-	if (!/\.(png|jpe?g)$/i.test(file)) continue;
+	if (!/\.(png|jpe?g|webp)$/i.test(file)) continue;
 	const out = path.join(OUT_DIR, `${path.parse(file).name}.webp`);
 	const info = await sharp(path.join(SOURCE_DIR, file))
 		.resize({ width: MAX_WIDTH, withoutEnlargement: true })

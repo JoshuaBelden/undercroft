@@ -135,7 +135,7 @@ Only sounds listed in the config are built and committed. Recordings for later f
 
 ## Interface art
 
-Pictures for screens outside the catacombs go in `art/images/` (gitignored) as PNG or JPEG. `pnpm asset:images` (`scripts/build-images.ts`) converts every one to WebP in `static/assets/images/`, keeping the file name, scaled down to at most 2560 px wide.
+Pictures for screens outside the catacombs go in `art/images/` (gitignored) as PNG, JPEG or WebP. `pnpm asset:images` (`scripts/build-images.ts`) converts every one to WebP in `static/assets/images/`, keeping the file name, scaled down to at most 2560 px wide.
 
 `login-bg` is the picture behind sign-in, the dashboard and the party screen. It is applied by the global `.backdrop-art` class in `src/app.css`, which darkens it so text stays readable. Adding `use:parallax` (`src/lib/ui/parallax.ts`) to the same element makes the picture drift away from the cursor; it is skipped for people who ask for reduced motion. To change the picture, replace `art/images/login-bg.png` and run `pnpm asset:images`. To put it behind another screen, add the class (and `use:parallax`) to that screen's outer element.
 

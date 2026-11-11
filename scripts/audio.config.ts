@@ -47,6 +47,8 @@ export const AUDIO_SOURCES: AudioSource[] = [
 		file: 'liquid_slosh.wav',
 		slice: { minGap: 0.18, maxLength: 0.35, threshold: 0.35 }
 	},
+	// Something put down in an inventory slot.
+	{ id: 'inventory.drop', file: 'slot-drop.mp3' },
 	// Ambience
 	{
 		id: 'ambience.drip',

@@ -292,6 +292,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'rite',
 		category: 'other',
 		flavor: 'Heavier than it should be, and never quite warm.',
+		image: 'gloaming-pendant',
 		model: null,
 		placeholder: { size: [0.1, 0.03, 0.14], color: 0xb08a3a },
 		hold: HOLD_RIGHT,

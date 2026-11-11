@@ -36,7 +36,7 @@ All checks are on the server (`Parties`); `allReady` is shared so both sides use
 
 ### Launching, on the client
 
-1. The launch panel shows the chosen Affliction. The host's "Select Affliction" opens `AfflictionPicker` (the Afflictions' panes; click one). The Launch Expedition button is disabled until one is chosen.
+1. The launch panel shows the chosen Affliction. The host's "Select Affliction" opens `AfflictionPicker` (the Afflictions' panes; click one). Join Expedition on a pane of the Afflictions page does the same and comes back here (see [rite.md](rite.md)). The Launch Expedition button is disabled until one is chosen.
 2. Launch Expedition sets `launch.confirming` (`src/lib/ui/launch.svelte.ts`) and goes to the Loadout page, which shows a "Confirm loadout" bar while it is set.
 3. Confirm waits for any loadout change still on its way to the server (`Outfit.settled()`), sends `ready { ready: true }` and returns to the Expedition page. The pane shows Ready to everyone.
 4. While ready, the Loadout page and the Store are locked and the money in the frame is not a link. Cancel (in the launch panel, or on the countdown) sends `ready { ready: false }`.

@@ -7,9 +7,13 @@
 	interface Props {
 		/** The explorer's rite progress (only Afflictions with any). */
 		progress: ExplorerView['afflictions'];
+		/** Given, each known pane has a Join Expedition button that calls this with its id. */
+		onjoin?: (id: string) => void;
+		/** Why joining is not possible right now (the buttons are disabled). */
+		joinBlocked?: string;
 	}
 
-	let { progress }: Props = $props();
+	let { progress, onjoin, joinBlocked }: Props = $props();
 
 	/** Panes shown after the real ones for Afflictions nobody has met yet. */
 	const UNKNOWN_PANES = 4;
@@ -18,7 +22,7 @@
 <div class="afflictions">
 	<div class="track" use:dragScroll>
 		{#each Object.keys(AFFLICTIONS) as id (id)}
-			<AfflictionPane {id} {progress} />
+			<AfflictionPane {id} {progress} {joinBlocked} onjoin={onjoin && (() => onjoin(id))} />
 		{/each}
 		{#each { length: UNKNOWN_PANES }, index (index)}
 			<AfflictionPane id={null} {progress} />
