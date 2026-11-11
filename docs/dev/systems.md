@@ -57,7 +57,7 @@ Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played
 
 ## Settings
 
-`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y) and `graphics` (FOV, brightness, quality). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
+`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y), `graphics` (FOV, brightness, quality, camera shake) and `accessibility` (subtitles and sound captions, caption size; see [player.md](player.md#subtitles-and-sound-captions)). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
 
 **Adding a setting:** add it to `Settings` and `defaults()`, then add a control in `SettingsMenu.svelte`.
 

@@ -70,6 +70,13 @@ export interface SoundDef {
 	rate?: number;
 	/** Random playback-rate spread (0.1 = +-10%) so repeats don't sound identical. */
 	variation?: number;
+	/**
+	 * What the player reads when sound captions are on: lowercase, no brackets. Sounds without
+	 * one are never captioned (the player's own footsteps, breath, clicks).
+	 */
+	caption?: string;
+	/** Caption it only when it comes from the world, not when the player makes it themselves. */
+	captionOthers?: boolean;
 }
 
 const STEP = { kind: 'footstep', cutoff: 1400, decay: 0.07, thump: 0.6 } as const;
@@ -179,21 +186,24 @@ export const SOUNDS = {
 		synth: { kind: 'knock' },
 		category: 'ambience',
 		volume: 0.8,
-		variation: 0.1
+		variation: 0.1,
+		caption: 'distant knocking'
 	},
 	'ambience.rockfall': {
 		file: 'ambience.rockfall',
 		synth: { kind: 'rockfall' },
 		category: 'ambience',
 		volume: 0.7,
-		variation: 0.1
+		variation: 0.1,
+		caption: 'stones falling, far off'
 	},
 	'ambience.creak': {
 		file: 'ambience.creak',
 		synth: { kind: 'groan' },
 		category: 'ambience',
 		volume: 0.8,
-		variation: 0.08
+		variation: 0.08,
+		caption: 'the rock groans'
 	},
 	'ambience.lap': {
 		file: 'ambience.lap',
@@ -206,37 +216,62 @@ export const SOUNDS = {
 		file: ['ambience.creepy', 'ambience.horror'],
 		synth: { kind: 'groan' },
 		category: 'ambience',
-		volume: 0.6
+		volume: 0.6,
+		caption: 'something moans in the deep'
 	},
 	// Creatures (played at their position: you hear what you can't see).
 	'creature.step': {
 		synth: { kind: 'shuffle' },
 		category: 'sfx',
 		volume: 0.55,
-		variation: 0.15
+		variation: 0.15,
+		caption: 'shuffling steps'
 	},
-	'creature.burst': { synth: { kind: 'rush' }, category: 'sfx', volume: 0.8, variation: 0.1 },
-	'creature.attack': { synth: { kind: 'snarl' }, category: 'sfx', volume: 0.9, variation: 0.08 },
+	'creature.burst': {
+		synth: { kind: 'rush' },
+		category: 'sfx',
+		volume: 0.8,
+		variation: 0.1,
+		caption: 'something rushes'
+	},
+	'creature.attack': {
+		synth: { kind: 'snarl' },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.08,
+		caption: 'snarl'
+	},
 	'creature.hurt': {
 		synth: { kind: 'snarl' },
 		category: 'sfx',
 		volume: 0.8,
 		rate: 1.35,
-		variation: 0.1
+		variation: 0.1,
+		caption: 'pained shriek'
 	},
-	'creature.die': { synth: { kind: 'snarl' }, category: 'sfx', volume: 1, rate: 0.7 },
+	'creature.die': {
+		synth: { kind: 'snarl' },
+		category: 'sfx',
+		volume: 1,
+		rate: 0.7,
+		caption: 'dying rattle'
+	},
 	// Items and weapons.
 	'revolver.fire': {
 		synth: { kind: 'gunshot', boom: 95, length: 1.8, bright: 4200 },
 		category: 'sfx',
 		volume: 1,
-		variation: 0.04
+		variation: 0.04,
+		caption: 'gunshot',
+		captionOthers: true
 	},
 	'shotgun.fire': {
 		synth: { kind: 'gunshot', boom: 60, length: 2.4, bright: 2600 },
 		category: 'sfx',
 		volume: 1,
-		variation: 0.04
+		variation: 0.04,
+		caption: 'shotgun blast',
+		captionOthers: true
 	},
 	'gun.empty': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6, rate: 0.8 },
 	'gun.reload': { synth: { kind: 'reload' }, category: 'sfx', volume: 0.6 },
@@ -264,21 +299,66 @@ export const SOUNDS = {
 		synth: { kind: 'thud', cutoff: 1300 },
 		category: 'sfx',
 		volume: 0.9,
-		variation: 0.1
+		variation: 0.1,
+		caption: 'brick clatters'
 	},
-	'brick.break': { synth: { kind: 'crack' }, category: 'sfx', volume: 0.8, variation: 0.1 },
+	'brick.break': {
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.8,
+		variation: 0.1,
+		caption: 'brick shatters'
+	},
 	'item.pickup': { synth: { kind: 'rustle' }, category: 'sfx', volume: 0.5, variation: 0.1 },
 	// The Affliction.
-	'omen.drone': { synth: { kind: 'drone', pitch: 41 }, category: 'ambience', volume: 0.6 },
-	'manifest.signal': { synth: { kind: 'signal' }, category: 'ambience', volume: 1 },
-	'manifest.presence': { synth: { kind: 'drone', pitch: 33 }, category: 'sfx', volume: 0.9 },
-	'manifest.hiss': { synth: { kind: 'hiss' }, category: 'sfx', volume: 0.7, variation: 0.1 },
+	'omen.drone': {
+		synth: { kind: 'drone', pitch: 41 },
+		category: 'ambience',
+		volume: 0.6,
+		caption: 'low hum'
+	},
+	'manifest.signal': {
+		synth: { kind: 'signal' },
+		category: 'ambience',
+		volume: 1,
+		caption: 'a vast breath through the stone'
+	},
+	'manifest.presence': {
+		synth: { kind: 'drone', pitch: 33 },
+		category: 'sfx',
+		volume: 0.9,
+		caption: 'deep rumbling'
+	},
+	'manifest.hiss': {
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.1,
+		caption: 'the darkness hisses'
+	},
 	'manifest.touch': { synth: { kind: 'snarl' }, category: 'sfx', volume: 1, rate: 0.5 },
-	'manifest.banish': { synth: { kind: 'signal' }, category: 'sfx', volume: 1, rate: 1.6 },
+	'manifest.banish': {
+		synth: { kind: 'signal' },
+		category: 'sfx',
+		volume: 1,
+		rate: 1.6,
+		caption: 'a howl, receding'
+	},
 	// Sanity.
 	'player.hurt': { synth: { kind: 'hurt' }, category: 'sfx', volume: 0.8, variation: 0.08 },
-	heartbeat: { synth: { kind: 'heartbeat', period: 0.85 }, category: 'sfx', volume: 0.8 },
-	whisper: { synth: { kind: 'whisper' }, category: 'ambience', volume: 0.5, variation: 0.15 },
+	heartbeat: {
+		synth: { kind: 'heartbeat', period: 0.85 },
+		category: 'sfx',
+		volume: 0.8,
+		caption: 'heartbeat'
+	},
+	whisper: {
+		synth: { kind: 'whisper' },
+		category: 'ambience',
+		volume: 0.5,
+		variation: 0.15,
+		caption: 'whispering'
+	},
 	'headlamp.on': { file: 'headlamp.on', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 },
 	'headlamp.off': { file: 'headlamp.off', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 }
 } satisfies Record<string, SoundDef>;

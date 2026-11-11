@@ -28,6 +28,14 @@ export interface GraphicsSettings {
 	cameraShake: number;
 }
 
+export type CaptionSize = 'small' | 'medium' | 'large';
+
+export interface AccessibilitySettings {
+	/** Subtitles and sound captions: show what is heard as text. */
+	captions: boolean;
+	captionSize: CaptionSize;
+}
+
 export interface Settings {
 	version: number;
 	audio: Record<AudioCategory, number>;
@@ -35,6 +43,7 @@ export interface Settings {
 	interface: { showStats: boolean };
 	controls: ControlSettings;
 	graphics: GraphicsSettings;
+	accessibility: AccessibilitySettings;
 }
 
 function defaults(): Settings {
@@ -44,7 +53,8 @@ function defaults(): Settings {
 		bindings: defaultBindings(),
 		interface: { showStats: false },
 		controls: { mouseSensitivity: 1, invertY: false },
-		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1 }
+		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1 },
+		accessibility: { captions: false, captionSize: 'medium' }
 	};
 }
 
@@ -61,7 +71,8 @@ function load(): Settings {
 			bindings: { ...base.bindings, ...saved.bindings },
 			interface: { ...base.interface, ...saved.interface },
 			controls: { ...base.controls, ...saved.controls },
-			graphics: { ...base.graphics, ...saved.graphics }
+			graphics: { ...base.graphics, ...saved.graphics },
+			accessibility: { ...base.accessibility, ...saved.accessibility }
 		};
 	} catch {
 		return base;

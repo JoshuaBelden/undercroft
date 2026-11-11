@@ -10,6 +10,7 @@
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { Ambience } from '#lib/game/audio/Ambience.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
+	import { CaptionFeed } from '#lib/game/audio/captions.svelte.ts';
 	import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 	import { Creatures } from '#lib/game/creatures/Creatures.ts';
 	import { Darkness } from '#lib/game/affliction/Darkness.ts';
@@ -43,6 +44,7 @@
 	import type { PlayerFlags, PlayerState } from '#lib/shared/player/types.ts';
 	import type { AdminCommand } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
+	import Captions from '#lib/ui/Captions.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
@@ -101,6 +103,7 @@
 	let descend = (): void => {};
 
 	const audio = new AudioManager({ ...settings.audio });
+	const captions = new CaptionFeed();
 	let applyGraphics = (): void => {};
 	let setMapView = (enabled: boolean): void => {
 		mapView = enabled;
@@ -173,6 +176,7 @@
 						worldItems.clear();
 						banner = null;
 						downed = null;
+						captions.clear();
 						document.exitPointerLock();
 						break;
 					case 'map':
@@ -200,6 +204,9 @@
 		});
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
+		sounds.oncaption = (cue) => {
+			if (settings.accessibility.captions) captions.push(cue);
+		};
 		const playerAudio = new PlayerAudio(sounds, map.root);
 		const ambience = new Ambience(audio, sounds);
 		const creatures = new Creatures(sounds);
@@ -513,6 +520,7 @@
 			audio.setListener([cam.x, cam.y, cam.z], [lookDir.x, lookDir.y, lookDir.z]);
 			ambience.update(delta, [cam.x, cam.y, cam.z], state);
 			darkness.update(delta, [cam.x, cam.y, cam.z]);
+			captions.update();
 			spawned = !!state;
 			if (state) {
 				sanityEffects(state, delta);
@@ -598,6 +606,10 @@
 
 {#if spawned && !mapView}
 	<Hud {...hud} />
+{/if}
+
+{#if settings.accessibility.captions && spawned && !mapView && !result}
+	<Captions captions={captions.list} size={settings.accessibility.captionSize} />
 {/if}
 
 {#if downed && spawned && !mapView && !result}

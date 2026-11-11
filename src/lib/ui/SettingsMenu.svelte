@@ -5,6 +5,7 @@
 		resetSettings,
 		saveSettings,
 		settings,
+		type CaptionSize,
 		type GraphicsQuality
 	} from '#lib/settings/settings.svelte.ts';
 	import Panel from './Panel.svelte';
@@ -19,6 +20,7 @@
 	let { onclose, onvolume, ongraphics }: Props = $props();
 
 	const QUALITIES: GraphicsQuality[] = ['low', 'medium', 'high'];
+	const CAPTION_SIZES: CaptionSize[] = ['small', 'medium', 'large'];
 
 	function graphicsChanged(): void {
 		saveSettings();
@@ -119,6 +121,24 @@
 		<span>Invert Y</span>
 		<input type="checkbox" bind:checked={settings.controls.invertY} onchange={saveSettings} />
 	</label>
+
+	<h3>Accessibility</h3>
+	<label class="row">
+		<span>Subtitles and sound captions</span>
+		<input type="checkbox" bind:checked={settings.accessibility.captions} onchange={saveSettings} />
+	</label>
+	<label class="row">
+		<span>Caption size</span>
+		<select bind:value={settings.accessibility.captionSize} onchange={saveSettings}>
+			{#each CAPTION_SIZES as size (size)}
+				<option value={size}>{size}</option>
+			{/each}
+		</select>
+	</label>
+	<p class="muted">
+		Shows what you would hear as text, with the direction it came from. Captions appear even with
+		the volume off.
+	</p>
 
 	<h3>Interface</h3>
 	<label class="row">

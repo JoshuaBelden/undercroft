@@ -28,6 +28,7 @@ src/
         InputMap.ts         raw input -> actions
       audio/
         AudioManager.ts     Web Audio buses and playback
+        captions.svelte.ts  sound caption feed and direction
       net/
         GameClient.ts       WebSocket client, reconnect, RTT
     settings/

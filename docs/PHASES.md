@@ -60,7 +60,7 @@ Aspects:
 - **Settings**: mouse sensitivity, invert Y, FOV, graphics quality, brightness/gamma calibration.
 - **Keybinds**: move, sprint, crouch, crawl, creep, headlamp mode, interact, swim up/down, climb. (Rappel moved to Phase 4.)
 
-## Phase 2: Creatures and combat
+## Phase 2: Creatures and combat ✅
 
 - [x] Sanity as health; downed state; revive (smelling salts, auto-used solo); bandages
 - [x] Minimal inventory to support weapons, ammo, and healing (full inventory comes in Phase 4)
@@ -79,7 +79,7 @@ Aspects:
 - **Help system**: sanity, reviving, combat, Thralls (light behavior), what omens mean (vaguely). (Sanity, Reviving, "Things in the dark", "Items", "Fighting back", "Omens" and "The Gloaming" done.)
 - **Admin**: set meter %, force manifestation, spawn Thrall, god mode, show Thrall positions, give weapons/ammo. (Spawn, kill, remove, show creatures, god mode, set sanity, give items, refill and infinite ammo, meter readout and set, force manifestation, banish done.)
 - **Audio**: Thrall tells and attacks, sanity effects (heartbeat, whispers), omen layers by stage, manifestation signal, melee and weapon sounds. (Creature steps, burst, attack, hurt and death, heartbeat, whispers, gunshots, reload, dry fire, swings, impacts, brick throw, land and break, pickup, omen drone, manifestation signal, presence, hiss, banish done as synthesized placeholders.)
-- **Settings**: subtitles and sound captions, camera shake intensity. (Camera shake done. Subtitles and captions still to do.)
+- **Settings**: subtitles and sound captions, camera shake intensity. (Both done. Captions show audible sounds as text with their direction; there are no spoken lines yet, and any added later use the same caption field and setting.)
 - **Keybinds**: attack, aim, reload, revive, use item, weapon slots. (Revive on interact, bandage on Q, attack, aim/throw, reload, drop, slots 1-5 and the wheel done.)
 
 ## Phase 3: Multiplayer

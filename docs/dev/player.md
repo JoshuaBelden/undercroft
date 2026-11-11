@@ -153,6 +153,22 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
   - All of it plays on the ambience bus, so the Ambience volume slider controls it. All of them now use recordings; the synthesized versions remain as fallbacks.
 - **Sneaking** plays no footsteps.
 
+### Subtitles and sound captions
+
+One setting (`settings.accessibility.captions`, off by default; `captionSize` sets the text size) shows what is heard as text. It is data-driven from the sound registry:
+
+- A sound is captioned if its entry has a `caption` (lowercase, no brackets; the HUD adds them). Sounds without one are never captioned: the player's own footsteps, breath and clicks, and constant background like drips.
+- `captionOthers: true` captions a sound only when it comes from the world (`playAt`), not when the player makes it themselves (`play`). Gunshots use it.
+- `SoundBank` raises a cue on `oncaption` from `play`, `playAt` and a loop's `setVolume`, before the audio-unlocked check, so captions work with the sound off or muted.
+- **Audibility:** a cue is only raised when `level × volume × distance falloff` reaches `CAPTION_THRESHOLD`. The falloff is `AudioManager.distanceGain`, the same inverse curve the panner uses, so a sound is captioned about as far as it is heard.
+- **Direction:** positional cues carry `ahead`, `behind`, `left`, `right`, `above` or `below`, from `captionDirection` (listener position and facing from `AudioManager.listener`). Non-positional sounds and loops have none.
+- **Loops** (heartbeat, omen drone, the manifestation's rumble) re-raise their cue every 0.5 s while audible, which keeps the caption up.
+- `CaptionFeed` (`src/lib/game/audio/captions.svelte.ts`) holds up to 4 captions, one per sound id; a repeat refreshes its timer and direction instead of adding a line. `Captions.svelte` draws them above the hotbar.
+
+**Adding a caption:** add `caption` to the sound in `sounds.ts`. Describe the sound, not its source; captions must not give away more than hearing it would. Never name creatures.
+
+**Spoken lines:** there are none yet. When one is added, give its sound a `caption` with the words; it rides the same system and the same setting.
+
 ## Gloom
 
 `PlayerState.gloom` (0..1) is lamp failure from the Affliction, set by the server each tick. `headlampOutput` turns it into more flicker, lower output and, above 0.7, moments with no light at all. It's deterministic from state like the rest of the lamp. See [affliction.md](affliction.md).

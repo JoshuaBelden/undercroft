@@ -14,6 +14,9 @@ const MUFFLED_FREQUENCY = 500;
 /** Wet level at reverb amount 1. */
 const MAX_REVERB = 0.9;
 const IMPULSE_SECONDS = 2.8;
+/** Positional falloff: full volume inside the reference distance, no quieter past the maximum. */
+const REF_DISTANCE = 1.5;
+const MAX_DISTANCE = 60;
 
 export const AUDIO_CATEGORIES = ['master', 'music', 'ambience', 'sfx'] as const;
 export type AudioCategory = (typeof AUDIO_CATEGORIES)[number];
@@ -47,6 +50,8 @@ export class AudioManager {
 	private reverbSend: GainNode | null = null;
 	private buffers = new Map<string, Promise<AudioBuffer>>();
 	private volumes: Record<AudioCategory, number>;
+	private listenerPosition: Vec3 = [0, 0, 0];
+	private listenerForward: Vec3 = [0, 0, -1];
 
 	constructor(volumes: Record<AudioCategory, number>) {
 		this.volumes = { ...volumes };
@@ -91,9 +96,9 @@ export class AudioManager {
 		const panner = context.createPanner();
 		panner.panningModel = 'HRTF';
 		panner.distanceModel = 'inverse';
-		panner.refDistance = options.refDistance ?? 1.5;
+		panner.refDistance = options.refDistance ?? REF_DISTANCE;
 		panner.rolloffFactor = 1;
-		panner.maxDistance = 60;
+		panner.maxDistance = MAX_DISTANCE;
 		setParam(panner.positionX, position[0], () => panner.setPosition(...position));
 		setParam(panner.positionY, position[1]);
 		setParam(panner.positionZ, position[2]);
@@ -102,6 +107,8 @@ export class AudioManager {
 
 	/** Place the listener (the camera): position and the direction it faces. */
 	setListener(position: Vec3, forward: Vec3): void {
+		this.listenerPosition = position;
+		this.listenerForward = forward;
 		if (!this.context) return;
 		const l = this.context.listener;
 		if (l.positionX) {
@@ -120,6 +127,18 @@ export class AudioManager {
 			l.setPosition(...position);
 			l.setOrientation(forward[0], forward[1], forward[2], 0, 1, 0);
 		}
+	}
+
+	/** Where the listener is and which way it faces (as last set). */
+	get listener(): { position: Vec3; forward: Vec3 } {
+		return { position: this.listenerPosition, forward: this.listenerForward };
+	}
+
+	/** How loud (0..1) a positional sound at `position` is for the listener: the panner's falloff. */
+	distanceGain(position: Vec3, refDistance = REF_DISTANCE): number {
+		const [lx, ly, lz] = this.listenerPosition;
+		const d = Math.hypot(position[0] - lx, position[1] - ly, position[2] - lz);
+		return refDistance / Math.max(refDistance, Math.min(d, MAX_DISTANCE));
 	}
 
 	/** The Web Audio context (created on first use); synthesized sounds are built against it. */
