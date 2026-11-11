@@ -9,15 +9,16 @@ The game server (`server/`) is authoritative. Clients send messages, the server 
 Flow:
 
 1. Client opens a WebSocket to `PUBLIC_GAME_SERVER_URL`.
-2. Client sends `hello` with `PROTOCOL_VERSION`. A mismatch gets `reject`.
-3. Server replies `welcome` with player and session IDs, the tick rate, and the map layout.
-4. Client sends `input` frames (fixed 60 Hz steps); server broadcasts `tick` at `TICK_RATE` (20 Hz) with every player's snapshot. See [player.md](player.md) for prediction and reconciliation.
-5. Client sends `ping` every second; `pong` gives round-trip time.
-6. Dev only: client sends `admin` commands; server sends `map` when an admin regenerates the layout.
+2. Client sends `hello` with `PROTOCOL_VERSION`, its name and optionally a party invite code. A mismatch gets `reject`.
+3. Server puts the connection in a party and replies `party` (sent again whenever the party changes). The client shows the lobby.
+4. The party leader sends `descend`. Server replies `welcome` to every member with their player ID, the session ID, the tick rate and the map layout.
+5. Client sends `input` frames (fixed 60 Hz steps); server broadcasts `tick` at `TICK_RATE` (20 Hz) with every player's snapshot. See [player.md](player.md) for prediction, reconciliation and how other players are interpolated.
+6. Client sends `ping` every second; `pong` gives round-trip time.
+7. Dev only: client sends `admin` commands; server sends `map` when an admin regenerates the layout.
 
-`GameClient` reconnects every 2 seconds after a drop. Each connection joins the current expedition; when everyone has extracted or left, it ends and the next join starts a new one. See [expedition.md](expedition.md).
+`GameClient` reconnects every 2 seconds after a drop. Parties and the expedition lifecycle are in [expedition.md](expedition.md).
 
-**Adding a message:** add it to `ClientMessage` or `ServerMessage` in `protocol.ts`, add its `type` to the matching allowed set, handle it in `server/index.ts` or `session.ts`, and in the client.
+**Adding a message:** add it to `ClientMessage` or `ServerMessage` in `protocol.ts`, add its `type` to the matching allowed set, handle it in `server/index.ts`, `parties.ts` or `session.ts`, and in the client.
 
 ## Rendering
 
@@ -57,7 +58,7 @@ Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played
 
 ## Settings
 
-`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y), `graphics` (FOV, brightness, quality, camera shake) and `accessibility` (subtitles and sound captions, caption size; see [player.md](player.md#subtitles-and-sound-captions)). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
+`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y), `graphics` (FOV, brightness, quality, camera shake) and `accessibility` (subtitles and sound captions, caption size; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
 
 **Adding a setting:** add it to `Settings` and `defaults()`, then add a control in `SettingsMenu.svelte`.
 

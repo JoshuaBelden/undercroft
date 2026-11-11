@@ -107,6 +107,16 @@ Collision boxes must cover everything walkable. Every surface the player can rea
 
 The camera interpolates between the last two simulation steps, so movement is smooth at any frame rate. Input frames are sanitized on the server (`sanitizeFrame`).
 
+**Other players** are not predicted; they are interpolated (`RemotePlayers`):
+
+- Each tick's snapshot is stored per player with the tick's `serverTime` (up to 10 samples).
+- The client estimates the server clock from those timestamps. The estimate follows the least-delayed packet, so jitter doesn't move it.
+- Every frame a remote player is drawn at server time minus `INTERPOLATION_DELAY` (100 ms, two ticks), between the two samples either side of that moment: position is lerped, yaw turns the short way, pitch is lerped.
+- Past the newest sample it holds still (no extrapolation). A jump over 6 m between samples (teleport, respawn) snaps.
+- Stance height and the lamp use the latest snapshot.
+
+So you see teammates about 100 ms plus latency in the past, and the local player in the present.
+
 **Debugging:** with matching code, normal walking produces no corrections. A correction means the client and server simulations diverged (different code, map or tuning).
 
 ## Headlamp

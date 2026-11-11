@@ -3,61 +3,69 @@ import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
 import { config } from './config.ts';
 import { closeDb, connectDb } from './db.ts';
-import { Expeditions } from './expeditions.ts';
 import { log } from './log.ts';
-import type { Session } from './session.ts';
+import { Parties, type Member } from './parties.ts';
 
 await connectDb();
 
-const expeditions = new Expeditions();
+const parties = new Parties();
 const wss = new WebSocketServer({ port: config.port });
 
 wss.on('connection', (socket) => {
-	let name = 'Explorer';
-	/** The expedition this connection is in; null after extracting until it descends again. */
-	let membership: { session: Session; playerId: string } | null = null;
-	const inExpedition = () =>
-		membership && membership.session.has(membership.playerId) ? membership : null;
+	/** Set by `hello`; every other message needs it. */
+	let member: Member | null = null;
 
 	socket.on('message', (data) => {
 		const message = decodeClient(data.toString());
 		if (!message) return;
 
+		if (message.type === 'hello') {
+			if (message.protocol !== PROTOCOL_VERSION) {
+				socket.send(encode({ type: 'reject', reason: 'Protocol version mismatch' }));
+				socket.close();
+				return;
+			}
+			member ??= parties.connect(socket, message.name, message.code);
+			return;
+		}
+		if (message.type === 'ping') {
+			socket.send(encode({ type: 'pong', clientTime: message.clientTime, serverTime: Date.now() }));
+			return;
+		}
+		if (!member) return;
+
 		switch (message.type) {
-			case 'hello':
-				if (message.protocol !== PROTOCOL_VERSION) {
-					socket.send(encode({ type: 'reject', reason: 'Protocol version mismatch' }));
-					socket.close();
-					return;
-				}
-				name = String(message.name).slice(0, 24);
-				if (!membership) membership = expeditions.join(socket, name);
+			case 'joinParty':
+				parties.join(member, message.code);
+				break;
+			case 'leaveParty':
+				parties.leave(member);
+				break;
+			case 'ready':
+				parties.setReady(member, message.ready === true);
+				break;
+			case 'rename':
+				parties.rename(member, message.name);
 				break;
 			case 'descend':
-				if (!inExpedition()) membership = expeditions.join(socket, name);
+				parties.descend(member);
 				break;
 			case 'input': {
-				const m = inExpedition();
-				if (m) m.session.receiveInput(m.playerId, message.frames);
+				const e = parties.expedition(member);
+				if (e) e.session.receiveInput(e.playerId, message.frames);
 				break;
 			}
 			case 'admin': {
-				const m = inExpedition();
-				if (m && typeof message.command === 'object' && message.command !== null)
-					m.session.admin(m.playerId, message.command);
+				const e = parties.expedition(member);
+				if (e && typeof message.command === 'object' && message.command !== null)
+					e.session.admin(e.playerId, message.command);
 				break;
 			}
-			case 'ping':
-				socket.send(
-					encode({ type: 'pong', clientTime: message.clientTime, serverTime: Date.now() })
-				);
-				break;
 		}
 	});
 
 	socket.on('close', () => {
-		const m = inExpedition();
-		if (m) m.session.removePlayer(m.playerId);
+		if (member) parties.disconnect(member);
 	});
 });
 
@@ -65,7 +73,7 @@ log.info(`Game server listening on ws://localhost:${config.port}`);
 
 async function shutdown(): Promise<void> {
 	log.info('Shutting down');
-	expeditions.stop();
+	parties.stop();
 	wss.close();
 	await closeDb();
 	process.exit(0);

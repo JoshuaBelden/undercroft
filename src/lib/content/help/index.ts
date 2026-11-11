@@ -79,6 +79,18 @@ Bright reaches much further but drains the battery about three times as fast. Th
 The starter headlamp is cheap: it flickers, and flickers more as the battery runs down. Some things in the dark are easier to see in a flicker.`
 	},
 	{
+		id: 'parties',
+		title: 'Going down together',
+		category: 'Basics',
+		body: `You start on the surface, in a party of your own. Descend alone, or bring up to three others.
+
+To invite someone, give them your invite code, or use "Copy link" and send them the link. To join someone else, type their code under "Join a party". Set the name the others will see at the top.
+
+Everyone but the leader presses Ready. When all are ready the leader presses Descend, and the whole party goes down together.
+
+Whoever climbs out or dies waits on the surface until the rest are out. Nobody can descend again until then. Join a party that is already underground and you wait for them too.`
+	},
+	{
 		id: 'sanity',
 		title: 'Sanity',
 		category: 'Survival',

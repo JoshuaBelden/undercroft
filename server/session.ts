@@ -80,6 +80,14 @@ const DARK = 0.02;
 /** Half-angle (radians) of the view cone used for "seeing" a creature. */
 const VIEW_HALF_ANGLE = 0.9;
 
+/** Lets the owner (the party) follow who is still down there. */
+export interface SessionHooks {
+	/** A player extracted, died, was banished out or disconnected. */
+	onPlayerLeft?: (playerId: string) => void;
+	/** The last player left: the expedition is over. */
+	onEnded?: () => void;
+}
+
 /**
  * One expedition. Server-authoritative: the map and every player's state live here.
  * Solo play is a session with a single player.
@@ -103,7 +111,7 @@ export class Session {
 	private timer: NodeJS.Timeout | null = null;
 	private hadPlayers = false;
 
-	constructor() {
+	constructor(private hooks: SessionHooks = {}) {
 		this.populate();
 	}
 
@@ -166,9 +174,11 @@ export class Session {
 		if (!player) return;
 		this.players.delete(playerId);
 		log.info(`Player ${player.name} left session ${this.id.slice(0, 8)}`);
+		this.hooks.onPlayerLeft?.(playerId);
 		if (this.players.size === 0) {
 			this.stop();
 			log.info(`Expedition ${this.id.slice(0, 8)} ended`);
+			this.hooks.onEnded?.();
 		}
 	}
 

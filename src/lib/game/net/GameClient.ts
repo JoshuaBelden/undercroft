@@ -13,9 +13,13 @@ interface Handlers {
 	onMessage?: (message: ServerMessage) => void;
 }
 
+/** Who we say we are on connecting: the player's name and the party to join, if any. */
+export type Hello = () => { name: string; code?: string };
+
 /**
  * WebSocket connection to the authoritative game server.
- * Reconnects automatically and measures round-trip time.
+ * Reconnects automatically and measures round-trip time. The connection counts as up once the
+ * server has put us in a party.
  */
 export class GameClient {
 	private socket: WebSocket | null = null;
@@ -23,11 +27,12 @@ export class GameClient {
 	private retryTimer: ReturnType<typeof setTimeout> | null = null;
 	private closed = false;
 	rtt = 0;
+	/** Our player id in the current expedition (from `welcome`). */
 	playerId: string | null = null;
 
 	constructor(
 		private url: string,
-		private name: string,
+		private hello: Hello,
 		private handlers: Handlers = {}
 	) {}
 
@@ -38,19 +43,22 @@ export class GameClient {
 		this.socket = socket;
 
 		socket.addEventListener('open', () => {
-			this.send({ type: 'hello', protocol: PROTOCOL_VERSION, name: this.name });
+			this.send({ type: 'hello', protocol: PROTOCOL_VERSION, ...this.hello() });
 			this.pingTimer = setInterval(
 				() => this.send({ type: 'ping', clientTime: performance.now() }),
 				1000
 			);
 		});
 
+		let connected = false;
 		socket.addEventListener('message', (event) => {
 			const message = decodeServer(String(event.data));
 			if (!message) return;
-			if (message.type === 'welcome') {
+			if (message.type === 'party') {
+				if (!connected) this.handlers.onStatus?.('connected');
+				connected = true;
+			} else if (message.type === 'welcome') {
 				this.playerId = message.playerId;
-				this.handlers.onStatus?.('connected');
 			} else if (message.type === 'reject') {
 				this.closed = true;
 				this.handlers.onStatus?.('rejected', message.reason);

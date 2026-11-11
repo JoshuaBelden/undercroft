@@ -6,10 +6,11 @@
 		deepestLevel: number;
 		/** How the expedition ended for this player. */
 		outcome: 'extracted' | 'died' | 'banished';
-		ondescend: () => void;
+		/** Back to the party on the surface. */
+		oncontinue: () => void;
 	}
 
-	let { seconds, deepestLevel, outcome, ondescend }: Props = $props();
+	let { seconds, deepestLevel, outcome, oncontinue }: Props = $props();
 
 	const TITLES = {
 		extracted: 'You made it out',
@@ -38,7 +39,7 @@
 			<dd>{depth}</dd>
 		</dl>
 		<div class="actions">
-			<button type="button" class="primary" onclick={ondescend}>Descend again</button>
+			<button type="button" class="primary" onclick={oncontinue}>Continue</button>
 			<a href={resolve('/')}>Main menu</a>
 		</div>
 	</div>

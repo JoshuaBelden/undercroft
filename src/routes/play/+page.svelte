@@ -42,13 +42,15 @@
 	import { bindingLabel } from '#lib/game/input/actions.ts';
 	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
 	import type { PlayerFlags, PlayerState } from '#lib/shared/player/types.ts';
-	import type { AdminCommand } from '#lib/shared/protocol.ts';
+	import type { PartyState } from '#lib/shared/party/types.ts';
+	import type { AdminCommand, ClientMessage } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
+	import PartyLobby from '#lib/ui/PartyLobby.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
@@ -100,7 +102,15 @@
 	} | null>(null);
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
 	let banner = $state<{ title: string; key: number } | null>(null);
-	let descend = (): void => {};
+	/** The party we're in, as the server last described it; null until connected. */
+	let party = $state<PartyState | null>(null);
+	let memberId = $state<string | null>(null);
+	let partyError = $state('');
+	/** Down in the catacombs (between `welcome` and extracting, dying or being banished out). */
+	let expedition = $state(false);
+	let send = (message: ClientMessage): void => {
+		void message;
+	};
 
 	const audio = new AudioManager({ ...settings.audio });
 	const captions = new CaptionFeed();
@@ -146,62 +156,74 @@
 		};
 		applyGraphics();
 
-		const client = new GameClient(PUBLIC_GAME_SERVER_URL, 'Explorer', {
-			onStatus: (next, detail) => {
-				status = next;
-				statusDetail = detail ?? '';
-				playerId = client.playerId;
-			},
-			onMessage: (message) => {
-				switch (message.type) {
-					case 'welcome':
-						sessionId = message.sessionId;
-						result = null;
-						loadMap(message.layout);
-						break;
-					case 'extracted':
-					case 'died':
-					case 'banished':
-						result = {
-							seconds: message.seconds,
-							deepestLevel: message.deepestLevel,
-							outcome: message.type
-						};
-						darkness.clear();
-						ambience.setOmen(null);
-						player.leave();
-						ambience.clear();
-						remote.apply([], client.playerId);
-						creatures.clear();
-						worldItems.clear();
-						banner = null;
-						downed = null;
-						captions.clear();
-						document.exitPointerLock();
-						break;
-					case 'map':
-						loadMap(message.layout);
-						break;
-					case 'tick':
-						for (const snap of message.players) {
-							if (snap.id !== client.playerId) continue;
-							player.onSnapshot(snap);
-							flags = { ...snap.state.flags };
-						}
-						remote.apply(message.players, client.playerId);
-						creatures.apply(message.creatures);
-						worldItems.apply(message.items, message.projectiles);
-						for (const event of message.events) onGameEvent(event);
-						darkness.apply(message.affliction.manifestation);
-						omen = message.affliction.omen;
-						meter = message.affliction.meter ?? null;
-						ambience.setOmen(
-							AFFLICTIONS[message.affliction.id]?.stages[omen - 1]?.ambience ?? null
-						);
-						break;
+		/** Party to ask for on connecting: an invite link's code, then the party we were last in. */
+		let rejoin = new URLSearchParams(location.search).get('code') ?? undefined;
+		const client = new GameClient(
+			PUBLIC_GAME_SERVER_URL,
+			() => ({ name: settings.profile.name, code: rejoin }),
+			{
+				onStatus: (next, detail) => {
+					status = next;
+					statusDetail = detail ?? '';
+					playerId = client.playerId;
+					if (next !== 'connected') {
+						party = null;
+						if (expedition) endExpedition();
+					}
+				},
+				onMessage: (message) => {
+					switch (message.type) {
+						case 'party':
+							party = message.party;
+							memberId = message.you;
+							partyError = '';
+							// After a dropped connection, go back to the same party if others are in it.
+							rejoin = message.party.members.length > 1 ? message.party.code : undefined;
+							break;
+						case 'partyError':
+							partyError = message.reason;
+							break;
+						case 'welcome':
+							sessionId = message.sessionId;
+							playerId = message.playerId;
+							result = null;
+							expedition = true;
+							loadMap(message.layout);
+							break;
+						case 'extracted':
+						case 'died':
+						case 'banished':
+							result = {
+								seconds: message.seconds,
+								deepestLevel: message.deepestLevel,
+								outcome: message.type
+							};
+							endExpedition();
+							break;
+						case 'map':
+							loadMap(message.layout);
+							break;
+						case 'tick':
+							for (const snap of message.players) {
+								if (snap.id !== client.playerId) continue;
+								player.onSnapshot(snap);
+								flags = { ...snap.state.flags };
+							}
+							remote.apply(message.players, client.playerId, message.serverTime);
+							creatures.apply(message.creatures);
+							worldItems.apply(message.items, message.projectiles);
+							for (const event of message.events) onGameEvent(event);
+							darkness.apply(message.affliction.manifestation);
+							omen = message.affliction.omen;
+							meter = message.affliction.meter ?? null;
+							ambience.setOmen(
+								AFFLICTIONS[message.affliction.id]?.stages[omen - 1]?.ambience ?? null
+							);
+							break;
+					}
 				}
 			}
-		});
+		);
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
 		sounds.oncaption = (cue) => {
@@ -260,7 +282,23 @@
 		}
 
 		sendAdmin = (command) => client.send({ type: 'admin', command });
-		descend = () => client.send({ type: 'descend' });
+		send = (message) => client.send(message);
+
+		/** Back on the surface: drop everything that belonged to the expedition. */
+		function endExpedition(): void {
+			expedition = false;
+			darkness.clear();
+			ambience.setOmen(null);
+			player.leave();
+			ambience.clear();
+			remote.clear();
+			creatures.clear();
+			worldItems.clear();
+			banner = null;
+			downed = null;
+			captions.clear();
+			document.exitPointerLock();
+		}
 
 		/** Show a room's banner the first time the player enters it this expedition. */
 		function checkRoom(position: Vec3): void {
@@ -627,11 +665,24 @@
 		seconds={result.seconds}
 		deepestLevel={result.deepestLevel}
 		outcome={result.outcome}
-		ondescend={() => descend()}
+		oncontinue={() => (result = null)}
+	/>
+{:else if party && memberId && !expedition && status === 'connected'}
+	<PartyLobby
+		{party}
+		you={memberId}
+		error={partyError}
+		onready={(ready) => send({ type: 'ready', ready })}
+		ondescend={() => send({ type: 'descend' })}
+		onjoin={(code) => send({ type: 'joinParty', code })}
+		onleave={() => send({ type: 'leaveParty' })}
+		onrename={(name) => send({ type: 'rename', name })}
+		onsettings={() => toggle('settings')}
+		onhelp={() => toggle('help')}
 	/>
 {/if}
 
-{#if !locked && !panel && !mapView && !result && status === 'connected'}
+{#if !locked && !panel && !mapView && !result && expedition && status === 'connected'}
 	<button type="button" class="descend" onclick={() => canvas.requestPointerLock()}>
 		Click to descend
 	</button>

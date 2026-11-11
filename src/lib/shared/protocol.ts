@@ -6,16 +6,24 @@ import type { AfflictionSnapshot } from './affliction/types.ts';
 import type { CreatureSnapshot } from './creature/types.ts';
 import type { GameEvent, ProjectileSnapshot, WorldItemSnapshot } from './items/types.ts';
 import type { MapLayout } from './map/types.ts';
+import type { PartyState } from './party/types.ts';
 import type { InputFrame, PlayerSnapshot } from './player/types.ts';
 
 export type ClientMessage =
-	| { type: 'hello'; protocol: number; name: string }
+	/** First message. `code` joins that party; without one (or if it fails) you get your own. */
+	| { type: 'hello'; protocol: number; name: string; code?: string }
 	| { type: 'ping'; clientTime: number }
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
 	| { type: 'input'; frames: InputFrame[] }
 	/** Dev-only commands; the server ignores them unless DEV_MODE=true. */
 	| { type: 'admin'; command: AdminCommand }
-	/** Join an expedition again after extracting. */
+	/** Move to the party with this invite code. */
+	| { type: 'joinParty'; code: string }
+	/** Leave the party for a new one of your own. */
+	| { type: 'leaveParty' }
+	| { type: 'ready'; ready: boolean }
+	| { type: 'rename'; name: string }
+	/** Party leader: start the expedition for everyone (all others must be ready). */
 	| { type: 'descend' };
 
 export type AdminCommand =
@@ -43,6 +51,11 @@ export type AdminCommand =
 	| { kind: 'regenerate'; seed?: number };
 
 export type ServerMessage =
+	/** Your party, sent on joining and whenever it changes. `you` is your member id. */
+	| { type: 'party'; you: string; party: PartyState }
+	/** A party request was refused (bad code, full, not ready...). */
+	| { type: 'partyError'; reason: string }
+	/** The expedition has started and you are in it. */
 	| {
 			type: 'welcome';
 			playerId: string;
@@ -88,8 +101,20 @@ export function decodeServer(raw: string): ServerMessage | null {
 	return decode(raw, SERVER_TYPES) as ServerMessage | null;
 }
 
-const CLIENT_TYPES = new Set<string>(['hello', 'ping', 'input', 'admin', 'descend']);
+const CLIENT_TYPES = new Set<string>([
+	'hello',
+	'ping',
+	'input',
+	'admin',
+	'joinParty',
+	'leaveParty',
+	'ready',
+	'rename',
+	'descend'
+]);
 const SERVER_TYPES = new Set<string>([
+	'party',
+	'partyError',
 	'welcome',
 	'reject',
 	'pong',

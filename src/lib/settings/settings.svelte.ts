@@ -44,6 +44,8 @@ export interface Settings {
 	controls: ControlSettings;
 	graphics: GraphicsSettings;
 	accessibility: AccessibilitySettings;
+	/** Who the player is to others, until accounts exist. */
+	profile: { name: string };
 }
 
 function defaults(): Settings {
@@ -54,7 +56,8 @@ function defaults(): Settings {
 		interface: { showStats: false },
 		controls: { mouseSensitivity: 1, invertY: false },
 		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1 },
-		accessibility: { captions: false, captionSize: 'medium' }
+		accessibility: { captions: false, captionSize: 'medium' },
+		profile: { name: '' }
 	};
 }
 
@@ -72,7 +75,8 @@ function load(): Settings {
 			interface: { ...base.interface, ...saved.interface },
 			controls: { ...base.controls, ...saved.controls },
 			graphics: { ...base.graphics, ...saved.graphics },
-			accessibility: { ...base.accessibility, ...saved.accessibility }
+			accessibility: { ...base.accessibility, ...saved.accessibility },
+			profile: { ...base.profile, ...saved.profile }
 		};
 	} catch {
 		return base;
