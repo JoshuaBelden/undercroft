@@ -77,3 +77,17 @@ Blank lines separate paragraphs. `{action:name}` renders the current binding. `H
 `devMode` (`src/lib/dev.ts`) is true on the dev server or when `PUBLIC_DEV_MODE=true`. `AdminPanel` (F10) renders nothing unless `devMode` is true. Gate every debug tool the same way.
 
 Current tools: connection, session and player IDs; stats overlay toggle (F3); map seed and regenerate; map debug view; noclip, infinite stamina and battery, and teleport to rooms. Player commands are sent to the server, which only accepts them when its own `DEV_MODE=true` (see [player.md](player.md)).
+
+## Typefaces
+
+The interface uses the same typefaces as the Apostate project: the Barlow family and Cinzel, loaded from Google Fonts in `src/routes/+layout.svelte`. They are named by tokens in `src/app.css`, and components use the tokens, never a family name:
+
+| Token            | Typeface              | Used for                                      |
+| ---------------- | --------------------- | --------------------------------------------- |
+| `--font-display` | Barlow Condensed      | Headings, the coin count                      |
+| `--font-body`    | Barlow Semi Condensed | Running text (the default)                    |
+| `--font-ui`      | Barlow                | Buttons, inputs, tabs, HUD labels and prompts |
+| `--font-lore`    | Cinzel                | The title, room banners, results and downed   |
+| `--font-mono`    | system monospace      | Key caps, the stats overlay                   |
+
+To change a typeface, change the token and the font link together.

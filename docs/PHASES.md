@@ -124,7 +124,7 @@ Aspects:
 
 ## Phase 5: Accounts, hub, economy ✅
 
-The bare minimum that makes it a repeating game. The hub is overlays on the surface screen. Durability, repair and hub crafting moved to Phase 6; Discord and Steam sign-in to Phase 8.
+The bare minimum that makes it a repeating game. The hub is the dashboard you land on after signing in; expeditions and parties start from it. Durability, repair and hub crafting moved to Phase 6; Discord and Steam sign-in to Phase 8.
 
 - [x] Accounts: email and password sign-up, the whole game behind sign-in, a gamer tag that can be changed (`docs/dev/accounts.md`)
 - [x] One explorer per account (more later); rite progress kept under the explorer

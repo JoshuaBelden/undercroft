@@ -31,6 +31,7 @@ pnpm format             # Prettier
 pnpm asset:dev          # regenerate the placeholder dev asset
 pnpm asset:build        # art/export/*.glb -> optimized static/assets/map + piece manifest
 pnpm asset:audio        # art/sfx/*.wav -> processed static/assets/audio + sound file list
+pnpm asset:images       # art/images/*.png -> WebP in static/assets/images (interface art)
 ```
 
 ## Development rules

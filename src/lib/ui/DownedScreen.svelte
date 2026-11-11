@@ -33,10 +33,7 @@
 
 	h2 {
 		margin: 0;
-		font:
-			400 1.6rem Georgia,
-			'Times New Roman',
-			serif;
+		font: 400 1.6rem var(--font-lore);
 		letter-spacing: 0.28em;
 		text-transform: uppercase;
 		color: #e0c8c0;
@@ -45,9 +42,7 @@
 
 	p {
 		margin: 0;
-		font:
-			12px ui-monospace,
-			monospace;
+		font: 12px var(--font-ui);
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
 		color: var(--muted);

@@ -5,7 +5,7 @@ type Listener = (action: Action) => void;
 
 /**
  * Translates raw keyboard and mouse events into actions using the player's bindings.
- * Attach once per game view; call `dispose()` on teardown.
+ * Attach once per view; call `dispose()` on teardown.
  */
 export class InputMap {
 	private down = new Set<string>();
@@ -13,7 +13,14 @@ export class InputMap {
 	private target: Window;
 	private look = { x: 0, y: 0 };
 
-	constructor(target: Window = window) {
+	/**
+	 * `only` limits it to those actions: keys and clicks bound to anything else are left alone
+	 * (for screens outside the game, where the page needs them).
+	 */
+	constructor(
+		target: Window = window,
+		private only: readonly Action[] | null = null
+	) {
 		this.target = target;
 		target.addEventListener('keydown', this.onKeyDown);
 		target.addEventListener('keyup', this.onKeyUp);
@@ -60,6 +67,7 @@ export class InputMap {
 		if (this.down.has(code)) return;
 		this.down.add(code);
 		for (const action of Object.keys(ACTIONS) as Action[]) {
+			if (this.only && !this.only.includes(action)) continue;
 			if (settings.bindings[action].includes(code)) {
 				event.preventDefault();
 				for (const listener of this.listeners) listener(action);

@@ -6,14 +6,12 @@
 	import type { ItemRef } from '#lib/shared/items/types.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import { stackKilos, stackLabel } from './items.ts';
-	import Panel from './Panel.svelte';
 
 	interface Props {
 		explorer: ExplorerView;
-		onclose: () => void;
 	}
 
-	let { explorer, onclose }: Props = $props();
+	let { explorer }: Props = $props();
 
 	/** What the buttons act on: a stash entry, or something in the loadout. */
 	let chosen = $state<{ stash: number } | { loadout: ItemRef } | null>(null);
@@ -65,7 +63,7 @@
 	}
 </script>
 
-<Panel title="Outfitting" {onclose}>
+<div class="outfit">
 	<div class="columns">
 		<section>
 			<h3>Stash</h3>
@@ -186,7 +184,7 @@
 			bring back is gone.
 		</p>
 	{/if}
-</Panel>
+</div>
 
 <style>
 	.columns {
@@ -269,7 +267,7 @@
 
 	.item.chosen {
 		border-color: var(--accent);
-		background: rgb(200 155 90 / 0.12);
+		background: rgb(0 129 157 / 0.18);
 	}
 
 	.name {

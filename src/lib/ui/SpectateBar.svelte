@@ -26,14 +26,12 @@
 		align-items: center;
 		gap: 14px;
 		padding: 8px 14px;
-		font:
-			12px ui-monospace,
-			monospace;
+		font: 12px var(--font-ui);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: #e8dfcf;
+		color: var(--text);
 		background: rgb(0 0 0 / 0.7);
-		border: 1px solid rgb(232 223 207 / 0.15);
+		border: 1px solid rgb(226 220 204 / 0.15);
 		z-index: 6;
 	}
 

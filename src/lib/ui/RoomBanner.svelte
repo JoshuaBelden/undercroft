@@ -28,10 +28,7 @@
 
 	h2 {
 		margin: 0;
-		font:
-			400 1.6rem Georgia,
-			'Times New Roman',
-			serif;
+		font: 400 1.6rem var(--font-lore);
 		letter-spacing: 0.28em;
 		text-transform: uppercase;
 		color: #e6dccb;

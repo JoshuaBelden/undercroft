@@ -60,7 +60,7 @@
 		{/if}
 		<div class="actions">
 			<button type="button" class="primary" onclick={oncontinue}>Continue</button>
-			<a href={resolve('/')}>Main menu</a>
+			<a href={resolve('/(hub)')}>Dashboard</a>
 		</div>
 	</div>
 </div>
@@ -78,18 +78,15 @@
 	.card {
 		min-width: min(360px, calc(100vw - 32px));
 		padding: 32px;
-		border: 1px solid rgb(232 223 207 / 0.15);
+		border: 1px solid rgb(226 220 204 / 0.15);
 		background: rgb(0 0 0 / 0.5);
-		color: #e8dfcf;
+		color: var(--text);
 		text-align: center;
 	}
 
 	h1 {
 		margin: 0 0 24px;
-		font:
-			400 1.5rem Georgia,
-			'Times New Roman',
-			serif;
+		font: 400 1.5rem var(--font-lore);
 		letter-spacing: 0.2em;
 		text-transform: uppercase;
 	}
@@ -100,9 +97,7 @@
 		gap: 8px 24px;
 		margin: 0 0 28px;
 		text-align: left;
-		font:
-			13px ui-monospace,
-			monospace;
+		font: 13px var(--font-ui);
 	}
 
 	dt {
@@ -111,10 +106,7 @@
 
 	.note {
 		margin: -12px 0 24px;
-		font:
-			italic 0.95rem Georgia,
-			'Times New Roman',
-			serif;
+		font: italic 0.95rem var(--font-lore);
 		color: var(--muted);
 	}
 
@@ -131,21 +123,17 @@
 
 	.primary {
 		padding: 10px 22px;
-		font:
-			13px ui-monospace,
-			monospace;
+		font: 13px var(--font-ui);
 		letter-spacing: 0.15em;
 		text-transform: uppercase;
-		color: #e8dfcf;
-		background: rgb(232 223 207 / 0.08);
-		border: 1px solid rgb(232 223 207 / 0.35);
+		color: var(--text);
+		background: rgb(226 220 204 / 0.08);
+		border: 1px solid rgb(226 220 204 / 0.35);
 		cursor: pointer;
 	}
 
 	a {
-		font:
-			13px ui-monospace,
-			monospace;
+		font: 13px var(--font-ui);
 		color: var(--muted);
 	}
 </style>

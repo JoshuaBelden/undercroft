@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { ACCOUNT } from '#lib/content/account.ts';
 	import { api, ApiError } from '#lib/account/account.svelte.ts';
+	import { parallax } from './parallax.ts';
 
 	interface Props {
 		/** Creating an account (asks for a gamer tag) or signing in to one. */
@@ -30,7 +31,7 @@
 				signingUp ? { email, password, gamerTag } : { email, password }
 			);
 			// A full load, so the server sees the new session.
-			location.href = resolve('/');
+			location.href = resolve('/(hub)');
 		} catch (caught) {
 			error = caught instanceof ApiError ? caught.message : 'Could not reach the server';
 			busy = false;
@@ -38,7 +39,7 @@
 	}
 </script>
 
-<main>
+<main class="backdrop-art" use:parallax>
 	<h1>Undercroft</h1>
 	<form onsubmit={submit}>
 		<h2>{signingUp ? 'Create an account' : 'Sign in'}</h2>
@@ -99,6 +100,7 @@
 		min-height: 100vh;
 		display: grid;
 		place-content: center;
+		justify-items: center;
 		gap: 32px;
 		padding: 24px;
 	}
@@ -106,9 +108,12 @@
 	h1 {
 		margin: 0;
 		text-align: center;
+		font-family: var(--font-lore);
 		font-size: clamp(2rem, 6vw, 3.5rem);
 		font-weight: normal;
 		letter-spacing: 0.3em;
+		/* Letter spacing adds a gap after the last letter: pull it back so the word is centred. */
+		margin-right: -0.3em;
 		text-transform: uppercase;
 	}
 

@@ -20,7 +20,8 @@
 		"format": "prettier --write .",
 		"asset:dev": "tsx scripts/make-dev-asset.ts",
 		"asset:build": "tsx scripts/build-assets.ts",
-		"asset:audio": "tsx scripts/build-audio.ts"
+		"asset:audio": "tsx scripts/build-audio.ts",
+		"asset:images": "tsx scripts/build-images.ts"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

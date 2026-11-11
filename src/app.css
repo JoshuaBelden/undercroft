@@ -2,9 +2,19 @@
 	--bg: #0a0908;
 	--panel: #14110f;
 	--border: #3a332c;
-	--text: #e6ddd0;
+	--text: #e2dccc;
 	--muted: #8f8577;
-	--accent: #c89b5a;
+	--accent: #00819d;
+	/*
+	 * Typefaces (the Barlow family and Cinzel, loaded in src/routes/+layout.svelte):
+	 * display for headings and numbers, body for running text, ui for controls and labels,
+	 * lore for the title and in-world text, mono for key caps and debug read-outs.
+	 */
+	--font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+	--font-body: 'Barlow Semi Condensed', 'Barlow', system-ui, sans-serif;
+	--font-ui: 'Barlow', system-ui, sans-serif;
+	--font-lore: 'Cinzel', Georgia, serif;
+	--font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 	color-scheme: dark;
 }
 
@@ -18,11 +28,56 @@ body {
 	height: 100%;
 	background: var(--bg);
 	color: var(--text);
-	font-family: Georgia, 'Times New Roman', serif;
+	font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4 {
+	font-family: var(--font-display);
+	font-weight: 600;
+}
+
+/* Controls and labels. */
+button,
+input,
+select,
+label,
+nav {
+	font-family: var(--font-ui);
+}
+
+/*
+ * The picture behind the screens outside the catacombs: sign-in, the dashboard, the party screen.
+ * Darkened so text and panels on top of it stay readable.
+ *
+ * The picture is its own layer, fixed to the window and a little larger than it, so it can drift
+ * away from the cursor without showing an edge. The parallax action (src/lib/ui/parallax.ts)
+ * sets --parallax-x and --parallax-y (-1..1 from the centre); without it the picture stays put.
+ */
+.backdrop-art {
+	/* Keeps the picture layer behind this element's content and nothing else. */
+	isolation: isolate;
+	background: var(--bg);
+}
+
+.backdrop-art::before {
+	content: '';
+	position: fixed;
+	inset: -4%;
+	z-index: -1;
+	background:
+		linear-gradient(rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.7)),
+		url('/assets/images/login-bg.webp') center / cover no-repeat;
+	/* Opposite to the cursor, by up to 1.5% of the picture: well inside the 4% spare on each side. */
+	translate: calc(var(--parallax-x, 0) * -1.5%) calc(var(--parallax-y, 0) * -1.5%);
+	transition: translate 0.25s ease-out;
+	pointer-events: none;
 }
 
 button {
-	font: inherit;
+	font-size: inherit;
 	color: var(--text);
 	background: transparent;
 	border: 1px solid var(--border);

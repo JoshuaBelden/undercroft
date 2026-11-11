@@ -40,9 +40,7 @@
 
 	span {
 		position: relative;
-		font:
-			700 16px ui-monospace,
-			monospace;
+		font: 700 16px var(--font-ui);
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: #f1e9da;

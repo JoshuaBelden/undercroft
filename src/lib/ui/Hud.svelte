@@ -209,9 +209,7 @@
 		bottom: 34px;
 		display: flex;
 		gap: 14px;
-		font:
-			11px ui-monospace,
-			monospace;
+		font: 11px var(--font-ui);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--muted);
@@ -237,9 +235,7 @@
 		justify-content: center;
 		border: 1px solid rgb(255 255 255 / 0.12);
 		background: rgb(0 0 0 / 0.35);
-		font:
-			10px ui-monospace,
-			monospace;
+		font: 10px var(--font-ui);
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
 		color: var(--muted);
@@ -276,9 +272,7 @@
 		display: flex;
 		align-items: baseline;
 		gap: 6px;
-		font:
-			11px ui-monospace,
-			monospace;
+		font: 11px var(--font-ui);
 		color: var(--muted);
 		pointer-events: none;
 	}
@@ -347,9 +341,7 @@
 		position: fixed;
 		left: 16px;
 		bottom: 34px;
-		font:
-			11px ui-monospace,
-			monospace;
+		font: 11px var(--font-ui);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--muted);
@@ -363,9 +355,7 @@
 		display: flex;
 		gap: 8px;
 		align-items: center;
-		font:
-			11px ui-monospace,
-			monospace;
+		font: 11px var(--font-ui);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--muted);

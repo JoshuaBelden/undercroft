@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { money } from '#lib/content/economy.ts';
 	import { PARTY } from '#lib/content/party.ts';
+	import { parallax } from './parallax.ts';
 	import { canDescend, normalizeCode, type PartyState } from '#lib/shared/party/types.ts';
 
 	interface Props {
@@ -14,32 +14,14 @@
 		ondescend: () => void;
 		onjoin: (code: string) => void;
 		onleave: () => void;
-		/** Open the Afflictions overlay. */
-		onafflictions: () => void;
-		/** Open the stash and loadout. */
-		onoutfit: () => void;
-		onshop: () => void;
-		/** What the explorer has to spend; null until the account has loaded. */
-		purse: number | null;
+		/** What this player is taking down, as a sentence; empty until the account has loaded. */
+		kit: string;
 		onsettings: () => void;
 		onhelp: () => void;
 	}
 
-	let {
-		party,
-		you,
-		error,
-		onready,
-		ondescend,
-		onjoin,
-		onleave,
-		onafflictions,
-		onoutfit,
-		onshop,
-		purse,
-		onsettings,
-		onhelp
-	}: Props = $props();
+	let { party, you, error, onready, ondescend, onjoin, onleave, kit, onsettings, onhelp }: Props =
+		$props();
 
 	const me = $derived(party.members.find((member) => member.id === you));
 	const leading = $derived(party.leader === you);
@@ -76,18 +58,16 @@
 	}
 </script>
 
-<div class="screen">
+<div class="screen backdrop-art" use:parallax>
 	<div class="card">
-		<h1>The surface</h1>
+		<h1>Expedition</h1>
 
-		<div class="hub">
-			<button type="button" onclick={onoutfit}>Outfitting</button>
-			<button type="button" onclick={onshop}>Shop</button>
-			<button type="button" onclick={onafflictions}>Afflictions</button>
-			{#if purse !== null}
-				<span class="purse">{money(purse)}</span>
-			{/if}
-		</div>
+		{#if kit}
+			<p class="kit">
+				{kit}
+				<a href={resolve('/(hub)/loadout')}>Change your loadout</a>
+			</p>
+		{/if}
 
 		<h2>Party</h2>
 		<ul>
@@ -145,22 +125,21 @@
 		<div class="links">
 			<button type="button" onclick={onsettings}>Settings</button>
 			<button type="button" onclick={onhelp}>Help</button>
-			<a href={resolve('/')}>Main menu</a>
+			<a href={resolve('/(hub)')}>Dashboard</a>
 		</div>
 	</div>
 </div>
 
 <style>
-	.hub {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 8px;
+	.kit {
+		margin: 0;
+		color: var(--muted);
+		line-height: 1.5;
 	}
 
-	.purse {
-		margin-left: auto;
-		color: var(--muted);
+	.kit a {
+		display: block;
+		color: inherit;
 	}
 
 	.screen {
@@ -168,29 +147,24 @@
 		inset: 0;
 		display: grid;
 		place-items: center;
-		background: radial-gradient(circle at 50% 40%, #1a1712 0%, #000 70%);
 		z-index: 15;
 		overflow-y: auto;
 	}
 
+	/* Solid enough to read against the picture behind. */
 	.card {
 		width: min(420px, calc(100vw - 32px));
 		margin: 16px 0;
 		padding: 28px 32px;
-		border: 1px solid rgb(232 223 207 / 0.15);
-		background: rgb(0 0 0 / 0.5);
-		color: #e8dfcf;
-		font:
-			13px ui-monospace,
-			monospace;
+		border: 1px solid rgb(226 220 204 / 0.15);
+		background: rgb(0 0 0 / 0.72);
+		color: var(--text);
+		font: 13px var(--font-ui);
 	}
 
 	h1 {
 		margin: 0 0 24px;
-		font:
-			400 1.5rem Georgia,
-			'Times New Roman',
-			serif;
+		font: 400 1.5rem var(--font-lore);
 		letter-spacing: 0.2em;
 		text-transform: uppercase;
 		text-align: center;
@@ -239,7 +213,7 @@
 	.join {
 		margin-top: 20px;
 		padding-top: 16px;
-		border-top: 1px solid rgb(232 223 207 / 0.1);
+		border-top: 1px solid rgb(226 220 204 / 0.1);
 		flex-wrap: wrap;
 	}
 
@@ -254,7 +228,7 @@
 		justify-content: space-between;
 		gap: 12px;
 		padding: 6px 0;
-		border-bottom: 1px solid rgb(232 223 207 / 0.08);
+		border-bottom: 1px solid rgb(226 220 204 / 0.08);
 	}
 
 	.name {
@@ -291,8 +265,8 @@
 		padding: 10px 28px;
 		letter-spacing: 0.15em;
 		text-transform: uppercase;
-		background: rgb(232 223 207 / 0.08);
-		border-color: rgb(232 223 207 / 0.35);
+		background: rgb(226 220 204 / 0.08);
+		border-color: rgb(226 220 204 / 0.35);
 	}
 
 	button:disabled {

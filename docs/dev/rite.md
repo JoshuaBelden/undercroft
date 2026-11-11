@@ -44,7 +44,7 @@ Neither the Pendant nor the clue has a model yet. On the floor they are drawn as
 
 Each tick's `affliction.rite` is a `RiteSnapshot`: `requirements` with `null` for slots no clue has revealed, `room` (`null` until the last clue), and `seconds`. Hidden information is never sent.
 
-On the surface, the Afflictions overlay (`AfflictionsPanel`, from the lobby) shows the same thing from saved progress: each Affliction, whether it is resolved, and what the clues found so far have revealed. It builds the view with `riteSnapshot`, like the server does.
+On the dashboard, the Afflictions page (`Afflictions.svelte`) shows the same thing from saved progress: each Affliction, whether it is resolved, and what the clues found so far have revealed. It builds the view with `riteSnapshot`, like the server does.
 
 The rite panel (`ritePanel` action) shows it any time underground, including while spectating: each requirement or "Unknown", who in the party carries it (from the player snapshots), and the room.
 

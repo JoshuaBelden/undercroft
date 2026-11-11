@@ -4,15 +4,13 @@
 	import { MAP_KIT } from '#lib/content/map/kit.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import { riteSnapshot } from '#lib/shared/affliction/rite.ts';
-	import Panel from './Panel.svelte';
 
 	interface Props {
 		/** The explorer's rite progress (only Afflictions with any). */
 		progress: ExplorerView['afflictions'];
-		onclose: () => void;
 	}
 
-	let { progress, onclose }: Props = $props();
+	let { progress }: Props = $props();
 
 	/** Every Affliction, with what this explorer knows of its rite. */
 	const afflictions = $derived(
@@ -36,7 +34,7 @@
 	);
 </script>
 
-<Panel title="Afflictions" {onclose}>
+<div class="afflictions">
 	{#each afflictions as affliction (affliction.id)}
 		<section>
 			<header>
@@ -62,7 +60,7 @@
 	<p class="muted">
 		What you don't know yet is written on scraps down there. What you learn, you keep.
 	</p>
-</Panel>
+</div>
 
 <style>
 	section + section {
@@ -80,7 +78,6 @@
 	h3 {
 		margin: 0;
 		font-size: 1.1rem;
-		font-weight: normal;
 		letter-spacing: 0.08em;
 	}
 
@@ -98,7 +95,6 @@
 	h4 {
 		margin: 16px 0 8px;
 		font-size: 0.8rem;
-		font-weight: normal;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: var(--muted);

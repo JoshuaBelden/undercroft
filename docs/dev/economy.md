@@ -9,16 +9,31 @@ Between expeditions an explorer owns a **stash** (kept on the surface) and a **l
 | `src/lib/server/store/explorers.ts` | Stash and loadout rules in MongoDB; descent and return         |
 | `src/routes/api/explorer/loadout/`  | Hub endpoint: move things between stash and loadout            |
 | `server/belongings.ts`              | Game server: take the loadout at descent, give back at the end |
-| `src/lib/ui/OutfitPanel.svelte`     | The outfitting overlay on the surface                          |
+| `src/lib/ui/Outfit.svelte`          | Stash and loadout (the dashboard's Loadout page)               |
 | `src/lib/content/economy.ts`        | Shop stock and prices, sell-back rate, the currency's name     |
 | `src/lib/content/loot.ts`           | What loot is scattered and how densely                         |
 | `src/lib/server/store/shop.ts`      | Buying, selling, admin grants, the ledger                      |
 | `src/routes/api/shop/`              | Shop endpoint                                                  |
 | `src/routes/api/admin/`             | Dev-mode account tools                                         |
-| `src/lib/ui/ShopPanel.svelte`       | The shop overlay on the surface                                |
+| `src/lib/ui/Shop.svelte`            | The shop (the dashboard's Store page)                          |
+| `src/routes/(hub)/`                 | The dashboard: its layout and one page per tab                 |
 | `src/lib/account/account.svelte.ts` | Client: `session.account.explorer`, `changeLoadout`            |
 
 The explorer document is described in [accounts.md](accounts.md).
+
+## The dashboard
+
+Signing in lands on the dashboard. It is the `(hub)` route group: `+layout.svelte` draws the frame and each tab is its own page.
+
+- **Frame:** the title top-left, the tabs (Expedition, Loadout, Afflictions), then money and the gamer tag top-right. Settings (a gear) and Help (a question mark) sit bottom-right and open as overlays; the `toggleSettings` (Escape) and `toggleHelp` actions open them too, through an `InputMap` limited to those two actions so the pages keep every other key.
+- **Expedition** (`/`, the default): the setup screen. It shows the Affliction, what you are taking, and two ways out: "Start an expedition" (opens `/play`) or join one by invite code (opens `/play?code=...`). Nothing starts until then.
+- **Loadout** (`/loadout`): `Outfit`.
+- **Afflictions** (`/afflictions`): `Afflictions` (see [rite.md](rite.md)).
+- **Store** (`/store`): `Shop`. It has no tab: the money in the frame is the link to it.
+
+`/play` is the party screen and then the game: invite friends, ready up, descend (see [expedition.md](expedition.md)). It is the only place to descend from. It shows what you are taking down and links back to Loadout; it has no stash or store of its own. Leaving it for the dashboard leaves the party.
+
+Links inside the group use route ids with `resolve` (`resolve('/(hub)/loadout')`), and the current tab is found from `page.route.id`: `resolve` returns relative paths during server rendering, so comparing it with the URL does not work.
 
 ## Stash and loadout
 
@@ -92,4 +107,4 @@ Every purchase, sale, grant and reset writes a line to the `ledger` collection: 
 
 ## Testing
 
-A new explorer has nothing. In dev mode, the admin panel's Account section grants money and items on the surface; underground, Give puts things straight in your hands. Dying needs no salts: set sanity to 0 and wait out the bleed-out.
+A new explorer has nothing. In dev mode, the admin panel's Account section (F10 on the party screen) grants money and items; underground, Give puts things straight in your hands. Dying needs no salts: set sanity to 0 and wait out the bleed-out.

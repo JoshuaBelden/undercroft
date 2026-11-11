@@ -61,7 +61,7 @@
 		gap: 0.6em;
 		align-items: baseline;
 		padding: 0.2em 0.7em;
-		font-family: ui-monospace, monospace;
+		font-family: var(--font-ui);
 		white-space: nowrap;
 		color: #efe6d6;
 		background: rgb(0 0 0 / 0.7);

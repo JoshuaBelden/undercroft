@@ -253,7 +253,7 @@
 
 	.item.chosen {
 		border-color: var(--accent);
-		background: rgb(200 155 90 / 0.12);
+		background: rgb(0 129 157 / 0.18);
 	}
 
 	.name {

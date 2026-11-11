@@ -4,16 +4,14 @@
 	import { ITEMS } from '#lib/content/items.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import { stackLabel } from './items.ts';
-	import Panel from './Panel.svelte';
 
 	interface Props {
 		explorer: ExplorerView;
 		/** Something was bought or sold (for a sound). */
 		ontrade?: (kind: 'buy' | 'sell') => void;
-		onclose: () => void;
 	}
 
-	let { explorer, ontrade, onclose }: Props = $props();
+	let { explorer, ontrade }: Props = $props();
 
 	let error = $state('');
 	let busy = $state(false);
@@ -36,11 +34,11 @@
 	}
 </script>
 
-<Panel title="Shop" {onclose}>
+<div class="shop">
 	<p class="purse">You have <strong>{money(explorer.money)}</strong>.</p>
 
 	{#if explorer.underground}
-		<p class="muted">You're underground: the shop is closed to you until you're back.</p>
+		<p class="muted">You're underground: the store is closed to you until you're back.</p>
 	{/if}
 	{#if error}
 		<p class="error" role="alert">{error}</p>
@@ -106,7 +104,7 @@
 			{/if}
 		</section>
 	</div>
-</Panel>
+</div>
 
 <style>
 	.purse {

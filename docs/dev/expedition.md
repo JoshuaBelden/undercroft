@@ -34,7 +34,7 @@ All checks are on the server (`Parties`); `canDescend` is shared so the lobby ca
 
 ## Lifecycle
 
-1. A client connects and sends `hello` with its ticket (see [accounts.md](accounts.md)). It lands in a party and gets `party`. The client shows the lobby (`PartyLobby`).
+1. The player chooses "Start an expedition" (or joins by code) on the dashboard's Expedition page, which opens `/play`. The client connects and sends `hello` with its ticket (see [accounts.md](accounts.md)). It lands in a party and gets `party`. The client shows the lobby (`PartyLobby`).
 2. The leader sends `descend`. If no expedition is running and everyone else is ready, `Parties.descend` creates a `Session` (new seed, generated layout), takes each member's loadout from their explorer (see [economy.md](economy.md)) and adds them with it. Each gets `welcome` with the layout: that message means "you are underground now".
 3. Players explore. The session simulates them and broadcasts `tick` snapshots to the players in it.
 4. A player climbs out (see Extraction), dies, the manifestation is banished, or the rite is performed (see [rite.md](rite.md)). The server sends them `extracted`, `died`, `banished` or `resolved` with `{ seconds, deepestLevel }` and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.

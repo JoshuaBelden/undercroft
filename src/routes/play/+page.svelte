@@ -19,7 +19,14 @@
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
-	import { canTake, carriedCount, held, pocketCount } from '#lib/shared/items/inventory.ts';
+	import {
+		allStacks,
+		canTake,
+		carriedCount,
+		held,
+		pocketCount
+	} from '#lib/shared/items/inventory.ts';
+	import { stackLabel } from '#lib/ui/items.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
 	import { lookedAtItem } from '#lib/shared/items/pickup.ts';
@@ -49,25 +56,21 @@
 	import type { PartyState } from '#lib/shared/party/types.ts';
 	import type { AdminCommand, ClientMessage } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
-	import AfflictionsPanel from '#lib/ui/AfflictionsPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
-	import OutfitPanel from '#lib/ui/OutfitPanel.svelte';
 	import PartyLobby from '#lib/ui/PartyLobby.svelte';
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
-	import ShopPanel from '#lib/ui/ShopPanel.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
-	type PanelName =
-		'settings' | 'help' | 'admin' | 'inventory' | 'rite' | 'afflictions' | 'outfit' | 'shop';
+	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'rite';
 	let panel = $state<PanelName | null>(null);
 	/** The rite as known so far, and (while its panel is open) who carries each requirement. */
 	let rite = $state<RiteSnapshot | null>(null);
@@ -155,10 +158,14 @@
 	const slotKeys = $derived(
 		SLOT_ACTIONS.map((action) => settings.bindings[action].map(bindingLabel)[0] ?? '')
 	);
-	/** Play a sound that isn't anywhere in the world (the shop). */
-	let playUi = (sound: 'shop.buy' | 'shop.sell'): void => {
-		void sound;
-	};
+	/** What we are taking down: the loadout chosen on the dashboard, as a sentence. */
+	const kit = $derived.by(() => {
+		const loadout = session.account?.explorer.loadout;
+		if (!loadout) return '';
+		const stacks = allStacks(loadout);
+		if (stacks.length === 0) return 'You are going down with nothing but your headlamp.';
+		return `You are going down with: ${stacks.map(stackLabel).join(', ')}.`;
+	});
 	let sendInventory = (action: InventoryAction): void => {
 		void action;
 	};
@@ -171,8 +178,6 @@
 		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
 		panel = closing ? null : name;
 		if (panel) document.exitPointerLock();
-		// The surface overlays show the account as it is now.
-		if (panel === 'outfit' || panel === 'afflictions' || panel === 'shop') void loadAccount();
 		// Putting the pack away goes straight back to play.
 		else if ((name === 'inventory' || name === 'rite') && expedition) {
 			void canvas.requestPointerLock();
@@ -367,10 +372,6 @@
 		sendAdmin = (command) => client.send({ type: 'admin', command });
 		send = (message) => client.send(message);
 		sendInventory = (action) => client.send({ type: 'inventory', action });
-		playUi = (sound) => {
-			void audio.unlock();
-			sounds.play(sound);
-		};
 		/** The inventory last shown, as JSON: the screen only updates when it changes. */
 		let shownInventory = '';
 		/** Whether the rite was being performed last frame (to ring its bell once). */
@@ -910,10 +911,7 @@
 		ondescend={() => send({ type: 'descend' })}
 		onjoin={(code) => send({ type: 'joinParty', code })}
 		onleave={() => send({ type: 'leaveParty' })}
-		onafflictions={() => toggle('afflictions')}
-		onoutfit={() => toggle('outfit')}
-		onshop={() => toggle('shop')}
-		purse={session.account?.explorer.money ?? null}
+		{kit}
 		onsettings={() => toggle('settings')}
 		onhelp={() => toggle('help')}
 	/>
@@ -945,19 +943,6 @@
 		onvolume={(category, value) => audio.setVolume(category, value)}
 		ongraphics={() => applyGraphics()}
 		onaccount={() => send({ type: 'rename' })}
-	/>
-{:else if panel === 'outfit' && session.account}
-	<OutfitPanel explorer={session.account.explorer} onclose={() => (panel = null)} />
-{:else if panel === 'shop' && session.account}
-	<ShopPanel
-		explorer={session.account.explorer}
-		ontrade={(kind) => playUi(kind === 'buy' ? 'shop.buy' : 'shop.sell')}
-		onclose={() => (panel = null)}
-	/>
-{:else if panel === 'afflictions'}
-	<AfflictionsPanel
-		progress={session.account?.explorer.afflictions ?? []}
-		onclose={() => (panel = null)}
 	/>
 {:else if panel === 'help'}
 	<HelpPanel onclose={() => (panel = null)} />
@@ -1011,14 +996,12 @@
 		top: 50%;
 		transform: translate(-50%, -50%);
 		padding: 14px 28px;
-		font:
-			14px ui-monospace,
-			monospace;
+		font: 14px var(--font-ui);
 		letter-spacing: 0.2em;
 		text-transform: uppercase;
-		color: #e8dfcf;
+		color: var(--text);
 		background: rgb(0 0 0 / 0.6);
-		border: 1px solid rgb(232 223 207 / 0.3);
+		border: 1px solid rgb(226 220 204 / 0.3);
 		cursor: pointer;
 		z-index: 5;
 	}
@@ -1029,14 +1012,12 @@
 		top: 50%;
 		transform: translate(-50%, -50%);
 		padding: 14px 28px;
-		font:
-			13px ui-monospace,
-			monospace;
+		font: 13px var(--font-ui);
 		letter-spacing: 0.15em;
 		text-transform: uppercase;
-		color: #e8dfcf;
+		color: var(--text);
 		background: rgb(0 0 0 / 0.7);
-		border: 1px solid rgb(232 223 207 / 0.2);
+		border: 1px solid rgb(226 220 204 / 0.2);
 		z-index: 16;
 	}
 
@@ -1044,9 +1025,7 @@
 		position: fixed;
 		right: 12px;
 		bottom: 12px;
-		font:
-			12px ui-monospace,
-			monospace;
+		font: 12px var(--font-ui);
 		color: #ff9a70;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;

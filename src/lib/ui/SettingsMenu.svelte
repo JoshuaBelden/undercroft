@@ -250,7 +250,7 @@
 	}
 
 	kbd {
-		font-family: ui-monospace, monospace;
+		font-family: var(--font-mono);
 		padding: 2px 6px;
 		border: 1px solid var(--border);
 	}

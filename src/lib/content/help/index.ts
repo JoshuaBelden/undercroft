@@ -84,9 +84,9 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 		category: 'Basics',
 		body: `You start with nothing: a headlamp and your hands.
 
-Whatever you carry out of the catacombs is yours. Your kit stays packed the way you carried it, ready for the next descent. Anything else you found goes into your stash on the surface.
+Whatever you carry out of the catacombs is yours. Your kit stays packed the way you carried it, ready for the next descent. Anything else you found goes into your stash.
 
-Before you go down, open "Outfitting" on the surface to choose what to take. Take something from the stash to carry it down; leave it behind to keep it safe. You can only take what you could carry.
+The dashboard is where you land when you sign in. Its "Loadout" page shows what you own and what you're taking down: choose what to take before you start an expedition. Take something from the stash to carry it down; leave it behind to keep it safe. You can only take what you could carry.
 
 Relics lie about the catacombs, more of them the deeper you go. They are worth money on the surface, but they are heavy, they fill your pack, and the more of them you carry the sooner the Gloaming comes.
 
@@ -94,13 +94,13 @@ What you take down and don't bring back is gone. If you die, everything you carr
 	},
 	{
 		id: 'the-shop',
-		title: 'The shop',
+		title: 'The store',
 		category: 'Basics',
-		body: `Open "Shop" on the surface to sell what you've brought out and buy what you need.
+		body: `Click your money, at the top right of the dashboard, to open the store. Sell what you've brought out and buy what you need.
 
 Relics are what sell. Gear you bought can be sold back, for less than you paid. Some things nobody wants.
 
-What you buy goes to your stash: open "Outfitting" to take it with you. Firearms come empty, so buy rounds too.
+What you buy goes to your stash: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
 
 A first descent with nothing is a short one. Bring out a relic or two, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
 	},
@@ -108,7 +108,7 @@ A first descent with nothing is a short one. Bring out a relic or two, and buy a
 		id: 'parties',
 		title: 'Going down together',
 		category: 'Basics',
-		body: `You start on the surface, in a party of your own. Descend alone, or bring up to three others.
+		body: `The dashboard's "Expedition" page is where you set out from. "Start an expedition" puts you in a party of your own, and that party screen is the only place you can descend from. To join a friend instead, enter their invite code. Descend alone, or bring up to three others.
 
 To invite someone, give them your invite code, or use "Copy link" and send them the link. To join someone else, type their code under "Join a party". The others see your gamer tag, which you can change in the settings ({action:toggleSettings}).
 
