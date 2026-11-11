@@ -92,6 +92,10 @@ An optional `hint` is shown beside the pill.
 
 Render it only while it should be open. It is a native modal `<dialog>`: focus stays inside it, the page behind cannot be clicked, and Escape calls `onclose`. Key presses inside it do not reach the `InputMap`, so Escape closes the dialog and not the screen under it. The settings screen's "Reset to defaults" is the first use.
 
+## Slots
+
+`src/lib/ui/Slot.svelte` is the one slot of the game: a 92px square with rounded corners that holds one thing. `name` is what is in it (`null` draws a grey question mark, for something not known yet) and `count` shows from 2 up. Use it wherever a thing sits in a place of its own, so slots look the same on every screen; change the look there, not per screen. The Afflictions page's rite requirements are the first use.
+
 ## Help system
 
 Help topics are data in `src/lib/content/help/index.ts`:

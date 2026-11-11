@@ -194,11 +194,17 @@
 		color: var(--text);
 	}
 
+	/*
+	 * Pages get the whole window under the bar. One that wants the centred column wraps itself in
+	 * `.page-column` (src/app.css).
+	 */
 	main {
 		flex: 1;
-		width: min(900px, 100%);
-		margin: 0 auto;
-		padding: 32px 16px 96px;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		/* A little air between a full-width page and the edges of the window. */
+		padding: 0 50px;
 	}
 
 	.corner {
@@ -236,6 +242,11 @@
 	}
 
 	@media (max-width: 720px) {
+		/* Too much to give up on a phone: pages keep their own small padding there. */
+		main {
+			padding: 0;
+		}
+
 		header {
 			flex-wrap: wrap;
 			gap: 0 20px;

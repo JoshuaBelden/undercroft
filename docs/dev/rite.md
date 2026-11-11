@@ -44,7 +44,11 @@ Neither the Pendant nor the clue has a model yet. On the floor they are drawn as
 
 Each tick's `affliction.rite` is a `RiteSnapshot`: `requirements` with `null` for slots no clue has revealed, `room` (`null` until the last clue), and `seconds`. Hidden information is never sent.
 
-On the dashboard, the Afflictions page (`Afflictions.svelte`) shows the same thing from saved progress: each Affliction, whether it is resolved, and what the clues found so far have revealed. It builds the view with `riteSnapshot`, like the server does.
+On the dashboard, the Afflictions page (`Afflictions.svelte`) shows the same thing from saved progress. It is a full page (no centred column): a strip of panes, 400px wide, one per Affliction, centred vertically in the window and scrolled sideways by dragging with the mouse (`dragScroll.ts`), by touch or with the scrollbar.
+
+Each pane has the Affliction's picture across the top (`AfflictionDef.image`, see [asset-pipeline.md](asset-pipeline.md)) with its name centred in the first 250px, then its flavor text (`AfflictionDef.flavor`) on a fade that ends solid, then the rite: one [slot](systems.md#slots) per requirement, always all of them, with a grey question mark in each one no clue has revealed, and the room. It builds the view with `riteSnapshot`, like the server does.
+
+After the real Afflictions come `UNKNOWN_PANES` (4) panes for ones nobody has met: "Unknown", `UNKNOWN_SLOTS` question-mark slots, and the `affliction-unknown-banner` picture. Lower the number as Afflictions are added to `AFFLICTIONS`; a new one needs only `flavor`, `image` and its picture.
 
 The rite panel (`ritePanel` action) shows it any time underground, including while spectating: each requirement or "Unknown", who in the party carries it (from the player snapshots), and the room.
 

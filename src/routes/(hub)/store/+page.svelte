@@ -21,13 +21,15 @@
 	onMount(() => () => audio.dispose());
 </script>
 
-<section class="card">
-	{#if explorer}
-		<Shop {explorer} ontrade={traded} />
-	{:else}
-		<p class="muted">Loading...</p>
-	{/if}
-</section>
+<div class="page-column">
+	<section class="card">
+		{#if explorer}
+			<Shop {explorer} ontrade={traded} />
+		{:else}
+			<p class="muted">Loading...</p>
+		{/if}
+	</section>
+</div>
 
 <style>
 	.card {

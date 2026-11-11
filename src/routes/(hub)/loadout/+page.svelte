@@ -5,13 +5,15 @@
 	const explorer = $derived(session.account?.explorer ?? null);
 </script>
 
-<section class="card">
-	{#if explorer}
-		<Outfit {explorer} />
-	{:else}
-		<p class="muted">Loading...</p>
-	{/if}
-</section>
+<div class="page-column">
+	<section class="card">
+		{#if explorer}
+			<Outfit {explorer} />
+		{:else}
+			<p class="muted">Loading...</p>
+		{/if}
+	</section>
+</div>
 
 <style>
 	.card {

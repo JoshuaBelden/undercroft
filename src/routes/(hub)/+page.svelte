@@ -18,68 +18,70 @@
 	);
 </script>
 
-<section class="card">
-	<h2>Against</h2>
-	<p class="lead">
-		{affliction.name}
-		<span class="status" class:resolved>{resolved ? 'Resolved' : 'Unresolved'}</span>
-	</p>
-	<p class="muted">
-		What you know of its rite is under <a href={resolve('/(hub)/afflictions')}>Afflictions</a>.
-	</p>
-</section>
-
-<section class="card">
-	<h2>What you're taking</h2>
-	{#if !explorer}
-		<p class="muted">Loading...</p>
-	{:else if carrying.length === 0}
-		<p class="lead">Nothing but your headlamp.</p>
-	{:else}
-		<p class="lead">{carrying.join(', ')}</p>
-	{/if}
-	<p class="muted">
-		Change it under <a href={resolve('/(hub)/loadout')}>Loadout</a> before you set out.
-	</p>
-</section>
-
-{#if explorer?.underground}
+<div class="page-column">
 	<section class="card">
-		<h2>Under way</h2>
-		<p class="lead">You're already on an expedition.</p>
-		<a class="button primary" href={resolve('/play')}>Return to it</a>
+		<h2>Against</h2>
+		<p class="lead">
+			{affliction.name}
+			<span class="status" class:resolved>{resolved ? 'Resolved' : 'Unresolved'}</span>
+		</p>
+		<p class="muted">
+			What you know of its rite is under <a href={resolve('/(hub)/afflictions')}>Afflictions</a>.
+		</p>
 	</section>
-{:else}
-	<div class="ways">
-		<section class="card">
-			<h2>Start one</h2>
-			<p class="muted">
-				You'll gather on the surface with an invite code to share. Nobody goes down until the party
-				is ready and you choose to descend. Go alone, or with up to {PARTY.maxSize - 1}
-				others.
-			</p>
-			<a class="button primary" href={resolve('/play')}>Start an expedition</a>
-		</section>
 
+	<section class="card">
+		<h2>What you're taking</h2>
+		{#if !explorer}
+			<p class="muted">Loading...</p>
+		{:else if carrying.length === 0}
+			<p class="lead">Nothing but your headlamp.</p>
+		{:else}
+			<p class="lead">{carrying.join(', ')}</p>
+		{/if}
+		<p class="muted">
+			Change it under <a href={resolve('/(hub)/loadout')}>Loadout</a> before you set out.
+		</p>
+	</section>
+
+	{#if explorer?.underground}
 		<section class="card">
-			<h2>Join one</h2>
-			<p class="muted">Enter the invite code a friend gave you.</p>
-			<!-- A plain GET form: it opens the party screen with ?code=..., like an invite link. -->
-			<form method="get" action={resolve('/play')}>
-				<input
-					type="text"
-					name="code"
-					placeholder="Code"
-					aria-label="Invite code"
-					maxlength={PARTY.codeLength + 2}
-					autocomplete="off"
-					bind:value={code}
-				/>
-				<button type="submit" disabled={!normalizeCode(code)}>Join</button>
-			</form>
+			<h2>Under way</h2>
+			<p class="lead">You're already on an expedition.</p>
+			<a class="button primary" href={resolve('/play')}>Return to it</a>
 		</section>
-	</div>
-{/if}
+	{:else}
+		<div class="ways">
+			<section class="card">
+				<h2>Start one</h2>
+				<p class="muted">
+					You'll gather on the surface with an invite code to share. Nobody goes down until the
+					party is ready and you choose to descend. Go alone, or with up to {PARTY.maxSize - 1}
+					others.
+				</p>
+				<a class="button primary" href={resolve('/play')}>Start an expedition</a>
+			</section>
+
+			<section class="card">
+				<h2>Join one</h2>
+				<p class="muted">Enter the invite code a friend gave you.</p>
+				<!-- A plain GET form: it opens the party screen with ?code=..., like an invite link. -->
+				<form method="get" action={resolve('/play')}>
+					<input
+						type="text"
+						name="code"
+						placeholder="Code"
+						aria-label="Invite code"
+						maxlength={PARTY.codeLength + 2}
+						autocomplete="off"
+						bind:value={code}
+					/>
+					<button type="submit" disabled={!normalizeCode(code)}>Join</button>
+				</form>
+			</section>
+		</div>
+	{/if}
+</div>
 
 <style>
 	.card {

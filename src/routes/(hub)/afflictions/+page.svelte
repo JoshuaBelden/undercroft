@@ -5,23 +5,15 @@
 	const explorer = $derived(session.account?.explorer ?? null);
 </script>
 
-<section class="card">
-	{#if explorer}
-		<Afflictions progress={explorer.afflictions} />
-	{:else}
-		<p class="muted">Loading...</p>
-	{/if}
-</section>
+{#if explorer}
+	<Afflictions progress={explorer.afflictions} />
+{:else}
+	<p class="muted">Loading...</p>
+{/if}
 
 <style>
-	.card {
-		padding: 20px;
-		background: rgb(10 9 8 / 0.82);
-		border: 1px solid var(--border);
-	}
-
 	.muted {
-		margin: 0;
+		margin: 32px;
 		color: var(--muted);
 	}
 </style>

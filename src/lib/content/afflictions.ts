@@ -73,6 +73,10 @@ export interface AfflictionDef {
 	id: string;
 	/** Player-facing name (results screen, help). */
 	name: string;
+	/** A few lines about it, shown on its pane on the Afflictions page. */
+	flavor: string;
+	/** The picture behind its pane: a file name (no extension) in static/assets/images. */
+	image: string;
 	meter: {
 		/** Seconds underground (with anyone inside) for time alone to fill it. */
 		seconds: number;
@@ -91,6 +95,9 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 	gloaming: {
 		id: 'gloaming',
 		name: 'The Gloaming',
+		flavor:
+			'It darkens the catacombs a little at a time. Lamps gutter, flames shrink, and in the half-light that is left, someone is standing in the corner.',
+		image: 'affliction-gloaming-banner',
 		// Carrying 150 of loot (a full pack) fills it about half as fast again as time alone.
 		meter: { seconds: 1800, perKill: 0.04, perLoot: 0.000002 },
 		stages: [
