@@ -11,8 +11,10 @@ import type {
 	InputFrame,
 	PlayerSnapshot,
 	PlayerState,
+	SimEvent,
 	Stance
 } from '#lib/shared/player/types.ts';
+import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
 
 const DT = 1 / SIM_RATE;
 /** Radians of look per pixel of mouse movement at sensitivity 1. */
@@ -28,6 +30,7 @@ const MAX_STEPS_PER_FRAME = 10;
 const STANCE_CYCLE: Stance[] = ['stand', 'crouch', 'crawl'];
 /** Releasing the stance key within this many ms counts as a tap (cycle stance) rather than a hold (creep). */
 const LONG_PRESS_MS = 350;
+const SLOT_ACTIONS = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5'] as const;
 
 /**
  * The local player: samples input every fixed step, predicts movement with the shared
@@ -54,6 +57,10 @@ export class LocalPlayer {
 	private offset: Vec3 = [0, 0, 0];
 	private eye: number = MOVEMENT.stances.stand.eye;
 	private unsubscribe: () => void;
+	/** Hotbar slot chosen since the last sim step (sent once), or -1. */
+	private select = -1;
+	/** What the predicted simulation did since the last `drainEvents` (for instant feedback). */
+	private events: SimEvent[] = [];
 
 	constructor(
 		private input: InputMap,
@@ -64,7 +71,32 @@ export class LocalPlayer {
 			// Tap vs. long press is decided in `updateStanceKey` once we know how long it's held.
 			if (action === 'stance') this.stancePressedAt = performance.now();
 			if (action === 'headlamp') this.lamp = ((this.lamp + 1) % 3) as HeadlampMode;
+			const slot = SLOT_ACTIONS.indexOf(action as (typeof SLOT_ACTIONS)[number]);
+			if (slot >= 0) this.select = slot;
+			if (action === 'nextItem' || action === 'prevItem') {
+				this.select = this.cycle(action === 'nextItem' ? 1 : -1);
+			}
 		});
+	}
+
+	/** Next occupied hotbar slot in a direction (wrapping), from the pending or current one. */
+	private cycle(step: number): number {
+		const inv = this.state?.inventory;
+		if (!inv) return -1;
+		const n = inv.hotbar.length;
+		let i = this.select >= 0 ? this.select : inv.selected;
+		for (let k = 0; k < n; k++) {
+			i = (i + step + n) % n;
+			if (inv.hotbar[i]) return i;
+		}
+		return -1;
+	}
+
+	/** Predicted simulation events since the last call: shots, swings, reloads (local feedback). */
+	drainEvents(): SimEvent[] {
+		const out = this.events;
+		this.events = [];
+		return out;
 	}
 
 	/** Wanted stance and creep, for the HUD. */
@@ -166,7 +198,7 @@ export class LocalPlayer {
 			steps++;
 			const frame = this.sample(active);
 			this.previous = clonePlayerState(state);
-			stepPlayer(state, frame, world, DT);
+			stepPlayer(state, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, this.events);
 			this.pending.push(frame);
 			this.outbox.push(frame);
 		}
@@ -205,6 +237,12 @@ export class LocalPlayer {
 		this.unsubscribe();
 	}
 
+	private takeSelect(): number {
+		const slot = this.select;
+		this.select = -1;
+		return slot;
+	}
+
 	private sample(active: boolean): InputFrame {
 		const input = this.input;
 		const axis = (pos: boolean, neg: boolean) => (pos ? 1 : 0) - (neg ? 1 : 0);
@@ -222,6 +260,11 @@ export class LocalPlayer {
 			swimDown: active && input.isDown('swimDown'),
 			interact: active && input.isDown('interact'),
 			heal: active && input.isDown('heal'),
+			attack: active && input.isDown('attack'),
+			aim: active && input.isDown('aim'),
+			reload: active && input.isDown('reload'),
+			drop: active && input.isDown('drop'),
+			select: this.takeSelect(),
 			stance: this.stance,
 			headlamp: this.lamp
 		};

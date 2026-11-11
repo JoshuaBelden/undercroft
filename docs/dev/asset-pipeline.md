@@ -103,6 +103,16 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 
 On the client, `loadCreature` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
 
+### Item models
+
+Weapons, ammo and consumables are built by `scripts/blender/items.py` in the kit .blend, each in its own `item-<id>` collection under a root empty. As with pieces, building skips existing collections, so hand edits are kept.
+
+- **Origin:** at the grip.
+- **Orientation:** forward is +Y (the barrel or blade), up is +Z.
+- **Materials:** plain PBR colours, no textures.
+
+`items.export_all()` writes `art/export/items/<id>.glb`. `pnpm asset:build` dedups, welds and prunes each one into `static/assets/items/<id>.glb` (a few KB each). See [items.md](items.md).
+
 ## Audio
 
 Raw recordings go in `art/sfx/` (gitignored), named as downloaded. `pnpm asset:audio` (`scripts/build-audio.ts`) builds the entries listed in `scripts/audio.config.ts`:

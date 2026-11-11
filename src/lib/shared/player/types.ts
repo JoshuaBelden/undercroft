@@ -16,6 +16,8 @@ export interface PlayerFlags {
 	infiniteBattery: boolean;
 	/** No sanity loss (admin). */
 	godMode: boolean;
+	/** Firing doesn't use rounds (admin). */
+	infiniteAmmo: boolean;
 }
 
 /** An in-progress climb onto a ledge. Position follows a fixed path; input is ignored. */
@@ -73,14 +75,60 @@ export interface PlayerState {
 	downedTime: number;
 	/** Bled out: the server removes the player from the expedition. */
 	dead: boolean;
-	/** Starting kit until the inventory exists. */
-	salts: number;
-	bandages: number;
+	/** What the player carries (see docs/dev/items.md). */
+	inventory: Inventory;
+	/** The held item's action in progress (swing, shot, reload...). */
+	weapon: WeaponState;
 	/** Seconds spent applying a bandage (resets if interrupted). */
 	bandaging: number;
 	/** Seconds spent reviving a downed teammate (server-driven). */
 	reviving: number;
 }
+
+/** One hotbar slot's contents. */
+export interface ItemStack {
+	/** Key into ITEMS. */
+	item: string;
+	count: number;
+	/** Rounds in a firearm. */
+	loaded?: number;
+	/** Hits taken by a breakable melee item. */
+	uses?: number;
+}
+
+export interface Inventory {
+	/** Held items (weapons, bricks): one per slot. */
+	hotbar: (ItemStack | null)[];
+	/** Hotbar index in hand. */
+	selected: number;
+	/** Counted items: ammo, bandages, salts. Item id -> count. */
+	pockets: Record<string, number>;
+}
+
+export type WeaponAction = 'none' | 'equip' | 'swing' | 'shot' | 'reload' | 'throw';
+
+export interface WeaponState {
+	action: WeaponAction;
+	/** Seconds into the current action. */
+	time: number;
+	/** The action's moment (hit, release) has happened. */
+	done: boolean;
+	/** Holding aim with a firearm: slower, tighter spread. */
+	aiming: boolean;
+	/** Shots fired so far: seeds pellet spread, so server and client agree. */
+	shots: number;
+	/** Previous frame's buttons, for press edges. */
+	prev: { attack: boolean; aim: boolean; reload: boolean; drop: boolean };
+}
+
+/** Something the simulation did that the server resolves (hits, noise) and clients show. */
+export type SimEvent =
+	| { kind: 'swing'; item: string; origin: Vec3; direction: Vec3 }
+	| { kind: 'shot'; item: string; origin: Vec3; direction: Vec3; seed: number; aimed: boolean }
+	| { kind: 'throw'; item: string; origin: Vec3; direction: Vec3; stack: ItemStack }
+	| { kind: 'drop'; origin: Vec3; direction: Vec3; stack: ItemStack }
+	| { kind: 'reloaded'; item: string }
+	| { kind: 'empty'; item: string };
 
 /** One fixed simulation step of player input (1 / SIM_RATE seconds). */
 export interface InputFrame {
@@ -101,6 +149,15 @@ export interface InputFrame {
 	interact: boolean;
 	/** Use a bandage (held). */
 	heal: boolean;
+	/** Swing or fire (held; firearms fire once per press). */
+	attack: boolean;
+	/** Aim a firearm (held); throw a throwable (press). */
+	aim: boolean;
+	reload: boolean;
+	/** Drop the held item (press). */
+	drop: boolean;
+	/** Hotbar slot to switch to this frame, or -1. */
+	select: number;
 	stance: Stance;
 	headlamp: HeadlampMode;
 }

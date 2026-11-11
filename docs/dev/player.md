@@ -153,6 +153,10 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
   - All of it plays on the ambience bus, so the Ambience volume slider controls it. All of them now use recordings; the synthesized versions remain as fallbacks.
 - **Sneaking** plays no footsteps.
 
+## Items
+
+`PlayerState` carries `inventory` (hotbar, selected slot, pockets) and `weapon` (the held item's action). `InputFrame` has `attack`, `aim`, `reload`, `drop` and `select`. `stepPlayer` advances the held item with `stepWeapon` and can collect `SimEvent`s for the server to resolve. Aiming a firearm caps speed at `aimSpeed` and blocks sprinting. All of it is described in [items.md](items.md).
+
 ## Sanity
 
 Sanity is health (0 to `SANITY.max`). All tuning lives in `SANITY` (`src/lib/content/player/sanity.ts`).
@@ -170,7 +174,7 @@ At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed p
 
 **Bandages:** hold `heal` standing still with a bandage and less than full sanity. `bandaging` counts up in the shared step (so it predicts), and at `bandageSeconds` one bandage is used for `bandageHeal`. Moving or letting go resets it.
 
-Until the inventory exists (Phase 4), each player starts with `startingSalts` and `startingBandages`.
+Bandages and smelling salts are pocket items in the inventory (see [items.md](items.md)); the starting kit is `STARTING_LOADOUT`.
 
 **Client:**
 

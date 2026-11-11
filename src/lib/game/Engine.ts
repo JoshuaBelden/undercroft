@@ -27,6 +27,12 @@ export class Engine {
 	readonly renderer: THREE.WebGLRenderer;
 	readonly scene = new THREE.Scene();
 	readonly camera: THREE.PerspectiveCamera;
+	/**
+	 * First-person viewmodel (the held item): its own scene and camera, drawn after the world
+	 * with the depth buffer cleared, so it never clips into walls.
+	 */
+	readonly viewScene = new THREE.Scene();
+	readonly viewCamera = new THREE.PerspectiveCamera(60, 1, 0.01, 10);
 	private timer = new THREE.Timer();
 	private frameHandle = 0;
 	private updaters = new Set<(delta: number) => void>();
@@ -81,6 +87,12 @@ export class Engine {
 			const delta = Math.min(this.timer.getDelta(), 0.1);
 			for (const update of this.updaters) update(delta);
 			this.renderer.render(this.scene, this.camera);
+			if (this.viewScene.children.length) {
+				this.renderer.autoClear = false;
+				this.renderer.clearDepth();
+				this.renderer.render(this.viewScene, this.viewCamera);
+				this.renderer.autoClear = true;
+			}
 			this.trackStats(delta);
 		};
 		frame();
@@ -118,6 +130,8 @@ export class Engine {
 		this.renderer.setSize(width, height, false);
 		this.camera.aspect = width / height;
 		this.camera.updateProjectionMatrix();
+		this.viewCamera.aspect = width / height;
+		this.viewCamera.updateProjectionMatrix();
 	}
 
 	private trackStats(delta: number): void {

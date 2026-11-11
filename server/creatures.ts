@@ -18,7 +18,7 @@ import { Rng } from '../src/lib/shared/rng.ts';
  * players do. See docs/dev/creatures.md.
  */
 
-type Mode = 'idle' | 'hunt' | 'attack' | 'search';
+type Mode = 'idle' | 'hunt' | 'attack' | 'search' | 'dead';
 
 interface Creature {
 	id: string;
@@ -46,6 +46,19 @@ interface Creature {
 	stuck: number;
 	/** Seconds it has been (nearly) motionless. */
 	still: number;
+	health: number;
+	/** Seconds left reeling from a hard hit (no moving or attacking). */
+	staggered: number;
+	/** Seconds since it died. */
+	deadTime: number;
+}
+
+/** A creature's body for hit tests. */
+export interface CreatureBody {
+	id: string;
+	position: Vec3;
+	height: number;
+	radius: number;
 }
 
 /** A player as the director sees them. */
@@ -71,6 +84,8 @@ const EYE = 1.5;
 const STILL_TIME = 0.6;
 /** Swimmers aim this far above the floor point they're heading for. */
 const SWIM_AIM = 0.2;
+/** Noises are heard this far up or down (gunfire carries to the floor above and below). */
+const HEAR_HEIGHT = 5;
 
 export class CreatureDirector {
 	private creatures: Creature[] = [];
@@ -133,13 +148,105 @@ export class CreatureDirector {
 		this.add(def, position, yawTo(position, state.position));
 	}
 
-	/** Where each creature is (for sanity: seeing them). */
+	/** Where each living creature is (for sanity: seeing them). */
 	bodies(): { kind: string; position: Vec3 }[] {
-		return this.creatures.map((c) => ({ kind: c.def.id, position: c.body.position }));
+		return this.living().map((c) => ({ kind: c.def.id, position: c.body.position }));
 	}
+
+	/** Living creatures' hit capsules. */
+	hitBodies(): CreatureBody[] {
+		return this.living().map((c) => ({
+			id: c.id,
+			position: c.body.position,
+			height: c.def.height,
+			radius: c.def.hitRadius
+		}));
+	}
+
+	/** Creatures killed this expedition (feeds the Affliction meter). */
+	kills = 0;
 
 	clear(): void {
 		this.creatures = [];
+	}
+
+	/** Admin: kill every creature. */
+	killAll(): void {
+		for (const c of this.living()) this.kill(c);
+	}
+
+	/**
+	 * A player hurt a creature. A hard hit staggers it (cancelling an attack that hasn't landed);
+	 * any hit sets it on the attacker. Returns true if this killed it.
+	 */
+	damage(id: string, amount: number, from: Prey | null): boolean {
+		const c = this.creatures.find((x) => x.id === id);
+		if (!c || c.mode === 'dead') return false;
+		c.health -= amount;
+		if (c.health <= 0) {
+			this.kill(c);
+			return true;
+		}
+		if (amount >= c.def.stagger.threshold) {
+			c.staggered = c.def.stagger.seconds;
+			if (c.mode === 'attack' && !c.attackHit) {
+				c.mode = 'hunt';
+				c.cooldown = c.def.attack.cooldown * 0.5;
+			}
+		}
+		if (from && c.mode !== 'attack') {
+			c.mode = 'hunt';
+			c.target = from.id;
+			c.lastKnown = [...from.state.position];
+			c.unseen = 0;
+			c.path = [];
+			c.repath = 0;
+		}
+		return false;
+	}
+
+	/**
+	 * A noise at `position` heard within `radius` (on about the same floor). With a source player
+	 * (gunfire, a swing), creatures that hear it hunt them; without one (a brick landing), idle or
+	 * searching creatures go and search the spot.
+	 */
+	hear(position: Vec3, radius: number, source: Prey | null): void {
+		for (const c of this.living()) {
+			const b = c.body.position;
+			if (Math.abs(position[1] - b[1]) > HEAR_HEIGHT) continue;
+			if (Math.hypot(position[0] - b[0], position[1] - b[1], position[2] - b[2]) > radius) continue;
+			if (c.mode === 'attack') continue;
+			if (source) {
+				if (c.mode !== 'hunt' || c.target !== source.id) {
+					c.path = [];
+					c.repath = 0;
+				}
+				c.mode = 'hunt';
+				c.target = source.id;
+				c.lastKnown = [...source.state.position];
+				c.unseen = 0;
+			} else if (c.mode !== 'hunt') {
+				c.mode = 'search';
+				c.target = null;
+				c.lastKnown = [...position];
+				c.searchLeft = c.def.searchTime;
+				c.path = [];
+				c.repath = 0;
+			}
+		}
+	}
+
+	private living(): Creature[] {
+		return this.creatures.filter((c) => c.mode !== 'dead');
+	}
+
+	private kill(c: Creature): void {
+		c.mode = 'dead';
+		c.deadTime = 0;
+		c.target = null;
+		c.path = [];
+		c.body.velocity = [0, c.body.velocity[1], 0];
+		this.kills++;
 	}
 
 	/** Advance every creature by one server tick. Returns the hits that landed. */
@@ -147,8 +254,20 @@ export class CreatureDirector {
 		const hits: CreatureHit[] = [];
 		const targets = prey.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
 		for (const c of this.creatures) {
+			if (c.mode === 'dead') {
+				c.deadTime += TICK_DT;
+				this.move(c, null, false);
+				this.animate(c, false);
+				continue;
+			}
 			c.cooldown = Math.max(0, c.cooldown - TICK_DT);
 			this.perceive(c, targets);
+			if (c.staggered > 0) {
+				c.staggered -= TICK_DT;
+				this.move(c, null, false);
+				this.animate(c, false);
+				continue;
+			}
 			const target = targets.find((p) => p.id === c.target) ?? null;
 			let move: Vec3 | null = null;
 			let sprint = false;
@@ -224,6 +343,9 @@ export class CreatureDirector {
 			this.move(c, move, sprint);
 			this.animate(c, sprint && move !== null);
 		}
+		this.creatures = this.creatures.filter(
+			(c) => c.mode !== 'dead' || c.deadTime < c.def.corpseTime
+		);
 		return hits;
 	}
 
@@ -265,7 +387,10 @@ export class CreatureDirector {
 			searchLeft: 0,
 			bestDistance: Infinity,
 			stuck: 0,
-			still: 0
+			still: 0,
+			health: def.health,
+			staggered: 0,
+			deadTime: 0
 		});
 	}
 
@@ -435,7 +560,8 @@ export class CreatureDirector {
 		const speed = Math.hypot(c.body.velocity[0], c.body.velocity[2]);
 		// Brief pauses (re-planning, turning at a waypoint) keep the walk going.
 		c.still = speed < 0.15 ? c.still + TICK_DT : 0;
-		if (c.mode === 'attack') anim = 'attack';
+		if (c.mode === 'dead') anim = 'die';
+		else if (c.mode === 'attack') anim = 'attack';
 		else if (c.mode === 'idle' || c.still > STILL_TIME) anim = 'idle';
 		else if (c.mode === 'search') anim = 'search';
 		else anim = bursting && speed > 2 ? 'burst' : 'stalk';

@@ -21,6 +21,8 @@ export class InputMap {
 		target.addEventListener('mouseup', this.onMouseUp);
 		target.addEventListener('blur', this.onBlur);
 		target.addEventListener('mousemove', this.onMouseMove);
+		target.addEventListener('wheel', this.onWheel, { passive: false });
+		target.addEventListener('contextmenu', this.onContextMenu);
 	}
 
 	/** True while any key bound to the action is held. */
@@ -49,6 +51,8 @@ export class InputMap {
 		this.target.removeEventListener('mouseup', this.onMouseUp);
 		this.target.removeEventListener('blur', this.onBlur);
 		this.target.removeEventListener('mousemove', this.onMouseMove);
+		this.target.removeEventListener('wheel', this.onWheel);
+		this.target.removeEventListener('contextmenu', this.onContextMenu);
 		this.listeners.clear();
 	}
 
@@ -84,6 +88,19 @@ export class InputMap {
 		if (!document.pointerLockElement) return;
 		this.look.x += event.movementX;
 		this.look.y += event.movementY;
+	};
+
+	/** The wheel only presses: it fires its actions but is never held. */
+	private onWheel = (event: WheelEvent): void => {
+		if (!document.pointerLockElement || event.deltaY === 0) return;
+		const code = event.deltaY < 0 ? 'WheelUp' : 'WheelDown';
+		this.press(code, event);
+		this.down.delete(code);
+	};
+
+	/** Right-click is a game button (aim) while playing. */
+	private onContextMenu = (event: MouseEvent): void => {
+		if (document.pointerLockElement) event.preventDefault();
 	};
 
 	private onBlur = (): void => {

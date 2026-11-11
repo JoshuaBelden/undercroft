@@ -20,6 +20,12 @@ import { generateLayout } from '../src/lib/shared/map/generate.ts';
 import { LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import { buildNav, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
+import { occupiedCells } from '../src/lib/shared/map/grid.ts';
+import { ITEMS } from '../src/lib/content/items.ts';
+import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
+import { addItem, allStacks, newStack, takePocket } from '../src/lib/shared/items/inventory.ts';
+import type { GameEvent } from '../src/lib/shared/items/types.ts';
+import { aimRay } from '../src/lib/shared/items/weapons.ts';
 import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
@@ -29,11 +35,13 @@ import {
 	sanitizeFrame,
 	stepPlayer
 } from '../src/lib/shared/player/simulate.ts';
-import type { InputFrame, PlayerState } from '../src/lib/shared/player/types.ts';
+import type { InputFrame, PlayerState, SimEvent } from '../src/lib/shared/player/types.ts';
 import { encode, type AdminCommand, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import { randomSeed } from '../src/lib/shared/rng.ts';
 import { config } from './config.ts';
+import { hurt as hurtCreature, resolve, type CombatContext } from './combat.ts';
 import { CreatureDirector } from './creatures.ts';
+import { WorldItems } from './items.ts';
 import { log } from './log.ts';
 
 interface Player {
@@ -84,13 +92,30 @@ export class Session {
 	private world: CollisionWorld = buildCollisionWorld(this.layout, PIECES);
 	private nav: NavGrid = this.buildNav();
 	private creatures = new CreatureDirector(this.world, this.nav, this.seed);
+	private items = new WorldItems(this.world);
+	/** Events this tick, broadcast with it. */
+	private events: GameEvent[] = [];
+	private dropped = new Set<string>();
 	private players = new Map<string, Player>();
 	private tick = 0;
 	private timer: NodeJS.Timeout | null = null;
 	private hadPlayers = false;
 
 	constructor() {
-		this.creatures.populate(spawnPoint(this.layout, PIECES).position);
+		this.populate();
+	}
+
+	/** Creatures and loose items for the current map. */
+	private populate(): void {
+		const start = spawnPoint(this.layout, PIECES).position;
+		this.creatures.populate(start);
+		const cells = new Set<string>();
+		for (const placement of this.layout.placements) {
+			const piece = PIECES[placement.piece];
+			if (!piece) continue;
+			for (const [x, z, level] of occupiedCells(piece, placement)) cells.add(`${x},${z},${level}`);
+		}
+		this.items.scatter(this.nav, this.seed, start, cells.size);
 	}
 
 	get playerCount(): number {
@@ -177,6 +202,29 @@ export class Session {
 			case 'clearCreatures':
 				this.creatures.clear();
 				break;
+			case 'killCreatures':
+				this.creatures.killAll();
+				break;
+			case 'infiniteAmmo':
+				player.state.flags.infiniteAmmo = command.enabled === true;
+				break;
+			case 'give': {
+				if (typeof command.item !== 'string' || !ITEMS[command.item]) return;
+				const count = Math.max(1, Math.min(99, Math.floor(Number(command.count) || 1)));
+				const def = ITEMS[command.item];
+				const stack = newStack(command.item, def.pocket ? count : 1, def.firearm?.magazine);
+				if (def.pocket) addItem(player.state.inventory, stack);
+				else for (let i = 0; i < count; i++) addItem(player.state.inventory, { ...stack });
+				break;
+			}
+			case 'refillAmmo':
+				for (const stack of player.state.inventory.hotbar) {
+					const gun = stack ? ITEMS[stack.item]?.firearm : undefined;
+					if (!stack || !gun) continue;
+					stack.loaded = gun.magazine;
+					addItem(player.state.inventory, newStack(gun.ammo, gun.magazine * 4));
+				}
+				break;
 			case 'setSanity': {
 				const value =
 					typeof command.value === 'number' && Number.isFinite(command.value)
@@ -211,7 +259,8 @@ export class Session {
 		this.world = buildCollisionWorld(this.layout, PIECES);
 		this.nav = this.buildNav();
 		this.creatures = new CreatureDirector(this.world, this.nav, seed);
-		this.creatures.populate(spawnPoint(this.layout, PIECES).position);
+		this.items = new WorldItems(this.world);
+		this.populate();
 		for (const player of this.players.values()) {
 			const flags = player.state.flags;
 			player.state = this.spawnState();
@@ -260,7 +309,11 @@ export class Session {
 			if (due - player.processed > MAX_BANKED) player.processed = due - MAX_BANKED;
 			while (player.processed < due && player.queue.length > 0 && !player.state.extracted) {
 				const frame = player.queue.shift() as InputFrame;
-				stepPlayer(player.state, frame, this.world, DT);
+				const pressedInteract = frame.interact && !player.lastInput?.interact;
+				const events: SimEvent[] = [];
+				stepPlayer(player.state, frame, this.world, DT, MOVEMENT, DEFAULT_HEADLAMP, events);
+				resolve(this.combat(), player, events);
+				if (pressedInteract) this.pickUp(player);
 				player.lastInput = frame;
 				player.ack = frame.seq;
 				player.processed++;
@@ -269,9 +322,15 @@ export class Session {
 			player.deepestLevel = Math.max(player.deepestLevel, level);
 		}
 		this.stepCreatures();
+		this.stepProjectiles();
 		this.stepSanity();
 		this.stepRevives();
 		for (const player of [...this.players.values()]) {
+			if (player.state.dead && !this.dropped.has(player.id)) {
+				// Everything they carried stays where they fell, for anyone to pick up.
+				this.dropped.add(player.id);
+				this.items.dropAll(allStacks(player.state.inventory), player.state.position);
+			}
 			if (!player.state.extracted && !player.state.dead) continue;
 			const result = {
 				seconds: Math.round((Date.now() - player.joinedAt) / 1000),
@@ -298,8 +357,43 @@ export class Session {
 			tick: this.tick,
 			serverTime: Date.now(),
 			players,
-			creatures: this.creatures.snapshots()
+			creatures: this.creatures.snapshots(),
+			items: this.items.snapshots(),
+			projectiles: this.items.projectileSnapshots(),
+			events: this.events
 		});
+		this.events = [];
+	}
+
+	private combat(): CombatContext {
+		return { world: this.world, creatures: this.creatures, items: this.items, out: this.events };
+	}
+
+	/** Interact pressed: pick up the item the player is looking at, if any. */
+	private pickUp(player: Player): void {
+		const s = player.state;
+		if (s.downed || s.dead || s.swimming) return;
+		const { origin, direction } = aimRay(s, eyeHeight(s));
+		const item = this.items.lookedAt(s, origin, direction);
+		if (!item) return;
+		const position: Vec3 = [...item.position];
+		const taken = this.items.pickUp(s, item);
+		if (taken) this.events.push({ kind: 'pickup', player: player.id, item: taken, position });
+	}
+
+	/** Thrown items: hit creatures, land, make noise. */
+	private stepProjectiles(): void {
+		const ctx = this.combat();
+		for (const result of this.items.stepProjectiles(this.creatures.hitBodies())) {
+			if (result.kind === 'hitCreature') {
+				const thrower = this.players.get(result.thrower);
+				hurtCreature(ctx, result.creature, result.damage, thrower ?? null);
+			} else {
+				this.events.push({ kind: 'land', item: result.item, position: result.position });
+				// No source: creatures go and look where it landed (a lure).
+				this.creatures.hear(result.position, result.noise, null);
+			}
+		}
 	}
 
 	private stepCreatures(): void {
@@ -363,7 +457,7 @@ export class Session {
 		for (const reviver of players) {
 			const s = reviver.state;
 			const patient =
-				!s.downed && !s.dead && s.salts > 0 && reviver.lastInput?.interact
+				!s.downed && !s.dead && (s.inventory.pockets.salts ?? 0) > 0 && reviver.lastInput?.interact
 					? players.find(
 							(p) =>
 								p !== reviver &&
@@ -383,16 +477,17 @@ export class Session {
 			s.reviving += TICK_DT;
 			if (s.reviving >= SANITY.reviveSeconds) {
 				s.reviving = 0;
-				s.salts--;
+				takePocket(s.inventory, 'salts', 1);
 				this.revive(patient);
 				log.info(`${reviver.name} revived ${patient.name}`);
 			}
 		}
 		for (const player of players) {
 			const s = player.state;
-			if (!s.downed || s.dead || s.salts <= 0 || s.downedTime < SELF_REVIVE_DELAY) continue;
+			if (!s.downed || s.dead || s.downedTime < SELF_REVIVE_DELAY) continue;
+			if ((s.inventory.pockets.salts ?? 0) <= 0) continue;
 			if (able.some((p) => p !== player)) continue;
-			s.salts--;
+			takePocket(s.inventory, 'salts', 1);
 			this.revive(player);
 		}
 	}

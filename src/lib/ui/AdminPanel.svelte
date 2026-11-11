@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ITEMS } from '#lib/content/items.ts';
 	import { devMode } from '#lib/dev.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import type { PlayerFlags } from '#lib/shared/player/types.ts';
@@ -39,16 +40,25 @@
 
 	let seedInput = $state('');
 	let sanityInput = $state('100');
+	let giveItem = $state('crowbar');
+	let giveCount = $state('1');
+	const itemIds = Object.keys(ITEMS);
 
 	const toggles: {
-		kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery' | 'godMode';
+		kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery' | 'godMode' | 'infiniteAmmo';
 		label: string;
 	}[] = [
 		{ kind: 'noclip', label: 'Noclip (fly through walls)' },
 		{ kind: 'infiniteStamina', label: 'Infinite stamina' },
 		{ kind: 'infiniteBattery', label: 'Infinite battery' },
-		{ kind: 'godMode', label: 'God mode (no sanity loss)' }
+		{ kind: 'godMode', label: 'God mode (no sanity loss)' },
+		{ kind: 'infiniteAmmo', label: 'Infinite ammo' }
 	];
+
+	function give(): void {
+		const count = Number(giveCount);
+		onadmin({ kind: 'give', item: giveItem, count: Number.isFinite(count) ? count : 1 });
+	}
 
 	function setSanity(): void {
 		const value = Number(sanityInput);
@@ -118,11 +128,26 @@
 			<button type="button" onclick={setSanity}>Set sanity</button>
 		</div>
 
+		<h3>Items</h3>
+		<div class="row">
+			<select bind:value={giveItem} aria-label="Item">
+				{#each itemIds as id (id)}
+					<option value={id}>{ITEMS[id].name}</option>
+				{/each}
+			</select>
+			<input type="text" inputmode="numeric" aria-label="Count" bind:value={giveCount} size="3" />
+			<button type="button" onclick={give}>Give</button>
+		</div>
+		<div class="row">
+			<button type="button" onclick={() => onadmin({ kind: 'refillAmmo' })}>Refill ammo</button>
+		</div>
+
 		<h3>Creatures</h3>
 		<div class="row">
 			<button type="button" onclick={() => onadmin({ kind: 'spawnCreature' })}
 				>Spawn in front</button
 			>
+			<button type="button" onclick={() => onadmin({ kind: 'killCreatures' })}>Kill all</button>
 			<button type="button" onclick={() => onadmin({ kind: 'clearCreatures' })}>Remove all</button>
 		</div>
 		<label class="row">

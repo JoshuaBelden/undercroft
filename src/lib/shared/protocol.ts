@@ -3,6 +3,7 @@
  * All messages are JSON with a `type` discriminator.
  */
 import type { CreatureSnapshot } from './creature/types.ts';
+import type { GameEvent, ProjectileSnapshot, WorldItemSnapshot } from './items/types.ts';
 import type { MapLayout } from './map/types.ts';
 import type { InputFrame, PlayerSnapshot } from './player/types.ts';
 
@@ -17,7 +18,15 @@ export type ClientMessage =
 	| { type: 'descend' };
 
 export type AdminCommand =
-	| { kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery' | 'godMode'; enabled: boolean }
+	| {
+			kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery' | 'godMode' | 'infiniteAmmo';
+			enabled: boolean;
+	  }
+	/** Put an item in your inventory (firearms come loaded). */
+	| { kind: 'give'; item: string; count: number }
+	/** Fill your guns and add spare ammo. */
+	| { kind: 'refillAmmo' }
+	| { kind: 'killCreatures' }
 	/** Put a creature a few metres in front of you. */
 	| { kind: 'spawnCreature' }
 	| { kind: 'clearCreatures' }
@@ -44,6 +53,12 @@ export type ServerMessage =
 			serverTime: number;
 			players: PlayerSnapshot[];
 			creatures: CreatureSnapshot[];
+			/** Items lying in the map. */
+			items: WorldItemSnapshot[];
+			/** Thrown items in flight. */
+			projectiles: ProjectileSnapshot[];
+			/** What happened this tick (shots, hits, pickups...). */
+			events: GameEvent[];
 	  }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }

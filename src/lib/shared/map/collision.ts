@@ -315,10 +315,14 @@ export function findMantle(
 	return null;
 }
 
-/** True if the segment a->b passes through any collision box (line of sight / light occlusion). */
-export function segmentBlocked(world: CollisionWorld, a: Vec3, b: Vec3): boolean {
+/**
+ * Fraction (0..1) along the segment a->b where it first enters a collision box, or null if it
+ * passes through nothing.
+ */
+export function segmentHit(world: CollisionWorld, a: Vec3, b: Vec3): number | null {
 	const lo: Vec3 = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.min(a[2], b[2])];
 	const hi: Vec3 = [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.max(a[2], b[2])];
+	let nearest: number | null = null;
 	for (const box of boxesNear(world, lo, hi)) {
 		// Slab test in the box's local frame.
 		let t0 = 0;
@@ -344,9 +348,41 @@ export function segmentBlocked(world: CollisionWorld, a: Vec3, b: Vec3): boolean
 			t1 = Math.min(t1, e1);
 			if (t0 > t1) hit = false;
 		}
-		if (hit) return true;
+		if (hit && (nearest === null || t0 < nearest)) nearest = t0;
 	}
-	return false;
+	return nearest;
+}
+
+/** True if the segment a->b passes through any collision box (line of sight / light occlusion). */
+export function segmentBlocked(world: CollisionWorld, a: Vec3, b: Vec3): boolean {
+	return segmentHit(world, a, b) !== null;
+}
+
+/**
+ * Distance along a ray (unit `direction`) to a vertical capsule standing at `base`, or null if
+ * it misses within `maxDistance`. Used for shots against creatures.
+ */
+export function rayVsCapsule(
+	origin: Vec3,
+	direction: Vec3,
+	maxDistance: number,
+	base: Vec3,
+	height: number,
+	radius: number
+): number | null {
+	// Closest approach between the ray and the capsule's axis segment, sampled finely enough for
+	// gameplay: step along the ray and test the distance to the axis.
+	const bottom = base[1] + radius;
+	const top = base[1] + Math.max(radius, height - radius);
+	const step = radius * 0.5;
+	for (let t = 0; t <= maxDistance; t += step) {
+		const x = origin[0] + direction[0] * t;
+		const y = origin[1] + direction[1] * t;
+		const z = origin[2] + direction[2] * t;
+		const cy = Math.max(bottom, Math.min(top, y));
+		if (Math.hypot(x - base[0], y - cy, z - base[2]) <= radius) return t;
+	}
+	return null;
 }
 
 /**

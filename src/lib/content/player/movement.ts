@@ -25,6 +25,8 @@ export interface MovementTuning {
 	sprintStride: number;
 	/** Speed cap while sneaking (silent footsteps). */
 	sneakSpeed: number;
+	/** Speed cap while aiming a firearm. */
+	aimSpeed: number;
 	/** Speed multiplier while wading. */
 	wadeSpeed: number;
 	/** Speed cap inside a squeeze (vol-squeeze-* volumes); sprinting is impossible there. */
@@ -87,6 +89,7 @@ export const MOVEMENT: MovementTuning = {
 	sprintSpeed: 4.2,
 	sprintStride: 1.05,
 	sneakSpeed: 1.0,
+	aimSpeed: 1.4,
 	wadeSpeed: 0.55,
 	squeezeSpeed: 0.7,
 	swim: {

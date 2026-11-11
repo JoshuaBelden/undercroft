@@ -23,6 +23,12 @@
 		salts: number;
 		/** Changes each time the player is hit (restarts the flash). */
 		hurt: number;
+		/** Hotbar slots: item name (null = empty) and the key that selects it. */
+		hotbar: { name: string | null; key: string }[];
+		selected: number;
+		/** Held firearm's rounds: loaded and spare; null when not holding one. */
+		ammo: { loaded: number; spare: number } | null;
+		aiming: boolean;
 	}
 
 	let {
@@ -38,7 +44,11 @@
 		sanity,
 		bandages,
 		salts,
-		hurt
+		hurt,
+		hotbar,
+		selected,
+		ammo,
+		aiming
 	}: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
@@ -59,7 +69,23 @@
 	{/key}
 {/if}
 
-<div class="crosshair" aria-hidden="true"></div>
+<div class="crosshair" class:aiming aria-hidden="true"></div>
+
+<div class="hotbar" aria-label="Items">
+	{#each hotbar as slot, i (i)}
+		<div class="slot" class:selected={i === selected} class:empty={!slot.name}>
+			<span class="key">{slot.key}</span>
+			<span class="name">{slot.name ?? ''}</span>
+		</div>
+	{/each}
+</div>
+
+{#if ammo}
+	<div class="ammo" class:dry={ammo.loaded === 0} aria-label="Ammunition">
+		<span class="loaded">{ammo.loaded}</span>
+		<span class="spare">| {ammo.spare}</span>
+	</div>
+{/if}
 
 {#if prompt}
 	<div class="prompt">
@@ -187,6 +213,87 @@
 		text-transform: uppercase;
 		color: var(--muted);
 		pointer-events: none;
+	}
+
+	.hotbar {
+		position: fixed;
+		left: 50%;
+		bottom: 72px;
+		transform: translateX(-50%);
+		display: flex;
+		gap: 4px;
+		pointer-events: none;
+	}
+
+	.slot {
+		position: relative;
+		width: 76px;
+		height: 30px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid rgb(255 255 255 / 0.12);
+		background: rgb(0 0 0 / 0.35);
+		font:
+			10px ui-monospace,
+			monospace;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+
+	.slot.selected {
+		border-color: rgb(230 220 203 / 0.6);
+		color: #efe6d6;
+	}
+
+	.slot.empty {
+		opacity: 0.45;
+	}
+
+	.slot .key {
+		position: absolute;
+		left: 4px;
+		top: 2px;
+		font-size: 8px;
+		opacity: 0.7;
+	}
+
+	.slot .name {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 66px;
+	}
+
+	.ammo {
+		position: fixed;
+		right: 16px;
+		bottom: 54px;
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		font:
+			11px ui-monospace,
+			monospace;
+		color: var(--muted);
+		pointer-events: none;
+	}
+
+	.ammo .loaded {
+		font-size: 20px;
+		color: #efe6d6;
+	}
+
+	.ammo.dry .loaded {
+		color: rgb(200 90 70 / 0.9);
+	}
+
+	.crosshair.aiming {
+		width: 2px;
+		height: 2px;
+		margin: -1px 0 0 -1px;
+		background: rgb(255 255 255 / 0.6);
 	}
 
 	.crosshair {

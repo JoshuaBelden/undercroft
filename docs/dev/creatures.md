@@ -25,7 +25,8 @@ Each `CreatureDef` in `CREATURES` holds:
 - `attack`: range, wind-up (when the hit lands), duration, damage, cooldown;
 - `perception`: hearing radius per player movement, `lampSight`, `touch`, `forget`;
 - `visibleBand`: the half-light band;
-- `spawn`: how many per expedition and their minimum distance (along the grid) from the start.
+- `spawn`: how many per expedition and their minimum distance (along the grid) from the start;
+- `health`, `stagger` (threshold and seconds), `hitRadius` and `corpseTime` (see Damage and death).
 
 The witch's attack clip is stretched on the client to `attack.duration`, so the strike lines up with `windup` on the server.
 
@@ -61,6 +62,25 @@ Perception, checked every tick for players who aren't downed, dead or extracted:
 It keeps the closest player it perceives.
 
 Movement runs `stepPlayer` with the creature's tuning: 3 sim steps per server tick, the same collision, stairs, step-ups, water and squeezes as players. The body is a `PlayerState` with no lamp and infinite stamina.
+
+## Damage and death
+
+Players hurt creatures through `CreatureDirector.damage(id, amount, from)`, called by `server/combat.ts` (see [items.md](items.md)):
+
+- Health drops by the amount. At zero the creature dies: mode `dead`, animation `die` (the witch has no death clip yet, so `Arise` plays backwards). It's removed after `corpseTime`, and the client fades it out over the last 1.5 s. Kills are counted in `kills` (for the Affliction meter).
+- A hit of at least `stagger.threshold` staggers it for `stagger.seconds` (no moving or attacking) and cancels an attack whose hit hasn't landed yet.
+- Any hit turns it on the attacker.
+
+Hit tests use `hitBodies()`: a vertical capsule of `height` and `hitRadius` per living creature.
+
+## Noise
+
+`hear(position, radius, source)` is called for gunfire, melee impacts and thrown items landing. Every living creature within `radius` and 5 m up or down (gunfire carries to the floors above and below) reacts:
+
+- **With a source player** (they made the noise): it hunts them.
+- **Without one** (a brick landing): an idle or searching creature goes and searches the spot. That's how lures work.
+
+This is on top of perception (below), which only covers the player's own movement.
 
 ## Half-light
 

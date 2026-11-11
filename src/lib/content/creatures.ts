@@ -7,7 +7,7 @@ import { MOVEMENT } from './player/movement.ts';
  */
 
 /** Animation states a creature can be in; the client maps each to a clip. */
-export type CreatureAnim = 'idle' | 'stalk' | 'burst' | 'search' | 'attack';
+export type CreatureAnim = 'idle' | 'stalk' | 'burst' | 'search' | 'attack' | 'die';
 
 export interface CreatureDef {
 	id: string;
@@ -55,6 +55,13 @@ export interface CreatureDef {
 		/** Seconds without perceiving the target before giving up. */
 		forget: number;
 	};
+	health: number;
+	/** A hit at least this hard staggers it: an attack not yet landed is cancelled. */
+	stagger: { threshold: number; seconds: number };
+	/** Body radius for hits (m). */
+	hitRadius: number;
+	/** Seconds a dead creature stays before it's removed. */
+	corpseTime: number;
 	/** Half-light: visible only when the light on it is within this band (0..1 lamp units). */
 	visibleBand: [number, number];
 	/** How many spawn per expedition, and how far (m, along the nav grid) from the start. */
@@ -72,7 +79,9 @@ export const CREATURES: Record<string, CreatureDef> = {
 			stalk: { clip: 'Cautious_Crouch_Walk_Forward_inplace', speed: 0.9, loop: true },
 			burst: { clip: 'run_fast_9', speed: 1.2, loop: true },
 			search: { clip: 'Walking', speed: 0.8, loop: true },
-			attack: { clip: 'Attack', speed: 1.6, loop: false }
+			attack: { clip: 'Attack', speed: 1.6, loop: false },
+			// No death clip yet: it sinks back down (Arise backwards). Negative speed plays in reverse.
+			die: { clip: 'Arise', speed: -1.4, loop: false }
 		},
 		idlePose: 'Arise',
 		movement: {
@@ -94,6 +103,10 @@ export const CREATURES: Record<string, CreatureDef> = {
 			touch: 2.5,
 			forget: 12
 		},
+		health: 120,
+		stagger: { threshold: 20, seconds: 0.5 },
+		hitRadius: 0.35,
+		corpseTime: 4,
 		visibleBand: [0.04, 0.45],
 		spawn: { count: [1, 2], minDistance: 25 }
 	}

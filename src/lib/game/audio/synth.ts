@@ -299,6 +299,89 @@ function whisper(ctx: BaseAudioContext): AudioBuffer {
 	});
 }
 
+function gunshot(ctx: BaseAudioContext, boom: number, length: number, bright: number): AudioBuffer {
+	const rand = noise(107);
+	const a = lowpass(bright, ctx.sampleRate);
+	const lo = lowpass(300, ctx.sampleRate);
+	let y = 0;
+	let z = 0;
+	let phase = 0;
+	const b = buffer(ctx, length, (t) => {
+		const n = rand();
+		y += a * (n - y);
+		z += lo * (n - z);
+		phase += (2 * Math.PI * boom * Math.exp(-t * 3)) / ctx.sampleRate;
+		const crack = Math.exp(-t / 0.012) * n * 1.4;
+		const body = Math.exp(-t / 0.09) * y * 2.2;
+		const thump = Math.exp(-t / 0.18) * Math.sin(phase) * 1.2;
+		// Long, rumbling tail: the shot rolling down the passages.
+		const tail = Math.exp(-t / (length * 0.35)) * z * 3;
+		return crack + body + thump + tail;
+	});
+	return echo(b, 0.19, 0.4, 3);
+}
+
+function whoosh(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(109);
+	let y = 0;
+	return buffer(ctx, 0.3, (t) => {
+		// A band of noise sweeping up then down.
+		const cutoff = 400 + 2600 * Math.sin((t / 0.3) * Math.PI);
+		y += lowpass(cutoff, ctx.sampleRate) * (rand() - y);
+		return y * Math.sin((t / 0.3) * Math.PI) * 1.6;
+	});
+}
+
+function thud(ctx: BaseAudioContext, cutoff: number): AudioBuffer {
+	const rand = noise(113);
+	const a = lowpass(cutoff, ctx.sampleRate);
+	let y = 0;
+	return buffer(ctx, 0.35, (t) => {
+		y += a * (rand() - y);
+		return (y * 2.5 + Math.sin(2 * Math.PI * 80 * t) * 0.6) * Math.exp(-t / 0.05);
+	});
+}
+
+function crack(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(127);
+	const a = lowpass(3000, ctx.sampleRate);
+	let y = 0;
+	// A sharp snap, then pieces falling.
+	const hits = [0, 0.09, 0.16, 0.27, 0.35];
+	return buffer(ctx, 0.7, (t) => {
+		y += a * (rand() - y);
+		let env = 0;
+		for (const h of hits) if (t >= h) env += Math.exp(-(t - h) / 0.025) * (1 - h * 1.8);
+		return y * env * 1.8;
+	});
+}
+
+function reload(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(131);
+	const clicks = [0.05, 0.38, 0.62, 0.86, 1.1, 1.6];
+	return buffer(ctx, 1.8, (t) => {
+		let v = 0;
+		for (const c of clicks) {
+			if (t >= c) {
+				const k = t - c;
+				v += (Math.sin(2 * Math.PI * 2400 * k) * 0.5 + rand() * 0.6) * Math.exp(-k / 0.008);
+			}
+		}
+		return v;
+	});
+}
+
+function rustle(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(137);
+	const a = lowpass(2500, ctx.sampleRate);
+	let y = 0;
+	return buffer(ctx, 0.35, (t) => {
+		y += a * (rand() - y);
+		const grains = Math.max(0, Math.sin(t * 70 + Math.sin(t * 23) * 3));
+		return y * grains * Math.sin((t / 0.35) * Math.PI) * 1.5;
+	});
+}
+
 export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer {
 	switch (spec.kind) {
 		case 'footstep':
@@ -335,5 +418,17 @@ export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer 
 			return heartbeat(ctx, spec.period);
 		case 'whisper':
 			return whisper(ctx);
+		case 'gunshot':
+			return gunshot(ctx, spec.boom, spec.length, spec.bright);
+		case 'whoosh':
+			return whoosh(ctx);
+		case 'thud':
+			return thud(ctx, spec.cutoff);
+		case 'crack':
+			return crack(ctx);
+		case 'reload':
+			return reload(ctx);
+		case 'rustle':
+			return rustle(ctx);
 	}
 }

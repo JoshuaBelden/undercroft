@@ -12,8 +12,10 @@ import {
 	waterSurface,
 	type CollisionWorld
 } from '../map/collision.ts';
+import { cloneInventory, startingInventory, takePocket } from '../items/inventory.ts';
+import { idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
-import type { InputFrame, PlayerState, Stance } from './types.ts';
+import type { InputFrame, PlayerState, SimEvent, Stance } from './types.ts';
 
 /**
  * The player simulation. A pure, fixed-step function run by the server (authoritative) and by
@@ -41,7 +43,13 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		headlamp: 1,
 		battery: 1,
 		lampClock: 0,
-		flags: { noclip: false, infiniteStamina: false, infiniteBattery: false, godMode: false },
+		flags: {
+			noclip: false,
+			infiniteStamina: false,
+			infiniteBattery: false,
+			godMode: false,
+			infiniteAmmo: false
+		},
 		swimming: false,
 		wading: false,
 		underwater: false,
@@ -54,8 +62,8 @@ export function createPlayerState(position: Vec3, yaw: number): PlayerState {
 		downed: false,
 		downedTime: 0,
 		dead: false,
-		salts: SANITY.startingSalts,
-		bandages: SANITY.startingBandages,
+		inventory: startingInventory(),
+		weapon: idleWeapon(),
 		bandaging: 0,
 		reviving: 0
 	};
@@ -67,7 +75,9 @@ export function clonePlayerState(s: PlayerState): PlayerState {
 		position: [...s.position],
 		velocity: [...s.velocity],
 		flags: { ...s.flags },
-		mantle: s.mantle ? { ...s.mantle, from: [...s.mantle.from], to: [...s.mantle.to] } : null
+		mantle: s.mantle ? { ...s.mantle, from: [...s.mantle.from], to: [...s.mantle.to] } : null,
+		inventory: cloneInventory(s.inventory),
+		weapon: { ...s.weapon, prev: { ...s.weapon.prev } }
 	};
 }
 
@@ -85,6 +95,11 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		swimDown: false,
 		interact: false,
 		heal: false,
+		attack: false,
+		aim: false,
+		reload: false,
+		drop: false,
+		select: -1,
 		stance: s.stance,
 		headlamp: s.headlamp
 	};
@@ -121,6 +136,11 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		swimDown: f.swimDown === true,
 		interact: f.interact === true,
 		heal: f.heal === true,
+		attack: f.attack === true,
+		aim: f.aim === true,
+		reload: f.reload === true,
+		drop: f.drop === true,
+		select: typeof f.select === 'number' && Number.isInteger(f.select) ? f.select : -1,
 		stance,
 		headlamp: lamp
 	};
@@ -133,7 +153,9 @@ export function stepPlayer(
 	world: CollisionWorld,
 	dt: number,
 	t: MovementTuning = MOVEMENT,
-	lamp: HeadlampModel = DEFAULT_HEADLAMP
+	lamp: HeadlampModel = DEFAULT_HEADLAMP,
+	/** Collects what happened this step (shots, swings...); the server resolves them. */
+	events?: SimEvent[]
 ): PlayerState {
 	s.yaw = input.yaw;
 	s.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, input.pitch));
@@ -142,6 +164,7 @@ export function stepPlayer(
 
 	if (s.dead) return s;
 	if (s.downed) {
+		stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
 		stepDowned(s, world, dt, t);
 		updateBattery(s, dt, lamp);
 		return s;
@@ -149,6 +172,7 @@ export function stepPlayer(
 
 	if (s.mantle) {
 		advanceMantle(s, dt);
+		stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
 		s.extracting = 0;
 		updateStamina(s, false, false, dt, t);
 		updateBattery(s, dt, lamp);
@@ -182,7 +206,8 @@ export function stepPlayer(
 		moving &&
 		input.moveZ > 0 &&
 		(s.stance === 'stand' || s.swimming) &&
-		!s.exhausted;
+		!s.exhausted &&
+		!s.weapon.aiming;
 
 	if (s.flags.noclip) {
 		const speed = t.noclipSpeed * (input.sprint ? 2 : 1);
@@ -199,6 +224,7 @@ export function stepPlayer(
 		swim(s, input, world, dt, t, surface, sprinting);
 	} else {
 		let speed = sprinting ? t.sprintSpeed : t.stances[s.stance].speed;
+		if (s.weapon.aiming) speed = Math.min(speed, t.aimSpeed);
 		if (input.sneak) speed = Math.min(speed, t.sneakSpeed);
 		if (s.squeezing) speed = Math.min(speed, t.squeezeSpeed);
 		if (s.wading) speed *= t.wadeSpeed;
@@ -225,9 +251,12 @@ export function stepPlayer(
 	s.underwater = surface !== null && s.position[1] + eyeHeight(s, t) < surface;
 	updateExtraction(s, input, world, moving, dt);
 	updateBandage(s, input, moving);
+	const able =
+		!s.swimming && !s.mantle && s.stance !== 'crawl' && s.bandaging === 0 && s.reviving === 0;
+	stepWeapon(s, input, dt, able, eyeHeight(s, t), events);
 	if (s.bandaging > 0) s.bandaging += dt;
 	if (s.bandaging >= SANITY.bandageSeconds) {
-		s.bandages--;
+		takePocket(s.inventory, 'bandage', 1);
 		s.sanity = Math.min(SANITY.max, s.sanity + SANITY.bandageHeal);
 		s.bandaging = 0;
 	}
@@ -253,7 +282,12 @@ function stepDowned(s: PlayerState, world: CollisionWorld, dt: number, t: Moveme
 /** Start or interrupt applying a bandage (hold heal, standing still, with a bandage, hurt). */
 function updateBandage(s: PlayerState, input: InputFrame, moving: boolean): void {
 	const ready =
-		input.heal && !moving && s.grounded && !s.swimming && s.bandages > 0 && s.sanity < SANITY.max;
+		input.heal &&
+		!moving &&
+		s.grounded &&
+		!s.swimming &&
+		(s.inventory.pockets.bandage ?? 0) > 0 &&
+		s.sanity < SANITY.max;
 	if (!ready) s.bandaging = 0;
 	else if (s.bandaging === 0) s.bandaging = 1e-6;
 }

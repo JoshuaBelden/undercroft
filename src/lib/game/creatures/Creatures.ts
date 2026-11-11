@@ -23,6 +23,8 @@ interface Entry {
 	opacity: number;
 	marker: THREE.Mesh;
 	stepTimer: number;
+	/** 0..1, set to 1 on a hit and eased out: a jolt backwards. */
+	flinch: number;
 }
 
 /** Seconds between creature footstep sounds per animation state (none while still). */
@@ -34,6 +36,8 @@ const STEP_INTERVAL: Partial<Record<CreatureAnim, number>> = {
 const FADE_IN = 10;
 const FADE_OUT = 5;
 const CROSSFADE = 0.25;
+/** Seconds a dead creature takes to fade out before the server removes it. */
+const CORPSE_FADE = 1.5;
 
 /**
  * Creatures, drawn from server snapshots. Each one is visible only in half-light, computed here
@@ -100,6 +104,12 @@ export class Creatures {
 			let dyaw = entry.yaw - root.rotation.y;
 			dyaw = Math.atan2(Math.sin(dyaw), Math.cos(dyaw));
 			root.rotation.y += dyaw * t;
+			// A hit jolts it back for a moment.
+			entry.flinch = Math.max(0, entry.flinch - delta * 5);
+			if (entry.model) {
+				entry.model.position.z = -entry.flinch * 0.12;
+				entry.model.rotation.x = -entry.flinch * 0.2;
+			}
 
 			const position: [number, number, number] = [
 				root.position.x,
@@ -107,7 +117,9 @@ export class Creatures {
 				root.position.z
 			];
 			const light = creatureLight(world, lamps, position, entry.def.height);
-			const visible = halfLightVisible(light, entry.def.visibleBand);
+			// The dead fade away before they're removed.
+			const fading = entry.anim === 'die' && entry.animTime > entry.def.corpseTime - CORPSE_FADE;
+			const visible = !fading && halfLightVisible(light, entry.def.visibleBand);
 			const rate = visible ? FADE_IN : FADE_OUT;
 			entry.opacity += ((visible ? 1 : 0) - entry.opacity) * Math.min(1, delta * rate);
 			if (entry.opacity < 0.02) entry.opacity = 0;
@@ -151,7 +163,8 @@ export class Creatures {
 			yaw: snap.yaw,
 			opacity: 0,
 			marker,
-			stepTimer: 0
+			stepTimer: 0,
+			flinch: 0
 		};
 		void loadCreature(def.model).then(({ scene, clips }) => {
 			if (!root.parent) return;
@@ -204,6 +217,10 @@ export class Creatures {
 			// Idle holds the last frame of its clip (standing still).
 			next.time = next.getClip().duration;
 			next.paused = true;
+		} else if (next.timeScale < 0) {
+			// Played backwards: start from the end.
+			const duration = next.getClip().duration;
+			next.time = Math.max(0, duration + entry.animTime * next.timeScale);
 		} else {
 			next.time = Math.min(entry.animTime * next.timeScale, next.getClip().duration);
 		}
@@ -224,6 +241,12 @@ export class Creatures {
 			material.opacity = entry.opacity;
 			material.depthWrite = solid;
 		}
+	}
+
+	/** A creature was hit: flinch. */
+	hit(id: string): void {
+		const entry = this.entries.get(id);
+		if (entry) entry.flinch = 1;
 	}
 
 	private onAnim(entry: Entry, anim: CreatureAnim): void {

@@ -39,7 +39,19 @@ export type SynthSpec =
 	/** Heartbeat loop: lub-dub every `period` seconds. */
 	| { kind: 'heartbeat'; period: number }
 	/** Unintelligible breathy whisper. */
-	| { kind: 'whisper' };
+	| { kind: 'whisper' }
+	/** Gunshot: sharp crack, low boom at `boom` Hz, long tail. `length` seconds. */
+	| { kind: 'gunshot'; boom: number; length: number; bright: number }
+	/** Air moving past (a swing, a throw). */
+	| { kind: 'whoosh' }
+	/** Blunt impact; low `cutoff` (Hz) is soft and fleshy, high is hard. */
+	| { kind: 'thud'; cutoff: number }
+	/** Something hard breaking apart. */
+	| { kind: 'crack' }
+	/** Mechanical clicks: rounds going in, cylinder or breech closing. */
+	| { kind: 'reload' }
+	/** Cloth and small things being picked up. */
+	| { kind: 'rustle' };
 
 export interface SoundDef {
 	/** Built recording id(s) (AUDIO_FILES); a random variant of all of them plays each time. */
@@ -199,6 +211,57 @@ export const SOUNDS = {
 	},
 	'creature.burst': { synth: { kind: 'rush' }, category: 'sfx', volume: 0.8, variation: 0.1 },
 	'creature.attack': { synth: { kind: 'snarl' }, category: 'sfx', volume: 0.9, variation: 0.08 },
+	'creature.hurt': {
+		synth: { kind: 'snarl' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 1.35,
+		variation: 0.1
+	},
+	'creature.die': { synth: { kind: 'snarl' }, category: 'sfx', volume: 1, rate: 0.7 },
+	// Items and weapons.
+	'revolver.fire': {
+		synth: { kind: 'gunshot', boom: 95, length: 1.8, bright: 4200 },
+		category: 'sfx',
+		volume: 1,
+		variation: 0.04
+	},
+	'shotgun.fire': {
+		synth: { kind: 'gunshot', boom: 60, length: 2.4, bright: 2600 },
+		category: 'sfx',
+		volume: 1,
+		variation: 0.04
+	},
+	'gun.empty': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6, rate: 0.8 },
+	'gun.reload': { synth: { kind: 'reload' }, category: 'sfx', volume: 0.6 },
+	'melee.swing': { synth: { kind: 'whoosh' }, category: 'sfx', volume: 0.5, variation: 0.15 },
+	'melee.hit': {
+		synth: { kind: 'thud', cutoff: 1800 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.1
+	},
+	'melee.hit.creature': {
+		synth: { kind: 'thud', cutoff: 450 },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.1
+	},
+	'bullet.impact': {
+		synth: { kind: 'thud', cutoff: 3200 },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.2
+	},
+	'brick.throw': { synth: { kind: 'whoosh' }, category: 'sfx', volume: 0.5, rate: 0.75 },
+	'brick.land': {
+		synth: { kind: 'thud', cutoff: 1300 },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.1
+	},
+	'brick.break': { synth: { kind: 'crack' }, category: 'sfx', volume: 0.8, variation: 0.1 },
+	'item.pickup': { synth: { kind: 'rustle' }, category: 'sfx', volume: 0.5, variation: 0.1 },
 	// Sanity.
 	'player.hurt': { synth: { kind: 'hurt' }, category: 'sfx', volume: 0.8, variation: 0.08 },
 	heartbeat: { synth: { kind: 'heartbeat', period: 0.85 }, category: 'sfx', volume: 0.8 },

@@ -13,12 +13,14 @@ src/
       player/               player state types, fixed-step simulation, headlamp output
       map/                  map types, grid math, layout generator, piece manifest, nav grid
       creature/             creature snapshot type, half-light visibility
+      items/                inventory helpers, weapon step, pickup rule, item/event types
     game/
       Engine.ts             Three.js renderer, scene, camera, frame loop, stats, light budget
       assets.ts             glTF model loading and cache, asset path registry
       map/MapRenderer.ts    places map pieces from a layout
       player/               local player prediction, headlamp light, remote players, player audio
       creatures/            creature models, animation, half-light fade, sounds
+      items/                viewmodel (held item), world items, muzzle flash and impacts
       input/
         actions.ts          action definitions and default bindings
         InputMap.ts         raw input -> actions
@@ -34,6 +36,8 @@ src/
       player/movement.ts    movement and stamina tuning
       player/sanity.ts      sanity, downed, revive and bandage tuning
       creatures.ts          creature definitions
+      items.ts              item definitions (weapons, ammo, consumables)
+      loadout.ts            starting kit until the hub
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
     ui/                     Svelte components (Panel, menus, overlays)
@@ -43,7 +47,9 @@ src/
 server/
   index.ts                  WebSocket server entry
   session.ts                Session: authoritative state and tick loop, sanity, revives
-  creatures.ts              CreatureDirector: creature AI
+  creatures.ts              CreatureDirector: creature AI, damage, noise
+  combat.ts                 resolves shots, swings, throws and drops
+  items.ts                  WorldItems: items in the map, pickups, thrown items
   config.ts                 environment
   db.ts                     MongoDB connection
   log.ts                    logging
@@ -51,6 +57,7 @@ scripts/
   make-dev-asset.ts         generates the placeholder dev asset
   build-assets.ts           optimizes Blender exports, writes the piece manifest
   blender/kit.py            builds the catacomb kit pieces inside Blender
+  blender/items.py          builds the item models inside Blender
 static/assets/              models, textures, audio served at /assets
 art/                        raw art sources (gitignored except README)
 ```

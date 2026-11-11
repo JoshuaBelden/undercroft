@@ -111,5 +111,29 @@ They stand very still. Full light shows nothing, and the dark shows nothing. You
 They notice your light, and they hear you. Running is loud; walking carries; creeping, crouching and crawling are quiet. Very close, they'll find you anyway.
 
 Once one has you, it comes slowly, then all at once.`
+	},
+	{
+		id: 'items',
+		title: 'Items',
+		category: 'Survival',
+		body: `The bar at the bottom of the screen holds what's in your hands: weapons and anything you can throw. Press {action:slot1} to {action:slot5}, or use {action:nextItem} and {action:prevItem}, to switch.
+
+Ammunition, bandages and smelling salts go in your pockets; the counts are in the bottom-right corner.
+
+Look at something on the floor and press {action:interact} to pick it up. Press {action:drop} to put down what you're holding.
+
+If you die down here, everything you carried stays where you fell. Someone else might find it.`
+	},
+	{
+		id: 'fighting-back',
+		title: 'Fighting back',
+		category: 'Survival',
+		body: `Press {action:attack} to swing or fire. Hold {action:aim} to aim a gun: you move slowly, but your shots go where you look. Press {action:reload} to reload.
+
+A knife is quick and quiet. A crowbar is slow but hits hard enough to stop something mid-swing. Bricks are everywhere; they break after a few blows, and {action:aim} throws one.
+
+Guns are loud. Every shot is heard a long way off, on the floors above and below, and whatever hears it will come. A thrown brick makes noise where it lands, not where you are.
+
+They can be put down. It takes more than you'd like.`
 	}
 ];

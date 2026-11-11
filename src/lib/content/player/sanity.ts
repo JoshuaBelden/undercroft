@@ -18,8 +18,5 @@ export const SANITY = {
 	bandageSeconds: 3,
 	bandageHeal: 25,
 	/** Seconds a downed player lasts before dying. */
-	bleedOut: 60,
-	/** Starting kit until the inventory exists (Phase 4). */
-	startingSalts: 1,
-	startingBandages: 2
+	bleedOut: 60
 };

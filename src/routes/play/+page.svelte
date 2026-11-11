@@ -12,6 +12,15 @@
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 	import { Creatures } from '#lib/game/creatures/Creatures.ts';
+	import { Effects } from '#lib/game/items/Effects.ts';
+	import { ViewModel } from '#lib/game/items/ViewModel.ts';
+	import { WorldItems } from '#lib/game/items/WorldItems.ts';
+	import { ITEMS } from '#lib/content/items.ts';
+	import { held, pocketCount } from '#lib/shared/items/inventory.ts';
+	import { lookedAtItem } from '#lib/shared/items/pickup.ts';
+	import type { GameEvent } from '#lib/shared/items/types.ts';
+	import { aimRay } from '#lib/shared/items/weapons.ts';
+	import { eyeHeight } from '#lib/shared/player/simulate.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
@@ -68,7 +77,11 @@
 		sanity: 1,
 		bandages: 0,
 		salts: 0,
-		hurt: 0
+		hurt: 0,
+		hotbar: [] as { name: string | null; key: string }[],
+		selected: 0,
+		ammo: null as { loaded: number; spare: number } | null,
+		aiming: false
 	});
 	/** Set while downed: bleed-out time left (0..1) and what happens next. */
 	let downed = $state<{ remaining: number; message: string } | null>(null);
@@ -145,6 +158,7 @@
 						ambience.clear();
 						remote.apply([], client.playerId);
 						creatures.clear();
+						worldItems.clear();
 						banner = null;
 						downed = null;
 						document.exitPointerLock();
@@ -160,6 +174,8 @@
 						}
 						remote.apply(message.players, client.playerId);
 						creatures.apply(message.creatures);
+						worldItems.apply(message.items, message.projectiles);
+						for (const event of message.events) onGameEvent(event);
 						break;
 				}
 			}
@@ -170,6 +186,16 @@
 		const ambience = new Ambience(audio, sounds);
 		const creatures = new Creatures(sounds);
 		engine.scene.add(creatures.root);
+		const viewModel = new ViewModel(engine.viewScene, engine.viewCamera);
+		const worldItems = new WorldItems();
+		engine.scene.add(worldItems.root);
+		const effects = new Effects();
+		engine.scene.add(effects.root);
+		const muzzle = new THREE.Vector3();
+		/** The held item's action last frame (to start reload and swing sounds). */
+		let lastAction = 'none';
+		/** The floor item the player would pick up, if any. */
+		let pickupTarget: { id: string; item: string } | null = null;
 		setMarkers = (enabled) => {
 			markers = enabled;
 			creatures.setMarkers(enabled);
@@ -233,6 +259,106 @@
 			return null;
 		}
 
+		/** Instant feedback for what the local (predicted) simulation did. */
+		function onLocalEvents(state: PlayerState): void {
+			for (const event of player.drainEvents()) {
+				if (event.kind === 'shot') {
+					const sound = ITEMS[event.item]?.firearm?.sound;
+					if (sound) sounds.play(sound);
+					effects.muzzleFlash(ViewModel.muzzle(engine.camera, muzzle));
+				} else if (event.kind === 'empty') {
+					sounds.play('gun.empty');
+				} else if (event.kind === 'throw') {
+					sounds.play('brick.throw');
+				}
+			}
+			const action = state.weapon.action;
+			if (action !== lastAction) {
+				if (action === 'reload') sounds.play('gun.reload');
+				if (action === 'swing') sounds.play('melee.swing');
+				lastAction = action;
+			}
+		}
+
+		/** What happened on the server this tick: other players' actions, hits, landings. */
+		function onGameEvent(event: GameEvent): void {
+			const self = client.playerId;
+			switch (event.kind) {
+				case 'shot': {
+					if (event.player !== self) {
+						const sound = ITEMS[event.item]?.firearm?.sound;
+						if (sound) sounds.playAt(sound, event.origin, 1, 10);
+						effects.muzzleFlash(event.origin);
+					}
+					effects.impact(event.end, event.creature);
+					if (!event.creature) sounds.playAt('bullet.impact', event.end, 1, 2);
+					break;
+				}
+				case 'swing':
+					if (event.hit === 'creature') sounds.playAt('melee.hit.creature', event.origin, 1, 3);
+					else if (event.hit === 'wall') sounds.playAt('melee.hit', event.origin, 1, 3);
+					else if (event.player !== self) sounds.playAt('melee.swing', event.origin, 1, 3);
+					break;
+				case 'throw':
+					if (event.player !== self) sounds.playAt('brick.throw', event.origin, 1, 3);
+					break;
+				case 'land':
+					sounds.playAt('brick.land', event.position, 1, 4);
+					break;
+				case 'break':
+					sounds.playAt('brick.break', event.position, 1, 3);
+					break;
+				case 'reload':
+					if (event.player !== self) sounds.playAt('gun.reload', event.position, 1, 3);
+					break;
+				case 'empty':
+					if (event.player !== self) sounds.playAt('gun.empty', event.position, 1, 2);
+					break;
+				case 'pickup':
+					sounds.playAt('item.pickup', event.position, 1, 2);
+					break;
+				case 'creatureHit':
+					creatures.hit(event.id);
+					sounds.playAt('creature.hurt', event.position, 1, 4);
+					break;
+				case 'creatureDie':
+					sounds.playAt('creature.die', event.position, 1, 5);
+					break;
+			}
+		}
+
+		/** Hotbar, ammo and aiming for the HUD. */
+		function itemHud(
+			state: PlayerState
+		): Pick<typeof hud, 'hotbar' | 'selected' | 'ammo' | 'aiming'> {
+			const inv = state.inventory;
+			const keys = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5'] as const;
+			const stack = held(inv);
+			const gun = stack ? ITEMS[stack.item]?.firearm : undefined;
+			return {
+				hotbar: inv.hotbar.map((slot, i) => ({
+					name: slot ? (ITEMS[slot.item]?.name ?? slot.item) : null,
+					key: settings.bindings[keys[i]]?.map(bindingLabel)[0] ?? ''
+				})),
+				selected: inv.selected,
+				ammo:
+					gun && stack ? { loaded: stack.loaded ?? 0, spare: pocketCount(inv, gun.ammo) } : null,
+				aiming: state.weapon.aiming
+			};
+		}
+
+		/** The floor item in reach that interact would pick up (same rule as the server). */
+		function findPickup(state: PlayerState): void {
+			const world = player.collision;
+			pickupTarget = null;
+			if (world && !state.downed && !state.swimming) {
+				const { origin, direction } = aimRay(state, eyeHeight(state));
+				const item = lookedAtItem(world, state.position, origin, direction, worldItems.snapshots);
+				if (item) pickupTarget = { id: item.id, item: item.item };
+			}
+			worldItems.highlight(pickupTarget?.id ?? null);
+		}
+
 		/** The one held-action prompt to show, with its progress. */
 		function heldPrompt(state: PlayerState): { prompt: string | null; progress: number } {
 			if (state.downed) return { prompt: null, progress: 0 };
@@ -240,7 +366,9 @@
 				return { prompt: 'Bandaging...', progress: state.bandaging / SANITY.bandageSeconds };
 			}
 			if (downedNearby(state)) {
-				if (state.salts <= 0) return { prompt: 'No smelling salts', progress: 0 };
+				if (pocketCount(state.inventory, 'salts') <= 0) {
+					return { prompt: 'No smelling salts', progress: 0 };
+				}
 				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
 				return {
 					prompt: state.reviving > 0 ? 'Reviving...' : `Hold ${key} to revive`,
@@ -250,13 +378,18 @@
 			const extract = extractPrompt(state);
 			if (extract)
 				return { prompt: extract, progress: state.extracting / EXPEDITION.extractSeconds };
+			if (pickupTarget) {
+				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
+				const name = ITEMS[pickupTarget.item]?.name ?? pickupTarget.item;
+				return { prompt: `Press ${key} to pick up ${name}`, progress: 0 };
+			}
 			return { prompt: null, progress: 0 };
 		}
 
 		function downedMessage(state: PlayerState): string {
 			const helpers = [...remote.states()].some((other) => !other.downed && !other.dead);
 			if (helpers) return 'Waiting for help...';
-			if (state.salts > 0) return 'Reaching for your smelling salts...';
+			if (pocketCount(state.inventory, 'salts') > 0) return 'Reaching for your smelling salts...';
 			return 'No one is coming';
 		}
 
@@ -326,6 +459,8 @@
 			const self = player.state;
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
 			creatures.update(delta, player.collision, lamps);
+			worldItems.update(delta);
+			effects.update(delta);
 			if (mapView) {
 				orbit.update();
 			} else {
@@ -343,6 +478,7 @@
 			}
 			const state = player.state;
 			headlamp.update(state);
+			viewModel.update(delta, state, !mapView && !result);
 			playerAudio.update(state, audio.unlocked);
 			const cam = engine.camera.position;
 			engine.camera.getWorldDirection(lookDir);
@@ -351,6 +487,8 @@
 			spawned = !!state;
 			if (state) {
 				sanityEffects(state, delta);
+				onLocalEvents(state);
+				findPickup(state);
 				hud = {
 					stamina: state.stamina / MOVEMENT.stamina.max,
 					exhausted: state.exhausted,
@@ -361,9 +499,10 @@
 					creep: player.modes.creep,
 					...heldPrompt(state),
 					sanity: state.sanity / SANITY.max,
-					bandages: state.bandages,
-					salts: state.salts,
-					hurt: hud.hurt
+					bandages: pocketCount(state.inventory, 'bandage'),
+					salts: pocketCount(state.inventory, 'salts'),
+					hurt: hud.hurt,
+					...itemHud(state)
 				};
 				downed = state.downed
 					? {
@@ -407,6 +546,9 @@
 			document.exitPointerLock();
 			heartbeat?.stop();
 			creatures.dispose();
+			viewModel.dispose();
+			worldItems.dispose();
+			effects.dispose();
 			playerAudio.dispose();
 			ambience.dispose();
 			player.dispose();
