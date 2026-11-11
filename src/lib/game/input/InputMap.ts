@@ -76,7 +76,9 @@ export class InputMap {
 		this.down.delete(event.code);
 	};
 
+	/** Mouse buttons are game buttons only while the pointer is captured; otherwise they work the UI. */
 	private onMouseDown = (event: MouseEvent): void => {
+		if (!document.pointerLockElement) return;
 		this.press(`Mouse${event.button}`, event);
 	};
 
