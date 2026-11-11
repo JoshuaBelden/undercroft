@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { money } from '#lib/content/economy.ts';
 	import { PARTY } from '#lib/content/party.ts';
 	import { canDescend, normalizeCode, type PartyState } from '#lib/shared/party/types.ts';
 
@@ -17,6 +18,9 @@
 		onafflictions: () => void;
 		/** Open the stash and loadout. */
 		onoutfit: () => void;
+		onshop: () => void;
+		/** What the explorer has to spend; null until the account has loaded. */
+		purse: number | null;
 		onsettings: () => void;
 		onhelp: () => void;
 	}
@@ -31,6 +35,8 @@
 		onleave,
 		onafflictions,
 		onoutfit,
+		onshop,
+		purse,
 		onsettings,
 		onhelp
 	}: Props = $props();
@@ -76,7 +82,11 @@
 
 		<div class="hub">
 			<button type="button" onclick={onoutfit}>Outfitting</button>
+			<button type="button" onclick={onshop}>Shop</button>
 			<button type="button" onclick={onafflictions}>Afflictions</button>
+			{#if purse !== null}
+				<span class="purse">{money(purse)}</span>
+			{/if}
 		</div>
 
 		<h2>Party</h2>
@@ -144,7 +154,13 @@
 	.hub {
 		display: flex;
 		flex-wrap: wrap;
+		align-items: center;
 		gap: 8px;
+	}
+
+	.purse {
+		margin-left: auto;
+		color: var(--muted);
 	}
 
 	.screen {

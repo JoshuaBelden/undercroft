@@ -141,6 +141,22 @@ export async function setGamerTag(
 	return { gamerTag };
 }
 
+/** Admin: set a new password for the account with this email. Returns why not, if it can't. */
+export async function setPassword(
+	db: Db,
+	email: unknown,
+	password: unknown
+): Promise<AccountError | null> {
+	const cleaned = cleanEmail(email);
+	if (!cleaned) return 'email';
+	if (typeof password !== 'string' || password.length < ACCOUNT.passwordMin) return 'password';
+	const result = await accounts(db).updateOne(
+		{ email: cleaned },
+		{ $set: { password: await hashPassword(password) } }
+	);
+	return result.matchedCount === 1 ? null : 'email';
+}
+
 export async function getAccount(db: Db, accountId: string): Promise<AccountDoc | null> {
 	return accounts(db).findOne({ _id: accountId });
 }

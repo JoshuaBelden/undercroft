@@ -2,8 +2,6 @@
 
 Between expeditions an explorer owns a **stash** (kept on the surface) and a **loadout** (what goes down next). A new explorer has neither, and no money. What you carry out you keep; what you take down and don't bring back is gone.
 
-The shop and money are described at the end of this file as they land.
-
 ## Files
 
 | File                                | What                                                           |
@@ -12,6 +10,12 @@ The shop and money are described at the end of this file as they land.
 | `src/routes/api/explorer/loadout/`  | Hub endpoint: move things between stash and loadout            |
 | `server/belongings.ts`              | Game server: take the loadout at descent, give back at the end |
 | `src/lib/ui/OutfitPanel.svelte`     | The outfitting overlay on the surface                          |
+| `src/lib/content/economy.ts`        | Shop stock and prices, sell-back rate, the currency's name     |
+| `src/lib/content/loot.ts`           | What loot is scattered and how densely                         |
+| `src/lib/server/store/shop.ts`      | Buying, selling, admin grants, the ledger                      |
+| `src/routes/api/shop/`              | Shop endpoint                                                  |
+| `src/routes/api/admin/`             | Dev-mode account tools                                         |
+| `src/lib/ui/ShopPanel.svelte`       | The shop overlay on the surface                                |
 | `src/lib/account/account.svelte.ts` | Client: `session.account.explorer`, `changeLoadout`            |
 
 The explorer document is described in [accounts.md](accounts.md).
@@ -54,6 +58,38 @@ Loot is what explorers carry out to sell. For now there is one stand-in item, th
 
 To add a loot item, add an `ItemDef` with `kind: 'loot'` and a `value`. Scattering more than one kind needs `LOOT` to become a table.
 
+## Money and the shop
+
+An explorer's `money` is a whole number of coin. It only changes on the server.
+
+Everything to tune is in `src/lib/content/economy.ts`:
+
+- `SHOP`: what is sold, in order. Each entry is an `item`, a `price` and a `lot` (how many you get for that price: rounds come six or four at a time). Firearms are sold empty.
+- `ECONOMY.sellBack`: the fraction of its price that shop gear sells back for (per unit, rounded down).
+- `sellPrice(item)`: loot sells for its `value` (in `ITEMS`), shop gear for the sell-back, anything else for nothing and can't be sold.
+- `ECONOMY.currency`: what money is called.
+
+Loot values are on the items (`value` in `src/lib/content/items.ts`), and how much loot there is to find is `LOOT` in `src/lib/content/loot.ts`.
+
+`POST /api/shop` returns the `AccountView` afterwards:
+
+- `{ action: 'buy', item, lots }`: charges `price × lots` and puts `lot × lots` in the stash. Refused if you can't afford it or the shop doesn't sell it.
+- `{ action: 'sell', index, count }`: sells up to `count` from stash entry `index`.
+
+The client only says what to buy or sell. Prices are looked up on the server, and the shop overlay shows the same table. Like every hub change it is refused while underground.
+
+### The ledger
+
+Every purchase, sale, grant and reset writes a line to the `ledger` collection: `explorer`, `at`, `kind` (`buy`, `sell`, `grant`, `reset`), `item`, `count`, `money` (the change) and `balance` (afterwards). It is the economy log: read it with any MongoDB client.
+
+### Admin
+
+`POST /api/admin` exists only in dev mode (`devMode` in `src/lib/dev.ts`); in a player build it is a 404. The admin panel's "Account" section uses it:
+
+- `grantMoney { amount }` and `grantItem { item, count }`: to your own explorer's purse or stash.
+- `resetExplorer`: your own explorer back to nothing: no money, empty stash and loadout, rite progress forgotten.
+- `resetPassword { email, password }`: set a new password for any account (there is no password recovery email). Not in the panel: call the endpoint.
+
 ## Testing
 
-A new explorer has nothing, so in dev mode use Give in the admin panel underground and carry it out. Dying needs no salts: set sanity to 0 and wait out the bleed-out.
+A new explorer has nothing. In dev mode, the admin panel's Account section grants money and items on the surface; underground, Give puts things straight in your hands. Dying needs no salts: set sanity to 0 and wait out the bleed-out.

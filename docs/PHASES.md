@@ -122,7 +122,7 @@ Aspects:
 - [x] **Settings**: HUD options (inventory display, item prompts).
 - [x] **Keybinds**: inventory, quick slots, drop, throw, rite panel, initiate rite (interact).
 
-## Phase 5: Accounts, hub, economy
+## Phase 5: Accounts, hub, economy ✅
 
 The bare minimum that makes it a repeating game. The hub is overlays on the surface screen. Durability, repair and hub crafting moved to Phase 6; Discord and Steam sign-in to Phase 8.
 
@@ -132,16 +132,16 @@ The bare minimum that makes it a repeating game. The hub is overlays on the surf
 - [x] Stash and loadout before descent; a new explorer starts with nothing and no money (`docs/dev/economy.md`)
 - [x] Death and extraction outcomes applied to the stash
 - [x] Stand-in loot to carry out; loot carried feeds the Affliction meter
-- [ ] Shop: buy gear, sell loot; money
+- [x] Shop: buy gear, sell loot; money
 
 Aspects:
 
-- **Dev docs**: data models, economy values and where to tune them. (Accounts done.)
-- **Help system**: hub, shop, loadouts, death penalties.
-- **Admin**: grant money/items, reset explorer, reset a password, economy log.
-- **Audio**: shop/UI sounds (placeholders). Hub ambience and music wait for Phase 7.
-- **Settings**: account settings. (Done: gamer tag, sign out.)
-- **Keybinds**: none needed: the hub is mouse-driven overlays.
+- [x] **Dev docs**: data models (`docs/dev/accounts.md`), economy values and where to tune them (`docs/dev/economy.md`).
+- [x] **Help system**: the surface, shop, loadouts, death penalties.
+- [x] **Admin**: grant money/items, reset explorer, reset a password, economy log (the `ledger` collection).
+- [x] **Audio**: shop sounds (placeholders). Hub ambience and music wait for Phase 7.
+- [x] **Settings**: account settings (gamer tag, sign out).
+- [x] **Keybinds**: none needed: the hub is mouse-driven overlays.
 
 ## Phase 6: Items in depth
 

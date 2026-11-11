@@ -327,6 +327,9 @@ export const SOUNDS = {
 		volume: 0.6,
 		caption: 'low hum'
 	},
+	// The surface.
+	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
+	'shop.sell': { synth: { kind: 'bell', pitch: 1320, length: 0.5 }, category: 'sfx', volume: 0.3 },
 	// The rite.
 	'clue.sting': {
 		synth: { kind: 'bell', pitch: 660, length: 1.6 },

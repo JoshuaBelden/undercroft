@@ -93,6 +93,18 @@ Relics lie about the catacombs, more of them the deeper you go. They are worth m
 What you take down and don't bring back is gone. If you die, everything you carried stays where you fell, and so does anything you left lying down there.`
 	},
 	{
+		id: 'the-shop',
+		title: 'The shop',
+		category: 'Basics',
+		body: `Open "Shop" on the surface to sell what you've brought out and buy what you need.
+
+Relics are what sell. Gear you bought can be sold back, for less than you paid. Some things nobody wants.
+
+What you buy goes to your stash: open "Outfitting" to take it with you. Firearms come empty, so buy rounds too.
+
+A first descent with nothing is a short one. Bring out a relic or two, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
+	},
+	{
 		id: 'parties',
 		title: 'Going down together',
 		category: 'Basics',

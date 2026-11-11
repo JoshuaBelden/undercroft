@@ -27,6 +27,7 @@ The whole game is behind sign-in. An account is an email, a password and a gamer
 - `sessions`: `_id` is the cookie value; `account`, `expires` (30 days).
 - `tickets`: `_id` is the ticket; `account`, `expires` (12 hours).
 - `progress`: rite progress, keyed by explorer (see [rite.md](rite.md)).
+- `ledger`: the economy log (see [economy.md](economy.md#the-ledger)).
 
 Sessions and tickets have a TTL index, so MongoDB removes them when they expire. `ensureIndexes` creates all the indexes and runs when either process connects.
 

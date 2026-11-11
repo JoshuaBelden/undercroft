@@ -18,13 +18,17 @@ import type { ExplorerDoc } from './accounts.ts';
  * marked `underground` can't be changed from the hub. See docs/dev/economy.md.
  */
 
-export type ExplorerError = 'underground' | 'missing' | 'noRoom' | 'busy';
+export type ExplorerError =
+	'underground' | 'missing' | 'noRoom' | 'busy' | 'money' | 'worthless' | 'unsold';
 
 export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	underground: "You can't do that while you're underground",
 	missing: "That isn't there any more",
 	noRoom: "That doesn't fit: too heavy, or no room for it",
-	busy: 'Something else changed at the same time. Try again'
+	busy: 'Something else changed at the same time. Try again',
+	money: "You can't afford that",
+	worthless: 'No one will buy that',
+	unsold: "The shop doesn't sell that"
 };
 
 const explorers = (db: Db): Collection<ExplorerDoc> => db.collection<ExplorerDoc>('explorers');

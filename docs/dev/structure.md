@@ -40,6 +40,7 @@ src/
       session.ts            session cookie
       store/accounts.ts     accounts, sessions, tickets, explorers (also used by the game server)
       store/explorers.ts    stash and loadout; descent and return (also used by the game server)
+      store/shop.ts         buying, selling, admin grants, the ledger
     content/
       help/index.ts         player help topics
       map/kit.ts            map piece roles and weights
@@ -50,6 +51,7 @@ src/
       items.ts              item definitions (weapons, ammo, consumables)
       carry.ts              backpacks and how weight slows you
       loot.ts               what loot is scattered and how densely
+      economy.ts            shop stock, prices, sell-back
       loadout.ts            what lies around the map (bricks)
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
@@ -59,7 +61,7 @@ src/
     +page.svelte            main menu
     play/+page.svelte       game view (client-only)
     auth/                   sign-in and sign-up pages
-    api/                    JSON endpoints: auth, account, ticket, explorer (stash and loadout)
+    api/                    JSON endpoints: auth, account, ticket, explorer, shop, admin (dev)
 server/
   index.ts                  WebSocket server entry
   accounts.ts               who a connection is, from the ticket in its hello

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { adminAccount, ApiError } from '#lib/account/account.svelte.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { devMode } from '#lib/dev.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
@@ -44,6 +45,19 @@
 	}: Props = $props();
 
 	let seedInput = $state('');
+	let moneyInput = $state('100');
+	let accountMessage = $state('');
+
+	/** Account tools go to the site, not the game server, and work on the surface. */
+	async function account(change: Parameters<typeof adminAccount>[0]): Promise<void> {
+		accountMessage = '';
+		try {
+			await adminAccount(change);
+			accountMessage = 'Done';
+		} catch (caught) {
+			accountMessage = caught instanceof ApiError ? caught.message : 'Could not reach the site';
+		}
+	}
 	let sanityInput = $state('100');
 	let meterInput = $state('70');
 
@@ -176,6 +190,31 @@
 			>
 			<button type="button" onclick={() => onadmin({ kind: 'banish' })}>Banish</button>
 		</div>
+
+		<h3>Account (on the surface)</h3>
+		<div class="row">
+			<input type="text" inputmode="numeric" aria-label="Money" bind:value={moneyInput} size="5" />
+			<button
+				type="button"
+				onclick={() => void account({ action: 'grantMoney', amount: Number(moneyInput) || 0 })}
+				>Grant money</button
+			>
+			<button
+				type="button"
+				onclick={() =>
+					void account({ action: 'grantItem', item: giveItem, count: Number(giveCount) || 1 })}
+				>Grant item to stash</button
+			>
+		</div>
+		<div class="row">
+			<button type="button" onclick={() => void account({ action: 'resetExplorer' })}
+				>Reset explorer</button
+			>
+			{#if accountMessage}<span role="status">{accountMessage}</span>{/if}
+		</div>
+		<p class="muted">
+			Grant item uses the item and count chosen under Items. These are refused while underground.
+		</p>
 
 		<h3>Rite</h3>
 		<div class="row">

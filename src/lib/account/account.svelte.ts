@@ -47,6 +47,25 @@ export async function changeLoadout(
 	session.account = await api<AccountView>('/api/explorer/loadout', 'POST', change);
 }
 
+/** Buy from the shop or sell from the stash. Throws `ApiError` if it is refused. */
+export async function trade(
+	change:
+		{ action: 'buy'; item: string; lots: number } | { action: 'sell'; index: number; count: number }
+): Promise<void> {
+	session.account = await api<AccountView>('/api/shop', 'POST', change);
+}
+
+/** Dev-mode admin tools for the account (see `/api/admin`). Throws `ApiError` if refused. */
+export async function adminAccount(
+	change:
+		| { action: 'grantMoney'; amount: number }
+		| { action: 'grantItem'; item: string; count: number }
+		| { action: 'resetExplorer' }
+		| { action: 'resetPassword'; email: string; password: string }
+): Promise<void> {
+	session.account = await api<AccountView>('/api/admin', 'POST', change);
+}
+
 export async function signOut(): Promise<void> {
 	await api('/api/auth/sign-out', 'POST');
 	session.account = null;

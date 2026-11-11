@@ -61,11 +61,13 @@
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
+	import ShopPanel from '#lib/ui/ShopPanel.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
-	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'rite' | 'afflictions' | 'outfit';
+	type PanelName =
+		'settings' | 'help' | 'admin' | 'inventory' | 'rite' | 'afflictions' | 'outfit' | 'shop';
 	let panel = $state<PanelName | null>(null);
 	/** The rite as known so far, and (while its panel is open) who carries each requirement. */
 	let rite = $state<RiteSnapshot | null>(null);
@@ -153,6 +155,10 @@
 	const slotKeys = $derived(
 		SLOT_ACTIONS.map((action) => settings.bindings[action].map(bindingLabel)[0] ?? '')
 	);
+	/** Play a sound that isn't anywhere in the world (the shop). */
+	let playUi = (sound: 'shop.buy' | 'shop.sell'): void => {
+		void sound;
+	};
 	let sendInventory = (action: InventoryAction): void => {
 		void action;
 	};
@@ -166,7 +172,7 @@
 		panel = closing ? null : name;
 		if (panel) document.exitPointerLock();
 		// The surface overlays show the account as it is now.
-		if (panel === 'outfit' || panel === 'afflictions') void loadAccount();
+		if (panel === 'outfit' || panel === 'afflictions' || panel === 'shop') void loadAccount();
 		// Putting the pack away goes straight back to play.
 		else if ((name === 'inventory' || name === 'rite') && expedition) {
 			void canvas.requestPointerLock();
@@ -361,6 +367,10 @@
 		sendAdmin = (command) => client.send({ type: 'admin', command });
 		send = (message) => client.send(message);
 		sendInventory = (action) => client.send({ type: 'inventory', action });
+		playUi = (sound) => {
+			void audio.unlock();
+			sounds.play(sound);
+		};
 		/** The inventory last shown, as JSON: the screen only updates when it changes. */
 		let shownInventory = '';
 		/** Whether the rite was being performed last frame (to ring its bell once). */
@@ -902,6 +912,8 @@
 		onleave={() => send({ type: 'leaveParty' })}
 		onafflictions={() => toggle('afflictions')}
 		onoutfit={() => toggle('outfit')}
+		onshop={() => toggle('shop')}
+		purse={session.account?.explorer.money ?? null}
 		onsettings={() => toggle('settings')}
 		onhelp={() => toggle('help')}
 	/>
@@ -936,6 +948,12 @@
 	/>
 {:else if panel === 'outfit' && session.account}
 	<OutfitPanel explorer={session.account.explorer} onclose={() => (panel = null)} />
+{:else if panel === 'shop' && session.account}
+	<ShopPanel
+		explorer={session.account.explorer}
+		ontrade={(kind) => playUi(kind === 'buy' ? 'shop.buy' : 'shop.sell')}
+		onclose={() => (panel = null)}
+	/>
 {:else if panel === 'afflictions'}
 	<AfflictionsPanel
 		progress={session.account?.explorer.afflictions ?? []}
