@@ -53,6 +53,7 @@
 	import PartyLobby from '#lib/ui/PartyLobby.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import SettingsMenu from '#lib/ui/SettingsMenu.svelte';
+	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
@@ -99,7 +100,13 @@
 		seconds: number;
 		deepestLevel: number;
 		outcome: 'extracted' | 'died' | 'banished';
+		/** Set after spectating: how many of the others got out. */
+		escaped: number | null;
 	} | null>(null);
+	/** Dead and watching a teammate; `name` is who (empty while nobody can be shown). */
+	let spectating = $state<{ name: string } | null>(null);
+	let spectateNext = (): void => {};
+	let spectateStop = (): void => {};
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
 	let banner = $state<{ title: string; key: number } | null>(null);
 	/** The party we're in, as the server last described it; null until connected. */
@@ -158,9 +165,23 @@
 
 		/** Party to ask for on connecting: an invite link's code, then the party we were last in. */
 		let rejoin = new URLSearchParams(location.search).get('code') ?? undefined;
+		/**
+		 * Token of our place on the server, kept for this tab so a dropped connection or a reload
+		 * takes us back into the expedition we were in.
+		 */
+		const RESUME_KEY = 'undercroft.resume';
+		const resumeToken = (): string | undefined => {
+			try {
+				return sessionStorage.getItem(RESUME_KEY) ?? undefined;
+			} catch {
+				return undefined;
+			}
+		};
+		/** Player being watched while spectating. */
+		let watchId: string | null = null;
 		const client = new GameClient(
 			PUBLIC_GAME_SERVER_URL,
-			() => ({ name: settings.profile.name, code: rejoin }),
+			() => ({ name: settings.profile.name, code: rejoin, resume: resumeToken() }),
 			{
 				onStatus: (next, detail) => {
 					status = next;
@@ -168,7 +189,7 @@
 					playerId = client.playerId;
 					if (next !== 'connected') {
 						party = null;
-						if (expedition) endExpedition();
+						if (expedition || spectating) endExpedition();
 					}
 				},
 				onMessage: (message) => {
@@ -179,6 +200,11 @@
 							partyError = '';
 							// After a dropped connection, go back to the same party if others are in it.
 							rejoin = message.party.members.length > 1 ? message.party.code : undefined;
+							try {
+								sessionStorage.setItem(RESUME_KEY, message.token);
+							} catch {
+								// No storage (private mode): a drop still rejoins the party by its code.
+							}
 							break;
 						case 'partyError':
 							partyError = message.reason;
@@ -196,14 +222,23 @@
 							result = {
 								seconds: message.seconds,
 								deepestLevel: message.deepestLevel,
-								outcome: message.type
+								outcome: message.type,
+								escaped: null
 							};
+							if (message.type === 'died' && message.spectating) startSpectating();
+							else endExpedition();
+							break;
+						case 'spectateEnd':
+							if (!spectating) break;
+							if (result) result.escaped = message.escaped;
 							endExpedition();
 							break;
 						case 'map':
 							loadMap(message.layout);
 							break;
 						case 'tick':
+							// A tick still in flight after we left is not ours to show.
+							if (!expedition && !spectating) break;
 							for (const snap of message.players) {
 								if (snap.id !== client.playerId) continue;
 								player.onSnapshot(snap);
@@ -287,6 +322,11 @@
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
+			spectating = null;
+			watchId = null;
+			remote.setHidden(null);
+			heartbeat?.setVolume(0);
+			lastSanity = null;
 			darkness.clear();
 			ambience.setOmen(null);
 			player.leave();
@@ -299,6 +339,45 @@
 			captions.clear();
 			document.exitPointerLock();
 		}
+
+		/** Dead, with others still down there: keep the world and watch through their eyes. */
+		function startSpectating(): void {
+			expedition = false;
+			spectating = { name: '' };
+			watchId = null;
+			player.leave();
+			heartbeat?.setVolume(0);
+			lastSanity = null;
+			banner = null;
+			downed = null;
+			document.exitPointerLock();
+		}
+
+		/** The view of the player being watched; moves on to someone else if they are gone. */
+		function watchedView(): ReturnType<RemotePlayers['view']> {
+			const others = remote.list();
+			const target = others.find((other) => other.id === watchId) ?? others[0];
+			if (!target) {
+				if (spectating?.name) spectating = { name: '' };
+				return null;
+			}
+			if (target.id !== watchId || spectating?.name !== target.name) {
+				watchId = target.id;
+				remote.setHidden(target.id);
+				spectating = { name: target.name };
+			}
+			return remote.view(target.id);
+		}
+
+		spectateNext = () => {
+			const others = remote.list();
+			const index = others.findIndex((other) => other.id === watchId);
+			watchId = others[(index + 1) % Math.max(1, others.length)]?.id ?? null;
+		};
+		spectateStop = () => {
+			client.send({ type: 'stopSpectating' });
+			endExpedition();
+		};
 
 		/** Show a room's banner the first time the player enters it this expedition. */
 		function checkRoom(position: Vec3): void {
@@ -521,7 +600,7 @@
 		document.addEventListener('pointerlockchange', onLockChange);
 		const requestLock = () => {
 			void audio.unlock();
-			if (!panel && !mapView) void canvas.requestPointerLock();
+			if (!panel && !mapView && !spectating) void canvas.requestPointerLock();
 		};
 		canvas.addEventListener('click', requestLock);
 
@@ -536,6 +615,12 @@
 			effects.update(delta);
 			if (mapView) {
 				orbit.update();
+			} else if (spectating) {
+				const view = watchedView();
+				if (view) {
+					engine.camera.position.set(...view.position);
+					engine.camera.rotation.set(view.pitch, view.yaw, 0);
+				}
 			} else {
 				const eye = player.eyePosition();
 				if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
@@ -660,11 +745,20 @@
 	{/key}
 {/if}
 
-{#if result}
+{#if spectating}
+	{#if !panel}
+		<SpectateBar
+			name={spectating.name}
+			onnext={() => spectateNext()}
+			onleave={() => spectateStop()}
+		/>
+	{/if}
+{:else if result}
 	<ExpeditionResult
 		seconds={result.seconds}
 		deepestLevel={result.deepestLevel}
 		outcome={result.outcome}
+		escaped={result.escaped}
 		oncontinue={() => (result = null)}
 	/>
 {:else if party && memberId && !expedition && status === 'connected'}
@@ -686,6 +780,12 @@
 	<button type="button" class="descend" onclick={() => canvas.requestPointerLock()}>
 		Click to descend
 	</button>
+{/if}
+
+{#if status === 'disconnected' || status === 'connecting'}
+	<div class="reconnect" role="status">
+		{status === 'disconnected' ? 'Connection lost. Reconnecting...' : 'Connecting...'}
+	</div>
 {/if}
 
 <div class="status" class:ok={status === 'connected'}>
@@ -749,6 +849,23 @@
 		border: 1px solid rgb(232 223 207 / 0.3);
 		cursor: pointer;
 		z-index: 5;
+	}
+
+	.reconnect {
+		position: fixed;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		padding: 14px 28px;
+		font:
+			13px ui-monospace,
+			monospace;
+		letter-spacing: 0.15em;
+		text-transform: uppercase;
+		color: #e8dfcf;
+		background: rgb(0 0 0 / 0.7);
+		border: 1px solid rgb(232 223 207 / 0.2);
+		z-index: 16;
 	}
 
 	.status {

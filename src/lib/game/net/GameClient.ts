@@ -13,8 +13,11 @@ interface Handlers {
 	onMessage?: (message: ServerMessage) => void;
 }
 
-/** Who we say we are on connecting: the player's name and the party to join, if any. */
-export type Hello = () => { name: string; code?: string };
+/**
+ * Who we say we are on connecting: the player's name, the party to join (if any), and the token
+ * of the connection we are resuming (if any).
+ */
+export type Hello = () => { name: string; code?: string; resume?: string };
 
 /**
  * WebSocket connection to the authoritative game server.

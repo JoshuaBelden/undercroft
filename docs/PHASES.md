@@ -87,15 +87,15 @@ Aspects:
 - [x] Multiple clients per session; other players interpolated, local player predicted
 - [x] Parties: create, invite by code, ready up, descend together
 - [ ] Session hosting on DigitalOcean (game server + MongoDB in Docker)
-- [ ] Reconnection handling
-- [ ] Spectating when dead until the team extracts or wipes
+- [x] Reconnection handling
+- [x] Spectating when dead until the team extracts or wipes
 - [ ] Text chat and pings (no voice chat)
 - [ ] Solo vs. co-op balance (Thrall aggression, meter pacing)
 
 Aspects:
 
-- **Dev docs**: session lifecycle, party flow, hosting and deployment on DigitalOcean. (Session lifecycle and party flow done: `docs/dev/expedition.md`; interpolation in `docs/dev/player.md`.)
-- **Help system**: co-op, parties, reviving teammates, pings. (Parties and reviving done.)
+- **Dev docs**: session lifecycle, party flow, hosting and deployment on DigitalOcean. (Session lifecycle, party flow, reconnection and spectating done: `docs/dev/expedition.md`; interpolation in `docs/dev/player.md`.)
+- **Help system**: co-op, parties, reviving teammates, pings. (Parties, reviving, spectating and reconnecting done.)
 - **Admin**: session list, kick, server health, force-end session, network stats.
 - **Audio**: other players' footsteps, breathing, and actions with distance attenuation; ping sounds.
 - **Settings**: chat options (on/off, size), name display. (Player name done, set in the lobby.)

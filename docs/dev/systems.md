@@ -16,7 +16,7 @@ Flow:
 6. Client sends `ping` every second; `pong` gives round-trip time.
 7. Dev only: client sends `admin` commands; server sends `map` when an admin regenerates the layout.
 
-`GameClient` reconnects every 2 seconds after a drop. Parties and the expedition lifecycle are in [expedition.md](expedition.md).
+`GameClient` reconnects every 2 seconds after a drop, and a player who dropped while underground takes their place back (see [expedition.md](expedition.md#reconnection)). Parties and the expedition lifecycle are in [expedition.md](expedition.md).
 
 **Adding a message:** add it to `ClientMessage` or `ServerMessage` in `protocol.ts`, add its `type` to the matching allowed set, handle it in `server/index.ts`, `parties.ts` or `session.ts`, and in the client.
 
@@ -36,7 +36,7 @@ Code never reads raw keys. Every input is an action in `actions.ts`:
 toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] }
 ```
 
-Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. Bindings persist in settings.
+Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. Mouse buttons count as game input only while the pointer is captured, so clicks on menus and text fields are left alone. Bindings persist in settings.
 
 - `input.isDown(action)` for held input.
 - `input.onPressed(fn)` for presses; returns an unsubscribe function.

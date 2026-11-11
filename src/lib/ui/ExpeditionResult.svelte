@@ -6,11 +6,13 @@
 		deepestLevel: number;
 		/** How the expedition ended for this player. */
 		outcome: 'extracted' | 'died' | 'banished';
+		/** After watching the rest of the expedition: how many of the others got out alive. */
+		escaped?: number | null;
 		/** Back to the party on the surface. */
 		oncontinue: () => void;
 	}
 
-	let { seconds, deepestLevel, outcome, oncontinue }: Props = $props();
+	let { seconds, deepestLevel, outcome, escaped = null, oncontinue }: Props = $props();
 
 	const TITLES = {
 		extracted: 'You made it out',
@@ -31,6 +33,10 @@
 		<h1>{TITLES[outcome]}</h1>
 		{#if outcome === 'banished'}
 			<p class="note">You drove it back, for now. The Gloaming is not resolved.</p>
+		{:else if escaped !== null}
+			<p class="note">
+				{escaped === 0 ? 'No one made it out.' : `${escaped} of the others made it out.`}
+			</p>
 		{/if}
 		<dl>
 			<dt>Time underground</dt>

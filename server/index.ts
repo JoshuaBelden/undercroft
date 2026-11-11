@@ -25,7 +25,7 @@ wss.on('connection', (socket) => {
 				socket.close();
 				return;
 			}
-			member ??= parties.connect(socket, message.name, message.code);
+			member ??= parties.connect(socket, message.name, message.code, message.resume);
 			return;
 		}
 		if (message.type === 'ping') {
@@ -50,6 +50,9 @@ wss.on('connection', (socket) => {
 			case 'descend':
 				parties.descend(member);
 				break;
+			case 'stopSpectating':
+				parties.stopSpectating(member);
+				break;
 			case 'input': {
 				const e = parties.expedition(member);
 				if (e) e.session.receiveInput(e.playerId, message.frames);
@@ -65,7 +68,7 @@ wss.on('connection', (socket) => {
 	});
 
 	socket.on('close', () => {
-		if (member) parties.disconnect(member);
+		if (member) parties.disconnect(member, socket);
 	});
 });
 

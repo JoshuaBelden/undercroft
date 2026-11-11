@@ -21,6 +21,7 @@ const MAX_SAMPLES = 10;
 const TELEPORT = 6;
 
 interface RemoteBody {
+	name: string;
 	root: THREE.Group;
 	body: THREE.Mesh;
 	/** Pivot at eye height, turned by yaw and pitch; carries the headlamp. */
@@ -53,6 +54,8 @@ export class RemotePlayers {
 	 * least-delayed packet, so network jitter doesn't move it.
 	 */
 	private offset: number | null = null;
+	/** Player whose body is not drawn: the one a spectator is looking through. */
+	private hidden: string | null = null;
 
 	constructor() {
 		this.root.name = 'remote-players';
@@ -79,6 +82,7 @@ export class RemotePlayers {
 			let remote = this.bodies.get(snap.id);
 			if (!remote) {
 				remote = this.create(snap);
+				remote.body.visible = snap.id !== this.hidden;
 				this.bodies.set(snap.id, remote);
 			}
 			remote.state = snap.state;
@@ -96,6 +100,29 @@ export class RemotePlayers {
 	clear(): void {
 		for (const [id, remote] of this.bodies) this.remove(id, remote);
 		this.offset = null;
+	}
+
+	/** Who is here, in a stable order (for choosing someone to watch). */
+	list(): { id: string; name: string }[] {
+		return [...this.bodies].map(([id, remote]) => ({ id, name: remote.name }));
+	}
+
+	/** A remote player's eyes as drawn this frame: where they are and which way they look. */
+	view(id: string): { position: [number, number, number]; yaw: number; pitch: number } | null {
+		const remote = this.bodies.get(id);
+		if (!remote) return null;
+		const { root, head } = remote;
+		return {
+			position: [root.position.x, root.position.y + head.position.y, root.position.z],
+			yaw: head.rotation.y,
+			pitch: head.rotation.x
+		};
+	}
+
+	/** Don't draw this player's body (seeing through their eyes); null shows everyone. */
+	setHidden(id: string | null): void {
+		this.hidden = id;
+		for (const [bodyId, remote] of this.bodies) remote.body.visible = bodyId !== id;
 	}
 
 	/** Each remote player's latest state, with the lamp clock advanced to now (for lighting). */
@@ -165,6 +192,7 @@ export class RemotePlayers {
 		lamp.setShadows(this.shadows.enabled, this.shadows.mapSize);
 		this.root.add(root);
 		return {
+			name: snap.name,
 			root,
 			body,
 			head,

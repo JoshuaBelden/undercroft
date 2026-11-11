@@ -11,7 +11,14 @@ import type { InputFrame, PlayerSnapshot } from './player/types.ts';
 
 export type ClientMessage =
 	/** First message. `code` joins that party; without one (or if it fails) you get your own. */
-	| { type: 'hello'; protocol: number; name: string; code?: string }
+	| {
+			type: 'hello';
+			protocol: number;
+			name: string;
+			code?: string;
+			/** Token from an earlier `party` message: take back the place a dropped connection held. */
+			resume?: string;
+	  }
 	| { type: 'ping'; clientTime: number }
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
 	| { type: 'input'; frames: InputFrame[] }
@@ -24,7 +31,9 @@ export type ClientMessage =
 	| { type: 'ready'; ready: boolean }
 	| { type: 'rename'; name: string }
 	/** Party leader: start the expedition for everyone (all others must be ready). */
-	| { type: 'descend' };
+	| { type: 'descend' }
+	/** Dead and watching the others: stop, and go back to the surface. */
+	| { type: 'stopSpectating' };
 
 export type AdminCommand =
 	| {
@@ -52,7 +61,13 @@ export type AdminCommand =
 
 export type ServerMessage =
 	/** Your party, sent on joining and whenever it changes. `you` is your member id. */
-	| { type: 'party'; you: string; party: PartyState }
+	| {
+			type: 'party';
+			you: string;
+			/** Secret for `hello.resume`, should this connection drop. */
+			token: string;
+			party: PartyState;
+	  }
 	/** A party request was refused (bad code, full, not ready...). */
 	| { type: 'partyError'; reason: string }
 	/** The expedition has started and you are in it. */
@@ -84,8 +99,13 @@ export type ServerMessage =
 	| { type: 'map'; layout: MapLayout }
 	/** You climbed out: you have left the expedition. */
 	| { type: 'extracted'; seconds: number; deepestLevel: number }
-	/** You bled out: you have left the expedition. */
-	| { type: 'died'; seconds: number; deepestLevel: number }
+	/**
+	 * You bled out: you have left the expedition. If `spectating`, others are still down there and
+	 * you keep getting `tick` to watch them, until `spectateEnd` or you send `stopSpectating`.
+	 */
+	| { type: 'died'; seconds: number; deepestLevel: number; spectating: boolean }
+	/** The expedition you were watching is over; `escaped` players got out alive. */
+	| { type: 'spectateEnd'; escaped: number }
 	/** The manifestation was banished: everyone leaves the expedition. */
 	| { type: 'banished'; seconds: number; deepestLevel: number };
 
@@ -110,7 +130,8 @@ const CLIENT_TYPES = new Set<string>([
 	'leaveParty',
 	'ready',
 	'rename',
-	'descend'
+	'descend',
+	'stopSpectating'
 ]);
 const SERVER_TYPES = new Set<string>([
 	'party',
@@ -122,6 +143,7 @@ const SERVER_TYPES = new Set<string>([
 	'map',
 	'extracted',
 	'died',
+	'spectateEnd',
 	'banished'
 ]);
 

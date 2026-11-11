@@ -12,6 +12,12 @@ export interface Member {
 	name: string;
 	socket: WebSocket;
 	ready: boolean;
+	/** False while the connection is down and their place in the expedition is held. */
+	connected: boolean;
+	/** Secret the client presents (`hello.resume`) to take this member back after a drop. */
+	token: string;
+	/** Runs out when a dropped member has been gone too long. */
+	dropTimer: NodeJS.Timeout | null;
 	party: Party;
 	/** Their player id in the party's expedition; null on the surface. */
 	playerId: string | null;
@@ -30,13 +36,33 @@ interface Party {
  * Parties and their expeditions. Every connection is in a party from the moment it says hello: a
  * new one of its own, or the one whose invite code it gave. The leader starts the descent once
  * everyone else is ready; that creates a `Session` (new seed and map) with every member in it.
- * Solo play is a party of one. See docs/dev/expedition.md.
+ * Solo play is a party of one.
+ *
+ * A member whose connection drops while underground keeps their place for
+ * `PARTY.reconnectSeconds`; a new connection with their token takes it back. On the surface a
+ * drop just removes them. See docs/dev/expedition.md.
  */
 export class Parties {
 	private parties = new Map<string, Party>();
+	/** Members whose connection dropped, by resume token. */
+	private dropped = new Map<string, Member>();
 
-	/** A new connection: joins the party with `code` if it can, otherwise starts its own. */
-	connect(socket: WebSocket, name: unknown, code: unknown): Member {
+	/**
+	 * A new connection. With the token of a dropped member it becomes that member again;
+	 * otherwise it joins the party with `code` if it can, or starts its own.
+	 */
+	connect(socket: WebSocket, name: unknown, code: unknown, resume: unknown): Member {
+		const back = typeof resume === 'string' ? this.dropped.get(resume) : undefined;
+		if (back) {
+			this.dropped.delete(back.token);
+			if (back.dropTimer) clearTimeout(back.dropTimer);
+			back.dropTimer = null;
+			back.socket = socket;
+			back.connected = true;
+			this.broadcast(back.party);
+			if (back.playerId) back.party.session?.reattach(back.playerId, socket);
+			return back;
+		}
 		const wanted = typeof code === 'string' ? normalizeCode(code) : '';
 		const found = wanted ? this.joinable(wanted, null) : null;
 		const party = found && typeof found !== 'string' ? found : this.create();
@@ -45,6 +71,9 @@ export class Parties {
 			name: cleanName(name),
 			socket,
 			ready: false,
+			connected: true,
+			token: randomUUID(),
+			dropTimer: null,
 			party,
 			playerId: null
 		};
@@ -53,9 +82,24 @@ export class Parties {
 		return member;
 	}
 
-	/** The connection closed. */
-	disconnect(member: Member): void {
-		this.remove(member);
+	/** The connection closed. Underground, their place is held for a while; otherwise they go. */
+	disconnect(member: Member, socket: WebSocket): void {
+		// A resumed member's old socket can close late: it is no longer theirs.
+		if (member.socket !== socket) return;
+		if (!this.expedition(member)) {
+			this.remove(member);
+			return;
+		}
+		member.connected = false;
+		this.dropped.set(member.token, member);
+		member.dropTimer = setTimeout(() => this.remove(member), PARTY.reconnectSeconds * 1000);
+		log.info(`Party ${member.party.code}: ${member.name} dropped; holding their place`);
+		this.broadcast(member.party);
+	}
+
+	/** A dead member who was watching the others goes back to the surface. */
+	stopSpectating(member: Member): void {
+		if (member.playerId) member.party.session?.removeSpectator(member.playerId);
 	}
 
 	/** Move to the party with this invite code. */
@@ -102,7 +146,10 @@ export class Parties {
 			return;
 		}
 		const session = new Session({
-			onPlayerLeft: () => this.broadcast(party),
+			onPlayerLeft: () => {
+				this.sweep(party);
+				this.broadcast(party);
+			},
 			onEnded: () => {
 				if (party.session !== session) return;
 				party.session = null;
@@ -110,6 +157,7 @@ export class Parties {
 					m.ready = false;
 					m.playerId = null;
 				}
+				this.sweep(party);
 				this.broadcast(party);
 			}
 		});
@@ -132,7 +180,17 @@ export class Parties {
 	}
 
 	stop(): void {
+		for (const member of this.dropped.values()) {
+			if (member.dropTimer) clearTimeout(member.dropTimer);
+		}
 		for (const party of this.parties.values()) party.session?.stop();
+	}
+
+	/** Dropped members with no place left to hold (they died, or it ended) leave the party. */
+	private sweep(party: Party): void {
+		for (const member of [...party.members]) {
+			if (!member.connected && !this.expedition(member)) this.remove(member);
+		}
 	}
 
 	private create(): Party {
@@ -169,11 +227,16 @@ export class Parties {
 	/** Take a member out of their party (and its expedition); an empty party is gone. */
 	private remove(member: Member): void {
 		const party = member.party;
+		if (!party.members.includes(member)) return;
+		if (member.dropTimer) clearTimeout(member.dropTimer);
+		member.dropTimer = null;
+		this.dropped.delete(member.token);
 		party.members = party.members.filter((m) => m !== member);
 		if (party.leader === member.id) party.leader = party.members[0]?.id ?? '';
 		// Leaving the session last: its hooks broadcast the party without this member.
-		if (member.playerId) party.session?.removePlayer(member.playerId);
+		const playerId = member.playerId;
 		member.playerId = null;
+		if (playerId) party.session?.removePlayer(playerId);
 		if (party.members.length === 0) {
 			party.session?.stop();
 			this.parties.delete(party.code);
@@ -190,7 +253,8 @@ export class Parties {
 				id: m.id,
 				name: m.name,
 				ready: m.ready,
-				inExpedition: !!m.playerId && !!party.session?.has(m.playerId)
+				inExpedition: !!m.playerId && !!party.session?.has(m.playerId),
+				connected: m.connected
 			})),
 			expedition: !!party.session
 		};
@@ -198,7 +262,9 @@ export class Parties {
 
 	private broadcast(party: Party): void {
 		const state = this.state(party);
-		for (const m of party.members) this.send(m, { type: 'party', you: m.id, party: state });
+		for (const m of party.members) {
+			this.send(m, { type: 'party', you: m.id, token: m.token, party: state });
+		}
 	}
 
 	private send(member: Member, message: ServerMessage): void {

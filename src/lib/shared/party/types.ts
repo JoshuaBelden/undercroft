@@ -10,6 +10,8 @@ export interface PartyMember {
 	ready: boolean;
 	/** Down in the catacombs right now (false once they have climbed out or died). */
 	inExpedition: boolean;
+	/** False while their connection is down and their place underground is being held. */
+	connected: boolean;
 }
 
 export interface PartyState {

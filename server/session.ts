@@ -107,6 +107,10 @@ export class Session {
 	private events: GameEvent[] = [];
 	private dropped = new Set<string>();
 	private players = new Map<string, Player>();
+	/** Dead players still watching: they get ticks but are not in the simulation. */
+	private spectators = new Map<string, { name: string; socket: WebSocket }>();
+	/** Players who got out alive (climbed out, or were carried out by a banishing). */
+	private escaped = 0;
 	private tick = 0;
 	private timer: NodeJS.Timeout | null = null;
 	private hadPlayers = false;
@@ -169,7 +173,37 @@ export class Session {
 		return player;
 	}
 
+	/**
+	 * A dropped player is back on a new connection: they pick up where they stood. Their input
+	 * numbering may have restarted (page reload), so acknowledgement starts over.
+	 */
+	reattach(playerId: string, socket: WebSocket): boolean {
+		const player = this.players.get(playerId);
+		if (!player) return false;
+		player.socket = socket;
+		player.queue = [];
+		player.ack = -1;
+		player.processed = 0;
+		player.clock = null;
+		player.lastInput = null;
+		this.send(player, {
+			type: 'welcome',
+			playerId: player.id,
+			sessionId: this.id,
+			tickRate: TICK_RATE,
+			layout: this.layout
+		});
+		log.info(`Player ${player.name} reconnected to session ${this.id.slice(0, 8)}`);
+		return true;
+	}
+
+	/** Stop sending ticks to a dead player who was watching. */
+	removeSpectator(playerId: string): void {
+		this.spectators.delete(playerId);
+	}
+
 	removePlayer(playerId: string): void {
+		this.spectators.delete(playerId);
 		const player = this.players.get(playerId);
 		if (!player) return;
 		this.players.delete(playerId);
@@ -178,6 +212,10 @@ export class Session {
 		if (this.players.size === 0) {
 			this.stop();
 			log.info(`Expedition ${this.id.slice(0, 8)} ended`);
+			for (const spectator of this.spectators.values()) {
+				this.sendTo(spectator.socket, { type: 'spectateEnd', escaped: this.escaped });
+			}
+			this.spectators.clear();
 			this.hooks.onEnded?.();
 		}
 	}
@@ -350,6 +388,8 @@ export class Session {
 		this.stepProjectiles();
 		this.stepSanity();
 		this.stepRevives();
+		// Anyone still alive down here after this tick? The dead can watch them.
+		const alive = [...this.players.values()].some((p) => !p.state.dead && !p.state.extracted);
 		for (const player of [...this.players.values()]) {
 			if (player.state.dead && !this.dropped.has(player.id)) {
 				// Everything they carried stays where they fell, for anyone to pick up.
@@ -362,17 +402,22 @@ export class Session {
 				deepestLevel: player.deepestLevel
 			};
 			if (player.state.dead) {
-				this.send(player, { type: 'died', ...result });
+				this.send(player, { type: 'died', ...result, spectating: alive });
 				log.info(`Player ${player.name} died in session ${this.id.slice(0, 8)}`);
 			} else {
+				this.escaped++;
 				this.send(player, { type: 'extracted', ...result });
 				log.info(`Player ${player.name} extracted from session ${this.id.slice(0, 8)}`);
 			}
 			this.removePlayer(player.id);
+			if (player.state.dead && alive) {
+				this.spectators.set(player.id, { name: player.name, socket: player.socket });
+			}
 		}
 		if (this.affliction.banished && this.players.size > 0) {
 			log.info(`Session ${this.id.slice(0, 8)}: banished`);
 			for (const player of [...this.players.values()]) {
+				this.escaped++;
 				this.send(player, {
 					type: 'banished',
 					seconds: Math.round((Date.now() - player.joinedAt) / 1000),
@@ -580,11 +625,19 @@ export class Session {
 		s.sanity = Math.max(s.sanity, SANITY.reviveTo);
 	}
 
+	/** To everyone down here, and the dead who are watching. */
 	private broadcast(message: ServerMessage): void {
-		for (const player of this.players.values()) this.send(player, message);
+		const encoded = encode(message);
+		for (const player of this.players.values()) this.sendTo(player.socket, encoded);
+		for (const spectator of this.spectators.values()) this.sendTo(spectator.socket, encoded);
 	}
 
 	private send(player: Player, message: ServerMessage): void {
-		if (player.socket.readyState === player.socket.OPEN) player.socket.send(encode(message));
+		this.sendTo(player.socket, message);
+	}
+
+	private sendTo(socket: WebSocket, message: ServerMessage | string): void {
+		if (socket.readyState !== socket.OPEN) return;
+		socket.send(typeof message === 'string' ? message : encode(message));
 	}
 }

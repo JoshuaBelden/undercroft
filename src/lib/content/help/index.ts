@@ -88,7 +88,11 @@ To invite someone, give them your invite code, or use "Copy link" and send them 
 
 Everyone but the leader presses Ready. When all are ready the leader presses Descend, and the whole party goes down together.
 
-Whoever climbs out or dies waits on the surface until the rest are out. Nobody can descend again until then. Join a party that is already underground and you wait for them too.`
+Whoever climbs out waits on the surface until the rest are out. Nobody can descend again until then. Join a party that is already underground and you wait for them too.
+
+If you die while others are still down there, you watch through their eyes until it is over. "Next" changes who you watch; "Leave" takes you back to the surface.
+
+If your connection drops underground, your place is held for a minute. You're still standing there, so come back quickly: the game reconnects on its own, and reloading the page works too.`
 	},
 	{
 		id: 'sanity',

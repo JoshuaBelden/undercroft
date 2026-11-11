@@ -64,6 +64,7 @@
 	}
 
 	function memberStatus(member: PartyState['members'][number]): string {
+		if (!member.connected) return 'Disconnected';
 		if (member.inExpedition) return 'Underground';
 		if (party.expedition) return 'On the surface';
 		if (member.id === party.leader) return 'Leader';
