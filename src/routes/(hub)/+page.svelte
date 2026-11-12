@@ -22,9 +22,8 @@
 	const you = $derived(me());
 	const host = $derived(party !== null && party.leader === connection.memberId);
 	const affliction = $derived(party?.affliction ? (AFFLICTIONS[party.affliction] ?? null) : null);
-	const resolved = $derived(
-		explorer?.afflictions.find((entry) => entry.id === affliction?.id)?.resolved ?? false
-	);
+	// The host's status, not yours: a friend who has done it already doesn't give it away.
+	const resolved = $derived(party?.progress?.resolved ?? false);
 	/** Members who have not readied up yet. */
 	const waitingFor = $derived(party?.members.filter((member) => !member.ready).length ?? 0);
 

@@ -1,16 +1,12 @@
 <script lang="ts">
 	import HoldPrompt from './HoldPrompt.svelte';
+	import PartyHealth, { type PartyMember } from './PartyHealth.svelte';
 
 	interface Props {
-		/** 0..1 */
-		stamina: number;
-		exhausted: boolean;
 		/** 0..1 */
 		battery: number;
 		/** 0 off, 1 low, 2 bright */
 		headlamp: number;
-		/** Stamina is breath while underwater. */
-		underwater: boolean;
 		stance: string;
 		creep: boolean;
 		/** Context prompt, e.g. "Hold E to climb out"; null hides it. */
@@ -28,14 +24,13 @@
 		aiming: boolean;
 		/** 0..1 lamp failure from the Affliction: the edges close in. */
 		gloom: number;
+		/** Everyone on the expedition (this player included): health and stamina, bottom-left. */
+		party: PartyMember[];
 	}
 
 	let {
-		stamina,
-		exhausted,
 		battery,
 		headlamp,
-		underwater,
 		stance,
 		creep,
 		prompt,
@@ -45,7 +40,8 @@
 		hand,
 		ammo,
 		aiming,
-		gloom
+		gloom,
+		party
 	}: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
@@ -87,35 +83,19 @@
 	</div>
 {/if}
 
-{#if stamina < 0.999 || underwater}
-	<div
-		class="stamina"
-		class:exhausted
-		class:underwater
-		aria-label={underwater ? 'Breath' : 'Stamina'}
-	>
-		<div class="fill" style:width="{stamina * 100}%"></div>
+<PartyHealth members={party}>
+	{#if posture}
+		<div class="posture">{posture}</div>
+	{/if}
+	<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
+		<span class="cells">
+			{#each [0, 1, 2, 3] as cell (cell)}
+				<span class="cell" class:on={cell < bars}></span>
+			{/each}
+		</span>
+		<span>{LAMP_LABELS[headlamp] ?? ''}</span>
 	</div>
-{/if}
-
-{#if sanity < 0.999}
-	<div class="sanity" class:low={sanity < 0.4} aria-label="Sanity">
-		<div class="fill" style:width="{sanity * 100}%"></div>
-	</div>
-{/if}
-
-{#if posture}
-	<div class="posture">{posture}</div>
-{/if}
-
-<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
-	<span class="cells">
-		{#each [0, 1, 2, 3] as cell (cell)}
-			<span class="cell" class:on={cell < bars}></span>
-		{/each}
-	</span>
-	<span>{LAMP_LABELS[headlamp] ?? ''}</span>
-</div>
+</PartyHealth>
 
 <style>
 	.vignette {
@@ -166,27 +146,6 @@
 		.vignette.pulse {
 			animation: none;
 		}
-	}
-
-	.sanity {
-		position: fixed;
-		left: 50%;
-		bottom: 56px;
-		width: 180px;
-		height: 3px;
-		margin-left: -90px;
-		background: rgb(255 255 255 / 0.08);
-		pointer-events: none;
-	}
-
-	.sanity .fill {
-		height: 100%;
-		background: rgb(190 170 200 / 0.65);
-		transition: width 0.25s ease-out;
-	}
-
-	.sanity.low .fill {
-		background: rgb(190 60 60 / 0.8);
 	}
 
 	/* What is in the hand, bottom-right under the ammunition. */
@@ -248,30 +207,6 @@
 		pointer-events: none;
 	}
 
-	.stamina {
-		position: fixed;
-		left: 50%;
-		bottom: 48px;
-		width: 180px;
-		height: 3px;
-		margin-left: -90px;
-		background: rgb(255 255 255 / 0.08);
-		pointer-events: none;
-	}
-
-	.stamina .fill {
-		height: 100%;
-		background: rgb(220 210 190 / 0.6);
-	}
-
-	.stamina.underwater .fill {
-		background: rgb(120 170 210 / 0.75);
-	}
-
-	.stamina.exhausted .fill {
-		background: rgb(200 90 70 / 0.7);
-	}
-
 	.prompt {
 		position: fixed;
 		left: 50%;
@@ -280,10 +215,9 @@
 		pointer-events: none;
 	}
 
+	/* Under this player's bars in the party panel. */
 	.posture {
-		position: fixed;
-		left: 16px;
-		bottom: 34px;
+		margin-top: 4px;
 		font: 11px var(--font-ui);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
@@ -292,9 +226,7 @@
 	}
 
 	.lamp {
-		position: fixed;
-		left: 16px;
-		bottom: 14px;
+		margin-top: 4px;
 		display: flex;
 		gap: 8px;
 		align-items: center;

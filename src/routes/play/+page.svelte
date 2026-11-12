@@ -78,6 +78,7 @@
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
+	import type { PartyMember } from '#lib/ui/PartyHealth.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
@@ -88,8 +89,7 @@
 	/** The rite as known so far, and (while its overlay shows) who carries each requirement. */
 	let rite = $state<RiteSnapshot | null>(null);
 	/** The rite overlay is wanted: it shows over play whenever there is a rite to show. */
-	let riteShown = $state(false);
-	let riteCarriers = $state<{ name: string; count: number }[][]>([]);
+	let riteCarriers = $state<{ name: string; count: number; self: boolean }[][]>([]);
 	let afflictionName = $state('');
 	/** What the player carries, for the inventory screen (kept up to date while it is open). */
 	let inventory = $state<Inventory | null>(null);
@@ -97,6 +97,8 @@
 	const statusDetail = $derived(connection.detail);
 	let sessionId = $state<string | null>(null);
 	let playerId = $state<string | null>(null);
+	/** This player's gamer tag as the server knows it (from tick snapshots), for the party HUD. */
+	let selfName = '';
 	let seed = $state<number | null>(null);
 	let rooms = $state<string[]>([]);
 	let flags = $state<PlayerFlags | null>(null);
@@ -107,11 +109,8 @@
 	let markers = $state(false);
 	let spawned = $state(false);
 	let hud = $state({
-		stamina: 1,
-		exhausted: false,
 		battery: 1,
 		headlamp: 1,
-		underwater: false,
 		stance: 'stand',
 		creep: false,
 		prompt: null as string | null,
@@ -121,7 +120,8 @@
 		hand: null as { name: string; count: number } | null,
 		ammo: null as { loaded: number; spare: number } | null,
 		aiming: false,
-		gloom: 0
+		gloom: 0,
+		party: [] as PartyMember[]
 	});
 	/** The quick-use wheel while its key is held: the slots, the pointer and the slot it is on. */
 	let wheel = $state<{
@@ -352,6 +352,7 @@
 						for (const snap of message.players) {
 							if (snap.id !== client.playerId) continue;
 							player.onSnapshot(snap);
+							selfName = snap.name;
 							flags = { ...snap.state.flags };
 						}
 						remote.apply(message.players, client.playerId, message.serverTime);
@@ -568,13 +569,19 @@
 		}
 
 		/** Who carries each thing the rite needs, for the rite overlay. */
-		function carriers(state: PlayerState | null): { name: string; count: number }[][] {
-			const everyone = [...(state ? [{ name: 'you', state }] : []), ...remote.players()];
+		function carriers(
+			state: PlayerState | null
+		): { name: string; count: number; self: boolean }[][] {
+			const everyone = [
+				...(state ? [{ name: 'you', state, self: true }] : []),
+				...remote.players().map((one) => ({ ...one, self: false }))
+			];
 			return (rite?.requirements ?? []).map((requirement) =>
 				requirement
 					? everyone
 							.map((one) => ({
 								name: one.name,
+								self: one.self,
 								count: carriedCount(one.state.inventory, requirement.item)
 							}))
 							.filter((carrier) => carrier.count > 0)
@@ -781,6 +788,24 @@
 		}
 
 		/** The one held-action prompt to show, with its progress. */
+		/** Everyone on the expedition for the party HUD: teammates first, this player last. */
+		function party(state: PlayerState): PartyMember[] {
+			const member = (id: string, name: string, one: PlayerState, self: boolean) => ({
+				id,
+				name,
+				self,
+				health: one.sanity / SANITY.max,
+				stamina: one.stamina / MOVEMENT.stamina.max,
+				exhausted: one.exhausted,
+				underwater: one.underwater,
+				downed: one.downed
+			});
+			return [
+				...remote.players().map((one) => member(one.id, one.name, one.state, false)),
+				member(playerId ?? 'self', selfName, state, true)
+			];
+		}
+
 		function heldPrompt(state: PlayerState): { prompt: string | null; progress: number } {
 			if (state.downed) return { prompt: null, progress: 0 };
 			const heal = healing(state);
@@ -993,18 +1018,16 @@
 				onLocalEvents(state);
 				findPickup(state);
 				hud = {
-					stamina: state.stamina / MOVEMENT.stamina.max,
-					exhausted: state.exhausted,
 					battery: state.battery,
 					headlamp: state.headlamp,
-					underwater: state.underwater,
 					stance: state.stance,
 					creep: player.modes.creep,
 					...heldPrompt(state),
 					sanity: state.sanity / SANITY.max,
 					hurt: hud.hurt,
 					...itemHud(state),
-					gloom: state.gloom
+					gloom: state.gloom,
+					party: party(state)
 				};
 				downed = state.downed
 					? {
@@ -1032,7 +1055,7 @@
 					checkRoom(state.position);
 				}
 			}
-			if (riteShown && rite) {
+			if (rite) {
 				const now = carriers(state);
 				if (JSON.stringify(now) !== JSON.stringify(riteCarriers)) riteCarriers = now;
 			}
@@ -1061,10 +1084,6 @@
 				case 'stance':
 					closeCrate();
 					closeAdmin();
-					break;
-				case 'ritePanel':
-					// An overlay, not a menu: play goes on under it.
-					riteShown = !riteShown;
 					break;
 				case 'toggleView':
 					settings.graphics.view = settings.graphics.view === 'shoulder' ? 'first' : 'shoulder';
@@ -1131,13 +1150,13 @@
 	/>
 {/if}
 
-{#if riteShown && rite && !panel && !mapView && !result}
+{#if rite && !panel && !mapView && !result}
 	<RiteOverlay
 		affliction={afflictionName}
 		{rite}
 		carriers={riteCarriers}
 		interactKey={settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact'}
-		toggleKey={settings.bindings.ritePanel.map(bindingLabel).join(' / ')}
+		top={settings.interface.showStats ? 96 : 16}
 	/>
 {/if}
 

@@ -216,7 +216,8 @@
 
 	.mark {
 		font-family: var(--font-display);
-		font-size: 2.6rem;
+		/* Scales with the slot (2.6rem at the default size), so small slots keep it inside. */
+		font-size: calc(var(--slot) * 0.45);
 		font-weight: 600;
 		line-height: 1;
 		color: var(--muted);

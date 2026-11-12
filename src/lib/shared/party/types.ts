@@ -23,6 +23,11 @@ export interface PartyState {
 	members: PartyMember[];
 	/** The Affliction the host chose (key into AFFLICTIONS); null until they choose. */
 	affliction: string | null;
+	/**
+	 * What the host knows about the chosen Affliction: the whole party plays at the host's
+	 * progress (a friend who has resolved it doesn't give it away). Null until it is looked up.
+	 */
+	progress: { clues: number; resolved: boolean } | null;
 	/** An expedition is under way; nobody can descend until everyone in it is out. */
 	expedition: boolean;
 	/**

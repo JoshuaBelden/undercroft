@@ -46,6 +46,8 @@ interface Party {
 	/** When the descent starts, while everyone is ready and it is counting down. */
 	launchAt: number | null;
 	launchTimer: NodeJS.Timeout | null;
+	/** The host's progress on the chosen Affliction, and whose and which it is (see `hostProgress`). */
+	progress: { key: string; clues: number; resolved: boolean } | null;
 }
 
 /**
@@ -243,6 +245,8 @@ export class Parties {
 				if (party.session !== session) return;
 				party.session = null;
 				for (const m of party.members) m.playerId = null;
+				// What the host knows may have changed down there.
+				party.progress = null;
 				this.sweep(party);
 				this.changed(party);
 			}
@@ -281,12 +285,16 @@ export class Parties {
 			this.changed(party);
 			return;
 		}
-		// What any of them learned on earlier runs, all of them know now.
-		void this.progress.best(descended(), session.afflictionId).then(({ clues }) => {
-			if (party.session !== session || clues <= 0) return;
-			session.revealClues(clues);
-			this.progress.record(descended(), session.afflictionId, { clues });
-		});
+		// The expedition starts from what the host learned on earlier runs, not the most anyone has:
+		// a friend who has done it already doesn't give it away. Everyone who went down knows it now.
+		const host = party.members.find((m) => m.id === party.leader);
+		if (host) {
+			void this.progress.of(host.explorer, session.afflictionId).then(({ clues }) => {
+				if (party.session !== session || clues <= 0) return;
+				session.revealClues(clues);
+				this.progress.record(descended(), session.afflictionId, { clues });
+			});
+		}
 		this.changed(party);
 	}
 
@@ -339,6 +347,7 @@ export class Parties {
 	 * not, and tell everyone.
 	 */
 	private changed(party: Party): void {
+		this.hostProgress(party);
 		const ready = allReady(this.state(party));
 		if (ready && !party.launchTimer) {
 			party.launchAt = Date.now() + PARTY.countdownSeconds * 1000;
@@ -366,7 +375,8 @@ export class Parties {
 			affliction: null,
 			session: null,
 			launchAt: null,
-			launchTimer: null
+			launchTimer: null,
+			progress: null
 		};
 		this.parties.set(party.id, party);
 		return party;
@@ -411,10 +421,34 @@ export class Parties {
 		if (!moving) this.onPresence([member.account]);
 	}
 
+	/**
+	 * Look up the host's progress on the chosen Affliction when the host or the Affliction has
+	 * changed (or it was cleared after an expedition), then tell the party.
+	 */
+	private hostProgress(party: Party): void {
+		const host = party.members.find((m) => m.id === party.leader);
+		if (!host || !party.affliction) {
+			party.progress = null;
+			return;
+		}
+		const key = `${host.explorer}:${party.affliction}`;
+		if (party.progress?.key === key) return;
+		party.progress = { key, clues: 0, resolved: false };
+		const affliction = party.affliction;
+		void this.progress.of(host.explorer, affliction).then((known) => {
+			if (party.progress?.key !== key || !this.parties.has(party.id)) return;
+			party.progress = { key, ...known };
+			this.broadcast(party);
+		});
+	}
+
 	private state(party: Party): PartyState {
 		return {
 			leader: party.leader,
 			affliction: party.affliction,
+			progress: party.progress
+				? { clues: party.progress.clues, resolved: party.progress.resolved }
+				: null,
 			launchIn: party.launchAt === null ? null : Math.max(0, party.launchAt - Date.now()),
 			members: party.members.map((m) => ({
 				id: m.id,

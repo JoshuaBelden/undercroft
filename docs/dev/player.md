@@ -261,7 +261,8 @@ Bandages and smelling salts are quick-use items (see [items.md](items.md)); play
 
 **Client:**
 
-- The HUD shows a sanity bar (only below max) and a vignette that darkens with lost sanity and pulses below 40%.
+- The HUD shows a vignette that darkens with lost sanity and pulses below 40%.
+- **Party panel** (`src/lib/ui/PartyHealth.svelte`, bottom-left): every explorer on the expedition, each with their gamer tag in small text above a health (sanity) bar and a stamina bar, and "Downed" when they are. Teammates come from `RemotePlayers.players()` (their tick snapshots, so it is the server's state) in a stable order; this player is always last, at the bottom, with slightly larger bars and the posture and headlamp battery under them. Solo it is just you.
 - A hit (a drop of more than 3 in one frame) flashes red, plays `player.hurt` and shakes the camera, scaled by the **Camera shake** setting.
 - `heartbeat` loops louder and faster below 40%; `whisper` plays near you below 20%.
 - Downed, the camera tilts and `DownedScreen` shows the bleed-out bar, what happens next and the hold-to-surrender prompt.

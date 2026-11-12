@@ -138,7 +138,7 @@ If your connection drops underground, your place is held for a minute. You're st
 		id: 'sanity',
 		title: 'Sanity',
 		category: 'Survival',
-		body: `Sanity is your health. The bar above your stamina shows it once it starts to slip, and the edges of your sight darken as it falls.
+		body: `Sanity is your health. Your bars sit in the bottom-left corner, under your name: sanity above stamina. Your teammates' names and bars are stacked above yours, so you can see who is hurt or down. The edges of your sight darken as it falls.
 
 It wears down when you're in the dark with your lamp off and no one else's light on you, and when you look at something you shouldn't. Being struck takes a great deal of it at once.
 
@@ -262,7 +262,7 @@ Drive it off and you'll all be carried out. It isn't over, though. Only the rite
 		id: 'the-rite',
 		title: 'The rite',
 		category: 'Survival',
-		body: `The rite is what ends it. Press {action:ritePanel} at any time down here to see what is known about it, at the corner of your view; press it again to put it away.
+		body: `The rite is what ends it. What is known about it is always in the top-left corner of your view down here: the Affliction's name, then a line joining everything the rite needs and where it must be done. Once a clue has told you what a thing is, its picture appears beside it, greyed out until you carry it yourself.
 
 At first, nothing is. Scraps of writing lie about the catacombs, left by those who came before. Press {action:interact} on one to read it: each tells you something the rite needs, and the last tells you where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
 

@@ -106,9 +106,9 @@ export class RemotePlayers {
 		return [...this.bodies].map(([id, remote]) => ({ id, name: remote.name }));
 	}
 
-	/** Everyone here with their latest state (for showing who carries what). */
-	players(): { name: string; state: PlayerState }[] {
-		return [...this.bodies.values()].map((remote) => ({ name: remote.name, state: remote.state }));
+	/** Everyone here with their latest state, in a stable order (who carries what, party health). */
+	players(): { id: string; name: string; state: PlayerState }[] {
+		return [...this.bodies].map(([id, remote]) => ({ id, name: remote.name, state: remote.state }));
 	}
 
 	/** A remote player's eyes as drawn this frame: where they are and which way they look. */

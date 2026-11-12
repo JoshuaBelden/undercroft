@@ -23,24 +23,23 @@ const COLLECTION = 'progress';
 export class Progress {
 	private memory = new Map<string, { clues: number; resolved: boolean }>();
 
-	/** The most any of these players knows. */
-	async best(players: string[], affliction: string): Promise<{ clues: number }> {
-		const keys = players.map((player) => key(player, affliction));
-		let clues = 0;
-		for (const k of keys) clues = Math.max(clues, this.memory.get(k)?.clues ?? 0);
+	/** What one player knows: clues found and whether they have resolved it. */
+	async of(player: string, affliction: string): Promise<{ clues: number; resolved: boolean }> {
+		const k = key(player, affliction);
+		const memory = this.memory.get(k);
+		let clues = memory?.clues ?? 0;
+		let resolved = memory?.resolved ?? false;
 		const db = getDb();
 		if (db) {
 			try {
-				const docs = await db
-					.collection<ProgressDoc>(COLLECTION)
-					.find({ _id: { $in: keys } })
-					.toArray();
-				for (const doc of docs) clues = Math.max(clues, doc.clues ?? 0);
+				const doc = await db.collection<ProgressDoc>(COLLECTION).findOne({ _id: k });
+				clues = Math.max(clues, doc?.clues ?? 0);
+				resolved ||= doc?.resolved === true;
 			} catch (error) {
 				log.warn(`Could not read rite progress: ${(error as Error).message}`);
 			}
 		}
-		return { clues };
+		return { clues, resolved };
 	}
 
 	/** Record clues found (never lowers a count) and, once performed, the resolution. */

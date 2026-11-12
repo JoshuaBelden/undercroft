@@ -17,20 +17,15 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- Players should see other users health
-- Affliction status is based off of the host. So if a host hasn't uncovered an affliction, they still have to find clues
-- Allow Explorer images
-- Bricks are thrown not melee
 - Update creature ai so explorers can hide from them
-- Shrines: hold one item through death or extraction
-- Chalk marks on walls (one per stick)
 - We need bigger maps with multiple extraction rooms
+- Chalk marks on walls (one per stick)
 - Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant. Add hint lore that shows up.
-- Review Lore and Flavor text
-- Shoulder swap weapons
 
 ## Backlog: Beta polish and deployment
 
+- Fix map clipping
+- Review Lore and Flavor text
 - Full audio pass and mix
 - Help system complete and reviewed
 - Settings complete: graphics, audio, controls, accessibility
@@ -53,6 +48,9 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Backlog - Post Beta
 
+- Allow Explorer images
+- Shoulder swap weapons
+- Shrines: hold one item through death or extraction
 - Quests
 - Explorer Levels and Skill Tree
 - Several explorers per account

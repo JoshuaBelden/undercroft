@@ -34,7 +34,6 @@ export const ACTIONS = {
 	// Hold: the wheel of quick-use items; move the mouse to one and let go to take it in hand.
 	quickUse: { label: 'Quick-use wheel (hold)', category: 'Items', defaults: ['KeyQ'] },
 	inventory: { label: 'Pack / Loadout', category: 'Items', defaults: ['Tab', 'KeyI'] },
-	ritePanel: { label: 'The rite', category: 'Items', defaults: ['KeyJ'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },
 	toggleSocial: { label: 'Friends and invites', category: 'Interface', defaults: ['KeyO'] },

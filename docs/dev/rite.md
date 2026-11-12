@@ -51,7 +51,7 @@ Each pane has the Affliction's picture across the top (`AfflictionDef.image`, se
 
 After the real Afflictions come `UNKNOWN_PANES` (4) panes for ones nobody has met: "Unknown", `UNKNOWN_SLOTS` question-mark slots, and the `affliction-unknown-banner` picture. Lower the number as Afflictions are added to `AFFLICTIONS`; a new one needs only `flavor`, `image` and its picture.
 
-The rite overlay (`ritePanel` action shows and hides it) sits in the top right corner any time underground, including while spectating: each requirement or "Unknown", who in the party carries it (from the player snapshots), and the room. It is an overlay, not a menu: it takes no clicks, the pointer stays locked and play goes on under it. It is hidden while a menu or the results are showing.
+The rite overlay is always shown in the top-left corner underground, including while spectating (there is no key for it). It has no background or border: the Affliction's name in a pill, then a grey line down the left with a tick to each requirement and, last, the room. A requirement a clue has revealed shows a small [slot](systems.md#slots) with its picture, greyed out unless this player carries some of it (`carriers` marks this player `self`); an unrevealed one shows only the question-mark slot, and an unknown room only a question mark. Under each name is who in the party carries it (from the player snapshots). It moves down to clear the stats readout when that setting is on. It is an overlay, not a menu: it takes no clicks, the pointer stays locked and play goes on under it. It is hidden while a menu or the results are showing.
 
 ## The holder and performing it
 
@@ -74,7 +74,8 @@ The client shows "Hold E to perform the rite" under the same conditions, with it
 `Progress` (`server/progress.ts`) keeps, per player and Affliction, the clues found and whether the rite has been performed. It is stored in the MongoDB collection `progress` (`_id` is `<player>:<affliction>`). Without a database it is kept in memory until the server restarts.
 
 - **Who a player is:** their explorer (see [accounts.md](accounts.md)). The `player` field of a progress record is the explorer id.
-- **On descent** (`Parties.descend`): the expedition starts with the most clues any member has found, and that is recorded for all of them.
+- **The party plays at the host's progress.** On descent (`Parties.begin`) the expedition starts with the clues the **host** has found, not the most any member has, and that is recorded for all of them. So a friend who has already resolved an Affliction can join a run without giving it away: the host still has to find the clues.
+- **In the lobby** `Parties.hostProgress` looks up the host's `Progress.of` for the chosen Affliction whenever the host or the Affliction changes, and after each expedition, and sends it to everyone as `PartyState.progress`. The Expedition page's Resolved / Unresolved label reads that, not the viewer's own progress.
 - **When a clue is found:** recorded for everyone who went down on that expedition (`SessionHooks.onClues`).
 - **On resolution:** `resolved` is recorded for each of them (`onResolved`). That record is the progression unlock; nothing reads it until a second Affliction exists.
 
