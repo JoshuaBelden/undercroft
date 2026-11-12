@@ -27,13 +27,13 @@ browser ──https──> caddy ─┬─ /ws       ──> game  (tsx server/i
 ## Provision (once)
 
 ```
-pnpm deploy:provision --domain play.example.com --region nyc3
+pnpm deploy:provision --domain play.example.com
 ```
 
 It is safe to run again: it finds what exists by name and tag (`undercroft`). It creates:
 
-- an Ubuntu 24.04 droplet, `s-2vcpu-4gb` by default (`--size`), with monitoring and weekly droplet backups (`--no-backups` to skip; they cost 20% of the droplet price);
-- cloud-init that installs Docker and a nightly `mongodump` to `/opt/undercroft/backups/`, kept for 14 days;
+- an Ubuntu 24.04 droplet in `sfo3` (`--region`), `s-1vcpu-1gb` by default (`--size`; the cheapest that runs the stack, about $6 a month), with monitoring. `--backups` adds weekly droplet backups (20% of the droplet price). Resize up from the DigitalOcean dashboard as players arrive: choose a CPU and RAM only resize, so you can come back down;
+- cloud-init that adds 2 GB of swap (building the image needs more than 1 GB of memory), installs Docker and sets up a nightly `mongodump` to `/opt/undercroft/backups/`, kept for 14 days;
 - a cloud firewall: 22, 80 and 443 (TCP, plus UDP for HTTP/3) in, anything out. MongoDB is never exposed;
 - the domain's A record, if the zone is on DigitalOcean DNS.
 

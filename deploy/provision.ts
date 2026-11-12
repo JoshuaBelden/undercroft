@@ -2,15 +2,16 @@
  * Creates (or finds) the production droplet on DigitalOcean. Safe to run again: everything it
  * makes is looked up by name or tag first. See docs/dev/deployment.md.
  *
- *   pnpm deploy:provision --domain play.example.com [--region nyc3] [--size s-2vcpu-4gb]
- *                         [--ssh-key ~/.ssh/id_ed25519.pub] [--no-backups]
+ *   pnpm deploy:provision --domain play.example.com [--region sfo3] [--size s-1vcpu-1gb]
+ *                         [--ssh-key ~/.ssh/id_ed25519.pub] [--backups]
  *
  * Needs a DigitalOcean API token: DIGITALOCEAN_ACCESS_TOKEN in the environment, or the file
  * ~/.undercroft/do-token (never commit it or paste it anywhere).
  *
  *  1. Registers your SSH public key with the account (if it isn't already).
- *  2. Creates an Ubuntu droplet tagged `undercroft`, with cloud-init installing Docker and a
- *     nightly MongoDB dump, and DigitalOcean's weekly droplet backups on.
+ *  2. Creates an Ubuntu droplet tagged `undercroft`, with cloud-init adding 2 GB of swap (the
+ *     smallest sizes need it to build the image) and installing Docker and a nightly MongoDB
+ *     dump. `--backups` also turns on DigitalOcean's weekly droplet backups (20% extra).
  *  3. Puts a cloud firewall on it: SSH, HTTP and HTTPS (with HTTP/3) in, anything out.
  *  4. Points the domain's A record at it, if the domain's DNS is hosted on DigitalOcean.
  */
@@ -27,10 +28,11 @@ const TAG = 'undercroft';
 const { values: args } = parseArgs({
 	options: {
 		domain: { type: 'string' },
-		region: { type: 'string', default: 'nyc3' },
-		size: { type: 'string', default: 's-2vcpu-4gb' },
+		region: { type: 'string', default: 'sfo3' },
+		// The cheapest size that runs the stack; resize up from the dashboard as players arrive.
+		size: { type: 'string', default: 's-1vcpu-1gb' },
 		'ssh-key': { type: 'string', default: path.join(homedir(), '.ssh', 'id_ed25519.pub') },
-		'no-backups': { type: 'boolean', default: false }
+		backups: { type: 'boolean', default: false }
 	}
 });
 
@@ -80,7 +82,7 @@ async function sshKey(): Promise<number> {
 	return ssh_key.id;
 }
 
-/** cloud-init: Docker, the app folder, and a nightly MongoDB dump kept for two weeks. */
+/** cloud-init: swap, Docker, the app folder, and a nightly MongoDB dump kept for two weeks. */
 const USER_DATA = `#cloud-config
 package_update: true
 write_files:
@@ -88,6 +90,8 @@ write_files:
     content: |
       30 4 * * * root cd /opt/undercroft/app && docker compose -f docker-compose.prod.yml --env-file ../.env exec -T mongo mongodump --archive --gzip > /opt/undercroft/backups/mongo-$(date +\\%F).gz && find /opt/undercroft/backups -name 'mongo-*.gz' -mtime +14 -delete
 runcmd:
+  - fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
   - curl -fsSL https://get.docker.com | sh
   - mkdir -p /opt/undercroft/backups
 `;
@@ -110,7 +114,7 @@ async function droplet(key: number): Promise<Droplet> {
 		size: args.size,
 		image: 'ubuntu-24-04-x64',
 		ssh_keys: [key],
-		backups: !args['no-backups'],
+		backups: args.backups,
 		monitoring: true,
 		ipv6: true,
 		tags: [TAG],
