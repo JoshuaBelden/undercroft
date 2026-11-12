@@ -16,10 +16,24 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 ---
 
 ## Ready
+how many creatures are spawned, respawn
+armor doesn't seem to be working
+legendary, epic, or quest find audio
 
-- We need bigger maps with multiple extraction rooms
-- Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant. Add hint lore that shows up. Solving rite doesn't automatically extract.
-- Reset afflictions
+Gloaming Rite: We are going to flush out the complete rite requirements and hints.
+- Full requirements: 5 candles, 1 chalk, the Pendant. 
+- Do not spawn the pendant quest item if anyone in the party has 1.
+- There are three hints, one for the candle, 1 for the chalk, and 1 for the pendant. Invent text for each of these hints.
+- Players can find hints in loot boxes or laying on furniture, tables, coffins.
+- Revealed hint text will show up on the Affliction page, as well as above the requirements in the expedition affliction overlay. 
+- The requirement slots on the affliction pane should show question marks if unknown, greyed if discovered but the user doesn't have an item, and show the item if it is in the players stash or backpack. Make them smaller like on the overlay.
+- Update the affliction description to be in line with this new story of hints.
+- Solving a rite doesn't automatically extract explorers, but it does kill the affliction and resolve it. Explorers must still extract.
+- Add a way for players to reset an affliction status back to undiscovered and unresolved.
+- The top of the screen should show the time left before they must extract. 
+- Underneath the time, add a thin red status bar, maybe 4px heigh with a red border, and a red background for the progress of when the affliction arrives.
+- Unrelated change, under the stash, add a button to sell all treasure.
+- Bricks should be less frequent and be in places where there's rubble. Then there should be 1-3 bricks.
 
 ## Backlog: Beta polish and deployment
 
@@ -41,6 +55,7 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Backlog - Post Beta
 
+- Doors
 - SSO with Discord and Steam, Link a provider to an existing email account
 - Password recovery (needs an email service)
 - Keybinding screen with conflict detection and reset to defaults: players can change every keyboard shortcut themselves. It goes in the Controls group of the settings screen, which only lists the current bindings for now. Not needed before this phase.

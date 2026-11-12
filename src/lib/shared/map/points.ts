@@ -14,18 +14,25 @@ export function spawnPoint(
 	return { position: [position[0], position[1] + 0.05, position[2]], yaw: Math.atan2(-dx, -dz) };
 }
 
-/** Floor-level centre of each start and major room, for admin teleports. */
+/**
+ * Floor-level centre of each start, major and extraction room, for admin teleports. A piece used
+ * more than once (extraction rooms) is numbered from the second on: `extraction-shaft-2`.
+ */
 export function roomPoints(
 	layout: MapLayout,
 	pieces: Record<string, PieceDef>,
 	kit: MapKit
 ): { name: string; position: Vec3 }[] {
+	const rooms = new Set(['start', 'major', 'extraction']);
+	const seen = new Map<string, number>();
 	return layout.placements
-		.filter((p) => kit[p.piece]?.role === 'major' || kit[p.piece]?.role === 'start')
+		.filter((p) => rooms.has(kit[p.piece]?.role ?? ''))
 		.map((p) => {
 			const floor = pieces[p.piece]?.sockets[0]?.level ?? 0;
+			const n = (seen.get(p.piece) ?? 0) + 1;
+			seen.set(p.piece, n);
 			return {
-				name: p.piece,
+				name: n > 1 ? `${p.piece}-${n}` : p.piece,
 				position: [p.position[0], p.position[1] + floor * LEVEL_HEIGHT + 0.05, p.position[2]]
 			};
 		});

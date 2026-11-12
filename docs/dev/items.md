@@ -160,7 +160,7 @@ Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 sl
 
 **Where they stand.** Pieces carry `crate-<n>` markers: places a crate may stand, with its back to a wall (see [asset-pipeline.md](asset-pipeline.md)). A marker is only a possibility. `placeCrates(layout, PIECES, seed)` fills each with probability `CRATES.fill`, none within `CRATES.minDistance` of the start, seeded by the map seed. The server calls it once the layout is generated and stores the result in `layout.crates` (`id`, `position`, `yaw`), which goes to clients with the layout.
 
-**The dev crate.** The start room (`stairwell`) has a crate marker too. It is left empty for players; with the server in dev mode (`DEV_MODE=true`) it always has a crate, a few steps ahead of the spawn on the left, filled as if it were the deepest in the map. "Reset crates" in the admin panel fills it again.
+**Not in the start room.** The start room (`stairwell`) has a crate marker, but `placeCrates` always leaves it empty. To try the loot screen without walking for it, fill your stash with `pnpm dev:seed`, or teleport to a room from the admin panel.
 
 **Solid.** `buildCollisionWorld` adds a box of `CRATES.size` for each entry of `layout.crates`. Server and client both build the world from the layout, so movement prediction, line of sight and the nav grid all take crates into account. The box is a little higher than the model (0.55 m), above the nav grid's step height, so nothing treats a lid as a floor.
 

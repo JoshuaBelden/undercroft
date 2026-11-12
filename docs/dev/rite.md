@@ -32,10 +32,10 @@ Changing what a rite needs is a change to this data. A new requirement needs an 
 `scatterRite` (called from `Session.populate`, seeded by the map seed) places:
 
 - **Required items:** each in one of the major rooms other than the rite's own, on a standing, dry nav point.
-- **Required items kept in a crate** (`crate: true`): `Crates.stow` puts each in one of the map's loot crates (any but the dev crate, chosen by the seed), after whatever the crate rolled, so it is the last thing revealed. A full crate loses its commonest thing to make room. In a map with no crates it lies in a major room like the others.
+- **Required items kept in a crate** (`crate: true`): `Crates.stow` puts each in one of the map's loot crates (chosen by the seed), after whatever the crate rolled, so it is the last thing revealed. A full crate loses its commonest thing to make room. In a map with no crates it lies in a major room like the others.
 - **Clues:** `clues × clueCopies` of the `clue` item, one in each distance band from 15% to 85% of the way from the start to the farthest reachable point, never in the rite's room.
 
-With `atStart` set, none of that applies: the clues and the required items are placed on separate nav points 1.5 to 4 m from the start. A required item kept in a crate goes in the crate nearest the start instead: in dev mode that is the dev crate in the start room.
+With `atStart` set (a testing aid; off for the Gloaming), none of that applies: the clues and the required items are placed on separate nav points 1.5 to 4 m from the start. A required item kept in a crate goes in the crate nearest the start instead.
 
 A clue is a world item that is never carried. Pressing interact on one (`Session.pickUp`) removes it and calls `RiteDirector.find()`. That raises the `clue` game event, with the requirements and room it revealed, to every player. Once everything is known, the remaining clue copies are removed from the map.
 

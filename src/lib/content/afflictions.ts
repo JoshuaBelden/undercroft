@@ -192,8 +192,7 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			seconds: 5,
 			clues: 1,
 			clueCopies: 3,
-			// For now, so the rite is quick to try. Turn off to hide them in the map again.
-			atStart: true
+			atStart: false
 		}
 	}
 };

@@ -18,9 +18,10 @@ import type { Edge, MapKit, MapLayout, PieceDef, PieceRole, Placement } from './
  * Map layout generator. Runs on the server; clients receive the resulting layout.
  *
  * 1. Main route: start room -> its exit piece -> each major room in random order, joined by
- *    corridors of connectors. The `final` major room comes last, after a forced descent, and
- *    descending pieces only ever go down, so it is always the deepest room.
- * 2. Branches: short side passages off open sockets, sometimes ending in a dead end.
+ *    corridors of connectors, with extraction rooms spaced evenly along it. The `final` major
+ *    room comes last, after a forced descent, and descending pieces only ever go down, so it is
+ *    always the deepest room.
+ * 2. Branches: side passages off open sockets, in passes, so branches can branch again.
  * 3. Loops: open sockets on the same level are joined by pathfinding a hall through free cells.
  * 4. Seal: facing open sockets are joined; the rest get a dead end or a cap.
  *
@@ -28,11 +29,17 @@ import type { Edge, MapKit, MapLayout, PieceDef, PieceRole, Placement } from './
  */
 
 export interface GenerateOptions {
-	/** Connectors between consecutive major rooms. */
+	/** Connectors between consecutive rooms on the main route. */
 	corridor: [number, number];
+	/** Connectors a corridor may grow beyond its length when the room at its end won't fit. */
+	stretch: number;
+	/** Extraction rooms on the main route, spaced evenly between the start and the final room. */
+	extractions: number;
 	/** Chance an open socket grows a side branch. */
 	branchChance: number;
 	branchLength: [number, number];
+	/** Branching passes. Each pass can branch off the sockets the one before opened. */
+	branchPasses: number;
 	/** Loops to try to close. */
 	loops: number;
 	/** Longest loop path, in cells. */
@@ -44,11 +51,14 @@ export interface GenerateOptions {
 }
 
 const DEFAULTS: GenerateOptions = {
-	corridor: [2, 5],
-	branchChance: 0.45,
-	branchLength: [1, 3],
-	loops: 3,
-	loopMaxCells: 12,
+	corridor: [4, 7],
+	stretch: 3,
+	extractions: 2,
+	branchChance: 0.5,
+	branchLength: [2, 5],
+	branchPasses: 2,
+	loops: 8,
+	loopMaxCells: 16,
 	deadEndChance: 0.35,
 	attempts: 64
 };
@@ -250,47 +260,86 @@ function tryGenerate(
 	const caps = state.role('cap');
 	const majors = state.role('major');
 	const finals = majors.filter((p) => kit[p.name].final);
-	const route = [...rng.shuffle(majors.filter((p) => !kit[p.name].final)), ...rng.shuffle(finals)];
+	const extractions = state.role('extraction');
+	const rooms = rng.shuffle(majors.filter((p) => !kit[p.name].final));
+	// Extraction rooms spaced evenly between the start and the final room: with three major rooms
+	// and two extraction rooms, major, extraction, major, extraction, major, final.
+	const want = extractions.length ? options.extractions : 0;
+	const route: PieceDef[] = [];
+	let placed = 0;
+	for (let i = 0; i <= rooms.length; i++) {
+		while (placed < want && Math.round(((placed + 1) * rooms.length) / (want + 1)) <= i) {
+			route.push(rng.weighted(extractions, (p) => kit[p.name].weight ?? 1));
+			placed++;
+		}
+		if (i < rooms.length) route.push(rooms[i]);
+	}
+	route.push(...rng.shuffle(finals));
 
 	// Start room, its first cell on world cell [0, 0], then its fixed exit piece.
 	const start = rng.pick(state.role('start'));
 	const rotation = rng.int(0, 3);
 	const [ox, oz] = rotateXZ(cellOffset(start, [0, 0]), rotation);
 	const open = state.place(start, { piece: start.name, position: [-ox, 0, -oz], rotation });
-	let frontier = rng.pick(open);
+	let tips = open;
 	const exit = kit[start.name].exit;
 	if (exit) {
-		const next = state.attach(frontier, pieces[exit]);
+		const next = state.attach(rng.pick(open), pieces[exit]);
 		if (!next?.length) throw new GenerationFailed();
-		frontier = rng.pick(next);
+		tips = next;
 	}
 
-	// Main route through every major room.
-	for (const major of route) {
-		const length = rng.int(options.corridor[0], options.corridor[1]);
-		const descendAt = kit[major.name].final && descenders.length ? rng.int(0, length - 1) : -1;
-		for (let i = 0; i < length; i++) {
-			const next =
-				i === descendAt ? state.attachAny(frontier, descenders) : state.attachAny(frontier, flat);
-			if (!next?.length) throw new GenerationFailed();
-			frontier = rng.pick(next);
+	// Main route through every major and extraction room. Each step grows from one of the last
+	// piece's open sockets, trying the others when it doesn't fit; the ones not taken stay open
+	// for branches. A room that won't fit stretches its corridor a little first.
+	const grow = (kinds: PieceDef[]): OpenSocket[] | null => {
+		for (const tip of rng.shuffle(tips)) {
+			if (tip.connected) continue;
+			const next = state.attachAny(tip, kinds);
+			if (next?.length) return next;
 		}
-		const next = state.attach(frontier, major);
-		if (!next) throw new GenerationFailed();
-		if (major === route[route.length - 1]) break;
-		if (!next.length) throw new GenerationFailed();
-		frontier = rng.pick(next);
+		return null;
+	};
+	for (const room of route) {
+		const length = rng.int(options.corridor[0], options.corridor[1]);
+		const descendAt = kit[room.name].final && descenders.length ? rng.int(0, length - 1) : -1;
+		for (let i = 0; i < length; i++) {
+			const next = grow(i === descendAt ? descenders : flat);
+			if (!next) throw new GenerationFailed();
+			tips = next;
+		}
+		const final = room === route[route.length - 1];
+		let next: OpenSocket[] | null = null;
+		for (let stretch = 0; stretch <= options.stretch && !next; stretch++) {
+			if (stretch > 0) {
+				const longer = grow(flat);
+				if (!longer) break;
+				tips = longer;
+			}
+			for (const tip of rng.shuffle(tips)) {
+				if (tip.connected) continue;
+				next = state.attach(tip, room);
+				if (next) break;
+			}
+		}
+		// Only the final room may close the route.
+		if (!next || (!final && !next.length)) throw new GenerationFailed();
+		if (final) break;
+		tips = next;
 	}
 
-	// Side branches (never descending, so nothing ends up below the final room).
-	for (const socket of rng.shuffle(state.open())) {
-		if (socket.connected || rng.next() > options.branchChance) continue;
-		let tip: OpenSocket = socket;
-		const length = rng.int(options.branchLength[0], options.branchLength[1]);
-		for (let i = 0; i < length; i++) {
-			const next = state.attachAny(tip, flat);
-			if (!next?.length) break;
-			tip = rng.pick(next);
+	// Side branches (never descending, so nothing ends up below the final room). A tee or cross on
+	// a branch leaves sockets open that the next pass can branch off again.
+	for (let pass = 0; pass < options.branchPasses; pass++) {
+		for (const socket of rng.shuffle(state.open())) {
+			if (socket.connected || rng.next() > options.branchChance) continue;
+			let tip: OpenSocket = socket;
+			const length = rng.int(options.branchLength[0], options.branchLength[1]);
+			for (let i = 0; i < length; i++) {
+				const next = state.attachAny(tip, flat);
+				if (!next?.length) break;
+				tip = rng.pick(next);
+			}
 		}
 	}
 

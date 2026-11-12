@@ -76,6 +76,50 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		triangles: 782
 	},
+	'extraction-shaft': {
+		name: 'extraction-shaft',
+		url: '/assets/map/extraction-shaft.gltf',
+		footprint: [2, 2],
+		levels: 2,
+		sockets: [
+			{ type: 'hall', cell: [1, 0], level: 0, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' },
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [1, 1], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [],
+		extracts: [[0, 0, -0.1]],
+		rites: [],
+		crates: [],
+		colliders: [
+			{ center: [2.55, 3.6, 0], halfExtents: [1.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.6, -2.55], halfExtents: [4, 0.2, 1.45], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.6, 2.55], halfExtents: [4, 0.2, 1.45], rotation: [0, 0, 0, 1] },
+			{ center: [-2.55, 3.6, 0], halfExtents: [1.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7.7, 0], halfExtents: [1.1, 0.3, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.7, -0.8], halfExtents: [0.3, 3.7, 0.06], rotation: [0, 0, 0, 1] },
+			{ center: [1.25, 5.55, 0], halfExtents: [0.15, 2.15, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5.55, -1.25], halfExtents: [1.4, 2.15, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5.55, 1.25], halfExtents: [1.4, 2.15, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [-1.25, 5.55, 0], halfExtents: [0.15, 2.15, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [3.7, 1.7, 3.5], halfExtents: [0.3, 1.7, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [3.7, 3.1, 2], halfExtents: [0.3, 0.3, 1], rotation: [0, 0, 0, 1] },
+			{ center: [3.7, 1.7, -1.5], halfExtents: [0.3, 1.7, 2.5], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.7, -3.7], halfExtents: [2.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [2, 3.1, -3.7], halfExtents: [1, 0.3, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 1.7, -3.7], halfExtents: [0.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 1.7, 3.7], halfExtents: [0.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 3.1, 3.7], halfExtents: [1, 0.3, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.7, 3.7], halfExtents: [2.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-3.7, 1.7, 1.5], halfExtents: [0.3, 1.7, 2.5], rotation: [0, 0, 0, 1] },
+			{ center: [-3.7, 3.1, -2], halfExtents: [0.3, 0.3, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-3.7, 1.7, -3.5], halfExtents: [0.3, 1.7, 0.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 1068
+	},
 	'gloaming-chapel': {
 		name: 'gloaming-chapel',
 		url: '/assets/map/gloaming-chapel.gltf',
@@ -88,7 +132,7 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		spawns: [],
 		creatures: [],
-		extracts: [],
+		extracts: [[-3.05, 0.35, -1.35]],
 		rites: [[0, 0.35, -2.4]],
 		crates: [
 			{ position: [3.41, 0, -0.3], yaw: -1.571 },
@@ -108,6 +152,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [0, 7.875, 0], halfExtents: [6, 0.125, 6], rotation: [0, 0, 0, 1] },
 			{ center: [0, 0.175, -2.8], halfExtents: [3.75, 0.175, 1.8], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 6], rotation: [0, 0, 0, 1] },
+			{ center: [-3.655, 2.475, -1.35], halfExtents: [0.095, 2.125, 0.25], rotation: [0, 0, 0, 1] },
 			{ center: [4.875, 3.875, 5.5], halfExtents: [1.125, 3.875, 0.5], rotation: [0, 0, 0, 1] },
 			{ center: [4.875, 3.875, -1.5], halfExtents: [1.125, 3.875, 4.5], rotation: [0, 0, 0, 1] },
 			{ center: [4.875, 5.275, 4], halfExtents: [1.125, 2.475, 1], rotation: [0, 0, 0, 1] },
@@ -119,7 +164,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [3.5, 3.875, 5.875], halfExtents: [2.5, 3.875, 0.125], rotation: [0, 0, 0, 1] }
 		],
 		volumes: [],
-		triangles: 673
+		triangles: 911
 	},
 	'hall-canal': {
 		name: 'hall-canal',

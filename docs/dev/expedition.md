@@ -89,7 +89,13 @@ Only the dead spectate. Players who left alive see the leaving fade, then the re
 
 ## Extraction
 
-**Where:** extraction points are `extract-*` markers in a piece (Blender) and come through the manifest's `extracts`. `buildCollisionWorld` puts them all into `world.extracts` in world space. The start room has one at its sealed surface door.
+**Where:** extraction points are `extract-*` markers in a piece (Blender) and come through the manifest's `extracts`. `buildCollisionWorld` puts them all into `world.extracts` in world space. Every map has four:
+
+1. the start room (`stairwell`), at its sealed surface door;
+2. and 3. the two extraction rooms (`extraction-shaft`, role `extraction`) that the generator spaces evenly along the main route, about a third and two thirds of the way to the final room (see [map-generation.md](map-generation.md#algorithm));
+3. the final room (`gloaming-chapel`), at the foot of a ladder on its dais.
+
+Every way out but the start door is marked by the same model: a timber ladder (and a rope) going up into the dark (`extraction_ladder` and `hanging_rope` in `scripts/blender/kit.py`). In the shaft room it climbs a round shaft through the ceiling; in the chapel, a hatch where the wall meets the vault.
 
 **How:** it runs in the shared simulation, so the client predicts the progress bar and the server decides.
 
@@ -99,7 +105,7 @@ Only the dead spectate. Players who left alive see the leaving fade, then the re
 
 **Client feedback:** near a point the HUD shows "Hold E to climb out" (using the player's current binding) in a `HoldPrompt` pill whose background fills while holding. Use `HoldPrompt` (`src/lib/ui/HoldPrompt.svelte`) for every hold-key prompt so they all look the same.
 
-**Adding an extraction point:** put an `extract-<n>` empty in a piece, export, then run `pnpm asset:build`.
+**Adding an extraction point:** put an `extract-<n>` empty in a piece at the foot of a ladder (`kit.extraction_ladder`), export, then run `pnpm asset:build`. To add another kind of extraction room, build it with an `extract-0` and give it `role: 'extraction'` in `MAP_KIT`; `GenerateOptions.extractions` sets how many go on the route, picked by `weight`.
 
 ## Leaving and results
 
@@ -113,7 +119,7 @@ Only the dead spectate. Players who left alive see the leaving fade, then the re
 
 ## Room banners
 
-Start and major rooms with a `title` in `MAP_KIT` show a banner the first time a player enters them in an expedition.
+Start, major and extraction rooms with a `title` in `MAP_KIT` show a banner the first time a player enters them in an expedition. Banners are remembered by title, so the second extraction room (also "The Shaft") shows none.
 
 - On map load, the client builds a lookup from each titled room's occupied cells (`occupiedCells`).
 - A few times a second, it finds the cell and level the player is in.

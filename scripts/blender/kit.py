@@ -61,6 +61,9 @@ MATERIALS = {
     "mat-floor-chapel": {"set": "Marble023", "tile": 2.0},
     "mat-wall-chapel": {"set": "Road015C", "tile": 2.5},
     "mat-prop-planks": {"set": "Planks025A", "tile": 1.0},
+    "mat-rope": {"color": (0.32, 0.24, 0.15), "roughness": 0.95},
+    # The unlit inside of a shaft or hatch: reads as a hole going on up into the dark.
+    "mat-shaft-dark": {"color": (0.004, 0.004, 0.005), "roughness": 1.0},
 }
 
 PIECES = [
@@ -83,6 +86,7 @@ PIECES = [
     "quarry-gallery",
     "cistern",
     "gloaming-chapel",
+    "extraction-shaft",
 ]
 
 
@@ -1514,6 +1518,166 @@ def build_gloaming_chapel(force=False):
 
 
 # ---------------------------------------------------------------------------
+# Extraction: a timber ladder and a rope going up into the dark mark every way out (but the
+# start room's surface door). The extract-<n> empty stands at the foot of the ladder.
+
+
+def extraction_ladder(mb, cx, cy, z0, z1, axis="x", rail=0.07, half_w=0.24):
+    """Timber ladder standing at (cx, cy) from z0 to z1. Rails spread along `axis` ('x' or 'y');
+    the player faces it from either side across the other axis."""
+    def span(a0, a1, b0, b1, za, zb):
+        if axis == "x":
+            mb.box((cx + a0, cy + b0, za), (cx + a1, cy + b1, zb), "mat-prop-planks")
+        else:
+            mb.box((cx + b0, cy + a0, za), (cx + b1, cy + a1, zb), "mat-prop-planks")
+
+    h = rail / 2
+    for side in (-1, 1):
+        a = side * half_w
+        span(a - h, a + h, -h, h, z0, z1)
+    z = z0 + 0.3
+    while z < z1 - 0.15:
+        span(-half_w + h, half_w - h, -0.02, 0.02, z - 0.02, z + 0.02)
+        z += 0.3
+
+
+def hanging_rope(mb, x, y, z_top, z_floor, coil=0.28):
+    """A rope hanging from z_top, with a loose coil on the floor beside it."""
+    r = 0.018
+    mb.box((x - r, y - r, z_floor + 0.04), (x + r, y + r, z_top), "mat-rope", skip=("-z", "+z"))
+    if coil <= 0:
+        return
+    segs = 10
+    for k in range(segs):
+        a0, a1 = 2 * math.pi * k / segs, 2 * math.pi * (k + 1) / segs
+        for ring, zc in ((coil, 0.0), (coil * 0.75, 0.04)):
+            p0 = Vector((x + coil + math.cos(a0) * ring, y + math.sin(a0) * ring, z_floor + zc))
+            p1 = Vector((x + coil + math.cos(a1) * ring, y + math.sin(a1) * ring, z_floor + zc))
+            d = (p1 - p0).normalized()
+            n = Vector((-d.y, d.x, 0)) * r * 1.5
+            up = Vector((0, 0, r * 2))
+            mb.face([p0 - n, p1 - n, p1 + n, p0 + n], "mat-rope", facing=(0, 0, 1))
+            mb.face([p0 + n, p1 + n, p1 + n + up, p0 + n + up], "mat-rope")
+            mb.face([p0 - n + up, p1 - n + up, p1 + n + up, p0 + n + up], "mat-rope", facing=(0, 0, 1))
+
+
+def build_extraction_shaft(force=False):
+    """2x2 cells, 2 levels: an extraction room. A round shaft rises from the middle of the ceiling
+    toward the surface, with a timber ladder and a rope up it; extract-0 is at the foot of the
+    ladder. Openings on every side (like room-crypt), so the main route runs on through it."""
+    name = "extraction-shaft"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 2, 2, levels=2)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    i, h = 3.4, 3.4
+    R, top = 1.1, 7.7  # shaft radius; the hatch at its top
+    hall = hall_profile()
+    # s is measured from x0/y0 = -3.4, so cell centres +-2 are at s = 1.4 and 5.4
+    openings = {"n": [(5.4, hall)], "s": [(1.4, hall)], "w": [(5.4, hall)], "e": [(1.4, hall)]}
+    mb = MeshBuilder(name + "-mesh")
+    mb.face([(-i, -i, 0), (i, -i, 0), (i, i, 0), (-i, i, 0)], F, facing=(0, 0, 1))
+    for side, ((_ox, _oy), facing) in SIDES.items():
+        a, b = _wall_ends(side, -i, i, -i, i)
+        wall(mb, a, b, 0, h, W, facing, notches=openings[side])
+    throat(mb, (2, i), (0, 1), 0, 4 - i, hall, W, F)
+    throat(mb, (-2, -i), (0, -1), 0, 4 - i, hall, W, F)
+    throat(mb, (-i, 2), (-1, 0), 0, 4 - i, hall, W, F)
+    throat(mb, (i, -2), (1, 0), 0, 4 - i, hall, W, F)
+    # Ceiling with a round hole: 16 rays, every fourth through a corner of the square.
+    segs = 16
+    def ray(k, radius=None):
+        a = 2 * math.pi * k / segs
+        c, s = math.cos(a), math.sin(a)
+        t = radius if radius is not None else i / max(abs(c), abs(s))
+        return Vector((c * t, s * t, h))
+    for k in range(segs):
+        mb.face([ray(k), ray(k + 1), ray(k + 1, R), ray(k, R)], W, facing=(0, 0, -1))
+    # Shaft walls, rough-cut, up to the hatch
+    rings = 6
+    tile = tile_of(W)
+    for r in range(rings):
+        za, zb = h + (top - h) * r / rings, h + (top - h) * (r + 1) / rings
+        for k in range(segs):
+            def p(kk, z):
+                a = 2 * math.pi * kk / segs
+                wob = 1.0 + (0.06 * noise.noise(Vector((math.cos(a) * 2, math.sin(a) * 2, z * 0.8))) if h < z < top else 0.0)
+                return Vector((math.cos(a) * R * wob, math.sin(a) * R * wob, z))
+            q = [p(k, za), p(k + 1, za), p(k + 1, zb), p(k, zb)]
+            arc = 2 * math.pi * R / segs
+            uvs = [(k * arc / tile, za / tile), ((k + 1) * arc / tile, za / tile), ((k + 1) * arc / tile, zb / tile), (k * arc / tile, zb / tile)]
+            mb.face(q, W, facing=Vector((0, 0, (za + zb) / 2)) - sum(q, Vector()) / 4, uvs=uvs, smooth=True)
+    for k, (x, y, s) in enumerate([(2.7, 2.6, 0.3), (-2.8, -2.7, 0.28), (0.75, -0.7, 0.22), (-0.8, -0.45, 0.16), (2.9, -0.4, 0.2)]):
+        rubble(mb, x, y, 0, s, seed=k + 140)
+    mb.finish(coll, root)
+    # The way out: hatch, beams, collar, ladder and rope
+    xm = MeshBuilder(name + "-way-out")
+    xm.face([Vector((math.cos(2 * math.pi * k / segs) * R * 1.08, math.sin(2 * math.pi * k / segs) * R * 1.08, top)) for k in range(segs)], "mat-shaft-dark", facing=(0, 0, -1))
+    for y in (-0.55, 0.0, 0.55):
+        xm.box((-R * 1.05, y - 0.07, top - 0.3), (R * 1.05, y + 0.07, top - 0.15), "mat-prop-planks")
+    c = R + 0.16
+    for sx, sy, ex, ey in ((-c, R, c, c), (-c, -c, c, -R), (-c, -R, -R, R), (R, -R, c, R)):
+        xm.box((sx, sy, h - 0.22), (ex, ey, h), "mat-prop-planks", skip=("+z",))
+    extraction_ladder(xm, 0, R - 0.3, 0, top - 0.3, axis="x")
+    hanging_rope(xm, -0.6, -0.15, top - 0.3, 0)
+    xm.finish(coll, root)
+    socket(coll, root, "hall", 0, (2, 4, 0))
+    socket(coll, root, "hall", 1, (-2, -4, 0))
+    socket(coll, root, "hall", 2, (-4, 2, 0))
+    socket(coll, root, "hall", 3, (4, -2, 0))
+    marker(coll, root, "extract-0", (0, 0.1, 0), display="SPHERE", size=0.6)
+    t = 4 - i
+    col_box(coll, root, "col-floor", (-4, -4, -0.2), (4, 4, 0))
+    col_box(coll, root, "col-ceiling-n", (-4, R, h), (4, 4, h + 0.4))
+    col_box(coll, root, "col-ceiling-s", (-4, -4, h), (4, -R, h + 0.4))
+    col_box(coll, root, "col-ceiling-w", (-4, -R, h), (-R, R, h + 0.4))
+    col_box(coll, root, "col-ceiling-e", (R, -R, h), (4, R, h + 0.4))
+    col_box(coll, root, "col-shaft-n", (-R - 0.3, R, h), (R + 0.3, R + 0.3, top))
+    col_box(coll, root, "col-shaft-s", (-R - 0.3, -R - 0.3, h), (R + 0.3, -R, top))
+    col_box(coll, root, "col-shaft-w", (-R - 0.3, -R, h), (-R, R, top))
+    col_box(coll, root, "col-shaft-e", (R, -R, h), (R + 0.3, R, top))
+    col_box(coll, root, "col-hatch", (-R, -R, top - 0.3), (R, R, 2 * LEVEL))
+    col_box(coll, root, "col-ladder", (-0.3, R - 0.36, 0), (0.3, R - 0.24, top - 0.3))
+    wall_cols(coll, root, "wall-n", (-4, i), (4, i), 0, h, t, (0, 1), openings=[(6.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-s", (-4, -i), (4, -i), 0, h, t, (0, -1), openings=[(2.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-w", (-i, -4), (-i, 4), 0, h, t, (-1, 0), openings=[(6.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-e", (i, -4), (i, 4), 0, h, t, (1, 0), openings=[(2.0, 1.0, 2.8)])
+    return coll
+
+
+def add_chapel_extraction():
+    """Give the (hand-edited) Gloaming Chapel a way out, without rebuilding it: a ladder on the
+    dais against the west nave wall, up to a dark hatch where the wall meets the vault, and
+    extract-0 at its foot. Only adds objects; does nothing if the chapel already has them."""
+    name = "gloaming-chapel"
+    coll = bpy.data.collections[name]
+    root = bpy.data.objects[name]
+    if any(o.name.split(".")[0] == "extract-0" for o in root.children):
+        print("gloaming-chapel already has extract-0")
+        return coll
+    hx, spring, dais_h = 3.75, 4.0, 0.35
+    y0, y1 = 1.02, 1.68  # between the dais edge (y=1) and the pilaster at the apse (y=1.7)
+    cy = (y0 + y1) / 2
+    xm = MeshBuilder(name + "-way-out")
+    # Hatch: a dark patch hugging the wall, then the vault, just proud of the surface.
+    def surface_x(z):
+        return -hx if z <= spring else -math.sqrt(max(0.0, hx * hx - (z - spring) ** 2))
+    zs = [2.9 + 0.25 * k for k in range(11)]  # 2.9 .. 5.4
+    for za, zb in zip(zs, zs[1:]):
+        xa, xb = surface_x(za) + 0.015, surface_x(zb) + 0.015
+        xm.face([(xa, y0, za), (xa, y1, za), (xb, y1, zb), (xb, y0, zb)], "mat-shaft-dark", facing=(1, 0, -0.3))
+    # Timber frame round the hatch mouth and a lintel beam
+    xm.box((-hx + 0.01, y0 - 0.1, 2.75), (-hx + 0.16, y1 + 0.1, 2.9), "mat-prop-planks", skip=("-x",))
+    for y in (y0 - 0.1, y1):
+        xm.box((-hx + 0.01, y, 2.75), (-hx + 0.14, y + 0.1, spring), "mat-prop-planks", skip=("-x",))
+    extraction_ladder(xm, -hx + 0.14, cy, dais_h, 4.6, axis="y", half_w=0.22)
+    hanging_rope(xm, -hx + 0.35, y0 + 0.05, 5.0, dais_h, coil=0.0)
+    xm.finish(coll, root)
+    marker(coll, root, "extract-0", (-3.05, cy, dais_h), display="SPHERE", size=0.6)
+    col_box(coll, root, "col-ladder", (-hx, y0 + 0.08, dais_h), (-hx + 0.19, y1 - 0.08, 4.6))
+    return coll
+
+
+# ---------------------------------------------------------------------------
 # Water connectors. Both dip below their entrances, so they are 2 levels with the origin at the
 # lowest level and the hall sockets at level 1 (y = LEVEL), like the Cistern.
 
@@ -1672,6 +1836,7 @@ BUILDERS = {
     "quarry-gallery": build_quarry_gallery,
     "cistern": build_cistern,
     "gloaming-chapel": build_gloaming_chapel,
+    "extraction-shaft": build_extraction_shaft,
 }
 
 

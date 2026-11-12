@@ -66,10 +66,11 @@ export interface PieceDef {
 
 /**
  * start: the expedition start room. major: one of the static major rooms, all placed on the
- * main route. connector: passages and minor rooms. end: dead ends that close branches.
- * cap: seals an unused opening without occupying a cell.
+ * main route. extraction: a room with a way up to the surface, placed on the main route
+ * (`GenerateOptions.extractions` of them). connector: passages and minor rooms. end: dead ends
+ * that close branches. cap: seals an unused opening without occupying a cell.
  */
-export type PieceRole = 'start' | 'major' | 'connector' | 'end' | 'cap';
+export type PieceRole = 'start' | 'major' | 'extraction' | 'connector' | 'end' | 'cap';
 
 /** Gameplay data for a piece (hand-authored, in `src/lib/content/map/kit.ts`). */
 export interface KitEntry {
@@ -110,8 +111,6 @@ export interface CratePlacement {
 	position: Vec3;
 	/** Turn about +Y (radians). At 0 its back is to the north (-Z) and it opens to the south. */
 	yaw: number;
-	/** The dev crate in the start room: only there in dev mode, and filled like the deepest. */
-	debug?: boolean;
 }
 
 export interface MapLayout {

@@ -34,7 +34,7 @@
 		sessionId: string | null;
 		playerId: string | null;
 		seed: number | null;
-		/** Start and major rooms that can be teleported to. */
+		/** Start, major and extraction rooms that can be teleported to. */
 		rooms: string[];
 		flags: PlayerFlags | null;
 		mapView: boolean;

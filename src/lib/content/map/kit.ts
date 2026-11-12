@@ -23,17 +23,21 @@ export const MAP_KIT: MapKit = {
 		acoustics: 'vast'
 	},
 
-	'hall-straight': { role: 'connector', weight: 6 },
-	'hall-corner': { role: 'connector', weight: 4 },
-	'hall-tee': { role: 'connector', weight: 1.5 },
-	'hall-cross': { role: 'connector', weight: 0.8 },
-	'hall-side-room': { role: 'connector', weight: 1.2 },
-	'room-small': { role: 'connector', weight: 1.2 },
-	'room-crypt': { role: 'connector', weight: 0.6, acoustics: 'hall' },
-	'hall-crawl': { role: 'connector', weight: 0.8, acoustics: 'tight' },
-	'hall-squeeze': { role: 'connector', weight: 0.8, acoustics: 'tight' },
-	'hall-canal': { role: 'connector', weight: 0.8 },
-	'hall-flooded': { role: 'connector', weight: 0.5, acoustics: 'tight' },
+	// A way up to the surface: placed on the main route between the major rooms.
+	'extraction-shaft': { role: 'extraction', title: 'The Shaft', acoustics: 'hall' },
+
+	// Mostly halls, with frequent junctions; crawls and squeezes are rare.
+	'hall-straight': { role: 'connector', weight: 5 },
+	'hall-corner': { role: 'connector', weight: 3 },
+	'hall-tee': { role: 'connector', weight: 3 },
+	'hall-cross': { role: 'connector', weight: 1.5 },
+	'hall-side-room': { role: 'connector', weight: 1 },
+	'room-small': { role: 'connector', weight: 1 },
+	'room-crypt': { role: 'connector', weight: 0.5, acoustics: 'hall' },
+	'hall-crawl': { role: 'connector', weight: 0.2, acoustics: 'tight' },
+	'hall-squeeze': { role: 'connector', weight: 0.2, acoustics: 'tight' },
+	'hall-canal': { role: 'connector', weight: 0.4 },
+	'hall-flooded': { role: 'connector', weight: 0.2, acoustics: 'tight' },
 	'hall-stairs-down': { role: 'connector', weight: 0.8, descends: true },
 
 	'hall-dead-end': { role: 'end' },

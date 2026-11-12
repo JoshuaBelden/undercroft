@@ -33,26 +33,27 @@ A socket is an opening of a given type on a cell edge. Two sockets connect when 
 
 `MAP_KIT` (`src/lib/content/map/kit.ts`) gives each piece a role and options:
 
-| Role        | Meaning                                                                                                                                                                       |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `start`     | Expedition start room. `exit` names the piece always attached to its opening (`hall-stairs-down`).                                                                            |
-| `major`     | Static major room. Every major room is placed on the main route. `final: true` marks the one that goes last and deepest (Gloaming Chapel).                                    |
-| `connector` | Passages and minor rooms. `weight` is the relative pick chance. `descends: true` pieces change level and are only attached by their highest socket, so they always lead down. |
-| `end`       | Dead ends that can close an opening instead of a cap.                                                                                                                         |
-| `cap`       | Seals an unused opening without occupying a cell. `seals` names the socket type.                                                                                              |
+| Role         | Meaning                                                                                                                                                                       |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `start`      | Expedition start room. `exit` names the piece always attached to its opening (`hall-stairs-down`).                                                                            |
+| `major`      | Static major room. Every major room is placed on the main route. `final: true` marks the one that goes last and deepest (Gloaming Chapel).                                    |
+| `extraction` | A room with a way out (`extraction-shaft`). `GenerateOptions.extractions` of them go on the main route, spaced evenly between the major rooms, picked by `weight`.            |
+| `connector`  | Passages and minor rooms. `weight` is the relative pick chance. `descends: true` pieces change level and are only attached by their highest socket, so they always lead down. |
+| `end`        | Dead ends that can close an opening instead of a cap.                                                                                                                         |
+| `cap`        | Seals an unused opening without occupying a cell. `seals` names the socket type.                                                                                              |
 
 ## Algorithm
 
 `generateLayout(seed, PIECES, MAP_KIT)`:
 
 1. **Start:** place the start room with a random rotation, its first cell on world cell `[0, 0]`, then attach its `exit` piece (stairs down).
-2. **Main route:** visit every major room in random order, with the `final` room last. Before each room, attach a corridor of 2–5 non-descending connectors. Pieces are tried in weighted random order, each matching socket and rotation is tried, and placements that overlap an occupied cell on any level are rejected. Before the final room, one corridor piece is forced to be a descending piece. Because descending pieces only go down, the final room is always strictly deeper than every other major room.
-3. **Branches:** each still-open socket has a chance (`branchChance`) to grow a 1–3 piece side passage. Branches never descend.
-4. **Loops:** for up to `loops` open sockets, find the nearest open socket on the same level that a breadth-first search can reach through free cells (at most `loopMaxCells`). The path becomes straight and corner halls, joining the two sockets.
+2. **Main route:** visit every major room in random order, with the `final` room last, and the extraction rooms spaced evenly between them (with three major rooms and two extraction rooms: major, extraction, major, extraction, major, final). Before each room, attach a corridor of `corridor` (4–7) non-descending connectors. Pieces are tried in weighted random order, each matching socket and rotation is tried, and placements that overlap an occupied cell on any level are rejected. Each step grows from any open socket of the piece before (trying the others when nothing fits); a room that does not fit stretches its corridor by up to `stretch` more pieces. Before the final room, one corridor piece is forced to be a descending piece. Because descending pieces only go down, the final room is always strictly deeper than every other room.
+3. **Branches:** each still-open socket has a chance (`branchChance`) to grow a 2–5 piece side passage, in `branchPasses` passes, so tees and crosses on a branch can branch again. Branches never descend.
+4. **Loops:** for up to `loops` (8) open sockets, find the nearest open socket on the same level that a breadth-first search can reach through free cells (at most `loopMaxCells`). The path becomes straight and corner halls, joining the two sockets.
 5. **Seal:** open sockets facing each other are joined. Each remaining one gets a dead end (`deadEndChance`, if it fits) or a cap.
 6. If any step fails, retry with a new RNG stream derived from the seed (up to `attempts`).
 
-Tunables are `GenerateOptions` in `generate.ts`. Maps come out at roughly 30–70 pieces.
+Tunables are `GenerateOptions` in `generate.ts`. Maps come out at roughly 90–230 pieces (median about 160), about half of them straight and corner halls, with a tee or cross every few pieces. Crawls, squeezes and water passages are rare (low `weight` in `MAP_KIT`). About three in four attempts box themselves in on the main route and are retried; no seed has needed more than the 64 attempts.
 
 After that the server chooses which of the pieces' crate markers have a loot crate (`placeCrates` in `src/lib/shared/map/crates.ts`, seeded by the same seed) and puts them in `layout.crates`. They are part of the layout because they are solid: both sides build them into the collision world. See [items.md](items.md#loot-crates).
 

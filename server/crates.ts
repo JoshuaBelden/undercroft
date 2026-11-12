@@ -36,8 +36,6 @@ export class Crates {
 	private depth = new Map<string, number>();
 	/** How far each crate is from the start along the floor (m). */
 	private fromStart = new Map<string, number>();
-	/** The dev crate at the start, if the map has it. */
-	private debug: string | null = null;
 	/** Counts fills, so refilling (admin) gives something new. */
 	private fills = 0;
 
@@ -50,12 +48,10 @@ export class Crates {
 	) {
 		const distance = gridDistances(nav, [nearestPoint(nav, start)]);
 		const far = distance.reduce((most, d) => Math.max(most, d ?? 0), 0);
-		for (const { id, position, debug } of placements) {
+		for (const { id, position } of placements) {
 			const d = distance[nearestPoint(nav, position)];
-			// The dev crate at the start is filled like the deepest, so there is more to look at.
-			this.depth.set(id, debug ? 1 : far > 0 && d !== undefined ? d / far : 0);
+			this.depth.set(id, far > 0 && d !== undefined ? d / far : 0);
 			this.fromStart.set(id, d ?? Infinity);
-			if (debug) this.debug = id;
 			this.crates.set(id, {
 				id,
 				position,
@@ -88,17 +84,16 @@ export class Crates {
 
 	/**
 	 * Put something in one of the map's crates, on top of what the crate rolled (a rite's item).
-	 * `nearStart` picks the crate nearest the start; otherwise any but the dev crate, by `rng`.
+	 * `nearStart` picks the crate nearest the start; otherwise any, by `rng`.
 	 * Returns false if the map has no crate to put it in.
 	 */
 	stow(stack: ItemStack, rng: Rng, nearStart = false): boolean {
 		const all = [...this.crates.values()];
 		if (all.length === 0) return false;
 		const distance = (crate: Crate): number => this.fromStart.get(crate.id) ?? Infinity;
-		const out = all.filter((crate) => crate.id !== this.debug);
 		const crate = nearStart
 			? all.reduce((best, c) => (distance(c) < distance(best) ? c : best))
-			: rng.pick(out.length ? out : all);
+			: rng.pick(all);
 		this.put(crate, stack);
 		return true;
 	}

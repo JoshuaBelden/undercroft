@@ -48,9 +48,11 @@ Look for steps or a low edge to get out. Every pool has a way out.`
 		id: 'extraction',
 		title: 'Getting out',
 		category: 'Basics',
-		body: `The way out is the sealed door you started beside, in the cellar at the top of the stairs. Remember how to get back to it.
+		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. Further in are two shafts, each with a ladder going up into the dark, the second deeper than the first. The last is a ladder in the deepest room of all.
 
-Stand at the door and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
+The deeper ways out save you the long walk back with your haul. Remember where you saw them.
+
+Stand at the foot of the ladder (or at the door) and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
 
 Once you're out, your expedition is over. The results show how it went (time underground, how deep you got, creatures killed, crates opened, clues found) and what you brought out; Continue takes you to your loadout to put the haul away. In a group, the others can stay down; the expedition ends when everyone is out.
 

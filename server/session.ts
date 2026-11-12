@@ -118,7 +118,7 @@ const VIEW_HALF_ANGLE = 0.9;
 /** The map for a seed: the layout, and which of its crate markers have a crate. */
 function generate(seed: number): MapLayout {
 	const layout = generateLayout(seed, PIECES, MAP_KIT);
-	layout.crates = placeCrates(layout, PIECES, seed, config.devMode);
+	layout.crates = placeCrates(layout, PIECES, seed);
 	return layout;
 }
 
