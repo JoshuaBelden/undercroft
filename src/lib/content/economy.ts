@@ -25,6 +25,8 @@ export const ECONOMY = {
 export const SHOP: ShopEntry[] = [
 	{ item: 'bandage', price: 15, lot: 1 },
 	{ item: 'salts', price: 40, lot: 1 },
+	{ item: 'chalk', price: 5, lot: 1 },
+	{ item: 'candle', price: 4, lot: 1 },
 	{ item: 'knife', price: 20, lot: 1 },
 	{ item: 'crowbar', price: 60, lot: 1 },
 	{ item: 'coat', price: 90, lot: 1 },

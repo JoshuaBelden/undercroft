@@ -9,10 +9,11 @@ import type {
 	CratesSnapshot,
 	GameEvent,
 	InventoryAction,
+	MarkSnapshot,
 	ProjectileSnapshot,
 	WorldItemSnapshot
 } from './items/types.ts';
-import type { MapLayout } from './map/types.ts';
+import type { MapLayout, Vec3 } from './map/types.ts';
 import type { PartyState } from './party/types.ts';
 import type { InputFrame, ItemStack, PlayerSnapshot } from './player/types.ts';
 import type { Person, SocialAction, SocialState } from './social/types.ts';
@@ -51,7 +52,12 @@ export type ClientMessage =
 	/** Rearrange or drop what you carry (the inventory screen). */
 	| { type: 'inventory'; action: InventoryAction }
 	/** Done with the loot crate that is open. */
-	| { type: 'closeCrate' };
+	| { type: 'closeCrate' }
+	/**
+	 * Draw a chalk mark with the chalk in the hand: a symbol on the player's wheel, where their
+	 * view meets the stone (`normal` out of it). The server checks it (see docs/dev/marks.md).
+	 */
+	| { type: 'mark'; symbol: string; position: Vec3; normal: Vec3 };
 
 export type AdminCommand =
 	| {
@@ -80,6 +86,8 @@ export type AdminCommand =
 	| { kind: 'teleport'; room: string }
 	/** Shut every loot crate and fill them again, hidden. */
 	| { kind: 'resetCrates' }
+	/** Rub out every chalk mark. */
+	| { kind: 'clearMarks' }
 	/** New map; omit the seed for a random one. */
 	| { kind: 'regenerate'; seed?: number };
 
@@ -130,6 +138,11 @@ export type ServerMessage =
 	 * first hidden one is to being revealed. `id: null` means it has closed.
 	 */
 	| { type: 'crate'; id: string | null; slots: CrateSlot[]; reveal: number }
+	/**
+	 * Every chalk mark in the expedition: sent to everyone when one is drawn or rubbed out, and to
+	 * a player arriving or coming back.
+	 */
+	| { type: 'marks'; marks: MarkSnapshot[] }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }
 	/**
@@ -191,7 +204,8 @@ const CLIENT_TYPES = new Set<string>([
 	'stopSpectating',
 	'abandon',
 	'inventory',
-	'closeCrate'
+	'closeCrate',
+	'mark'
 ]);
 const SERVER_TYPES = new Set<string>([
 	'party',
@@ -203,6 +217,7 @@ const SERVER_TYPES = new Set<string>([
 	'pong',
 	'tick',
 	'crate',
+	'marks',
 	'map',
 	'extracted',
 	'died',

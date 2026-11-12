@@ -95,6 +95,11 @@ wss.on('connection', (socket) => {
 				if (e) e.session.inventory(e.playerId, message.action);
 				break;
 			}
+			case 'mark': {
+				const e = parties.expedition(member);
+				if (e) e.session.mark(e.playerId, message.symbol, message.position, message.normal);
+				break;
+			}
 			case 'closeCrate': {
 				const e = parties.expedition(member);
 				if (e) e.session.closeCrate(e.playerId);

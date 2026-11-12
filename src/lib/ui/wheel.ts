@@ -1,16 +1,14 @@
-import type { ItemStack } from '#lib/shared/player/types.ts';
-
 /** How far from the centre (0..1) the pointer has to be before it chooses anything. */
 const DEAD_ZONE = 0.35;
 
 /**
- * Which slot of the quick-use wheel the pointer is on: the filled slot nearest its direction (the
- * first slot is at the top and they go clockwise), or -1 near the centre or with nothing to
- * choose. `pointer` is from the centre, each axis -1..1, y down.
+ * Which slot of a wheel (quick use, chalk marks) the pointer is on: the filled slot nearest
+ * its direction (the first slot is at the top and they go clockwise), or -1 near the centre or
+ * with nothing to choose. `pointer` is from the centre, each axis -1..1, y down.
  */
-export function wheelChoice(
+export function wheelChoice<T>(
 	pointer: { x: number; y: number },
-	slots: readonly (ItemStack | null)[]
+	slots: readonly (T | null)[]
 ): number {
 	if (Math.hypot(pointer.x, pointer.y) < DEAD_ZONE) return -1;
 	const angle = Math.atan2(pointer.x, -pointer.y);

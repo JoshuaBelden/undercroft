@@ -111,7 +111,7 @@ Every item has a rarity (`ItemDef.rarity`, `rarityOf(item)`): `common` (when lef
 
 All of it is data in `src/lib/content/loot.ts`. There is no editor: change the file.
 
-- `CRATE_LOOT`: everything a crate can hold, each with a `count` range (how many come together) and a `weight` near the start and at the far end of the map. Supplies (bandages, rounds, salts) are in it as common things.
+- `CRATE_LOOT`: everything a crate can hold, each with a `count` range (how many come together) and a `weight` near the start and at the far end of the map. Supplies (bandages, rounds, salts, chalk, candles) are in it as common things.
 - `CRATE_RARITY`: how many things of each rarity a crate holds, as a fewest and a most: 1 to 5 common, 0 to 3 uncommon, 0 to 2 rare, 0 or 1 epic, 0 or 1 legendary. Each one above the fewest is there with probability `chance`, which also runs from a value near the start to one at the far end. A crate never has more than the most.
 - `LOOSE_LOOT`: the little that lies on the floor.
 

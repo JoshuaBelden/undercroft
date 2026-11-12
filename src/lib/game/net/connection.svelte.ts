@@ -1,5 +1,6 @@
 import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
 import { ApiError, gameTicket, loadAccount } from '#lib/account/account.svelte.ts';
+import type { MarkSnapshot } from '#lib/shared/items/types.ts';
 import type { PartyMember, PartyState } from '#lib/shared/party/types.ts';
 import type { ClientMessage, ServerMessage } from '#lib/shared/protocol.ts';
 import type { Person, SocialAction, SocialState } from '#lib/shared/social/types.ts';
@@ -32,6 +33,8 @@ interface Connection {
 	search: { query: string; results: Person[] } | null;
 	/** The expedition we are down in: what `/play` builds the map from. Null on the surface. */
 	welcome: Welcome | null;
+	/** The chalk marks of that expedition, as last sent (they follow the welcome). */
+	marks: MarkSnapshot[];
 }
 
 export const connection: Connection = $state({
@@ -43,7 +46,8 @@ export const connection: Connection = $state({
 	launchAt: null,
 	social: null,
 	search: null,
-	welcome: null
+	welcome: null,
+	marks: []
 });
 
 /** Something that wants every message as it arrives (the expedition on `/play`). */
@@ -157,6 +161,10 @@ function receive(message: ServerMessage): void {
 			break;
 		case 'welcome':
 			connection.welcome = message;
+			connection.marks = [];
+			break;
+		case 'marks':
+			connection.marks = message.marks;
 			break;
 		case 'extracted':
 		case 'died':

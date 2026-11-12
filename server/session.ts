@@ -23,6 +23,7 @@ import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
 import { CRATES } from '../src/lib/content/loot.ts';
+import { MARKS } from '../src/lib/content/marks.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import {
 	addItem,
@@ -33,9 +34,10 @@ import {
 	newStack,
 	quickWith,
 	sanitizeAction,
-	spendQuick
+	spendQuick,
+	wearChalk
 } from '../src/lib/shared/items/inventory.ts';
-import { CRATE_REACH } from '../src/lib/shared/items/pickup.ts';
+import { CRATE_REACH, lookedAtMark } from '../src/lib/shared/items/pickup.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { aimRay, reequip } from '../src/lib/shared/items/weapons.ts';
 import { crateCentre, placeCrates } from '../src/lib/shared/map/crates.ts';
@@ -69,6 +71,7 @@ import { RiteDirector, scatterRite } from './rite.ts';
 import { Crates, type Crate } from './crates.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
+import { Marks } from './marks.ts';
 import { log } from './log.ts';
 
 interface Player {
@@ -156,6 +159,8 @@ export class Session {
 	);
 	private items = new WorldItems(this.world);
 	private crates!: Crates;
+	/** Chalk marks on the walls. */
+	private marks = new Marks();
 	private affliction: AfflictionDirector;
 	private rite: RiteDirector;
 	/** The rite has been performed: everyone is carried out at the end of this tick. */
@@ -267,6 +272,7 @@ export class Session {
 			layout: this.layout,
 			resumed: false
 		});
+		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
 		log.info(`Player ${name} joined session ${this.id.slice(0, 8)}`);
 		if (!this.timer) this.start();
 		return player;
@@ -295,6 +301,7 @@ export class Session {
 			layout: this.layout,
 			resumed: true
 		});
+		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
 		log.info(`Player ${player.name} reconnected to session ${this.id.slice(0, 8)}`);
 		return true;
 	}
@@ -399,6 +406,45 @@ export class Session {
 		if (held(inv) !== inHand) reequip(s.weapon);
 	}
 
+	/**
+	 * Draw a chalk mark with the chalk in the hand, where the client says their view meets the
+	 * stone. Refused unless they can use items and the place checks out (see Marks.check).
+	 */
+	mark(playerId: string, symbol: unknown, position: unknown, normal: unknown): void {
+		const player = this.players.get(playerId);
+		if (!player) return;
+		const s = player.state;
+		const stack = held(s.inventory);
+		if (!stack || !ITEMS[stack.item]?.chalk || !this.canUseHands(player)) return;
+		const { origin, direction } = aimRay(s, eyeHeight(s));
+		const flat = Math.hypot(direction[0], direction[2]) || 1;
+		const facing: Vec3 = [direction[0] / flat, 0, direction[2] / flat];
+		const mark = this.marks.check(this.world, origin, facing, symbol, position, normal);
+		if (!mark) return;
+		const added = this.marks.add({ ...mark, by: player.id, name: player.name });
+		const inHand = held(s.inventory);
+		wearChalk(s.inventory);
+		if (held(s.inventory) !== inHand) reequip(s.weapon);
+		this.events.push({ kind: 'mark', player: player.id, position: added.position });
+		this.creatures.hear(added.position, MARKS.noise, player);
+		this.broadcast({ type: 'marks', marks: this.marks.snapshot() });
+	}
+
+	/** Not down, not in water, not climbing, not busy with something else in the hands. */
+	private canUseHands(player: Player): boolean {
+		const s = player.state;
+		return (
+			!s.downed &&
+			!s.dead &&
+			!s.extracted &&
+			!s.swimming &&
+			!s.mantle &&
+			s.bandaging === 0 &&
+			s.reviving === 0 &&
+			!player.crate
+		);
+	}
+
 	/** The player is done with the loot crate they had open. */
 	closeCrate(playerId: string): void {
 		const player = this.players.get(playerId);
@@ -487,6 +533,10 @@ export class Session {
 				this.rite.reset();
 				this.hooks.onRiteReset?.();
 				break;
+			case 'clearMarks':
+				this.marks.clear();
+				this.broadcast({ type: 'marks', marks: [] });
+				break;
 			case 'resetCrates':
 				for (const other of this.players.values()) this.shutCrate(other);
 				this.crates.fill();
@@ -533,7 +583,9 @@ export class Session {
 			player.state.flags = flags;
 			player.queue = [];
 		}
+		this.marks.clear();
 		this.broadcast({ type: 'map', layout: this.layout });
+		this.broadcast({ type: 'marks', marks: [] });
 		log.info(`Session ${this.id.slice(0, 8)} regenerated with seed ${seed}`);
 	}
 
@@ -594,6 +646,7 @@ export class Session {
 		this.stepRevives();
 		this.stepRite();
 		this.stepCrates();
+		this.stepMarks();
 		this.tally();
 		// Anyone still alive down here after this tick? The dead can watch them.
 		const alive = [...this.players.values()].some((p) => !p.state.dead && !p.state.extracted);
@@ -939,6 +992,34 @@ export class Session {
 		}
 	}
 
+	/**
+	 * Chalk marks: holding interact on your own mark (when no floor item or crate is what interact
+	 * would take) rubs it out after MARKS.eraseSeconds.
+	 */
+	private stepMarks(): void {
+		for (const player of this.players.values()) {
+			const s = player.state;
+			const { origin, direction } = aimRay(s, eyeHeight(s));
+			const mark =
+				this.canUseHands(player) &&
+				player.lastInput?.interact &&
+				!this.items.lookedAt(s, origin, direction) &&
+				!this.crates.lookedAt(origin, direction)
+					? lookedAtMark(this.world, origin, direction, this.marks.all(), (m) => m.by === player.id)
+					: null;
+			if (!mark) {
+				s.erasing = 0;
+				continue;
+			}
+			s.erasing += TICK_DT;
+			if (s.erasing < MARKS.eraseSeconds) continue;
+			s.erasing = 0;
+			this.marks.remove(mark.id);
+			this.events.push({ kind: 'rub', player: player.id, position: mark.position });
+			this.broadcast({ type: 'marks', marks: this.marks.snapshot() });
+		}
+	}
+
 	private hurt(player: Player, amount: number): void {
 		const s = player.state;
 		if (s.flags.godMode || s.downed || s.dead) return;
@@ -958,6 +1039,7 @@ export class Session {
 		s.bandaging = 0;
 		s.reviving = 0;
 		s.opening = 0;
+		s.erasing = 0;
 		this.shutCrate(player);
 		log.info(`Player ${player.name} is down`);
 	}

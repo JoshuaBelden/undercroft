@@ -17,6 +17,25 @@ export interface WorldItemSnapshot {
  */
 export type CrateSlot = ItemStack | null | 'hidden';
 
+/**
+ * A chalk mark on a wall, floor or ceiling, as every client is told it. See docs/dev/marks.md.
+ */
+export interface MarkSnapshot {
+	id: string;
+	/** Key into MARK_SYMBOLS. */
+	symbol: string;
+	/** On the stone, as the drawer's client aimed it. */
+	position: Vec3;
+	/** Out of the surface (unit). */
+	normal: Vec3;
+	/** The symbol's top, along the surface (unit). */
+	up: Vec3;
+	/** Player id of whoever drew it. */
+	by: string;
+	/** Their gamer tag, for the label. */
+	name: string;
+}
+
 /** Which loot crates have been opened (their lids stay up) and which someone is going through. */
 export interface CratesSnapshot {
 	open: string[];
@@ -90,6 +109,9 @@ export type GameEvent =
 	| { kind: 'rummage'; player: string; position: Vec3 }
 	/** A clue was found: the requirements (item ids) and room (piece id) it revealed. */
 	| { kind: 'clue'; player: string; position: Vec3; requirements: string[]; room: string | null }
+	/** A chalk mark was drawn, or rubbed out by whoever drew it. */
+	| { kind: 'mark'; player: string; position: Vec3 }
+	| { kind: 'rub'; player: string; position: Vec3 }
 	/** The Affliction reached a new omen stage. */
 	| { kind: 'omen'; stage: number }
 	/** The Affliction manifests (it gathers, then hunts). */

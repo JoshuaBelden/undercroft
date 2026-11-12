@@ -18,6 +18,8 @@
 	import { Effects } from '#lib/game/items/Effects.ts';
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { Crates } from '#lib/game/items/Crates.ts';
+	import { Marks } from '#lib/game/items/Marks.ts';
+	import { MARKS, markWheel } from '#lib/content/marks.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { DISTANT_SHOT } from '#lib/content/audio/sounds.ts';
@@ -25,7 +27,7 @@
 	import { canTake, carriedCount, held, quickWith } from '#lib/shared/items/inventory.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
-	import { lookedAtCrate, lookedAtItem } from '#lib/shared/items/pickup.ts';
+	import { lookedAtCrate, lookedAtItem, lookedAtMark } from '#lib/shared/items/pickup.ts';
 	import type { CrateSlot, GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
 	import { eyeHeight, healing } from '#lib/shared/player/simulate.ts';
@@ -69,6 +71,8 @@
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
+	import MarkWheel from '#lib/ui/MarkWheel.svelte';
+	import MarkLabel from '#lib/ui/MarkLabel.svelte';
 	import { wheelChoice } from '#lib/ui/wheel.ts';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
@@ -129,6 +133,10 @@
 		pointer: { x: number; y: number };
 		chosen: number;
 	} | null>(null);
+	/** The chalk wheel while attack is held with chalk in the hand: the pointer and the symbol. */
+	let chalkWheel = $state<{ pointer: { x: number; y: number }; chosen: number } | null>(null);
+	/** Who drew the chalk mark you are close to, and where it is on the screen. */
+	let markLabel = $state<{ name: string; x: number; y: number } | null>(null);
 	let meter = $state<number | null>(null);
 	let omen = $state(0);
 	/** Set while downed: bleed-out time left (0..1), what happens next, and the hold to surrender. */
@@ -327,6 +335,9 @@
 					case 'map':
 						loadMap(message.layout);
 						break;
+					case 'marks':
+						if (expedition || spectating) marks.apply(message.marks);
+						break;
 					case 'crate':
 						if (message.id === null) {
 							// The server shut it (walked away, went down), or agreed that we did.
@@ -393,6 +404,10 @@
 		engine.scene.add(worldItems.root);
 		const crates = new Crates();
 		engine.scene.add(crates.root);
+		const marks = new Marks(map.root);
+		engine.scene.add(marks.root);
+		const chalkRay = new THREE.Raycaster();
+		chalkRay.far = MARKS.reach;
 		const effects = new Effects();
 		engine.scene.add(effects.root);
 		const muzzle = new THREE.Vector3();
@@ -402,6 +417,8 @@
 		let pickupTarget: { id: string; item: string } | null = null;
 		/** The loot crate the player would open, if any (a floor item comes first). */
 		let crateTarget: string | null = null;
+		/** Your own chalk mark that interact would erase, if any (floor items and crates first). */
+		let markTarget: string | null = null;
 		setMarkers = (enabled) => {
 			markers = enabled;
 			creatures.setMarkers(enabled);
@@ -458,6 +475,9 @@
 			crate = null;
 			leavingCrate = false;
 			crates.clear();
+			marks.clear();
+			markLabel = null;
+			chalkWheel = null;
 			rite = null;
 			performing = false;
 			spectating = null;
@@ -498,6 +518,7 @@
 			crate = null;
 			player.closeWheel();
 			wheel = null;
+			chalkWheel = null;
 			document.exitPointerLock();
 			sounds.play('expedition.outro');
 			if (leaveTimer) clearTimeout(leaveTimer);
@@ -697,6 +718,12 @@
 				case 'drop':
 					sounds.playAt('item.drop', event.position, 1, 2);
 					break;
+				case 'mark':
+					sounds.playAt('chalk.draw', event.position, 1, 2);
+					break;
+				case 'rub':
+					sounds.playAt('chalk.rub', event.position, 1, 2);
+					break;
 				case 'crateOpen':
 					sounds.playAt('crate.open', event.position, 1, 4);
 					break;
@@ -754,7 +781,7 @@
 		function updateWheel(state: PlayerState | null, active: boolean): void {
 			const holding = active && !!state && !state.downed && input.isDown('quickUse');
 			if (!wheel) {
-				if (!holding || !state.inventory.quick.some((slot) => slot)) return;
+				if (!holding || chalkWheel || !state.inventory.quick.some((slot) => slot)) return;
 				player.openWheel();
 			}
 			const slots = state?.inventory.quick ?? [];
@@ -769,6 +796,76 @@
 			if (state && chosen >= 0) player.take(HAND.quick + chosen);
 		}
 
+		/** The chalk in the hand, if that is what is held. */
+		function holdingChalk(state: PlayerState): boolean {
+			return !!ITEMS[held(state.inventory)?.item ?? '']?.chalk;
+		}
+
+		/**
+		 * Where a chalk mark would go: the visible stone where your view meets it, within reach, and
+		 * which way it faces (world space). Null when there is none in reach.
+		 */
+		function chalkSpot(state: PlayerState): { position: Vec3; normal: Vec3 } | null {
+			const { origin, direction } = aimRay(state, eyeHeight(state));
+			chalkRay.set(new THREE.Vector3(...origin), new THREE.Vector3(...direction));
+			const hit = chalkRay.intersectObject(map.root, true)[0];
+			if (!hit || !(hit.object instanceof THREE.Mesh)) return null;
+			const local = hit.normal ?? hit.face?.normal;
+			if (!local) return null;
+			const normal = local
+				.clone()
+				.applyMatrix3(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld))
+				.normalize();
+			// Toward the one drawing, whichever way the face was modelled.
+			if (normal.dot(chalkRay.ray.direction) > 0) normal.negate();
+			return { position: hit.point.toArray(), normal: normal.toArray() };
+		}
+
+		/**
+		 * The chalk wheel: holding attack with chalk in the hand, facing stone in reach, opens it;
+		 * letting go draws the symbol the pointer is on where you are looking.
+		 */
+		function updateChalkWheel(state: PlayerState | null, active: boolean): void {
+			const holding =
+				active && !!state && !state.downed && holdingChalk(state) && input.isDown('attack');
+			if (!chalkWheel) {
+				if (!holding || wheel || !chalkSpot(state)) return;
+				player.openWheel();
+			}
+			const pointer = player.wheelPointer ?? { x: 0, y: 0 };
+			const chosen = wheelChoice(pointer, markWheel());
+			if (holding) {
+				chalkWheel = { pointer, chosen };
+				return;
+			}
+			player.closeWheel();
+			chalkWheel = null;
+			const symbol = markWheel()[chosen];
+			const spot = state && symbol ? chalkSpot(state) : null;
+			if (spot && symbol) client.send({ type: 'mark', symbol, ...spot });
+		}
+
+		/** Who drew the mark you are close to, placed on the screen just under it. */
+		function updateMarkLabel(state: PlayerState): void {
+			const world = player.collision;
+			let near: ReturnType<Marks['nearest']> = null;
+			if (world && !state.downed && !chalkWheel && !wheel) {
+				const { origin, direction } = aimRay(state, eyeHeight(state));
+				near = marks.nearest(world, origin, direction);
+			}
+			if (!near) {
+				if (markLabel) markLabel = null;
+				return;
+			}
+			const screen = new THREE.Vector3(...near.position).project(engine.camera);
+			const x = ((screen.x + 1) / 2) * canvas.clientWidth;
+			const y = ((1 - screen.y) / 2) * canvas.clientHeight + 40;
+			const name = near.by === client.playerId ? 'You' : near.name;
+			const moved =
+				!markLabel || Math.abs(markLabel.x - x) > 0.5 || Math.abs(markLabel.y - y) > 0.5;
+			if (moved || markLabel?.name !== name) markLabel = { name, x, y };
+		}
+
 		/**
 		 * The floor item in reach that interact would pick up, or failing that the loot crate it
 		 * would open (same rules as the server).
@@ -777,11 +874,17 @@
 			const world = player.collision;
 			pickupTarget = null;
 			crateTarget = null;
+			markTarget = null;
 			if (world && !state.downed && !state.swimming) {
 				const { origin, direction } = aimRay(state, eyeHeight(state));
 				const item = lookedAtItem(world, state.position, origin, direction, worldItems.snapshots);
 				if (item) pickupTarget = { id: item.id, item: item.item };
 				else crateTarget = lookedAtCrate(world, origin, direction, crates.placements)?.id ?? null;
+				if (!pickupTarget && !crateTarget) {
+					const self = client.playerId;
+					const mine = lookedAtMark(world, origin, direction, marks.list, (m) => m.by === self);
+					markTarget = mine?.id ?? null;
+				}
 			}
 			worldItems.highlight(pickupTarget?.id ?? null);
 			crates.highlight(crateTarget);
@@ -859,6 +962,22 @@
 				if (fit === 'full') return { prompt: name + ': no room for it', progress: 0 };
 				return { prompt: `Press ${key} to pick up ${name}`, progress: 0 };
 			}
+			if (markTarget && settings.interface.itemPrompts) {
+				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
+				return {
+					prompt: state.erasing > 0 ? 'Rubbing it out...' : `Hold ${key} to erase your mark`,
+					progress: state.erasing / MARKS.eraseSeconds
+				};
+			}
+			if (
+				holdingChalk(state) &&
+				!chalkWheel &&
+				settings.interface.itemPrompts &&
+				chalkSpot(state)
+			) {
+				const key = settings.bindings.attack.map(bindingLabel).join(' / ') || 'Attack';
+				return { prompt: `Hold ${key} to draw a mark`, progress: 0 };
+			}
 			return { prompt: null, progress: 0 };
 		}
 
@@ -926,6 +1045,7 @@
 			playerId = self;
 			expedition = true;
 			loadMap(layout);
+			marks.apply(connection.marks);
 			if (!connection.welcome.resumed) descend();
 		}
 
@@ -940,6 +1060,7 @@
 		engine.onUpdate((delta) => {
 			const active = locked && !panel && !mapView && !extracting;
 			updateWheel(player.state, active);
+			updateChalkWheel(player.state, active);
 			player.update(delta, active);
 			remote.update(delta);
 			const self = player.state;
@@ -947,6 +1068,7 @@
 			creatures.update(delta, player.collision, lamps);
 			worldItems.update(delta);
 			crates.update(delta);
+			marks.update(delta);
 			effects.update(delta, engine.camera);
 			// Only on your feet: crouched, crawling or swimming, the body fills the view from
 			// behind, so those are always first person.
@@ -1024,6 +1146,7 @@
 				sanityEffects(state, delta);
 				onLocalEvents(state);
 				findPickup(state);
+				updateMarkLabel(state);
 				hud = {
 					battery: state.battery,
 					headlamp: state.headlamp,
@@ -1118,6 +1241,7 @@
 			manifestation.dispose();
 			worldItems.dispose();
 			crates.dispose();
+			marks.dispose();
 			effects.dispose();
 			playerAudio.dispose();
 			ambience.dispose();
@@ -1142,6 +1266,14 @@
 
 {#if wheel && spawned && !mapView && !result}
 	<QuickWheel slots={wheel.slots} pointer={wheel.pointer} chosen={wheel.chosen} />
+{/if}
+
+{#if chalkWheel && spawned && !mapView && !result}
+	<MarkWheel symbols={markWheel()} pointer={chalkWheel.pointer} chosen={chalkWheel.chosen} />
+{/if}
+
+{#if markLabel && spawned && !panel && !mapView && !result}
+	<MarkLabel name={markLabel.name} x={markLabel.x} y={markLabel.y} />
 {/if}
 
 {#if settings.accessibility.captions && spawned && !mapView && !result}

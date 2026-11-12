@@ -182,13 +182,25 @@ Once one has you, it comes slowly, then all at once. Put your lamp out and get o
 		category: 'Survival',
 		body: `You carry two weapons. Press {action:primaryWeapon} or {action:secondaryWeapon} to take one in your hand, or {action:nextItem} for the other one.
 
-Everything else you can use is on the quick-use wheel. Hold {action:quickUse} and the wheel opens; move the mouse toward what you want and let go, and it is in your hand in place of your weapon. {action:attack} uses it: hold it to bind a wound, swing with a brick. {action:aim} throws what can be thrown. Press a weapon key to go back.
+Everything else you can use is on the quick-use wheel. Hold {action:quickUse} and the wheel opens; move the mouse toward what you want and let go, and it is in your hand in place of your weapon. {action:attack} uses it: hold it to bind a wound, swing with a brick, draw with chalk. {action:aim} throws what can be thrown. Press a weapon key to go back.
 
 What is in your hand is named in the bottom-right corner, with the rounds loaded and spare when it is a firearm. Spare rounds are taken from your backpack.
 
 Look at something on the floor and press {action:interact} to pick it up. It goes where it belongs if there is room: a weapon to an empty weapon slot, quick-use things to the wheel, the rest to your backpack. Press {action:drop} to put down what you're holding.
 
 If you die down here, everything you carried stays where you fell. Someone else might find it.`
+	},
+	{
+		id: 'chalk',
+		title: 'Chalk marks',
+		category: 'Survival',
+		body: `Chalk lets you leave marks on the walls, for yourself or for whoever comes after you. Keep it in a quick-use slot and take it from the wheel.
+
+Face a wall, the floor, or anything close enough to touch, and hold {action:attack}. A wheel of marks opens: arrows, a cross for a dead end, a circle for somewhere you have been, and more. Move the mouse toward one and let go, and it is drawn where you were looking. A stick of chalk makes one mark.
+
+Marks are only chalk. In the dark you won't see them; a lamp on the wall brings them out. Come close to one and you can see who drew it.
+
+You can rub out your own marks: look at one and hold {action:interact}. Other people's marks are theirs to keep.`
 	},
 	{
 		id: 'crates',

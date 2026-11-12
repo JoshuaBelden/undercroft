@@ -398,6 +398,24 @@ export const SOUNDS = {
 		caption: 'a lid creaks open',
 		captionOthers: true
 	},
+	// Chalk on stone: a mark drawn, or rubbed out by whoever drew it.
+	'chalk.draw': {
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 1.6,
+		variation: 0.1,
+		caption: 'chalk scratches on stone',
+		captionOthers: true
+	},
+	'chalk.rub': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.35,
+		variation: 0.1,
+		caption: 'chalk is rubbed away',
+		captionOthers: true
+	},
 	// The surface.
 	/** Moving between pages (the tabs, the store, social, settings). */
 	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 },

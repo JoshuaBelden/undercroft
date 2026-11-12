@@ -40,5 +40,7 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	salts: { forward: '-z', up: '+y', length: 0.035, grip: [0.5, 0.4] },
 	// Upright (tallest along +Y). Its depth along Z is scaled to 5.3 cm, which makes it about
 	// 8 cm tall and 6 cm wide; held round its middle.
-	bandage: { forward: '-z', up: '+y', length: 0.053, grip: [0.5, 0.5] }
+	bandage: { forward: '-z', up: '+y', length: 0.053, grip: [0.5, 0.5] },
+	// A stick lying along X. About 8 cm long; pinched a little behind the middle.
+	chalk: { forward: '-x', up: '+y', length: 0.08, grip: [0.35, 0.5] }
 };

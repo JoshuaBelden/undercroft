@@ -22,7 +22,7 @@ src/
       player/               local player prediction, headlamp light, remote players, player audio
       creatures/            creature models, animation, half-light fade, sounds
       affliction/           the manifestation (the figure) renderer
-      items/                viewmodel (held item), world items, muzzle flash and impacts
+      items/                viewmodel (held item), world items, crates, chalk marks, muzzle flash
       input/
         actions.ts          action definitions and default bindings
         InputMap.ts         raw input -> actions
@@ -51,6 +51,7 @@ src/
       items.ts              item definitions (weapons, ammo, consumables)
       carry.ts              backpacks and how weight slows you
       loot.ts               loot tables: what crates hold by rarity and depth; crate tuning
+      marks.ts              chalk mark symbols, the mark wheel, drawing and erasing tuning
       economy.ts            shop stock, prices, sell-back
       loadout.ts            what lies around the map (bricks)
       items/headlamps.ts    headlamp models
@@ -76,6 +77,7 @@ server/
   progress.ts               rite progress per player, kept across expeditions (MongoDB)
   items.ts                  WorldItems: items in the map, pickups, thrown items
   crates.ts                 Crates: what loot crates hold, revealing it, who has one open
+  marks.ts                  Marks: chalk marks on the walls, checking a new one
   config.ts                 environment
   db.ts                     MongoDB connection
   log.ts                    logging

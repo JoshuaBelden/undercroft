@@ -227,6 +227,7 @@
 			</form>
 			{@render action('Refill ammo', () => onadmin({ kind: 'refillAmmo' }))}
 			{@render action('Reset crates', () => onadmin({ kind: 'resetCrates' }))}
+			{@render action('Clear chalk marks', () => onadmin({ kind: 'clearMarks' }))}
 		{:else if group === 'Affliction'}
 			{@render info(
 				'Meter',

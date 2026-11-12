@@ -50,7 +50,7 @@ export function newStack(item: string, count = 1, loaded?: number): ItemStack {
 	const stack: ItemStack = { item, count };
 	const def = ITEMS[item];
 	if (def?.firearm) stack.loaded = Math.min(def.firearm.magazine, loaded ?? 0);
-	if (def?.melee?.breaksAfter) stack.uses = 0;
+	if (def?.melee?.breaksAfter || (def?.chalk?.marks ?? 1) > 1) stack.uses = 0;
 	return stack;
 }
 
@@ -102,6 +102,24 @@ export function spendHeld(inv: Inventory, all = false): void {
 	}
 	setSlot({ inventory: inv }, ref, null);
 	if (ref.area === 'quick') inv.selected = HAND.primary;
+}
+
+/**
+ * A mark was drawn with the chalk in the hand: the stick in use wears, and is used up after its
+ * `chalk.marks`. Returns false if there is no chalk in the hand.
+ */
+export function wearChalk(inv: Inventory): boolean {
+	const stack = held(inv);
+	const marks = stack ? ITEMS[stack.item]?.chalk?.marks : undefined;
+	if (!stack || !marks) return false;
+	const used = (stack.uses ?? 0) + 1;
+	if (used < marks) {
+		stack.uses = used;
+		return true;
+	}
+	if (marks > 1) stack.uses = 0;
+	spendHeld(inv);
+	return true;
 }
 
 /** The first quick-use slot holding something with this ability, or -1. */

@@ -97,6 +97,8 @@ export interface PlayerState {
 	performing: number;
 	/** Seconds spent holding interact to open a loot crate (server-driven). */
 	opening: number;
+	/** Seconds spent holding interact to erase your own chalk mark (server-driven). */
+	erasing: number;
 }
 
 /** What one slot holds. */
@@ -106,7 +108,7 @@ export interface ItemStack {
 	count: number;
 	/** Rounds in a firearm. */
 	loaded?: number;
-	/** Hits taken by a breakable melee item. */
+	/** Hits taken by a breakable melee item; marks drawn with the stick in use (chalk). */
 	uses?: number;
 }
 

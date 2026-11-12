@@ -26,6 +26,8 @@ export const CRATE_LOOT: LootEntry[] = [
 	{ item: 'ammo.revolver', count: [3, 8], weight: [2, 3] },
 	{ item: 'ammo.shotgun', count: [2, 5], weight: [1, 2] },
 	{ item: 'salts', count: [1, 1], weight: [1, 2] },
+	{ item: 'chalk', count: [1, 2], weight: [3, 2] },
+	{ item: 'candle', count: [1, 3], weight: [4, 3] },
 	{ item: 'tooth', count: [1, 2], weight: [5, 4] },
 	{ item: 'signet', count: [1, 1], weight: [3, 4] },
 	{ item: 'candlestick', count: [1, 1], weight: [1, 1] },

@@ -1,4 +1,5 @@
 import { PICKUP } from '../../content/items.ts';
+import { MARKS } from '../../content/marks.ts';
 import { segmentHit, type CollisionWorld } from '../map/collision.ts';
 import { crateCentre } from '../map/crates.ts';
 import type { Vec3 } from '../map/types.ts';
@@ -66,6 +67,52 @@ export function lookedAtCrate<T extends { position: Vec3 }>(
 		const score = angle + d * 0.1;
 		if (score < bestScore) {
 			best = crate;
+			bestScore = score;
+		}
+	}
+	return best;
+}
+
+/**
+ * True if nothing stands between the eye and a chalk mark. The mark is on the visible stone,
+ * which can sit a little off the collision boxes, so the line may end in the wall it is on.
+ */
+export function markInSight(world: CollisionWorld, eye: Vec3, position: Vec3): boolean {
+	const d = Math.hypot(position[0] - eye[0], position[1] - eye[1], position[2] - eye[2]);
+	const t = segmentHit(world, eye, position);
+	return t === null || (1 - t) * d <= MARKS.tolerance + 0.1;
+}
+
+/**
+ * Which chalk mark a player is looking at within reach, out of those `mine` allows (only your own
+ * can be erased). Shared so the client prompts for exactly the mark the server will erase. Floor
+ * items and crates come first: check those before.
+ */
+export function lookedAtMark<T extends { position: Vec3 }>(
+	world: CollisionWorld,
+	eye: Vec3,
+	look: Vec3,
+	marks: Iterable<T>,
+	mine: (mark: T) => boolean
+): T | null {
+	let best: T | null = null;
+	let bestScore = Infinity;
+	for (const mark of marks) {
+		if (!mine(mark)) continue;
+		const to: Vec3 = [
+			mark.position[0] - eye[0],
+			mark.position[1] - eye[1],
+			mark.position[2] - eye[2]
+		];
+		const d = Math.hypot(to[0], to[1], to[2]);
+		if (d > MARKS.reach + 0.3) continue;
+		const along = (to[0] * look[0] + to[1] * look[1] + to[2] * look[2]) / Math.max(d, 1e-6);
+		const angle = Math.acos(Math.min(1, Math.max(-1, along)));
+		if (angle > MARKS.eraseAngle) continue;
+		if (!markInSight(world, eye, mark.position)) continue;
+		const score = angle + d * 0.1;
+		if (score < bestScore) {
+			best = mark;
 			bestScore = score;
 		}
 	}

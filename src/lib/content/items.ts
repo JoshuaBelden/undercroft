@@ -81,6 +81,11 @@ export interface HealSpec {
 	seconds: number;
 }
 
+export interface ChalkSpec {
+	/** Marks one stick makes before it is used up. */
+	marks: number;
+}
+
 export interface DefenseSpec {
 	/** Fraction taken off a creature's attack (0..1). */
 	reduction: number;
@@ -139,6 +144,8 @@ export interface ItemDef {
 	heal?: HealSpec;
 	/** Brings a downed player round (smelling salts), from a quick-use slot. */
 	revive?: boolean;
+	/** Draws marks on walls from the quick-use slot (see docs/dev/marks.md). */
+	chalk?: ChalkSpec;
 	/** Worn in the defense slot. */
 	defense?: DefenseSpec;
 }
@@ -307,6 +314,34 @@ export const ITEMS: Record<string, ItemDef> = {
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
 		revive: true
+	},
+	// One mark a stick (see docs/dev/marks.md), and the rite takes one.
+	chalk: {
+		id: 'chalk',
+		name: 'Chalk',
+		kind: 'consumable',
+		category: 'quick',
+		flavor: 'A stub of soft chalk. A mark on the wall is the only thread back out.',
+		image: 'chalk',
+		model: '/assets/items/chalk.glb',
+		hold: HOLD_RIGHT,
+		maxStack: DEFAULT_STACK,
+		weight: 0.01,
+		chalk: { marks: 1 }
+	},
+	// Unlit. The rite takes five; lighting them comes with light sources.
+	candle: {
+		id: 'candle',
+		name: 'Candle',
+		kind: 'consumable',
+		category: 'other',
+		flavor: 'Yellow tallow, already burned once. It smells of the animal it came from.',
+		image: 'candle',
+		model: null,
+		placeholder: { size: [0.03, 0.15, 0.03], color: 0xd8cba0 },
+		hold: HOLD_RIGHT,
+		maxStack: DEFAULT_STACK,
+		weight: 0.08
 	},
 	// Defense: a stand-in until there is real protection to find (see docs/dev/items.md).
 	coat: {

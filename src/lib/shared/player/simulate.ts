@@ -80,7 +80,8 @@ export function createPlayerState(
 		bandaging: 0,
 		reviving: 0,
 		performing: 0,
-		opening: 0
+		opening: 0,
+		erasing: 0
 	};
 }
 
