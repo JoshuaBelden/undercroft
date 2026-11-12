@@ -19,7 +19,8 @@ Things that hunt the players. In code and docs they are **creatures**, and each 
 Each `CreatureDef` in `CREATURES` holds:
 
 - `model`, `yawOffset` (the witch faces +Z in its file), `height`;
-- `animations`: clip name, speed and loop per state (`idle`, `stalk`, `burst`, `search`, `attack`);
+- `animations`: the model's animation map (see Animation maps);
+- `gait`: the slot it moves in while stalking, bursting and searching;
 - `movement`: a `MovementTuning` (creatures move with the player simulation);
 - `creepSpeed`/`burstSpeed`, `creepTime`/`burstTime` (the rhythm), `searchTime`;
 - `attack`: range, wind-up (when the hit lands), duration, damage, cooldown;
@@ -28,7 +29,44 @@ Each `CreatureDef` in `CREATURES` holds:
 - `spawn`: how many per expedition and their minimum distance (along the grid) from the start;
 - `health`, `stagger` (threshold and seconds), `hitRadius` and `corpseTime` (see Damage and death).
 
-The witch's attack clip is stretched on the client to `attack.duration`, so the strike lines up with `windup` on the server.
+Attack clips are stretched on the client to `attack.duration`, so the strike lines up with `windup` on the server.
+
+## Animation maps
+
+Every model names its clips differently, so each `CreatureDef` maps them onto one standard set of slots (`CREATURE_ANIMS`):
+
+`idle`, `walking`, `running`, `jumping`, `melee_attack`, `weapon_attack`, `spell_attack`, `dodge`, `climb`, `crouch`, `crawl`, `take_damage`, `die`.
+
+`animations` holds one entry per slot the model has a clip for: `{ clip, speed?, start? }`. `clip` is the name in the file, `speed` the playback rate (default 1), and `start` skips a lead-in (seconds into the clip). Slots the model has nothing for are left out.
+
+The server only ever sends a slot name (`CreatureSnapshot.anim`), picked in `CreatureDirector.animate`:
+
+| Situation                         | Slot                         |
+| --------------------------------- | ---------------------------- |
+| Dead                              | `die`                        |
+| Staggered                         | `take_damage`                |
+| Attacking                         | `melee_attack`               |
+| Climbing a ledge                  | `climb`                      |
+| Idle, or stopped for 0.6 s        | `idle`                       |
+| Down low for a crawl or a squeeze | `crawl` or `crouch`          |
+| Searching                         | `gait.search`                |
+| Hunting                           | `gait.burst` or `gait.stalk` |
+
+The client plays the slot's clip. If the model has none, `resolveAnim` takes the first mapped slot from `ANIM_FALLBACKS` (`crawl` → `crouch` → `walking`, any attack → another attack, and so on). If nothing fits, the state is skipped and whatever was playing carries on. `LOOPING_ANIMS` lists the slots that repeat (`idle`, `walking`, `running`, `climb`, `crouch`, `crawl`); the rest play once and hold their last frame.
+
+The witch's map:
+
+| Slot           | Clip                           | Notes                                                      |
+| -------------- | ------------------------------ | ---------------------------------------------------------- |
+| `idle`         | `Idle_9`                       |                                                            |
+| `walking`      | `Walking`                      | searching                                                  |
+| `running`      | `Running`                      | bursts                                                     |
+| `crouch`       | `Cautious_Crouch_Walk_Forward` | stalking (`gait.stalk`), and real squeezes                 |
+| `spell_attack` | `mage_soell_cast_3`            | its only attack clip, so it stands in for the melee strike |
+| `take_damage`  | `Hit_Reaction`                 |                                                            |
+| `die`          | `Strangled_and_Fall_Forward`   | starts 3.2 s in, where it buckles                          |
+
+It has no jump, dodge, climb, crawl, melee or weapon clip. `Standard_Forward_Charge_inplace` is in the file but unused.
 
 ## Nav grid
 
@@ -67,8 +105,8 @@ Movement runs `stepPlayer` with the creature's tuning: 3 sim steps per server ti
 
 Players hurt creatures through `CreatureDirector.damage(id, amount, from)`, called by `server/combat.ts` (see [items.md](items.md)):
 
-- Health drops by the amount. At zero the creature dies: mode `dead`, animation `die` (the witch has no death clip yet, so `Arise` plays backwards). It's removed after `corpseTime`, and the client fades it out over the last 1.5 s. Kills are counted in `kills` (for the Affliction meter).
-- A hit of at least `stagger.threshold` staggers it for `stagger.seconds` (no moving or attacking) and cancels an attack whose hit hasn't landed yet.
+- Health drops by the amount. At zero the creature dies: mode `dead`, animation `die`. It's removed after `corpseTime`, and the client fades it out over the last 1.5 s. Kills are counted in `kills` (for the Affliction meter).
+- A hit of at least `stagger.threshold` staggers it for `stagger.seconds` (no moving or attacking, animation `take_damage`) and cancels an attack whose hit hasn't landed yet.
 - Any hit turns it on the attacker.
 
 Hit tests use `hitBodies()`: a vertical capsule of `height` and `hitRadius` per living creature.
@@ -111,16 +149,16 @@ It's deterministic from player state. Every client draws the creature with the s
 
 `Creatures` keeps one entry per snapshot:
 
-- it eases position and yaw toward the snapshot and crossfades the animation state (idle holds the last frame of `Arise`);
+- it eases position and yaw toward the snapshot and crossfades to the animation slot in the snapshot, starting `animTime` seconds in so one-shot clips stay in step;
 - the model is `loadCreature(def.model)`: a SkeletonUtils clone with its own materials (for fading), sharing clips;
-- `loadCreature` pins the root bone's x/z to its first keyframe, so `run_fast_9`'s root motion doesn't move the model away from the server position.
+- `loadCreature` pins the root bone's x/z to its first keyframe, so a clip's root motion (the crouch walk, the hit reaction, the death fall) doesn't move the model away from the server position.
 
-Sounds always play, visible or not: `creature.step` per animation state, `creature.burst` and `creature.attack` on state changes.
+Sounds always play, visible or not: `creature.step` while in a moving slot, `creature.burst` on entering `gait.burst`, and `creature.attack` on entering an attack slot.
 
 ## Adding a creature
 
 1. Export the model (feet at the origin, animations included) to `art/export/creatures/<name>.glb` and run `pnpm asset:build`.
-2. Add a `CreatureDef` to `CREATURES` with clip names from the file.
+2. Add a `CreatureDef` to `CREATURES`. `pnpm asset:build` prints the clip names in the file; map each one you want to a slot in `animations` and leave the rest out.
 3. Spawn it: `populate(start, '<name>')`, or a new spawn rule in the director.
 
 Behaviour beyond the shared states (a different perception, a ranged attack) goes in the director, keyed by def fields, not by kind name.

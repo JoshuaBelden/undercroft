@@ -594,11 +594,16 @@ export class CreatureDirector {
 		const speed = Math.hypot(c.body.velocity[0], c.body.velocity[2]);
 		// Brief pauses (re-planning, turning at a waypoint) keep the walk going.
 		c.still = speed < 0.15 ? c.still + TICK_DT : 0;
+		const { gait } = c.def;
 		if (c.mode === 'dead') anim = 'die';
-		else if (c.mode === 'attack') anim = 'attack';
+		else if (c.staggered > 0) anim = 'take_damage';
+		else if (c.mode === 'attack') anim = 'melee_attack';
+		else if (c.body.mantle) anim = 'climb';
 		else if (c.mode === 'idle' || c.still > STILL_TIME) anim = 'idle';
-		else if (c.mode === 'search') anim = 'search';
-		else anim = bursting && speed > 2 ? 'burst' : 'stalk';
+		// Down low for a crawl or a squeeze, whatever it's doing.
+		else if (c.body.stance !== 'stand') anim = c.body.stance;
+		else if (c.mode === 'search') anim = gait.search;
+		else anim = bursting && speed > 2 ? gait.burst : gait.stalk;
 		if (anim !== c.anim) {
 			c.anim = anim;
 			c.animTime = 0;

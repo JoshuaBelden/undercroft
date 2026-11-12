@@ -1,5 +1,12 @@
 import * as THREE from 'three';
-import { CREATURES, type CreatureAnim, type CreatureDef } from '#lib/content/creatures.ts';
+import {
+	CREATURE_ANIMS,
+	CREATURES,
+	LOOPING_ANIMS,
+	resolveAnim,
+	type CreatureAnim,
+	type CreatureDef
+} from '#lib/content/creatures.ts';
 import { loadCreature } from '#lib/game/assets.ts';
 import type { SoundBank } from '#lib/game/audio/SoundBank.ts';
 import type { CreatureSnapshot } from '#lib/shared/creature/types.ts';
@@ -13,8 +20,11 @@ interface Entry {
 	model: THREE.Object3D | null;
 	materials: THREE.Material[];
 	mixer: THREE.AnimationMixer | null;
+	/** One action per slot the model has a clip for. */
 	actions: Partial<Record<CreatureAnim, THREE.AnimationAction>>;
-	playing: CreatureAnim | null;
+	playing: THREE.AnimationAction | null;
+	/** The snapshot state `playing` was started for. */
+	played: CreatureAnim | null;
 	anim: CreatureAnim;
 	animTime: number;
 	target: THREE.Vector3;
@@ -29,10 +39,16 @@ interface Entry {
 
 /** Seconds between creature footstep sounds per animation state (none while still). */
 const STEP_INTERVAL: Partial<Record<CreatureAnim, number>> = {
-	stalk: 0.95,
-	search: 0.7,
-	burst: 0.2
+	crawl: 1.1,
+	crouch: 0.95,
+	walking: 0.7,
+	running: 0.2
 };
+const ATTACKS: ReadonlySet<CreatureAnim> = new Set([
+	'melee_attack',
+	'weapon_attack',
+	'spell_attack'
+]);
 const FADE_IN = 10;
 const FADE_OUT = 5;
 const CROSSFADE = 0.25;
@@ -157,6 +173,7 @@ export class Creatures {
 			mixer: null,
 			actions: {},
 			playing: null,
+			played: null,
 			anim: snap.anim,
 			animTime: snap.animTime,
 			target: new THREE.Vector3(...snap.position),
@@ -182,17 +199,18 @@ export class Creatures {
 			root.add(scene);
 			entry.model = scene;
 			entry.mixer = new THREE.AnimationMixer(scene);
-			for (const [anim, spec] of Object.entries(def.animations) as [
-				CreatureAnim,
-				CreatureDef['animations'][CreatureAnim]
-			][]) {
-				const clip = clips.find((c) => c.name === spec.clip);
-				if (!clip) continue;
+			for (const anim of CREATURE_ANIMS) {
+				const spec = def.animations[anim];
+				const clip = spec && clips.find((c) => c.name === spec.clip);
+				if (!spec || !clip) continue;
+				const loop = LOOPING_ANIMS.has(anim);
 				const action = entry.mixer.clipAction(clip);
-				action.setLoop(spec.loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
-				action.clampWhenFinished = !spec.loop;
-				// The attack clip is stretched to the attack's duration so the hit lines up.
-				action.timeScale = anim === 'attack' ? clip.duration / def.attack.duration : spec.speed;
+				action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+				action.clampWhenFinished = !loop;
+				// Attack clips are stretched to the attack's duration so the hit lines up.
+				action.timeScale = ATTACKS.has(anim)
+					? (clip.duration - (spec.start ?? 0)) / def.attack.duration
+					: (spec.speed ?? 1);
 				entry.actions[anim] = action;
 			}
 			this.applyOpacity(entry);
@@ -206,27 +224,23 @@ export class Creatures {
 		entry.root.removeFromParent();
 	}
 
-	/** Crossfade to the snapshot's animation state. */
+	/** Crossfade to the snapshot's animation state, or the nearest one the model has a clip for. */
 	private play(entry: Entry): void {
-		if (!entry.mixer || entry.playing === entry.anim) return;
-		const next = entry.actions[entry.anim];
-		if (!next) return;
-		const previous = entry.playing ? entry.actions[entry.playing] : undefined;
+		if (!entry.mixer || entry.played === entry.anim) return;
+		entry.played = entry.anim;
+		const slot = resolveAnim(entry.def.animations, entry.anim);
+		const next = slot ? entry.actions[slot] : undefined;
+		// Nothing to play for this state (or it's already playing): carry on as we were.
+		if (!slot || !next || next === entry.playing) return;
+		const previous = entry.playing;
+		const duration = next.getClip().duration;
+		// Pick up where the server is in the state, so one-shot clips stay in step.
+		const time = (entry.def.animations[slot]?.start ?? 0) + entry.animTime * next.timeScale;
 		next.reset();
-		if (entry.anim === 'idle') {
-			// Idle holds the last frame of its clip (standing still).
-			next.time = next.getClip().duration;
-			next.paused = true;
-		} else if (next.timeScale < 0) {
-			// Played backwards: start from the end.
-			const duration = next.getClip().duration;
-			next.time = Math.max(0, duration + entry.animTime * next.timeScale);
-		} else {
-			next.time = Math.min(entry.animTime * next.timeScale, next.getClip().duration);
-		}
+		next.time = LOOPING_ANIMS.has(slot) ? time % duration : Math.min(time, duration);
 		next.play();
-		if (previous && previous !== next) next.crossFadeFrom(previous, CROSSFADE, false);
-		entry.playing = entry.anim;
+		if (previous) next.crossFadeFrom(previous, CROSSFADE, false);
+		entry.playing = next;
 	}
 
 	private applyOpacity(entry: Entry): void {
@@ -251,8 +265,8 @@ export class Creatures {
 
 	private onAnim(entry: Entry, anim: CreatureAnim): void {
 		const at: [number, number, number] = [entry.target.x, entry.target.y + 1, entry.target.z];
-		if (anim === 'burst') this.sounds.playAt('creature.burst', at, 1, 3);
-		if (anim === 'attack') this.sounds.playAt('creature.attack', at, 1, 3);
+		if (anim === entry.def.gait.burst) this.sounds.playAt('creature.burst', at, 1, 3);
+		if (ATTACKS.has(anim)) this.sounds.playAt('creature.attack', at, 1, 3);
 		entry.stepTimer = 0;
 	}
 

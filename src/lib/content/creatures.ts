@@ -6,8 +6,75 @@ import { MOVEMENT } from './player/movement.ts';
  * See docs/dev/creatures.md.
  */
 
-/** Animation states a creature can be in; the client maps each to a clip. */
-export type CreatureAnim = 'idle' | 'stalk' | 'burst' | 'search' | 'attack' | 'die';
+/**
+ * The standard animation slots. Every model maps its own clip names onto these, and the server
+ * only ever names a slot. A model needn't fill them all: see ANIM_FALLBACKS.
+ */
+export const CREATURE_ANIMS = [
+	'idle',
+	'walking',
+	'running',
+	'jumping',
+	'melee_attack',
+	'weapon_attack',
+	'spell_attack',
+	'dodge',
+	'climb',
+	'crouch',
+	'crawl',
+	'take_damage',
+	'die'
+] as const;
+export type CreatureAnim = (typeof CREATURE_ANIMS)[number];
+
+/** One slot of a model's animation map. */
+export interface AnimClip {
+	/** Clip name in the model file. */
+	clip: string;
+	/** Playback speed (default 1). Attack clips are stretched to the attack's duration instead. */
+	speed?: number;
+	/** Seconds into the clip to start from (default 0), to skip a slow lead-in. */
+	start?: number;
+}
+
+/** A model's animation map: clip per slot. Slots the model has no clip for are left out. */
+export type AnimationMap = Partial<Record<CreatureAnim, AnimClip>>;
+
+/** Slots that repeat; the rest play once and hold their last frame. */
+export const LOOPING_ANIMS: ReadonlySet<CreatureAnim> = new Set([
+	'idle',
+	'walking',
+	'running',
+	'climb',
+	'crouch',
+	'crawl'
+]);
+
+/**
+ * What to play when a model has no clip for a slot, in order of preference. A slot with nothing
+ * usable is skipped: whatever was playing carries on.
+ */
+export const ANIM_FALLBACKS: Record<CreatureAnim, CreatureAnim[]> = {
+	idle: [],
+	walking: ['running', 'crouch'],
+	running: ['walking'],
+	jumping: ['running', 'walking'],
+	melee_attack: ['weapon_attack', 'spell_attack'],
+	weapon_attack: ['melee_attack', 'spell_attack'],
+	spell_attack: ['melee_attack', 'weapon_attack'],
+	dodge: [],
+	climb: ['walking'],
+	crouch: ['walking'],
+	crawl: ['crouch', 'walking'],
+	take_damage: [],
+	die: []
+};
+
+/** The slot a model will actually play for `anim`: itself, or its first mapped fallback. */
+export function resolveAnim(map: AnimationMap, anim: CreatureAnim): CreatureAnim | null {
+	if (map[anim]) return anim;
+	return ANIM_FALLBACKS[anim].find((other) => map[other]) ?? null;
+}
 
 export interface CreatureDef {
 	id: string;
@@ -16,10 +83,10 @@ export interface CreatureDef {
 	yawOffset: number;
 	/** Body height (m): visibility samples and the client marker. */
 	height: number;
-	/** Clip name per animation state, and playback speed. */
-	animations: Record<CreatureAnim, { clip: string; speed: number; loop: boolean }>;
-	/** Pose to hold while idle: the last frame of this clip. */
-	idlePose: string;
+	/** The model's animation map: its clip names by standard slot. */
+	animations: AnimationMap;
+	/** Which slot it moves in while creeping up on someone, bursting, and searching. */
+	gait: { stalk: CreatureAnim; burst: CreatureAnim; search: CreatureAnim };
 	movement: MovementTuning;
 	/** Slow approach speed (m/s) and burst speed. */
 	creepSpeed: number;
@@ -74,16 +141,21 @@ export const CREATURES: Record<string, CreatureDef> = {
 		model: '/assets/creatures/witch.glb',
 		yawOffset: Math.PI,
 		height: 1.7,
+		// The model has no melee, jump, dodge, climb or crawl clip; those slots fall back or are
+		// skipped. Its strike is the spell cast, standing in for melee_attack. Also in the file and
+		// unused: 'Standard_Forward_Charge_inplace' (another run).
 		animations: {
-			idle: { clip: 'Arise', speed: 0, loop: false },
-			stalk: { clip: 'Cautious_Crouch_Walk_Forward_inplace', speed: 0.9, loop: true },
-			burst: { clip: 'run_fast_9', speed: 1.2, loop: true },
-			search: { clip: 'Walking', speed: 0.8, loop: true },
-			attack: { clip: 'Attack', speed: 1.6, loop: false },
-			// No death clip yet: it sinks back down (Arise backwards). Negative speed plays in reverse.
-			die: { clip: 'Arise', speed: -1.4, loop: false }
+			idle: { clip: 'Idle_9' },
+			walking: { clip: 'Walking', speed: 0.8 },
+			running: { clip: 'Running', speed: 1.2 },
+			crouch: { clip: 'Cautious_Crouch_Walk_Forward', speed: 0.9 },
+			spell_attack: { clip: 'mage_soell_cast_3' },
+			take_damage: { clip: 'Hit_Reaction', speed: 1.5 },
+			// The clip opens with three seconds of clutching at its throat; start as it buckles.
+			die: { clip: 'Strangled_and_Fall_Forward', speed: 1.8, start: 3.2 }
 		},
-		idlePose: 'Arise',
+		// It creeps up low, and walks upright when it has lost them.
+		gait: { stalk: 'crouch', burst: 'running', search: 'walking' },
 		movement: {
 			...MOVEMENT,
 			// Creatures use the player movement code with their own speeds; stance is always stand.

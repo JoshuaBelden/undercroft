@@ -100,7 +100,7 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 
 ### Creature models
 
-`art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is written to `static/assets/creatures/<name>.glb`. The witch drops from 11.9 MB to about 1.5 MB.
+`art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is written to `static/assets/creatures/<name>.glb`. The witch drops from 53 MB to about 2.4 MB.
 
 On the client, `loadCreature` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
 
@@ -113,6 +113,19 @@ Weapons, ammo and consumables are built by `scripts/blender/items.py` in the kit
 - **Materials:** plain PBR colours, no textures.
 
 `items.export_all()` writes `art/export/items/<id>.glb`. `pnpm asset:build` dedups, welds and prunes each one into `static/assets/items/<id>.glb` (a few KB each). See [items.md](items.md).
+
+#### Item models from elsewhere
+
+A model that wasn't built by `items.py` (sculpted or generated: centred on the origin, facing any way, any size, heavy and textured) can be dropped into `art/export/items/<id>.glb` as it is. Give it an entry in `scripts/items.config.ts` and the build stands it up in the item frame:
+
+- `forward`: the direction in the raw file that the muzzle, blade tip or hook points (`'-x'`, `'+y'`...);
+- `up`: the direction in the raw file that is its top;
+- `length`: its length in the game, in metres. The model is scaled to it;
+- `grip`: where the hand goes, as `[from the back end, from the bottom]`, each 0..1. That point becomes the origin.
+
+If it comes out back to front or upside down in the hand, flip the sign of `forward` or `up` and rebuild. A model with no entry is left as exported, and the build says so.
+
+Whatever its source, an item over 6,000 triangles is simplified down to that, and its textures are re-encoded to WebP at 512 px. The generated shotgun goes from 184,000 triangles and 13.6 MB to 6,000 and about 400 KB.
 
 ### Props
 

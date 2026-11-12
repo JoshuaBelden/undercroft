@@ -17,17 +17,18 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- Use new witch and player models
+- use new player model
+- show idle player model
+- use new boss model
 
 - Improved background image on dashboard
-- headlamp dim is wider
 - Explore and extract effects
 - Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant
 - Players should see other users health
 - We need bigger maps with multiple extraction rooms
-- Removing friends requires confirmation
 - Weapon reload mechanics, audio
 - Affliction status is based off of the host. So if a host hasn't uncovered an affliction, they still have to find clues
+- Shrines: hold one item through death or extraction
 
 ## Upnext - Items before closing off first affliction
 
@@ -36,7 +37,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Update creature ai so explorers can hide from them
 - Add actual model for the Affliction
 - Add item models that show in hands
-- Shrines: hold one item through death or extraction
 - Add audio assets
 - Chalk marks on walls (one per stick)
 
@@ -50,11 +50,12 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Balance pass: meter pacing, loot values, Thrall difficulty, candle tiers
 - Admin tools consolidated into one admin panel
 - Bug and crash reporting
-- Closed beta with friends
 - Sign in with Discord
 - Sign in with Steam
 - Link a provider to an existing email account
 - Password recovery (needs an email service)
+- Closed beta with friends
+- Add weapons audio.
 
 ## Backlog - Post Beta
 

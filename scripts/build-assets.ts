@@ -20,9 +20,11 @@ import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } f
 import path from 'node:path';
 import { NodeIO, getBounds, type Document, type Node } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { dedup, prune, textureCompress, weld } from '@gltf-transform/functions';
+import { dedup, prune, simplify, textureCompress, weld } from '@gltf-transform/functions';
+import { MeshoptSimplifier } from 'meshoptimizer';
 import * as prettier from 'prettier';
 import sharp from 'sharp';
+import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
 import { CELL, LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import type {
 	ColliderBox,
@@ -44,6 +46,9 @@ const CREATURE_TEXTURE = 1024;
 /** Item models (weapons, ammo, consumables): art/export/items -> static/assets/items. */
 const ITEM_SOURCE = path.join(SOURCE_DIR, 'items');
 const ITEM_OUT = path.join(ROOT, 'static', 'assets', 'items');
+const ITEM_TEXTURE = 512;
+/** Items over this many triangles (sculpted or generated models) are simplified down to it. */
+const ITEM_TRIS = 6000;
 /** Props (the loot crate): art/export/props -> static/assets/props. */
 const PROP_SOURCE = path.join(SOURCE_DIR, 'props');
 const PROP_OUT = path.join(ROOT, 'static', 'assets', 'props');
@@ -371,8 +376,56 @@ async function buildCreatures(io: NodeIO): Promise<void> {
 	}
 }
 
-/** Item models: small, untextured (plain materials). Dedup, weld and prune each one. */
+const AXES: Record<Axis, Vec3> = {
+	'+x': [1, 0, 0],
+	'-x': [-1, 0, 0],
+	'+y': [0, 1, 0],
+	'-y': [0, -1, 0],
+	'+z': [0, 0, 1],
+	'-z': [0, 0, -1]
+};
+
+/**
+ * Stand a raw item model up in the game's item frame (see scripts/items.config.ts): turned to
+ * point down -Z with its top up, scaled to its real length, with the grip at the origin.
+ */
+function frameItem(doc: Document, frame: ItemFrame): void {
+	const f = AXES[frame.forward];
+	const u = AXES[frame.up];
+	const r: Vec3 = [f[1] * u[2] - f[2] * u[1], f[2] * u[0] - f[0] * u[2], f[0] * u[1] - f[1] * u[0]];
+	if (Math.hypot(...r) < 0.5) throw new Error('forward and up must be different axes');
+	const scene = doc.getRoot().listScenes()[0];
+	const holder = doc.createNode('item');
+	for (const child of scene.listChildren()) holder.addChild(child);
+	scene.addChild(holder);
+	// Rows are where each game axis comes from: right, up, and back (-forward).
+	const turn = (s: number, t: Vec3): number[] => [
+		...[r[0] * s, u[0] * s, -f[0] * s, 0],
+		...[r[1] * s, u[1] * s, -f[1] * s, 0],
+		...[r[2] * s, u[2] * s, -f[2] * s, 0],
+		...[t[0], t[1], t[2], 1]
+	];
+	holder.setMatrix(turn(1, [0, 0, 0]) as Parameters<Node['setMatrix']>[0]);
+	const turned = getBounds(scene);
+	const s = frame.length / (turned.max[2] - turned.min[2]);
+	const [back, up] = frame.grip;
+	const grip: Vec3 = [
+		(turned.min[0] + turned.max[0]) / 2,
+		turned.min[1] + (turned.max[1] - turned.min[1]) * up,
+		turned.max[2] - (turned.max[2] - turned.min[2]) * back
+	];
+	holder.setMatrix(
+		turn(s, [-grip[0] * s, -grip[1] * s, -grip[2] * s]) as Parameters<Node['setMatrix']>[0]
+	);
+}
+
+/**
+ * Item models. Ones built in the kit .blend are tiny and already in the item frame: they're
+ * just deduplicated, welded and pruned. Ones listed in scripts/items.config.ts are also turned,
+ * scaled and re-centred. Heavy meshes are simplified and textures re-encoded to WebP.
+ */
 async function buildItems(io: NodeIO): Promise<void> {
+	await MeshoptSimplifier.ready;
 	if (!existsSync(ITEM_SOURCE)) return;
 	mkdirSync(ITEM_OUT, { recursive: true });
 	for (const f of readdirSync(ITEM_OUT)) if (f.endsWith('.glb')) rmSync(path.join(ITEM_OUT, f));
@@ -380,11 +433,40 @@ async function buildItems(io: NodeIO): Promise<void> {
 	for (const f of readdirSync(ITEM_SOURCE)
 		.filter((name) => name.endsWith('.glb'))
 		.sort()) {
-		const doc = await io.read(path.join(ITEM_SOURCE, f));
+		const id = path.basename(f, '.glb');
+		const file = path.join(ITEM_SOURCE, f);
+		const doc = await io.read(file);
 		for (const scene of doc.getRoot().listScenes()) scene.setExtras({});
-		await doc.transform(dedup(), weld(), prune());
-		await io.write(path.join(ITEM_OUT, f), doc);
-		built.push(path.basename(f, '.glb'));
+		const frame = ITEM_FRAMES[id];
+		if (frame) frameItem(doc, frame);
+		const tris = triangleCount(doc);
+		await doc.transform(dedup(), weld());
+		if (tris > ITEM_TRIS) {
+			await doc.transform(
+				simplify({ simplifier: MeshoptSimplifier, ratio: ITEM_TRIS / tris, error: 0.02 })
+			);
+		}
+		if (doc.getRoot().listTextures().length) {
+			await doc.transform(
+				textureCompress({
+					encoder: sharp,
+					targetFormat: 'webp',
+					resize: [ITEM_TEXTURE, ITEM_TEXTURE],
+					quality: 85
+				})
+			);
+		}
+		await doc.transform(prune());
+		const out = path.join(ITEM_OUT, f);
+		await io.write(out, doc);
+		const raw = statSync(file).size;
+		if (raw > 1e6) {
+			const kb = Math.round(statSync(out).size / 1e3);
+			console.log(
+				`  item ${id}: ${tris} -> ${triangleCount(doc)} tris, ${(raw / 1e6).toFixed(1)} MB -> ${kb} KB${frame ? '' : ' (no entry in items.config.ts: left as exported)'}`
+			);
+		}
+		built.push(id);
 	}
 	console.log(`  items: ${built.join(', ')}`);
 }
