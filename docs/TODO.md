@@ -17,9 +17,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- Add item models that show in hands - usage and reload should show center progress
-- Improved background image on dashboard
-- Explore and extract effects
 - Players should see other users health
 - Affliction status is based off of the host. So if a host hasn't uncovered an affliction, they still have to find clues
 - Allow Explorer images

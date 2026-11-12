@@ -211,7 +211,11 @@ export function hurt(
 		id === MANIFESTATION_ID
 			? ctx.affliction.damage(amount)
 			: ctx.creatures.damage(id, amount, from);
-	ctx.out.push({ kind: killed ? 'creatureDie' : 'creatureHit', id, position });
+	ctx.out.push(
+		killed
+			? { kind: 'creatureDie', id, position, by: from?.id ?? null }
+			: { kind: 'creatureHit', id, position }
+	);
 }
 
 /** Everything that can be hit: living creatures and the manifestation. */

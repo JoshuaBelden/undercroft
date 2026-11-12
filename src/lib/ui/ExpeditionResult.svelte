@@ -1,22 +1,28 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
+	import { money, sellPrice } from '#lib/content/economy.ts';
+	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
+	import { ITEMS } from '#lib/content/items.ts';
+	import type { ExpeditionSummary } from '#lib/shared/protocol.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
-	import { stackLabel } from './items.ts';
+	import { slotMark, stackDetail } from './items.ts';
+	import { parallax } from './parallax.ts';
+	import Slot from './Slot.svelte';
 
 	interface Props {
-		seconds: number;
-		deepestLevel: number;
+		summary: ExpeditionSummary;
+		/** The Affliction the expedition went down against (empty if not known). */
+		affliction: string;
 		/** How the expedition ended for this player. */
 		outcome: 'extracted' | 'died' | 'abandoned' | 'banished' | 'resolved';
 		/** After watching the rest of the expedition: how many of the others got out alive. */
 		escaped?: number | null;
 		/** What was carried out (kept); null when it was lost. */
 		carried: ItemStack[] | null;
-		/** Back to the party on the surface. */
+		/** Back to the surface, on the loadout. */
 		oncontinue: () => void;
 	}
 
-	let { seconds, deepestLevel, outcome, escaped = null, carried, oncontinue }: Props = $props();
+	let { summary, affliction, outcome, escaped = null, carried, oncontinue }: Props = $props();
 
 	const TITLES = {
 		extracted: 'You made it out',
@@ -26,115 +32,211 @@
 		resolved: 'The rite is done'
 	};
 
-	const time = $derived(`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`);
-	const depth = $derived(
-		deepestLevel === 0
-			? 'the first level'
-			: `${deepestLevel} level${deepestLevel === 1 ? '' : 's'} down`
+	const note = $derived(
+		outcome === 'banished'
+			? `You drove it back, for now. ${affliction || 'The Affliction'} is not resolved.`
+			: outcome === 'resolved'
+				? `${affliction || 'The Affliction'} is resolved. The dark lets go of this place.`
+				: escaped !== null
+					? escaped === 0
+						? 'No one made it out.'
+						: `${escaped} of the others made it out.`
+					: null
+	);
+
+	const time = $derived(
+		`${Math.floor(summary.seconds / 60)}:${String(summary.seconds % 60).padStart(2, '0')}`
+	);
+	const stats = $derived([
+		{ label: 'Time underground', value: time },
+		{ label: 'Deepest level', value: String(summary.deepestLevel + 1) },
+		{ label: 'Creatures killed', value: String(summary.kills) },
+		{ label: 'Crates opened', value: String(summary.crates) },
+		{ label: 'Clues found', value: String(summary.clues) }
+	]);
+	/** What the haul would fetch if all of it were sold. */
+	const worth = $derived(
+		(carried ?? []).reduce((sum, stack) => sum + sellPrice(stack.item) * stack.count, 0)
 	);
 </script>
 
-<div class="screen">
-	<div class="card">
-		<h1>{TITLES[outcome]}</h1>
-		{#if outcome === 'banished'}
-			<p class="note">You drove it back, for now. The Gloaming is not resolved.</p>
-		{:else if outcome === 'resolved'}
-			<p class="note">The Gloaming is resolved. The dark lets go of this place.</p>
-		{:else if escaped !== null}
-			<p class="note">
-				{escaped === 0 ? 'No one made it out.' : `${escaped} of the others made it out.`}
-			</p>
+<!-- The whole window, like the screens on the surface: the expedition is over. -->
+<main class="screen backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
+	<section class="recap" aria-labelledby="recap-title">
+		<p class="kicker">{affliction ? `${affliction} · ` : ''}Expedition over</p>
+		<h1 id="recap-title">{TITLES[outcome]}</h1>
+		{#if note}
+			<p class="note">{note}</p>
 		{/if}
-		<dl>
-			<dt>Time underground</dt>
-			<dd>{time}</dd>
-			<dt>Deepest point</dt>
-			<dd>{depth}</dd>
+
+		<dl class="stats">
+			{#each stats as stat (stat.label)}
+				<div class="stat">
+					<dt>{stat.label}</dt>
+					<dd>{stat.value}</dd>
+				</div>
+			{/each}
 		</dl>
-		{#if carried === null}
-			<p class="note">Everything you carried is lost.</p>
-		{:else if carried.length === 0}
-			<p class="note">You brought nothing out.</p>
-		{:else}
-			<p class="note">You brought out: {carried.map(stackLabel).join(', ')}.</p>
-		{/if}
-		<div class="actions">
-			<button type="button" class="primary" onclick={oncontinue}>Continue</button>
-			<a href={resolve('/(hub)')}>Dashboard</a>
+
+		<div class="haul">
+			<h2>Brought out</h2>
+			{#if carried === null}
+				<p class="empty">Everything you carried is lost.</p>
+			{:else if carried.length === 0}
+				<p class="empty">Nothing.</p>
+			{:else}
+				<div class="slots">
+					{#each carried as stack, i (i)}
+						{@const def = ITEMS[stack.item]}
+						<Slot
+							name={def?.name ?? stack.item}
+							count={stack.count}
+							image={def?.image}
+							detail={stackDetail(stack)}
+							rarity={def?.rarity}
+							quest={def?.quest}
+							mark={slotMark(stack.item)}
+						/>
+					{/each}
+				</div>
+				{#if worth > 0}
+					<p class="worth">Worth {money(worth)}</p>
+				{/if}
+			{/if}
 		</div>
-	</div>
-</div>
+
+		<button type="button" class="pill" onclick={oncontinue}>Continue</button>
+	</section>
+</main>
 
 <style>
 	.screen {
 		position: fixed;
 		inset: 0;
+		z-index: 20;
 		display: grid;
 		place-items: center;
-		background: radial-gradient(circle at 50% 40%, #1a1712 0%, #000 70%);
-		z-index: 20;
+		padding: 24px 16px;
+		overflow-y: auto;
+		/* Out of the black the extraction faded to. */
+		animation: appear 0.8s ease-out;
 	}
 
-	.card {
-		min-width: min(360px, calc(100vw - 32px));
-		padding: 32px;
-		border: 1px solid rgb(226 220 204 / 0.15);
-		background: rgb(0 0 0 / 0.5);
-		color: var(--text);
+	@keyframes appear {
+		from {
+			opacity: 0;
+		}
+	}
+
+	.recap {
+		width: min(640px, 100%);
+		display: grid;
+		justify-items: center;
+		gap: 24px;
+		padding: 36px 32px 32px;
+		background: rgb(20 17 15 / 0.88);
+		border: 1px solid var(--border);
 		text-align: center;
 	}
 
-	h1 {
-		margin: 0 0 24px;
-		font: 400 1.5rem var(--font-lore);
-		letter-spacing: 0.2em;
+	.kicker {
+		margin: 0 0 -16px;
+		font: 600 0.8rem var(--font-ui);
+		letter-spacing: 0.18em;
 		text-transform: uppercase;
-	}
-
-	dl {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		gap: 8px 24px;
-		margin: 0 0 28px;
-		text-align: left;
-		font: 13px var(--font-ui);
-	}
-
-	dt {
 		color: var(--muted);
 	}
 
+	h1 {
+		margin: 0;
+		font: 400 clamp(1.5rem, 4vw, 2.2rem) var(--font-lore);
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+	}
+
 	.note {
-		margin: -12px 0 24px;
-		font: italic 0.95rem var(--font-lore);
+		margin: -12px 0 0;
+		font: italic 1rem var(--font-lore);
+		color: var(--muted);
+	}
+
+	.stats {
+		width: 100%;
+		margin: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+		gap: 8px;
+	}
+
+	.stat {
+		display: flex;
+		flex-direction: column-reverse;
+		gap: 4px;
+		padding: 12px 8px;
+		border: 1px solid var(--border);
+		background: rgb(10 9 8 / 0.6);
+	}
+
+	dt {
+		font: 0.72rem var(--font-ui);
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
 		color: var(--muted);
 	}
 
 	dd {
 		margin: 0;
+		font: 700 1.8rem var(--font-display);
+		font-variant-numeric: tabular-nums;
 	}
 
-	.actions {
-		display: flex;
-		gap: 16px;
-		justify-content: center;
-		align-items: center;
+	.haul {
+		width: 100%;
+		display: grid;
+		justify-items: center;
+		gap: 12px;
 	}
 
-	.primary {
-		padding: 10px 22px;
-		font: 13px var(--font-ui);
+	h2 {
+		margin: 0;
+		font: 600 0.8rem var(--font-ui);
 		letter-spacing: 0.15em;
 		text-transform: uppercase;
-		color: var(--text);
-		background: rgb(226 220 204 / 0.08);
-		border: 1px solid rgb(226 220 204 / 0.35);
-		cursor: pointer;
+		color: var(--muted);
 	}
 
-	a {
-		font: 13px var(--font-ui);
+	.slots {
+		--slot-size: 72px;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 8px;
+	}
+
+	.empty {
+		margin: 0;
+		font: italic 0.95rem var(--font-lore);
 		color: var(--muted);
+	}
+
+	.worth {
+		margin: 0;
+		font: 700 1.2rem var(--font-display);
+		color: var(--accent);
+	}
+
+	.pill {
+		padding: 12px 36px;
+		border: 1px solid var(--accent);
+		border-radius: 999px;
+		font: 600 0.95rem var(--font-ui);
+		letter-spacing: 0.15em;
+		text-transform: uppercase;
+	}
+
+	.pill:hover,
+	.pill:focus-visible {
+		border-color: var(--text);
+		background: rgb(255 255 255 / 0.1);
 	}
 </style>

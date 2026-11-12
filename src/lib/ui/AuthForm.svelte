@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { ACCOUNT } from '#lib/content/account.ts';
+	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
 	import { api, ApiError } from '#lib/account/account.svelte.ts';
 	import { parallax } from './parallax.ts';
 
@@ -39,7 +40,7 @@
 	}
 </script>
 
-<main class="backdrop-art" use:parallax>
+<main class="backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
 	<form onsubmit={submit}>
 		<h2>{signingUp ? 'Create an account' : 'Sign in'}</h2>
 

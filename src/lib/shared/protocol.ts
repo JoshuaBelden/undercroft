@@ -104,6 +104,8 @@ export type ServerMessage =
 			tickRate: number;
 			/** The expedition map, generated on the server. Clients only render it. */
 			layout: MapLayout;
+			/** Back in an expedition already underway (a reconnect), not just arriving. */
+			resumed: boolean;
 	  }
 	| { type: 'reject'; reason: string }
 	| { type: 'pong'; clientTime: number; serverTime: number }
@@ -134,20 +136,34 @@ export type ServerMessage =
 	 * You climbed out: you have left the expedition. `carried` (here and below) is what you
 	 * brought out, which you keep.
 	 */
-	| { type: 'extracted'; seconds: number; deepestLevel: number; carried: ItemStack[] }
+	| ({ type: 'extracted'; carried: ItemStack[] } & ExpeditionSummary)
 	/**
 	 * You bled out: you have left the expedition and lost what you carried. If `spectating`, others are still down there and
 	 * you keep getting `tick` to watch them, until `spectateEnd` or you send `stopSpectating`.
 	 */
-	| { type: 'died'; seconds: number; deepestLevel: number; spectating: boolean }
+	| ({ type: 'died'; spectating: boolean } & ExpeditionSummary)
 	/** You abandoned the expedition: you have left it and lost what you carried. */
-	| { type: 'abandoned'; seconds: number; deepestLevel: number }
+	| ({ type: 'abandoned' } & ExpeditionSummary)
 	/** The expedition you were watching is over; `escaped` players got out alive. */
 	| { type: 'spectateEnd'; escaped: number }
 	/** The manifestation was banished: everyone leaves the expedition. */
-	| { type: 'banished'; seconds: number; deepestLevel: number; carried: ItemStack[] }
+	| ({ type: 'banished'; carried: ItemStack[] } & ExpeditionSummary)
 	/** The rite was performed: the Affliction is resolved and everyone leaves the expedition. */
-	| { type: 'resolved'; seconds: number; deepestLevel: number; carried: ItemStack[] };
+	| ({ type: 'resolved'; carried: ItemStack[] } & ExpeditionSummary);
+
+/** How one explorer's expedition went: sent with every way out of it, for the results screen. */
+export interface ExpeditionSummary {
+	/** Time underground. */
+	seconds: number;
+	/** Deepest level reached below the start (0 = the start level). */
+	deepestLevel: number;
+	/** Creatures (and the manifestation) they finished off. */
+	kills: number;
+	/** Loot crates they were the first to open. */
+	crates: number;
+	/** Rite clues they found. */
+	clues: number;
+}
 
 export function encode(message: ClientMessage | ServerMessage): string {
 	return JSON.stringify(message);

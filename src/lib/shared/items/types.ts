@@ -82,7 +82,8 @@ export type GameEvent =
 	| { kind: 'pickup'; player: string; item: string; position: Vec3 }
 	| { kind: 'drop'; player: string; item: string; position: Vec3 }
 	| { kind: 'creatureHit'; id: string; position: Vec3 }
-	| { kind: 'creatureDie'; id: string; position: Vec3 }
+	/** `by`: the player who finished it off, if one did. */
+	| { kind: 'creatureDie'; id: string; position: Vec3; by: string | null }
 	/** A loot crate was opened for the first time. */
 	| { kind: 'crateOpen'; id: string; player: string; position: Vec3 }
 	/** Someone going through a crate started on the next thing in it. */

@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { money } from '#lib/content/economy.ts';
+	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
@@ -71,7 +72,12 @@
 	});
 </script>
 
-<div class="hub backdrop-art" style:--hub-bar="{bar}px" use:parallax>
+<div
+	class="hub backdrop-art"
+	style:--hub-bar="{bar}px"
+	style:--backdrop-image={BACKDROP_IMAGE}
+	use:parallax
+>
 	<header bind:clientHeight={bar}>
 		<nav aria-label="Dashboard">
 			{#each TABS as tab (tab.path)}

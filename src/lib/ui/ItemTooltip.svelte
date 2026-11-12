@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS, RARITIES, rarityOf } from '#lib/content/items.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import { categoryLabel, COIN_SIGN, itemStats } from './items.ts';
@@ -45,7 +46,7 @@
 	<div class="head">
 		<div class="picture">
 			{#if def?.image}
-				<img src="/assets/images/{def.image}.webp" alt="" />
+				<img src={imageUrl(def.image)} alt="" />
 			{:else}
 				<span aria-hidden="true">{(def?.name ?? stack.item).charAt(0)}</span>
 			{/if}

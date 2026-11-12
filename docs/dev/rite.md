@@ -65,7 +65,7 @@ There is no holder role. Whoever carries every requirement (in any slot: `carrie
 - carry everything, and
 - the room has been revealed (`RiteDirector.complete`), in this expedition or an earlier one.
 
-`PlayerState.performing` counts the seconds (server-driven, like `reviving`) and resets if any of that stops being true. At `seconds` the items are used up, and at the end of the tick every player still in the expedition gets `resolved { seconds, deepestLevel }` and leaves it, counted as having got out. The client shows the results screen with the `resolved` outcome.
+`PlayerState.performing` counts the seconds (server-driven, like `reviving`) and resets if any of that stops being true. At `seconds` the items are used up, and at the end of the tick every player still in the expedition gets `resolved` (with its `ExpeditionSummary` and `carried`) and leaves it, counted as having got out. The client shows the results screen with the `resolved` outcome.
 
 The client shows "Hold E to perform the rite" under the same conditions, with its progress.
 

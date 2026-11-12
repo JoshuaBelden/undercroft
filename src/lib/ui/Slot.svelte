@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { imageUrl } from '#lib/content/images.ts';
 	import type { Rarity } from '#lib/content/items.ts';
 
 	interface Props {
@@ -66,7 +67,7 @@
 		<span class="hidden">Unknown</span>
 	{:else}
 		{#if image}
-			<img src="/assets/images/{image}.webp" alt={name} draggable="false" />
+			<img src={imageUrl(image)} alt={name} draggable="false" />
 		{:else}
 			<span class="name">{name}</span>
 		{/if}

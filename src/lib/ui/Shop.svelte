@@ -2,6 +2,7 @@
 	import { fly } from 'svelte/transition';
 	import { ApiError, trade } from '#lib/account/account.svelte.ts';
 	import { SHOP, money, type ShopEntry } from '#lib/content/economy.ts';
+	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import ItemFilters from './ItemFilters.svelte';
@@ -125,7 +126,7 @@
 		<header>
 			<div class="picture">
 				{#if def?.image}
-					<img src="/assets/images/{def.image}.webp" alt="" />
+					<img src={imageUrl(def.image)} alt="" />
 				{:else}
 					<span aria-hidden="true">{(def?.name ?? entry.item).charAt(0)}</span>
 				{/if}

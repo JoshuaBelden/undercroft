@@ -66,6 +66,9 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'shotgun.reload', file: 'sfx_shotgun_reload.mp3' },
 	// Interface: moving between pages on the surface.
 	{ id: 'ui.click', file: 'menu_click.wav' },
+	// Stingers: going down at the start of an expedition, and coming up at the end of it.
+	{ id: 'expedition.intro', file: 'sfx_expedition_intro.mp3', rate: 22050 },
+	{ id: 'expedition.outro', file: 'sfx_extraction_outro.mp3', rate: 22050 },
 	// Ambience
 	{
 		id: 'ambience.drip',

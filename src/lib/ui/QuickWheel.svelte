@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 
@@ -52,7 +53,7 @@
 				{@const def = ITEMS[place.stack.item]}
 				<!-- The picture when it has one (as in inventory slots); the name in the middle says what it is. -->
 				{#if def?.image}
-					<img src="/assets/images/{def.image}.webp" alt={def.name} draggable="false" />
+					<img src={imageUrl(def.image)} alt={def.name} draggable="false" />
 				{:else}
 					<span class="name">{def?.name ?? place.stack.item}</span>
 				{/if}

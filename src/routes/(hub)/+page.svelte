@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { session } from '#lib/account/account.svelte.ts';
 	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
+	import { imageUrl } from '#lib/content/images.ts';
 	import { connection, me, send } from '#lib/game/net/connection.svelte.ts';
 	import AfflictionPicker from '#lib/ui/AfflictionPicker.svelte';
 	import { dragScroll } from '#lib/ui/dragScroll.ts';
@@ -53,7 +54,7 @@
 		<aside class="launch" aria-label="Launch">
 			<h2>Affliction</h2>
 			{#if affliction}
-				<div class="chosen" style:--art="url('/assets/images/{affliction.image}.webp')">
+				<div class="chosen" style:--art="url('{imageUrl(affliction.image)}')">
 					<span class="name">{affliction.name}</span>
 					<span class="state" class:resolved>{resolved ? 'Resolved' : 'Unresolved'}</span>
 				</div>

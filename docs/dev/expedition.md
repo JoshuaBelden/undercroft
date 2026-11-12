@@ -16,6 +16,7 @@ A **party** is the group that descends together (one to `PARTY.maxSize` players;
 | Rules (extract time and radius)                  | `src/lib/content/expedition.ts`                                                        |
 | Extraction in the simulation                     | `src/lib/shared/player/simulate.ts` (`updateExtraction`, `nearExtract`)                |
 | Extract points                                   | `CollisionWorld.extracts` (`src/lib/shared/map/collision.ts`)                          |
+| Leaving fade ("Extracting")                      | `src/lib/ui/ExtractFade.svelte`, `EXPEDITION.leaveFadeSeconds`                         |
 | Results screen                                   | `src/lib/ui/ExpeditionResult.svelte`                                                   |
 | Room banner                                      | `src/lib/ui/RoomBanner.svelte`, titles in `MAP_KIT` (`src/lib/content/map/kit.ts`)     |
 
@@ -48,8 +49,8 @@ All checks are on the server (`Parties`); `allReady` is shared so both sides use
 1. Signing in lands on the Expedition page. The site-wide connection (`src/lib/game/net/connection.svelte.ts`, see [systems.md](systems.md#networking)) sends `hello` with its ticket (see [accounts.md](accounts.md)), lands in a party and gets `party`.
 2. Everyone readies up and the countdown runs out (above). `Parties.descend` creates a `Session` against the party's Affliction (new seed, generated layout), takes each member's loadout from their explorer (see [economy.md](economy.md)) and adds them with it. Each gets `welcome` with the layout: that message means "you are underground now", and the client opens `/play`.
 3. Players explore. The session simulates them and broadcasts `tick` snapshots to the players in it.
-4. A player climbs out (see Extraction), dies, abandons (see Abandoning), the manifestation is banished, or the rite is performed (see [rite.md](rite.md)). The server sends them `extracted`, `died`, `abandoned`, `banished` or `resolved` with `{ seconds, deepestLevel }` and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
-5. What they carried out goes back to their explorer; if they died or abandoned it is lost (see [economy.md](economy.md)). The client shows the results screen (after spectating, for the dead; see Spectating), with what was brought out, then goes back to the Expedition page. While others are still underground their panes say so, and nobody can launch.
+4. A player climbs out (see Extraction), dies, abandons (see Abandoning), the manifestation is banished, or the rite is performed (see [rite.md](rite.md)). The server sends them `extracted`, `died`, `abandoned`, `banished` or `resolved` with their `ExpeditionSummary` (see Results) and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
+5. What they carried out goes back to their explorer; if they died or abandoned it is lost (see [economy.md](economy.md)). Leaving alive, the client fades out first (see Leaving); the dead see the results after spectating (see Spectating). Continue on the results goes to the Loadout page. While others are still underground their panes say so, and nobody can launch.
 6. When the session's last player is out (or has disconnected), it stops. The party is back on the surface and can launch again.
 
 `/play` is only the expedition: opened with none to show, it goes back to the dashboard.
@@ -79,12 +80,12 @@ A player who dies while others are still alive underground watches through a tea
 
 ## Abandoning
 
-The settings screen underground has an Abandon expedition button (`onabandon` on `Settings`), with a dialog to confirm. The client sends `abandon`; `Session.abandon` drops everything the player carried where they stand (as on death), sends `abandoned` with `{ seconds, deepestLevel }` and removes them. Nothing comes back to the surface with them, and they do not spectate. The others carry on; if they were the last one down, the expedition ends.
+The settings screen underground has an Abandon expedition button (`onabandon` on `Settings`), with a dialog to confirm. The client sends `abandon`; `Session.abandon` drops everything the player carried where they stand (as on death), sends `abandoned` with its summary and removes them. Nothing comes back to the surface with them, and they do not spectate. The others carry on; if they were the last one down, the expedition ends.
 
 - **Client:** on `died` with `spectating`, the page keeps the map, creatures, items and other players, drops the local player, and puts the camera at the watched player's interpolated head (`RemotePlayers.view`), hiding that player's body (`setHidden`). `SpectateBar` shows who is being watched, with Next (cycle teammates) and Leave. If the watched player dies or leaves, the view moves to the next one.
 - The results screen is held back until spectating ends, then shows how many of the others made it out.
 
-Only the dead spectate. Players who climbed out go straight to the results and then back to the Expedition page.
+Only the dead spectate. Players who left alive see the leaving fade, then the results, then the Loadout page.
 
 ## Extraction
 
@@ -98,9 +99,17 @@ Only the dead spectate. Players who climbed out go straight to the results and t
 
 **Client feedback:** near a point the HUD shows "Hold E to climb out" (using the player's current binding) in a `HoldPrompt` pill whose background fills while holding. Use `HoldPrompt` (`src/lib/ui/HoldPrompt.svelte`) for every hold-key prompt so they all look the same.
 
-**Results:** time underground, and the deepest level reached (levels below the start, tracked by the server). Loot and money come with items and the hub.
-
 **Adding an extraction point:** put an `extract-<n>` empty in a piece, export, then run `pnpm asset:build`.
+
+## Leaving and results
+
+**Stingers:** `expedition.intro` plays when a `welcome` arrives with `resumed: false` (a real descent; a reconnect sends `resumed: true` and stays quiet). `expedition.outro` plays when leaving alive. Both are on the music bus, so no muffling or reverb from the room.
+
+**Leaving:** on `extracted`, `abandoned`, `banished` or `resolved` the play page does not drop the world at once. `leave()` closes any menu, stops control (`extracting` blocks input), plays the outro and shows `ExtractFade`: "Extracting" over the world as it fades to black over `EXPEDITION.leaveFadeSeconds`. Then `endExpedition()` puts the expedition away and the results fade in out of the black. Dying skips the fade (the downed screen and spectating already cover it).
+
+**Results:** `ExpeditionSummary` (`src/lib/shared/protocol.ts`), built by `Session.summary`: time underground, deepest level reached (shown counting the start as level 1), and the player's `kills`, `crates` (first to open) and `clues`. The session counts those from the tick's events (`Session.tally`): `creatureDie.by`, `crateOpen.player`, `clue.player`. The client adds the Affliction's name and lists what was brought out with what it would sell for. To add a stat, add it to `ExpeditionSummary` and `Player.stats`, count it in `tally`, and show it in `ExpeditionResult`.
+
+**Continue** always goes to the Loadout page (`surface`), to put the haul away or kit out again.
 
 ## Room banners
 

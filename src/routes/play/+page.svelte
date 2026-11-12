@@ -57,7 +57,12 @@
 		type PlayerFlags,
 		type PlayerState
 	} from '#lib/shared/player/types.ts';
-	import type { AdminCommand, ClientMessage, ServerMessage } from '#lib/shared/protocol.ts';
+	import type {
+		AdminCommand,
+		ClientMessage,
+		ExpeditionSummary,
+		ServerMessage
+	} from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
 	import CrateScreen from '#lib/ui/CrateScreen.svelte';
@@ -67,6 +72,7 @@
 	import { wheelChoice } from '#lib/ui/wheel.ts';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
+	import ExtractFade from '#lib/ui/ExtractFade.svelte';
 	import Hud from '#lib/ui/Hud.svelte';
 	import RiteOverlay from '#lib/ui/RiteOverlay.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
@@ -129,8 +135,9 @@
 	let downed = $state<{ remaining: number; message: string; surrender: number } | null>(null);
 	/** Set when this player has left the expedition (climbed out or died); shows the results. */
 	let result = $state<{
-		seconds: number;
-		deepestLevel: number;
+		summary: ExpeditionSummary;
+		/** The Affliction's name, as it was underground. */
+		affliction: string;
 		outcome: 'extracted' | 'died' | 'abandoned' | 'banished' | 'resolved';
 		/** Set after spectating: how many of the others got out. */
 		escaped: number | null;
@@ -138,10 +145,12 @@
 		carried: ItemStack[] | null;
 	} | null>(null);
 	/**
-	 * Where the surface begins once the result has been read: the loadout, for whoever came out
-	 * with what they carried (there is loot to put away); the dashboard otherwise.
+	 * Where the surface begins: the loadout once the result has been read (to put the haul away,
+	 * or to kit out again); the dashboard when the page was opened with no expedition to show.
 	 */
 	let surface = $state<'/(hub)' | '/(hub)/loadout'>('/(hub)');
+	/** Leaving alive: the "Extracting" fade plays over the world before the results show. */
+	let extracting = $state(false);
 	/** Dead and watching a teammate; `name` is who (empty while nobody can be shown). */
 	let spectating = $state<{ name: string } | null>(null);
 	let spectateNext = (): void => {};
@@ -280,6 +289,7 @@
 						result = null;
 						expedition = true;
 						loadMap(message.layout);
+						if (!message.resumed) descend();
 						break;
 					case 'extracted':
 					case 'died':
@@ -287,17 +297,27 @@
 					case 'banished':
 					case 'resolved':
 						result = {
-							seconds: message.seconds,
-							deepestLevel: message.deepestLevel,
+							summary: {
+								seconds: message.seconds,
+								deepestLevel: message.deepestLevel,
+								kills: message.kills,
+								crates: message.crates,
+								clues: message.clues
+							},
+							affliction: afflictionName,
 							outcome: message.type,
 							escaped: null,
 							carried:
 								message.type === 'died' || message.type === 'abandoned' ? null : message.carried
 						};
-						surface = result.carried ? '/(hub)/loadout' : '/(hub)';
+						surface = '/(hub)/loadout';
 						if (message.type === 'resolved') sounds.play('rite.resolve');
-						if (message.type === 'died' && message.spectating) startSpectating();
-						else endExpedition();
+						if (message.type === 'died') {
+							if (message.spectating) startSpectating();
+							else endExpedition();
+						} else {
+							leave();
+						}
 						break;
 					case 'spectateEnd':
 						if (!spectating) break;
@@ -459,6 +479,32 @@
 			document.exitPointerLock();
 			// What was learned or carried out shows on the surface.
 			void loadAccount();
+		}
+
+		/** Just arrived underground (not back after a reconnect): the descent stinger. */
+		function descend(): void {
+			void audio.unlock().then(() => sounds.play('expedition.intro'));
+		}
+
+		let leaveTimer: ReturnType<typeof setTimeout> | null = null;
+		/**
+		 * Out alive (climbed out, abandoned, banished, resolved): the world stays a moment under the
+		 * "Extracting" fade and the outro, then the expedition is put away and the results show.
+		 */
+		function leave(): void {
+			extracting = true;
+			panel = null;
+			crate = null;
+			player.closeWheel();
+			wheel = null;
+			document.exitPointerLock();
+			sounds.play('expedition.outro');
+			if (leaveTimer) clearTimeout(leaveTimer);
+			leaveTimer = setTimeout(() => {
+				leaveTimer = null;
+				extracting = false;
+				if (expedition) endExpedition();
+			}, EXPEDITION.leaveFadeSeconds * 1000);
 		}
 
 		/** Dead, with others still down there: keep the world and watch through their eyes. */
@@ -849,18 +895,19 @@
 			playerId = self;
 			expedition = true;
 			loadMap(layout);
+			if (!connection.welcome.resumed) descend();
 		}
 
 		const onLockChange = () => (locked = document.pointerLockElement === canvas);
 		document.addEventListener('pointerlockchange', onLockChange);
 		const requestLock = () => {
 			void audio.unlock();
-			if (!panel && !mapView && !spectating) void canvas.requestPointerLock();
+			if (!panel && !mapView && !spectating && !extracting) void canvas.requestPointerLock();
 		};
 		canvas.addEventListener('click', requestLock);
 
 		engine.onUpdate((delta) => {
-			const active = locked && !panel && !mapView;
+			const active = locked && !panel && !mapView && !extracting;
 			updateWheel(player.state, active);
 			player.update(delta, active);
 			remote.update(delta);
@@ -1034,6 +1081,7 @@
 		});
 
 		return () => {
+			if (leaveTimer) clearTimeout(leaveTimer);
 			unsubscribe();
 			document.removeEventListener('pointerlockchange', onLockChange);
 			canvas.removeEventListener('click', requestLock);
@@ -1062,7 +1110,7 @@
 
 <canvas bind:this={canvas}></canvas>
 
-{#if spawned && !mapView}
+{#if spawned && !mapView && !result}
 	<Hud {...hud} />
 {/if}
 
@@ -1093,7 +1141,7 @@
 	/>
 {/if}
 
-{#if banner && spawned && !mapView}
+{#if banner && spawned && !mapView && !result}
 	{#key banner.key}
 		<RoomBanner title={banner.title} />
 	{/key}
@@ -1107,10 +1155,12 @@
 			onleave={() => spectateStop()}
 		/>
 	{/if}
+{:else if extracting}
+	<ExtractFade seconds={EXPEDITION.leaveFadeSeconds} />
 {:else if result}
 	<ExpeditionResult
-		seconds={result.seconds}
-		deepestLevel={result.deepestLevel}
+		summary={result.summary}
+		affliction={result.affliction}
 		outcome={result.outcome}
 		escaped={result.escaped}
 		carried={result.carried}

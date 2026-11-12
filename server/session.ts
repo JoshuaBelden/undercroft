@@ -55,7 +55,12 @@ import type {
 	PlayerState,
 	SimEvent
 } from '../src/lib/shared/player/types.ts';
-import { encode, type AdminCommand, type ServerMessage } from '../src/lib/shared/protocol.ts';
+import {
+	encode,
+	type AdminCommand,
+	type ExpeditionSummary,
+	type ServerMessage
+} from '../src/lib/shared/protocol.ts';
 import { randomSeed } from '../src/lib/shared/rng.ts';
 import { config } from './config.ts';
 import { hurt as hurtCreature, resolve, targets, type CombatContext } from './combat.ts';
@@ -86,6 +91,8 @@ interface Player {
 	joinedAt: number;
 	/** Deepest level reached below the start (0 = the start level). */
 	deepestLevel: number;
+	/** What they have done down here, for the results screen (see `summary`). */
+	stats: { kills: number; crates: number; clues: number };
 	/** Most recent input simulated (held buttons the server acts on, like revive). */
 	lastInput: InputFrame | null;
 	/** The loot crate they have open (its id). */
@@ -150,6 +157,8 @@ export class Session {
 	private resolved = false;
 	/** Events this tick, broadcast with it. */
 	private events: GameEvent[] = [];
+	/** How many of `events` have been counted toward players' stats (see `tally`). */
+	private tallied = 0;
 	private dropped = new Set<string>();
 	private players = new Map<string, Player>();
 	/** Dead players still watching: they get ticks but are not in the simulation. */
@@ -239,6 +248,7 @@ export class Session {
 			clock: null,
 			joinedAt: Date.now(),
 			deepestLevel: 0,
+			stats: { kills: 0, crates: 0, clues: 0 },
 			lastInput: null,
 			crate: null
 		};
@@ -249,7 +259,8 @@ export class Session {
 			playerId: player.id,
 			sessionId: this.id,
 			tickRate: TICK_RATE,
-			layout: this.layout
+			layout: this.layout,
+			resumed: false
 		});
 		log.info(`Player ${name} joined session ${this.id.slice(0, 8)}`);
 		if (!this.timer) this.start();
@@ -276,7 +287,8 @@ export class Session {
 			playerId: player.id,
 			sessionId: this.id,
 			tickRate: TICK_RATE,
-			layout: this.layout
+			layout: this.layout,
+			resumed: true
 		});
 		log.info(`Player ${player.name} reconnected to session ${this.id.slice(0, 8)}`);
 		return true;
@@ -318,11 +330,7 @@ export class Session {
 		const player = this.players.get(playerId);
 		if (!player || player.state.dead || player.state.extracted) return;
 		this.items.dropAll(allStacks(player.state.inventory), player.state.position);
-		this.send(player, {
-			type: 'abandoned',
-			seconds: Math.round((Date.now() - player.joinedAt) / 1000),
-			deepestLevel: player.deepestLevel
-		});
+		this.send(player, { type: 'abandoned', ...this.summary(player) });
 		log.info(`Player ${player.name} abandoned session ${this.id.slice(0, 8)}`);
 		this.removePlayer(player.id);
 	}
@@ -576,6 +584,7 @@ export class Session {
 		this.stepRevives();
 		this.stepRite();
 		this.stepCrates();
+		this.tally();
 		// Anyone still alive down here after this tick? The dead can watch them.
 		const alive = [...this.players.values()].some((p) => !p.state.dead && !p.state.extracted);
 		for (const player of [...this.players.values()]) {
@@ -585,10 +594,7 @@ export class Session {
 				this.items.dropAll(allStacks(player.state.inventory), player.state.position);
 			}
 			if (!player.state.extracted && !player.state.dead) continue;
-			const result = {
-				seconds: Math.round((Date.now() - player.joinedAt) / 1000),
-				deepestLevel: player.deepestLevel
-			};
+			const result = this.summary(player);
 			if (player.state.dead) {
 				this.send(player, { type: 'died', ...result, spectating: alive });
 				log.info(`Player ${player.name} died in session ${this.id.slice(0, 8)}`);
@@ -613,8 +619,7 @@ export class Session {
 				this.escaped++;
 				this.send(player, {
 					type: 'resolved',
-					seconds: Math.round((Date.now() - player.joinedAt) / 1000),
-					deepestLevel: player.deepestLevel,
+					...this.summary(player),
 					carried: allStacks(player.state.inventory)
 				});
 				this.removePlayer(player.id, player.state.inventory);
@@ -626,8 +631,7 @@ export class Session {
 				this.escaped++;
 				this.send(player, {
 					type: 'banished',
-					seconds: Math.round((Date.now() - player.joinedAt) / 1000),
-					deepestLevel: player.deepestLevel,
+					...this.summary(player),
 					carried: allStacks(player.state.inventory)
 				});
 				this.removePlayer(player.id, player.state.inventory);
@@ -653,6 +657,30 @@ export class Session {
 			crates: this.crates.snapshot()
 		});
 		this.events = [];
+		this.tallied = 0;
+	}
+
+	/** Count this tick's kills, crates and clues (events not yet counted) to whoever did them. */
+	private tally(): void {
+		for (const event of this.events.slice(this.tallied)) {
+			const by = event.kind === 'creatureDie' ? event.by : 'player' in event ? event.player : null;
+			const stats = by ? this.players.get(by)?.stats : undefined;
+			if (!stats) continue;
+			if (event.kind === 'creatureDie') stats.kills++;
+			else if (event.kind === 'crateOpen') stats.crates++;
+			else if (event.kind === 'clue') stats.clues++;
+		}
+		this.tallied = this.events.length;
+	}
+
+	/** How the expedition went for a player who is leaving it. */
+	private summary(player: Player): ExpeditionSummary {
+		this.tally();
+		return {
+			seconds: Math.round((Date.now() - player.joinedAt) / 1000),
+			deepestLevel: player.deepestLevel,
+			...player.stats
+		};
 	}
 
 	private combat(): CombatContext {

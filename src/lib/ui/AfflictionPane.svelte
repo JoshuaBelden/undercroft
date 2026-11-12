@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
+	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { MAP_KIT } from '#lib/content/map/kit.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
@@ -60,7 +61,7 @@
 	class:unknown={def === null}
 	class:selectable={onselect !== undefined}
 	class:selected
-	style:--art="url('/assets/images/{def?.image ?? UNKNOWN_IMAGE}.webp')"
+	style:--art="url('{imageUrl(def?.image ?? UNKNOWN_IMAGE)}')"
 >
 	<header>
 		<h2>{def?.name ?? 'Unknown'}</h2>

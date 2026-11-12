@@ -65,6 +65,9 @@ nav {
  * The picture is its own layer, fixed to the window and a little larger than it, so it can drift
  * away from the cursor without showing an edge. The parallax action (src/lib/ui/parallax.ts)
  * sets --parallax-x and --parallax-y (-1..1 from the centre); without it the picture stays put.
+ *
+ * Set --backdrop-image to BACKDROP_IMAGE (src/lib/content/images.ts) on the same element: its URL
+ * carries the picture's content hash, so a rebuilt picture is never shown from an old cached copy.
  */
 .backdrop-art {
 	/* Keeps the picture layer behind this element's content and nothing else. */
@@ -79,7 +82,7 @@ nav {
 	z-index: -1;
 	background:
 		linear-gradient(rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.7)),
-		url('/assets/images/login-bg.webp') center / cover no-repeat;
+		var(--backdrop-image, none) center / cover no-repeat;
 	/* Opposite to the cursor, by up to 1.5% of the picture: well inside the 4% spare on each side. */
 	translate: calc(var(--parallax-x, 0) * -1.5%) calc(var(--parallax-y, 0) * -1.5%);
 	transition: translate 0.25s ease-out;

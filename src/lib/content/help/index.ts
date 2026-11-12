@@ -52,7 +52,7 @@ Look for steps or a low edge to get out. Every pool has a way out.`
 
 Stand at the door and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
 
-Once you're out, your expedition is over. In a group, the others can stay down; the expedition ends when everyone is out.
+Once you're out, your expedition is over. The results show how it went (time underground, how deep you got, creatures killed, crates opened, clues found) and what you brought out; Continue takes you to your loadout to put the haul away. In a group, the others can stay down; the expedition ends when everyone is out.
 
 You can also give up from anywhere: open the settings ({action:toggleSettings}) and choose Abandon expedition. You go back to the surface, but everything you carried stays where you stood.`
 	},

@@ -393,6 +393,9 @@ export const SOUNDS = {
 	// The surface.
 	/** Moving between pages (the tabs, the store, social, settings). */
 	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 },
+	// Stingers on the music bus (dry: no muffling or reverb from where you stand).
+	'expedition.intro': { file: 'expedition.intro', category: 'music', volume: 0.8 },
+	'expedition.outro': { file: 'expedition.outro', category: 'music', volume: 0.8 },
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
 	'shop.sell': { synth: { kind: 'bell', pitch: 1320, length: 0.5 }, category: 'sfx', volume: 0.3 },
 	// The rite.

@@ -8,5 +8,10 @@ export const EXPEDITION = {
 	/** How close (metres, horizontally) the player must be to an extraction point. */
 	extractRadius: 1.6,
 	/** ...and within this height of it. */
-	extractHeight: 1.0
+	extractHeight: 1.0,
+	/**
+	 * Leaving alive (climbing out, abandoning, the dark banished or resolved): seconds the
+	 * "Extracting" screen takes to fade to black before the results show.
+	 */
+	leaveFadeSeconds: 3.5
 };

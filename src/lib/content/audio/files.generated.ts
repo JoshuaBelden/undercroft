@@ -47,6 +47,8 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'revolver.reload': ['/assets/audio/revolver.reload.wav'],
 	'shotgun.reload': ['/assets/audio/shotgun.reload.wav'],
 	'ui.click': ['/assets/audio/ui.click.wav'],
+	'expedition.intro': ['/assets/audio/expedition.intro.wav'],
+	'expedition.outro': ['/assets/audio/expedition.outro.wav'],
 	'ambience.drip': [
 		'/assets/audio/ambience.drip-1.wav',
 		'/assets/audio/ambience.drip-2.wav',
