@@ -49,6 +49,10 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	},
 	// Something put down in an inventory slot.
 	{ id: 'inventory.drop', file: 'slot-drop.mp3' },
+	// Something let go of: onto the floor underground, or thrown away on the surface.
+	{ id: 'item.drop', file: 'sfx_drop_item.mp3' },
+	// Selling on the Loadout page.
+	{ id: 'shop.sell', file: 'sfx_sell.mp3' },
 	// Going through the pack: one handful of the recording per variant.
 	{
 		id: 'inventory.rummage',

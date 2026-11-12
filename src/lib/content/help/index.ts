@@ -54,7 +54,9 @@ The deeper ways out save you the long walk back with your haul. Remember where y
 
 Stand at the foot of the ladder (or at the door) and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
 
-Once you're out, your expedition is over. The results show how it went (time underground, how deep you got, creatures killed, crates opened, clues found) and what you brought out; Continue takes you to your loadout to put the haul away. In a group, the others can stay down; the expedition ends when everyone is out.
+Don't stay too long. The time at the top of your view is how long you have left. When it runs out, anyone still down here is lost in the dark: it is as if they had died, and what they carried stays below.
+
+Once you're out, your expedition is over. The results show how it went (time underground, how deep you got, creatures killed, crates opened, hints found) and what you brought out; Continue takes you to your loadout to put the haul away. In a group, the others can stay down; the expedition ends when everyone is out.
 
 You can also give up from anywhere: open the settings ({action:toggleSettings}) and choose Abandon expedition. You go back to the surface, but everything you carried stays where you stood.`
 	},
@@ -116,7 +118,7 @@ Press {action:toggleFullscreen} on any screen, or choose Display under Graphics 
 
 What you buy goes to your stash, which only has so many slots: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
 
-Selling is done on the "Loadout" page: right-click something and choose Sell. What you find down there is what sells: treasure, marked with a small diamond in the corner of its slot. Gear you bought can be sold back, for less than you paid. Some things nobody wants.
+Selling is done on the "Loadout" page: right-click something and choose Sell. What you find down there is what sells: treasure, marked with a small diamond in the corner of its slot. "Sell all treasure", under the stash, sells every piece of treasure in your stash at once (not what is in your loadout). Gear you bought can be sold back, for less than you paid. Some things nobody wants.
 
 A first descent with nothing is a short one. Bring out what a crate or two holds, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
 	},
@@ -272,26 +274,30 @@ These are warnings. When they come thick and close together, it is time to think
 		id: 'the-gloaming',
 		title: 'The Gloaming',
 		category: 'Survival',
-		body: `Stay too long and the Gloaming comes for you itself. You'll know when it arrives: something vast breathes out through the stone, and then it is walking toward you.
+		body: `Stay too long and the Gloaming comes for you itself. The thin red bar under the time at the top of your view fills as it draws near; killing and carrying loot fill it faster. You'll know when it arrives: something vast breathes out through the stone, and then it is walking toward you.
 
 Near it, the mind goes. Its touch is worse. It is slower while a lamp is on it, and quick when none is.
 
 Light is how you fight it. Hold your lamp on it and keep it there. Only while the light holds does steel or shot bite. Two lamps are better than one.
 
-Drive it off and you'll all be carried out. It isn't over, though. Only the rite ends the Gloaming.`
+Drive it off and you'll all be carried out. It isn't over, though. Only the rite ends the Gloaming.
+
+Long ago, the keepers of the dead held back the dusk each evening with a rite. The last keeper died with it unspoken, and the robbers who broke into his grave brought down what he had kept shut away.`
 	},
 	{
 		id: 'the-rite',
 		title: 'The rite',
 		category: 'Survival',
-		body: `The rite is what ends it. What is known about it is always in the top-left corner of your view down here: the Affliction's name, then a line joining everything the rite needs and where it must be done. Once a clue has told you what a thing is, its picture appears beside it, greyed out until you carry it yourself.
+		body: `The rite is what ends it. What is known about it is always at the left of your view down here: the Affliction's name, the hints you have found, then a line joining everything the rite needs and where it must be done. Once a hint has told you what a thing is, its picture appears beside it, greyed out until you carry it yourself.
 
-At first, nothing is. Scraps of writing lie about the catacombs, left by those who came before. Press {action:interact} on one to read it: each tells you something the rite needs, and the last tells you where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
+At first, nothing is. Scraps of writing were left about the catacombs by those who came before: pinned to the walls of the great rooms, lying on coffins and altars, stuffed in crates, in the pockets of the dead. Never just dropped on the floor. Press {action:interact} on one to read it (in a crate, right-click it and choose Read). Whichever scrap you find, it tells you the next thing, always in the same order, until you know everything the rite needs and where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
 
-For the Gloaming, the rite needs the Pendant. It is shut away in one of the crates. There is only one: things like it are edged in purple and marked with a star in the corner of their slot.
+The Afflictions page on the surface shows the hints you have found and what the rite needs. A thing is greyed out there until you have enough of it in your stash or loadout. Reset forgets everything you know of an Affliction, if you want to find it all again.
+
+For the Gloaming, the rite needs five candles, a stick of chalk and the Pendant. Candles and chalk can be bought, or found. The Pendant is shut away in one of the crates, and there is only one: things like it are edged in purple and marked with a star in the corner of their slot. If someone in your party already owns it, it isn't down there: bring it.
 
 One person has to carry everything the rite needs. If it's spread between you, drop things for that person to pick up. If they die, what they carried lies where they fell.
 
-That person goes to the place and holds {action:interact}. Nothing has to be set down, and nothing has to be fought. When it's done, you are all carried out, and it is over.`
+That person goes to the place and holds {action:interact}. Nothing has to be set down, and nothing has to be fought. When it's done the Affliction is resolved: the omens lift and it won't come for you. You still have to get out before time runs out.`
 	}
 ];

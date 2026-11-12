@@ -21,7 +21,7 @@ An Affliction is the force behind an expedition (see `docs/HANDOFF.md`). The rit
 - each creature killed adds `meter.perKill` (0.04);
 - loot carried adds `meter.perLoot` per second for each unit of value the players carry between them (see [economy.md](economy.md#loot)).
 
-At 1 it manifests and the meter stops. Clients only receive the omen stage. In dev mode the snapshot also carries `meter`, for the admin panel.
+At 1 it manifests and the meter stops. Each tick's snapshot carries `omen` and `meter` (rounded), which clients show as the arrival bar under the expedition clock (see [expedition.md](expedition.md#deadline)), and `calmed`.
 
 ## Omen stages
 
@@ -60,6 +60,10 @@ When the meter fills:
 - **Exposure:** each tick the lamp light on its core is summed from all players (`illumination`, occlusion included). Light at or above `exposeLight`, held steadily for 0.4 s (a flicker isn't enough), exposes it for `exposeLinger` seconds. Lamps work right up to it, so any lamp held on it at reasonable range does it; several lamps add up.
 - **Damage:** exposed, weapon hits come off its `health`. Unexposed, they only slow it for `slowSeconds`. It's a combat target with id `manifestation` (`server/combat.ts` `targets()` and `hurt()`), so shots, swings and thrown items all work.
 - **Banish:** at 0 health it's banished. Every player still in the expedition, downed ones included, gets the `banished` message and leaves; the results screen says the dark recedes and the Gloaming is not resolved.
+
+### Calmed by the rite
+
+Performing the rite calls `AfflictionDirector.calm()`: the meter stops for good, the stage drops to 0 (an `omen` event, so ambience goes back to normal), gloom goes to 0, creature boldness to 1, and a manifestation already out fades away (state `banished`) without setting `banished`, so nobody is carried out. `snapshot().calmed` is then true for the rest of the expedition.
 
 ## Client
 

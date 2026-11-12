@@ -6,7 +6,14 @@
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import ItemFilters from './ItemFilters.svelte';
-	import { categoryLabel, itemStats, matchesFilter, slotMark, type ItemFilter } from './items.ts';
+	import {
+		categoryLabel,
+		COIN_SIGN,
+		itemStats,
+		matchesFilter,
+		slotMark,
+		type ItemFilter
+	} from './items.ts';
 	import Slot from './Slot.svelte';
 
 	/**
@@ -102,7 +109,7 @@
 								name={item?.name ?? ware.item}
 								count={ware.lot}
 								image={item?.image}
-								detail={String(ware.price)}
+								detail={COIN_SIGN + ware.price}
 								rarity={item?.rarity}
 								mark={slotMark(ware.item)}
 							/>
@@ -155,7 +162,7 @@
 			{/if}
 			<dl>
 				<dt>Price</dt>
-				<dd>{money(entry.price)}{entry.lot > 1 ? ` for ${entry.lot}` : ''}</dd>
+				<dd>{@render coins(entry.price)}{entry.lot > 1 ? ` for ${entry.lot}` : ''}</dd>
 				{#each itemStats({ item: entry.item, count: entry.lot }, true) as stat (stat.label + stat.value)}
 					<dt>{stat.label}</dt>
 					<dd>{stat.value}</dd>
@@ -175,9 +182,9 @@
 				<span>
 					Total{entry.lot > 1 ? ` (${entry.lot * lots})` : ''}
 				</span>
-				<strong class:short={explorer.money < total}>{money(total)}</strong>
+				<strong class:short={explorer.money < total}>{@render coins(total)}</strong>
 			</p>
-			<p class="purse">You have {money(explorer.money)}</p>
+			<p class="purse">You have {@render coins(explorer.money)}</p>
 			<div class="buy">
 				<div class="quantity">
 					<button
@@ -219,7 +226,22 @@
 	</aside>
 {/if}
 
+<!-- An amount of money with the coin sign, as in the top bar. -->
+{#snippet coins(amount: number)}
+	<span class="money"><span class="sign" aria-hidden="true">{COIN_SIGN}</span>{amount}</span>
+{/snippet}
+
 <style>
+	.money {
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* The full-width coin sign carries its own space: pull the value in, as in the top bar. */
+	.sign {
+		margin-right: -0.12em;
+	}
+
 	.store {
 		flex: 1;
 		min-height: 0;

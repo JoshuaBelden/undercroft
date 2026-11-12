@@ -6,8 +6,9 @@
 	import Slot from './Slot.svelte';
 
 	/**
-	 * What is known about the rite, always in the top-left corner while underground: the
-	 * Affliction's name, then a line down the left joining each thing the rite needs and the room.
+	 * What is known about the rite, always at the middle of the left edge while underground: the
+	 * Affliction's name, the hints found so far, then a line down the left joining each thing the
+	 * rite needs and the room.
 	 * It takes no clicks and never lets go of the mouse. See docs/dev/rite.md.
 	 */
 	interface Props {
@@ -18,11 +19,9 @@
 		carriers: { name: string; count: number; self: boolean }[][];
 		/** The interact key, as bound ("E"), shown as a keycap; empty when unbound. */
 		interactKey: string;
-		/** Pixels from the top (clears the stats readout when that is on). */
-		top?: number;
 	}
 
-	let { affliction, rite, carriers, interactKey, top = 16 }: Props = $props();
+	let { affliction, rite, carriers, interactKey }: Props = $props();
 
 	const room = $derived(rite.room ? (MAP_KIT[rite.room]?.title ?? rite.room) : null);
 
@@ -42,8 +41,19 @@
 	}
 </script>
 
-<aside class="rite" style:top="{top}px" aria-label="The rite">
-	<h2><span class="pill">{affliction || 'The rite'}</span></h2>
+<aside class="rite" class:resolved={rite.resolved} aria-label="The rite">
+	<h2>
+		<span class="pill">{affliction || 'The rite'}</span>
+		{#if rite.resolved}<span class="done">Resolved</span>{/if}
+	</h2>
+
+	{#if rite.hints.length}
+		<ol class="said">
+			{#each rite.hints as hint, index (index)}
+				<li>“{hint}”</li>
+			{/each}
+		</ol>
+	{/if}
 
 	<ol class="hints">
 		{#each rite.requirements as requirement, index (index)}
@@ -75,7 +85,7 @@
 					>
 				</span>
 			{:else}
-				<span class="mark" aria-label="Location unknown">?</span>
+				<span class="mark">Location: Unknown</span>
 			{/if}
 		</li>
 	</ol>
@@ -86,6 +96,8 @@
 		--line: rgb(226 220 204 / 0.28);
 		position: fixed;
 		left: 16px;
+		top: 50%;
+		transform: translateY(-50%);
 		width: min(280px, calc(100vw - 32px));
 		font: 13px var(--font-ui);
 		color: var(--text);
@@ -107,6 +119,30 @@
 		font: 400 0.85rem var(--font-lore);
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
+	}
+
+	.done {
+		margin-left: 8px;
+		font: 600 0.72rem var(--font-ui);
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+
+	/* Done: what it needed is behind them. */
+	.rite.resolved .hints {
+		opacity: 0.5;
+	}
+
+	/* The hints, in their own words. */
+	.said {
+		list-style: none;
+		margin: 0 0 12px;
+		padding: 0;
+		display: grid;
+		gap: 6px;
+		font: italic 0.8rem var(--font-lore);
+		line-height: 1.4;
 	}
 
 	/* One line down the left joins everything the rite needs. */
@@ -162,12 +198,10 @@
 		min-width: 0;
 	}
 
-	/* Where the rite is held, until the last clue tells. */
+	/* Where the rite is held, until its hint tells. */
 	.mark {
-		font: 600 1.1rem var(--font-display);
-		line-height: 1;
+		font-size: 0.8rem;
 		color: var(--muted);
-		opacity: 0.7;
 	}
 
 	.who {

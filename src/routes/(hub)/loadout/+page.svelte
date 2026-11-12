@@ -28,7 +28,13 @@
 		for (const category of ['master', 'sfx'] as const) {
 			audio.setVolume(category, settings.audio[category]);
 		}
-		void audio.unlock().then(() => sounds.play(kind === 'sell' ? 'shop.sell' : 'inventory.drop'));
+		void audio
+			.unlock()
+			.then(() =>
+				sounds.play(
+					kind === 'sell' ? 'shop.sell' : kind === 'drop' ? 'item.drop' : 'inventory.drop'
+				)
+			);
 	}
 
 	/** This loadout is the one: ready to descend, and back to the party. */

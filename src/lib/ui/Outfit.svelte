@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { ApiError, api, loadAccount, session } from '#lib/account/account.svelte.ts';
-	import { money } from '#lib/content/economy.ts';
-	import { SLOTS } from '#lib/content/items.ts';
+	import { money, sellPrice } from '#lib/content/economy.ts';
+	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import type { AccountView, ExplorerView } from '#lib/shared/account/types.ts';
 	import { applyAction } from '#lib/shared/items/inventory.ts';
 	import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
 	import CarriedWeight from './CarriedWeight.svelte';
+	import Dialog from './Dialog.svelte';
 	import { ItemBoard } from './itemBoard.svelte.ts';
 	import { matchesFilter, type ItemFilter } from './items.ts';
 	import ItemFilters from './ItemFilters.svelte';
@@ -46,6 +47,20 @@
 			...slots.filter(({ stack }) => !stack)
 		];
 	});
+
+	/** The treasure in the stash: how many things, and what they would all fetch. */
+	const treasure = $derived.by(() => {
+		let count = 0;
+		let worth = 0;
+		for (const stack of explorer.stash) {
+			if (!stack || !ITEMS[stack.item]?.treasure) continue;
+			count += stack.count;
+			worth += sellPrice(stack.item) * stack.count;
+		}
+		return { count, worth };
+	});
+	/** Asking before the treasure is sold. */
+	let sellingTreasure = $state(false);
 
 	/** Requests not yet answered; they are sent one at a time, in order. */
 	let waiting = 0;
@@ -103,6 +118,14 @@
 		send('/api/shop', { action: 'sell', from, count });
 	}
 
+	/** Every treasure in the stash goes; the purse shows the total when the answer comes. */
+	function sellAllTreasure(): void {
+		sellingTreasure = false;
+		error = '';
+		onchange?.('sell');
+		send('/api/shop', { action: 'sellTreasure' });
+	}
+
 	const board = new ItemBoard({
 		belongings: () => ({ inventory: explorer.loadout, stash: explorer.stash }),
 		act: arrange,
@@ -131,6 +154,14 @@
 				</div>
 			</div>
 		</div>
+		<button
+			type="button"
+			class="sell-treasure"
+			disabled={treasure.worth <= 0 || explorer.underground || ready}
+			onclick={() => (sellingTreasure = true)}
+		>
+			Sell all treasure{treasure.worth > 0 ? ` (${money(treasure.worth)})` : ''}
+		</button>
 	</section>
 
 	<section class="panel loadout" aria-labelledby="loadout-title">
@@ -151,6 +182,20 @@
 </div>
 
 <ItemOverlays {board} />
+
+{#if sellingTreasure}
+	<Dialog title="Sell all treasure" onclose={() => (sellingTreasure = false)}>
+		<p>
+			Every piece of treasure in your stash ({treasure.count}
+			{treasure.count === 1 ? 'thing' : 'things'}) is sold for {money(treasure.worth)}.
+		</p>
+		<p>Your loadout is not touched.</p>
+		{#snippet footer()}
+			<button type="button" onclick={() => (sellingTreasure = false)}>Cancel</button>
+			<button type="button" class="primary" onclick={sellAllTreasure}>Sell</button>
+		{/snippet}
+	</Dialog>
+{/if}
 
 <style>
 	.outfit {
@@ -228,6 +273,21 @@
 		display: grid;
 		grid-template-columns: repeat(var(--columns), auto);
 		gap: 8px;
+	}
+
+	/* Under the stash: everything good for nothing but its money, gone at once. */
+	.sell-treasure {
+		align-self: flex-start;
+		margin-top: 14px;
+		padding: 8px 16px;
+		border-radius: 999px;
+		font-size: 0.85rem;
+		letter-spacing: 0.08em;
+	}
+
+	.sell-treasure:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
 	}
 
 	.note {

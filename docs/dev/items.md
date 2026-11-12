@@ -145,6 +145,7 @@ Creatures (see [creatures.md](creatures.md)):
 - **Scatter:** bricks lie only by collapsed walls: `rubble-<n>` markers in the pieces (for now the rock fall in `hall-dead-end`; `rubbleSites` in `src/lib/shared/map/points.ts`). Each gets `BRICKS.perRubble` (1 to 3), on standing, dry nav points within `BRICKS.radius` (1.8 m) of it, seeded from the map seed. None by a rubble marker within 6 m of the start. To make bricks lie somewhere else, add a `rubble-<n>` empty to that piece in Blender, export it and run `pnpm asset:build`.
 - **Pick up:** pressing interact picks up the item `lookedAtItem` picks: within `PICKUP.range` of the eye, within `PICKUP.angle` of the look direction (or right at your feet), and not behind a wall. It goes where `addItem` puts it. The client highlights the same item and prompts "[E] to pick up …".
 - **Death:** when a player dies, everything they carried is dropped around where they fell.
+- **On walls:** `WorldItems.mount(stack, position, normal)` hangs an item where it is put, without settling it on a floor (rite hints, see [rite.md](rite.md#in-the-map)). Its snapshot carries `normal`; the client stands it upright against the wall, its thin side along the normal (`WorldItems.ts`, `mounted`). Picking it up works the same at any height.
 
 Each `tick` carries `items`, `projectiles` and `events` (`GameEvent`): shots with their end point, swing results, throws, landings, breaks, reloads, dry clicks, pickups, drops, creature hits and deaths. Clients play sounds and effects for other players from these, and impacts and hits for everyone. Your own gunshot, swing and reload sounds come from prediction instead.
 
@@ -156,7 +157,7 @@ An item with `quest: true` is one of a kind and needed for a rite: the Pendant. 
 - it is listed under the Quest items filter (`ItemFilters`, `matchesFilter`), not under Other;
 - its tooltip says "Unique" in purple where the rarity goes, and "Quest item" for its category.
 
-Where one is found is the rite's to say (`crate` on the requirement, see [rite.md](rite.md#in-the-map)). To add one, set `quest: true` on its `ItemDef`.
+Where one is found is the rite's to say (`place: 'crate'` on the requirement, see [rite.md](rite.md#in-the-map)). One that anyone in the party already owns, in their stash or loadout, is not put in the map at all (`Session.withhold`). To add one, set `quest: true` on its `ItemDef`.
 
 ## Loot crates
 

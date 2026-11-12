@@ -65,26 +65,39 @@ export interface ManifestationSpec {
 }
 
 /** The rite that resolves an Affliction. See docs/dev/rite.md. */
-export interface RiteSpec {
+export interface RiteRequirement {
+	item: string;
+	count: number;
 	/**
-	 * What the holder must carry (item ids). Clues reveal these slots in this order. One with
-	 * `crate` set is found in a loot crate; the others lie on the floor of a major room.
+	 * Where the map holds it: `crate` in one of the loot crates, `room` on the floor of a major
+	 * room. Left out, it isn't placed at all: players bring it down or find it as loot.
 	 */
-	requirements: { item: string; count: number; crate?: boolean }[];
+	place?: 'crate' | 'room';
+}
+
+/** One written hint: what it says, and what it reveals (a requirement's item id, or `room`). */
+export interface RiteClue {
+	text: string;
+	reveals: string;
+}
+
+export interface RiteSpec {
+	/** What the holder must carry. */
+	requirements: RiteRequirement[];
 	/** Piece id of the room the rite is performed in. */
 	room: string;
 	/** Seconds the holder holds interact to perform it. */
 	seconds: number;
 	/**
-	 * Clues it takes to know everything. Each reveals one requirement; the last reveals any that
-	 * are left and the room.
+	 * The hints, in the order they are learned: finding any hint item reveals the next one. Once
+	 * all are found everything is known, including a requirement no hint names.
 	 */
-	clues: number;
-	/** Copies of each clue placed in the map: finding any one of them counts. */
+	clues: RiteClue[];
+	/** Hint items placed in the map per hint (all alike: any one reveals the next hint). */
 	clueCopies: number;
 	/**
-	 * Testing aid: put one clue and every required item a few steps from where players start,
-	 * instead of out in the map. One found in a crate goes in the crate nearest the start.
+	 * Testing aid: put the hints in the crate nearest the start, and every required item a few
+	 * steps from it, instead of out in the map.
 	 */
 	atStart: boolean;
 }
@@ -105,6 +118,8 @@ export interface AfflictionDef {
 		/** Meter added per second for each unit of loot value the players carry between them. */
 		perLoot: number;
 	};
+	/** Seconds an expedition lasts: anyone still underground when it runs out is lost. */
+	expeditionSeconds: number;
 	/** Omen stages, ascending by `at`. Stage 0 (no omens) is implicit below the first. */
 	stages: OmenStage[];
 	manifestation: ManifestationSpec;
@@ -116,10 +131,12 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 		id: 'gloaming',
 		name: 'The Gloaming',
 		flavor:
-			'It darkens the catacombs a little at a time. Lamps gutter, flames shrink, and in the half-light that is left, someone is standing in the corner.',
+			'Long ago, the keepers of the dead held back the dusk each evening with a rite. It worked for as long as anyone remembered how to say it. The last keeper died with the rite unspoken, and the robbers who broke into his grave took more than they knew. What he had kept shut away came down into the dark with them.',
 		image: 'affliction-gloaming-banner',
 		// Carrying 1000 of loot (a good haul) fills it about half as fast again as time alone.
 		meter: { seconds: 1800, perKill: 0.04, perLoot: 0.0000003 },
+		// Ten minutes past the latest it can arrive by time alone.
+		expeditionSeconds: 2400,
 		stages: [
 			{
 				at: 0.25,
@@ -185,12 +202,30 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			hitRadius: 1,
 			hitHeight: 2.2
 		},
-		// The full rite (5 candles, 1 chalk, the Pendant) comes back with those items in Phase 6.
+		// Candles and chalk are bought or looted; the Pendant is in a crate (unless someone owns it).
 		rite: {
-			requirements: [{ item: 'pendant', count: 1, crate: true }],
+			requirements: [
+				{ item: 'candle', count: 5 },
+				{ item: 'chalk', count: 1 },
+				{ item: 'pendant', count: 1, place: 'crate' }
+			],
 			room: 'gloaming-chapel',
 			seconds: 5,
-			clues: 1,
+			clues: [
+				{ text: 'He lit five candles every night, never four.', reveals: 'candle' },
+				{
+					text: "The keeper's line was drawn in chalk, the way you'd mark your way home.",
+					reveals: 'chalk'
+				},
+				{
+					text: 'The robbers threw his pendant in a crate with the rest of the haul.',
+					reveals: 'pendant'
+				},
+				{
+					text: "In the Gloaming Chapel, don't look at the corner until it's done.",
+					reveals: 'room'
+				}
+			],
 			clueCopies: 3,
 			atStart: false
 		}

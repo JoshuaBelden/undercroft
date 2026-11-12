@@ -2,11 +2,13 @@ import { randomUUID } from 'node:crypto';
 import type { WebSocket } from 'ws';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { PARTY } from '../src/lib/content/party.ts';
+import { ITEMS } from '../src/lib/content/items.ts';
+import { allStacks } from '../src/lib/shared/items/inventory.ts';
 import { allReady, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import type { FriendStatus } from '../src/lib/shared/social/types.ts';
 import type { Identity } from './accounts.ts';
-import { giveBack, lockKit, takeKit } from './belongings.ts';
+import { giveBack, lockKit, owned, takeKit } from './belongings.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
 import { Session } from './session.ts';
@@ -169,6 +171,30 @@ export class Parties {
 		log.info(`Party ${tag(party)}: ${member.name} removed ${target.name}`);
 	}
 
+	/**
+	 * A member forgets what they know of an Affliction: no hints, unresolved. Not while an
+	 * expedition is under way. They are told when it is done, so they can reload their account.
+	 */
+	async resetAffliction(member: Member, id: unknown): Promise<void> {
+		if (typeof id !== 'string' || !Object.hasOwn(AFFLICTIONS, id)) {
+			this.send(member, { type: 'partyError', reason: 'No such Affliction' });
+			return;
+		}
+		if (member.party.session) {
+			this.send(member, { type: 'partyError', reason: 'An expedition is under way' });
+			return;
+		}
+		await this.progress.reset([member.explorer], id);
+		const party = member.party;
+		if (party.leader === member.id && party.affliction === id) {
+			// What the party plays at is the host's: look it up again.
+			party.progress = null;
+			this.changed(party);
+		}
+		this.send(member, { type: 'afflictionReset', id });
+		log.info(`${member.name} reset their progress on ${id}`);
+	}
+
 	/** The host chooses what the expedition is against. Everyone confirms again after a change. */
 	setAffliction(member: Member, id: unknown): void {
 		const party = member.party;
@@ -235,7 +261,7 @@ export class Parties {
 		const session = new Session(party.affliction, {
 			onClues: (clues) => this.progress.record(descended(), session.afflictionId, { clues }),
 			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
-			onRiteReset: () => this.progress.reset(descended(), session.afflictionId),
+			onRiteReset: () => void this.progress.reset(descended(), session.afflictionId),
 			onPlayerLeft: (explorer, carried) => {
 				giveBack(explorer, session.id, carried);
 				this.sweep(party);
@@ -270,7 +296,17 @@ export class Parties {
 	 */
 	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
 		const going = [...party.members];
-		const kits = await Promise.all(going.map((m) => takeKit(m.explorer, session.id)));
+		const [kits, onSurface] = await Promise.all([
+			Promise.all(going.map((m) => takeKit(m.explorer, session.id))),
+			owned(going.map((m) => m.explorer))
+		]);
+		// A quest item someone already owns (kept on the surface, or brought down) isn't put in the map.
+		const quest =
+			AFFLICTIONS[session.afflictionId]?.rite.requirements
+				.map((r) => r.item)
+				.filter((item) => ITEMS[item]?.quest) ?? [];
+		const carried = new Set(kits.flatMap((kit) => allStacks(kit).map((stack) => stack.item)));
+		session.withhold(quest.filter((item) => onSurface.has(item) || carried.has(item)));
 		going.forEach((m, i) => {
 			if (party.session !== session || !party.members.includes(m)) {
 				// Gone before the descent: their things stay on the surface.

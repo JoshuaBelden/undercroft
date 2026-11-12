@@ -11,9 +11,15 @@
 		onjoin?: (id: string) => void;
 		/** Why joining is not possible right now (the buttons are disabled). */
 		joinBlocked?: string;
+		/** How many of each item the explorer owns (stash and loadout), for the requirement slots. */
+		owned?: Record<string, number>;
+		/** Given, each known pane has a Reset button that calls this with its id. */
+		onreset?: (id: string) => void;
+		/** Why resetting is not possible right now (the buttons are disabled). */
+		resetBlocked?: string;
 	}
 
-	let { progress, onjoin, joinBlocked }: Props = $props();
+	let { progress, onjoin, joinBlocked, owned, onreset, resetBlocked }: Props = $props();
 
 	/** Panes shown after the real ones for Afflictions nobody has met yet. */
 	const UNKNOWN_PANES = 4;
@@ -22,7 +28,15 @@
 <div class="afflictions">
 	<div class="track" use:dragScroll>
 		{#each Object.keys(AFFLICTIONS) as id (id)}
-			<AfflictionPane {id} {progress} {joinBlocked} onjoin={onjoin && (() => onjoin(id))} />
+			<AfflictionPane
+				{id}
+				{progress}
+				{owned}
+				{joinBlocked}
+				onjoin={onjoin && (() => onjoin(id))}
+				{resetBlocked}
+				onreset={onreset && (() => onreset(id))}
+			/>
 		{/each}
 		{#each { length: UNKNOWN_PANES }, index (index)}
 			<AfflictionPane id={null} {progress} />

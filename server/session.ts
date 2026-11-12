@@ -168,8 +168,14 @@ export class Session {
 	private marks = new Marks();
 	private affliction: AfflictionDirector;
 	private rite: RiteDirector;
-	/** The rite has been performed: everyone is carried out at the end of this tick. */
-	private resolved = false;
+	/** Items not put in this map: quest items someone in the party already owns. */
+	private withheld = new Set<string>();
+	/** When the first player arrived (ms): the deadline counts from here. */
+	private startedAt: number | null = null;
+	/** Admin: seconds taken off (or put back on) the clock. */
+	private clockShift = 0;
+	/** Time ran out: everyone still underground has been lost. */
+	private timedOut = false;
 	/** Events this tick, broadcast with it. */
 	private events: GameEvent[] = [];
 	/** How many of `events` have been counted toward players' stats (see `tally`). */
@@ -214,15 +220,38 @@ export class Session {
 		this.items.scatterLoot(this.nav, this.seed, start, cells.size);
 		scatterRite(
 			this.affliction.def.rite,
-			this.layout,
-			PIECES,
-			MAP_KIT,
-			this.nav,
-			start,
-			this.seed,
+			{
+				layout: this.layout,
+				pieces: PIECES,
+				kit: MAP_KIT,
+				world: this.world,
+				nav: this.nav,
+				start,
+				seed: this.seed
+			},
 			this.items,
-			this.crates
+			this.crates,
+			this.withheld
 		);
+	}
+
+	/**
+	 * Leave these items out of the map (a quest item someone in the party already owns). Called
+	 * before anyone arrives; whatever was already placed is taken out.
+	 */
+	withhold(items: string[]): void {
+		for (const item of items) {
+			this.withheld.add(item);
+			this.crates.removeItem(item);
+			this.items.removeAll(item);
+		}
+	}
+
+	/** Seconds left before anyone still underground is lost. */
+	private get deadline(): number {
+		const total = this.affliction.def.expeditionSeconds;
+		if (this.startedAt === null) return total;
+		return Math.max(0, total - (Date.now() - this.startedAt) / 1000 - this.clockShift);
 	}
 
 	/** Which Affliction this expedition is against (key into AFFLICTIONS). */
@@ -233,7 +262,13 @@ export class Session {
 	/** Start from the clues the party already found on earlier runs. */
 	revealClues(clues: number): void {
 		this.rite.reveal(clues);
-		if (this.rite.complete) this.items.removeAll('clue');
+		if (this.rite.complete) this.clearHints();
+	}
+
+	/** Every hint is known: the copies left in the map are taken away. */
+	private clearHints(): void {
+		this.items.removeAll('clue');
+		this.crates.removeItem('clue');
 	}
 
 	get playerCount(): number {
@@ -269,6 +304,7 @@ export class Session {
 		};
 		this.players.set(player.id, player);
 		this.hadPlayers = true;
+		this.startedAt ??= Date.now();
 		this.send(player, {
 			type: 'welcome',
 			playerId: player.id,
@@ -389,6 +425,15 @@ export class Session {
 	private lootAction(player: Player, crate: Crate, raw: unknown): void {
 		const action = sanitizeAction(raw, true);
 		if (!action) return;
+		// A hint is read where it lies, never carried.
+		const from = 'from' in action ? action.from : null;
+		if (from?.area === 'stash' && !crate.hidden.has(from.index)) {
+			const stack = crate.slots[from.index];
+			if (stack && ITEMS[stack.item]?.kind === 'clue') {
+				if (this.readClue(player, crate.position)) this.crates.clear(crate, from.index);
+				return;
+			}
+		}
 		const inv = player.state.inventory;
 		const inHand = held(inv);
 		const { dropped } = applyAction(
@@ -539,6 +584,11 @@ export class Session {
 				this.rite.reset();
 				this.hooks.onRiteReset?.();
 				break;
+			case 'setDeadline':
+				if (typeof command.seconds === 'number' && Number.isFinite(command.seconds)) {
+					this.clockShift += this.deadline - Math.max(0, command.seconds);
+				}
+				break;
 			case 'clearMarks':
 				this.marks.clear();
 				this.broadcast({ type: 'marks', marks: [] });
@@ -651,6 +701,7 @@ export class Session {
 		this.stepSanity();
 		this.stepRevives();
 		this.stepRite();
+		this.stepDeadline();
 		this.stepCrates();
 		this.stepMarks();
 		this.tally();
@@ -665,7 +716,12 @@ export class Session {
 			if (!player.state.extracted && !player.state.dead) continue;
 			const result = this.summary(player);
 			if (player.state.dead) {
-				this.send(player, { type: 'died', ...result, spectating: alive });
+				this.send(player, {
+					type: 'died',
+					...result,
+					spectating: alive,
+					...(this.timedOut ? { lost: true } : {})
+				});
 				log.info(`Player ${player.name} died in session ${this.id.slice(0, 8)}`);
 			} else {
 				this.escaped++;
@@ -679,19 +735,6 @@ export class Session {
 			this.removePlayer(player.id, player.state.dead ? null : player.state.inventory);
 			if (player.state.dead && alive) {
 				this.spectators.set(player.id, { name: player.name, socket: player.socket });
-			}
-		}
-		if (this.resolved && this.players.size > 0) {
-			log.info(`Session ${this.id.slice(0, 8)}: the rite is performed`);
-			this.hooks.onResolved?.();
-			for (const player of [...this.players.values()]) {
-				this.escaped++;
-				this.send(player, {
-					type: 'resolved',
-					...this.summary(player),
-					carried: allStacks(player.state.inventory)
-				});
-				this.removePlayer(player.id, player.state.inventory);
 			}
 		}
 		if (this.affliction.banished && this.players.size > 0) {
@@ -722,7 +765,11 @@ export class Session {
 			items: this.items.snapshots(),
 			projectiles: this.items.projectileSnapshots(),
 			events: this.events,
-			affliction: { ...this.affliction.snapshot(config.devMode), rite: this.rite.snapshot() },
+			affliction: {
+				...this.affliction.snapshot(),
+				rite: this.rite.snapshot(),
+				deadline: Math.ceil(this.deadline)
+			},
 			crates: this.crates.snapshot()
 		});
 		this.events = [];
@@ -771,18 +818,25 @@ export class Session {
 		if (!item) return;
 		const position: Vec3 = [...item.position];
 		if (ITEMS[item.stack.item]?.kind === 'clue') {
-			// Read where it lies. One that tells nothing new (another copy) is left alone.
-			const found = this.rite.find();
-			if (!found) return;
-			this.items.remove(item.id);
-			if (this.rite.complete) this.items.removeAll('clue');
-			this.events.push({ kind: 'clue', player: player.id, position, ...found });
-			this.hooks.onClues?.(this.rite.clues);
-			log.info(`${player.name} found a clue (${this.rite.clues}) in ${this.id.slice(0, 8)}`);
+			if (this.readClue(player, position)) this.items.remove(item.id);
 			return;
 		}
 		const taken = this.items.pickUp(s, item);
 		if (taken) this.events.push({ kind: 'pickup', player: player.id, item: taken, position });
+	}
+
+	/**
+	 * A hint was read (on a wall, on furniture, in a crate): the next hint is learned, whichever
+	 * copy it was. Returns false if there was nothing left to learn (the copy is left alone).
+	 */
+	private readClue(player: Player, position: Vec3): boolean {
+		const found = this.rite.find();
+		if (!found) return false;
+		if (this.rite.complete) this.clearHints();
+		this.events.push({ kind: 'clue', player: player.id, position: [...position], ...found });
+		this.hooks.onClues?.(this.rite.clues);
+		log.info(`${player.name} found a hint (${this.rite.clues}) in ${this.id.slice(0, 8)}`);
+		return true;
 	}
 
 	/** The meter, omens and the manifestation; banishing it ends the expedition for everyone. */
@@ -925,7 +979,7 @@ export class Session {
 
 	/**
 	 * The rite: whoever carries everything it needs, in its room, holds interact. When it is done
-	 * the Affliction is resolved and everyone is carried out (see `step`).
+	 * the Affliction is resolved and calmed, but everyone still has to get out.
 	 */
 	private stepRite(): void {
 		const seconds = this.affliction.def.rite.seconds;
@@ -937,11 +991,30 @@ export class Session {
 				continue;
 			}
 			s.performing += TICK_DT;
-			if (s.performing < seconds || this.resolved) continue;
+			if (s.performing < seconds || this.rite.resolved) continue;
+			s.performing = 0;
 			this.rite.take(s);
-			this.resolved = true;
+			this.rite.resolved = true;
+			const stage = this.affliction.stage;
+			this.affliction.calm();
+			this.events.push({ kind: 'rite', player: player.id, position: [...s.position] });
+			if (stage !== 0) this.events.push({ kind: 'omen', stage: 0 });
+			this.hooks.onResolved?.();
 			log.info(`${player.name} performed the rite in ${this.id.slice(0, 8)}`);
 		}
+	}
+
+	/** Time is up: everyone still underground is lost, and what they carry stays down here. */
+	private stepDeadline(): void {
+		if (this.timedOut || this.startedAt === null || this.deadline > 0) return;
+		this.timedOut = true;
+		this.events.push({ kind: 'deadline' });
+		for (const player of this.players.values()) {
+			if (player.state.extracted || player.state.dead) continue;
+			player.state.dead = true;
+			player.state.downed = false;
+		}
+		log.info(`Session ${this.id.slice(0, 8)}: time ran out`);
 	}
 
 	/**

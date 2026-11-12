@@ -13,7 +13,7 @@
 		/** The Affliction the expedition went down against (empty if not known). */
 		affliction: string;
 		/** How the expedition ended for this player. */
-		outcome: 'extracted' | 'died' | 'abandoned' | 'banished' | 'resolved';
+		outcome: 'extracted' | 'died' | 'lost' | 'abandoned' | 'banished' | 'resolved';
 		/** After watching the rest of the expedition: how many of the others got out alive. */
 		escaped?: number | null;
 		/** What was carried out (kept); null when it was lost. */
@@ -27,6 +27,7 @@
 	const TITLES = {
 		extracted: 'You made it out',
 		died: "You didn't make it out",
+		lost: 'Lost in the dark',
 		abandoned: 'You abandoned the expedition',
 		banished: 'The dark recedes',
 		resolved: 'The rite is done'
@@ -36,12 +37,14 @@
 		outcome === 'banished'
 			? `You drove it back, for now. ${affliction || 'The Affliction'} is not resolved.`
 			: outcome === 'resolved'
-				? `${affliction || 'The Affliction'} is resolved. The dark lets go of this place.`
-				: escaped !== null
-					? escaped === 0
-						? 'No one made it out.'
-						: `${escaped} of the others made it out.`
-					: null
+				? `${affliction || 'The Affliction'} is resolved, and you made it out. The dark lets go of this place.`
+				: outcome === 'lost'
+					? 'Time ran out with you still underground. What you carried stays down there.'
+					: escaped !== null
+						? escaped === 0
+							? 'No one made it out.'
+							: `${escaped} of the others made it out.`
+						: null
 	);
 
 	const time = $derived(
@@ -52,7 +55,7 @@
 		{ label: 'Deepest level', value: String(summary.deepestLevel + 1) },
 		{ label: 'Creatures killed', value: String(summary.kills) },
 		{ label: 'Crates opened', value: String(summary.crates) },
-		{ label: 'Clues found', value: String(summary.clues) }
+		{ label: 'Hints found', value: String(summary.clues) }
 	]);
 	/** What the haul would fetch if all of it were sold. */
 	const worth = $derived(

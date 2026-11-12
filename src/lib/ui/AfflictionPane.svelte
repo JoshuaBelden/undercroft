@@ -25,9 +25,28 @@
 		onjoin?: () => void;
 		/** Why joining is not possible right now; the button is disabled and says so. */
 		joinBlocked?: string;
+		/**
+		 * How many of each item the explorer owns (stash and loadout). Given, a revealed requirement
+		 * is greyed until they own enough of it.
+		 */
+		owned?: Record<string, number>;
+		/** Given, a known pane with any progress has a Reset button that calls this. */
+		onreset?: () => void;
+		/** Why resetting is not possible right now; the button is disabled and says so. */
+		resetBlocked?: string;
 	}
 
-	let { id, progress, onselect, selected = false, onjoin, joinBlocked }: Props = $props();
+	let {
+		id,
+		progress,
+		onselect,
+		selected = false,
+		onjoin,
+		joinBlocked,
+		owned,
+		onreset,
+		resetBlocked
+	}: Props = $props();
 
 	/** Question-mark slots on an unknown pane. */
 	const UNKNOWN_SLOTS = 3;
@@ -37,23 +56,39 @@
 	const def = $derived(id === null ? null : (AFFLICTIONS[id] ?? null));
 	const known = $derived(progress.find((entry) => entry.id === id));
 	const rite = $derived(def ? riteSnapshot(def.rite, known?.clues ?? 0) : null);
-	/** One per slot of the rite; null where no clue has revealed it. */
-	const requirements = $derived(
+	/**
+	 * One slot per thing the rite needs, never stacked: five candles are five slots, each in full
+	 * colour once the explorer owns that many. Null where no hint has revealed it (one slot: how
+	 * many is hidden too).
+	 */
+	const slots = $derived(
 		rite
-			? rite.requirements.map((requirement) =>
-					requirement
-						? {
-								name: ITEMS[requirement.item]?.name ?? requirement.item,
-								image: ITEMS[requirement.item]?.image,
-								quest: ITEMS[requirement.item]?.quest,
-								count: requirement.count
-							}
-						: null
-				)
+			? rite.requirements.flatMap((requirement) => {
+					if (!requirement) return [null];
+					const item = ITEMS[requirement.item];
+					const have = owned ? (owned[requirement.item] ?? 0) : null;
+					return Array.from({ length: requirement.count }, (_, index) => ({
+						name: item?.name ?? requirement.item,
+						image: item?.image,
+						quest: item?.quest,
+						have,
+						lacking: have !== null && have <= index,
+						needed: requirement.count
+					}));
+				})
 			: Array.from({ length: UNKNOWN_SLOTS }, () => null)
 	);
 	const room = $derived(rite?.room ? (MAP_KIT[rite.room]?.title ?? rite.room) : null);
 	const resolved = $derived(known?.resolved ?? false);
+	/** Anything to forget: hints found, or resolved. */
+	const started = $derived((known?.clues ?? 0) > 0 || resolved);
+
+	/** What a requirement's slot says on hover. */
+	function describe(slot: (typeof slots)[number]): string {
+		if (!slot) return 'Not known yet';
+		if (slot.have === null) return slot.name;
+		return `${slot.name}: you have ${slot.have} of ${slot.needed}`;
+	}
 </script>
 
 <article
@@ -73,22 +108,36 @@
 	<div class="content">
 		<p class="flavor">{def?.flavor ?? 'Nothing is written of this one. Not yet.'}</p>
 
-		<h3>Requirements</h3>
+		<h3>Banishment</h3>
+		{#if rite?.hints.length}
+			<ol class="hints">
+				{#each rite.hints as hint, index (index)}
+					<li>“{hint}”</li>
+				{/each}
+			</ol>
+		{/if}
 		<ul class="slots">
-			{#each requirements as requirement, index (index)}
-				<li>
-					<Slot
-						name={requirement?.name ?? null}
-						image={requirement?.image}
-						quest={requirement?.quest}
-						count={requirement?.count}
-					/>
+			{#each slots as slot, index (index)}
+				<li class:lacking={slot?.lacking} title={describe(slot)}>
+					<Slot name={slot?.name ?? null} image={slot?.image} quest={slot?.quest} />
 				</li>
 			{/each}
 		</ul>
 
 		<h3>Location</h3>
 		<p class="room" class:hidden={!room}>{room ?? 'Unknown'}</p>
+
+		{#if onreset && def && started}
+			<button
+				type="button"
+				class="reset"
+				disabled={resetBlocked !== undefined}
+				title={resetBlocked ?? 'Forget every hint: it is unresolved again'}
+				onclick={onreset}
+			>
+				Reset
+			</button>
+		{/if}
 
 		{#if onjoin && def}
 			<button
@@ -200,7 +249,52 @@
 	}
 
 	.slots li {
+		--slot-size: 36px;
 		display: flex;
+	}
+
+	/* Known, but not enough of it in the stash or loadout. */
+	.slots li.lacking {
+		filter: grayscale(1) brightness(0.7);
+		opacity: 0.7;
+	}
+
+	.hints {
+		list-style: none;
+		margin: 0 0 24px;
+		padding: 0;
+		display: grid;
+		gap: 8px;
+		font-family: var(--font-lore);
+		font-size: 0.9rem;
+		font-style: italic;
+		line-height: 1.45;
+	}
+
+	/* Above Join Expedition, quieter. */
+	.reset {
+		align-self: center;
+		margin-top: auto;
+		padding: 6px 14px;
+		border-radius: 999px;
+		font-size: 0.75rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+
+	.reset:hover:not(:disabled),
+	.reset:focus-visible {
+		color: var(--text);
+	}
+
+	.reset:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+
+	.reset + .join {
+		margin-top: 12px;
 	}
 
 	.room {

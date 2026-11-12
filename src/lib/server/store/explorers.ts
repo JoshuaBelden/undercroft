@@ -1,5 +1,5 @@
 import type { Collection, Db } from 'mongodb';
-import { applyAction, emptyInventory } from '../../shared/items/inventory.ts';
+import { allStacks, applyAction, emptyInventory } from '../../shared/items/inventory.ts';
 import type { InventoryAction } from '../../shared/items/types.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
 import type { ExplorerDoc } from './accounts.ts';
@@ -152,4 +152,18 @@ export async function clearUnderground(db: Db): Promise<number> {
 		{ $set: { underground: null } }
 	);
 	return result.modifiedCount;
+}
+
+/** Every item (id) these explorers have in their stash or loadout. */
+export async function itemsOwned(db: Db, explorerIds: string[]): Promise<Set<string>> {
+	const docs = await explorers(db)
+		.find({ _id: { $in: explorerIds } }, { projection: { stash: 1, loadout: 1 } })
+		.toArray();
+	const items = new Set<string>();
+	for (const doc of docs) {
+		for (const stack of [...(doc.stash ?? []), ...allStacks(doc.loadout ?? emptyInventory())]) {
+			if (stack) items.add(stack.item);
+		}
+	}
+	return items;
 }

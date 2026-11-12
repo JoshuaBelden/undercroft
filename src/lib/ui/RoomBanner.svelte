@@ -1,15 +1,22 @@
 <script lang="ts">
 	interface Props {
 		title: string;
+		/** A line under it, in ordinary case and wrapping (a hint's words). */
+		subtitle?: string;
 	}
 
-	let { title }: Props = $props();
+	let { title, subtitle }: Props = $props();
 </script>
 
 <div class="banner" aria-live="polite">
-	<span class="rule"></span>
-	<h2>{title}</h2>
-	<span class="rule"></span>
+	<div class="heading">
+		<span class="rule"></span>
+		<h2>{title}</h2>
+		<span class="rule"></span>
+	</div>
+	{#if subtitle}
+		<p>{subtitle}</p>
+	{/if}
 </div>
 
 <style>
@@ -19,8 +26,11 @@
 		top: 22%;
 		transform: translateX(-50%);
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		gap: 18px;
+		gap: 12px;
+		width: max-content;
+		max-width: calc(100vw - 32px);
 		pointer-events: none;
 		animation: banner 4.2s ease-in-out forwards;
 		z-index: 4;
@@ -34,6 +44,22 @@
 		color: #e6dccb;
 		text-shadow: 0 0 18px rgb(0 0 0 / 0.9);
 		white-space: nowrap;
+	}
+
+	.heading {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+	}
+
+	p {
+		margin: 0;
+		max-width: 620px;
+		font: italic 400 1.15rem var(--font-lore);
+		line-height: 1.45;
+		text-align: center;
+		color: #e6dccb;
+		text-shadow: 0 0 14px rgb(0 0 0 / 0.95);
 	}
 
 	.rule {

@@ -69,13 +69,13 @@ export class Crates {
 	}
 
 	/**
-	 * Shut every crate and fill it again, hidden. Seeded by the map seed. Quest items still in a
-	 * crate stay in it: there is only one of each, and the roll would lose it.
+	 * Shut every crate and fill it again, hidden. Seeded by the map seed. Quest items and hints
+	 * still in a crate stay in it: the roll would lose them.
 	 */
 	fill(): void {
 		const rng = new Rng(this.seed ^ 0x10075 ^ Math.imul(this.fills++, 0x9e3779b9));
 		for (const crate of this.crates.values()) {
-			const kept = crate.slots.filter((stack) => stack !== null && ITEMS[stack.item]?.quest);
+			const kept = crate.slots.filter((stack) => stack !== null && placed(stack.item));
 			crate.slots = rollCrate(this.depth.get(crate.id) ?? 0, rng);
 			crate.hidden = new Set(crate.slots.flatMap((stack, index) => (stack ? [index] : [])));
 			crate.user = null;
@@ -101,13 +101,50 @@ export class Crates {
 		return true;
 	}
 
+	/** Put something in this crate, on top of what it rolled (a hint). */
+	stowIn(id: string, stack: ItemStack): boolean {
+		const crate = this.crates.get(id);
+		if (!crate) return false;
+		this.put(crate, stack);
+		return true;
+	}
+
+	/** Every crate (and corpse), with how far it is from the start along the floor (m). */
+	list(): { crate: Crate; fromStart: number }[] {
+		return [...this.crates.values()].map((crate) => ({
+			crate,
+			fromStart: this.fromStart.get(crate.id) ?? Infinity
+		}));
+	}
+
+	/** Take every stack of an item out of every crate (a hint nobody needs, a withheld quest item). */
+	removeItem(item: string): void {
+		for (const crate of this.crates.values()) {
+			crate.slots = crate.slots.map((stack, index) => {
+				if (stack?.item !== item) return stack;
+				crate.hidden.delete(index);
+				return null;
+			});
+		}
+	}
+
+	/** Take one slot's stack out of a crate (a hint read where it lay). */
+	clear(crate: Crate, index: number): void {
+		crate.slots[index] = null;
+		crate.hidden.delete(index);
+	}
+
 	/**
 	 * Add a stack to a crate, hidden, after everything else in it so it is the last revealed. A
-	 * full crate loses its commonest thing (the first slot) to make room.
+	 * full crate loses its commonest thing (the first slot that isn't placed there on purpose) to
+	 * make room.
 	 */
 	private put(crate: Crate, stack: ItemStack): void {
 		const held = crate.slots.filter((s) => s !== null);
-		if (held.length >= crate.slots.length) held.shift();
+		if (held.length >= crate.slots.length) {
+			const drop = held.findIndex((s) => !placed(s.item));
+			held.splice(drop === -1 ? 0 : drop, 1);
+		}
 		held.push(stack);
 		crate.slots = crate.slots.map((_, index) => held[index] ?? null);
 		crate.hidden = new Set(held.map((_, index) => index));
@@ -169,4 +206,10 @@ export class Crates {
 			reveal: crate.hidden.size > 0 ? Math.min(1, crate.progress / CRATES.revealSeconds) : 0
 		};
 	}
+}
+
+/** Put in a crate on purpose (quest items, hints): kept through a refill and never pushed out. */
+function placed(item: string): boolean {
+	const def = ITEMS[item];
+	return def?.quest === true || def?.kind === 'clue';
 }

@@ -30,6 +30,8 @@ interface WorldItem {
 	stack: ItemStack;
 	position: Vec3;
 	yaw: number;
+	/** Hung on a wall, facing out along this (a hint): drawn upright against it, not lying. */
+	normal?: Vec3;
 }
 
 interface Projectile {
@@ -132,7 +134,8 @@ export class WorldItems {
 			item: i.stack.item,
 			count: i.stack.count,
 			position: i.position.map(round) as Vec3,
-			yaw: round(i.yaw)
+			yaw: round(i.yaw),
+			...(i.normal ? { normal: i.normal.map(round) as Vec3 } : {})
 		}));
 	}
 
@@ -159,6 +162,18 @@ export class WorldItems {
 			stack: { ...stack },
 			position: [position[0], floor ?? position[1], position[2]],
 			yaw
+		});
+	}
+
+	/** Hang a stack on a wall: it stays where it is put, facing out along `normal`. */
+	mount(stack: ItemStack, position: Vec3, normal: Vec3): void {
+		const id = `i${this.nextId++}`;
+		this.items.set(id, {
+			id,
+			stack: { ...stack },
+			position: [...position],
+			yaw: Math.atan2(-normal[0], -normal[2]),
+			normal: [...normal]
 		});
 	}
 

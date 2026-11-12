@@ -67,6 +67,9 @@ wss.on('connection', (socket) => {
 			case 'affliction':
 				parties.setAffliction(member, message.id);
 				break;
+			case 'resetAffliction':
+				void parties.resetAffliction(member, message.id);
+				break;
 			case 'social':
 				void social.act(member, message.action);
 				break;

@@ -4,31 +4,37 @@ import type { Inventory } from '../player/types.ts';
 import type { RiteSnapshot } from './types.ts';
 
 /**
- * Rite rules shared by the server (authoritative) and the client (prompt, rite overlay).
- * See docs/dev/rite.md.
+ * Rite rules shared by the server (authoritative) and the client (prompt, rite overlay, the
+ * Afflictions page). See docs/dev/rite.md.
  */
 
-/**
- * What `clues` found clues reveal: one requirement slot each, in order. The last clue reveals
- * whatever slots are left, and the room.
- */
-export function revealed(spec: RiteSpec, clues: number): { slots: number; room: boolean } {
-	const done = clues >= spec.clues;
+/** What `clues` found hints reveal: the first `clues` hints, in order, and what they name. */
+export function revealed(
+	spec: RiteSpec,
+	clues: number
+): { hints: string[]; slots: boolean[]; room: boolean } {
+	const found = spec.clues.slice(0, Math.max(0, clues));
+	// Once every hint is found nothing is hidden, even a requirement no hint names.
+	const done = clues >= spec.clues.length;
+	const named = new Set(found.map((clue) => clue.reveals));
 	return {
-		slots: done ? spec.requirements.length : Math.min(spec.requirements.length, clues),
-		room: done
+		hints: found.map((clue) => clue.text),
+		slots: spec.requirements.map((r) => done || named.has(r.item)),
+		room: done || named.has('room')
 	};
 }
 
 /** The rite as clients may see it: hidden slots are null. */
-export function riteSnapshot(spec: RiteSpec, clues: number): RiteSnapshot {
+export function riteSnapshot(spec: RiteSpec, clues: number, resolved = false): RiteSnapshot {
 	const known = revealed(spec, clues);
 	return {
 		requirements: spec.requirements.map((r, i) =>
-			i < known.slots ? { item: r.item, count: r.count } : null
+			known.slots[i] ? { item: r.item, count: r.count } : null
 		),
 		room: known.room ? spec.room : null,
-		seconds: spec.seconds
+		seconds: spec.seconds,
+		hints: known.hints,
+		resolved
 	};
 }
 

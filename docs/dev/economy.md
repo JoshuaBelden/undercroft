@@ -49,14 +49,16 @@ Links inside the group use route ids with `resolve` (`resolve('/(hub)/loadout')`
 
 `Outfit` fills the page with two rounded, see-through panels. STASH on the left is as wide as its slots: a column of round filter buttons (`ItemFilters`: all, weapons, ammunition, defense, quick use, treasure, other) and the slots, 5 across, in a container that scrolls. A filter shows the stacks of that category first and then the empty slots, so there is still somewhere to drop things. LOADOUT takes the rest of the width and is a `LoadoutPanel`, with the weight of it (`CarriedWeight`) beside the title. The two are always side by side: in a narrower window the slots shrink (`--slot-size`, set on the page and read by `Slot`).
 
-Everything is drag and drop; there are no buttons. Slots are `ItemSlot`s on one `ItemBoard` (see [systems.md](systems.md#item-slots)):
+Everything is drag and drop; the one button is **Sell all treasure** under the stash (below). Slots are `ItemSlot`s on one `ItemBoard` (see [systems.md](systems.md#item-slots)):
 
 - drag a stack onto a slot: it moves, joins a stack of the same item, or swaps places;
 - shift-click: stash to loadout (where it belongs) and back;
-- right-click: Equip or Unequip, Split, Sell (with the price) and Drop. Split and Sell ask how many in a `QuantityDialog`; Drop is confirmed, because on the surface the thing is gone for good;
+- right-click: Equip or Unequip, Split, the sell price (just "＄5", for one; choosing it sells) and Drop. Split and selling more than one ask how many in a `QuantityDialog`; Drop is confirmed, because on the surface the thing is gone for good;
 - hover or focus: the tooltip.
 
-A change plays `inventory.drop` (`shop.sell` for a sale).
+A change plays `inventory.drop` (`slot-drop.mp3`); a sale plays `shop.sell` (`sfx_sell.mp3`) and throwing something away plays `item.drop` (`sfx_drop_item.mp3`, also heard when something is dropped on the floor underground).
+
+**Sell all treasure**, under the stash, shows what the stash's treasure would fetch and asks first (`Dialog`). It posts `{ action: 'sellTreasure' }` to `/api/shop`: `sellTreasure` in `shop.ts` sells every stash stack whose item is `treasure: true` (never the loadout), writing one ledger line per item. It is disabled with no treasure, underground, or once ready.
 
 Moves show at once. `Outfit` runs the request through `applyAction` on a copy of the stash and loadout, shows the result, and then sends it; requests go one at a time, in order, and when the last answer is in, the server's `AccountView` replaces what was shown. A move the rules refuse is refused on the spot, without a request. If the server refuses one, the account is read again. Selling is not predicted (the purse is the server's to say).
 
@@ -83,11 +85,11 @@ The game server is the only writer while an explorer is underground.
 1. **Descent** (`Parties.begin`, `takeKit`): `takeLoadout` empties the loadout and sets `underground` to the session id, in one update. The inventory it returns is what `Session.addPlayer` gives the player. Fetching takes a moment, so a member who left meanwhile gets their kit straight back.
 2. **Underground:** the hub refuses changes (`underground`), and `ExplorerView.underground` is true.
 3. **Return** (`SessionHooks.onPlayerLeft(owner, carried)`, `giveBack`, `returnFromExpedition`):
-   - **Got out** (`extracted`, `banished`, `resolved`): `carried` is the player's inventory. All of it becomes the loadout, arranged as it was: the kit is ready for next time, and what was found stays in the backpack. The player lands on the Loadout page to put it in the stash or sell it.
+   - **Got out** (`extracted`, `banished`): `carried` is the player's inventory. All of it becomes the loadout, arranged as it was: the kit is ready for next time, and what was found stays in the backpack. The player lands on the Loadout page to put it in the stash or sell it.
    - **Didn't** (died, dropped for good, left the party while underground): `carried` is null. Nothing comes back: it is lying in the catacombs. The loadout was already emptied at descent.
    - Either way `underground` is cleared.
 
-The `extracted`, `banished` and `resolved` messages carry `carried` (stacks) for the results screen; `died` means everything was lost.
+The `extracted` and `banished` messages carry `carried` (stacks) for the results screen; `died` means everything was lost.
 
 When the game server starts, `releaseAll` clears every `underground` marker: nobody can be underground yet, and a crash would otherwise lock those explorers out of the hub. What they had taken down is gone.
 
@@ -158,7 +160,7 @@ Loot values are on the items (`value` in `src/lib/content/items.ts`), and how mu
 - `{ action: 'buy', item, lots }`: charges `price × lots` and puts `lot × lots` in the stash. Refused if you can't afford it, the shop doesn't sell it, or it won't all fit in the stash (`stashFull`).
 - `{ action: 'sell', from, count }`: sells up to `count` from a slot. `from` is a `SlotRef` in the stash or the loadout. Selling is done from the Loadout page's menu; the Store page only buys.
 
-The client only says what to buy or sell. Prices are looked up on the server, and the Store page shows the same table. Like every hub change it is refused while underground or ready to descend.
+The client only says what to buy or sell. Prices are looked up on the server, and the Store page shows the same table. It writes every amount with the coin sign (`COIN_SIGN`, ＄), as in the top bar: on each ware's slot, the price, the total and the purse. Like every hub change it is refused while underground or ready to descend.
 
 ### The Store page
 

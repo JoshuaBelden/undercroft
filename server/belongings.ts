@@ -1,5 +1,6 @@
 import {
 	clearUnderground,
+	itemsOwned,
 	markReady,
 	returnFromExpedition,
 	takeLoadout
@@ -23,6 +24,18 @@ export async function takeKit(explorer: string, session: string): Promise<Invent
 	} catch (error) {
 		log.warn(`Could not take a loadout: ${(error as Error).message}`);
 		return emptyInventory();
+	}
+}
+
+/** Every item (id) these explorers keep on the surface, in their stash or loadout. */
+export async function owned(explorers: string[]): Promise<Set<string>> {
+	const db = getDb();
+	if (!db || explorers.length === 0) return new Set();
+	try {
+		return await itemsOwned(db, explorers);
+	} catch (error) {
+		log.warn(`Could not read what explorers own: ${(error as Error).message}`);
+		return new Set();
 	}
 }
 

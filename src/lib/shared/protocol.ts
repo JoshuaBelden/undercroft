@@ -57,7 +57,9 @@ export type ClientMessage =
 	 * Draw a chalk mark with the chalk in the hand: a symbol on the player's wheel, where their
 	 * view meets the stone (`normal` out of it). The server checks it (see docs/dev/marks.md).
 	 */
-	| { type: 'mark'; symbol: string; position: Vec3; normal: Vec3 };
+	| { type: 'mark'; symbol: string; position: Vec3; normal: Vec3 }
+	/** Forget everything you know of an Affliction: no hints, unresolved. Not while underground. */
+	| { type: 'resetAffliction'; id: string };
 
 export type AdminCommand =
 	| {
@@ -82,6 +84,8 @@ export type AdminCommand =
 	| { kind: 'revealClues' }
 	/** Forget the rite's clues, for this expedition and for everyone in it afterwards. */
 	| { kind: 'resetRite' }
+	/** Set the seconds left before everyone still underground is lost. */
+	| { kind: 'setDeadline'; seconds: number }
 	/** Teleport to a start or major room by piece name. */
 	| { kind: 'teleport'; room: string }
 	/** Shut every loot crate and fill them again, hidden. */
@@ -151,18 +155,19 @@ export type ServerMessage =
 	 */
 	| ({ type: 'extracted'; carried: ItemStack[] } & ExpeditionSummary)
 	/**
-	 * You bled out: you have left the expedition and lost what you carried. If `spectating`, others are still down there and
+	 * You bled out (or, with `lost`, time ran out with you still underground): you have left the
+	 * expedition and lost what you carried. If `spectating`, others are still down there and
 	 * you keep getting `tick` to watch them, until `spectateEnd` or you send `stopSpectating`.
 	 */
-	| ({ type: 'died'; spectating: boolean } & ExpeditionSummary)
+	| ({ type: 'died'; spectating: boolean; lost?: boolean } & ExpeditionSummary)
 	/** You abandoned the expedition: you have left it and lost what you carried. */
 	| ({ type: 'abandoned' } & ExpeditionSummary)
 	/** The expedition you were watching is over; `escaped` players got out alive. */
 	| { type: 'spectateEnd'; escaped: number }
 	/** The manifestation was banished: everyone leaves the expedition. */
 	| ({ type: 'banished'; carried: ItemStack[] } & ExpeditionSummary)
-	/** The rite was performed: the Affliction is resolved and everyone leaves the expedition. */
-	| ({ type: 'resolved'; carried: ItemStack[] } & ExpeditionSummary);
+	/** Your progress on an Affliction was reset (`resetAffliction`): reload the account. */
+	| { type: 'afflictionReset'; id: string };
 
 /** How one explorer's expedition went: sent with every way out of it, for the results screen. */
 export interface ExpeditionSummary {
@@ -205,7 +210,8 @@ const CLIENT_TYPES = new Set<string>([
 	'abandon',
 	'inventory',
 	'closeCrate',
-	'mark'
+	'mark',
+	'resetAffliction'
 ]);
 const SERVER_TYPES = new Set<string>([
 	'party',
@@ -224,7 +230,7 @@ const SERVER_TYPES = new Set<string>([
 	'abandoned',
 	'spectateEnd',
 	'banished',
-	'resolved'
+	'afflictionReset'
 ]);
 
 function decode(raw: string, allowed: Set<string>): unknown {

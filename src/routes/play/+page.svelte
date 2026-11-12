@@ -81,6 +81,7 @@
 	import Hud from '#lib/ui/Hud.svelte';
 	import RiteOverlay from '#lib/ui/RiteOverlay.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
+	import ExpeditionClock from '#lib/ui/ExpeditionClock.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import type { PartyMember } from '#lib/ui/PartyHealth.svelte';
@@ -149,6 +150,12 @@
 	let markLabel = $state<{ name: string; x: number; y: number } | null>(null);
 	let meter = $state<number | null>(null);
 	let omen = $state(0);
+	/** Seconds left before anyone still underground is lost. */
+	let deadline = $state<number | null>(null);
+	/** The rite was performed: the Affliction is calmed (no arrival bar). */
+	let calmed = $state(false);
+	/** It has manifested: the arrival bar has nothing left to count. */
+	let manifested = $state(false);
 	/** Set while downed: bleed-out time left (0..1), what happens next, and the hold to surrender. */
 	let downed = $state<{ remaining: number; message: string; surrender: number } | null>(null);
 	/** Set when this player has left the expedition (climbed out or died); shows the results. */
@@ -156,7 +163,7 @@
 		summary: ExpeditionSummary;
 		/** The Affliction's name, as it was underground. */
 		affliction: string;
-		outcome: 'extracted' | 'died' | 'abandoned' | 'banished' | 'resolved';
+		outcome: 'extracted' | 'died' | 'lost' | 'abandoned' | 'banished' | 'resolved';
 		/** Set after spectating: how many of the others got out. */
 		escaped: number | null;
 		/** What was carried out and kept; null when it was lost. */
@@ -174,7 +181,7 @@
 	let spectateNext = (): void => {};
 	let spectateStop = (): void => {};
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
-	let banner = $state<{ title: string; key: number } | null>(null);
+	let banner = $state<{ title: string; subtitle?: string; key: number } | null>(null);
 	/** Down in the catacombs (between `welcome` and extracting, dying or being banished out). */
 	let expedition = $state(false);
 	let send = (message: ClientMessage): void => {
@@ -319,7 +326,6 @@
 					case 'died':
 					case 'abandoned':
 					case 'banished':
-					case 'resolved':
 						result = {
 							summary: {
 								seconds: message.seconds,
@@ -329,13 +335,18 @@
 								clues: message.clues
 							},
 							affliction: afflictionName,
-							outcome: message.type,
+							// Out alive after performing the rite; or lost when time ran out.
+							outcome:
+								message.type === 'extracted' && rite?.resolved
+									? 'resolved'
+									: message.type === 'died' && message.lost
+										? 'lost'
+										: message.type,
 							escaped: null,
 							carried:
 								message.type === 'died' || message.type === 'abandoned' ? null : message.carried
 						};
 						surface = '/(hub)/loadout';
-						if (message.type === 'resolved') sounds.play('rite.resolve');
 						if (message.type === 'died') {
 							if (message.spectating) startSpectating();
 							else endExpedition();
@@ -412,7 +423,10 @@
 						}
 						afflictionName = AFFLICTIONS[message.affliction.id]?.name ?? '';
 						omen = message.affliction.omen;
-						meter = message.affliction.meter ?? null;
+						meter = message.affliction.meter;
+						deadline = message.affliction.deadline;
+						calmed = message.affliction.calmed;
+						manifested = message.affliction.manifestation !== null;
 						ambience.setOmen(
 							AFFLICTIONS[message.affliction.id]?.stages[omen - 1]?.ambience ?? null
 						);
@@ -525,6 +539,9 @@
 			markLabel = null;
 			chalkWheel = null;
 			rite = null;
+			deadline = null;
+			calmed = false;
+			manifested = false;
 			performing = false;
 			spectating = null;
 			watchId = null;
@@ -800,9 +817,24 @@
 					sounds.play('clue.sting');
 					const learned = event.requirements.map((item) => ITEMS[item]?.name ?? item);
 					if (event.room) learned.push(MAP_KIT[event.room]?.title ?? event.room);
-					banner = { title: 'A clue: ' + learned.join(' · '), key: (banner?.key ?? 0) + 1 };
+					banner = {
+						title: learned.length ? 'A hint: ' + learned.join(' · ') : 'A hint',
+						subtitle: event.text || undefined,
+						key: (banner?.key ?? 0) + 1
+					};
 					break;
 				}
+				case 'rite':
+					sounds.play('rite.resolve');
+					banner = {
+						title: 'The rite is done',
+						subtitle: `${afflictionName || 'The Affliction'} is resolved. Now get out.`,
+						key: (banner?.key ?? 0) + 1
+					};
+					break;
+				case 'deadline':
+					banner = { title: 'Lost in the dark', key: (banner?.key ?? 0) + 1 };
+					break;
 				case 'creatureHit':
 					if (event.id === 'manifestation') {
 						manifestation.hit();
@@ -1003,7 +1035,12 @@
 				}
 				return keyPrompt('interact', 'to revive', state.reviving / SANITY.reviveSeconds);
 			}
-			if (rite && inRiteRoom(state.position) && carriesAll(state.inventory, rite.requirements)) {
+			if (
+				rite &&
+				!rite.resolved &&
+				inRiteRoom(state.position) &&
+				carriesAll(state.inventory, rite.requirements)
+			) {
 				return keyPrompt('interact', 'to perform the rite', state.performing / rite.seconds);
 			}
 			const extract = extractPrompt(state);
@@ -1409,13 +1446,15 @@
 		{rite}
 		carriers={riteCarriers}
 		interactKey={bindingLabel(settings.bindings.interact[0] ?? '')}
-		top={settings.interface.showStats ? 96 : 16}
 	/>
+	{#if deadline !== null}
+		<ExpeditionClock seconds={deadline} arrival={calmed || manifested ? null : (meter ?? 0)} />
+	{/if}
 {/if}
 
 {#if banner && spawned && !mapView && !result}
 	{#key banner.key}
-		<RoomBanner title={banner.title} />
+		<RoomBanner title={banner.title} subtitle={banner.subtitle} />
 	{/key}
 {/if}
 

@@ -362,6 +362,7 @@ export const SOUNDS = {
 	},
 	'item.pickup': { synth: { kind: 'rustle' }, category: 'sfx', volume: 0.5, variation: 0.1 },
 	'item.drop': {
+		file: 'item.drop',
 		synth: { kind: 'thud', cutoff: 700 },
 		category: 'sfx',
 		volume: 0.4,
@@ -440,7 +441,12 @@ export const SOUNDS = {
 	/** Finding something epic, legendary or a quest item (revealed in a crate, or picked up). */
 	'loot.found': { file: 'loot.found', category: 'music', volume: 0.8 },
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
-	'shop.sell': { synth: { kind: 'bell', pitch: 1320, length: 0.5 }, category: 'sfx', volume: 0.3 },
+	'shop.sell': {
+		file: 'shop.sell',
+		synth: { kind: 'bell', pitch: 1320, length: 0.5 },
+		category: 'sfx',
+		volume: 0.5
+	},
 	// The rite.
 	'clue.sting': {
 		synth: { kind: 'bell', pitch: 660, length: 1.6 },

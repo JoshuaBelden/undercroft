@@ -34,6 +34,8 @@ export const AUDIO_FILES: Record<string, string[]> = {
 		'/assets/audio/water.splash-4.wav'
 	],
 	'inventory.drop': ['/assets/audio/inventory.drop.wav'],
+	'item.drop': ['/assets/audio/item.drop.wav'],
+	'shop.sell': ['/assets/audio/shop.sell.wav'],
 	'inventory.rummage': [
 		'/assets/audio/inventory.rummage-1.wav',
 		'/assets/audio/inventory.rummage-2.wav',

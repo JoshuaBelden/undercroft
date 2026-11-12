@@ -15,8 +15,8 @@ export interface ManifestationSnapshot {
 }
 
 /**
- * The rite as players know it so far. Slots no clue has revealed are null, and `room` is null
- * until the last clue is found. See docs/dev/rite.md.
+ * The rite as players know it so far. Slots no hint has revealed are null, and `room` is null
+ * until its hint is found. See docs/dev/rite.md.
  */
 export interface RiteSnapshot {
 	requirements: ({ item: string; count: number } | null)[];
@@ -24,11 +24,15 @@ export interface RiteSnapshot {
 	room: string | null;
 	/** Seconds the holder holds interact. */
 	seconds: number;
+	/** The hints found so far, in the order they are learned. */
+	hints: string[];
+	/** The rite has been performed in this expedition. */
+	resolved: boolean;
 }
 
 /**
- * The Affliction as broadcast in each tick. The meter itself is hidden from players: only the
- * omen stage is sent (and `meter` in dev mode, for the admin panel).
+ * The Affliction as broadcast in each tick: the omen stage, how near it is to arriving (`meter`,
+ * shown as the arrival bar) and how long is left before everyone must be out.
  */
 export interface AfflictionSnapshot {
 	id: string;
@@ -36,6 +40,10 @@ export interface AfflictionSnapshot {
 	omen: number;
 	manifestation: ManifestationSnapshot | null;
 	rite: RiteSnapshot;
-	/** Dev mode only. */
-	meter?: number;
+	/** 0..1: at 1 it manifests. */
+	meter: number;
+	/** The rite was performed: it is calmed for the rest of the expedition. */
+	calmed: boolean;
+	/** Seconds left before anyone still underground is lost. */
+	deadline: number;
 }

@@ -8,6 +8,8 @@ interface Shown {
 	item: string;
 	target: THREE.Vector3;
 	highlighted: boolean;
+	/** Hung on a wall (a hint): stood upright against it, at its position, not rested on a floor. */
+	mounted: boolean;
 	/** Original materials, swapped for glowing copies while highlighted. */
 	materials: Map<THREE.Mesh, THREE.Material | THREE.Material[]>;
 }
@@ -80,12 +82,16 @@ export class WorldItems {
 			seen.add(snap.id);
 			let shown = map.get(snap.id);
 			if (!shown) {
-				shown = this.create(snap.item, flying);
+				shown = this.create(snap.item, flying, 'normal' in snap && !!snap.normal);
 				shown.root.position.set(...snap.position);
 				map.set(snap.id, shown);
 			}
 			shown.target.set(...snap.position);
-			if (!flying) {
+			if (shown.mounted) {
+				// Its flat face against the wall, its long side upright.
+				shown.root.position.copy(shown.target);
+				shown.root.rotation.set(Math.PI / 2, 'yaw' in snap ? snap.yaw : 0, 0, 'YXZ');
+			} else if (!flying) {
 				shown.root.position.copy(shown.target);
 				shown.root.position.y += this.rest.get(shown.item) ?? 0;
 				shown.root.rotation.y = 'yaw' in snap ? snap.yaw : 0;
@@ -102,7 +108,7 @@ export class WorldItems {
 		}
 	}
 
-	private create(item: string, flying: boolean): Shown {
+	private create(item: string, flying: boolean, mounted = false): Shown {
 		const root = new THREE.Group();
 		this.root.add(root);
 		const shown: Shown = {
@@ -110,6 +116,7 @@ export class WorldItems {
 			item,
 			target: new THREE.Vector3(),
 			highlighted: false,
+			mounted,
 			materials: new Map()
 		};
 		const url = ITEMS[item]?.model;
@@ -134,7 +141,7 @@ export class WorldItems {
 					this.rest.set(item, -box.min.y);
 				}
 				root.add(lay);
-				if (!flying) root.position.y = shown.target.y + (this.rest.get(item) ?? 0);
+				if (!flying && !mounted) root.position.y = shown.target.y + (this.rest.get(item) ?? 0);
 				if (shown.highlighted) this.applyGlow(shown, true);
 			});
 		} else {
@@ -153,7 +160,7 @@ export class WorldItems {
 			mesh.receiveShadow = true;
 			root.add(mesh);
 			this.rest.set(item, size[1] / 2);
-			if (!flying) root.position.y = shown.target.y + size[1] / 2;
+			if (!flying && !mounted) root.position.y = shown.target.y + size[1] / 2;
 		}
 		return shown;
 	}

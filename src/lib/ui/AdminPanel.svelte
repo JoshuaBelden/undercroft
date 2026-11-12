@@ -76,6 +76,7 @@
 	let moneyInput = $state('100');
 	let sanityInput = $state('100');
 	let meterInput = $state('70');
+	let deadlineInput = $state('10');
 	let accountMessage = $state('');
 
 	// Clues are read where they lie; they can't be given.
@@ -115,6 +116,12 @@
 		event.preventDefault();
 		const value = Number(meterInput);
 		if (Number.isFinite(value)) onadmin({ kind: 'setMeter', value: value / 100 });
+	}
+
+	function setDeadline(event: SubmitEvent): void {
+		event.preventDefault();
+		const seconds = Number(deadlineInput);
+		if (Number.isFinite(seconds)) onadmin({ kind: 'setDeadline', seconds });
 	}
 
 	function give(event: SubmitEvent): void {
@@ -240,12 +247,22 @@
 				</label>
 				<button type="submit">Set</button>
 			</form>
+			<form class="setting" onsubmit={setDeadline}>
+				<label class="pill">
+					<span class="name">Time left (s)</span>
+					<input type="text" inputmode="numeric" autocomplete="off" bind:value={deadlineInput} />
+				</label>
+				<button type="submit">Set</button>
+			</form>
 			{@render action('Force manifestation', () => onadmin({ kind: 'manifest' }))}
 			{@render action('Banish', () => onadmin({ kind: 'banish' }))}
 		{:else if group === 'Rite'}
 			{@render action('Reveal all clues', () => onadmin({ kind: 'revealClues' }))}
 			{@render action('Reset rite progress', () => onadmin({ kind: 'resetRite' }))}
-			<p class="hint">Give "The Pendant" under Items; teleport to gloaming-chapel to perform it.</p>
+			<p class="hint">
+				Give 5 Candles, Chalk and "The Pendant" under Items; teleport to gloaming-chapel to perform
+				it.
+			</p>
 		{:else if group === 'Creatures'}
 			{@render action('Spawn in front', () => onadmin({ kind: 'spawnCreature' }))}
 			{@render action('Kill all', () => onadmin({ kind: 'killCreatures' }))}

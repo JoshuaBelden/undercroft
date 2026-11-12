@@ -1,11 +1,13 @@
 import { sellPrice } from '#lib/content/economy.ts';
+import { ITEMS } from '#lib/content/items.ts';
+import { COIN_SIGN } from './items.ts';
 import { accepts, canEquip, getSlot, type Belongings } from '#lib/shared/items/inventory.ts';
 import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
 import type { ItemStack } from '#lib/shared/player/types.ts';
 
 /** One line of the alternate menu. */
 export interface MenuEntry {
-	id: 'equip' | 'unequip' | 'split' | 'sell' | 'drop';
+	id: 'read' | 'equip' | 'unequip' | 'split' | 'sell' | 'drop';
 	label: string;
 	/** Shown to the right (the price). */
 	note?: string;
@@ -136,6 +138,8 @@ export class ItemBoard {
 
 	/** What the menu offers for a slot: only what can be done with it. */
 	entries(ref: SlotRef, stack: ItemStack): MenuEntry[] {
+		// A hint (in a crate) can only be read where it lies.
+		if (ITEMS[stack.item]?.kind === 'clue') return [{ id: 'read', label: 'Read' }];
 		const entries: MenuEntry[] = [];
 		const worn = ref.area === 'equipment' || ref.area === 'quick';
 		if (worn) entries.push({ id: 'unequip', label: 'Unequip' });
@@ -144,10 +148,8 @@ export class ItemBoard {
 		}
 		if (stack.count > 1 && ref.area !== 'equipment') entries.push({ id: 'split', label: 'Split' });
 		const each = this.options.sell ? sellPrice(stack.item) : 0;
-		if (each > 0) {
-			const note = stack.count > 1 ? `${this.price(each)} each` : this.price(each);
-			entries.push({ id: 'sell', label: 'Sell', note });
-		}
+		// Just the price (one of them): choosing it sells.
+		if (each > 0) entries.push({ id: 'sell', label: `${COIN_SIGN}${each}` });
 		entries.push({ id: 'drop', label: 'Drop' });
 		return entries;
 	}
@@ -159,6 +161,10 @@ export class ItemBoard {
 		if (!menu || this.locked) return;
 		const { ref, stack } = menu;
 		switch (id) {
+			case 'read':
+				// The server reads it instead of moving it (see Session.lootAction).
+				this.options.act({ kind: 'quick', from: ref });
+				break;
 			case 'equip':
 				this.options.act({ kind: 'equip', from: ref });
 				break;

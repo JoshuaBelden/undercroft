@@ -90,6 +90,38 @@ export async function sell(db: Db, explorerId: string, from: unknown, count: unk
 	return result;
 }
 
+/** Sell every stack of treasure in the stash (not the loadout), one ledger line per item. */
+export async function sellTreasure(db: Db, explorerId: string): Result {
+	let sold: { item: string; count: number; money: number }[] = [];
+	const result = await changeExplorer(db, explorerId, (explorer) => {
+		sold = [];
+		explorer.stash = explorer.stash.map((stack) => {
+			if (!stack || !ITEMS[stack.item]?.treasure) return stack;
+			const each = sellPrice(stack.item);
+			if (each <= 0) return stack;
+			const line = sold.find((entry) => entry.item === stack.item);
+			if (line) {
+				line.count += stack.count;
+				line.money += each * stack.count;
+			} else {
+				sold.push({ item: stack.item, count: stack.count, money: each * stack.count });
+			}
+			return null;
+		});
+		if (sold.length === 0) return 'missing';
+		explorer.money += sold.reduce((sum, entry) => sum + entry.money, 0);
+		return null;
+	});
+	if ('explorer' in result) {
+		let balance = result.explorer.money - sold.reduce((sum, entry) => sum + entry.money, 0);
+		for (const entry of sold) {
+			balance += entry.money;
+			await log(db, { explorer: explorerId, kind: 'sell', ...entry, balance });
+		}
+	}
+	return result;
+}
+
 /** Admin: give money, or an item into the stash. */
 export async function grant(
 	db: Db,

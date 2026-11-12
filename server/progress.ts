@@ -75,14 +75,17 @@ export class Progress {
 			.catch((error: Error) => log.warn(`Could not save rite progress: ${error.message}`));
 	}
 
-	/** Forget what these players know (admin). */
-	reset(players: string[], affliction: string): void {
+	/** Forget what these players know: no hints, unresolved (a player's reset, or an admin's). */
+	async reset(players: string[], affliction: string): Promise<void> {
 		const keys = players.map((player) => key(player, affliction));
 		for (const k of keys) this.memory.delete(k);
-		getDb()
-			?.collection<ProgressDoc>(COLLECTION)
-			.deleteMany({ _id: { $in: keys } })
-			.catch((error: Error) => log.warn(`Could not reset rite progress: ${error.message}`));
+		try {
+			await getDb()
+				?.collection<ProgressDoc>(COLLECTION)
+				.deleteMany({ _id: { $in: keys } });
+		} catch (error) {
+			log.warn(`Could not reset rite progress: ${(error as Error).message}`);
+		}
 	}
 }
 

@@ -9,6 +9,8 @@ export interface WorldItemSnapshot {
 	count: number;
 	position: Vec3;
 	yaw: number;
+	/** Hung on a wall facing out along this (a hint), instead of lying on a floor or a top. */
+	normal?: Vec3;
 }
 
 /**
@@ -107,8 +109,19 @@ export type GameEvent =
 	| { kind: 'crateOpen'; id: string; player: string; position: Vec3 }
 	/** Someone going through a crate started on the next thing in it. */
 	| { kind: 'rummage'; player: string; position: Vec3 }
-	/** A clue was found: the requirements (item ids) and room (piece id) it revealed. */
-	| { kind: 'clue'; player: string; position: Vec3; requirements: string[]; room: string | null }
+	/** A hint was found: what it says, and the requirements (item ids) and room (piece id) it revealed. */
+	| {
+			kind: 'clue';
+			player: string;
+			position: Vec3;
+			text: string;
+			requirements: string[];
+			room: string | null;
+	  }
+	/** The rite was performed: the Affliction is calmed. */
+	| { kind: 'rite'; player: string; position: Vec3 }
+	/** Time ran out: everyone still underground is lost. */
+	| { kind: 'deadline' }
 	/** A chalk mark was drawn, or rubbed out by whoever drew it. */
 	| { kind: 'mark'; player: string; position: Vec3 }
 	| { kind: 'rub'; player: string; position: Vec3 }

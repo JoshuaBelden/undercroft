@@ -14,8 +14,8 @@ import type { CreatureBody, CreatureDirector, Prey } from './creatures.ts';
  * The Affliction for one expedition: the hidden meter, omen stages (lamp failure, bolder and
  * more creatures; clients add the sounds), and the manifestation at 100%: it hunts along the
  * nav grid, drains the sanity of anyone near it, strikes whoever it reaches, and can only be
- * hurt while lamp light exposes it. Banishing it ends the expedition. Lamps fail only by omen
- * stage; the manifestation itself puts no lamp out.
+ * hurt while lamp light exposes it. Banishing it ends the expedition; performing the rite calms it
+ * for good (see `calm`). Lamps fail only by omen stage; the manifestation itself puts no lamp out.
  * See docs/dev/affliction.md.
  */
 
@@ -57,7 +57,7 @@ export interface AfflictionHit {
 
 export class AfflictionDirector {
 	readonly def: AfflictionDef;
-	/** 0..1. Hidden from players. */
+	/** 0..1: at 1 it manifests. Clients show it as the arrival bar. */
 	meter = 0;
 	stage = 0;
 	private manifestation: Manifested | null = null;
@@ -65,6 +65,8 @@ export class AfflictionDirector {
 	private rng: Rng;
 	/** Set once it's banished: the session ends the expedition. */
 	banished = false;
+	/** The rite was performed: no meter, no omens, no manifestation for the rest of the run. */
+	calmed = false;
 
 	constructor(
 		private world: CollisionWorld,
@@ -86,6 +88,22 @@ export class AfflictionDirector {
 		this.meter = Math.max(0, Math.min(1, value));
 	}
 
+	/**
+	 * The rite is done: the meter stops for good, omens and gloom lift, creatures are only as bold
+	 * as ever, and a manifestation already out fades away without ending the expedition.
+	 */
+	calm(): void {
+		if (this.calmed) return;
+		this.calmed = true;
+		this.stage = 0;
+		this.creatures.boldness = 1;
+		const d = this.manifestation;
+		if (d && d.state !== 'banished') {
+			d.state = 'banished';
+			d.time = 0;
+		}
+	}
+
 	/** Admin: banish it now. */
 	banish(): void {
 		if (this.manifestation && this.manifestation.state !== 'banished')
@@ -98,6 +116,11 @@ export class AfflictionDirector {
 	 */
 	step(players: Prey[]): AfflictionHit[] {
 		const def = this.def;
+		if (this.calmed) {
+			if (this.manifestation) this.manifestation.time += DT;
+			for (const p of players) p.state.gloom = 0;
+			return [];
+		}
 		// The meter: time underground, kills, loot carried.
 		const kills = this.creatures.kills - this.lastKills;
 		this.lastKills = this.creatures.kills;
@@ -150,12 +173,14 @@ export class AfflictionDirector {
 		return (this.manifestation?.exposed ?? 0) > 0;
 	}
 
-	/** Everything but the rite, which the session adds (see server/rite.ts). */
-	snapshot(dev: boolean): Omit<AfflictionSnapshot, 'rite'> {
+	/** Everything but the rite and the deadline, which the session adds (see server/rite.ts). */
+	snapshot(): Omit<AfflictionSnapshot, 'rite' | 'deadline'> {
 		const d = this.manifestation;
-		const snap: Omit<AfflictionSnapshot, 'rite'> = {
+		return {
 			id: this.def.id,
 			omen: this.stage,
+			meter: Math.round(this.meter * 1000) / 1000,
+			calmed: this.calmed,
 			manifestation: d
 				? {
 						position: d.position.map((v) => Math.round(v * 1000) / 1000) as Vec3,
@@ -166,8 +191,6 @@ export class AfflictionDirector {
 					}
 				: null
 		};
-		if (dev) snap.meter = Math.round(this.meter * 1000) / 1000;
-		return snap;
 	}
 
 	// --- internals ---
