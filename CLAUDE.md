@@ -3,10 +3,10 @@
 **Undercroft**. A co-op (and solo) first-person horror extraction game set in the catacombs.
 
 - Game design: `docs/HANDOFF.md`
-- Phase plan (start → beta): `docs/PHASES.md`
+- Phase plan (start → beta): `docs/TODO.md`
 - Dev docs: `docs/dev/`
 
-Read `docs/HANDOFF.md` before designing any gameplay feature. Check `docs/PHASES.md` for the current phase and stay inside its scope.
+Read `docs/HANDOFF.md` before designing any gameplay feature. Check `docs/TODO.md` for the current phase and stay inside its scope.
 
 ## Tech stack
 
@@ -77,7 +77,7 @@ static/assets/  # .glb models, textures, audio (optimized, committed)
 art/            # raw art: .blend, 4K textures, raw exports (gitignored)
 docs/
   HANDOFF.md
-  PHASES.md
+  TODO.md
   LORE.md
   dev/          # developer docs, updated as features land
 ```
@@ -88,4 +88,4 @@ When a feature lands, update in the same change:
 
 - `docs/dev/`: how the system works and how to extend it
 - Player help content, if the feature is player-facing
-- `docs/PHASES.md`: mark the item done
+- `docs/TODO.md`: mark the item done

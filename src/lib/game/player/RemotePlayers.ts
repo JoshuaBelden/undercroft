@@ -129,6 +129,11 @@ export class RemotePlayers {
 		for (const [bodyId, remote] of this.bodies) remote.body.root.visible = bodyId !== id;
 	}
 
+	/** Light another player's gunshot with their headlamp (see Headlamp.flash). */
+	flash(id: string): void {
+		this.bodies.get(id)?.lamp.flash();
+	}
+
 	/** Each remote player's latest state, with the lamp clock advanced to now (for lighting). */
 	*states(): Iterable<PlayerState> {
 		for (const remote of this.bodies.values()) {

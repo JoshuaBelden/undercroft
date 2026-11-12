@@ -60,6 +60,8 @@ export interface FirearmSpec {
 	noise: number;
 	/** Gunshot sound. */
 	sound: SoundId;
+	/** Played when a reload starts; it should last about `reloadTime`. */
+	reloadSound: SoundId;
 }
 
 export interface ThrowSpec {
@@ -101,8 +103,17 @@ export interface ItemDef {
 	model: string | null;
 	/** How it looks on the floor until it has a model: a box of this size (m) and colour. */
 	placeholder?: { size: [number, number, number]; color: number };
-	/** Viewmodel placement: offset from the camera (m) and scale. */
-	hold: { offset: [number, number, number]; scale: number };
+	/**
+	 * Viewmodel placement: offset from the camera (m) and scale. `aim` is where it moves when
+	 * aiming down the sights (firearms): low and a little right, so it never covers the
+	 * crosshair. `muzzle` is the barrel's end in the model's own space, for the flash and smoke.
+	 */
+	hold: {
+		offset: [number, number, number];
+		scale: number;
+		aim?: [number, number, number];
+		muzzle?: [number, number, number];
+	};
 	/** How many share a slot. 0: it can't be carried at all (clues). */
 	maxStack: number;
 	/** Weight of one, in kg: everything carried counts toward the load (see CARRY). */
@@ -198,7 +209,7 @@ export const ITEMS: Record<string, ItemDef> = {
 			'Six chambers, and a report that carries a long way down here. Everything will know where you are.',
 		image: 'revolver',
 		model: '/assets/items/revolver.glb',
-		hold: HOLD_RIGHT,
+		hold: { ...HOLD_RIGHT, aim: [0.06, -0.15, -0.34], muzzle: [0, 0.045, -0.21] },
 		maxStack: 1,
 		weight: 1.1,
 		firearm: {
@@ -212,7 +223,8 @@ export const ITEMS: Record<string, ItemDef> = {
 			reloadTime: 2.5,
 			ammo: 'ammo.revolver',
 			noise: 35,
-			sound: 'revolver.fire'
+			sound: 'revolver.fire',
+			reloadSound: 'revolver.reload'
 		}
 	},
 	shotgun: {
@@ -223,7 +235,12 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'Two barrels, cut short. Unanswerable up close; a rumour at any distance.',
 		image: 'shotgun',
 		model: '/assets/items/shotgun.glb',
-		hold: { offset: [0.2, -0.24, -0.5], scale: 1 },
+		hold: {
+			offset: [0.2, -0.24, -0.5],
+			scale: 1,
+			aim: [0.07, -0.21, -0.42],
+			muzzle: [0, 0.05, -0.7]
+		},
 		maxStack: 1,
 		weight: 3.2,
 		firearm: {
@@ -237,7 +254,8 @@ export const ITEMS: Record<string, ItemDef> = {
 			reloadTime: 3,
 			ammo: 'ammo.shotgun',
 			noise: 40,
-			sound: 'shotgun.fire'
+			sound: 'shotgun.fire',
+			reloadSound: 'shotgun.reload'
 		}
 	},
 	'ammo.revolver': {

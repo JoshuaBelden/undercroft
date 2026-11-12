@@ -81,6 +81,12 @@ export interface SoundDef {
 	captionOthers?: boolean;
 }
 
+/**
+ * Another explorer's gunshot: within `from` metres you hear the gun itself; over the next `span`
+ * metres it crossfades into `gun.distant`, which carries far (`refDistance`).
+ */
+export const DISTANT_SHOT = { from: 15, span: 15, refDistance: 25 };
+
 const STEP = { kind: 'footstep', cutoff: 1400, decay: 0.07, thump: 0.6 } as const;
 const SPLASH = { kind: 'splash', length: 0.6, cutoff: 1200 } as const;
 
@@ -260,6 +266,7 @@ export const SOUNDS = {
 	},
 	// Items and weapons.
 	'revolver.fire': {
+		file: 'revolver.fire',
 		synth: { kind: 'gunshot', boom: 95, length: 1.8, bright: 4200 },
 		category: 'sfx',
 		volume: 1,
@@ -268,6 +275,7 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'shotgun.fire': {
+		file: 'shotgun.fire',
 		synth: { kind: 'gunshot', boom: 60, length: 2.4, bright: 2600 },
 		category: 'sfx',
 		volume: 1,
@@ -275,8 +283,36 @@ export const SOUNDS = {
 		caption: 'shotgun blast',
 		captionOthers: true
 	},
-	'gun.empty': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6, rate: 0.8 },
-	'gun.reload': { synth: { kind: 'reload' }, category: 'sfx', volume: 0.6 },
+	// Another explorer's shot from far away (crossfaded in with distance, see docs/dev/items.md).
+	'gun.distant': {
+		file: 'gun.distant',
+		synth: { kind: 'gunshot', boom: 70, length: 2.6, bright: 900 },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.05,
+		caption: 'distant gunshot'
+	},
+	'gun.empty': {
+		file: 'gun.empty',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.04
+	},
+	// The recording runs 3.15 s; played a little fast to fit the revolver's 2.5 s reload.
+	'revolver.reload': {
+		file: 'revolver.reload',
+		synth: { kind: 'reload' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 1.25
+	},
+	'shotgun.reload': {
+		file: 'shotgun.reload',
+		synth: { kind: 'reload' },
+		category: 'sfx',
+		volume: 0.65
+	},
 	'melee.swing': { synth: { kind: 'whoosh' }, category: 'sfx', volume: 0.5, variation: 0.15 },
 	'melee.hit': {
 		synth: { kind: 'thud', cutoff: 1800 },

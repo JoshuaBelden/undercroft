@@ -25,7 +25,8 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 | `scripts/blender/props.py`          | Builds the crate model and adds crate markers in the kit .blend      |
 | `src/lib/game/items/ViewModel.ts`   | The held item: procedural motion, own render pass                    |
 | `src/lib/game/items/WorldItems.ts`  | Floor and thrown items, highlight of what you'd pick up              |
-| `src/lib/game/items/Effects.ts`     | Muzzle flash light, impact puffs                                     |
+| `src/lib/game/items/Effects.ts`     | Muzzle flares, gun smoke, impact dust and sparks, own-shot pulse     |
+| `src/lib/game/items/flare.ts`       | The muzzle flare shader (also impact sparks)                         |
 | `scripts/blender/items.py`          | Builds the item models in the kit .blend                             |
 
 ## Data
@@ -36,14 +37,14 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 - `maxStack`: how many share a slot. Weapons and defense are 1; most other things use `DEFAULT_STACK` (5); ammo has its own (30 rounds, 20 shells). An item with its own state (rounds loaded, wear) must be 1, so two never merge. 0 means it can't be carried at all (clues).
 - `flavor`: a line or two for the tooltip. `image`: optional picture id in `static/assets/images` (built by `pnpm asset:images`); without one, slots and the tooltip show the name.
 - `melee`: `damage`, `range` (from the eye), `arc` (half-angle), `windup` (hit lands), `recovery`, `noise` (radius when it hits something), optional `breaksAfter` (bricks).
-- `firearm`: `damage` per pellet, `pellets`, `spread` (hip and aimed cone), `range` and `falloff` (fraction of damage lost by the end of the range), `interval`, `magazine`, `reloadTime`, `ammo` (item id of its rounds), `noise`, `sound`.
+- `firearm`: `damage` per pellet, `pellets`, `spread` (hip and aimed cone), `range` and `falloff` (fraction of damage lost by the end of the range), `interval`, `magazine`, `reloadTime`, `ammo` (item id of its rounds), `noise`, `sound` (the shot) and `reloadSound` (played as a reload starts; make it last about `reloadTime`, with the sound's `rate` if needed).
 - `throwable`: `speed`, `damage`, `landNoise`, `duration`.
 - `heal`: `amount` of sanity and `seconds` to apply (bandages).
 - `revive: true`: brings a downed player round (smelling salts).
 - `defense`: `reduction`, the fraction taken off a creature's attack while it is worn.
 - `weight` is kg for one of it.
 
-`hold` places the model in the viewmodel. `model` points at `static/assets/items/<id>.glb`. With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).
+`hold` places the model in the viewmodel: `offset` from the camera and `scale`. Firearms also give `aim`, where it moves when aiming down the sights (low and a little right, so it never covers the crosshair; without one, `AIM_OFFSET` in `ViewModel.ts`), and `muzzle`, the barrel's end in the model's own space (where the flare is drawn). `model` points at `static/assets/items/<id>.glb`. With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).
 
 The first defense item, the `coat`, is a stand-in so the slot has something to hold.
 
@@ -182,9 +183,12 @@ Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 sl
 ## Client
 
 - **ViewModel:** drawn in the engine's second pass (`viewScene`/`viewCamera`, depth cleared), so it never clips into walls.
-  - Its motion is procedural, from the predicted `weapon` state: walk bob, equip raise, swing (draw back, strike, settle), recoil, reload dip, throw, and aiming (moves to centre).
+  - Its motion is procedural, from the predicted `weapon` state: walk bob, equip raise, swing (draw back, strike, settle), recoil, reload dip, throw, and aiming (moves to `hold.aim`, under the crosshair).
   - It's lit by a fill light that follows your headlamp output, so in the dark you can barely see it.
-- **Effects:** one reused point light for muzzle flashes (it's never added or removed, so the light count stays constant and it only uses budget while lit), plus impact puffs.
+  - `flash()` draws your own muzzle flare at `hold.muzzle` and blazes the fill for a moment. It returns false when the viewmodel isn't drawn (over the shoulder, map view), and the flare goes in the world instead.
+- **Shot light costs no light.** The light of a gunshot is the shooter's own headlamp: `Headlamp.flash()` widens its spot to a 66° half-angle, warms it and turns it up to 120 cd for 70 ms, lamp on or off, and it casts real shadows. Every player already has a headlamp in the budget, so shots never add a light, however many people fire. (`RemotePlayers.flash(id)` does it for others.) Your own shot also pulses a faint ambient light in `Effects`, so the room behind you catches a little. Ambient lights are outside the budget.
+- **Effects:** a shader muzzle flare (`flare.ts`: unlit and additive, a hot core and flame petals that change shape each shot), smoke curls that drift on from the muzzle (a lit material, so the flash and headlamps show on them), and impact dust or a dark spatter (creature), with sparks off stone.
+- **Gun sounds:** each gun's `sound`, `reloadSound` and `gun.empty`. Another explorer's shot crossfades from the gun's own sound into `gun.distant` between `DISTANT_SHOT.from` and `from + span` metres (`src/lib/content/audio/sounds.ts`).
 - **HUD:** what is in the hand (name and count; the "Held item" setting hides it), the ammo counter (loaded | spare in the backpack) and a tighter crosshair while aiming.
 
 ## Adding an item

@@ -28,7 +28,7 @@ Flow:
 
 **Graphics settings:** `engine.applyGraphics(settings.graphics)` applies FOV, brightness (tone-mapping exposure) and quality (pixel ratio, shadows, shadow map size). Call it again when the settings change.
 
-**Light budget:** `LIGHT_BUDGET` caps active dynamic lights (ambient excluded). The stats overlay shows the count and turns red when over budget. Every candle, headlamp, torch and glow stick counts.
+**Light budget:** `LIGHT_BUDGET` caps active dynamic lights (ambient excluded). The stats overlay shows the count and turns red when over budget. Every candle, headlamp, torch and glow stick counts. Short flashes borrow a light that already exists rather than adding one: a gunshot lights the shooter's headlamp (see [items.md](items.md#client)).
 
 ## Input
 

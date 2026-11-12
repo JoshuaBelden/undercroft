@@ -20,6 +20,7 @@
 	import { Crates } from '#lib/game/items/Crates.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
+	import { DISTANT_SHOT } from '#lib/content/audio/sounds.ts';
 	import { CRATES } from '#lib/content/loot.ts';
 	import { canTake, carriedCount, held, quickWith } from '#lib/shared/items/inventory.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
@@ -537,9 +538,17 @@
 		function onLocalEvents(state: PlayerState): void {
 			for (const event of player.drainEvents()) {
 				if (event.kind === 'shot') {
-					const sound = ITEMS[event.item]?.firearm?.sound;
-					if (sound) sounds.play(sound);
-					effects.muzzleFlash(ViewModel.muzzle(head, muzzle));
+					const gun = ITEMS[event.item]?.firearm;
+					if (gun) sounds.play(gun.sound);
+					const heavy = (gun?.pellets ?? 1) > 1;
+					// First person, the flare is on the gun in your hands; otherwise in the world.
+					const drawn = viewModel.flash(heavy);
+					effects.shot(ViewModel.muzzle(head, muzzle), event.direction, {
+						flare: !drawn,
+						own: true,
+						heavy
+					});
+					headlamp.flash();
 				} else if (event.kind === 'empty') {
 					sounds.play('gun.empty');
 				} else if (event.kind === 'throw') {
@@ -548,7 +557,10 @@
 			}
 			const action = state.weapon.action;
 			if (action !== lastAction) {
-				if (action === 'reload') sounds.play('gun.reload');
+				if (action === 'reload') {
+					const gun = ITEMS[held(state.inventory)?.item ?? '']?.firearm;
+					if (gun) sounds.play(gun.reloadSound);
+				}
 				if (action === 'swing') sounds.play('melee.swing');
 				lastAction = action;
 			}
@@ -560,9 +572,29 @@
 			switch (event.kind) {
 				case 'shot': {
 					if (event.player !== self) {
-						const sound = ITEMS[event.item]?.firearm?.sound;
-						if (sound) sounds.playAt(sound, event.origin, 1, 10);
-						effects.muzzleFlash(event.origin);
+						const gun = ITEMS[event.item]?.firearm;
+						const distance = Math.hypot(
+							event.origin[0] - head.position.x,
+							event.origin[1] - head.position.y,
+							event.origin[2] - head.position.z
+						);
+						// Close, the gun itself; far off, the rolling distant report; between, both.
+						const far = Math.min(
+							1,
+							Math.max(0, (distance - DISTANT_SHOT.from) / DISTANT_SHOT.span)
+						);
+						if (gun && far < 1) sounds.playAt(gun.sound, event.origin, 1 - far, 10);
+						if (far > 0) sounds.playAt('gun.distant', event.origin, far, DISTANT_SHOT.refDistance);
+						const toward: [number, number, number] = [
+							event.end[0] - event.origin[0],
+							event.end[1] - event.origin[1],
+							event.end[2] - event.origin[2]
+						];
+						// Out in front of their eyes, near where their gun is.
+						const length = Math.hypot(...toward) || 1;
+						const at = event.origin.map((v, i) => v + (toward[i] / length) * 0.6) as Vec3;
+						effects.shot(at, toward, { flare: true, own: false, heavy: (gun?.pellets ?? 1) > 1 });
+						remote.flash(event.player);
 					}
 					effects.impact(event.end, event.creature);
 					if (!event.creature) sounds.playAt('bullet.impact', event.end, 1, 2);
@@ -582,9 +614,11 @@
 				case 'break':
 					sounds.playAt('brick.break', event.position, 1, 3);
 					break;
-				case 'reload':
-					if (event.player !== self) sounds.playAt('gun.reload', event.position, 1, 3);
+				case 'reload': {
+					const gun = ITEMS[event.item]?.firearm;
+					if (gun && event.player !== self) sounds.playAt(gun.reloadSound, event.position, 1, 3);
 					break;
+				}
 				case 'empty':
 					if (event.player !== self) sounds.playAt('gun.empty', event.position, 1, 2);
 					break;
@@ -819,7 +853,7 @@
 			creatures.update(delta, player.collision, lamps);
 			worldItems.update(delta);
 			crates.update(delta);
-			effects.update(delta);
+			effects.update(delta, engine.camera);
 			// Only on your feet: crouched, crawling or swimming, the body fills the view from
 			// behind, so those are always first person.
 			const upright = player.state?.stance === 'stand' && !player.state.swimming;

@@ -18,6 +18,6 @@ Open the client, choose **Descend**. In game: `Esc` settings, `F1` help, `F3` st
 
 - [CLAUDE.md](CLAUDE.md): development rules
 - [docs/HANDOFF.md](docs/HANDOFF.md): game design
-- [docs/PHASES.md](docs/PHASES.md): phase plan
+- [docs/TODO.md](docs/TODO.md): phase plan
 - [docs/LORE.md](docs/LORE.md): lore
 - [docs/dev/](docs/dev/): developer docs

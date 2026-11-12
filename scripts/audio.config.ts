@@ -55,6 +55,15 @@ export const AUDIO_SOURCES: AudioSource[] = [
 		file: 'rummage.mp3',
 		slice: { minGap: 0.9, maxLength: 1.3, threshold: 0.3, maxClips: 4 }
 	},
+	// Firearms.
+	{ id: 'revolver.fire', file: 'sfx_revolver_attack.mp3' },
+	{ id: 'shotgun.fire', file: 'sfx_shotgun_attack.mp3' },
+	// Any gunshot heard from far off (another explorer's, down the tunnels).
+	{ id: 'gun.distant', file: 'sfx_gun_attack_distance.mp3', rate: 22050 },
+	// Dry fire: the first click only (the recording has a second, fainter one).
+	{ id: 'gun.empty', file: 'sfx_gun_empty.mp3', crop: { start: 0.1, length: 0.8 } },
+	{ id: 'revolver.reload', file: 'sfx_revolver_reload.mp3' },
+	{ id: 'shotgun.reload', file: 'sfx_shotgun_reload.mp3' },
 	// Interface: moving between pages on the surface.
 	{ id: 'ui.click', file: 'menu_click.wav' },
 	// Ambience
