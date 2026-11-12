@@ -72,6 +72,16 @@ docker compose -f docker-compose.prod.yml --env-file ../.env logs -f game
 
 A CDN (DigitalOcean Spaces CDN) in front of `/assets` isn't needed for the beta: assets are cached forever after the first visit. Revisit it if players are far from the droplet's region.
 
+## The live beta
+
+| What    | Value                                                         |
+| ------- | ------------------------------------------------------------- |
+| URL     | https://64-23-154-42.sslip.io (until a real domain is set up) |
+| Droplet | `undercroft`, 64.23.154.42, `s-1vcpu-1gb` in `sfo3`           |
+| Release | `pnpm deploy:release --host 64.23.154.42 --domain <DOMAIN>`   |
+
+`--domain` only matters on the first deploy, when it writes `/opt/undercroft/.env`. After that the domain in that file is the one used, so changing it means editing the file (below), not passing a new `--domain`.
+
 ## Changing the domain
 
 Point the new name's A record at the droplet, then on the droplet set `DOMAIN=<new name>` in `/opt/undercroft/.env` and run `docker compose -f docker-compose.prod.yml --env-file ../.env up -d` in `/opt/undercroft/app`. Caddy gets a certificate for the new name by itself. Until there is a real domain, `<ip-with-dashes>.sslip.io` (a public DNS name that resolves to the IP inside it) works for HTTPS.
