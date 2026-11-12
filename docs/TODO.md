@@ -28,7 +28,7 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Shrines: hold one item through death or extraction
 - Chalk marks on walls (one per stick)
 - We need bigger maps with multiple extraction rooms
-- Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant
+- Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant. Add hint lore that shows up.
 - Review Lore and Flavor text
 - Shoulder swap weapons
 

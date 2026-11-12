@@ -34,5 +34,11 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	// Stands on end: hook at +Y, curling toward +X.
 	crowbar: { forward: '+y', up: '+x', length: 0.78, grip: [0.29, 0.28] },
 	// Lies on its broad face.
-	brick: { forward: '-x', up: '+z', length: 0.22, grip: [0.5, 0.5] }
+	brick: { forward: '-x', up: '+z', length: 0.22, grip: [0.5, 0.5] },
+	// A stoppered bottle standing upright (tallest along +Y). Its depth along Z is scaled to
+	// 3.5 cm, which makes it about 9 cm tall; held round its middle.
+	salts: { forward: '-z', up: '+y', length: 0.035, grip: [0.5, 0.4] },
+	// Upright (tallest along +Y). Its depth along Z is scaled to 5.3 cm, which makes it about
+	// 8 cm tall and 6 cm wide; held round its middle.
+	bandage: { forward: '-z', up: '+y', length: 0.053, grip: [0.5, 0.5] }
 };
