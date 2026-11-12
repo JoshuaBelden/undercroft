@@ -249,6 +249,14 @@ export const SOUNDS = {
 		variation: 0.08,
 		caption: 'snarl'
 	},
+	// Looped; louder the closer the nearest creature is (within its breath.range).
+	'creature.breath': {
+		file: 'creature.breath',
+		synth: { kind: 'breath', period: 3 },
+		category: 'sfx',
+		volume: 0.8,
+		caption: 'ragged breathing nearby'
+	},
 	'creature.hurt': {
 		synth: { kind: 'snarl' },
 		category: 'sfx',

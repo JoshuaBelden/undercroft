@@ -74,5 +74,6 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	],
 	'ambience.lap': ['/assets/audio/ambience.lap.wav'],
 	'ambience.creepy': ['/assets/audio/ambience.creepy-1.wav', '/assets/audio/ambience.creepy-2.wav'],
-	'ambience.horror': ['/assets/audio/ambience.horror.wav']
+	'ambience.horror': ['/assets/audio/ambience.horror.wav'],
+	'creature.breath': ['/assets/audio/creature.breath.wav']
 };

@@ -69,7 +69,16 @@ const DEFAULT_TEXTURE = 1024;
 const TRI_BUDGET = { connector: 5000, room: 40000 };
 const EPS = 0.01;
 const FLOOR_SLACK = 0.3;
-const MARKER_PREFIXES = ['socket-', 'spawn-', 'extract-', 'rite-', 'crate-', 'col-', 'vol-'];
+const MARKER_PREFIXES = [
+	'socket-',
+	'spawn-',
+	'creature-',
+	'extract-',
+	'rite-',
+	'crate-',
+	'col-',
+	'vol-'
+];
 
 class PieceError extends Error {}
 
@@ -204,6 +213,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 
 	const sockets: PieceSocket[] = [];
 	const spawns: Vec3[] = [];
+	const creatures: Vec3[] = [];
 	const extracts: Vec3[] = [];
 	const rites: Vec3[] = [];
 	const crates: CrateMarker[] = [];
@@ -218,6 +228,8 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			sockets.push(socketFromPosition(name, label, position, w, d));
 		} else if (label.startsWith('spawn-')) {
 			spawns.push(position);
+		} else if (label.startsWith('creature-')) {
+			creatures.push(position);
 		} else if (label.startsWith('extract-')) {
 			extracts.push(position);
 		} else if (label.startsWith('rite-')) {
@@ -291,6 +303,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		levels,
 		sockets,
 		spawns,
+		creatures,
 		extracts,
 		rites,
 		crates,

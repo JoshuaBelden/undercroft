@@ -308,7 +308,8 @@ function stepDowned(
 	s.velocity[1] = s.grounded ? STICK_SPEED : s.velocity[1] - t.gravity * dt;
 	for (let i = 0; i < 3; i++) s.position[i] += s.velocity[i] * dt;
 	resolveCollisions(s, world, t);
-	s.extracting = 0;
+	// Crawling out still counts: drag yourself to an extraction point and hold interact.
+	updateExtraction(s, input, world, wishLen > 0.01, dt);
 	s.bandaging = 0;
 	s.downedTime += dt;
 	// A key held since before going down doesn't count: it has to be let go first.

@@ -80,7 +80,7 @@ Run it all the way down and you're spent: you can't sprint, climb or dive again 
 
 Bright reaches much further but drains the battery about three times as fast. The cells in the bottom-left corner show the charge left. When it's empty, the lamp dies.
 
-The starter headlamp is cheap: it flickers, and flickers more as the battery runs down. Some things in the dark are easier to see in a flicker.`
+The starter headlamp is cheap: it flickers, and flickers more as the battery runs down.`
 	},
 	{
 		id: 'the-surface',
@@ -144,7 +144,7 @@ It wears down when you're in the dark with your lamp off and no one else's light
 
 A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel.
 
-When your sanity runs out you go down. You can only look around and drag yourself slowly across the floor, and you don't have long.
+When your sanity runs out you go down. You can only look around and drag yourself slowly across the floor, and you don't have long. If you can reach a way out, you can still climb out: hold {action:interact} there.
 
 If there is nothing to wait for, hold {action:climb} for a moment to surrender. It ends at once, as if your time had run out.`
 	},
@@ -166,11 +166,15 @@ Salts only count when they are to hand, in a quick-use slot. At the bottom of yo
 		category: 'Survival',
 		body: `You are not alone down here.
 
-They stand very still. Full light shows nothing, and the dark shows nothing. You only see them in the half-light: in the glow of a low lamp, at the far edge of a bright beam, in the moment a lamp flickers.
+The dark hides them. Get a lamp on one and you'll see it, but it may see your light too.
 
-They notice your light, and they hear you. Running is loud; walking carries; creeping, crouching and crawling are quiet. Very close, they'll find you anyway.
+They wander. When something catches their attention they stop, wait, and come to look.
 
-Once one has you, it comes slowly, then all at once.`
+They hear you. Running is loud; walking carries; creeping, crouching and crawling are quiet. They notice your light when they're facing it. In the dark, keeping still or moving quietly, you can wait one out. Don't stay where it saw your light. Very close, it will find you anyway.
+
+Listen for breathing. If you can hear it, it's near.
+
+Once one has you, it comes slowly, then all at once. Put your lamp out and get out of its sight, and it may lose you.`
 	},
 	{
 		id: 'items',

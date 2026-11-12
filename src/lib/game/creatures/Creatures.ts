@@ -2,10 +2,12 @@ import * as THREE from 'three';
 import { CREATURES, type CreatureAnim, type CreatureDef } from '#lib/content/creatures.ts';
 import { Animator } from '#lib/game/Animator.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
+import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 import type { SoundBank } from '#lib/game/audio/SoundBank.ts';
-import type { CreatureSnapshot } from '#lib/shared/creature/types.ts';
+import type { CreatureSnapshot, CreatureState } from '#lib/shared/creature/types.ts';
 import { creatureLight, halfLightVisible } from '#lib/shared/creature/visibility.ts';
 import type { CollisionWorld } from '#lib/shared/map/collision.ts';
+import type { Vec3 } from '#lib/shared/map/types.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 
 interface Entry {
@@ -18,9 +20,10 @@ interface Entry {
 	played: CreatureAnim | null;
 	anim: CreatureAnim;
 	animTime: number;
+	state: CreatureState;
 	target: THREE.Vector3;
 	yaw: number;
-	/** 0..1, eased toward 1 while in half-light. */
+	/** 0..1, eased toward 1 while visible (in its light band). */
 	opacity: number;
 	marker: THREE.Mesh;
 	stepTimer: number;
@@ -44,9 +47,20 @@ const FADE_IN = 10;
 const FADE_OUT = 5;
 /** Seconds a dead creature takes to fade out before the server removes it. */
 const CORPSE_FADE = 1.5;
+/** Admin marker colour by AI state: patrolling, looking into something, chasing. */
+const MARKER_COLOURS: Record<CreatureState, number> = {
+	patrol: 0x9a9a9a,
+	alert: 0xffb020,
+	investigate: 0xffb020,
+	agro: 0xff3030,
+	attack: 0xff3030,
+	dead: 0x404040
+};
+/** How quickly (1/s) the breathing loop's volume follows the nearest creature. */
+const BREATH_EASE = 4;
 
 /**
- * Creatures, drawn from server snapshots. Each one is visible only in half-light, computed here
+ * Creatures, drawn from server snapshots. Each one is visible only in its light band, computed here
  * from every player's lamp with the same shared function the server uses, so all clients agree
  * on what can be seen. Its sounds play regardless: you hear what you can't see.
  * See docs/dev/creatures.md.
@@ -56,12 +70,10 @@ export class Creatures {
 	private entries = new Map<string, Entry>();
 	private showMarkers = false;
 	private markerGeometry = new THREE.SphereGeometry(0.25, 8, 6);
-	private markerMaterial = new THREE.MeshBasicMaterial({
-		color: 0xff3030,
-		wireframe: true,
-		depthTest: false,
-		transparent: true
-	});
+	private markerMaterials = new Map<CreatureState, THREE.MeshBasicMaterial>();
+	private breath: SoundHandle | null = null;
+	private breathStarting = false;
+	private breathLevel = 0;
 
 	constructor(private sounds: SoundBank) {
 		this.root.name = 'creatures';
@@ -89,6 +101,10 @@ export class Creatures {
 			if (snap.anim !== entry.anim) this.onAnim(entry, snap.anim);
 			entry.anim = snap.anim;
 			entry.animTime = snap.animTime;
+			if (snap.state !== entry.state) {
+				entry.state = snap.state;
+				entry.marker.material = this.markerMaterial(snap.state);
+			}
 		}
 		for (const [id, entry] of this.entries) {
 			if (seen.has(id)) continue;
@@ -99,9 +115,11 @@ export class Creatures {
 
 	clear(): void {
 		this.apply([]);
+		this.breathLevel = 0;
+		this.breath?.setVolume(0);
 	}
 
-	/** Per frame: move, animate, and work out who's in half-light. */
+	/** Per frame: move, animate, and work out who can be seen. */
 	update(delta: number, world: CollisionWorld | null, lamps: PlayerState[]): void {
 		const t = Math.min(1, delta * 10);
 		for (const entry of this.entries.values()) {
@@ -137,11 +155,49 @@ export class Creatures {
 		}
 	}
 
+	/**
+	 * Per frame, from where the local player hears: a creature close by is heard breathing, louder
+	 * the closer it is, through walls and whether it can be seen or not.
+	 */
+	listen(delta: number, listener: Vec3): void {
+		let level = 0;
+		for (const entry of this.entries.values()) {
+			if (entry.state === 'dead') continue;
+			const p = entry.root.position;
+			const d = Math.hypot(listener[0] - p.x, listener[1] - p.y - 1.4, listener[2] - p.z);
+			level = Math.max(level, Math.max(0, 1 - d / entry.def.breath.range) ** 2);
+		}
+		this.breathLevel += (level - this.breathLevel) * Math.min(1, delta * BREATH_EASE);
+		if (this.breathLevel < 0.005) this.breathLevel = 0;
+		if (this.breathLevel > 0 && !this.breath && !this.breathStarting) {
+			this.breathStarting = true;
+			void this.sounds.loop('creature.breath').then((handle) => (this.breath = handle));
+		}
+		this.breath?.setVolume(this.breathLevel);
+	}
+
 	dispose(): void {
 		for (const entry of this.entries.values()) this.remove(entry);
 		this.entries.clear();
 		this.markerGeometry.dispose();
-		this.markerMaterial.dispose();
+		for (const material of this.markerMaterials.values()) material.dispose();
+		this.markerMaterials.clear();
+		this.breath?.stop();
+		this.breath = null;
+	}
+
+	private markerMaterial(state: CreatureState): THREE.MeshBasicMaterial {
+		let material = this.markerMaterials.get(state);
+		if (!material) {
+			material = new THREE.MeshBasicMaterial({
+				color: MARKER_COLOURS[state],
+				wireframe: true,
+				depthTest: false,
+				transparent: true
+			});
+			this.markerMaterials.set(state, material);
+		}
+		return material;
 	}
 
 	private create(def: CreatureDef, snap: CreatureSnapshot): Entry {
@@ -149,7 +205,7 @@ export class Creatures {
 		root.name = `creature-${snap.id}`;
 		root.position.set(...snap.position);
 		root.rotation.y = snap.yaw;
-		const marker = new THREE.Mesh(this.markerGeometry, this.markerMaterial);
+		const marker = new THREE.Mesh(this.markerGeometry, this.markerMaterial(snap.state));
 		marker.position.y = def.height;
 		marker.renderOrder = 10;
 		marker.visible = this.showMarkers;
@@ -164,6 +220,7 @@ export class Creatures {
 			played: null,
 			anim: snap.anim,
 			animTime: snap.animTime,
+			state: snap.state,
 			target: new THREE.Vector3(...snap.position),
 			yaw: snap.yaw,
 			opacity: 0,

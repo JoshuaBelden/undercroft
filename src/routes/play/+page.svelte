@@ -807,7 +807,13 @@
 		}
 
 		function heldPrompt(state: PlayerState): { prompt: string | null; progress: number } {
-			if (state.downed) return { prompt: null, progress: 0 };
+			if (state.downed) {
+				// The only thing a downed player can still do: climb out.
+				const extract = extractPrompt(state);
+				return extract
+					? { prompt: extract, progress: state.extracting / EXPEDITION.extractSeconds }
+					: { prompt: null, progress: 0 };
+			}
 			const heal = healing(state);
 			if (heal && state.bandaging > 0) {
 				return { prompt: 'Bandaging...', progress: state.bandaging / heal.seconds };
@@ -1011,6 +1017,7 @@
 			audio.setListener([cam.x, cam.y, cam.z], [lookDir.x, lookDir.y, lookDir.z]);
 			ambience.update(delta, [cam.x, cam.y, cam.z], state);
 			manifestation.update(delta, [cam.x, cam.y, cam.z]);
+			creatures.listen(delta, [cam.x, cam.y, cam.z]);
 			captions.update();
 			spawned = !!state;
 			if (state) {

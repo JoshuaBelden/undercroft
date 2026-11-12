@@ -19,8 +19,11 @@ export interface CreatureDef {
 	height: number;
 	/** The model's animation map: its clip names by standard slot. */
 	animations: AnimationMap;
-	/** Which slot it moves in while creeping up on someone, bursting, and searching. */
-	gait: { stalk: CreatureAnim; burst: CreatureAnim; search: CreatureAnim };
+	/**
+	 * Which slot it is in while patrolling, holding still on alert, creeping (investigating, or
+	 * closing in on someone), and bursting at them.
+	 */
+	gait: { patrol: CreatureAnim; alert: CreatureAnim; stalk: CreatureAnim; burst: CreatureAnim };
 	movement: MovementTuning;
 	/** Slow approach speed (m/s) and burst speed. */
 	creepSpeed: number;
@@ -28,8 +31,13 @@ export interface CreatureDef {
 	/** Seconds creeping before a burst, [min, max], and how long a burst lasts. */
 	creepTime: [number, number];
 	burstTime: [number, number];
-	/** Seconds spent searching around the last place it perceived someone before going still. */
-	searchTime: number;
+	/** Patrol: wanders to random spots within `radius` (m, along the grid) of its anchor, pausing. */
+	patrol: { radius: number; pause: [number, number] };
+	/**
+	 * Alert: holds still facing a noise or light for `wait` [min, max] seconds (more of it extends
+	 * the wait, up to `maxWait`), creeps over to look, and lingers there `linger` seconds.
+	 */
+	alert: { wait: [number, number]; maxWait: number; linger: number };
 	attack: {
 		range: number;
 		/** Seconds from starting the swing to the hit landing. */
@@ -49,12 +57,17 @@ export interface CreatureDef {
 			creep: number;
 			swim: number;
 		};
-		/** A lit lamp in its line of sight (or lighting it) is noticed within this distance. */
-		lampSight: number;
-		/** Always noticed within this distance. */
+		/**
+		 * Noise, or a lit lamp in front of it (in sight, or lighting it), alerts it within this
+		 * distance. While it chases someone, they're lost beyond it.
+		 */
+		alertRange: number;
+		/** Someone in sight in front of it is chased within `litRange` (lamp on) or `darkRange`. */
+		agro: { litRange: number; darkRange: number };
+		/** Always noticed (and chased) within this distance. */
 		touch: number;
-		/** Seconds without perceiving the target before giving up. */
-		forget: number;
+		/** Seconds without perceiving the one it chases before it gives up and patrols again. */
+		evadeTime: number;
 	};
 	health: number;
 	/** A hit at least this hard staggers it: an attack not yet landed is cancelled. */
@@ -63,9 +76,17 @@ export interface CreatureDef {
 	hitRadius: number;
 	/** Seconds a dead creature stays before it's removed. */
 	corpseTime: number;
-	/** Half-light: visible only when the light on it is within this band (0..1 lamp units). */
+	/**
+	 * Visible only when the light on it is within this band (lamp units). A finite upper bound hides
+	 * it in full light too (half-light); Infinity means any light above the lower bound shows it.
+	 */
 	visibleBand: [number, number];
-	/** How many spawn per expedition, and how far (m, along the nav grid) from the start. */
+	/** Its breathing is heard within this distance (m), through walls. */
+	breath: { range: number };
+	/**
+	 * How many spawn per expedition, and how far (m, along the nav grid) from the start. They spawn
+	 * at creature-* markers, or in corners where a map has too few.
+	 */
 	spawn: { count: [number, number]; minDistance: number };
 }
 
@@ -88,8 +109,8 @@ export const CREATURES: Record<string, CreatureDef> = {
 			// The clip opens with three seconds of clutching at its throat; start as it buckles.
 			die: { clip: 'Strangled_and_Fall_Forward', speed: 1.8, start: 3.2 }
 		},
-		// It creeps up low, and walks upright when it has lost them.
-		gait: { stalk: 'crouch', burst: 'running', search: 'walking' },
+		// It walks upright on patrol, and creeps up low.
+		gait: { patrol: 'walking', alert: 'idle', stalk: 'crouch', burst: 'running' },
 		movement: {
 			...MOVEMENT,
 			// Creatures use the player movement code with their own speeds; stance is always stand.
@@ -101,19 +122,23 @@ export const CREATURES: Record<string, CreatureDef> = {
 		burstSpeed: 5.5,
 		creepTime: [1.2, 2.5],
 		burstTime: [0.6, 1.0],
-		searchTime: 14,
+		patrol: { radius: 15, pause: [2, 6] },
+		alert: { wait: [2.5, 4.5], maxWait: 8, linger: 4 },
 		attack: { range: 1.6, windup: 0.5, duration: 1.4, damage: 30, cooldown: 1.6 },
 		perception: {
 			hear: { sprint: 12, walk: 6, crouch: 3, crawl: 2, creep: 1.5, swim: 7 },
-			lampSight: 10,
+			alertRange: 14,
+			agro: { litRange: 10, darkRange: 3.5 },
 			touch: 2.5,
-			forget: 12
+			evadeTime: 6
 		},
 		health: 120,
 		stagger: { threshold: 20, seconds: 0.5 },
 		hitRadius: 0.35,
 		corpseTime: 4,
-		visibleBand: [0.04, 0.45],
+		// Seen in any light but the faintest; a bright lamp doesn't hide it.
+		visibleBand: [0.04, Infinity],
+		breath: { range: 6 },
 		spawn: { count: [1, 2], minDistance: 25 }
 	}
 };

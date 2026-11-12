@@ -96,5 +96,12 @@ export const AUDIO_SOURCES: AudioSource[] = [
 		file: ['creepy_ambience_1.wav', 'creepy_ambience_2.wav'],
 		rate: 22050
 	},
-	{ id: 'ambience.horror', file: 'horror_ambient.mp3', crop: { start: 4, length: 12 }, rate: 22050 }
+	{
+		id: 'ambience.horror',
+		file: 'horror_ambient.mp3',
+		crop: { start: 4, length: 12 },
+		rate: 22050
+	},
+	// A creature's breathing, looped; heard close by (see Creatures.ts).
+	{ id: 'creature.breath', file: 'sfx_witch_breathing.mp3', loopCrossfade: 0.5, keepSilence: true }
 ];

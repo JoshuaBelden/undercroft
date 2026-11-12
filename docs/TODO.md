@@ -17,7 +17,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- Update creature ai so explorers can hide from them
 - We need bigger maps with multiple extraction rooms
 - Chalk marks on walls (one per stick)
 - Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant. Add hint lore that shows up.

@@ -125,7 +125,7 @@ So you see teammates about 100 ms plus latency in the past, and the local player
 
 `headlampOutput(state, model)` returns the light's intensity, range and cone for this instant.
 
-- **Flicker:** deterministic, driven by the lamp's `lampClock` (seconds lit, part of the state) through a hash. The server can therefore later ask whether a lamp is flickering, for the half-light Thrall, and get the same answer the client renders.
+- **Flicker:** deterministic, driven by the lamp's `lampClock` (seconds lit, part of the state) through a hash. The server can therefore later ask whether a lamp is flickering, for creature visibility, and get the same answer the client renders.
 - **Low battery:** below `flicker.lowBattery`, the lamp dims and flickers more.
 
 `Headlamp.ts` puts a `SpotLight` on the player's head: an object at the eyes, facing where they look. In first person that is where the camera is; over the shoulder the camera hangs back and the lamp stays on the head, which is where the server works out the light from. It casts one shadow on medium and high quality, and it counts toward `LIGHT_BUDGET`. The scene's ambient light is almost black, so the headlamp is the light.
@@ -246,10 +246,10 @@ Applied by the server (`server/session.ts`) each tick:
 
 - **Attacks:** a creature's hit takes `attack.damage`, less what the item in the defense slot takes off (`defenseReduction`).
 - **Darkness:** `darknessDrain`/s while your lamp gives no light (off or flat) and other players' lamps put less than 0.02 on your eye.
-- **Seeing:** `seeingDrain`/s while a creature is in half-light (`creatureLight` in its `visibleBand`), within `seeingRange`, inside your view cone (0.9 rad half-angle) and in line of sight.
+- **Seeing:** `seeingDrain`/s while a creature is visible (`creatureLight` in its `visibleBand`), within `seeingRange`, inside your view cone (0.9 rad half-angle) and in line of sight.
 - **God mode** (admin flag) ignores all of it.
 
-At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed player on the floor in crawl stance: they can look around and drag themselves along at `MOVEMENT.downedSpeed`, with no extraction, bandaging or items. `downedTime` counts up, and at `bleedOut` (60 s) `dead` is set. The server then sends `died` and removes the player, like `extracted`. The expedition still ends when nobody is left.
+At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed player on the floor in crawl stance: they can look around and drag themselves along at `MOVEMENT.downedSpeed`, with no bandaging or items. They can still extract: `stepDowned` runs the same `updateExtraction` (hold interact, still, at an extraction point), and the HUD shows the climb-out prompt while downed. `downedTime` counts up, and at `bleedOut` (60 s) `dead` is set. The server then sends `died` and removes the player, like `extracted`. The expedition still ends when nobody is left.
 
 **Surrender:** holding `climb` while downed counts `surrendering` up; at `SANITY.surrenderSeconds` (1 s) `dead` is set at once. `Session.down` sets `surrendering` to -1, which means the key has to be let go once first, so a key already held when going down (mid-climb) does not surrender. Both are in the shared step, so the client predicts them.
 

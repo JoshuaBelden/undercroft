@@ -51,6 +51,8 @@ export interface PieceDef {
 	levels: number;
 	sockets: PieceSocket[];
 	spawns: Vec3[];
+	/** Where creatures may start (creature-* markers). */
+	creatures: Vec3[];
 	extracts: Vec3[];
 	/** Where the rite can be initiated (rite-* markers). */
 	rites: Vec3[];

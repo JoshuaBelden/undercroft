@@ -39,7 +39,7 @@ import { CRATE_REACH } from '../src/lib/shared/items/pickup.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { aimRay, reequip } from '../src/lib/shared/items/weapons.ts';
 import { crateCentre, placeCrates } from '../src/lib/shared/map/crates.ts';
-import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
+import { creatureSpawns, roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
 import {
@@ -148,7 +148,12 @@ export class Session {
 	layout: MapLayout = generate(this.seed);
 	private world: CollisionWorld = buildCollisionWorld(this.layout, PIECES);
 	private nav: NavGrid = this.buildNav();
-	private creatures = new CreatureDirector(this.world, this.nav, this.seed);
+	private creatures = new CreatureDirector(
+		this.world,
+		this.nav,
+		creatureSpawns(this.layout, PIECES),
+		this.seed
+	);
 	private items = new WorldItems(this.world);
 	private crates!: Crates;
 	private affliction: AfflictionDirector;
@@ -510,7 +515,12 @@ export class Session {
 		this.layout = generate(seed);
 		this.world = buildCollisionWorld(this.layout, PIECES);
 		this.nav = this.buildNav();
-		this.creatures = new CreatureDirector(this.world, this.nav, seed);
+		this.creatures = new CreatureDirector(
+			this.world,
+			this.nav,
+			creatureSpawns(this.layout, PIECES),
+			seed
+		);
 		this.items = new WorldItems(this.world);
 		this.affliction = this.direct();
 		const clues = this.rite.clues;
@@ -781,7 +791,7 @@ export class Session {
 		}
 	}
 
-	/** A creature is in front of the player, in line of sight, within range and in half-light. */
+	/** A creature is in front of the player, in line of sight, within range and lit enough to see. */
 	private sees(
 		s: PlayerState,
 		eye: Vec3,

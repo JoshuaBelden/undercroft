@@ -75,6 +75,7 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 - **Markers** (empties, kebab-case prefixes):
   - `socket-<type>-<n>`: an opening, at floor level, on the footprint boundary, centred on a cell edge. The edge and cell are derived from the position.
   - `spawn-<n>`: player start. `extract-<n>`: extraction point. `rite-<n>`: where the rite is initiated.
+  - `creature-<n>`: where a creature may start, on the floor with standing room (it snaps to the nav grid within 2 m). Markers too close to the start are skipped; with too few, creatures start in dead-end corners instead (see [creatures.md](creatures.md#spawning)).
   - `crate-<n>`: where a loot crate may stand (the game fills only some). On the floor at the crate's centre, turned about Z only, with its local +Y pointing at the wall behind the crate. Leave 1.2 m of clear floor in front. `props.crate_marker(piece, x, y, wall)` adds one pushed back against the `'n'`, `'s'`, `'e'` or `'w'` wall near a point, and reports anything in its way.
 - **Collision:** `col-*` meshes are unit cubes scaled and rotated into place. They go into the manifest as oriented boxes and are stripped from the shipped model.
 - **Volumes:** `vol-<kind>-<n>` unit cubes mark gameplay volumes, such as `vol-water-0` (swimmable water) in the Cistern or `vol-squeeze-0` (slow, no sprinting) in `hall-squeeze`. Like colliders, they go into the manifest and are stripped from the model.

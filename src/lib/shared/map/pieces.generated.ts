@@ -9,6 +9,7 @@ export const PIECES: Record<string, PieceDef> = {
 		levels: 1,
 		sockets: [{ type: 'hall', cell: [0, 0], level: 0, edge: 'n' }],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -28,6 +29,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [2, 1], level: 1, edge: 'e' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -85,6 +87,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [2, 2], level: 0, edge: 'e' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [[0, 0.35, -2.4]],
 		crates: [
@@ -128,6 +131,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 1], level: 1, edge: 's' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -174,6 +178,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 0], level: 0, edge: 'e' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -234,6 +239,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -266,6 +272,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 0], level: 0, edge: 'w' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -287,6 +294,7 @@ export const PIECES: Record<string, PieceDef> = {
 		levels: 1,
 		sockets: [{ type: 'hall', cell: [0, 0], level: 0, edge: 's' }],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [{ position: [0, 0, 0.836], yaw: 0 }],
@@ -310,6 +318,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 1], level: 1, edge: 's' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -347,6 +356,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 0], level: 0, edge: 's' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [
@@ -381,6 +391,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 0], level: 0, edge: 's' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -412,6 +423,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -435,6 +447,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 0], level: 0, edge: 's' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -458,6 +471,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 0], level: 0, edge: 'e' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
@@ -485,6 +499,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [2, 0], level: 0, edge: 'e' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [
@@ -528,6 +543,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [2, 2], level: 0, edge: 'e' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [
@@ -573,6 +589,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [1, 1], level: 0, edge: 'e' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [
@@ -613,6 +630,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'hall', cell: [0, 0], level: 0, edge: 's' }
 		],
 		spawns: [],
+		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [
@@ -639,6 +657,7 @@ export const PIECES: Record<string, PieceDef> = {
 		levels: 1,
 		sockets: [{ type: 'hall', cell: [1, 0], level: 0, edge: 'e' }],
 		spawns: [[-1.5, 0, 0]],
+		creatures: [],
 		extracts: [[-3.2, 0, 0]],
 		rites: [],
 		crates: [{ position: [1, 0, -1.41], yaw: 0 }],

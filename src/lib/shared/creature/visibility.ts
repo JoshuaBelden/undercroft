@@ -6,10 +6,10 @@ import { eyeHeight } from '../player/simulate.ts';
 import type { PlayerState } from '../player/types.ts';
 
 /**
- * Half-light. Creatures are seen only when the light on them is in a narrow band: a low lamp, the
- * fringe of a bright beam, or a bright lamp mid-flicker. Full light and darkness both hide them.
- * Deterministic from player state, so the server ("seeing it" drains sanity) and every client
- * (whether to draw it) agree. See docs/dev/creatures.md.
+ * Creature visibility. Creatures are seen only when the light on them is within their band
+ * (`visibleBand`): darkness always hides them, and a creature with a finite upper bound hides in
+ * full light too (half-light). Deterministic from player state, so the server ("seeing it" drains
+ * sanity) and every client (whether to draw it) agree. See docs/dev/creatures.md.
  */
 
 /** Illumination is measured against the starter lamp's bright mode at point blank (= 1). */
@@ -84,7 +84,7 @@ export function creatureLight(
 	return Math.max(...bodySamples(position, height).map((p) => illumination(world, list, p)));
 }
 
-/** Visible in half-light: some light, but not too much. */
+/** Visible: enough light on it, and (for a finite upper bound) not too much. */
 export function halfLightVisible(light: number, band: [number, number]): boolean {
 	return light >= band[0] && light <= band[1];
 }

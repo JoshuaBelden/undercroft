@@ -30,3 +30,10 @@ export function roomPoints(
 			};
 		});
 }
+
+/** Where creatures may start: every creature-* marker in the map, in world space. */
+export function creatureSpawns(layout: MapLayout, pieces: Record<string, PieceDef>): Vec3[] {
+	return layout.placements.flatMap((placement) =>
+		(pieces[placement.piece]?.creatures ?? []).map((local) => toWorld(placement, local))
+	);
+}
