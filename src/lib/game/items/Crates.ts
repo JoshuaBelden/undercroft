@@ -16,14 +16,16 @@ interface Shown {
 }
 
 const MODEL = '/assets/props/crate.glb';
+const CORPSE_MODEL = '/assets/props/corpse.glb';
 const LID = 'crate-lid';
 const HIGHLIGHT = new THREE.Color(0x2a2418);
 /** Seconds the lid takes to swing up. */
 const LID_TIME = 0.5;
 
 /**
- * Loot crates. Where they stand comes with the map layout; each tick says which have been opened
- * (their lids stay up) and which someone is going through. The one you'd open glows faintly.
+ * Loot crates, and the corpses searched like them. Where they lie comes with the map layout; each
+ * tick says which have been opened (crate lids stay up) and which someone is going through. The
+ * one you'd open glows faintly.
  * See docs/dev/items.md.
  */
 export class Crates {
@@ -39,13 +41,13 @@ export class Crates {
 		this.root.name = 'crates';
 	}
 
-	/** Put a crate at each place in the layout. */
+	/** Put a crate (or a corpse) at each place in the layout. */
 	build(placements: CratePlacement[]): void {
 		this.clear();
 		this.placements = placements;
 		const id = this.buildId;
 		for (const placement of placements) {
-			void loadModel(MODEL).then((model) => {
+			void loadModel(placement.kind === 'corpse' ? CORPSE_MODEL : MODEL).then((model) => {
 				// A newer map was loaded while this one was on its way.
 				if (id !== this.buildId) return;
 				model.position.set(...placement.position);
@@ -72,6 +74,11 @@ export class Crates {
 	apply(snapshot: CratesSnapshot): void {
 		this.opened = new Set(snapshot.open);
 		this.busy = new Set(snapshot.busy);
+	}
+
+	/** What stands at this id: a corpse, or (undefined) a crate. */
+	kind(id: string): CratePlacement['kind'] {
+		return this.placements.find((placement) => placement.id === id)?.kind;
 	}
 
 	/** Someone else is going through it. */

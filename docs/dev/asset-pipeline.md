@@ -75,6 +75,7 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 - **Markers** (empties, kebab-case prefixes):
   - `socket-<type>-<n>`: an opening, at floor level, on the footprint boundary, centred on a cell edge. The edge and cell are derived from the position.
   - `spawn-<n>`: player start. `extract-<n>`: extraction point, at the foot of a ladder made with `extraction_ladder` (see `build_extraction_shaft`, and `add_chapel_extraction`, which added one to the hand-edited chapel without rebuilding it). `rite-<n>`: where the rite is initiated.
+  - `rubble-<n>`: a collapsed wall, on the floor at the foot of the fall. Bricks lie only by these, 1 to 3 at each (see [items.md](items.md)).
   - `creature-<n>`: where a creature may start, on the floor with standing room (it snaps to the nav grid within 2 m). Markers too close to the start are skipped; with too few, creatures start in dead-end corners instead (see [creatures.md](creatures.md#spawning)).
   - `crate-<n>`: where a loot crate may stand (the game fills only some). On the floor at the crate's centre, turned about Z only, with its local +Y pointing at the wall behind the crate. Leave 1.2 m of clear floor in front. `props.crate_marker(piece, x, y, wall)` adds one pushed back against the `'n'`, `'s'`, `'e'` or `'w'` wall near a point, and reports anything in its way.
 - **Collision:** `col-*` meshes are unit cubes scaled and rotated into place. They go into the manifest as oriented boxes and are stripped from the shipped model.
@@ -132,13 +133,15 @@ Whatever its source, an item over 6,000 triangles is simplified down to that, an
 
 ### Props
 
-Things that stand in the map but aren't part of a piece: for now the loot crate. `scripts/blender/props.py` builds them in the kit .blend, each in a `prop-<name>` collection under a root empty; as with pieces and items, building skips a collection that exists.
+Things that stand in the map but aren't part of a piece: the loot crate and the corpse. `scripts/blender/props.py` builds them in the kit .blend, each in a `prop-<name>` collection under a root empty; as with pieces and items, building skips a collection that exists.
 
 - **Origin:** on the floor, centred. The front faces -Y; the back (+Y) goes against a wall.
 - **Moving parts** are their own objects with the origin on the pivot. The crate's lid, `crate-lid`, has its origin on the back top edge; the game turns it about its X axis.
 - **Materials:** textured, from the sets in `kit.MATERIALS` (`mat-prop-planks` uses `Planks025A`).
 
 `props.export_all()` writes `art/export/props/<name>.glb`. `pnpm asset:build` re-encodes the textures to WebP at 512 px and writes `static/assets/props/<name>.glb`, keeping node names (the game looks the lid up by name).
+
+**Props from elsewhere** (scanned or generated, like `corpse.glb`: heavy, sitting anywhere) go in `art/export/props/` as they are, with an entry in `PROP_FIT` in `scripts/build-assets.ts`. The build stands them on the floor (lowest point at y = 0), centres them on the origin and simplifies them to the entry's `tris` (the corpse: 2 million to 12,000 triangles, 64.7 MB to about 600 KB). A static model belongs here, not in `art/export/creatures/` (that pass is for rigged, animated models and simplifies nothing).
 
 ## Audio
 

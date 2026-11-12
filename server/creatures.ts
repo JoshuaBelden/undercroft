@@ -121,6 +121,8 @@ const MIN_PATROL_STEP = 4;
 const MARKER_SNAP = 2;
 /** Spawned creatures keep at least this far apart. */
 const SPREAD = 20;
+/** Seconds before trying again to bring back a creature that found no spot far enough away. */
+const RESPAWN_RETRY = 5;
 
 export class CreatureDirector {
 	private creatures: Creature[] = [];
@@ -128,6 +130,8 @@ export class CreatureDirector {
 	private nextId = 1;
 	/** Nav points of the map's creature-* markers. */
 	private markers: number[];
+	/** Killed creatures waiting to come back: their kind, and seconds left. */
+	private respawns: { kind: string; left: number }[] = [];
 
 	constructor(
 		private world: CollisionWorld,
@@ -231,6 +235,7 @@ export class CreatureDirector {
 
 	clear(): void {
 		this.creatures = [];
+		this.respawns = [];
 	}
 
 	/** Admin: kill every creature. */
@@ -295,11 +300,33 @@ export class CreatureDirector {
 		c.path = [];
 		c.body.velocity = [0, c.body.velocity[1], 0];
 		this.kills++;
+		this.respawns.push({ kind: c.def.id, left: c.def.spawn.respawnSeconds });
+	}
+
+	/**
+	 * Bring back killed creatures whose time is up, far from every player. With nowhere far enough
+	 * just now, try again a little later.
+	 */
+	private respawn(prey: Prey[]): void {
+		if (!this.respawns.length) return;
+		for (const r of this.respawns) r.left -= TICK_DT;
+		const due = this.respawns.filter((r) => r.left <= 0);
+		if (!due.length) return;
+		const players = prey.map((p) => p.state.position);
+		for (const r of due) {
+			const def = CREATURES[r.kind];
+			if (def && players.length && !this.spawnFar(players, def.spawn.minDistance, r.kind)) {
+				r.left = RESPAWN_RETRY;
+				continue;
+			}
+			this.respawns.splice(this.respawns.indexOf(r), 1);
+		}
 	}
 
 	/** Advance every creature by one server tick. Returns the hits that landed. */
 	step(prey: Prey[]): CreatureHit[] {
 		const hits: CreatureHit[] = [];
+		this.respawn(prey);
 		const targets = prey.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
 		for (const c of this.creatures) {
 			if (c.mode === 'dead') {

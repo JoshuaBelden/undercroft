@@ -30,6 +30,7 @@ export const CRATE_LOOT: LootEntry[] = [
 	{ item: 'candle', count: [1, 3], weight: [4, 3] },
 	{ item: 'tooth', count: [1, 2], weight: [5, 4] },
 	{ item: 'signet', count: [1, 1], weight: [3, 4] },
+	{ item: 'battery', count: [1, 1], weight: [5, 5] },
 	{ item: 'candlestick', count: [1, 1], weight: [1, 1] },
 	{ item: 'chalice', count: [1, 1], weight: [1, 1] },
 	{ item: 'relic', count: [1, 1], weight: [1, 1] }
@@ -40,16 +41,19 @@ export const CRATE_LOOT: LootEntry[] = [
  * has more. Each one above the fewest is there with probability `chance` (near the start, and at
  * the far end of the map), so deep crates lean toward the top of each range.
  *
- * A crate never holds both an epic and a legendary. If all of it is more than the crate has
- * slots, the commonest are left out. Slots are filled commonest first, so the best is revealed
- * last.
+ * A crate never holds both an epic and a legendary, nor the same thing twice. If all of it is more
+ * than the crate has slots, the commonest are left out. Slots are filled commonest first, so the
+ * best is revealed last.
+ *
+ * Tuned for about 20 crates a map: a few rares, an epic in about half of maps, a legendary in about
+ * one in five, nearly all of them deep.
  */
 export const CRATE_RARITY: Record<Rarity, { count: [number, number]; chance: [number, number] }> = {
-	common: { count: [1, 5], chance: [0.35, 0.6] },
-	uncommon: { count: [0, 3], chance: [0.25, 0.5] },
-	rare: { count: [0, 2], chance: [0.1, 0.3] },
-	epic: { count: [0, 1], chance: [0.04, 0.15] },
-	legendary: { count: [0, 1], chance: [0.01, 0.06] }
+	common: { count: [1, 4], chance: [0.25, 0.45] },
+	uncommon: { count: [0, 2], chance: [0.12, 0.25] },
+	rare: { count: [0, 1], chance: [0.04, 0.15] },
+	epic: { count: [0, 1], chance: [0.004, 0.05] },
+	legendary: { count: [0, 1], chance: [0.001, 0.02] }
 };
 
 /** Loot crates: where they stand, opening one and going through it. */
@@ -62,7 +66,7 @@ export const CRATES = {
 	/** Seconds it takes to see what is in a slot. Slots are revealed one at a time. */
 	revealSeconds: 1,
 	/** Chance that a crate marker in a piece has a crate. */
-	fill: 0.45,
+	fill: 0.35,
 	/** None closer than this to where players start (m, in a straight line). */
 	minDistance: 10,
 	/**
@@ -74,6 +78,23 @@ export const CRATES = {
 	noise: 6,
 	/** How far the lid swings open (radians). */
 	lidAngle: 1.9
+};
+
+/**
+ * The dead: searched like crates (the same slots, loot and reveal), lying by the walls in place
+ * of some of the crates. Not solid: you can step over them.
+ */
+export const CORPSES = {
+	/** About this share of a map's crates are corpses instead (where a body fits). */
+	share: 1 / 3,
+	/** The built model's footprint: across, high, deep (m). Room it needs, clear of walls. */
+	size: [2.15, 0.9, 1.75] as [number, number, number],
+	/** How far (m) inside that footprint must be clear of walls: the body doesn't fill its corners. */
+	inset: 0.2,
+	/** Height (m) of the middle looked at to search one. */
+	lookHeight: 0.35,
+	/** Radius (m) searching one can be heard: quieter than a crate's lid. */
+	noise: 3
 };
 
 /** Loot lying loose on the floor: sparse, and nothing better than uncommon. */

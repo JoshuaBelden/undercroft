@@ -8,6 +8,8 @@
 		self: boolean;
 		/** 0..1 (sanity is health). */
 		health: number;
+		/** 0..1 of what is worn in the defense slot; null with nothing worn (or not known). */
+		shield: number | null;
 		/** 0..1; breath while underwater. */
 		stamina: number;
 		exhausted: boolean;
@@ -42,6 +44,11 @@
 				<span class="tag">{member.name || 'Explorer'}</span>
 				{#if member.downed}<span class="state">Downed</span>{/if}
 			</div>
+			{#if member.shield !== null}
+				<div class="bar shield" aria-label="Shield">
+					<div class="fill" style:width="{member.shield * 100}%"></div>
+				</div>
+			{/if}
 			<div class="bar health" class:low={member.health < 0.4} aria-label="Health">
 				<div class="fill" style:width="{member.health * 100}%"></div>
 			</div>
@@ -112,6 +119,10 @@
 	.fill {
 		height: 100%;
 		transition: width 0.25s ease-out;
+	}
+
+	.shield .fill {
+		background: rgb(170 185 200 / 0.7);
 	}
 
 	.health .fill {

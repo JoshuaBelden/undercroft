@@ -24,13 +24,14 @@
 	import { ITEMS } from '#lib/content/items.ts';
 	import { DISTANT_SHOT } from '#lib/content/audio/sounds.ts';
 	import { CRATES } from '#lib/content/loot.ts';
-	import { canTake, carriedCount, held, quickWith } from '#lib/shared/items/inventory.ts';
+	import { canTake, carriedCount, held, quickWith, shieldOf } from '#lib/shared/items/inventory.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
 	import { lookedAtCrate, lookedAtItem, lookedAtMark } from '#lib/shared/items/pickup.ts';
 	import type { CrateSlot, GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
-	import { eyeHeight, healing } from '#lib/shared/player/simulate.ts';
+	import { charging, eyeHeight, healing } from '#lib/shared/player/simulate.ts';
+	import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
@@ -50,7 +51,7 @@
 	import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
 	import { nearExtract } from '#lib/shared/player/simulate.ts';
 	import { EXPEDITION } from '#lib/content/expedition.ts';
-	import { bindingLabel } from '#lib/game/input/actions.ts';
+	import { bindingLabel, type Action } from '#lib/game/input/actions.ts';
 	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
 	import {
 		HAND,
@@ -88,8 +89,15 @@
 	let canvas: HTMLCanvasElement;
 	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'crate';
 	let panel = $state<PanelName | null>(null);
-	/** The loot crate that is open, as the server tells it (see the `crate` message). */
-	let crate = $state<{ id: string; slots: CrateSlot[]; reveal: number } | null>(null);
+	/**
+	 * The loot crate (or corpse) that is open, as the server tells it (see the `crate` message).
+	 */
+	let crate = $state<{
+		id: string;
+		slots: CrateSlot[];
+		reveal: number;
+		corpse: boolean;
+	} | null>(null);
 	/** The rite as known so far, and (while its overlay shows) who carries each requirement. */
 	let rite = $state<RiteSnapshot | null>(null);
 	/** The rite overlay is wanted: it shows over play whenever there is a rite to show. */
@@ -114,10 +122,12 @@
 	let spawned = $state(false);
 	let hud = $state({
 		battery: 1,
+		volts: DEFAULT_HEADLAMP.volts,
 		headlamp: 1,
 		stance: 'stand',
 		creep: false,
 		prompt: null as string | null,
+		promptKey: null as string | null,
 		progress: 0,
 		sanity: 1,
 		hurt: 0,
@@ -202,6 +212,12 @@
 	 * until then is old news, and must not open the screen again.
 	 */
 	let leavingCrate = false;
+
+	/** Worth the happy cue when found: epic, legendary, or a quest item. */
+	function prize(item: string): boolean {
+		const def = ITEMS[item];
+		return !!def && (def.quest === true || def.rarity === 'epic' || def.rarity === 'legendary');
+	}
 
 	/** Done with the loot crate: tell the server, and straight back to play. */
 	function closeCrate(): void {
@@ -349,7 +365,23 @@
 							crate = null;
 						} else if (expedition && !leavingCrate) {
 							// Sent every tick while it is open: only what changed is worth redrawing.
-							const next = { id: message.id, slots: message.slots, reveal: message.reveal };
+							const next = {
+								id: message.id,
+								slots: message.slots,
+								reveal: message.reveal,
+								corpse: crates.kind(message.id) === 'corpse'
+							};
+							// Something special just revealed (not one seen before the crate was opened).
+							const before = crate?.id === next.id ? crate.slots : null;
+							if (
+								before &&
+								next.slots.some(
+									(slot, i) =>
+										before[i] === 'hidden' && slot && slot !== 'hidden' && prize(slot.item)
+								)
+							) {
+								sounds.play('loot.found');
+							}
 							if (JSON.stringify(next) !== JSON.stringify(crate)) crate = next;
 							if (panel !== 'crate') {
 								panel = 'crate';
@@ -427,27 +459,41 @@
 		let heartbeat: SoundHandle | null = null;
 		let heartbeatStarting = false;
 		let lastSanity: number | null = null;
+		/** Shield points left on what is worn, last frame (a drop is a blow it took). */
+		let lastShield: number | null = null;
+		/** Headlamp charge last frame (a jump up is a battery going in). */
+		let lastBattery: number | null = null;
+		/** Seconds to the next low-battery beep while the lamp is low; null while it isn't. */
+		let lowBatteryIn: number | null = null;
+		/** Bandaging last frame (starting plays the sound), and when it last played (ms). */
+		let wasBandaging = false;
+		let bandageSoundAt = 0;
 		let shake = 0;
 		let whisperIn = 8;
 		const lookDir = new THREE.Vector3();
 
-		/** World cell + level -> title of the room there (titled start and major rooms). */
+		/** World cell + level -> title of the room there (titled start, major and extraction rooms). */
 		let roomCells: Record<string, string> = {};
-		let seenRooms: Record<string, boolean> = {};
+		/** World cell + level -> which titled room (its placement index), so two alike are told apart. */
+		let roomIds: Record<string, number> = {};
+		/** The titled room the player was last in; null in the passages between. */
+		let inRoom: number | null = null;
 		let bannerCheck = 0;
 
 		function loadMap(layout: MapLayout): void {
 			seed = layout.seed;
 			roomCells = {};
-			seenRooms = {};
-			for (const placement of layout.placements) {
+			roomIds = {};
+			inRoom = null;
+			layout.placements.forEach((placement, index) => {
 				const title = MAP_KIT[placement.piece]?.title;
 				const piece = PIECES[placement.piece];
-				if (!title || !piece) continue;
+				if (!title || !piece) return;
 				for (const [x, z, level] of occupiedCells(piece, placement)) {
 					roomCells[cellKey(x, z, level)] = title;
+					roomIds[cellKey(x, z, level)] = index;
 				}
-			}
+			});
 			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
 			void map.build(layout);
 			crates.build(layout.crates);
@@ -485,6 +531,10 @@
 			remote.setHidden(null);
 			heartbeat?.setVolume(0);
 			lastSanity = null;
+			lastShield = null;
+			lastBattery = null;
+			lowBatteryIn = null;
+			wasBandaging = false;
 			manifestation.clear();
 			ambience.setOmen(null);
 			player.leave();
@@ -539,6 +589,10 @@
 			player.leave();
 			heartbeat?.setVolume(0);
 			lastSanity = null;
+			lastShield = null;
+			lastBattery = null;
+			lowBatteryIn = null;
+			wasBandaging = false;
 			banner = null;
 			downed = null;
 			document.exitPointerLock();
@@ -570,14 +624,16 @@
 			endExpedition();
 		};
 
-		/** Show a room's banner the first time the player enters it this expedition. */
+		/** Show a room's banner every time the player walks into it. */
 		function checkRoom(position: Vec3): void {
 			const [cx, cz] = worldCell(position[0], position[2]);
 			const level = Math.floor((position[1] + 0.5) / LEVEL_HEIGHT);
-			const title = roomCells[cellKey(cx, cz, level)];
-			if (!title || seenRooms[title]) return;
-			seenRooms[title] = true;
-			banner = { title, key: (banner?.key ?? 0) + 1 };
+			const key = cellKey(cx, cz, level);
+			const room = roomIds[key] ?? null;
+			if (room === inRoom) return;
+			inRoom = room;
+			const title = roomCells[key];
+			if (room !== null && title) banner = { title, key: (banner?.key ?? 0) + 1 };
 		}
 
 		/** Standing in the room the rite is held in (once a clue has told where that is). */
@@ -630,6 +686,8 @@
 				if (event.kind === 'shot') {
 					const gun = ITEMS[event.item]?.firearm;
 					if (gun) sounds.play(gun.sound);
+					// The kick throws your aim up and a little aside: you bring it back down yourself.
+					if (gun) player.kick(gun.recoil.pitch, (Math.random() * 2 - 1) * gun.recoil.yaw);
 					const heavy = (gun?.pellets ?? 1) > 1;
 					// First person, the flare is on the gun in your hands; otherwise in the world.
 					const drawn = viewModel.flash(heavy);
@@ -702,7 +760,9 @@
 					sounds.playAt('brick.land', event.position, 1, 4);
 					break;
 				case 'break':
-					sounds.playAt('brick.break', event.position, 1, 3);
+					// A coat torn through, or a brick or crowbar worn out.
+					if (ITEMS[event.item]?.defense) sounds.playAt('defense.torn', event.position, 1, 3);
+					else sounds.playAt('brick.break', event.position, 1, 3);
 					break;
 				case 'reload': {
 					const gun = ITEMS[event.item]?.firearm;
@@ -714,6 +774,7 @@
 					break;
 				case 'pickup':
 					sounds.playAt('item.pickup', event.position, 1, 2);
+					if (event.player === self && prize(event.item)) sounds.play('loot.found');
 					break;
 				case 'drop':
 					sounds.playAt('item.drop', event.position, 1, 2);
@@ -725,7 +786,9 @@
 					sounds.playAt('chalk.rub', event.position, 1, 2);
 					break;
 				case 'crateOpen':
-					sounds.playAt('crate.open', event.position, 1, 4);
+					if (crates.kind(event.id) === 'corpse')
+						sounds.playAt('corpse.search', event.position, 1, 3);
+					else sounds.playAt('crate.open', event.position, 1, 4);
 					break;
 				case 'rummage':
 					// Your own hands are right there; someone else's are heard from where they are.
@@ -891,6 +954,12 @@
 		}
 
 		/** The one held-action prompt to show, with its progress. */
+		/** What is worn's shield left, 0..1; null with nothing worn. */
+		function shieldFill(state: PlayerState): number | null {
+			const shield = shieldOf(state.inventory);
+			return shield ? shield.left / shield.max : null;
+		}
+
 		/** Everyone on the expedition for the party HUD: teammates first, this player last. */
 		function party(state: PlayerState): PartyMember[] {
 			const member = (id: string, name: string, one: PlayerState, self: boolean) => ({
@@ -898,6 +967,8 @@
 				name,
 				self,
 				health: one.sanity / SANITY.max,
+				// Teammates' gear isn't in the snapshot: only this player's own shield shows.
+				shield: self ? shieldFill(one) : null,
 				stamina: one.stamina / MOVEMENT.stamina.max,
 				exhausted: one.exhausted,
 				underwater: one.underwater,
@@ -909,65 +980,52 @@
 			];
 		}
 
-		function heldPrompt(state: PlayerState): { prompt: string | null; progress: number } {
+		function heldPrompt(state: PlayerState): {
+			prompt: string | null;
+			promptKey?: string;
+			progress: number;
+		} {
 			if (state.downed) {
 				// The only thing a downed player can still do: climb out.
-				const extract = extractPrompt(state);
-				return extract
-					? { prompt: extract, progress: state.extracting / EXPEDITION.extractSeconds }
-					: { prompt: null, progress: 0 };
+				return extractPrompt(state) ?? { prompt: null, progress: 0 };
 			}
 			const heal = healing(state);
 			if (heal && state.bandaging > 0) {
 				return { prompt: 'Bandaging...', progress: state.bandaging / heal.seconds };
 			}
+			const charge = charging(state);
+			if (charge && state.charging > 0) {
+				return { prompt: 'Changing the battery...', progress: state.charging / charge.seconds };
+			}
 			if (downedNearby(state)) {
 				if (quickWith(state.inventory, 'revive') < 0) {
 					return { prompt: 'No smelling salts to hand', progress: 0 };
 				}
-				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
-				return {
-					prompt: state.reviving > 0 ? 'Reviving...' : `Hold ${key} to revive`,
-					progress: state.reviving / SANITY.reviveSeconds
-				};
+				return keyPrompt('interact', 'to revive', state.reviving / SANITY.reviveSeconds);
 			}
 			if (rite && inRiteRoom(state.position) && carriesAll(state.inventory, rite.requirements)) {
-				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
-				return {
-					prompt:
-						state.performing > 0 ? 'Performing the rite...' : `Hold ${key} to perform the rite`,
-					progress: state.performing / rite.seconds
-				};
+				return keyPrompt('interact', 'to perform the rite', state.performing / rite.seconds);
 			}
 			const extract = extractPrompt(state);
-			if (extract)
-				return { prompt: extract, progress: state.extracting / EXPEDITION.extractSeconds };
+			if (extract) return extract;
 			if (crateTarget && settings.interface.itemPrompts) {
 				if (crates.inUse(crateTarget))
 					return { prompt: 'Someone is going through it', progress: 0 };
-				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
-				return {
-					prompt: state.opening > 0 ? 'Opening...' : `Hold ${key} to open the crate`,
-					progress: state.opening / CRATES.openSeconds
-				};
+				// Crates and bodies alike.
+				return keyPrompt('interact', 'to search', state.opening / CRATES.openSeconds);
 			}
 			if (pickupTarget && settings.interface.itemPrompts) {
-				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
 				const name = ITEMS[pickupTarget.item]?.name ?? pickupTarget.item;
 				if (ITEMS[pickupTarget.item]?.kind === 'clue') {
-					return { prompt: `Press ${key} to read the ${name.toLowerCase()}`, progress: 0 };
+					return keyPrompt('interact', `to read the ${name.toLowerCase()}`);
 				}
 				const fit = canTake(state.inventory, { item: pickupTarget.item, count: 1 });
 				if (fit === 'heavy') return { prompt: name + ': too heavy to carry', progress: 0 };
 				if (fit === 'full') return { prompt: name + ': no room for it', progress: 0 };
-				return { prompt: `Press ${key} to pick up ${name}`, progress: 0 };
+				return keyPrompt('interact', `to pick up ${name}`);
 			}
 			if (markTarget && settings.interface.itemPrompts) {
-				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
-				return {
-					prompt: state.erasing > 0 ? 'Rubbing it out...' : `Hold ${key} to erase your mark`,
-					progress: state.erasing / MARKS.eraseSeconds
-				};
+				return keyPrompt('interact', 'to erase your mark', state.erasing / MARKS.eraseSeconds);
 			}
 			if (
 				holdingChalk(state) &&
@@ -975,8 +1033,7 @@
 				settings.interface.itemPrompts &&
 				chalkSpot(state)
 			) {
-				const key = settings.bindings.attack.map(bindingLabel).join(' / ') || 'Attack';
-				return { prompt: `Hold ${key} to draw a mark`, progress: 0 };
+				return keyPrompt('attack', 'to draw a mark');
 			}
 			return { prompt: null, progress: 0 };
 		}
@@ -988,6 +1045,35 @@
 			return 'No one is coming';
 		}
 
+		/**
+		 * The headlamp and bandages: a battery going in, the low-battery beep (on crossing under
+		 * `lowAlert.volts`, then every `lowAlert.seconds` while the lamp is on), and binding a wound.
+		 */
+		function lampSounds(state: PlayerState, delta: number): void {
+			if (lastBattery !== null && state.battery > lastBattery + 0.05)
+				sounds.play('battery.charged');
+			lastBattery = state.battery;
+			const { lowAlert, volts } = DEFAULT_HEADLAMP;
+			const charge = state.battery * volts;
+			if (state.headlamp > 0 && charge > 0 && charge < lowAlert.volts && !state.downed) {
+				lowBatteryIn = (lowBatteryIn ?? 0) - delta;
+				if (lowBatteryIn <= 0) {
+					sounds.play('battery.low');
+					lowBatteryIn = lowAlert.seconds;
+				}
+			} else if (charge >= lowAlert.volts || charge <= 0) {
+				// Switching the lamp off and on again doesn't restart the minute; charging it does.
+				lowBatteryIn = null;
+			}
+			const bandaging = state.bandaging > 0;
+			// One play at a time: the clip runs most of a bandage, and isn't cut short.
+			if (bandaging && !wasBandaging && performance.now() - bandageSoundAt > 2500) {
+				sounds.play('bandage');
+				bandageSoundAt = performance.now();
+			}
+			wasBandaging = bandaging;
+		}
+
 		/** Heartbeat, hurt flash and shake, and whispers, from the current sanity. */
 		function sanityEffects(state: PlayerState, delta: number): void {
 			const sanity = state.sanity / SANITY.max;
@@ -997,6 +1083,12 @@
 				sounds.play('player.hurt');
 			}
 			lastSanity = state.sanity;
+			const shield = shieldOf(state.inventory)?.left ?? null;
+			if (lastShield !== null && shield !== null && shield < lastShield - 1) {
+				shake = Math.min(1, shake + (lastShield - shield) / 60);
+				sounds.play('player.shielded');
+			}
+			lastShield = shield;
 			shake = Math.max(0, shake - delta * 2.5);
 			if (audio.unlocked && !heartbeat && !heartbeatStarting) {
 				heartbeatStarting = true;
@@ -1016,11 +1108,26 @@
 			}
 		}
 
-		function extractPrompt(state: PlayerState): string | null {
+		function extractPrompt(
+			state: PlayerState
+		): { prompt: string; promptKey?: string; progress: number } | null {
 			const world = player.collision;
 			if (!world || state.swimming || !nearExtract(world, state)) return null;
-			const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
-			return state.extracting > 0 ? 'Climbing out...' : `Hold ${key} to climb out`;
+			return keyPrompt('interact', 'to climb out', state.extracting / EXPEDITION.extractSeconds);
+		}
+
+		/**
+		 * A prompt for `action`'s key: the key as a keycap, then `text` ("to climb out"), the pill
+		 * filling with `progress` while it is held. With the action unbound, its name in words.
+		 */
+		function keyPrompt(
+			action: Action,
+			text: string,
+			progress = 0
+		): { prompt: string; promptKey?: string; progress: number } {
+			const cap = bindingLabel(settings.bindings[action][0] ?? '');
+			if (cap) return { prompt: text, promptKey: cap, progress };
+			return { prompt: `${action[0].toUpperCase()}${action.slice(1)} ${text}`, progress };
 		}
 
 		setMapView = (enabled) => {
@@ -1133,6 +1240,10 @@
 			headlamp.setForward(shoulder ? PLAYER_MODEL.lampForward : 0);
 			headlamp.update(state);
 			viewModel.update(delta, state, !mapView && !result && !shoulder);
+			// Aiming down the sights narrows the view, and slows the mouse to match.
+			const zoom = viewModel.zoom();
+			engine.setZoom(zoom);
+			player.lookScale = zoom;
 			playerAudio.update(state, audio.unlocked);
 			const cam = engine.camera.position;
 			engine.camera.getWorldDirection(lookDir);
@@ -1144,14 +1255,17 @@
 			spawned = !!state;
 			if (state) {
 				sanityEffects(state, delta);
+				lampSounds(state, delta);
 				onLocalEvents(state);
 				findPickup(state);
 				updateMarkLabel(state);
 				hud = {
 					battery: state.battery,
+					volts: state.battery * DEFAULT_HEADLAMP.volts,
 					headlamp: state.headlamp,
 					stance: state.stance,
 					creep: player.modes.creep,
+					promptKey: null,
 					...heldPrompt(state),
 					sanity: state.sanity / SANITY.max,
 					hurt: hud.hurt,
@@ -1261,7 +1375,7 @@
 <canvas bind:this={canvas}></canvas>
 
 {#if spawned && !mapView && !result}
-	<Hud {...hud} />
+	<Hud {...hud} lampKey={bindingLabel(settings.bindings.headlamp[0] ?? '')} />
 {/if}
 
 {#if wheel && spawned && !mapView && !result}
@@ -1285,7 +1399,7 @@
 		remaining={downed.remaining}
 		message={downed.message}
 		surrender={downed.surrender}
-		surrenderKey={settings.bindings.climb.map(bindingLabel).join(' / ') || 'Climb'}
+		surrenderKey={bindingLabel(settings.bindings.climb[0] ?? '')}
 	/>
 {/if}
 
@@ -1294,7 +1408,7 @@
 		affliction={afflictionName}
 		{rite}
 		carriers={riteCarriers}
-		interactKey={settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact'}
+		interactKey={bindingLabel(settings.bindings.interact[0] ?? '')}
 		top={settings.interface.showStats ? 96 : 16}
 	/>
 {/if}
@@ -1374,6 +1488,7 @@
 {:else if panel === 'crate' && inventory && crate}
 	<CrateScreen
 		{inventory}
+		title={crate.corpse ? 'Corpse' : 'Crate'}
 		slots={crate.slots}
 		reveal={crate.reveal}
 		moveKeys={(['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)

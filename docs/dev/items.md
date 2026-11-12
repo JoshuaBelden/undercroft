@@ -4,30 +4,30 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 
 ## Files
 
-| File                                | What                                                                 |
-| ----------------------------------- | -------------------------------------------------------------------- |
-| `src/lib/content/items.ts`          | Item definitions (data), `SLOTS`, `DEFAULT_STACK`                    |
-| `src/lib/content/carry.ts`          | Backpacks (slots) and `CARRY` (weight limits, slowdown)              |
-| `src/lib/content/loadout.ts`        | How many bricks lie around                                           |
-| `src/lib/shared/items/inventory.ts` | Inventory rules: slots, stacking, moving, equipping, weight          |
-| `src/lib/ui/InventoryScreen.svelte` | The pack screen                                                      |
-| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (pack screen and Loadout page)           |
-| `src/lib/ui/QuickWheel.svelte`      | The quick-use wheel; `wheel.ts` decides which slot is chosen         |
-| `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread |
-| `src/lib/shared/items/pickup.ts`    | Which floor item you're looking at (shared by server and client)     |
-| `src/lib/shared/items/types.ts`     | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`               |
-| `server/combat.ts`                  | Resolves shots, swings, throws and drops; damage and noise           |
-| `server/items.ts`                   | `WorldItems`: bricks scattered, pickups, drops, death drops, throws  |
-| `server/crates.ts`                  | `Crates`: what each loot crate holds, revealing it, who has it open  |
-| `src/lib/shared/map/crates.ts`      | `placeCrates`: which crate markers of a map have a crate             |
-| `src/lib/game/items/Crates.ts`      | Crate models, their lids, highlight of the one you'd open            |
-| `src/lib/ui/CrateScreen.svelte`     | The loot screen                                                      |
-| `scripts/blender/props.py`          | Builds the crate model and adds crate markers in the kit .blend      |
-| `src/lib/game/items/ViewModel.ts`   | The held item: procedural motion, own render pass                    |
-| `src/lib/game/items/WorldItems.ts`  | Floor and thrown items, highlight of what you'd pick up              |
-| `src/lib/game/items/Effects.ts`     | Muzzle flares, gun smoke, impact dust and sparks, own-shot pulse     |
-| `src/lib/game/items/flare.ts`       | The muzzle flare shader (also impact sparks)                         |
-| `scripts/blender/items.py`          | Builds the item models in the kit .blend                             |
+| File                                | What                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `src/lib/content/items.ts`          | Item definitions (data), `SLOTS`, `DEFAULT_STACK`                         |
+| `src/lib/content/carry.ts`          | Backpacks (slots) and `CARRY` (weight limits, slowdown)                   |
+| `src/lib/content/loadout.ts`        | How many bricks lie around                                                |
+| `src/lib/shared/items/inventory.ts` | Inventory rules: slots, stacking, moving, equipping, weight               |
+| `src/lib/ui/InventoryScreen.svelte` | The pack screen                                                           |
+| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (pack screen and Loadout page)                |
+| `src/lib/ui/QuickWheel.svelte`      | The quick-use wheel; `wheel.ts` decides which slot is chosen              |
+| `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread      |
+| `src/lib/shared/items/pickup.ts`    | Which floor item you're looking at (shared by server and client)          |
+| `src/lib/shared/items/types.ts`     | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`                    |
+| `server/combat.ts`                  | Resolves shots, swings, throws and drops; damage and noise                |
+| `server/items.ts`                   | `WorldItems`: bricks scattered, pickups, drops, death drops, throws       |
+| `server/crates.ts`                  | `Crates`: what each loot crate holds, revealing it, who has it open       |
+| `src/lib/shared/map/crates.ts`      | `placeCrates`: which crate markers of a map have a crate                  |
+| `src/lib/game/items/Crates.ts`      | Crate models, their lids, highlight of the one you'd open                 |
+| `src/lib/ui/CrateScreen.svelte`     | The loot screen                                                           |
+| `scripts/blender/props.py`          | Builds the crate model and adds crate markers in the kit .blend           |
+| `src/lib/game/items/ViewModel.ts`   | The held item: procedural motion, own render pass                         |
+| `src/lib/game/items/WorldItems.ts`  | Floor and thrown items, highlight of what you'd pick up                   |
+| `src/lib/game/items/Effects.ts`     | Muzzle flares, gun fire and smoke, impact dust and sparks, own-shot pulse |
+| `src/lib/game/items/flare.ts`       | The muzzle flare shader (also impact sparks)                              |
+| `scripts/blender/items.py`          | Builds the item models in the kit .blend                                  |
 
 ## Data
 
@@ -37,11 +37,12 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 - `maxStack`: how many share a slot. Weapons and defense are 1; most other things use `DEFAULT_STACK` (5); ammo has its own (30 rounds, 20 shells). An item with its own state (rounds loaded, wear) must be 1, so two never merge. 0 means it can't be carried at all (clues).
 - `flavor`: a line or two for the tooltip. `image`: optional picture id in `static/assets/images` (built by `pnpm asset:images`); without one, slots and the tooltip show the name.
 - `melee`: `damage`, `range` (from the eye), `arc` (half-angle), `windup` (hit lands), `recovery`, `noise` (radius when it hits something), optional `breaksAfter` (bricks).
-- `firearm`: `damage` per pellet, `pellets`, `spread` (hip and aimed cone), `range` and `falloff` (fraction of damage lost by the end of the range), `interval`, `magazine`, `reloadTime`, `ammo` (item id of its rounds), `noise`, `sound` (the shot) and `reloadSound` (played as a reload starts; make it last about `reloadTime`, with the sound's `rate` if needed).
+- `firearm`: `damage` per pellet, `pellets`, `spread` (hip and aimed cone), `range` and `falloff` (fraction of damage lost by the end of the range), `interval`, `magazine`, `reloadTime`, `ammo` (item id of its rounds), `noise`, `sound` (the shot) and `reloadSound` (played as a reload starts; make it last about `reloadTime`, with the sound's `rate` if needed), `zoom` (the fraction of the field of view left when aimed: revolver 0.6, shotgun 0.7) and `recoil` (`RecoilSpec`: `pitch` and `yaw` throw your view, `rise`, `back` and `settle` jolt the gun in your hands).
 - `throwable`: `speed`, `damage`, `landNoise`, `duration`.
 - `heal`: `amount` of sanity and `seconds` to apply (bandages).
+- `charge`: `volts` put back into the headlamp and `seconds` to swap it in (batteries).
 - `revive: true`: brings a downed player round (smelling salts).
-- `defense`: `reduction`, the fraction taken off a creature's attack while it is worn.
+- `defense`: `shield`, the points of creatures' blows it takes before the wearer does. The points used are kept on the stack (`ItemStack.worn`), so a worn coat stays worn after extraction; when they run out it is torn apart and gone.
 - `weight` is kg for one of it.
 
 `hold` places the model in the viewmodel: `offset` from the camera and `scale`. Firearms also give `aim`, where it moves when aiming down the sights (low and a little right, so it never covers the crosshair; without one, `AIM_OFFSET` in `ViewModel.ts`), and `muzzle`, the barrel's end in the model's own space (where the flare is drawn). `model` points at `static/assets/items/<id>.glb`. With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).
@@ -73,7 +74,7 @@ The rules are all in `src/lib/shared/items/inventory.ts`, and work on `Belonging
 - `addItem(inv, stack)`: pickups and gifts. Onto stacks of the same item, then the slot it belongs in (an empty weapon slot, the defense slot, a quick-use slot), then the backpack. Returns what didn't fit.
 - `addToSlots(slots, stack)`: the same for a plain list of slots (the stash).
 - `applyAction(b, action)`: runs an `InventoryAction` (`move`, `quick`, `equip`, `split`, `drop`). `sanitizeAction` checks one from the network.
-- `held`, `spendHeld` (one thrown or used up; a quick-use slot that empties sends the hand back to the primary weapon), `quickWith` and `spendQuick` (salts), `removeItem`, `carriedCount`, `allStacks`, `defenseReduction`.
+- `held`, `spendHeld` (one thrown or used up; a quick-use slot that empties sends the hand back to the primary weapon), `quickWith` and `spendQuick` (salts), `removeItem`, `carriedCount`, `allStacks`, `shieldOf`, `absorbBlow`.
 
 **Weight** is the one limit besides slots. Everything carried counts (`carriedWeight`). Up to `CARRY.comfortable` kg there is no effect. From there to `CARRY.max` the ground speed falls evenly to `CARRY.slowest` (`speedFactor`, applied in `stepPlayer`, so it is predicted). Nothing can be picked up, or taken from the stash, past `CARRY.max` (`heavy`). `canTake` says whether one more would fit, or why not (`heavy`, `full`); the client uses it for the pick-up prompt.
 
@@ -106,12 +107,15 @@ The held item is advanced by `stepWeapon`, called from `stepPlayer`, so it is pr
 The rules:
 
 - **Firearms** fire once per press. An empty press clicks and starts a reload if you have rounds. Reload is a press, and takes rounds from wherever they are carried (the backpack). Aiming (hold) caps speed at `aimSpeed` and tightens the spread.
+- **Zoom:** aiming narrows the camera to `firearm.zoom` of the field of view from the settings, eased in and out with the gun coming up (`ViewModel.zoom()` into `Engine.setZoom`; the viewmodel has its own camera, so the gun isn't distorted). Mouse look is slowed by the same factor (`LocalPlayer.lookScale`), so the view moves as it looks. Only in first person.
+- **Recoil:** your own shot throws your view up by `recoil.pitch` and aside by up to `recoil.yaw` either way (`LocalPlayer.kick`, worked off over about 50 ms). It moves your real aim, which goes to the server with your next frames: you bring it back on target yourself. The shotgun throws about 9 degrees, the revolver about 2. The gun in your hands turns up `recoil.rise` and comes back `recoil.back`, settling over `recoil.settle` seconds.
 - **Melee** swings repeat while attack is held. The hit is decided at `windup`.
 - **Throwables:** aim is the throw (press). One leaves the hand partway through the motion (`spendHeld`).
-- **Healing items** (`heal`): holding attack with one in the hand, standing still and hurt, counts `bandaging` up; at `heal.seconds` one is used for `heal.amount`. This is in `stepPlayer` (`updateBandage`), not `stepWeapon`. Moving, letting go or taking something else in the hand resets it.
+- **Healing items** (`heal`): holding attack with one in the hand, standing still and hurt, counts `bandaging` up; at `heal.seconds` one is used for `heal.amount`. This is in `stepPlayer` (`updateBandage`), not `stepWeapon`. The client plays `bandage` when one starts (at most once every 2.5 s: the clip runs most of a bandage and isn't cut short if it's interrupted). Moving, letting go or taking something else in the hand resets it.
+- **Batteries** (`charge`): the same, counting `charging` up (`updateCharge`), while the lamp isn't full. At `charge.seconds` one is used and `battery` rises by `charge.volts / lamp.volts` (12 V of the starter lamp's 24 V), never past full. The prompt says "Changing the battery..."; the client plays `battery.charged` when the charge jumps (`lampSounds` in the play page). Batteries are uncommon loot (`CRATE_LOOT`), not sold in the store.
 - **Drop** puts the held stack down in front of you.
 - **Switching** works any time except while downed, and takes `EQUIP_TIME`. The primary and secondary weapons have their own keys; quick-use items come from the wheel.
-- **Not while:** swimming, mantling, crawling, bandaging, reviving or downed. An action in progress is cancelled.
+- **Not while:** swimming, mantling, crawling, bandaging, changing a battery, reviving or downed. An action in progress is cancelled.
 
 What happened is reported as `SimEvent`s (`shot`, `swing`, `throw`, `drop`, `reloaded`, `empty`):
 
@@ -124,7 +128,7 @@ Pellet spread comes from `pelletDirections(direction, spread, pellets, seed)`. T
 
 - **Shots:** each pellet is a ray from the eye. It stops at the first wall (`segmentHit`) or creature (`rayVsCapsule` against `CreatureDirector.hitBodies()`). Damage per creature is summed per shot, so a shotgun blast staggers as one hit. Damage loses `falloff` linearly to the end of `range`, and keeps going at that level to 1.5× range. Gunfire calls `creatures.hear(origin, noise, shooter)`.
 - **Swings:** the nearest creature whose body is within `range` and inside the `arc` (widened by the body's angular size up close), with line of sight. A hit, or striking a wall, makes `noise`. Swinging at air is silent. Breakable items wear on every hit and break at `breaksAfter`.
-- **Defense:** a creature's attack on a player is reduced by `defenseReduction(inventory)`: the `defense.reduction` of what is in the defense slot. Darkness, seeing things and the manifestation are not reduced.
+- **Defense:** a creature's blow lands on what is in the defense slot first (`absorbBlow`, in `Session.stepCreatures`): its shield takes what it has left, and only the rest is taken off sanity. The blow that uses the last of it tears it apart: it leaves the slot and a `break` event plays `defense.torn`. The client plays `player.shielded` (and a small shake) when its shield drops, and shows the shield as a bar over your health (`PartyMember.shield`, your own only). Darkness, seeing things and the manifestation go straight to sanity.
 - **Throws:** `WorldItems.launch` simulates a projectile with gravity in sim-rate steps. It hits a creature (damage, then it drops there) or lands on the world and becomes a floor item. Landing calls `hear` with no source, so creatures go and search the spot: a lure.
 - **No friendly fire:** shots and swings only test creatures.
 - **The manifestation** is a target too while it's out (`targets()` adds it, `hurt()` routes id `manifestation` to the Affliction). Hits only damage it while light exposes it; otherwise they slow it. See [affliction.md](affliction.md).
@@ -138,8 +142,8 @@ Creatures (see [creatures.md](creatures.md)):
 
 ## World items (`server/items.ts`)
 
-- **Scatter:** bricks are seeded from the map seed, about `BRICKS_PER_CELL` per occupied cell. They go on standing nav points by walls (few neighbours), at least 3 m apart, 6 m from the start, never in water.
-- **Pick up:** pressing interact picks up the item `lookedAtItem` picks: within `PICKUP.range` of the eye, within `PICKUP.angle` of the look direction (or right at your feet), and not behind a wall. It goes where `addItem` puts it. The client highlights the same item and prompts "Press E to pick up …".
+- **Scatter:** bricks lie only by collapsed walls: `rubble-<n>` markers in the pieces (for now the rock fall in `hall-dead-end`; `rubbleSites` in `src/lib/shared/map/points.ts`). Each gets `BRICKS.perRubble` (1 to 3), on standing, dry nav points within `BRICKS.radius` (1.8 m) of it, seeded from the map seed. None by a rubble marker within 6 m of the start. To make bricks lie somewhere else, add a `rubble-<n>` empty to that piece in Blender, export it and run `pnpm asset:build`.
+- **Pick up:** pressing interact picks up the item `lookedAtItem` picks: within `PICKUP.range` of the eye, within `PICKUP.angle` of the look direction (or right at your feet), and not behind a wall. It goes where `addItem` puts it. The client highlights the same item and prompts "[E] to pick up …".
 - **Death:** when a player dies, everything they carried is dropped around where they fell.
 
 Each `tick` carries `items`, `projectiles` and `events` (`GameEvent`): shots with their end point, swing results, throws, landings, breaks, reloads, dry clicks, pickups, drops, creature hits and deaths. Clients play sounds and effects for other players from these, and impacts and hits for everyone. Your own gunshot, swing and reload sounds come from prediction instead.
@@ -166,13 +170,13 @@ Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 sl
 
 **What is in them.** `Crates` (`server/crates.ts`) rolls each crate with `rollCrate` at its depth (see [economy.md](economy.md#tables)). Every slot that holds something starts **hidden**.
 
-**Opening.** Holding interact for `CRATES.openSeconds` (1 s) on the crate `lookedAtCrate` picks opens it: within `PICKUP.range` of the eye, within `CRATE_REACH.angle` of the look direction, nothing but the crate in the way. A floor item being looked at comes first (interact picks that up). `PlayerState.opening` counts the seconds (server-driven, like `performing`), and resets if any of that stops. The client shows "Hold E to open the crate" with the same rule.
+**Opening.** Holding interact for `CRATES.openSeconds` (1 s) on the crate `lookedAtCrate` picks opens it: within `PICKUP.range` of the eye, within `CRATE_REACH.angle` of the look direction, nothing but the crate in the way. A floor item being looked at comes first (interact picks that up). `PlayerState.opening` counts the seconds (server-driven, like `performing`), and resets if any of that stops. The client prompts with the same rule: the interact key as a keycap and "to search", filling as it is held, for crates and corpses alike (with interact unbound, "Interact to search").
 
 - **One at a time:** a crate someone has open can't be opened by anyone else ("Someone is going through it").
 - **The lid:** the first time a crate is opened its lid goes up and stays up, for everyone (`crateOpen` event; `tick.crates.open`). Creatures within `CRATES.noise` hear it and come to look.
 - **It shuts** when the player closes the screen (`closeCrate`), moves more than `CRATE_REACH.leave` from it, goes down, dies, leaves or loses their connection.
 
-**Revealing.** While someone has a crate open, `Crates.step` reveals its hidden slots one at a time, lowest first, `CRATES.revealSeconds` (1 s) each. Each slot starting raises a `rummage` event (the rummage sound, for everyone near). Closing the crate part-way through a slot loses that slot's progress; slots already revealed stay revealed, for whoever opens it next. The contents were laid out commonest first, so the best comes last.
+**Revealing.** While someone has a crate open, `Crates.step` reveals its hidden slots one at a time, lowest first, `CRATES.revealSeconds` (1 s) each. Each slot starting raises a `rummage` event (the rummage sound, for everyone near). Closing the crate part-way through a slot loses that slot's progress; slots already revealed stay revealed, for whoever opens it next. The contents were laid out commonest first, so the best comes last. When a slot you are watching turns out to hold something epic, legendary or a quest item, your client plays `loot.found` (the happy cue, on the music bus so it is dry); so does picking one up off the floor (`prize` in the play page).
 
 **What the player is told.** Hidden contents never leave the server. While a crate is open its user gets a `crate` message each tick: `slots` as `CrateSlot`s (a stack, `null`, or `'hidden'`) and `reveal`, how far along (0..1) the first hidden slot is. `{ id: null }` means it has shut.
 
@@ -182,14 +186,24 @@ Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 sl
 
 **Tuning:** `CRATES` (slots, seconds, fill, size, noise). To add crate places, add `crate-<n>` markers to pieces.
 
+### Corpses
+
+The dead are searched like crates: the same 8 slots, loot tables, reveal and loot screen (titled "Corpse"). They are `layout.crates` entries with `kind: 'corpse'`, so everything about crates applies, except:
+
+- **Where:** once `placeCrates` has chosen the crates, about `CORPSES.share` (a third) of them become corpses instead, picked in their own seeded stream so which markers have crates doesn't change. The body is pushed out from the wall so its back lies where the crate's was, and turned either way round at random. A crate only becomes a corpse if `corpseFits` finds the whole footprint (`CORPSES.size`, tested `CORPSES.inset` inside its edges) clear of walls and columns, on floor all over and out of the water, and `crowds` finds no other crate in it (or corpse within a body's length); otherwise it stays a crate. About 14 crates and 7 corpses a map (in a few maps, one fewer corpse where a body didn't fit).
+- **Not solid:** `buildCollisionWorld` skips them, so you step over a body and the nav grid ignores it.
+- **Looked at:** their middle is `CORPSES.lookHeight` (0.35 m) up (`crateCentre`).
+- **Searching** has the same prompt as a crate, plays `corpse.search` (the `bag_searching` recording) instead of the lid, and is heard only `CORPSES.noise` (3 m) away. There is no lid.
+- The model is `static/assets/props/corpse.glb` (see [asset-pipeline.md](asset-pipeline.md#props)).
+
 ## Client
 
 - **ViewModel:** drawn in the engine's second pass (`viewScene`/`viewCamera`, depth cleared), so it never clips into walls.
-  - Its motion is procedural, from the predicted `weapon` state: walk bob, equip raise, swing (draw back, strike, settle), recoil, reload dip, throw, and aiming (moves to `hold.aim`, under the crosshair).
+  - Its motion is procedural, from the predicted `weapon` state: walk bob, equip raise, swing (draw back, strike, settle), recoil (by the gun's `recoil`: the shotgun slams back much harder than the revolver), reload dip, throw, and aiming (moves to `hold.aim`, under the crosshair).
   - It's lit by a fill light that follows your headlamp output, so in the dark you can barely see it.
   - `flash()` draws your own muzzle flare at `hold.muzzle` and blazes the fill for a moment. It returns false when the viewmodel isn't drawn (over the shoulder, map view), and the flare goes in the world instead.
 - **Shot light costs no light.** The light of a gunshot is the shooter's own headlamp: `Headlamp.flash()` widens its spot to a 66° half-angle, warms it and turns it up to 120 cd for 70 ms, lamp on or off, and it casts real shadows. Every player already has a headlamp in the budget, so shots never add a light, however many people fire. (`RemotePlayers.flash(id)` does it for others.) Your own shot also pulses a faint ambient light in `Effects`, so the room behind you catches a little. Ambient lights are outside the budget.
-- **Effects:** a shader muzzle flare (`flare.ts`: unlit and additive, a hot core and flame petals that change shape each shot), smoke curls that drift on from the muzzle (a lit material, so the flash and headlamps show on them), and impact dust or a dark spatter (creature), with sparks off stone.
+- **Effects:** a shader muzzle flare (`flare.ts`: unlit and additive, a hot core and flame petals that change shape each shot), tongues of flame blown forward out of the barrel (3, or 6 from the shotgun: unlit and additive, burning down `FIRE_RAMP` from white-yellow through orange to red in 0.12 to 0.26 s), a faint wisp of smoke after them (a lit material, so the flash and headlamps show on it), and impact dust or a dark spatter (creature), with sparks off stone.
 - **Gun sounds:** each gun's `sound`, `reloadSound` and `gun.empty`. Another explorer's shot crossfades from the gun's own sound into `gun.distant` between `DISTANT_SHOT.from` and `from + span` metres (`src/lib/content/audio/sounds.ts`).
 - **HUD:** what is in the hand (name and count; the "Held item" setting hides it), the ammo counter (loaded | spare in the backpack) and a tighter crosshair while aiming.
 

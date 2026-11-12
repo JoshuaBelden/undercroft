@@ -78,6 +78,7 @@ export function createPlayerState(
 		inventory,
 		weapon: idleWeapon(),
 		bandaging: 0,
+		charging: 0,
 		reviving: 0,
 		performing: 0,
 		opening: 0,
@@ -267,8 +268,14 @@ export function stepPlayer(
 	s.underwater = surface !== null && s.position[1] + eyeHeight(s, t) < surface;
 	updateExtraction(s, input, world, moving, dt);
 	updateBandage(s, input, moving);
+	updateCharge(s, input, moving);
 	const able =
-		!s.swimming && !s.mantle && s.stance !== 'crawl' && s.bandaging === 0 && s.reviving === 0;
+		!s.swimming &&
+		!s.mantle &&
+		s.stance !== 'crawl' &&
+		s.bandaging === 0 &&
+		s.charging === 0 &&
+		s.reviving === 0;
 	stepWeapon(s, input, dt, able, eyeHeight(s, t), events);
 	const heal = healing(s);
 	if (s.bandaging > 0) s.bandaging += dt;
@@ -276,6 +283,13 @@ export function stepPlayer(
 		spendHeld(s.inventory);
 		s.sanity = Math.min(SANITY.max, s.sanity + heal.amount);
 		s.bandaging = 0;
+	}
+	const charge = charging(s);
+	if (s.charging > 0) s.charging += dt;
+	if (charge && s.charging >= charge.seconds) {
+		spendHeld(s.inventory);
+		s.battery = Math.min(1, s.battery + charge.volts / lamp.volts);
+		s.charging = 0;
 	}
 	updateStamina(s, sprinting, s.underwater, dt, t);
 	updateBattery(s, dt, lamp);
@@ -312,6 +326,7 @@ function stepDowned(
 	// Crawling out still counts: drag yourself to an extraction point and hold interact.
 	updateExtraction(s, input, world, wishLen > 0.01, dt);
 	s.bandaging = 0;
+	s.charging = 0;
 	s.downedTime += dt;
 	// A key held since before going down doesn't count: it has to be let go first.
 	if (!input.climb) s.surrendering = 0;
@@ -334,6 +349,23 @@ function updateBandage(s: PlayerState, input: InputFrame, moving: boolean): void
 		input.attack && !moving && s.grounded && !s.swimming && !!healing(s) && s.sanity < SANITY.max;
 	if (!ready) s.bandaging = 0;
 	else if (s.bandaging === 0) s.bandaging = 1e-6;
+}
+
+/** The charge spec of what is in the hand (a battery), if it charges the headlamp. */
+export function charging(s: PlayerState): { volts: number; seconds: number } | undefined {
+	const stack = held(s.inventory);
+	return stack ? ITEMS[stack.item]?.charge : undefined;
+}
+
+/**
+ * Start or interrupt putting the battery in the hand into the headlamp: hold attack, standing
+ * still, with the lamp not already full. Taking something else in the hand interrupts it.
+ */
+function updateCharge(s: PlayerState, input: InputFrame, moving: boolean): void {
+	const ready =
+		input.attack && !moving && s.grounded && !s.swimming && !!charging(s) && s.battery < 1;
+	if (!ready) s.charging = 0;
+	else if (s.charging === 0) s.charging = 1e-6;
 }
 
 /** The extraction point within reach of the player, if any. */

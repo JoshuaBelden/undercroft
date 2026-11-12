@@ -19,6 +19,8 @@ import { Rng } from '../src/lib/shared/rng.ts';
 export interface Crate {
 	id: string;
 	position: Vec3;
+	/** A corpse searched like a crate; absent for a crate. */
+	kind?: 'corpse';
 	slots: Slots;
 	/** Slots holding something nobody has seen yet. They can't be touched. */
 	hidden: Set<number>;
@@ -48,13 +50,14 @@ export class Crates {
 	) {
 		const distance = gridDistances(nav, [nearestPoint(nav, start)]);
 		const far = distance.reduce((most, d) => Math.max(most, d ?? 0), 0);
-		for (const { id, position } of placements) {
+		for (const { id, position, kind } of placements) {
 			const d = distance[nearestPoint(nav, position)];
 			this.depth.set(id, far > 0 && d !== undefined ? d / far : 0);
 			this.fromStart.set(id, d ?? Infinity);
 			this.crates.set(id, {
 				id,
 				position,
+				kind,
 				slots: [],
 				hidden: new Set(),
 				user: null,

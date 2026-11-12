@@ -56,6 +56,14 @@ const ITEM_TRIS = 6000;
 const PROP_SOURCE = path.join(SOURCE_DIR, 'props');
 const PROP_OUT = path.join(ROOT, 'static', 'assets', 'props');
 const PROP_TEXTURE = 512;
+/**
+ * Props made elsewhere (scanned or generated: heavy, sitting anywhere): stood on the floor,
+ * centred on the origin and simplified to `tris`. Props built by scripts/blender/props.py are
+ * already in their frame and need no entry.
+ */
+const PROP_FIT: Record<string, { tris: number }> = {
+	corpse: { tris: 12000 }
+};
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'shared', 'map', 'pieces.generated.ts');
 const URL_BASE = '/assets/map';
 const TEXTURE_DIR = 'textures';
@@ -76,6 +84,7 @@ const MARKER_PREFIXES = [
 	'extract-',
 	'rite-',
 	'crate-',
+	'rubble-',
 	'col-',
 	'vol-'
 ];
@@ -217,6 +226,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const extracts: Vec3[] = [];
 	const rites: Vec3[] = [];
 	const crates: CrateMarker[] = [];
+	const rubble: Vec3[] = [];
 	const colliders: ColliderBox[] = [];
 	const volumes: VolumeBox[] = [];
 	const stripped: Node[] = [];
@@ -234,6 +244,8 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			extracts.push(position);
 		} else if (label.startsWith('rite-')) {
 			rites.push(position);
+		} else if (label.startsWith('rubble-')) {
+			rubble.push(position);
 		} else if (label.startsWith('crate-')) {
 			crates.push(crateFromNode(name, label, node, w, d));
 		} else if (label.startsWith('col-')) {
@@ -307,6 +319,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		extracts,
 		rites,
 		crates,
+		rubble,
 		colliders,
 		volumes,
 		triangles
@@ -491,11 +504,23 @@ async function buildItems(io: NodeIO): Promise<void> {
 	console.log(`  items: ${built.join(', ')}`);
 }
 
+/** Put a prop's lowest point on the floor (y = 0) and its middle over the origin. */
+function standOnFloor(doc: Document, name: string): void {
+	const scene = doc.getRoot().listScenes()[0];
+	const holder = doc.createNode(name);
+	for (const child of scene.listChildren()) holder.addChild(child);
+	scene.addChild(holder);
+	const b = getBounds(scene);
+	holder.setTranslation([-(b.min[0] + b.max[0]) / 2, -b.min[1], -(b.min[2] + b.max[2]) / 2]);
+}
+
 /**
  * Props: textures re-encoded to WebP, one self-contained .glb each. Nodes keep their names and
- * are not merged: the game moves some of them (the crate's lid).
+ * are not merged: the game moves some of them (the crate's lid). Ones in PROP_FIT are also stood
+ * on the floor and simplified.
  */
 async function buildProps(io: NodeIO): Promise<void> {
+	await MeshoptSimplifier.ready;
 	if (!existsSync(PROP_SOURCE)) return;
 	mkdirSync(PROP_OUT, { recursive: true });
 	for (const f of readdirSync(PROP_OUT)) if (f.endsWith('.glb')) rmSync(path.join(PROP_OUT, f));
@@ -505,9 +530,17 @@ async function buildProps(io: NodeIO): Promise<void> {
 		const file = path.join(PROP_SOURCE, f);
 		const doc = await io.read(file);
 		for (const scene of doc.getRoot().listScenes()) scene.setExtras({});
+		const id = path.basename(f, '.glb');
+		const fit = PROP_FIT[id];
+		const tris = triangleCount(doc);
+		if (fit) standOnFloor(doc, id);
+		await doc.transform(dedup(), weld());
+		if (fit && tris > fit.tris) {
+			await doc.transform(
+				simplify({ simplifier: MeshoptSimplifier, ratio: fit.tris / tris, error: 0.02 })
+			);
+		}
 		await doc.transform(
-			dedup(),
-			weld(),
 			textureCompress({
 				encoder: sharp,
 				targetFormat: 'webp',
@@ -519,9 +552,8 @@ async function buildProps(io: NodeIO): Promise<void> {
 		const out = path.join(PROP_OUT, f);
 		await io.write(out, doc);
 		const raw = (statSync(file).size / 1e6).toFixed(1);
-		console.log(
-			`  prop ${path.basename(f, '.glb')}: ${raw} MB -> ${(statSync(out).size / 1e3).toFixed(0)} KB`
-		);
+		const size = fit ? `, ${tris} -> ${triangleCount(doc)} tris` : '';
+		console.log(`  prop ${id}: ${raw} MB -> ${(statSync(out).size / 1e3).toFixed(0)} KB${size}`);
 	}
 }
 

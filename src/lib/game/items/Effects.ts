@@ -3,7 +3,9 @@ import type { Vec3 } from '#lib/shared/map/types.ts';
 import { createFlare, type Flare } from './flare.ts';
 
 interface Puff {
-	mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>;
+	mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial | THREE.MeshBasicMaterial>;
+	/** A tongue of flame: unlit, additive, burning from white-yellow through orange to red. */
+	fire: boolean;
 	age: number;
 	life: number;
 	/** Metres across at birth and at the end. */
@@ -20,12 +22,17 @@ const MAX_FLARES = 6;
 const PULSE_TIME = 0.09;
 const PULSE = 0.05;
 const SMOKE_COLOR = 0x8c867e;
+/** Flame colours over a tongue's short life: white-hot, yellow, orange, then a dull red. */
+const FIRE_RAMP = [0xfff4d6, 0xffc14a, 0xff6a14, 0x8a1c06].map((c) => new THREE.Color(c));
+const MAX_FIRE = 12;
 
 /**
  * Short-lived visual effects in the world. See docs/dev/items.md.
  *
- * - **Shots:** a shader flare at the muzzle (unlit, additive) and a few curls of smoke. The
- *   smoke is a lit material, so the flash, headlamps and the dark all read on it. The light of
+ * - **Shots:** a shader flare at the muzzle (unlit, additive), tongues of flame bursting
+ *   forward out of the barrel (unlit, additive, burning out in a fraction of a second) and a
+ *   faint wisp of smoke after them. The smoke is a lit material, so the flash, headlamps and the
+ *   dark all read on it. The light of
  *   the shot itself is the shooter's headlamp (Headlamp.flash), so a shot adds no light.
  * - **Your own shot** also pulses a faint ambient light: the whole room, even behind you,
  *   catches a little of it. Ambient light doesn't count toward the light budget.
@@ -69,17 +76,35 @@ export class Effects {
 			flare.fire(options.heavy ? 0.75 : 0.5, 0.06);
 		}
 		if (options.own) this.pulseLeft = PULSE_TIME;
-		const curls = options.heavy ? 4 : 2;
+		// Flame: tongues blown out of the barrel, fast and spreading, gone in a quarter second.
+		const tongues = options.heavy ? 6 : 3;
+		for (let i = 0; i < tongues; i++) {
+			const blast = forward
+				.clone()
+				.multiplyScalar((options.heavy ? 5 : 3.5) + Math.random() * 3)
+				.add(new THREE.Vector3(jitter(0.9), jitter(0.6) + 0.2, jitter(0.9)));
+			this.puff(at.clone().addScaledVector(forward, 0.04 + Math.random() * 0.1), {
+				life: 0.12 + Math.random() * 0.14,
+				from: options.heavy ? 0.14 : 0.1,
+				to: options.heavy ? 0.6 : 0.38,
+				opacity: 0.9,
+				color: FIRE_RAMP[0].getHex(),
+				velocity: blast,
+				fire: true
+			});
+		}
+		// What the flame leaves behind: a thin wisp of smoke.
+		const curls = options.heavy ? 2 : 1;
 		for (let i = 0; i < curls; i++) {
 			const drift = forward
 				.clone()
 				.multiplyScalar(0.5 + Math.random() * 0.9)
 				.add(new THREE.Vector3(jitter(0.15), 0.12 + Math.random() * 0.15, jitter(0.15)));
-			this.puff(at.clone().addScaledVector(forward, 0.05 + i * 0.08), {
-				life: 1.4 + Math.random() * 0.8,
-				from: 0.08,
-				to: options.heavy ? 0.9 : 0.6,
-				opacity: 0.32,
+			this.puff(at.clone().addScaledVector(forward, 0.15 + i * 0.1), {
+				life: 1.2 + Math.random() * 0.6,
+				from: 0.1,
+				to: options.heavy ? 0.7 : 0.45,
+				opacity: 0.14,
 				color: SMOKE_COLOR,
 				velocity: drift
 			});
@@ -123,7 +148,15 @@ export class Effects {
 			puff.mesh.scale.setScalar(puff.from + (puff.to - puff.from) * Math.sqrt(t));
 			puff.mesh.quaternion.copy(this.camera);
 			puff.mesh.rotateZ(puff.spin * puff.age);
-			puff.mesh.material.opacity = puff.opacity * (1 - t) * Math.min(1, t * 12);
+			if (puff.fire) {
+				// Burns down the ramp, brightest at once and fading as it cools.
+				const at = t * (FIRE_RAMP.length - 1);
+				const k = Math.min(FIRE_RAMP.length - 2, Math.floor(at));
+				puff.mesh.material.color.lerpColors(FIRE_RAMP[k], FIRE_RAMP[k + 1], at - k);
+				puff.mesh.material.opacity = puff.opacity * (1 - t) ** 1.5;
+			} else {
+				puff.mesh.material.opacity = puff.opacity * (1 - t) * Math.min(1, t * 12);
+			}
 		}
 	}
 
@@ -144,17 +177,31 @@ export class Effects {
 			opacity: number;
 			color: number;
 			velocity: THREE.Vector3;
+			fire?: boolean;
 		}
 	): void {
+		const fire = spec.fire ?? false;
 		if (this.puffs.length >= MAX_PUFFS) this.removePuff(this.puffs[0]);
-		const material = new THREE.MeshLambertMaterial({
-			color: spec.color,
-			alphaMap: this.alpha,
-			transparent: true,
-			opacity: 0,
-			depthWrite: false,
-			side: THREE.DoubleSide
-		});
+		const burning = this.puffs.filter((p) => p.fire);
+		if (fire && burning.length >= MAX_FIRE) this.removePuff(burning[0]);
+		const material = fire
+			? new THREE.MeshBasicMaterial({
+					color: spec.color,
+					alphaMap: this.alpha,
+					transparent: true,
+					opacity: spec.opacity,
+					depthWrite: false,
+					blending: THREE.AdditiveBlending,
+					side: THREE.DoubleSide
+				})
+			: new THREE.MeshLambertMaterial({
+					color: spec.color,
+					alphaMap: this.alpha,
+					transparent: true,
+					opacity: 0,
+					depthWrite: false,
+					side: THREE.DoubleSide
+				});
 		const mesh = new THREE.Mesh(this.geometry, material);
 		mesh.position.copy(at);
 		mesh.scale.setScalar(spec.from);
@@ -163,6 +210,7 @@ export class Effects {
 		this.root.add(mesh);
 		this.puffs.push({
 			mesh,
+			fire,
 			age: 0,
 			life: spec.life,
 			from: spec.from,

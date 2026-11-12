@@ -112,8 +112,9 @@ export function buildCollisionWorld(
 			});
 		}
 	}
-	// Loot crates are solid: a box each, turned to the crate's yaw.
+	// Loot crates are solid: a box each, turned to the crate's yaw. Corpses are not.
 	for (const crate of layout.crates) {
+		if (crate.kind === 'corpse') continue;
 		const [w, h, d] = CRATES.size;
 		const q: Quat = [0, Math.sin(crate.yaw / 2), 0, Math.cos(crate.yaw / 2)];
 		world.boxes.push({

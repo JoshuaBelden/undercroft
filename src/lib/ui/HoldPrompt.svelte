@@ -1,25 +1,34 @@
 <script lang="ts">
+	import KeyCap from './KeyCap.svelte';
+
 	/**
 	 * Prompt for a hold-key action ("Hold E to climb out"): a pill whose background fills as the
-	 * key is held. Use it for every hold prompt so they all look the same.
+	 * key is held. Use it for every hold prompt so they all look the same. With `key` it shows that
+	 * key as a keycap, before the text if there is any.
 	 */
 	interface Props {
 		text: string;
+		/** The key to show as a keycap (as bound, e.g. "E"). */
+		key?: string | null;
 		/** 0..1 hold progress; 0 shows the empty pill. */
 		progress?: number;
 	}
 
-	let { text, progress = 0 }: Props = $props();
+	let { text, key = null, progress = 0 }: Props = $props();
 </script>
 
 <div class="pill" class:holding={progress > 0} role="status">
 	<div class="fill" style:width="{Math.min(1, Math.max(0, progress)) * 100}%"></div>
-	<span>{text}</span>
+	{#if key}<span class="cap"><KeyCap label={key} size="large" /></span>{/if}
+	{#if text}<span class="text">{text}</span>{/if}
 </div>
 
 <style>
 	.pill {
 		position: relative;
+		display: flex;
+		gap: 10px;
+		align-items: center;
 		overflow: hidden;
 		padding: 10px 24px;
 		border: 1.5px solid rgb(230 220 203 / 0.55);
@@ -38,7 +47,12 @@
 		background: rgb(230 220 190 / 0.28);
 	}
 
-	span {
+	.cap {
+		position: relative;
+		display: flex;
+	}
+
+	.text {
 		position: relative;
 		font: 700 16px var(--font-ui);
 		letter-spacing: 0.1em;

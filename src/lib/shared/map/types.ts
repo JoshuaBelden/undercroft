@@ -58,6 +58,8 @@ export interface PieceDef {
 	rites: Vec3[];
 	/** Where a loot crate may stand (crate-* markers). The server fills only some of them. */
 	crates: CrateMarker[];
+	/** Collapsed walls (rubble-* markers): the only places bricks lie, a few at each. */
+	rubble: Vec3[];
 	colliders: ColliderBox[];
 	/** Gameplay volumes such as swimmable water (vol-<kind>-* boxes). */
 	volumes: VolumeBox[];
@@ -111,6 +113,8 @@ export interface CratePlacement {
 	position: Vec3;
 	/** Turn about +Y (radians). At 0 its back is to the north (-Z) and it opens to the south. */
 	yaw: number;
+	/** A corpse, searched like a crate (see CORPSES); absent for a crate. Corpses are not solid. */
+	kind?: 'corpse';
 }
 
 export interface MapLayout {

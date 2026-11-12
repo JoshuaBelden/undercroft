@@ -59,10 +59,23 @@ export class Engine {
 	/** Shadow map size for the current quality; lights read it when casting shadows. */
 	shadowMapSize = 1024;
 
+	/** Field of view from the settings, and the fraction of it in use (aiming narrows it). */
+	private baseFov = 75;
+	private zoom = 1;
+
+	/** Narrow the view to `factor` of the field of view from the settings (1 = all of it). */
+	setZoom(factor: number): void {
+		if (Math.abs(factor - this.zoom) < 1e-4) return;
+		this.zoom = factor;
+		this.camera.fov = this.baseFov * factor;
+		this.camera.updateProjectionMatrix();
+	}
+
 	/** Apply player graphics settings (FOV, brightness, quality). Safe to call any time. */
 	applyGraphics(graphics: GraphicsSettings): void {
 		const quality = QUALITY[graphics.quality] ?? QUALITY.high;
-		this.camera.fov = graphics.fov;
+		this.baseFov = graphics.fov;
+		this.camera.fov = this.baseFov * this.zoom;
 		this.camera.updateProjectionMatrix();
 		this.renderer.toneMappingExposure = graphics.brightness;
 		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.pixelRatio));

@@ -69,6 +69,13 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	// Stingers: going down at the start of an expedition, and coming up at the end of it.
 	{ id: 'expedition.intro', file: 'sfx_expedition_intro.mp3', rate: 22050 },
 	{ id: 'expedition.outro', file: 'sfx_extraction_outro.mp3', rate: 22050 },
+	// The headlamp: running low (under 3V, once a minute), and a battery swapped in.
+	{ id: 'battery.low', file: 'sfx_battery_low.mp3' },
+	{ id: 'battery.charged', file: 'sfx_battery_charged.mp3' },
+	// Binding a wound.
+	{ id: 'bandage', file: 'sfx_bandage.mp3' },
+	// Finding something epic, legendary or a quest item.
+	{ id: 'loot.found', file: 'sfx_happy_cue.mp3' },
 	// Ambience
 	{
 		id: 'ambience.drip',
@@ -102,6 +109,17 @@ export const AUDIO_SOURCES: AudioSource[] = [
 		crop: { start: 4, length: 12 },
 		rate: 22050
 	},
+	// Creatures: a witch's steps (one file per step), the rush when it bursts at you, its attack.
+	{
+		id: 'creature.step',
+		file: 'sfx_creature_footsteps.mp3',
+		slice: { minGap: 0.3, maxLength: 0.45, threshold: 0.3, maxClips: 8 }
+	},
+	{ id: 'creature.burst', file: 'jump-scare.mp3' },
+	{ id: 'creature.attack', file: 'sfx_witch_attack.mp3' },
+	{ id: 'creature.die', file: 'sfx_witch_death.mp3' },
+	// Going through a corpse's things.
+	{ id: 'corpse.search', file: 'bag_searching.wav' },
 	// A creature's breathing, looped; heard close by (see Creatures.ts).
 	{ id: 'creature.breath', file: 'sfx_witch_breathing.mp3', loopCrossfade: 0.5, keepSilence: true }
 ];

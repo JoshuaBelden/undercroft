@@ -2,6 +2,7 @@
 	import { ITEMS } from '#lib/content/items.ts';
 	import { MAP_KIT } from '#lib/content/map/kit.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
+	import KeyCap from './KeyCap.svelte';
 	import Slot from './Slot.svelte';
 
 	/**
@@ -15,7 +16,7 @@
 		rite: RiteSnapshot;
 		/** For each requirement, who in the party carries it and how many; `self` is this player. */
 		carriers: { name: string; count: number; self: boolean }[][];
-		/** Label of the interact key. */
+		/** The interact key, as bound ("E"), shown as a keycap; empty when unbound. */
 		interactKey: string;
 		/** Pixels from the top (clears the stats readout when that is on). */
 		top?: number;
@@ -67,7 +68,11 @@
 			{#if room}
 				<span class="text">
 					<span class="name">{room}</span>
-					<span class="who">One of you carries it all here and holds {interactKey}</span>
+					<span class="who"
+						>One of you carries it all here and holds {#if interactKey}<KeyCap
+								label={interactKey}
+							/>{:else}interact{/if}</span
+					>
 				</span>
 			{:else}
 				<span class="mark" aria-label="Location unknown">?</span>

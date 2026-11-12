@@ -6,6 +6,9 @@ import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 import type { SoundBank } from '#lib/game/audio/SoundBank.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 
+/** Breathing is silent above this fraction of stamina, fading in over the next 5% below it. */
+const BREATH_BELOW = 0.25;
+
 /**
  * The local player's own sounds: footsteps by surface, breathing that follows stamina, and the
  * headlamp click. Footstep surface comes from the material under the player's feet.
@@ -19,8 +22,6 @@ export class PlayerAudio {
 	private mantling = false;
 	/** performance.now() of the next squeeze grunt; null when not squeezing through. */
 	private nextGrunt: number | null = null;
-	private exhausted = false;
-	private gaspPending = false;
 	private breathSlow: SoundHandle | null = null;
 	private breathFast: SoundHandle | null = null;
 	private breathStarting = false;
@@ -50,13 +51,6 @@ export class PlayerAudio {
 		this.lamp = state.headlamp;
 
 		if (state.swimming && !this.swimming) this.sounds.play('water.enter');
-		// Gasp the moment stamina runs out (held until surfacing if it ran out underwater).
-		if (state.exhausted && !this.exhausted) this.gaspPending = true;
-		if (this.gaspPending && !state.underwater) {
-			this.sounds.play('gasp');
-			this.gaspPending = false;
-		}
-		this.exhausted = state.exhausted;
 		if (state.mantle && !this.mantling) this.sounds.play('mantle');
 		this.updateSqueeze(state);
 		this.swimming = state.swimming;
@@ -91,7 +85,10 @@ export class PlayerAudio {
 		this.last = [x, y, z];
 	}
 
-	/** Grunt while pushing through a squeeze: once on starting to move, then every 1.3-2.2 s. */
+	/**
+	 * Pushing through a squeeze: a gasp as you start to move through it, then a grunt every
+	 * 1.3-2.2 s while you keep going.
+	 */
 	private updateSqueeze(state: PlayerState): void {
 		const pushing = state.squeezing && Math.hypot(state.velocity[0], state.velocity[2]) > 0.2;
 		if (!pushing) {
@@ -99,7 +96,10 @@ export class PlayerAudio {
 			return;
 		}
 		const now = performance.now();
-		if (this.nextGrunt === null || now >= this.nextGrunt) {
+		if (this.nextGrunt === null) {
+			this.sounds.play('gasp');
+			this.nextGrunt = now + 1300 + Math.random() * 900;
+		} else if (now >= this.nextGrunt) {
 			this.sounds.play('squeeze.grunt');
 			this.nextGrunt = now + 1300 + Math.random() * 900;
 		}
@@ -113,15 +113,16 @@ export class PlayerAudio {
 	}
 
 	/**
-	 * Breathing only while stamina is below full: calm at first, crossfading to panting as it runs
-	 * down; silent at full stamina and underwater.
+	 * Breathing only once stamina is down to BREATH_BELOW (a quarter): calm at first, crossfading
+	 * to panting as it runs out; silent above that and underwater.
 	 */
 	private updateBreath(state: PlayerState): void {
-		const tired = 1 - state.stamina / MOVEMENT.stamina.max;
-		const t = Math.max(0, Math.min(1, (tired - 0.3) / 0.45));
-		const fast = state.exhausted ? 1 : t * t * (3 - 2 * t);
-		// Fades in over the first 10% of stamina used, so full stamina is silent.
-		const winded = Math.min(1, tired / 0.1);
+		const left = state.stamina / MOVEMENT.stamina.max;
+		const tired = 1 - left;
+		// 0 at a quarter of stamina left, 1 when it is gone.
+		const low = Math.max(0, Math.min(1, (BREATH_BELOW - left) / BREATH_BELOW));
+		const fast = state.exhausted ? 1 : low * low * (3 - 2 * low);
+		const winded = Math.max(0, Math.min(1, (BREATH_BELOW - left) / 0.05));
 		const air = state.underwater ? 0 : winded;
 		this.breathSlow?.setVolume(air * (1 - fast) * (0.25 + 0.5 * tired));
 		this.breathFast?.setVolume(air * fast * (0.6 + 0.4 * tired));

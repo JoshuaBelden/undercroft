@@ -95,7 +95,9 @@ The idea: a creature can be hidden from. Turn your lamp off, keep still or move 
 
 ### Spawning
 
-`populate(start)` places `spawn.count` (witch: 1–2) at least `spawn.minDistance` (25 m) along the grid from the start and 20 m apart. It uses `creature-*` markers first (snapped to the nearest nav point within 2 m, facing a random way), then dead-end corners (a standing point with at most 4 neighbours, facing into it) if there aren't enough markers. `spawnFar` (omen stages) does the same, away from every player. A new creature stands for one `patrol.pause`, then patrols with its spawn point as the anchor.
+`populate(start)` places `spawn.count` (witch: 3–5) at least `spawn.minDistance` (25 m) along the grid from the start and 20 m apart. It uses `creature-*` markers first (snapped to the nearest nav point within 2 m, facing a random way), then dead-end corners (a standing point with at most 4 neighbours, facing into it) if there aren't enough markers. `spawnFar` (omen stages) does the same, away from every player. A new creature stands for one `patrol.pause`, then patrols with its spawn point as the anchor.
+
+**Respawning:** a killed creature comes back `spawn.respawnSeconds` (witch: 300) later, through `spawnFar` (at least `spawn.minDistance` from every player). If there is nowhere far enough just then, it tries again every 5 s. Each kill still counts toward the Affliction meter.
 
 ### States
 
@@ -178,7 +180,7 @@ It's deterministic from player state. Every client draws the creature with the s
 - the model is `loadCharacter(def.model)`: a SkeletonUtils clone with its own materials (for fading), sharing clips;
 - `loadCharacter` pins the root bone's x/z to its first keyframe, so a clip's root motion (the crouch walk, the hit reaction, the death fall) doesn't move the model away from the server position.
 
-Sounds always play, visible or not: `creature.step` while in a moving slot, `creature.burst` on entering `gait.burst`, and `creature.attack` on entering an attack slot.
+Sounds always play, visible or not: `creature.step` while in a moving slot (`sfx_creature_footsteps`, sliced into single steps), `creature.burst` on entering `gait.burst` (the `jump-scare` recording; at most once every `BURST_SOUND_GAP` (8) seconds per creature, since a stalking creature bursts every few seconds and the clip is 5 s long), and `creature.attack` on entering an attack slot (`sfx_witch_attack`). `creature.breath` is the `sfx_witch_breathing` loop; `creature.die` is `sfx_witch_death`; `creature.hurt` is still synthesized.
 
 **Breathing**: `Creatures.listen(delta, listener)` (called each frame with the camera position) runs one `creature.breath` loop (`art/sfx/sfx_witch_breathing.mp3`) at `(1 − d / breath.range)²` for the nearest living creature, eased. It's heard through walls, so a creature close by gives itself away even when it can't be seen.
 

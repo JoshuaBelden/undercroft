@@ -4,6 +4,7 @@
 export const IMAGE_VERSIONS: Record<string, string> = {
 	'affliction-gloaming-banner': '3682538c',
 	bandages: '7a322854',
+	battery: '24b154cc',
 	bone_rosary: '896ffcde',
 	brick: 'a3476070',
 	candle: '7dd72a32',

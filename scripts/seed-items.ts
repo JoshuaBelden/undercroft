@@ -28,6 +28,7 @@ const SEED: { item: string; count: number }[] = [
 	{ item: 'ammo.shotgun', count: 20 },
 	{ item: 'bandage', count: 8 },
 	{ item: 'salts', count: 4 },
+	{ item: 'battery', count: 4 },
 	{ item: 'brick', count: 2 },
 	{ item: 'chalk', count: 3 },
 	{ item: 'candle', count: 6 },

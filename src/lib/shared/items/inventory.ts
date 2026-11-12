@@ -139,10 +139,31 @@ export function spendQuick(inv: Inventory, index: number): void {
 	if (inv.selected === HAND.quick + index) inv.selected = HAND.primary;
 }
 
-/** How much of a creature's attack what is worn takes off (0..1). */
-export function defenseReduction(inv: Inventory): number {
+/** What is worn in the defense slot: shield points left of its full shield. Null when nothing is. */
+export function shieldOf(inv: Inventory): { left: number; max: number } | null {
 	const worn = inv.equipment.defense;
-	return Math.max(0, Math.min(1, (worn && ITEMS[worn.item]?.defense?.reduction) || 0));
+	const max = (worn && ITEMS[worn.item]?.defense?.shield) || 0;
+	if (!worn || max <= 0) return null;
+	return { left: Math.max(0, max - (worn.worn ?? 0)), max };
+}
+
+/**
+ * A creature's blow lands on what is worn first: its shield takes what it can, and the rest gets
+ * through to the wearer. Returns that rest, and the item if the blow used the last of its shield
+ * (it is torn apart: gone from the defense slot).
+ */
+export function absorbBlow(
+	inv: Inventory,
+	damage: number
+): { through: number; torn: string | null } {
+	const worn = inv.equipment.defense;
+	const shield = shieldOf(inv);
+	if (!worn || !shield) return { through: damage, torn: null };
+	const taken = Math.min(shield.left, damage);
+	worn.worn = (worn.worn ?? 0) + taken;
+	if (taken < shield.left) return { through: damage - taken, torn: null };
+	inv.equipment.defense = null;
+	return { through: damage - taken, torn: worn.item };
 }
 
 /** Every slot of an inventory, in the order things are looked for: backpack, quick use, worn. */

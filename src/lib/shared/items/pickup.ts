@@ -44,7 +44,7 @@ export const CRATE_REACH = { angle: 0.5, leave: PICKUP.range + 0.75 };
  * Which loot crate a player is looking at within reach. Shared so the client prompts for exactly
  * the crate the server will open. A floor item being looked at comes first: check that before.
  */
-export function lookedAtCrate<T extends { position: Vec3 }>(
+export function lookedAtCrate<T extends { position: Vec3; kind?: 'corpse' }>(
 	world: CollisionWorld,
 	eye: Vec3,
 	look: Vec3,
@@ -60,8 +60,8 @@ export function lookedAtCrate<T extends { position: Vec3 }>(
 		const along = (to[0] * look[0] + to[1] * look[1] + to[2] * look[2]) / Math.max(d, 1e-6);
 		const angle = Math.acos(Math.min(1, Math.max(-1, along)));
 		if (angle > CRATE_REACH.angle) continue;
-		// The crate is solid, so the line to its middle always ends on something: it has to be
-		// the crate itself, not a wall in front of it.
+		// A crate is solid, so the line to its middle always ends on something: it has to be the
+		// crate itself, not a wall in front of it. (A corpse isn't: the line just has to be clear.)
 		const t = segmentHit(world, eye, target);
 		if (t !== null && (1 - t) * d > 0.7) continue;
 		const score = angle + d * 0.1;

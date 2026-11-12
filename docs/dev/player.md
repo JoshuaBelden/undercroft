@@ -45,11 +45,11 @@ Each step:
 All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, swim and mantle settings, stamina rates, light intensities, drain and flicker.
 
 - **Stances:** stand (1.75 m), crouch (1.2 m), crawl (0.7 m). The client cycles the wanted stance with one key. Standing up is blocked while the taller capsule wouldn't fit (`capsuleFits`). The wanted stance persists, so you rise (as far as fits) once there's room.
-- **Squeezes:** a `vol-squeeze-*` volume marks the tight part of a piece (currently `hall-squeeze`). Inside it, `state.squeezing` is set, speed is capped at `squeezeSpeed` (0.7 m/s, momentum clamped on entry) and sprinting is impossible. The client grunts as you push through. Heavy packs that won't fit come with backpack tiers (Phase 5).
+- **Squeezes:** a `vol-squeeze-*` volume marks the tight part of a piece (currently `hall-squeeze`). Inside it, `state.squeezing` is set, speed is capped at `squeezeSpeed` (0.7 m/s, momentum clamped on entry) and sprinting is impossible. The client gasps as you start to push through, then grunts. Heavy packs that won't fit come with backpack tiers (Phase 5).
 - **Sneak ("creep" in game):** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps, and creatures only hear it within `hear.creep` (see [creatures.md](creatures.md)).
 - **Stance key (client):** a tap (released within 350 ms) cycles the wanted stance; while the key is held you creep, and releasing a hold leaves the stance as it was (`LocalPlayer.updateStanceKey`). Holding sprint resets the wanted stance to standing and stops creeping.
 - **Stamina:** sprinting drains it, and it regenerates after a short delay. At zero the player is `exhausted` and can't sprint, climb or dive until stamina recovers to `recoverAt`.
-- **Battery:** drains by headlamp mode. At zero the lamp gives no light.
+- **Battery:** drains by headlamp mode. At zero the lamp gives no light. It is a fraction of the lamp's full voltage (`HeadlampModel.volts`, 24 V for the starter lamp); the HUD shows it in volts beside the cells (`Math.ceil(battery × volts)`, so a lamp still giving light never reads 0V). A battery item adds its `charge.volts` (see [items.md](items.md)). Under `lowAlert.volts` (3 V) with the lamp on, the client beeps (`battery.low`) at once and then every `lowAlert.seconds` (60); turning the lamp off pauses the minute, and charging above 3 V resets it.
 - **Flags:** `noclip`, `infiniteStamina` and `infiniteBattery` live in the state, so prediction matches the server. Only admin commands set them.
 
 ## Water
@@ -197,10 +197,10 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
   - fire every `stride` metres travelled while grounded (per stance; sprint uses `sprintStride` and the running recording);
   - the surface comes from the material under the feet, via a short raycast, mapped in `src/lib/content/audio/surfaces.ts`;
   - one walking recording covers all surfaces, pitched per surface with `rate`.
-- **Breathing:** two loops, calm and fast, crossfaded by stamina. Silent at full stamina (it fades in over the first 10% used), panting when nearly spent, silent underwater. A gasp plays the moment stamina hits zero, or on surfacing if it ran out underwater.
+- **Breathing:** two loops, calm and fast, crossfaded by stamina. Silent until stamina is down to a quarter (`BREATH_BELOW` in `PlayerAudio.ts`; it fades in over the next 5%), panting as it runs out, silent underwater. Running out of stamina makes no gasp.
 - **The headlamp** plays a switch-on click for low and bright, and a switch-off click for off.
 - **Water:** a splash on entering, swim strokes per `swim.stride` (quieter underwater), and splashing footsteps while wading.
-- **Climbing and squeezes:** an exertion grunt (`exertion`, sliced into variants) when a mantle starts, and every 1.3–2.2 s while pushing through a squeeze.
+- **Climbing and squeezes:** an exertion grunt (`exertion`, sliced into variants) when a mantle starts, and every 1.3–2.2 s while pushing through a squeeze, after a `gasp` as you start into it.
 - **Muffling and reverb:** the sfx and ambience buses pass through a low-pass filter (`AudioManager.setMuffle`) and send to a convolution reverb with a synthetic stone-room impulse (`setReverb`). Music bypasses both.
 - **Acoustics:** each kit entry can set `acoustics` (`tight`, `tunnel` (default), `hall`, `vast`). `ACOUSTICS` in `src/lib/content/audio/ambience.ts` maps each to reverb and muffle. `Ambience` finds the piece the player is in and eases toward its values: crawlspaces and squeezes sound close and damped, the Cistern and the Chapel echo. Underwater forces full muffle and no reverb.
 - **Positional audio:** `AudioManager.playBufferAt` / `SoundBank.playAt` place a sound in 3D (HRTF panning, inverse distance falloff). The page updates the listener from the camera every frame (`setListener`).
@@ -244,7 +244,7 @@ Sanity is health (0 to `SANITY.max`). All tuning lives in `SANITY` (`src/lib/con
 
 Applied by the server (`server/session.ts`) each tick:
 
-- **Attacks:** a creature's hit takes `attack.damage`, less what the item in the defense slot takes off (`defenseReduction`).
+- **Attacks:** a creature's hit takes `attack.damage`, less what the shield of the item in the defense slot takes first (`absorbBlow`, see [items.md](items.md)).
 - **Darkness:** `darknessDrain`/s while your lamp gives no light (off or flat) and other players' lamps put less than 0.02 on your eye.
 - **Seeing:** `seeingDrain`/s while a creature is visible (`creatureLight` in its `visibleBand`), within `seeingRange`, inside your view cone (0.9 rad half-angle) and in line of sight.
 - **God mode** (admin flag) ignores all of it.
@@ -262,7 +262,7 @@ Bandages and smelling salts are quick-use items (see [items.md](items.md)); play
 **Client:**
 
 - The HUD shows a vignette that darkens with lost sanity and pulses below 40%.
-- **Party panel** (`src/lib/ui/PartyHealth.svelte`, bottom-left): every explorer on the expedition, each with their gamer tag in small text above a health (sanity) bar and a stamina bar, and "Downed" when they are. Teammates come from `RemotePlayers.players()` (their tick snapshots, so it is the server's state) in a stable order; this player is always last, at the bottom, with slightly larger bars and the posture and headlamp battery under them. Solo it is just you.
+- **Party panel** (`src/lib/ui/PartyHealth.svelte`, bottom-left): every explorer on the expedition, each with their gamer tag in small text above a health (sanity) bar and a stamina bar, and "Downed" when they are. Teammates come from `RemotePlayers.players()` (their tick snapshots, so it is the server's state) in a stable order; this player is always last, at the bottom, with slightly larger bars and the posture and headlamp battery (the headlamp key as a small keycap, the cells, then the voltage in small text) under them. Solo it is just you.
 - A hit (a drop of more than 3 in one frame) flashes red, plays `player.hurt` and shakes the camera, scaled by the **Camera shake** setting.
 - `heartbeat` loops louder and faster below 40%; `whisper` plays near you below 20%.
 - Downed, the camera tilts and `DownedScreen` shows the bleed-out bar, what happens next and the hold-to-surrender prompt.

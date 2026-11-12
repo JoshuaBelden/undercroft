@@ -80,7 +80,9 @@ Run it all the way down and you're spent: you can't sprint, climb or dive again 
 		category: 'Light',
 		body: `Press {action:headlamp} to switch your headlamp between off, low and bright.
 
-Bright reaches much further but drains the battery about three times as fast. The cells in the bottom-left corner show the charge left. When it's empty, the lamp dies.
+Bright reaches much further but drains the battery about three times as fast. The cells in the bottom-left corner show the charge left, with its voltage beside them: 24V is full, and at 0V the lamp dies.
+
+Batteries turn up in crates and on the dead. Put one in a quick-use slot, take it in hand and hold {action:attack}, standing still, to swap it in. Each gives back 12V, never more than full, so don't waste one on a lamp that's nearly charged.
 
 The starter headlamp is cheap: it flickers, and flickers more as the battery runs down.`
 	},
@@ -94,7 +96,7 @@ Whatever you carry out of the catacombs is yours. You come back to your loadout 
 
 The dashboard is where you land when you sign in. Its "Loadout" page ({action:inventory} from anywhere on the dashboard) shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
 
-The loadout has a place for everything. Two weapons, and one thing worn for protection. A backpack that takes anything. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
+The loadout has a place for everything. Two weapons, and one thing worn for protection: it takes the blows of whatever catches you before you do, until it is torn apart. The pale bar over your health underground is what it has left, and the wear stays on it when you come back up. A backpack that takes anything. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
 
 Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to equip it, split a stack, sell it or drop it. Dropping something on the surface throws it away for good.
 
@@ -206,9 +208,11 @@ You can rub out your own marks: look at one and hold {action:interact}. Other pe
 	},
 	{
 		id: 'crates',
-		title: 'Crates and loot',
+		title: 'Crates, the dead and loot',
 		category: 'Survival',
 		body: `Crates stand against the walls of rooms and dead ends. Look at one and hold {action:interact} to lift the lid.
+
+Others came down before you and never left. Their bodies lie along the walls, and what they carried is still on them: look at one and hold {action:interact} to search it. A body is gone through just like a crate, only more quietly.
 
 What is inside takes time to find. Each thing takes a moment to turn up, one after another, and until it does you can't tell what it is or take it. The best of a crate comes last. Step away before something has turned up and you start on it again next time; what you did find stays found.
 

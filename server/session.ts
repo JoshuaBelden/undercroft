@@ -22,14 +22,14 @@ import { buildNav, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
-import { CRATES } from '../src/lib/content/loot.ts';
+import { CORPSES, CRATES } from '../src/lib/content/loot.ts';
 import { MARKS } from '../src/lib/content/marks.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import {
 	addItem,
 	allStacks,
 	applyAction,
-	defenseReduction,
+	absorbBlow,
 	held,
 	newStack,
 	quickWith,
@@ -41,7 +41,12 @@ import { CRATE_REACH, lookedAtMark } from '../src/lib/shared/items/pickup.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { aimRay, reequip } from '../src/lib/shared/items/weapons.ts';
 import { crateCentre, placeCrates } from '../src/lib/shared/map/crates.ts';
-import { creatureSpawns, roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
+import {
+	creatureSpawns,
+	roomPoints,
+	rubbleSites,
+	spawnPoint
+} from '../src/lib/shared/map/points.ts';
 import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
 import {
@@ -205,7 +210,7 @@ export class Session {
 			for (const [x, z, level] of occupiedCells(piece, placement)) cells.add(`${x},${z},${level}`);
 		}
 		this.crates = new Crates(this.world, this.layout.crates, this.nav, start, this.seed);
-		this.items.scatter(this.nav, this.seed, start, cells.size);
+		this.items.scatter(this.nav, this.seed, start, rubbleSites(this.layout, PIECES));
 		this.items.scatterLoot(this.nav, this.seed, start, cells.size);
 		scatterRite(
 			this.affliction.def.rite,
@@ -440,6 +445,7 @@ export class Session {
 			!s.swimming &&
 			!s.mantle &&
 			s.bandaging === 0 &&
+			s.charging === 0 &&
 			s.reviving === 0 &&
 			!player.crate
 		);
@@ -817,10 +823,13 @@ export class Session {
 		const prey = [...this.players.values()].map((p) => ({ id: p.id, state: p.state }));
 		for (const hit of this.creatures.step(prey)) {
 			const player = this.players.get(hit.playerId);
-			// What is worn takes some of a blow.
-			if (player) {
-				this.hurt(player, hit.damage * (1 - defenseReduction(player.state.inventory)));
-			}
+			if (!player) continue;
+			const s = player.state;
+			if (s.flags.godMode || s.downed || s.dead) continue;
+			// What is worn takes the blow first.
+			const { through, torn } = absorbBlow(s.inventory, hit.damage);
+			if (torn) this.events.push({ kind: 'break', item: torn, position: [...s.position] });
+			this.hurt(player, through);
 		}
 	}
 
@@ -977,8 +986,9 @@ export class Session {
 					player: player.id,
 					position: crateCentre(crate)
 				});
-				// No source: creatures that hear the lid go and look.
-				this.creatures.hear(crate.position, CRATES.noise, null);
+				// No source: creatures that hear the lid (or, more quietly, a body turned over) go and look.
+				const noise = crate.kind === 'corpse' ? CORPSES.noise : CRATES.noise;
+				this.creatures.hear(crate.position, noise, null);
 			}
 			log.info(`${player.name} opened crate ${crate.id} in ${this.id.slice(0, 8)}`);
 		}
@@ -1037,6 +1047,7 @@ export class Session {
 		s.mantle = null;
 		s.extracting = 0;
 		s.bandaging = 0;
+		s.charging = 0;
 		s.reviving = 0;
 		s.opening = 0;
 		s.erasing = 0;

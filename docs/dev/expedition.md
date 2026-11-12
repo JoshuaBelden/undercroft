@@ -103,7 +103,9 @@ Every way out but the start door is marked by the same model: a timber ladder (a
 - Moving, letting go or mantling resets it to 0.
 - At `extractSeconds` (3 s), `state.extracted` is set. The server stops simulating that player and finishes the extraction.
 
-**Client feedback:** near a point the HUD shows "Hold E to climb out" (using the player's current binding) in a `HoldPrompt` pill whose background fills while holding. Use `HoldPrompt` (`src/lib/ui/HoldPrompt.svelte`) for every hold-key prompt so they all look the same.
+**Client feedback:** near a point the HUD shows "[E] to climb out" (the player's current binding as a keycap) in a `HoldPrompt` pill whose background fills while holding. Use `HoldPrompt` (`src/lib/ui/HoldPrompt.svelte`) for every hold-key prompt so they all look the same. Its `key` shows a keycap (`KeyCap`, large) before the text. Every in-game key prompt is made by `keyPrompt(action, text, progress)` in the play page: the action's first binding as the keycap (`promptKey`), then a short phrase ("to climb out", "to search", "to pick up Bandage"), the same while it is held (the fill shows the progress). With the action unbound it falls back to words ("Interact to climb out"). The downed screen's surrender prompt and the rite overlay's "holds [E]" use the keycap too. Never write a key into prompt text.
+
+**Keyboard shortcuts on screen:** draw a key with `KeyCap` (`src/lib/ui/KeyCap.svelte`): a white rounded cap with the label in bold black, `small` (14 px, beside HUD bars) or `large` (in a prompt). Always pass the player's current binding through `bindingLabel` (`src/lib/game/input/actions.ts`), never a hard-coded letter, so it follows remapping; show nothing when the action is unbound. The headlamp key sits to the left of the battery cells (`Hud`'s `lampKey`).
 
 **Adding an extraction point:** put an `extract-<n>` empty in a piece at the foot of a ladder (`kit.extraction_ladder`), export, then run `pnpm asset:build`. To add another kind of extraction room, build it with an `extract-0` and give it `role: 'extraction'` in `MAP_KIT`; `GenerateOptions.extractions` sets how many go on the route, picked by `weight`.
 
@@ -119,10 +121,10 @@ Every way out but the start door is marked by the same model: a timber ladder (a
 
 ## Room banners
 
-Start, major and extraction rooms with a `title` in `MAP_KIT` show a banner the first time a player enters them in an expedition. Banners are remembered by title, so the second extraction room (also "The Shaft") shows none.
+Start, major and extraction rooms with a `title` in `MAP_KIT` show a banner every time a player walks into them from outside.
 
-- On map load, the client builds a lookup from each titled room's occupied cells (`occupiedCells`).
-- A few times a second, it finds the cell and level the player is in.
+- On map load, the client builds a lookup from each titled room's occupied cells (`occupiedCells`) to its title and its placement index (`roomIds`), so the two extraction rooms are told apart.
+- A few times a second, it finds the cell and level the player is in. When that is a different room from last time (`inRoom`, null in the passages), the banner shows.
 - The start room's banner shows at spawn.
 
 To give another room a banner, add `title` to its kit entry.

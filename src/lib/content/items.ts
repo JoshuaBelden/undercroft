@@ -62,6 +62,24 @@ export interface FirearmSpec {
 	sound: SoundId;
 	/** Played when a reload starts; it should last about `reloadTime`. */
 	reloadSound: SoundId;
+	/** Aiming down the sights narrows the view to this fraction of the field of view (and slows the mouse to match). */
+	zoom: number;
+	recoil: RecoilSpec;
+}
+
+/** What firing does to your aim and to the gun in your hands. */
+export interface RecoilSpec {
+	/**
+	 * Your view is thrown up by `pitch` radians, and sideways by up to `yaw` either way, over a
+	 * moment: you have to bring it back on target yourself.
+	 */
+	pitch: number;
+	yaw: number;
+	/** The gun in your hands turns up `rise` radians and comes back `back` metres... */
+	rise: number;
+	back: number;
+	/** ...and settles over this many seconds. */
+	settle: number;
 }
 
 export interface ThrowSpec {
@@ -81,14 +99,24 @@ export interface HealSpec {
 	seconds: number;
 }
 
+export interface ChargeSpec {
+	/** Volts it puts back into the headlamp (never past the lamp's full `volts`). */
+	volts: number;
+	/** Seconds to swap it in, standing still. */
+	seconds: number;
+}
+
 export interface ChalkSpec {
 	/** Marks one stick makes before it is used up. */
 	marks: number;
 }
 
 export interface DefenseSpec {
-	/** Fraction taken off a creature's attack (0..1). */
-	reduction: number;
+	/**
+	 * Points of a creature's blow it takes before the wearer does. The points it has taken are kept
+	 * on the stack (`ItemStack.worn`); when they are all used up it is torn apart and gone.
+	 */
+	shield: number;
 }
 
 export interface ItemDef {
@@ -142,6 +170,8 @@ export interface ItemDef {
 	throwable?: ThrowSpec;
 	/** Held in the hand, attack applies it (bandages). */
 	heal?: HealSpec;
+	/** Held in the hand, attack puts it in the headlamp (batteries). */
+	charge?: ChargeSpec;
 	/** Brings a downed player round (smelling salts), from a quick-use slot. */
 	revive?: boolean;
 	/** Draws marks on walls from the quick-use slot (see docs/dev/marks.md). */
@@ -231,7 +261,9 @@ export const ITEMS: Record<string, ItemDef> = {
 			ammo: 'ammo.revolver',
 			noise: 35,
 			sound: 'revolver.fire',
-			reloadSound: 'revolver.reload'
+			reloadSound: 'revolver.reload',
+			zoom: 0.6,
+			recoil: { pitch: 0.035, yaw: 0.012, rise: 0.45, back: 0.08, settle: 0.16 }
 		}
 	},
 	shotgun: {
@@ -262,7 +294,10 @@ export const ITEMS: Record<string, ItemDef> = {
 			ammo: 'ammo.shotgun',
 			noise: 40,
 			sound: 'shotgun.fire',
-			reloadSound: 'shotgun.reload'
+			reloadSound: 'shotgun.reload',
+			zoom: 0.7,
+			// A real shove: about 9 degrees up, and the gun slams back into your shoulder.
+			recoil: { pitch: 0.15, yaw: 0.05, rise: 0.9, back: 0.28, settle: 0.45 }
 		}
 	},
 	'ammo.revolver': {
@@ -301,6 +336,22 @@ export const ITEMS: Record<string, ItemDef> = {
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
 		heal: { amount: 25, seconds: 3 }
+	},
+	// Half a lamp's worth: the starter lamp is full at 24 V (see items/headlamps.ts).
+	battery: {
+		id: 'battery',
+		name: 'Battery',
+		kind: 'consumable',
+		category: 'quick',
+		flavor: 'A dry cell, half spent by whoever carried it last. Enough to buy a little more light.',
+		image: 'battery',
+		model: '/assets/items/battery.glb',
+		hold: HOLD_RIGHT,
+		maxStack: DEFAULT_STACK,
+		weight: 0.15,
+		value: 20,
+		rarity: 'uncommon',
+		charge: { volts: 12, seconds: 2 }
 	},
 	salts: {
 		id: 'salts',
@@ -356,7 +407,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 2,
-		defense: { reduction: 0.25 }
+		defense: { shield: 40 }
 	},
 	// Loot: what is carried out and sold (see docs/dev/economy.md). None has a model yet.
 	coins: {

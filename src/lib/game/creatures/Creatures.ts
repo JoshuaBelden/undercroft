@@ -29,7 +29,15 @@ interface Entry {
 	stepTimer: number;
 	/** 0..1, set to 1 on a hit and eased out: a jolt backwards. */
 	flinch: number;
+	/** performance.now() when its burst (jump scare) sound last played. */
+	burstSoundAt: number;
 }
+
+/**
+ * Seconds between one creature's burst sounds. A stalking creature bursts every few seconds, and
+ * the jump scare is long: it would never stop.
+ */
+const BURST_SOUND_GAP = 8;
 
 /** Seconds between creature footstep sounds per animation state (none while still). */
 const STEP_INTERVAL: Partial<Record<CreatureAnim, number>> = {
@@ -226,7 +234,8 @@ export class Creatures {
 			opacity: 0,
 			marker,
 			stepTimer: 0,
-			flinch: 0
+			flinch: 0,
+			burstSoundAt: -Infinity
 		};
 		void loadCharacter(def.model).then(({ scene, clips }) => {
 			if (!root.parent) return;
@@ -286,7 +295,11 @@ export class Creatures {
 
 	private onAnim(entry: Entry, anim: CreatureAnim): void {
 		const at: [number, number, number] = [entry.target.x, entry.target.y + 1, entry.target.z];
-		if (anim === entry.def.gait.burst) this.sounds.playAt('creature.burst', at, 1, 3);
+		const now = performance.now();
+		if (anim === entry.def.gait.burst && now - entry.burstSoundAt > BURST_SOUND_GAP * 1000) {
+			this.sounds.playAt('creature.burst', at, 1, 3);
+			entry.burstSoundAt = now;
+		}
 		if (ATTACKS.has(anim)) this.sounds.playAt('creature.attack', at, 1, 3);
 		entry.stepTimer = 0;
 	}

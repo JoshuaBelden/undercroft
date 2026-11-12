@@ -1,16 +1,23 @@
 <script lang="ts">
 	import HoldPrompt from './HoldPrompt.svelte';
+	import KeyCap from './KeyCap.svelte';
 	import PartyHealth, { type PartyMember } from './PartyHealth.svelte';
 
 	interface Props {
 		/** 0..1 */
 		battery: number;
+		/** The headlamp's charge in volts (full is the lamp's `volts`, 0 is dead). */
+		volts: number;
 		/** 0 off, 1 low, 2 bright */
 		headlamp: number;
+		/** The key that switches the headlamp, as bound (e.g. "F"); empty when unbound. */
+		lampKey: string;
 		stance: string;
 		creep: boolean;
 		/** Context prompt, e.g. "Hold E to climb out"; null hides it. */
 		prompt: string | null;
+		/** A key shown as a keycap in the prompt, as bound; null for none. */
+		promptKey: string | null;
 		/** 0..1 progress of a held action (extraction); 0 hides the bar. */
 		progress: number;
 		/** 0..1 */
@@ -30,10 +37,13 @@
 
 	let {
 		battery,
+		volts,
 		headlamp,
+		lampKey,
 		stance,
 		creep,
 		prompt,
+		promptKey,
 		progress,
 		sanity,
 		hurt,
@@ -77,9 +87,9 @@
 	</div>
 {/if}
 
-{#if prompt}
+{#if prompt || promptKey}
 	<div class="prompt">
-		<HoldPrompt text={prompt} {progress} />
+		<HoldPrompt text={prompt ?? ''} key={promptKey} {progress} />
 	</div>
 {/if}
 
@@ -88,11 +98,14 @@
 		<div class="posture">{posture}</div>
 	{/if}
 	<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
+		{#if lampKey}<KeyCap label={lampKey} />{/if}
 		<span class="cells">
 			{#each [0, 1, 2, 3] as cell (cell)}
 				<span class="cell" class:on={cell < bars}></span>
 			{/each}
 		</span>
+		<!-- Rounded up: a lamp that still gives any light never reads 0 V. -->
+		<span class="volts">{Math.ceil(volts)}V</span>
 		<span>{LAMP_LABELS[headlamp] ?? ''}</span>
 	</div>
 </PartyHealth>
@@ -254,5 +267,16 @@
 
 	.lamp.low .cell.on {
 		background: rgb(200 90 70 / 0.8);
+	}
+
+	.volts {
+		margin-left: -4px;
+		font-size: 9px;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: 0.04em;
+	}
+
+	.lamp.low .volts {
+		color: rgb(200 90 70 / 0.9);
 	}
 </style>

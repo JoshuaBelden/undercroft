@@ -21,6 +21,8 @@ const DT = 1 / SIM_RATE;
 /** Radians of look per pixel of mouse movement at sensitivity 1. */
 const LOOK_SPEED = 0.0022;
 const MAX_PITCH = 1.5;
+/** Seconds over which most of a recoil kick lands on the view. */
+const KICK_TIME = 0.05;
 /** Corrections larger than this snap instead of smoothing (teleports, respawns). */
 const SNAP_DISTANCE = 2;
 /** Seconds for a prediction correction to blend out. */
@@ -50,6 +52,10 @@ export class LocalPlayer {
 	private accumulator = 0;
 	private yaw = 0;
 	private pitch = 0;
+	/** Recoil still to be applied to the view (radians), worked off over a moment. */
+	private kickLeft = { pitch: 0, yaw: 0 };
+	/** Mouse look is scaled by this: the zoom while aiming, so the view moves as it looks. */
+	lookScale = 1;
 	/** Wanted stance, cycled by the stance key; the simulation rises only when there is room. */
 	private stance: Stance = 'stand';
 	private lamp: HeadlampMode = 1;
@@ -205,11 +211,17 @@ export class LocalPlayer {
 			const scale = Math.min(1, WHEEL_REACH / (Math.hypot(x, y) || 1));
 			this.wheel = { x: x * scale, y: y * scale };
 		} else if (active) {
-			const speed = LOOK_SPEED * settings.controls.mouseSensitivity;
+			const speed = LOOK_SPEED * settings.controls.mouseSensitivity * this.lookScale;
 			this.yaw -= dx * speed;
 			this.pitch -= dy * speed * (settings.controls.invertY ? -1 : 1);
 			this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch));
 		}
+		// Recoil throws the view over a few frames, not in one jump.
+		const take = 1 - Math.exp(-delta / KICK_TIME);
+		this.yaw += this.kickLeft.yaw * take;
+		this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch + this.kickLeft.pitch * take));
+		this.kickLeft.pitch *= 1 - take;
+		this.kickLeft.yaw *= 1 - take;
 		const state = this.state;
 		const world = this.world;
 		if (!state || !world) return;
@@ -253,6 +265,12 @@ export class LocalPlayer {
 	eyePosition(): Vec3 | null {
 		const feet = this.feetPosition();
 		return feet && [feet[0], feet[1] + this.eye, feet[2]];
+	}
+
+	/** A shot's recoil: throw the view up by `pitch` and aside by `yaw` (radians). */
+	kick(pitch: number, yaw: number): void {
+		this.kickLeft.pitch += pitch;
+		this.kickLeft.yaw += yaw;
 	}
 
 	look(): { yaw: number; pitch: number } {

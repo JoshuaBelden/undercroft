@@ -18,6 +18,8 @@
 	 */
 	interface Props {
 		inventory: Inventory;
+		/** What is being gone through: "Crate" or "Corpse". */
+		title: string;
 		/** The crate's slots as the server tells them: `'hidden'` is something not revealed yet. */
 		slots: CrateSlot[];
 		/** How far along (0..1) the first hidden slot is to being revealed. */
@@ -28,7 +30,7 @@
 		onclose: () => void;
 	}
 
-	let { inventory, slots, reveal, moveKeys, onaction, onclose }: Props = $props();
+	let { inventory, title, slots, reveal, moveKeys, onaction, onclose }: Props = $props();
 
 	/** The slot being revealed now: the first hidden one. */
 	const revealing = $derived(slots.indexOf('hidden'));
@@ -48,7 +50,7 @@
 	<section class="panel" aria-labelledby="crate-title">
 		<header>
 			<div class="title">
-				<h2 id="crate-title">Crate</h2>
+				<h2 id="crate-title">{title}</h2>
 				<p class="status" role="status">
 					{left > 0 ? 'Searching...' : 'Searched'}
 				</p>
@@ -67,7 +69,7 @@
 								class="sealed"
 								class:revealing={index === revealing}
 								role="img"
-								aria-label="Crate slot {index + 1}: {index === revealing
+								aria-label="{title} slot {index + 1}: {index === revealing
 									? 'being searched'
 									: 'not searched yet'}"
 							>
@@ -80,7 +82,7 @@
 								{board}
 								ref={{ area: 'stash', index }}
 								stack={slot}
-								label="Crate slot {index + 1}"
+								label="{title} slot {index + 1}"
 							/>
 						{/if}
 					{/each}

@@ -131,8 +131,15 @@ export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 		add('Restores', `${def.heal.amount} sanity`);
 		add('Takes', `${def.heal.seconds} s, standing still`);
 	}
+	if (def.charge) {
+		add('Charges', `${def.charge.volts}V into the headlamp`);
+		add('Takes', `${def.charge.seconds} s, standing still`);
+	}
 	if (def.revive) add('Use', 'Revives the downed');
-	if (def.defense) add('Protection', `${Math.round(def.defense.reduction * 100)}% off attacks`);
+	if (def.defense) {
+		const { shield } = def.defense;
+		add('Shield', forSale ? `${shield}` : `${Math.max(0, shield - (stack.worn ?? 0))} / ${shield}`);
+	}
 	add('Weight', stackKilos(stack));
 	if (def.maxStack > 1) {
 		if (forSale) add('Stacks to', `${def.maxStack}`);

@@ -10,7 +10,7 @@
 		remaining: number;
 		/** What happens next ("Waiting for help...", "Reaching for your salts..."). */
 		message: string;
-		/** Label of the key that surrenders when held. */
+		/** The key that surrenders when held, as bound ("Space"); empty when unbound. */
 		surrenderKey: string;
 		/** 0..1 of the hold to surrender. */
 		surrender: number;
@@ -27,7 +27,8 @@
 	</div>
 	<div class="surrender">
 		<HoldPrompt
-			text={surrender > 0 ? 'Surrendering...' : `Hold ${surrenderKey} to surrender`}
+			key={surrenderKey || null}
+			text={surrenderKey ? 'to surrender' : 'Climb to surrender'}
 			progress={surrender}
 		/>
 	</div>

@@ -16,7 +16,7 @@ export type SynthSpec =
 	| { kind: 'splash'; length: number; cutoff: number }
 	/** Stone scrape plus an effort grunt, for climbing. */
 	| { kind: 'scrape' }
-	/** Sharp inhale, for surfacing out of breath. */
+	/** Sharp inhale (starting to push through a squeeze). */
 	| { kind: 'gasp' }
 	/** Water drop plink. */
 	| { kind: 'drip' }
@@ -167,6 +167,7 @@ export const SOUNDS = {
 		volume: 0.45,
 		variation: 0.1
 	},
+	// A sharp breath as you start to push through a squeeze (PlayerAudio.updateSqueeze).
 	gasp: { file: 'gasp', synth: { kind: 'gasp' }, category: 'sfx', volume: 0.8 },
 	// Breathing loops, crossfaded by stamina.
 	'breath.slow': {
@@ -229,13 +230,16 @@ export const SOUNDS = {
 	},
 	// Creatures (played at their position: you hear what you can't see).
 	'creature.step': {
+		file: 'creature.step',
 		synth: { kind: 'shuffle' },
 		category: 'sfx',
 		volume: 0.55,
 		variation: 0.15,
 		caption: 'shuffling steps'
 	},
+	// The jump scare: at most once every BURST_SOUND_GAP seconds per creature (Creatures.ts).
 	'creature.burst': {
+		file: 'creature.burst',
 		synth: { kind: 'rush' },
 		category: 'sfx',
 		volume: 0.8,
@@ -243,6 +247,7 @@ export const SOUNDS = {
 		caption: 'something rushes'
 	},
 	'creature.attack': {
+		file: 'creature.attack',
 		synth: { kind: 'snarl' },
 		category: 'sfx',
 		volume: 0.9,
@@ -266,10 +271,10 @@ export const SOUNDS = {
 		caption: 'pained shriek'
 	},
 	'creature.die': {
+		file: 'creature.die',
 		synth: { kind: 'snarl' },
 		category: 'sfx',
 		volume: 1,
-		rate: 0.7,
 		caption: 'dying rattle'
 	},
 	// Items and weapons.
@@ -398,6 +403,16 @@ export const SOUNDS = {
 		caption: 'a lid creaks open',
 		captionOthers: true
 	},
+	// Turning over a corpse to search it, the first time.
+	'corpse.search': {
+		file: 'corpse.search',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.1,
+		caption: 'someone rummages through a pack',
+		captionOthers: true
+	},
 	// Chalk on stone: a mark drawn, or rubbed out by whoever drew it.
 	'chalk.draw': {
 		synth: { kind: 'scrape' },
@@ -422,6 +437,8 @@ export const SOUNDS = {
 	// Stingers on the music bus (dry: no muffling or reverb from where you stand).
 	'expedition.intro': { file: 'expedition.intro', category: 'music', volume: 0.8 },
 	'expedition.outro': { file: 'expedition.outro', category: 'music', volume: 0.8 },
+	/** Finding something epic, legendary or a quest item (revealed in a crate, or picked up). */
+	'loot.found': { file: 'loot.found', category: 'music', volume: 0.8 },
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
 	'shop.sell': { synth: { kind: 'bell', pitch: 1320, length: 0.5 }, category: 'sfx', volume: 0.3 },
 	// The rite.
@@ -472,6 +489,45 @@ export const SOUNDS = {
 	},
 	// Sanity.
 	'player.hurt': { synth: { kind: 'hurt' }, category: 'sfx', volume: 0.8, variation: 0.08 },
+	// A blow taken by what you wear (no sanity lost), and the blow that tears it apart.
+	'player.shielded': {
+		synth: { kind: 'thud', cutoff: 400 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.1,
+		caption: 'a muffled blow'
+	},
+	// A battery swapped into the headlamp.
+	'battery.charged': {
+		file: 'battery.charged',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.7,
+		caption: 'a battery clicks into place'
+	},
+	// The headlamp running low (under its lowAlert volts), once a minute while it's on.
+	'battery.low': {
+		file: 'battery.low',
+		synth: { kind: 'bell', pitch: 880, length: 0.4 },
+		category: 'sfx',
+		volume: 0.6,
+		caption: 'your headlamp beeps: battery low'
+	},
+	// Starting to bind a wound.
+	bandage: {
+		file: 'bandage',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.7,
+		caption: 'linen being wound'
+	},
+	'defense.torn': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.6,
+		caption: 'cloth tears'
+	},
 	heartbeat: {
 		synth: { kind: 'heartbeat', period: 0.85 },
 		category: 'sfx',

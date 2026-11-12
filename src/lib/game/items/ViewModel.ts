@@ -12,6 +12,8 @@ import type { PlayerState } from '#lib/shared/player/types.ts';
  * closer, low and a little right, so the gun points at the crosshair without covering it.
  */
 const AIM_OFFSET: [number, number, number] = [0.06, -0.15, -0.34];
+/** Recoil in the hands for anything that fires without its own `recoil`. */
+const DEFAULT_RECOIL = { rise: 0.35, back: 0.05, settle: 0.14 };
 /** Fill light on the held item at full lamp, and the faint light it keeps in the dark. */
 const FILL = 2.2;
 const DARK_FILL = 0.04;
@@ -75,7 +77,8 @@ export class ViewModel {
 		if (w.action === 'shot' && w.time < this.lastShotTime) this.kick = 1;
 		if (w.action === 'shot' && this.lastShotTime < 0) this.kick = 1;
 		this.lastShotTime = w.action === 'shot' ? w.time : -1;
-		this.kick = Math.max(0, this.kick - delta * 7);
+		const recoil = def.firearm?.recoil ?? DEFAULT_RECOIL;
+		this.kick = Math.max(0, this.kick - delta / recoil.settle);
 
 		const [hx, hy, hz] = def.hold.offset;
 		const aim = new THREE.Vector3(...(def.hold.aim ?? AIM_OFFSET));
@@ -136,13 +139,23 @@ export class ViewModel {
 				break;
 			}
 		}
-		// Recoil: kick up and back.
-		rot.x += this.kick * this.kick * 0.35;
-		pos.z += this.kick * 0.05;
+		// Recoil: kick up and back, by the gun's `recoil`.
+		rot.x += this.kick * this.kick * recoil.rise;
+		pos.z += this.kick * recoil.back;
 
 		// The viewmodel camera never moves, so camera space is world space here.
 		this.root.position.copy(pos);
 		this.root.rotation.copy(rot);
+	}
+
+	/**
+	 * How far aiming has narrowed the view: 1 normally, down to the held gun's `zoom` when fully
+	 * aimed, eased in and out with the gun coming up to the eye. 1 when no gun is drawn here.
+	 */
+	zoom(): number {
+		const gun = this.item ? ITEMS[this.item]?.firearm : undefined;
+		if (!gun || !this.root.visible) return 1;
+		return 1 + (gun.zoom - 1) * this.aim;
 	}
 
 	/**

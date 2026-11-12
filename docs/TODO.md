@@ -1,6 +1,4 @@
-# Undercroft: Phase Plan (Start → Beta)
-
-Goal: a playable beta with **one Affliction (Gloaming)**, solo and co-op, full extraction loop, hub, and economy. **No voice chat in the first beta.**
+# Undercroft Work Items
 
 Every phase addresses six cross-cutting aspects, so they grow with the game instead of being bolted on at the end:
 
@@ -13,30 +11,36 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 **Architecture note:** the game server is authoritative, even while only one player connects. Solo runs use the same server path as co-op, so Phase 3 adds multiplayer flow rather than rewriting the game.
 
----
-
 ## Ready
-how many creatures are spawned, respawn
-armor doesn't seem to be working
-legendary, epic, or quest find audio
-
 Gloaming Rite: We are going to flush out the complete rite requirements and hints.
-- Full requirements: 5 candles, 1 chalk, the Pendant. 
+
+Description: 
+Long ago, the keepers of the dead held back the dusk each evening with a rite. It worked for as long as anyone remembered how to say it. The last keeper died with the rite unspoken, and the robbers who broke into his grave took more than they knew. What he had kept shut away came down into the dark with them.
+
+The clues
+1. Candles: "He lit five candles every night, never four."
+2. Chalk: "The keeper's line was drawn in chalk, the way you'd mark your way home."
+3. The Pendant: "The robbers threw his pendant in a crate with the rest of the haul."
+4. The Gloaming Chapel: "In the Gloaming Chapel, don't look at the corner until it's done."
+
+- Full requirements: 5 candles, 1 chalk, the Pendant.  
 - Do not spawn the pendant quest item if anyone in the party has 1.
-- There are three hints, one for the candle, 1 for the chalk, and 1 for the pendant. Invent text for each of these hints.
-- Players can find hints in loot boxes or laying on furniture, tables, coffins.
+- There are three hints, one for the candle, 1 for the chalk, and 1 for the pendant.
+- Players can find hints in loot boxes, corpses, on walls at eye level in feature rooms or laying on furniture, tables, coffins. Hints should never be laying on the ground.
 - Revealed hint text will show up on the Affliction page, as well as above the requirements in the expedition affliction overlay. 
 - The requirement slots on the affliction pane should show question marks if unknown, greyed if discovered but the user doesn't have an item, and show the item if it is in the players stash or backpack. Make them smaller like on the overlay.
-- Update the affliction description to be in line with this new story of hints.
-- Solving a rite doesn't automatically extract explorers, but it does kill the affliction and resolve it. Explorers must still extract.
+- Update the affliction description.
+- Solving a rite doesn't automatically extract explorers anymore, but it does kill the affliction and resolve it. Explorers must still extract.
 - Add a way for players to reset an affliction status back to undiscovered and unresolved.
 - The top of the screen should show the time left before they must extract. 
 - Underneath the time, add a thin red status bar, maybe 4px heigh with a red border, and a red background for the progress of when the affliction arrives.
 - Unrelated change, under the stash, add a button to sell all treasure.
-- Bricks should be less frequent and be in places where there's rubble. Then there should be 1-3 bricks.
+- Clues should show up in the order they're defined on the affliction rite. It shouldn't matter which clue the player finds, any clue unlocks the next clue.
+- Move the overlay to the middle left of the screen
 
 ## Backlog: Beta polish and deployment
 
+- fine tune loot tables
 - Fix map clipping
 - Review Lore and Flavor text
 - Full audio pass and mix
@@ -53,8 +57,10 @@ Gloaming Rite: We are going to flush out the complete rite requirements and hint
 - Balance pass: meter pacing, loot values, Thrall difficulty, candle tiers
 - Bug and crash reporting
 
-## Backlog - Post Beta
+## Backlog - Post Beta Ideas
 
+- mapping
+- Creatures should be able to crawl
 - Doors
 - SSO with Discord and Steam, Link a provider to an existing email account
 - Password recovery (needs an email service)

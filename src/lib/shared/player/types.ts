@@ -91,6 +91,8 @@ export interface PlayerState {
 	weapon: WeaponState;
 	/** Seconds spent applying the healing item in the hand (resets if interrupted). */
 	bandaging: number;
+	/** Seconds spent putting the battery in the hand into the headlamp (resets if interrupted). */
+	charging: number;
 	/** Seconds spent reviving a downed teammate (server-driven). */
 	reviving: number;
 	/** Seconds spent performing the rite (server-driven). */
@@ -110,6 +112,8 @@ export interface ItemStack {
 	loaded?: number;
 	/** Hits taken by a breakable melee item; marks drawn with the stick in use (chalk). */
 	uses?: number;
+	/** Shield points a defense item has used up taking blows. */
+	worn?: number;
 }
 
 export type EquipmentSlot = 'primary' | 'secondary' | 'defense';

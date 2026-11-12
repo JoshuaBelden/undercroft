@@ -85,9 +85,10 @@ export interface CreatureDef {
 	breath: { range: number };
 	/**
 	 * How many spawn per expedition, and how far (m, along the nav grid) from the start. They spawn
-	 * at creature-* markers, or in corners where a map has too few.
+	 * at creature-* markers, or in corners where a map has too few. One that is killed comes back
+	 * `respawnSeconds` later, at least `minDistance` from every player.
 	 */
-	spawn: { count: [number, number]; minDistance: number };
+	spawn: { count: [number, number]; minDistance: number; respawnSeconds: number };
 }
 
 export const CREATURES: Record<string, CreatureDef> = {
@@ -139,7 +140,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		// Seen in any light but the faintest; a bright lamp doesn't hide it.
 		visibleBand: [0.04, Infinity],
 		breath: { range: 6 },
-		spawn: { count: [1, 2], minDistance: 25 }
+		spawn: { count: [3, 5], minDistance: 25, respawnSeconds: 300 }
 	}
 };
 

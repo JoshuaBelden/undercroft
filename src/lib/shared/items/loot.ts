@@ -48,8 +48,14 @@ export function rollCrate(depth: number, rng: Rng): Slots {
 	for (const { id } of RARITIES) {
 		const pool = CRATE_LOOT.filter((entry) => rarityOf(entry.item) === id);
 		for (let i = 0; i < (counts.get(id) ?? 0); i++) {
+			// Never the same thing twice: what is drawn leaves the pool.
 			const stack = draw(pool, depth, rng);
-			if (stack) found.push(stack);
+			if (!stack) break;
+			found.push(stack);
+			pool.splice(
+				pool.findIndex((entry) => entry.item === stack.item),
+				1
+			);
 		}
 	}
 	// Too much for the crate: the commonest are left out.

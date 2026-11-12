@@ -33,7 +33,7 @@ An item with `chalk: { marks }` draws. The basic chalk has `marks: 1`: each mark
 
 ## Drawing
 
-1. With chalk in the hand, the client raycasts from the eye (`aimRay`) into the visible map (`MapRenderer.root`, `MARKS.reach`). While it hits, the prompt says "Hold … to draw a mark".
+1. With chalk in the hand, the client raycasts from the eye (`aimRay`) into the visible map (`MapRenderer.root`, `MARKS.reach`). While it hits, the prompt says "[attack key] to draw a mark".
 2. Holding attack opens the chalk wheel. It uses `LocalPlayer.openWheel`, so the mouse moves its pointer and attack and aim are held back from the simulation. Chalk has no melee or firearm spec, so the attack frames before it opens do nothing. The quick-use wheel and the chalk wheel never open together.
 3. Letting go over a symbol raycasts again and sends `{ type: 'mark', symbol, position, normal }` (world space, the normal turned toward the player). Drawing isn't predicted: the mark appears when the server's list comes back.
 4. The server (`Session.mark`, `Marks.check`) refuses unless the player holds chalk and can use their hands (not downed, swimming, climbing, bandaging, reviving, or in a crate). The symbol must be on their wheel, the point within reach and facing them, and no mark within `MARKS.minSpacing`. The visible stone can sit off the collision boxes, so a collider has to be there: the segment from the eye on past the point must hit one, no nearer than `MARKS.tolerance` short of it. That also means nothing stands in the way.
@@ -54,7 +54,7 @@ Each symbol has one material: a `MeshStandardMaterial` in chalk white whose text
 ## Who drew it, and erasing
 
 - **Label:** `Marks.nearest` is the closest mark within `MARKS.labelRange` that is in front of you, faces you and is in sight (`markInSight`). The play page projects it to the screen and shows `MarkLabel` under it, with the drawer's name or "You". Only one shows at a time.
-- **Erasing:** only your own marks. `lookedAtMark` (shared, `MARKS.eraseAngle`, only marks `by` you) picks the one interact would erase; floor items and crates come first. Holding interact on it counts `PlayerState.erasing` up on the server (`stepMarks`, like `opening` for crates). At `MARKS.eraseSeconds` the mark is removed, with a `rub` event and a new list. The client shows "Hold … to erase your mark" with the same rule and the progress.
+- **Erasing:** only your own marks. `lookedAtMark` (shared, `MARKS.eraseAngle`, only marks `by` you) picks the one interact would erase; floor items and crates come first. Holding interact on it counts `PlayerState.erasing` up on the server (`stepMarks`, like `opening` for crates). At `MARKS.eraseSeconds` the mark is removed, with a `rub` event and a new list. The client shows "[E] to erase your mark" with the same rule and the progress.
 
 ## Tuning
 

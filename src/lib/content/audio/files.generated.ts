@@ -49,6 +49,10 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'ui.click': ['/assets/audio/ui.click.wav'],
 	'expedition.intro': ['/assets/audio/expedition.intro.wav'],
 	'expedition.outro': ['/assets/audio/expedition.outro.wav'],
+	'battery.low': ['/assets/audio/battery.low.wav'],
+	'battery.charged': ['/assets/audio/battery.charged.wav'],
+	bandage: ['/assets/audio/bandage.wav'],
+	'loot.found': ['/assets/audio/loot.found.wav'],
 	'ambience.drip': [
 		'/assets/audio/ambience.drip-1.wav',
 		'/assets/audio/ambience.drip-2.wav',
@@ -75,5 +79,16 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'ambience.lap': ['/assets/audio/ambience.lap.wav'],
 	'ambience.creepy': ['/assets/audio/ambience.creepy-1.wav', '/assets/audio/ambience.creepy-2.wav'],
 	'ambience.horror': ['/assets/audio/ambience.horror.wav'],
+	'creature.step': [
+		'/assets/audio/creature.step-1.wav',
+		'/assets/audio/creature.step-2.wav',
+		'/assets/audio/creature.step-3.wav',
+		'/assets/audio/creature.step-4.wav',
+		'/assets/audio/creature.step-5.wav'
+	],
+	'creature.burst': ['/assets/audio/creature.burst.wav'],
+	'creature.attack': ['/assets/audio/creature.attack.wav'],
+	'creature.die': ['/assets/audio/creature.die.wav'],
+	'corpse.search': ['/assets/audio/corpse.search.wav'],
 	'creature.breath': ['/assets/audio/creature.breath.wav']
 };

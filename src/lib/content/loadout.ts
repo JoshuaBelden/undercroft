@@ -3,5 +3,8 @@
  * chose on the surface (see docs/dev/economy.md).
  */
 
-/** Bricks lying around the map: roughly one per this many hall or room cells. */
-export const BRICKS_PER_CELL = 0.5;
+/**
+ * Bricks lie only by collapsed walls (rubble-* markers in the pieces): `perRubble` of them at
+ * each, fewest and most, within `radius` (m) of it.
+ */
+export const BRICKS = { perRubble: [1, 3] as [number, number], radius: 1.8 };

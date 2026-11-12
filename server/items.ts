@@ -1,5 +1,5 @@
 import { ITEMS } from '../src/lib/content/items.ts';
-import { BRICKS_PER_CELL } from '../src/lib/content/loadout.ts';
+import { BRICKS } from '../src/lib/content/loadout.ts';
 import { LOOSE_LOOT } from '../src/lib/content/loot.ts';
 import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import { addItem, newStack } from '../src/lib/shared/items/inventory.ts';
@@ -59,27 +59,33 @@ export class WorldItems {
 
 	constructor(private world: CollisionWorld) {}
 
-	/** Scatter bricks on floor points by walls, away from the start (seeded by the map seed). */
-	scatter(nav: NavGrid, seed: number, start: Vec3, cells: number): void {
+	/**
+	 * Lay a few bricks by each collapsed wall (`rubble`: the rubble-* markers in world space), away
+	 * from the start. Nowhere else. Seeded by the map seed.
+	 */
+	scatter(nav: NavGrid, seed: number, start: Vec3, rubble: Vec3[]): void {
 		const rng = new Rng(seed ^ 0xb71c);
-		const spots = nav.points.filter(
-			(p) =>
-				p.clearance === 'stand' &&
-				!p.water &&
-				p.neighbours.length <= 5 &&
-				Math.hypot(p.position[0] - start[0], p.position[2] - start[2]) > 6
-		);
-		const want = Math.round(cells * BRICKS_PER_CELL);
-		const placed: Vec3[] = [];
-		for (let tries = 0; tries < want * 20 && placed.length < want && spots.length; tries++) {
-			const { position } = rng.pick(spots);
-			if (placed.some((q) => Math.hypot(q[0] - position[0], q[2] - position[2]) < 3)) continue;
-			placed.push(position);
-			this.place(
-				newStack('brick'),
-				[position[0], position[1], position[2]],
-				rng.next() * Math.PI * 2
+		for (const site of rubble) {
+			const want = rng.int(BRICKS.perRubble[0], BRICKS.perRubble[1]);
+			if (Math.hypot(site[0] - start[0], site[2] - start[2]) <= 6) continue;
+			const spots = nav.points.filter(
+				(p) =>
+					p.clearance === 'stand' &&
+					!p.water &&
+					Math.abs(p.position[1] - site[1]) < 1 &&
+					Math.hypot(p.position[0] - site[0], p.position[2] - site[2]) <= BRICKS.radius
 			);
+			const placed: Vec3[] = [];
+			for (let tries = 0; tries < want * 10 && placed.length < want && spots.length; tries++) {
+				const { position } = rng.pick(spots);
+				if (placed.some((q) => Math.hypot(q[0] - position[0], q[2] - position[2]) < 0.5)) continue;
+				placed.push(position);
+				this.place(
+					newStack('brick'),
+					[position[0], position[1], position[2]],
+					rng.next() * Math.PI * 2
+				);
+			}
 		}
 	}
 

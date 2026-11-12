@@ -31,8 +31,9 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	revolver: { forward: '-x', up: '+y', length: 0.26, grip: [0.2, 0.55] },
 	// Lies flat: blade toward -X, spine toward +Z.
 	knife: { forward: '-x', up: '+z', length: 0.3, grip: [0.3, 0.5] },
-	// Stands on end: hook at +Y, curling toward +X.
-	crowbar: { forward: '+y', up: '+x', length: 0.78, grip: [0.29, 0.28] },
+	// Stands on end: hook at +Y, curling toward +X. Held with the claw curling down, so its top is
+	// -X; the grip is measured from that bottom, so 0.72 is the same spot on the shaft as before.
+	crowbar: { forward: '+y', up: '-x', length: 0.78, grip: [0.29, 0.72] },
 	// Lies on its broad face.
 	brick: { forward: '-x', up: '+z', length: 0.22, grip: [0.5, 0.5] },
 	// A stoppered bottle standing upright (tallest along +Y). Its depth along Z is scaled to
@@ -42,5 +43,7 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	// 8 cm tall and 6 cm wide; held round its middle.
 	bandage: { forward: '-z', up: '+y', length: 0.053, grip: [0.5, 0.5] },
 	// A stick lying along X. About 8 cm long; pinched a little behind the middle.
-	chalk: { forward: '-x', up: '+y', length: 0.08, grip: [0.35, 0.5] }
+	chalk: { forward: '-x', up: '+y', length: 0.08, grip: [0.35, 0.5] },
+	// A fat dry cell lying along Z, its + terminal toward +Z. About 9 cm long; held round its middle.
+	battery: { forward: '+z', up: '+y', length: 0.09, grip: [0.5, 0.5] }
 };

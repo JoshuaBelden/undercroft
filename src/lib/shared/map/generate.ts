@@ -59,7 +59,7 @@ const DEFAULTS: GenerateOptions = {
 	branchPasses: 2,
 	loops: 8,
 	loopMaxCells: 16,
-	deadEndChance: 0.35,
+	deadEndChance: 0.55,
 	attempts: 64
 };
 
