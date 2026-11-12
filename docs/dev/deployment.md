@@ -21,7 +21,7 @@ browser ──https──> caddy ─┬─ /ws       ──> game  (tsx server/i
 ## Before the first deploy
 
 - **A domain** (or subdomain) for the game, for the TLS certificate. If its DNS is on DigitalOcean, provisioning points it at the droplet; otherwise add the A record yourself.
-- **A DigitalOcean API token** with write access, in your shell as `DIGITALOCEAN_ACCESS_TOKEN`. Don't commit it, put it in `.env`, or paste it into chat.
+- **A DigitalOcean API token** with write access, in your shell as `DIGITALOCEAN_ACCESS_TOKEN` or in the file `~/.undercroft/do-token` (outside the repo). Don't commit it, put it in `.env`, or paste it into chat.
 - **An SSH key** (`~/.ssh/id_ed25519.pub` by default). Provisioning registers it, and deploys log in with it as `root`.
 
 ## Provision (once)

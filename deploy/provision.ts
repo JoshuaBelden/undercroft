@@ -5,7 +5,8 @@
  *   pnpm deploy:provision --domain play.example.com [--region nyc3] [--size s-2vcpu-4gb]
  *                         [--ssh-key ~/.ssh/id_ed25519.pub] [--no-backups]
  *
- * Needs DIGITALOCEAN_ACCESS_TOKEN in the environment (never commit it or paste it anywhere).
+ * Needs a DigitalOcean API token: DIGITALOCEAN_ACCESS_TOKEN in the environment, or the file
+ * ~/.undercroft/do-token (never commit it or paste it anywhere).
  *
  *  1. Registers your SSH public key with the account (if it isn't already).
  *  2. Creates an Ubuntu droplet tagged `undercroft`, with cloud-init installing Docker and a
@@ -14,7 +15,7 @@
  *  4. Points the domain's A record at it, if the domain's DNS is hosted on DigitalOcean.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -33,9 +34,14 @@ const { values: args } = parseArgs({
 	}
 });
 
-const token = process.env.DIGITALOCEAN_ACCESS_TOKEN;
+/** Where the token can live instead of the environment: outside the repo, never committed. */
+const TOKEN_FILE = path.join(homedir(), '.undercroft', 'do-token');
+
+const token =
+	process.env.DIGITALOCEAN_ACCESS_TOKEN ||
+	(existsSync(TOKEN_FILE) ? readFileSync(TOKEN_FILE, 'utf8').trim() : '');
 if (!token) {
-	console.error('Set DIGITALOCEAN_ACCESS_TOKEN in your environment first.');
+	console.error(`Set DIGITALOCEAN_ACCESS_TOKEN, or put the token in ${TOKEN_FILE}.`);
 	process.exit(1);
 }
 
