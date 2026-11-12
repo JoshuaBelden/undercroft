@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ITEMS, RARITIES, rarityOf } from '#lib/content/items.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
-	import { CATEGORY_LABELS, itemStats } from './items.ts';
+	import { categoryLabel, COIN_SIGN, itemStats } from './items.ts';
 
 	/**
 	 * What an item is, shown beside the slot it sits in: its picture, name, a line about it and
@@ -54,7 +54,7 @@
 			<p class="name">{def?.name ?? stack.item}</p>
 			{#if def}
 				<p class="rarity {rarity}">{rarityName}</p>
-				<p class="category">{CATEGORY_LABELS[def.category]}</p>
+				<p class="category">{categoryLabel(def.id)}</p>
 			{/if}
 		</div>
 	</div>
@@ -64,7 +64,9 @@
 	<dl>
 		{#each stats as stat (stat.label + stat.value)}
 			<dt>{stat.label}</dt>
-			<dd>{stat.value}</dd>
+			<dd>
+				{#if stat.coins}<span class="sign" aria-hidden="true">{COIN_SIGN}</span>{/if}{stat.value}
+			</dd>
 		{/each}
 	</dl>
 </div>
@@ -181,5 +183,10 @@
 		margin: 0;
 		text-align: right;
 		font-variant-numeric: tabular-nums;
+	}
+
+	/* The full-width coin sign carries its own space: pull the value in, as in the top bar. */
+	.sign {
+		margin-right: -0.12em;
 	}
 </style>

@@ -109,6 +109,11 @@ export interface ItemDef {
 	weight: number;
 	/** What one sells for on the surface (loot). */
 	value?: number;
+	/**
+	 * Treasure: good for nothing but its value. Listed under its own stash filter and marked with
+	 * a diamond on its slot.
+	 */
+	treasure?: boolean;
 	/** How hard it is to come by; common when left out. */
 	rarity?: Rarity;
 	melee?: MeleeSpec;
@@ -291,6 +296,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'Old coins',
 		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor: 'Worn smooth. Laid on eyes once, or pressed into a palm for the crossing.',
 		model: null,
 		placeholder: { size: [0.08, 0.02, 0.08], color: 0x7a6a4a },
@@ -304,6 +310,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'Bone rosary',
 		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor: 'Beads turned from knuckles. Someone counted on these for a long time.',
 		model: null,
 		placeholder: { size: [0.12, 0.02, 0.12], color: 0xb8ad94 },
@@ -317,6 +324,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'Gold tooth',
 		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor: 'It came out easier than it should have.',
 		model: null,
 		placeholder: { size: [0.03, 0.03, 0.03], color: 0xc9a23a },
@@ -331,6 +339,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'Signet ring',
 		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor: 'A crest nobody above remembers. The gold is still gold.',
 		model: null,
 		placeholder: { size: [0.04, 0.02, 0.04], color: 0xb8902e },
@@ -345,6 +354,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'Silver candlestick',
 		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor: 'Black with tarnish and heavy in the hand. It will clean up.',
 		model: null,
 		placeholder: { size: [0.1, 0.3, 0.1], color: 0x8c9094 },
@@ -359,6 +369,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'Chalice',
 		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor: 'Gilt inside, garnets round the stem. Whatever it held has dried to a stain.',
 		model: null,
 		placeholder: { size: [0.12, 0.2, 0.12], color: 0xc2a64e },
@@ -373,6 +384,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		name: 'Reliquary',
 		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor:
 			'A casket of gold and rock crystal with something small and brown inside. They never ask where it lay.',
 		model: null,

@@ -40,6 +40,7 @@ export const AUDIO_FILES: Record<string, string[]> = {
 		'/assets/audio/inventory.rummage-3.wav',
 		'/assets/audio/inventory.rummage-4.wav'
 	],
+	'ui.click': ['/assets/audio/ui.click.wav'],
 	'ambience.drip': [
 		'/assets/audio/ambience.drip-1.wav',
 		'/assets/audio/ambience.drip-2.wav',

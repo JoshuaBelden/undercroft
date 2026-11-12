@@ -59,7 +59,7 @@ Invites are in memory only.
 - **Friends:** every friend, online or not: those who are here first. Refusals from the server show at the top of this panel. Invite (only for a friend who is online and not in a party, while your party has room and is on the surface) and Remove.
 - **Party** (right of that column): only there when there is a party to show, so a player on their own does not see it. It appears once you invite someone, who is listed as "Invited: waiting for them to accept" under you until they answer (from `SocialState.invited`), or once someone invites you. It shows invites waiting for you, then everyone in your party with their state (Ready, Not ready, Underground, Reconnecting), then the friends you have invited. The host has a Kick button beside each other member; anyone in a party of more than one has Leave party.
 
-It works out what each search result already is to you (friend, requested, asking) from `connection.social`, so the buttons stay right as answers arrive. Kick and Remove take two clicks.
+It works out what each search result already is to you (friend, requested, asking) from `connection.social`, so the buttons stay right as answers arrive. Kick takes two clicks; Remove asks in a confirmation `Dialog` first.
 
 The Social button in the frame is a link to the page and shows how many requests and invites are waiting. The `toggleSocial` action (O) goes to the page, and from the page back to Expedition.
 

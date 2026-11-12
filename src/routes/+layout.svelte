@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, onNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
+	import { InputMap } from '#lib/game/input/InputMap.ts';
+	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
+	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { connection, start } from '#lib/game/net/connection.svelte.ts';
+	import { settings } from '#lib/settings/settings.svelte.ts';
+	import { toggleFullscreen, watchFullscreen } from '#lib/ui/fullscreen.svelte.ts';
 	import LaunchCountdown from '#lib/ui/LaunchCountdown.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -25,6 +30,25 @@
 	});
 
 	/*
+	 * The menu click on every move between pages: links, keys, back and forward. Not into or out
+	 * of an expedition (that is the descent, not a menu), and not when only the query changes.
+	 */
+	const audio = new AudioManager({ ...settings.audio });
+	const sounds = new SoundBank(audio);
+
+	onNavigate((navigation) => {
+		const from = navigation.from?.route.id;
+		const to = navigation.to?.route.id;
+		if (!from || !to || from === to || from === '/play' || to === '/play') return;
+		for (const category of ['master', 'sfx'] as const) {
+			audio.setVolume(category, settings.audio[category]);
+		}
+		void audio.unlock().then(() => sounds.play('ui.click'));
+	});
+
+	onMount(() => () => audio.dispose());
+
+	/*
 	 * Tab never moves the browser's focus, anywhere: it is a game key (by default the pack
 	 * underground and the Loadout page on the dashboard). This is about the browser's own use of
 	 * the key, not a binding, so it is named here; what Tab does goes through the input map as ever.
@@ -36,6 +60,21 @@
 		};
 		window.addEventListener('keydown', noFocusMove, true);
 		return () => window.removeEventListener('keydown', noFocusMove, true);
+	});
+
+	/*
+	 * Fullscreen on every page, the expedition included: the key is caught here, once, through an
+	 * input map limited to it, so the pages' own input maps don't need to know about it.
+	 */
+	onMount(() => {
+		const stop = watchFullscreen();
+		const input = new InputMap(window, ['toggleFullscreen']);
+		const unsubscribe = input.onPressed(toggleFullscreen);
+		return () => {
+			unsubscribe();
+			input.dispose();
+			stop();
+		};
 	});
 </script>
 

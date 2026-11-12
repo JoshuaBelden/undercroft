@@ -62,7 +62,7 @@ Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played
 
 ## Settings
 
-`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y), `graphics` (FOV, brightness, quality, camera shake) and `accessibility` (subtitles and sound captions, caption size; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
+`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y), `graphics` (FOV, brightness, quality, camera shake, fullscreen) and `accessibility` (subtitles and sound captions, caption size; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
 
 **The settings screen** is `src/lib/ui/Settings.svelte`. It fills the window: a top bar whose tabs are the groups (Account, Audio, Graphics, Mouse, Accessibility, Interface, Controls) and a Back button, the selected group's title, then that group's settings in a container that scrolls on its own, so the screen never grows past the window.
 
@@ -77,6 +77,15 @@ Every setting is a pill (`--setting-width`, 400px) with its name on the left and
 An optional `hint` is shown beside the pill.
 
 **Adding a setting:** add it to `Settings` and `defaults()`, then render a `slider` or `stepper` for it in its group in `Settings.svelte`. Keep the label short enough for the pill and put the explanation in `hint`.
+
+## Fullscreen
+
+`src/lib/ui/fullscreen.svelte.ts` puts the whole site in fullscreen: it is `document.documentElement` that goes fullscreen, not one page's element, so it lasts across every move between pages, the expedition included (pointer lock works inside it).
+
+- **The key:** the `toggleFullscreen` action (F11 by default, the browser's own fullscreen key, which the input map takes from the browser). The root layout listens for it once, through an `InputMap` limited to that action, so no page has to.
+- **The setting:** Display (Fullscreen / Windowed) at the top of the Graphics group does the same. `settings.graphics.fullscreen` remembers the choice. Browsers only allow fullscreen from a click or a key, so a saved choice is taken up again on the first click or key after the page loads (`watchFullscreen`, called by the root layout).
+- **Escape:** while fullscreen, Chromium browsers lock the Escape key to the page (the keyboard lock API), so it still opens and closes the settings; holding it leaves fullscreen. Elsewhere Escape leaves fullscreen at once, as the browser decides. Leaving fullscreen any way the browser offers is remembered as windowed.
+- `fullscreen.active` is reactive, for anything that shows the current state.
 
 ## Dialogs
 
@@ -98,7 +107,7 @@ Render it only while it should be open. It is a native modal `<dialog>`: focus s
 
 ## Slots
 
-`src/lib/ui/Slot.svelte` is the one slot of the game: a 92px square with rounded corners that holds one thing. `name` is what is in it (`null` draws a grey question mark, for something not known yet) and `count` shows from 2 up. `size="large"` is twice as wide and tall (two slots and the gap between them: the weapon slots). A screen can make its slots smaller by setting the `--slot-size` CSS variable on an ancestor. `empty` draws nothing but an optional `hint` of what the slot is for. `image` is a picture id in `static/assets/images`, shown instead of the name, and `detail` is small print in the corner (rounds loaded). `rarity` colours the left and bottom edge, 2px, for anything better than common (the `--rarity-*` colours in `src/app.css`); `ItemSlot` passes it from the item. A screen that recolours a slot's border (hover, selection, drop targets) sets `--slot-border` on it, never `border-color`, so the rarity edge stays. Use it wherever a thing sits in a place of its own, so slots look the same on every screen; change the look there, not per screen. The Afflictions page's rite requirements use it as it is.
+`src/lib/ui/Slot.svelte` is the one slot of the game: a 92px square with rounded corners that holds one thing. `name` is what is in it (`null` draws a grey question mark, for something not known yet) and `count` shows from 2 up. `size="large"` is twice as wide and tall (two slots and the gap between them: the weapon slots). A screen can make its slots smaller by setting the `--slot-size` CSS variable on an ancestor. `empty` draws nothing but an optional `hint` of what the slot is for. `image` is a picture id in `static/assets/images`, shown instead of the name, and `detail` is small print in the bottom-left corner (rounds loaded). `mark` is a small icon in that corner, before the `detail`: what kind of thing it is. `slotMark(item)` (in `src/lib/ui/items.ts`) gives the filter icon for weapons, defense and treasure, and nothing for the rest; `ItemSlot` and the store pass it. The icons are `FILTER_ICONS`, shared with `ItemFilters`. `rarity` colours the left and bottom edge, 2px, for anything better than common (the `--rarity-*` colours in `src/app.css`); `ItemSlot` passes it from the item. A screen that recolours a slot's border (hover, selection, drop targets) sets `--slot-border` on it, never `border-color`, so the rarity edge stays. Use it wherever a thing sits in a place of its own, so slots look the same on every screen; change the look there, not per screen. The Afflictions page's rite requirements use it as it is.
 
 ### Item slots
 
@@ -108,7 +117,7 @@ Slots that things are dragged between (the Loadout page, the pack screen) are bu
 
 - `ItemBoard` (`itemBoard.svelte.ts`): one per screen. It holds what is being dragged, which slot the tooltip is for, the open menu and the question being asked, and turns what the player does into `InventoryAction`s. Give it `belongings` (what the slots show), `act` (send a request) and, where they apply, `sell`, `locked`, `price` and `confirmDrop`.
 - `ItemSlot`: a `Slot` in a button. Takes the `board`, its `SlotRef`, the `stack` and a `label` to read out. Dragging, dropping (slots that would take the dragged thing are marked in dark blue, the one under the cursor is lit, the rest dim), shift-click, the context menu (also the keyboard's menu key) and the tooltip (hover or focus) all report to the board.
-- `ItemFilters`: the column of round category buttons beside a grid of items. Bind its `filter` (`ItemFilter`: `all`, a category, or `ammo`) and filter the grid with `matchesFilter`. Ammunition is in the `other` category for slotting but is listed under its own filter, not under Other. The stash and the store use it.
+- `ItemFilters`: the column of round category buttons beside a grid of items. Bind its `filter` (`ItemFilter`: `all`, a category, `ammo` or `treasure`) and filter the grid with `matchesFilter`. Ammunition and treasure are in the `other` category for slotting but are listed under their own filters, not under Other. The stash and the store use it.
 - `ItemOverlays`: put one beside the slots. It draws the board's `ItemTooltip`, `ItemMenu` and dialogs.
 - `LoadoutPanel`: an `Inventory` as EQUIPMENT, BACKPACK and QUICK USE, in a row.
 - `CarriedWeight`: what an inventory weighs against the most that can be carried ("3.3 / 30 kg"), in the accent colour once it is enough to slow you. It sits beside the title of the loadout and of the pack screen.

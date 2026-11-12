@@ -26,6 +26,8 @@ export interface GraphicsSettings {
 	quality: GraphicsQuality;
 	/** Camera shake when hurt, 0 (off) .. 1. */
 	cameraShake: number;
+	/** The whole site fills the screen (see src/lib/ui/fullscreen.svelte.ts). */
+	fullscreen: boolean;
 }
 
 export type CaptionSize = 'small' | 'medium' | 'large';
@@ -59,7 +61,7 @@ function defaults(): Settings {
 		bindings: defaultBindings(),
 		interface: { showStats: false, quickSlots: true, itemPrompts: true },
 		controls: { mouseSensitivity: 1, invertY: false },
-		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1 },
+		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1, fullscreen: false },
 		accessibility: { captions: false, captionSize: 'medium' }
 	};
 }

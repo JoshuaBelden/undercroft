@@ -57,7 +57,8 @@
 		flex-direction: column;
 		overflow: hidden;
 		border: 1px solid transparent;
-		background: linear-gradient(#211c18, var(--bg) 70%);
+		/* The page's backdrop shows faintly through: the colours of #211c18 and --bg, see-through. */
+		background: linear-gradient(rgb(33 28 24 / 0.85), rgb(10 9 8 / 0.85) 70%);
 	}
 
 	.pane.ready {

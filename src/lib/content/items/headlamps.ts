@@ -36,7 +36,7 @@ export const HEADLAMPS: Record<string, HeadlampModel> = {
 		name: 'Starter headlamp',
 		modes: [
 			null,
-			{ intensity: 14, range: 9, angle: 0.5, drain: 1 / 900 },
+			{ intensity: 11, range: 9, angle: 0.85, drain: 1 / 900 },
 			{ intensity: 55, range: 20, angle: 0.42, drain: 1 / 300 }
 		],
 		flicker: { rate: 0.35, depth: 0.85, lowBattery: 0.2 },

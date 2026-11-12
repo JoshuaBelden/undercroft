@@ -17,22 +17,21 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- Navigation causes menu click sound
+- Use new icon images
+- Use new witch and player models
+
+- Improved background image on dashboard
+- headlamp dim is wider
+- Explore and extract effects
 - Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant
 - Players should see other users health
 - We need bigger maps with multiple extraction rooms
-- After a player extracts, show the loadout page.
-- Add a treasure type of loot and filter. Add a sell all loot button
-- Add full screen mode
-- Improved background image on dashboard
-- Expedition explorer cards should be transparent.
-- Explore and extract effects
+- Removing friends requires confirmation
+- Weapon reload mechanics, audio
+- Affliction status is based off of the host. So if a host hasn't uncovered an affliction, they still have to find clues
 
 ## Upnext - Items before closing off first affliction
 
-- Removing friends requires confirmation
-
-- Affliction status is based off of the host. So if a host hasn't uncovered an affliction, they still have to find clues
 - Allow Explorer images
 - Bricks are thrown not melee
 - Update creature ai so explorers can hide from them

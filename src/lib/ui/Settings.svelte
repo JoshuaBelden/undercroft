@@ -17,6 +17,7 @@
 		type GraphicsQuality
 	} from '#lib/settings/settings.svelte.ts';
 	import Dialog from './Dialog.svelte';
+	import { fullscreen, toggleFullscreen } from './fullscreen.svelte.ts';
 
 	/**
 	 * The settings screen: fills the window, with its own top bar whose tabs are the groups.
@@ -243,6 +244,12 @@
 					})}
 				{/each}
 			{:else if group === 'Graphics'}
+				{@render stepper({
+					label: 'Display',
+					text: fullscreen.active ? 'Fullscreen' : 'Windowed',
+					onstep: toggleFullscreen,
+					hint: `Fills the whole screen. ${bindingLabel(settings.bindings.toggleFullscreen[0] ?? '')} switches it anywhere.`
+				})}
 				{@render slider({
 					label: 'Field of view',
 					value: settings.graphics.fov,

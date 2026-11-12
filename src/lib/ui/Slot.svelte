@@ -17,6 +17,11 @@
 		detail?: string;
 		/** How hard the thing in it is to come by: colours the left and bottom edge. */
 		rarity?: Rarity;
+		/**
+		 * A small icon in the bottom-left corner, before any `detail`: what kind of thing it is
+		 * (`slotMark`: weapon, defense, treasure). `label` is read out.
+		 */
+		mark?: { icon: string; label: string };
 	}
 
 	let {
@@ -27,7 +32,8 @@
 		hint,
 		image,
 		detail,
-		rarity = 'common'
+		rarity = 'common',
+		mark
 	}: Props = $props();
 
 	/** Only something that is there and known has a rarity to show. */
@@ -59,8 +65,16 @@
 		{:else}
 			<span class="name">{name}</span>
 		{/if}
-		{#if detail}
-			<span class="detail">{detail}</span>
+		{#if mark || detail}
+			<span class="corner">
+				{#if mark}
+					<svg class="kind" viewBox="0 0 24 24" aria-hidden="true">
+						<path fill="currentColor" d={mark.icon} />
+					</svg>
+					<span class="hidden">{mark.label}</span>
+				{/if}
+				{#if detail}<span class="detail">{detail}</span>{/if}
+			</span>
 		{/if}
 		{#if count > 1}
 			<span class="count">×{count}</span>
@@ -153,8 +167,6 @@
 
 	.count,
 	.detail {
-		position: absolute;
-		bottom: 5px;
 		font-family: var(--font-display);
 		font-size: 0.95rem;
 		font-weight: 600;
@@ -162,12 +174,26 @@
 	}
 
 	.count {
+		position: absolute;
+		bottom: 5px;
 		right: 8px;
 	}
 
-	.detail {
-		left: 8px;
+	/* The bottom-left corner: the kind of thing it is, then the small print. */
+	.corner {
+		position: absolute;
+		left: 7px;
+		bottom: 5px;
+		display: flex;
+		align-items: center;
+		gap: 4px;
 		color: var(--muted);
+	}
+
+	.kind {
+		flex: none;
+		width: 14px;
+		height: 14px;
 	}
 
 	.mark {

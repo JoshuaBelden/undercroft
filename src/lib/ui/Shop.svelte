@@ -5,7 +5,7 @@
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import ItemFilters from './ItemFilters.svelte';
-	import { CATEGORY_LABELS, itemStats, matchesFilter, type ItemFilter } from './items.ts';
+	import { categoryLabel, itemStats, matchesFilter, slotMark, type ItemFilter } from './items.ts';
 	import Slot from './Slot.svelte';
 
 	/**
@@ -103,6 +103,7 @@
 								image={item?.image}
 								detail={String(ware.price)}
 								rarity={item?.rarity}
+								mark={slotMark(ware.item)}
 							/>
 						</button>
 					{:else}
@@ -132,7 +133,7 @@
 			<div class="title">
 				<h3 id="details-title">{def?.name ?? entry.item}</h3>
 				{#if def}
-					<p class="category">{CATEGORY_LABELS[def.category]}</p>
+					<p class="category">{categoryLabel(def.id)}</p>
 				{/if}
 			</div>
 			<button type="button" class="close" aria-label="Close" title="Close" onclick={close}>

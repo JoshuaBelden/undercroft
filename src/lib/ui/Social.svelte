@@ -3,6 +3,7 @@
 	import { connection, me, send, social } from '#lib/game/net/connection.svelte.ts';
 	import type { PartyMember } from '#lib/shared/party/types.ts';
 	import { SOCIAL, type Friend, type Person } from '#lib/shared/social/types.ts';
+	import Dialog from '#lib/ui/Dialog.svelte';
 
 	/**
 	 * The Social page: everything between players. On the left, one above the other: finding
@@ -48,8 +49,10 @@
 	);
 
 	let query = $state('');
-	/** Who is about to be removed (a friend's account, or a member id): asked twice. */
+	/** Who is about to be kicked (a member id): asked twice. */
 	let removing = $state<string | null>(null);
+	/** The friend we are asking about removing, in the confirmation dialog. */
+	let unfriending = $state<Friend | null>(null);
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const searching = $derived(query.trim().length >= SOCIAL.searchMin);
@@ -89,7 +92,7 @@
 		return 'none';
 	}
 
-	/** The first click asks; the second, on the same one, does it. */
+	/** The first click asks; the second, on the same one, does it (kicking a party member). */
 	function twice(key: string, act: () => void): void {
 		if (removing !== key) {
 			removing = key;
@@ -245,17 +248,7 @@
 										Invite
 									</button>
 								{/if}
-								<button
-									type="button"
-									class:danger={removing === friend.account}
-									onclick={() =>
-										twice(friend.account, () =>
-											social({ kind: 'remove', account: friend.account })
-										)}
-									onblur={() => (removing = null)}
-								>
-									{removing === friend.account ? 'Sure?' : 'Remove'}
-								</button>
+								<button type="button" onclick={() => (unfriending = friend)}>Remove</button>
 							</li>
 						{/each}
 					</ul>
@@ -347,6 +340,27 @@
 		</section>
 	{/if}
 </div>
+
+{#if unfriending}
+	{@const friend = unfriending}
+	<Dialog title="Remove friend" onclose={() => (unfriending = null)}>
+		<p>{friend.name} is taken off your friends list, and you come off theirs.</p>
+		<p>To be friends again, one of you has to send a new request.</p>
+		{#snippet footer()}
+			<button type="button" onclick={() => (unfriending = null)}>Cancel</button>
+			<button
+				type="button"
+				class="primary"
+				onclick={() => {
+					unfriending = null;
+					social({ kind: 'remove', account: friend.account });
+				}}
+			>
+				Remove
+			</button>
+		{/snippet}
+	</Dialog>
+{/if}
 
 <style>
 	/*

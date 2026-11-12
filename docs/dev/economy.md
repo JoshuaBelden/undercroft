@@ -47,7 +47,7 @@ Links inside the group use route ids with `resolve` (`resolve('/(hub)/loadout')`
 
 ### The Loadout page
 
-`Outfit` fills the page with two rounded, see-through panels. STASH on the left is as wide as its slots: a column of round filter buttons (`ItemFilters`: all, weapons, ammunition, defense, quick use, other) and the slots, 5 across, in a container that scrolls. A filter shows the stacks of that category first and then the empty slots, so there is still somewhere to drop things. LOADOUT takes the rest of the width and is a `LoadoutPanel`, with the weight of it (`CarriedWeight`) beside the title. The two are always side by side: in a narrower window the slots shrink (`--slot-size`, set on the page and read by `Slot`).
+`Outfit` fills the page with two rounded, see-through panels. STASH on the left is as wide as its slots: a column of round filter buttons (`ItemFilters`: all, weapons, ammunition, defense, quick use, treasure, other) and the slots, 5 across, in a container that scrolls. A filter shows the stacks of that category first and then the empty slots, so there is still somewhere to drop things. LOADOUT takes the rest of the width and is a `LoadoutPanel`, with the weight of it (`CarriedWeight`) beside the title. The two are always side by side: in a narrower window the slots shrink (`--slot-size`, set on the page and read by `Slot`).
 
 Everything is drag and drop; there are no buttons. Slots are `ItemSlot`s on one `ItemBoard` (see [systems.md](systems.md#item-slots)):
 
@@ -93,7 +93,7 @@ When the game server starts, `releaseAll` clears every `underground` marker: nob
 
 ## Loot
 
-Loot is what explorers carry out to sell: items with `kind: 'loot'`, a `value`, a weight and a stack size, so that carrying it is a choice (coins stack to 20 and weigh nothing; a chalice takes a slot and weighs 1.8 kg). None has a model yet: on the floor they are boxes from `placeholder`.
+Loot is what explorers carry out to sell: items with `kind: 'loot'`, a `value`, a weight and a stack size, so that carrying it is a choice (coins stack to 20 and weigh nothing; a chalice takes a slot and weighs 1.8 kg). All of it is `treasure: true`: good for nothing but its value, so it is listed under the Treasure filter (not Other), its tooltip says Treasure, and its slot has a small diamond in the bottom-left corner (weapons and defense show their filter icons there too). None has a model yet: on the floor they are boxes from `placeholder`.
 
 ### Rarity
 
@@ -138,7 +138,7 @@ It is seeded by the map seed, so a seed gives the same crates with the same thin
 - **The meter:** loot carried hastens the Affliction. Each tick the meter gains `meter.perLoot` × the value all players carry between them (`lootValue`) × the tick length. See [affliction.md](affliction.md).
 - **Coming back:** loot stays in the loadout's backpack (see above); the player moves it to the stash or sells it.
 
-To add a loot item, add an `ItemDef` with `kind: 'loot'`, a `value` and a `rarity`, and an entry in `CRATE_LOOT`. A rarity with nothing in `CRATE_LOOT` simply never turns up.
+To add a loot item, add an `ItemDef` with `kind: 'loot'`, a `value`, a `rarity` and `treasure: true`, and an entry in `CRATE_LOOT`. A rarity with nothing in `CRATE_LOOT` simply never turns up.
 
 ## Money and the shop
 

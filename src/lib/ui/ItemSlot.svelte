@@ -3,7 +3,7 @@
 	import type { SlotRef } from '#lib/shared/items/types.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import type { ItemBoard } from './itemBoard.svelte.ts';
-	import { stackDetail, stackLabel } from './items.ts';
+	import { slotMark, stackDetail, stackLabel } from './items.ts';
 	import Slot from './Slot.svelte';
 
 	/**
@@ -119,6 +119,7 @@
 		image={def?.image}
 		detail={stack ? stackDetail(stack) : undefined}
 		rarity={stack ? rarityOf(stack.item) : undefined}
+		mark={stack ? slotMark(stack.item) : undefined}
 	/>
 </button>
 

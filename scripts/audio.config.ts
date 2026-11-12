@@ -55,6 +55,8 @@ export const AUDIO_SOURCES: AudioSource[] = [
 		file: 'rummage.mp3',
 		slice: { minGap: 0.9, maxLength: 1.3, threshold: 0.3, maxClips: 4 }
 	},
+	// Interface: moving between pages on the surface.
+	{ id: 'ui.click', file: 'menu_click.wav' },
 	// Ambience
 	{
 		id: 'ambience.drip',

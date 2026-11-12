@@ -1,4 +1,4 @@
-import { money, sellPrice } from '#lib/content/economy.ts';
+import { sellPrice } from '#lib/content/economy.ts';
 import { ITEMS, type ItemCategory } from '#lib/content/items.ts';
 import type { ItemStack } from '#lib/shared/player/types.ts';
 
@@ -32,30 +32,77 @@ export const CATEGORY_LABELS: Record<ItemCategory, string> = {
 	other: 'Other'
 };
 
-/**
- * What a grid of items is showing: everything, one category, or ammunition (`ItemFilters`).
- * Ammunition is in the `other` category for slotting, but has a filter of its own.
- */
-export type ItemFilter = 'all' | ItemCategory | 'ammo';
+/** The filter icons (`ItemFilters`), each drawn in a 24-unit box. Slots show some of them too. */
+export const FILTER_ICONS: Record<ItemFilter, string> = {
+	all: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+	weapon: 'M19.5 3 21 4.5 10 15.5 8.5 14zM8 13l3 3-1.5 1.5-1-1L5 20l-1-1 3.500-3.500-1-1z',
+	ammo: 'M12 2c2 1.800 3 4.200 3 7v9H9V9c0-2.800 1-5.200 3-7zM9 19.500h6V22H9z',
+	defense: 'M12 3l7 2.500v6c0 4.500-3 7.800-7 9.500-4-1.700-7-5-7-9.500v-6z',
+	quick: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',
+	treasure: 'M7 4h10l4 5-9 11L3 9z',
+	other:
+		'M6 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM18 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z'
+};
 
-/** Whether an item is shown under a filter. Ammunition is listed under `ammo`, not `other`. */
+/**
+ * The mark in the bottom-left corner of an item's slot: its filter icon, for weapons, defense
+ * and treasure. Other things have none.
+ */
+export function slotMark(item: string): { icon: string; label: string } | undefined {
+	const def = ITEMS[item];
+	if (!def) return undefined;
+	if (def.treasure) return { icon: FILTER_ICONS.treasure, label: 'Treasure' };
+	if (def.category === 'weapon') return { icon: FILTER_ICONS.weapon, label: 'Weapon' };
+	if (def.category === 'defense') return { icon: FILTER_ICONS.defense, label: 'Defense' };
+	return undefined;
+}
+
+/** What an item is called in its tooltip: its category, or Treasure. */
+export function categoryLabel(item: string): string {
+	const def = ITEMS[item];
+	if (!def) return '';
+	return def.treasure ? 'Treasure' : CATEGORY_LABELS[def.category];
+}
+
+/**
+ * What a grid of items is showing: everything, one category, ammunition or treasure
+ * (`ItemFilters`). Ammunition and treasure are in the `other` category for slotting, but have
+ * filters of their own.
+ */
+export type ItemFilter = 'all' | ItemCategory | 'ammo' | 'treasure';
+
+/**
+ * Whether an item is shown under a filter. Ammunition is listed under `ammo` and treasure under
+ * `treasure`, not under `other`.
+ */
 export function matchesFilter(item: string, filter: ItemFilter): boolean {
 	if (filter === 'all') return true;
 	const def = ITEMS[item];
 	if (!def) return false;
 	if (def.kind === 'ammo') return filter === 'ammo';
+	if (def.treasure) return filter === 'treasure';
 	return def.category === filter;
 }
+
+/** One figure in a tooltip. `coins`: the value is money, drawn after the coin sign. */
+export interface ItemStat {
+	label: string;
+	value: string;
+	coins: boolean;
+}
+
+/** The coin sign, as in the top bar. */
+export const COIN_SIGN = '＄';
 
 /**
  * The figures that matter for a stack, for the tooltip: only those that apply to it. `forSale` is
  * a stack in the store, not one you own: what it holds and stacks to, not what is in it now.
  */
-export function itemStats(stack: ItemStack, forSale = false): { label: string; value: string }[] {
+export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 	const def = ITEMS[stack.item];
 	if (!def) return [];
-	const stats: { label: string; value: string }[] = [];
-	const add = (label: string, value: string) => stats.push({ label, value });
+	const stats: ItemStat[] = [];
+	const add = (label: string, value: string, coins = false) => stats.push({ label, value, coins });
 	if (def.firearm) {
 		const gun = def.firearm;
 		add('Damage', gun.pellets > 1 ? `${gun.damage} × ${gun.pellets}` : `${gun.damage}`);
@@ -88,7 +135,7 @@ export function itemStats(stack: ItemStack, forSale = false): { label: string; v
 		else add('Stack', `${stack.count} / ${def.maxStack}`);
 	}
 	const price = sellPrice(stack.item);
-	if (price > 0 && !forSale)
-		add('Sells for', stack.count > 1 ? `${money(price)} each` : money(price));
+	// One's price, with the coin sign of the top bar in front.
+	if (price > 0 && !forSale) add('Sells for', `${price}`, true);
 	return stats;
 }

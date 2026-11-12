@@ -355,6 +355,8 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	// The surface.
+	/** Moving between pages (the tabs, the store, social, settings). */
+	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 },
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
 	'shop.sell': { synth: { kind: 'bell', pitch: 1320, length: 0.5 }, category: 'sfx', volume: 0.3 },
 	// The rite.
