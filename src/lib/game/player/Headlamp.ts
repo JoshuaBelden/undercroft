@@ -27,6 +27,12 @@ export class Headlamp {
 		head.add(this.light.target);
 	}
 
+	/** Move the lamp this far (m) ahead of the eye point: clear of a drawn body's head. */
+	setForward(distance: number): void {
+		this.light.position.z = -distance;
+		this.light.target.position.z = -distance - 1;
+	}
+
 	setShadows(enabled: boolean, mapSize: number): void {
 		this.light.castShadow = enabled;
 		if (this.light.shadow.mapSize.x !== mapSize) {

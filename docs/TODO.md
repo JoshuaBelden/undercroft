@@ -17,8 +17,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- use new player model
-- show idle player model
 - use new boss model
 
 - Improved background image on dashboard

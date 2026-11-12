@@ -7,12 +7,14 @@ Things that hunt the players. In code and docs they are **creatures**, and each 
 | File                                    | What                                                                |
 | --------------------------------------- | ------------------------------------------------------------------- |
 | `src/lib/content/creatures.ts`          | Creature definitions (data): model, animations, speeds, perception  |
+| `src/lib/content/animations.ts`         | Animation slots, fallbacks and the animation map type               |
+| `src/lib/game/Animator.ts`              | Client: plays a model's clips by slot, through its map              |
 | `src/lib/shared/map/nav.ts`             | Nav grid built from the collision world, A\* pathfinding            |
 | `src/lib/shared/creature/visibility.ts` | Half-light: lamp illumination on a point, visibility band           |
 | `src/lib/shared/creature/types.ts`      | `CreatureSnapshot` (sent in every `tick`)                           |
 | `server/creatures.ts`                   | `CreatureDirector`: spawning, AI states, perception, movement, hits |
 | `src/lib/game/creatures/Creatures.ts`   | Client: model, animation, half-light fade, sounds, admin markers    |
-| `src/lib/game/assets.ts`                | `loadCreature`: skinned clone and root-motion stripping             |
+| `src/lib/game/assets.ts`                | `loadCharacter`: skinned clone and root-motion stripping            |
 
 ## Data
 
@@ -33,11 +35,11 @@ Attack clips are stretched on the client to `attack.duration`, so the strike lin
 
 ## Animation maps
 
-Every model names its clips differently, so each `CreatureDef` maps them onto one standard set of slots (`CREATURE_ANIMS`):
+Every rigged model names its clips differently, so each one (every `CreatureDef`, and the explorer in [player.md](player.md#player-model)) maps them onto one standard set of slots (`ANIM_SLOTS` in `src/lib/content/animations.ts`):
 
 `idle`, `walking`, `running`, `jumping`, `melee_attack`, `weapon_attack`, `spell_attack`, `dodge`, `climb`, `crouch`, `crawl`, `take_damage`, `die`.
 
-`animations` holds one entry per slot the model has a clip for: `{ clip, speed?, start? }`. `clip` is the name in the file, `speed` the playback rate (default 1), and `start` skips a lead-in (seconds into the clip). Slots the model has nothing for are left out.
+`animations` holds one entry per slot the model has a clip for: `{ clip, speed?, start?, end? }`. `clip` is the name in the file and `speed` the playback rate (default 1; 0 holds the first frame as a pose). `start` and `end` (seconds into the clip) use only part of it, to skip a lead-in or cut a tail off. Two slots can share a clip. Slots the model has nothing for are left out.
 
 The server only ever sends a slot name (`CreatureSnapshot.anim`), picked in `CreatureDirector.animate`:
 
@@ -52,7 +54,7 @@ The server only ever sends a slot name (`CreatureSnapshot.anim`), picked in `Cre
 | Searching                         | `gait.search`                |
 | Hunting                           | `gait.burst` or `gait.stalk` |
 
-The client plays the slot's clip. If the model has none, `resolveAnim` takes the first mapped slot from `ANIM_FALLBACKS` (`crawl` → `crouch` → `walking`, any attack → another attack, and so on). If nothing fits, the state is skipped and whatever was playing carries on. `LOOPING_ANIMS` lists the slots that repeat (`idle`, `walking`, `running`, `climb`, `crouch`, `crawl`); the rest play once and hold their last frame.
+On the client an `Animator` (one per model copy) plays the slot's clip, crossfading from the last. If the model has none, `resolveAnim` takes the first mapped slot from `ANIM_FALLBACKS` (`crawl` → `crouch` → `walking`, any attack → another attack, and so on). If nothing fits, the state is skipped and whatever was playing carries on. `LOOPING_ANIMS` lists the slots that repeat (`idle`, `walking`, `running`, `climb`, `crouch`, `crawl`); the rest play once and hold their last frame.
 
 The witch's map:
 
@@ -150,8 +152,8 @@ It's deterministic from player state. Every client draws the creature with the s
 `Creatures` keeps one entry per snapshot:
 
 - it eases position and yaw toward the snapshot and crossfades to the animation slot in the snapshot, starting `animTime` seconds in so one-shot clips stay in step;
-- the model is `loadCreature(def.model)`: a SkeletonUtils clone with its own materials (for fading), sharing clips;
-- `loadCreature` pins the root bone's x/z to its first keyframe, so a clip's root motion (the crouch walk, the hit reaction, the death fall) doesn't move the model away from the server position.
+- the model is `loadCharacter(def.model)`: a SkeletonUtils clone with its own materials (for fading), sharing clips;
+- `loadCharacter` pins the root bone's x/z to its first keyframe, so a clip's root motion (the crouch walk, the hit reaction, the death fall) doesn't move the model away from the server position.
 
 Sounds always play, visible or not: `creature.step` while in a moving slot, `creature.burst` on entering `gait.burst`, and `creature.attack` on entering an attack slot.
 

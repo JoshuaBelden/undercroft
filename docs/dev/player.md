@@ -16,7 +16,9 @@ The first-person player. The server is authoritative. The client predicts its ow
 | Server side                          | `server/session.ts`                    |
 | Client prediction and camera         | `src/lib/game/player/LocalPlayer.ts`   |
 | Headlamp light                       | `src/lib/game/player/Headlamp.ts`      |
-| Other players (placeholder)          | `src/lib/game/player/RemotePlayers.ts` |
+| Other players                        | `src/lib/game/player/RemotePlayers.ts` |
+| Player body (model and animation)    | `src/lib/game/player/PlayerBody.ts`    |
+| Explorer model and camera (data)     | `src/lib/content/player/model.ts`      |
 | Footsteps, breathing, click          | `src/lib/game/player/PlayerAudio.ts`   |
 | HUD                                  | `src/lib/ui/Hud.svelte`                |
 | Sanity tuning (data)                 | `src/lib/content/player/sanity.ts`     |
@@ -113,7 +115,7 @@ The camera interpolates between the last two simulation steps, so movement is sm
 - The client estimates the server clock from those timestamps. The estimate follows the least-delayed packet, so jitter doesn't move it.
 - Every frame a remote player is drawn at server time minus `INTERPOLATION_DELAY` (100 ms, two ticks), between the two samples either side of that moment: position is lerped, yaw turns the short way, pitch is lerped.
 - Past the newest sample it holds still (no extrapolation). A jump over 6 m between samples (teleport, respawn) snaps.
-- Stance height and the lamp use the latest snapshot.
+- The body's animation and the lamp use the latest snapshot.
 
 So you see teammates about 100 ms plus latency in the past, and the local player in the present.
 
@@ -126,13 +128,60 @@ So you see teammates about 100 ms plus latency in the past, and the local player
 - **Flicker:** deterministic, driven by the lamp's `lampClock` (seconds lit, part of the state) through a hash. The server can therefore later ask whether a lamp is flickering, for the half-light Thrall, and get the same answer the client renders.
 - **Low battery:** below `flicker.lowBattery`, the lamp dims and flickers more.
 
-`Headlamp.ts` puts a `SpotLight` on the camera. It casts one shadow on medium and high quality, and it counts toward `LIGHT_BUDGET`. The scene's ambient light is almost black, so the headlamp is the light.
+`Headlamp.ts` puts a `SpotLight` on the player's head: an object at the eyes, facing where they look. In first person that is where the camera is; over the shoulder the camera hangs back and the lamp stays on the head, which is where the server works out the light from. It casts one shadow on medium and high quality, and it counts toward `LIGHT_BUDGET`. The scene's ambient light is almost black, so the headlamp is the light.
 
 **Other players' headlamps:** `RemotePlayers` gives each remote player a head pivot (eye height, yaw, pitch from their snapshot) with its own `Headlamp`. Their flicker uses the same `headlampOutput`, with the lamp clock advanced locally between 20 Hz snapshots so it stays smooth. Remote lamps cast shadows (at most 512 px) so their light doesn't leak through walls, and each one counts toward `LIGHT_BUDGET`.
 
 A lamp that is off has zero intensity rather than `visible = false`. Changing the number of visible lights makes Three.js recompile every material, which would hitch every time someone toggles a lamp.
 
 **Adding a headlamp model:** add an entry to `HEADLAMPS`. The player always uses the starter until the hub sells others (Phase 5).
+
+## Player model
+
+Every player is drawn with the explorer model (`PLAYER_MODEL` in `src/lib/content/player/model.ts`), built from `art/export/player/explorer.glb` by `pnpm asset:build`.
+
+`PlayerBody` owns one copy of the model and animates it from that player's `PlayerState` alone, so the server sends nothing extra. `RemotePlayers` has one per other player; the play page has one for you, drawn only when the camera is outside your head. Each frame it picks an animation slot (see Animation maps in [creatures.md](creatures.md)):
+
+| State                           | Slot             | Speed                                            |
+| ------------------------------- | ---------------- | ------------------------------------------------ |
+| Downed or dead                  | `die`            | plays once, then holds                           |
+| Mantling                        | `climb`          | no clip: falls back to the walk                  |
+| Swinging or throwing            | `melee_attack`   | stretched to the item's swing or throw           |
+| Swimming                        | `crawl`          | ground speed / swim speed                        |
+| Crouched or crawling            | `crouch`/`crawl` | ground speed / stance speed; stops when you stop |
+| Standing still (under 0.2 m/s)  | `idle`           |                                                  |
+| Faster than halfway to a sprint | `running`        | ground speed / sprint speed                      |
+| Otherwise                       | `walking`        | ground speed / walk speed                        |
+
+The explorer's map:
+
+| Slot           | Clip                           | Notes                                             |
+| -------------- | ------------------------------ | ------------------------------------------------- |
+| `idle`         | `Walking`, held at frame 0     | a stand-in: the model has no idle clip            |
+| `walking`      | `Walking`                      |                                                   |
+| `running`      | `Running`                      |                                                   |
+| `crouch`       | `Cautious_Crouch_Walk_Forward` |                                                   |
+| `crawl`        | `Crawl_and_Look_Back`          | the first 2.1 s only; the rest stops to look back |
+| `melee_attack` | `Heavy_Hammer_Swing`           |                                                   |
+| `dodge`        | `Block5`                       | mapped, nothing plays it yet                      |
+| `take_damage`  | `Face_Punch_Reaction_1`        | mapped, nothing plays it yet                      |
+| `die`          | `Shot_and_Slow_Fall_Backward`  |                                                   |
+
+Not yet done:
+
+- Nothing is drawn in the body's hand, and firing a gun and reloading have no animation (the model has no clip for them).
+- The body doesn't cast shadows. The lamp is inside the head, so a shadow-casting body would block its own lamp, and Three.js can't exempt one light.
+
+## Camera
+
+`settings.graphics.view` is `first` or `shoulder`; `toggleView` (V) switches it, and so does Camera under Graphics in the settings.
+
+- **Lamp position:** whenever a body is drawn (other players, and you over the shoulder), its lamp is moved `PLAYER_MODEL.lampForward` (0.45 m) ahead of the eye point. The model's head is ahead of the eye point and leans further in a run, so a lamp left at the eye point would shine on the back of the head.
+- **Only standing.** Crouched, crawling or swimming, the body would fill the view from behind, so the shoulder view gives way to the eyes and comes back when you stand up.
+- **First person:** the camera is at the eyes and the held item is drawn by `ViewModel`.
+- **Over the shoulder:** the camera sits behind and to the right of the head (`SHOULDER_CAMERA`: right, up, back, in the look frame). `segmentHit` from the eye to that spot pulls it in short of a wall. Your own `PlayerBody` is drawn and the viewmodel is hidden. If the camera is squeezed to within `hideWithin` (0.3 m) of the head, the body is hidden so you don't see it from the inside.
+
+The view changes nothing on the server: you still move, aim and shoot from the eyes along the look direction, so over the shoulder a shot lands slightly left of the centre of the screen at close range.
 
 ## Audio
 

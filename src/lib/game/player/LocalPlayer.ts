@@ -239,14 +239,20 @@ export class LocalPlayer {
 		this.eye += (targetEye - this.eye) * Math.min(1, delta * 10);
 	}
 
-	/** Camera position: interpolated between sim steps, with smoothing and eye height. */
-	eyePosition(): Vec3 | null {
+	/** Where the feet are drawn: interpolated between sim steps, with correction smoothing. */
+	feetPosition(): Vec3 | null {
 		const state = this.state;
 		if (!state) return null;
 		const prev = this.previous ?? state;
 		const alpha = this.accumulator / DT;
 		const p = (i: number) => prev.position[i] + (state.position[i] - prev.position[i]) * alpha;
-		return [p(0) + this.offset[0], p(1) + this.offset[1] + this.eye, p(2) + this.offset[2]];
+		return [p(0) + this.offset[0], p(1) + this.offset[1], p(2) + this.offset[2]];
+	}
+
+	/** Camera position: the feet plus the (smoothed) eye height. */
+	eyePosition(): Vec3 | null {
+		const feet = this.feetPosition();
+		return feet && [feet[0], feet[1] + this.eye, feet[2]];
 	}
 
 	look(): { yaw: number; pitch: number } {

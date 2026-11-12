@@ -1,13 +1,7 @@
 import * as THREE from 'three';
-import {
-	CREATURE_ANIMS,
-	CREATURES,
-	LOOPING_ANIMS,
-	resolveAnim,
-	type CreatureAnim,
-	type CreatureDef
-} from '#lib/content/creatures.ts';
-import { loadCreature } from '#lib/game/assets.ts';
+import { CREATURES, type CreatureAnim, type CreatureDef } from '#lib/content/creatures.ts';
+import { Animator } from '#lib/game/Animator.ts';
+import { loadCharacter } from '#lib/game/assets.ts';
 import type { SoundBank } from '#lib/game/audio/SoundBank.ts';
 import type { CreatureSnapshot } from '#lib/shared/creature/types.ts';
 import { creatureLight, halfLightVisible } from '#lib/shared/creature/visibility.ts';
@@ -19,11 +13,8 @@ interface Entry {
 	root: THREE.Group;
 	model: THREE.Object3D | null;
 	materials: THREE.Material[];
-	mixer: THREE.AnimationMixer | null;
-	/** One action per slot the model has a clip for. */
-	actions: Partial<Record<CreatureAnim, THREE.AnimationAction>>;
-	playing: THREE.AnimationAction | null;
-	/** The snapshot state `playing` was started for. */
+	animator: Animator | null;
+	/** The snapshot state the animator was last sent to. */
 	played: CreatureAnim | null;
 	anim: CreatureAnim;
 	animTime: number;
@@ -51,7 +42,6 @@ const ATTACKS: ReadonlySet<CreatureAnim> = new Set([
 ]);
 const FADE_IN = 10;
 const FADE_OUT = 5;
-const CROSSFADE = 0.25;
 /** Seconds a dead creature takes to fade out before the server removes it. */
 const CORPSE_FADE = 1.5;
 
@@ -142,7 +132,7 @@ export class Creatures {
 			this.applyOpacity(entry);
 
 			this.play(entry);
-			entry.mixer?.update(delta);
+			entry.animator?.update(delta);
 			this.footsteps(entry, delta, position);
 		}
 	}
@@ -170,9 +160,7 @@ export class Creatures {
 			root,
 			model: null,
 			materials: [],
-			mixer: null,
-			actions: {},
-			playing: null,
+			animator: null,
 			played: null,
 			anim: snap.anim,
 			animTime: snap.animTime,
@@ -183,7 +171,7 @@ export class Creatures {
 			stepTimer: 0,
 			flinch: 0
 		};
-		void loadCreature(def.model).then(({ scene, clips }) => {
+		void loadCharacter(def.model).then(({ scene, clips }) => {
 			if (!root.parent) return;
 			scene.rotation.y = def.yawOffset;
 			scene.traverse((node) => {
@@ -198,49 +186,25 @@ export class Creatures {
 			});
 			root.add(scene);
 			entry.model = scene;
-			entry.mixer = new THREE.AnimationMixer(scene);
-			for (const anim of CREATURE_ANIMS) {
-				const spec = def.animations[anim];
-				const clip = spec && clips.find((c) => c.name === spec.clip);
-				if (!spec || !clip) continue;
-				const loop = LOOPING_ANIMS.has(anim);
-				const action = entry.mixer.clipAction(clip);
-				action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
-				action.clampWhenFinished = !loop;
-				// Attack clips are stretched to the attack's duration so the hit lines up.
-				action.timeScale = ATTACKS.has(anim)
-					? (clip.duration - (spec.start ?? 0)) / def.attack.duration
-					: (spec.speed ?? 1);
-				entry.actions[anim] = action;
-			}
+			entry.animator = new Animator(scene, clips, def.animations);
+			// Attack clips are stretched to the attack's duration so the hit lines up.
+			for (const anim of ATTACKS) entry.animator.setDuration(anim, def.attack.duration);
 			this.applyOpacity(entry);
 		});
 		return entry;
 	}
 
 	private remove(entry: Entry): void {
-		entry.mixer?.stopAllAction();
+		entry.animator?.dispose();
 		for (const material of entry.materials) material.dispose();
 		entry.root.removeFromParent();
 	}
 
-	/** Crossfade to the snapshot's animation state, or the nearest one the model has a clip for. */
+	/** Send the animator to the snapshot's state, picking up where the server is in it. */
 	private play(entry: Entry): void {
-		if (!entry.mixer || entry.played === entry.anim) return;
+		if (!entry.animator || entry.played === entry.anim) return;
 		entry.played = entry.anim;
-		const slot = resolveAnim(entry.def.animations, entry.anim);
-		const next = slot ? entry.actions[slot] : undefined;
-		// Nothing to play for this state (or it's already playing): carry on as we were.
-		if (!slot || !next || next === entry.playing) return;
-		const previous = entry.playing;
-		const duration = next.getClip().duration;
-		// Pick up where the server is in the state, so one-shot clips stay in step.
-		const time = (entry.def.animations[slot]?.start ?? 0) + entry.animTime * next.timeScale;
-		next.reset();
-		next.time = LOOPING_ANIMS.has(slot) ? time % duration : Math.min(time, duration);
-		next.play();
-		if (previous) next.crossFadeFrom(previous, CROSSFADE, false);
-		entry.playing = next;
+		entry.animator.play(entry.anim, entry.animTime);
 	}
 
 	private applyOpacity(entry: Entry): void {

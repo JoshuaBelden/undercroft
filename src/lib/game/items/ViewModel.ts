@@ -129,9 +129,9 @@ export class ViewModel {
 		this.root.rotation.copy(rot);
 	}
 
-	/** Where the muzzle is in the game world, for the flash: just in front of the game camera. */
-	static muzzle(camera: THREE.Camera, target: THREE.Vector3): THREE.Vector3 {
-		return target.set(0.12, -0.1, -0.7).applyMatrix4(camera.matrixWorld);
+	/** Where the muzzle is in the game world, for the flash: just in front of the player's eyes. */
+	static muzzle(head: THREE.Object3D, target: THREE.Vector3): THREE.Vector3 {
+		return target.set(0.12, -0.1, -0.7).applyMatrix4(head.matrixWorld);
 	}
 
 	dispose(): void {

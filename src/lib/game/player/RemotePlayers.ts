@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { MOVEMENT } from '#lib/content/player/movement.ts';
-import { bodyHeight, eyeHeight } from '#lib/shared/player/simulate.ts';
+import { PLAYER_MODEL } from '#lib/content/player/model.ts';
+import { eyeHeight } from '#lib/shared/player/simulate.ts';
 import type { PlayerSnapshot, PlayerState } from '#lib/shared/player/types.ts';
 import { Headlamp } from './Headlamp.ts';
+import { PlayerBody } from './PlayerBody.ts';
 
 /** Where a remote player was at a moment of server time. */
 interface Sample {
@@ -23,7 +24,7 @@ const TELEPORT = 6;
 interface RemoteBody {
 	name: string;
 	root: THREE.Group;
-	body: THREE.Mesh;
+	body: PlayerBody;
 	/** Pivot at eye height, turned by yaw and pitch; carries the headlamp. */
 	head: THREE.Object3D;
 	lamp: Headlamp;
@@ -35,7 +36,7 @@ interface RemoteBody {
 }
 
 /**
- * Other players: a placeholder capsule plus their headlamp, driven by the shared headlamp output
+ * Other players: the explorer model plus their headlamp, driven by the shared headlamp output
  * so it flickers exactly as it does for them.
  *
  * Movement is snapshot interpolation: each player is drawn `INTERPOLATION_DELAY` behind the
@@ -46,8 +47,6 @@ interface RemoteBody {
 export class RemotePlayers {
 	readonly root = new THREE.Group();
 	private bodies = new Map<string, RemoteBody>();
-	private geometry = new THREE.CapsuleGeometry(MOVEMENT.radius, 1, 4, 8);
-	private material = new THREE.MeshStandardMaterial({ color: 0x3a3530, roughness: 0.9 });
 	private shadows = { enabled: true, mapSize: 512 };
 	/**
 	 * Server clock minus local clock, seconds: turns "now" into server time. Follows the
@@ -82,7 +81,7 @@ export class RemotePlayers {
 			let remote = this.bodies.get(snap.id);
 			if (!remote) {
 				remote = this.create(snap);
-				remote.body.visible = snap.id !== this.hidden;
+				remote.body.root.visible = snap.id !== this.hidden;
 				this.bodies.set(snap.id, remote);
 			}
 			remote.state = snap.state;
@@ -127,7 +126,7 @@ export class RemotePlayers {
 	/** Don't draw this player's body (seeing through their eyes); null shows everyone. */
 	setHidden(id: string | null): void {
 		this.hidden = id;
-		for (const [bodyId, remote] of this.bodies) remote.body.visible = bodyId !== id;
+		for (const [bodyId, remote] of this.bodies) remote.body.root.visible = bodyId !== id;
 	}
 
 	/** Each remote player's latest state, with the lamp clock advanced to now (for lighting). */
@@ -149,16 +148,12 @@ export class RemotePlayers {
 			const [from, to, blend] = bracket(remote.samples, renderTime);
 			if (from.position.distanceTo(to.position) > TELEPORT) root.position.copy(to.position);
 			else root.position.lerpVectors(from.position, to.position, blend);
-			// Body: capsule scaled to the current stance (or swimming) height.
-			const height = bodyHeight(state);
-			const shaft = Math.max(0.01, height - MOVEMENT.radius * 2);
-			body.scale.set(1, shaft, 1);
-			body.position.y = height / 2;
 			// Head: eye height, facing where they look. Turn the short way round.
 			head.position.y += (eyeHeight(state) - head.position.y) * t;
 			const turn = to.yaw - from.yaw;
 			head.rotation.y = from.yaw + Math.atan2(Math.sin(turn), Math.cos(turn)) * blend;
 			head.rotation.x = from.pitch + (to.pitch - from.pitch) * blend;
+			body.update(delta, state, head.rotation.y);
 			remote.since += delta;
 			const lit = state.headlamp !== 0 && state.battery > 0;
 			remote.lamp.update(lit ? { ...state, lampClock: state.lampClock + remote.since } : state);
@@ -166,15 +161,17 @@ export class RemotePlayers {
 	}
 
 	dispose(): void {
-		for (const remote of this.bodies.values()) remote.lamp.dispose();
+		for (const remote of this.bodies.values()) {
+			remote.lamp.dispose();
+			remote.body.dispose();
+		}
 		this.root.clear();
 		this.bodies.clear();
-		this.geometry.dispose();
-		this.material.dispose();
 	}
 
 	private remove(id: string, remote: RemoteBody): void {
 		remote.lamp.dispose();
+		remote.body.dispose();
 		remote.root.removeFromParent();
 		this.bodies.delete(id);
 	}
@@ -183,17 +180,15 @@ export class RemotePlayers {
 		const root = new THREE.Group();
 		root.name = `remote-${snap.name}`;
 		root.position.set(...snap.state.position);
-		const body = new THREE.Mesh(this.geometry, this.material);
-		// The headlamp sits inside the body: if the body cast shadows, its own lamp would be
-		// blocked by it (shadow passes render back faces). Real models will use layers instead.
-		body.castShadow = false;
-		root.add(body);
+		const body = new PlayerBody();
+		root.add(body.root);
 		const head = new THREE.Object3D();
 		head.rotation.order = 'YXZ';
 		head.position.y = eyeHeight(snap.state);
 		head.rotation.set(snap.state.pitch, snap.state.yaw, 0);
 		root.add(head);
 		const lamp = new Headlamp(head);
+		lamp.setForward(PLAYER_MODEL.lampForward);
 		lamp.setShadows(this.shadows.enabled, this.shadows.mapSize);
 		this.root.add(root);
 		return {

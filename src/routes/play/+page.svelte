@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 	import { MAP_KIT } from '#lib/content/map/kit.ts';
+	import { PLAYER_MODEL, SHOULDER_CAMERA } from '#lib/content/player/model.ts';
 	import { MOVEMENT } from '#lib/content/player/movement.ts';
 	import { SANITY } from '#lib/content/player/sanity.ts';
 	import { devMode } from '#lib/dev.ts';
@@ -32,6 +33,7 @@
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
 	import { connection, gameClient, me, start, subscribe } from '#lib/game/net/connection.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
+	import { PlayerBody } from '#lib/game/player/PlayerBody.ts';
 	import { LocalPlayer } from '#lib/game/player/LocalPlayer.ts';
 	import { PlayerAudio } from '#lib/game/player/PlayerAudio.ts';
 	import { RemotePlayers } from '#lib/game/player/RemotePlayers.ts';
@@ -39,7 +41,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { loadAccount } from '#lib/account/account.svelte.ts';
-	import { buildCollisionWorld } from '#lib/shared/map/collision.ts';
+	import { buildCollisionWorld, segmentHit } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 	import { roomPoints } from '#lib/shared/map/points.ts';
 	import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
@@ -226,7 +228,17 @@
 		orbit.enableDamping = true;
 		orbit.enabled = false;
 
-		const headlamp = new Headlamp(engine.camera);
+		// The player's head: where their eyes are and which way they look. It is the camera,
+		// except over the shoulder, where the camera hangs back and the lamp stays on the head.
+		const head = new THREE.Object3D();
+		head.rotation.order = 'YXZ';
+		engine.scene.add(head);
+		const headlamp = new Headlamp(head);
+		/** Your own body, drawn only when the camera is outside it. */
+		const body = new PlayerBody();
+		body.root.visible = false;
+		engine.scene.add(body.root);
+		const shoulderOffset = new THREE.Vector3();
 		applyGraphics = () => {
 			engine.applyGraphics(settings.graphics);
 			headlamp.setShadows(settings.graphics.quality !== 'low', engine.shadowMapSize);
@@ -524,7 +536,7 @@
 				if (event.kind === 'shot') {
 					const sound = ITEMS[event.item]?.firearm?.sound;
 					if (sound) sounds.play(sound);
-					effects.muzzleFlash(ViewModel.muzzle(engine.camera, muzzle));
+					effects.muzzleFlash(ViewModel.muzzle(head, muzzle));
 				} else if (event.kind === 'empty') {
 					sounds.play('gun.empty');
 				} else if (event.kind === 'throw') {
@@ -805,6 +817,11 @@
 			worldItems.update(delta);
 			crates.update(delta);
 			effects.update(delta);
+			// Only on your feet: crouched, crawling or swimming, the body fills the view from
+			// behind, so those are always first person.
+			const upright = player.state?.stance === 'stand' && !player.state.swimming;
+			const shoulder = settings.graphics.view === 'shoulder' && !mapView && !spectating && upright;
+			let outside = mapView;
 			if (mapView) {
 				orbit.update();
 			} else if (spectating) {
@@ -815,20 +832,54 @@
 				}
 			} else {
 				const eye = player.eyePosition();
-				if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
 				const look = player.look();
+				if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
+				if (eye && shoulder) {
+					// Behind and to the right of the head, pulled in short of anything in the way.
+					const { right, up, back, margin, hideWithin } = SHOULDER_CAMERA;
+					head.rotation.set(look.pitch, look.yaw, 0);
+					shoulderOffset.set(right, up, back).applyQuaternion(head.quaternion);
+					const length = shoulderOffset.length();
+					const world = player.collision;
+					const hit = world
+						? segmentHit(world, eye, [
+								eye[0] + shoulderOffset.x,
+								eye[1] + shoulderOffset.y,
+								eye[2] + shoulderOffset.z
+							])
+						: null;
+					const reach = hit === null ? length : Math.max(0, hit * length - margin);
+					engine.camera.position.addScaledVector(shoulderOffset, reach / length);
+					// Squeezed right up against the head: don't draw it from the inside.
+					outside = reach > hideWithin;
+				}
 				const amount = shake * shake * 0.05 * settings.graphics.cameraShake;
 				// Downed: the view tilts, lying on the floor.
-				const roll = player.state?.downed ? 0.35 : 0;
+				const roll = player.state?.downed && !shoulder ? 0.35 : 0;
 				engine.camera.rotation.set(
 					look.pitch + (Math.random() * 2 - 1) * amount,
 					look.yaw + (Math.random() * 2 - 1) * amount,
 					roll
 				);
+				if (eye && shoulder) head.position.set(eye[0], eye[1], eye[2]);
 			}
+			// Everywhere but over the shoulder, the head is the camera.
+			if (!shoulder) {
+				head.position.copy(engine.camera.position);
+				head.rotation.copy(engine.camera.rotation);
+			}
+			head.updateMatrixWorld();
 			const state = player.state;
+			const feet = player.feetPosition();
+			body.root.visible = outside && !!state && !!feet;
+			if (state && feet) {
+				body.root.position.set(feet[0], feet[1], feet[2]);
+				body.update(delta, state, player.look().yaw);
+			}
+			// With your body drawn, the lamp goes out in front of its head.
+			headlamp.setForward(shoulder ? PLAYER_MODEL.lampForward : 0);
 			headlamp.update(state);
-			viewModel.update(delta, state, !mapView && !result);
+			viewModel.update(delta, state, !mapView && !result && !shoulder);
 			playerAudio.update(state, audio.unlocked);
 			const cam = engine.camera.position;
 			engine.camera.getWorldDirection(lookDir);
@@ -914,6 +965,10 @@
 					// An overlay, not a menu: play goes on under it.
 					riteShown = !riteShown;
 					break;
+				case 'toggleView':
+					settings.graphics.view = settings.graphics.view === 'shoulder' ? 'first' : 'shoulder';
+					saveSettings();
+					break;
 				case 'toggleStats':
 					settings.interface.showStats = !settings.interface.showStats;
 					saveSettings();
@@ -940,6 +995,7 @@
 			ambience.dispose();
 			player.dispose();
 			headlamp.dispose();
+			body.dispose();
 			remote.dispose();
 			orbit.dispose();
 			input.dispose();

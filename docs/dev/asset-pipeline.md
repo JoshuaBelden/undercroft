@@ -102,7 +102,9 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 
 `art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is written to `static/assets/creatures/<name>.glb`. The witch drops from 53 MB to about 2.4 MB.
 
-On the client, `loadCreature` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
+The explorer (every player's body) goes through the same pass: `art/export/player/*.glb` to `static/assets/player/<name>.glb` (18.7 MB to about 3.9 MB). See [player.md](player.md#player-model).
+
+On the client, `loadCharacter` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
 
 ### Item models
 

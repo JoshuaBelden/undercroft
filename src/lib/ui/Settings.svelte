@@ -250,6 +250,15 @@
 					onstep: toggleFullscreen,
 					hint: `Fills the whole screen. ${bindingLabel(settings.bindings.toggleFullscreen[0] ?? '')} switches it anywhere.`
 				})}
+				{@render stepper({
+					label: 'Camera',
+					text: settings.graphics.view === 'shoulder' ? 'Over the shoulder' : 'First person',
+					onstep: () => {
+						settings.graphics.view = settings.graphics.view === 'shoulder' ? 'first' : 'shoulder';
+						saveSettings();
+					},
+					hint: `Look through your explorer's eyes, or from behind their shoulder. ${bindingLabel(settings.bindings.toggleView[0] ?? '')} switches it while you play.`
+				})}
 				{@render slider({
 					label: 'Field of view',
 					value: settings.graphics.fov,

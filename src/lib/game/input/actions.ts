@@ -40,6 +40,11 @@ export const ACTIONS = {
 	toggleSocial: { label: 'Friends and invites', category: 'Interface', defaults: ['KeyO'] },
 	// The browser's own fullscreen key; the page takes it, so fullscreen is the game's own.
 	toggleFullscreen: { label: 'Fullscreen', category: 'Interface', defaults: ['F11'] },
+	toggleView: {
+		label: 'Camera: first person / shoulder',
+		category: 'Interface',
+		defaults: ['KeyV']
+	},
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },
 	toggleAdmin: { label: 'Admin panel (dev)', category: 'Interface', defaults: ['F10'] }
 } as const satisfies Record<string, ActionDefinition>;

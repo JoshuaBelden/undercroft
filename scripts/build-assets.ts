@@ -43,6 +43,9 @@ const OUT_DIR = path.join(ROOT, 'static', 'assets', 'map');
 const CREATURE_SOURCE = path.join(SOURCE_DIR, 'creatures');
 const CREATURE_OUT = path.join(ROOT, 'static', 'assets', 'creatures');
 const CREATURE_TEXTURE = 1024;
+/** The explorer (every player's body), rigged and animated: art/export/player -> static/assets/player. */
+const PLAYER_SOURCE = path.join(SOURCE_DIR, 'player');
+const PLAYER_OUT = path.join(ROOT, 'static', 'assets', 'player');
 /** Item models (weapons, ammo, consumables): art/export/items -> static/assets/items. */
 const ITEM_SOURCE = path.join(SOURCE_DIR, 'items');
 const ITEM_OUT = path.join(ROOT, 'static', 'assets', 'items');
@@ -338,18 +341,22 @@ async function writePiece(io: NodeIO, doc: Document, name: string): Promise<numb
 }
 
 /**
- * Creature models keep their skin and animations; textures are re-encoded to WebP and the
- * file is written as a single self-contained .glb.
+ * Rigged models (creatures, the explorer) keep their skin and animations; textures are
+ * re-encoded to WebP and the file is written as a single self-contained .glb.
  */
-async function buildCreatures(io: NodeIO): Promise<void> {
-	if (!existsSync(CREATURE_SOURCE)) return;
-	mkdirSync(CREATURE_OUT, { recursive: true });
-	for (const f of readdirSync(CREATURE_OUT))
-		if (f.endsWith('.glb')) rmSync(path.join(CREATURE_OUT, f));
-	for (const f of readdirSync(CREATURE_SOURCE)
+async function buildCharacters(
+	io: NodeIO,
+	label: string,
+	source: string,
+	target: string
+): Promise<void> {
+	if (!existsSync(source)) return;
+	mkdirSync(target, { recursive: true });
+	for (const f of readdirSync(target)) if (f.endsWith('.glb')) rmSync(path.join(target, f));
+	for (const f of readdirSync(source)
 		.filter((name) => name.endsWith('.glb'))
 		.sort()) {
-		const file = path.join(CREATURE_SOURCE, f);
+		const file = path.join(source, f);
 		const doc = await io.read(file);
 		for (const s of doc.getRoot().listScenes()) s.setExtras({});
 		const animations = doc
@@ -366,12 +373,12 @@ async function buildCreatures(io: NodeIO): Promise<void> {
 			}),
 			prune()
 		);
-		const out = path.join(CREATURE_OUT, f);
+		const out = path.join(target, f);
 		await io.write(out, doc);
 		const mb = (statSync(out).size / 1e6).toFixed(2);
 		const raw = (statSync(file).size / 1e6).toFixed(1);
 		console.log(
-			`  creature ${path.basename(f, '.glb')}: ${raw} MB -> ${mb} MB, animations: ${animations.join(', ')}`
+			`  ${label} ${path.basename(f, '.glb')}: ${raw} MB -> ${mb} MB, animations: ${animations.join(', ')}`
 		);
 	}
 }
@@ -547,7 +554,8 @@ async function main(): Promise<void> {
 	}
 	if (failed) process.exit(1);
 	await writeManifest(pieces);
-	await buildCreatures(io);
+	await buildCharacters(io, 'creature', CREATURE_SOURCE, CREATURE_OUT);
+	await buildCharacters(io, 'player', PLAYER_SOURCE, PLAYER_OUT);
 	await buildItems(io);
 	await buildProps(io);
 	const textures = readdirSync(path.join(OUT_DIR, TEXTURE_DIR));

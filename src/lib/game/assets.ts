@@ -45,26 +45,26 @@ export async function loadModel(url: string): Promise<Object3D> {
 	return scene.clone(true);
 }
 
-export interface CreatureModel {
+export interface CharacterModel {
 	scene: Object3D;
 	clips: AnimationClip[];
 }
 
-const creatureCache = new Map<string, Promise<{ scene: Object3D; clips: AnimationClip[] }>>();
+const characterCache = new Map<string, Promise<{ scene: Object3D; clips: AnimationClip[] }>>();
 
 /**
- * A skinned, animated model (creatures). Cloned with SkeletonUtils so each copy has its own
- * skeleton. Clips are shared between copies, with horizontal root motion removed: the server
- * moves the creature, the clip only animates it in place.
+ * A skinned, animated model (creatures, the explorer). Cloned with SkeletonUtils so each copy
+ * has its own skeleton. Clips are shared between copies, with horizontal root motion removed:
+ * the simulation moves the character, the clip only animates it in place.
  */
-export async function loadCreature(url: string): Promise<CreatureModel> {
-	let pending = creatureCache.get(url);
+export async function loadCharacter(url: string): Promise<CharacterModel> {
+	let pending = characterCache.get(url);
 	if (!pending) {
 		pending = loader.loadAsync(url).then((gltf) => {
 			const clips = gltf.animations.map((clip) => stripRootMotion(clip, rootBone(gltf.scene)));
 			return { scene: gltf.scene, clips };
 		});
-		creatureCache.set(url, pending);
+		characterCache.set(url, pending);
 	}
 	const { scene, clips } = await pending;
 	return { scene: cloneSkinned(scene), clips };

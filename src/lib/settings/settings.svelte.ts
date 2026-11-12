@@ -18,7 +18,11 @@ export interface ControlSettings {
 	invertY: boolean;
 }
 
+/** Through the explorer's eyes, or from behind their shoulder. */
+export type CameraView = 'first' | 'shoulder';
+
 export interface GraphicsSettings {
+	view: CameraView;
 	/** Vertical field of view in degrees. */
 	fov: number;
 	/** Tone-mapping exposure; calibrated by the player. */
@@ -61,7 +65,14 @@ function defaults(): Settings {
 		bindings: defaultBindings(),
 		interface: { showStats: false, quickSlots: true, itemPrompts: true },
 		controls: { mouseSensitivity: 1, invertY: false },
-		graphics: { fov: 75, brightness: 1, quality: 'high', cameraShake: 1, fullscreen: false },
+		graphics: {
+			view: 'first',
+			fov: 75,
+			brightness: 1,
+			quality: 'high',
+			cameraShake: 1,
+			fullscreen: false
+		},
 		accessibility: { captions: false, captionSize: 'medium' }
 	};
 }

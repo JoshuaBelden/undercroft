@@ -1,3 +1,4 @@
+import type { AnimSlot, AnimationMap } from './animations.ts';
 import type { MovementTuning } from './player/movement.ts';
 import { MOVEMENT } from './player/movement.ts';
 
@@ -6,75 +7,8 @@ import { MOVEMENT } from './player/movement.ts';
  * See docs/dev/creatures.md.
  */
 
-/**
- * The standard animation slots. Every model maps its own clip names onto these, and the server
- * only ever names a slot. A model needn't fill them all: see ANIM_FALLBACKS.
- */
-export const CREATURE_ANIMS = [
-	'idle',
-	'walking',
-	'running',
-	'jumping',
-	'melee_attack',
-	'weapon_attack',
-	'spell_attack',
-	'dodge',
-	'climb',
-	'crouch',
-	'crawl',
-	'take_damage',
-	'die'
-] as const;
-export type CreatureAnim = (typeof CREATURE_ANIMS)[number];
-
-/** One slot of a model's animation map. */
-export interface AnimClip {
-	/** Clip name in the model file. */
-	clip: string;
-	/** Playback speed (default 1). Attack clips are stretched to the attack's duration instead. */
-	speed?: number;
-	/** Seconds into the clip to start from (default 0), to skip a slow lead-in. */
-	start?: number;
-}
-
-/** A model's animation map: clip per slot. Slots the model has no clip for are left out. */
-export type AnimationMap = Partial<Record<CreatureAnim, AnimClip>>;
-
-/** Slots that repeat; the rest play once and hold their last frame. */
-export const LOOPING_ANIMS: ReadonlySet<CreatureAnim> = new Set([
-	'idle',
-	'walking',
-	'running',
-	'climb',
-	'crouch',
-	'crawl'
-]);
-
-/**
- * What to play when a model has no clip for a slot, in order of preference. A slot with nothing
- * usable is skipped: whatever was playing carries on.
- */
-export const ANIM_FALLBACKS: Record<CreatureAnim, CreatureAnim[]> = {
-	idle: [],
-	walking: ['running', 'crouch'],
-	running: ['walking'],
-	jumping: ['running', 'walking'],
-	melee_attack: ['weapon_attack', 'spell_attack'],
-	weapon_attack: ['melee_attack', 'spell_attack'],
-	spell_attack: ['melee_attack', 'weapon_attack'],
-	dodge: [],
-	climb: ['walking'],
-	crouch: ['walking'],
-	crawl: ['crouch', 'walking'],
-	take_damage: [],
-	die: []
-};
-
-/** The slot a model will actually play for `anim`: itself, or its first mapped fallback. */
-export function resolveAnim(map: AnimationMap, anim: CreatureAnim): CreatureAnim | null {
-	if (map[anim]) return anim;
-	return ANIM_FALLBACKS[anim].find((other) => map[other]) ?? null;
-}
+/** The animation slot a creature is in, as the server sends it. See content/animations.ts. */
+export type CreatureAnim = AnimSlot;
 
 export interface CreatureDef {
 	id: string;
