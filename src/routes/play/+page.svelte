@@ -13,7 +13,7 @@
 	import { CaptionFeed } from '#lib/game/audio/captions.svelte.ts';
 	import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 	import { Creatures } from '#lib/game/creatures/Creatures.ts';
-	import { Darkness } from '#lib/game/affliction/Darkness.ts';
+	import { Manifestation } from '#lib/game/affliction/Manifestation.ts';
 	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 	import { Effects } from '#lib/game/items/Effects.ts';
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
@@ -322,7 +322,10 @@
 						worldItems.apply(message.items, message.projectiles);
 						crates.apply(message.crates);
 						for (const event of message.events) onGameEvent(event);
-						darkness.apply(message.affliction.manifestation);
+						manifestation.apply(
+							message.affliction.manifestation,
+							AFFLICTIONS[message.affliction.id]?.manifestation
+						);
 						if (JSON.stringify(message.affliction.rite) !== JSON.stringify(rite)) {
 							rite = message.affliction.rite;
 						}
@@ -345,8 +348,8 @@
 		const ambience = new Ambience(audio, sounds);
 		const creatures = new Creatures(sounds);
 		engine.scene.add(creatures.root);
-		const darkness = new Darkness(sounds);
-		engine.scene.add(darkness.root);
+		const manifestation = new Manifestation(sounds);
+		engine.scene.add(manifestation.root);
 		const viewModel = new ViewModel(engine.viewScene, engine.viewCamera);
 		const worldItems = new WorldItems();
 		engine.scene.add(worldItems.root);
@@ -424,7 +427,7 @@
 			remote.setHidden(null);
 			heartbeat?.setVolume(0);
 			lastSanity = null;
-			darkness.clear();
+			manifestation.clear();
 			ambience.setOmen(null);
 			player.leave();
 			ambience.clear();
@@ -609,7 +612,7 @@
 				}
 				case 'creatureHit':
 					if (event.id === 'manifestation') {
-						darkness.hit();
+						manifestation.hit();
 						break;
 					}
 					creatures.hit(event.id);
@@ -885,7 +888,7 @@
 			engine.camera.getWorldDirection(lookDir);
 			audio.setListener([cam.x, cam.y, cam.z], [lookDir.x, lookDir.y, lookDir.z]);
 			ambience.update(delta, [cam.x, cam.y, cam.z], state);
-			darkness.update(delta, [cam.x, cam.y, cam.z]);
+			manifestation.update(delta, [cam.x, cam.y, cam.z]);
 			captions.update();
 			spawned = !!state;
 			if (state) {
@@ -987,7 +990,7 @@
 			heartbeat?.stop();
 			creatures.dispose();
 			viewModel.dispose();
-			darkness.dispose();
+			manifestation.dispose();
 			worldItems.dispose();
 			crates.dispose();
 			effects.dispose();

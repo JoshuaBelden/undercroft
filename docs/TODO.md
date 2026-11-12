@@ -17,8 +17,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- use new boss model
-
 - Improved background image on dashboard
 - Explore and extract effects
 - Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant

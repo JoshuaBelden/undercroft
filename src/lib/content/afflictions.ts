@@ -4,6 +4,8 @@
  * See docs/dev/affliction.md.
  */
 
+import type { AnimationMap } from './animations.ts';
+
 export interface OmenStage {
 	/** Meter fraction (0..1) at which this stage begins. */
 	at: number;
@@ -17,12 +19,29 @@ export interface OmenStage {
 	spawn: number;
 }
 
+/** The figure at the heart of a manifestation: a rigged model, drawn by the client. */
+export interface ManifestationBody {
+	model: string;
+	/** Model faces +Z in its file; the game faces -Z at yaw 0, so it's turned by this much. */
+	yawOffset: number;
+	/** Size multiplier on the model as exported. */
+	scale: number;
+	/** The model's animation map: its clip names by standard slot (see content/animations.ts). */
+	animations: AnimationMap;
+	/** Seconds its strike animation takes (the attack clip is stretched to it). */
+	strikeSeconds: number;
+	/** Seconds it reels when a weapon hits it. */
+	flinchSeconds: number;
+}
+
 export interface ManifestationSpec {
-	/** Seconds it gathers (lamps failing everywhere) before it starts hunting. */
+	/** The figure players see. Without one nothing is drawn (it is only heard). */
+	body?: ManifestationBody;
+	/** Seconds it stands where it appeared before it starts hunting. */
 	gatherSeconds: number;
-	/** Hunting speed (m/s), and faster where no lamp lights it. */
+	/** Hunting speed (m/s) with lamp light on it, and its faster speed with none. */
 	speed: number;
-	darkSpeed: number;
+	unlitSpeed: number;
 	/** Inside this radius (m) sanity drains at `drain` per second. */
 	radius: number;
 	drain: number;
@@ -30,8 +49,6 @@ export interface ManifestationSpec {
 	core: number;
 	touchDamage: number;
 	touchInterval: number;
-	/** Lamps within this distance (m) fail, completely at the core. */
-	gutterRadius: number;
 	/** Lamp light on its core (lamp units, summed over players) that exposes it. */
 	exposeLight: number;
 	/** Seconds it stays exposed after the light leaves it. */
@@ -134,15 +151,32 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			}
 		],
 		manifestation: {
+			// The model has no idle, crouch or crawl clip.
+			body: {
+				model: '/assets/creatures/gloaming_boss.glb',
+				yawOffset: Math.PI,
+				// 1.7 m as exported; this stands it about as tall as its hit capsule (2.2 m).
+				scale: 1.3,
+				animations: {
+					// No idle clip yet: the walk's first frame, held.
+					idle: { clip: 'Walking', speed: 0 },
+					walking: { clip: 'Walking' },
+					running: { clip: 'Running' },
+					melee_attack: { clip: 'Charged_Upward_Slash' },
+					take_damage: { clip: 'Face_Punch_Reaction' },
+					die: { clip: 'Shot_and_Fall_Forward' }
+				},
+				strikeSeconds: 1.2,
+				flinchSeconds: 0.7
+			},
 			gatherSeconds: 10,
 			speed: 1.4,
-			darkSpeed: 2.4,
+			unlitSpeed: 2.4,
 			radius: 3.5,
 			drain: 8,
 			core: 1.2,
 			touchDamage: 40,
 			touchInterval: 1.5,
-			gutterRadius: 7,
 			exposeLight: 0.12,
 			exposeLinger: 2.5,
 			health: 300,

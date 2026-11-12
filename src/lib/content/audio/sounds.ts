@@ -56,7 +56,7 @@ export type SynthSpec =
 	| { kind: 'drone'; pitch: number }
 	/** A huge, distant exhalation through the stone: something has arrived. */
 	| { kind: 'signal' }
-	/** Hissing recoil (light burning darkness). */
+	/** Hissing recoil (light on the manifestation). */
 	| { kind: 'hiss' }
 	/** A struck bell at `pitch` Hz ringing out over `length` seconds. */
 	| { kind: 'bell'; pitch: number; length: number };
@@ -395,7 +395,7 @@ export const SOUNDS = {
 		category: 'sfx',
 		volume: 0.7,
 		variation: 0.1,
-		caption: 'the darkness hisses'
+		caption: 'something hisses'
 	},
 	'manifest.touch': { synth: { kind: 'snarl' }, category: 'sfx', volume: 1, rate: 0.5 },
 	'manifest.banish': {

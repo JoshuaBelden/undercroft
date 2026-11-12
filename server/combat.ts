@@ -217,7 +217,7 @@ export function hurt(
 /** Everything that can be hit: living creatures and the manifestation. */
 export function targets(ctx: CombatContext): CreatureBody[] {
 	const bodies = ctx.creatures.hitBodies();
-	const darkness = ctx.affliction.hitBody();
-	if (darkness) bodies.push(darkness);
+	const manifestation = ctx.affliction.hitBody();
+	if (manifestation) bodies.push(manifestation);
 	return bodies;
 }

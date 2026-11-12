@@ -4,12 +4,14 @@ import type { Vec3 } from '../map/types.ts';
 export interface ManifestationSnapshot {
 	/** Floor point under its core. */
 	position: Vec3;
-	/** Gathering (lamps failing everywhere), hunting, or banished (dissolving). */
+	/** Gathering (standing where it appeared), hunting, or banished (fading away). */
 	state: 'gathering' | 'hunting' | 'banished';
 	/** Light is on it: weapons hurt it now. */
 	exposed: boolean;
-	/** Radius (m) of its darkness. */
+	/** Radius (m) within which it drains sanity. */
 	radius: number;
+	/** How many times its touch has landed so far: each new one is a strike to show. */
+	strikes: number;
 }
 
 /**

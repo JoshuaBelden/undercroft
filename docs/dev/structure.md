@@ -21,7 +21,7 @@ src/
       map/MapRenderer.ts    places map pieces from a layout
       player/               local player prediction, headlamp light, remote players, player audio
       creatures/            creature models, animation, half-light fade, sounds
-      affliction/           the manifestation (living darkness) renderer
+      affliction/           the manifestation (the figure) renderer
       items/                viewmodel (held item), world items, muzzle flash and impacts
       input/
         actions.ts          action definitions and default bindings

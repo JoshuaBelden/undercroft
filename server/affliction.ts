@@ -12,26 +12,23 @@ import type { CreatureBody, CreatureDirector, Prey } from './creatures.ts';
 
 /**
  * The Affliction for one expedition: the hidden meter, omen stages (lamp failure, bolder and
- * more creatures; clients add the sounds), and the manifestation at 100%. For the Gloaming the
- * manifestation is living darkness: it hunts along the nav grid, snuffs lamps near it, drains
- * sanity, and can only be hurt while bright light exposes it. Banishing it ends the expedition.
+ * more creatures; clients add the sounds), and the manifestation at 100%: it hunts along the
+ * nav grid, drains the sanity of anyone near it, strikes whoever it reaches, and can only be
+ * hurt while lamp light exposes it. Banishing it ends the expedition. Lamps fail only by omen
+ * stage; the manifestation itself puts no lamp out.
  * See docs/dev/affliction.md.
  */
 
 const DT = 1 / TICK_RATE;
-/** Id the darkness uses as a combat target. */
+/** Id the manifestation uses as a combat target. */
 export const MANIFESTATION_ID = 'manifestation';
-/** Gloom on every lamp while the darkness gathers. */
-const GATHER_GLOOM = 0.8;
-/** How fast lamps fail toward the darkness: 2 = dead at half the gutter radius. */
-const GUTTER_STEEPNESS = 2;
 const REPATH = 0.5;
 /** Seconds of steady light needed to expose it. */
 const EXPOSE_HOLD = 0.4;
-/** Below this much lamp light on it, it moves at its dark speed. */
-const DARK = 0.02;
+/** Below this much lamp light on it, it moves at its unlit speed. */
+const UNLIT = 0.02;
 
-interface Darkness {
+interface Manifested {
 	position: Vec3;
 	state: 'gathering' | 'hunting' | 'banished';
 	time: number;
@@ -46,9 +43,11 @@ interface Darkness {
 	repath: number;
 	/** Per player: seconds until its touch can hit them again. */
 	touch: Map<string, number>;
+	/** Touches landed so far (clients animate each new one). */
+	strikes: number;
 }
 
-/** What the darkness did to a player this tick. */
+/** What the manifestation did to a player this tick. */
 export interface AfflictionHit {
 	playerId: string;
 	amount: number;
@@ -61,7 +60,7 @@ export class AfflictionDirector {
 	/** 0..1. Hidden from players. */
 	meter = 0;
 	stage = 0;
-	private darkness: Darkness | null = null;
+	private manifestation: Manifested | null = null;
 	private lastKills = 0;
 	private rng: Rng;
 	/** Set once it's banished: the session ends the expedition. */
@@ -79,7 +78,7 @@ export class AfflictionDirector {
 	}
 
 	get manifested(): boolean {
-		return this.darkness !== null;
+		return this.manifestation !== null;
 	}
 
 	/** Admin: set the meter (0..1). Stages catch up on the next step. */
@@ -89,19 +88,20 @@ export class AfflictionDirector {
 
 	/** Admin: banish it now. */
 	banish(): void {
-		if (this.darkness && this.darkness.state !== 'banished') this.dissolve(this.darkness);
+		if (this.manifestation && this.manifestation.state !== 'banished')
+			this.dissolve(this.manifestation);
 	}
 
 	/**
-	 * Advance one tick: the meter, stages, the darkness. Sets every player's gloom and returns
-	 * the sanity the darkness takes.
+	 * Advance one tick: the meter, stages, the manifestation. Sets every player's gloom (the
+	 * omen stage's) and returns the sanity the manifestation takes.
 	 */
 	step(players: Prey[]): AfflictionHit[] {
 		const def = this.def;
 		// The meter: time underground, kills, loot carried.
 		const kills = this.creatures.kills - this.lastKills;
 		this.lastKills = this.creatures.kills;
-		if (!this.darkness) {
+		if (!this.manifestation) {
 			const loot = players.reduce((sum, p) => sum + lootValue(p.state.inventory), 0);
 			this.meter = Math.min(
 				1,
@@ -112,20 +112,20 @@ export class AfflictionDirector {
 			);
 		}
 		this.updateStage(players);
-		if (this.meter >= 1 && !this.darkness) this.manifest(players);
+		if (this.meter >= 1 && !this.manifestation) this.manifest(players);
 
 		const base = def.stages[this.stage - 1]?.gloom ?? 0;
 		const hits: AfflictionHit[] = [];
-		const d = this.darkness;
+		const d = this.manifestation;
 		const able = players.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
-		if (d) this.stepDarkness(d, players, able, hits);
-		for (const p of players) p.state.gloom = Math.max(base, d ? this.gloomFrom(d, p) : 0);
+		if (d) this.stepManifestation(d, players, able, hits);
+		for (const p of players) p.state.gloom = base;
 		return hits;
 	}
 
 	/** Hit capsule while it's hunting or gathering. */
 	hitBody(): CreatureBody | null {
-		const d = this.darkness;
+		const d = this.manifestation;
 		if (!d || d.state === 'banished') return null;
 		const m = this.def.manifestation;
 		return { id: MANIFESTATION_ID, position: d.position, height: m.hitHeight, radius: m.hitRadius };
@@ -133,7 +133,7 @@ export class AfflictionDirector {
 
 	/** A weapon hit it. Exposed, it takes damage (and may be banished); otherwise it only slows. */
 	damage(amount: number): boolean {
-		const d = this.darkness;
+		const d = this.manifestation;
 		if (!d || d.state === 'banished') return false;
 		if (d.exposed <= 0) {
 			d.slowed = this.def.manifestation.slowSeconds;
@@ -147,12 +147,12 @@ export class AfflictionDirector {
 
 	/** Is it exposed (for hit feedback)? */
 	get exposed(): boolean {
-		return (this.darkness?.exposed ?? 0) > 0;
+		return (this.manifestation?.exposed ?? 0) > 0;
 	}
 
 	/** Everything but the rite, which the session adds (see server/rite.ts). */
 	snapshot(dev: boolean): Omit<AfflictionSnapshot, 'rite'> {
-		const d = this.darkness;
+		const d = this.manifestation;
 		const snap: Omit<AfflictionSnapshot, 'rite'> = {
 			id: this.def.id,
 			omen: this.stage,
@@ -161,7 +161,8 @@ export class AfflictionDirector {
 						position: d.position.map((v) => Math.round(v * 1000) / 1000) as Vec3,
 						state: d.state,
 						exposed: d.exposed > 0,
-						radius: this.def.manifestation.radius
+						radius: this.def.manifestation.radius,
+						strikes: d.strikes
 					}
 				: null
 		};
@@ -204,7 +205,7 @@ export class AfflictionDirector {
 		}
 		const at = spots.length ? this.rng.pick(spots).position : this.nav.points[0]?.position;
 		if (!at) return;
-		this.darkness = {
+		this.manifestation = {
 			position: [...at],
 			state: 'gathering',
 			time: 0,
@@ -215,17 +216,23 @@ export class AfflictionDirector {
 			path: [],
 			pathIndex: 0,
 			repath: 0,
-			touch: new Map()
+			touch: new Map(),
+			strikes: 0
 		};
 	}
 
-	private dissolve(d: Darkness): void {
+	private dissolve(d: Manifested): void {
 		d.state = 'banished';
 		d.time = 0;
 		this.banished = true;
 	}
 
-	private stepDarkness(d: Darkness, players: Prey[], able: Prey[], hits: AfflictionHit[]): void {
+	private stepManifestation(
+		d: Manifested,
+		players: Prey[],
+		able: Prey[],
+		hits: AfflictionHit[]
+	): void {
 		const m = this.def.manifestation;
 		d.time += DT;
 		if (d.state === 'banished') return;
@@ -251,11 +258,11 @@ export class AfflictionDirector {
 		// Hunt the nearest player who's still up.
 		const target = this.nearest(d, able);
 		if (target) {
-			const speed = (light < DARK ? m.darkSpeed : m.speed) * (d.slowed > 0 ? 0.3 : 1);
+			const speed = (light < UNLIT ? m.unlitSpeed : m.speed) * (d.slowed > 0 ? 0.3 : 1);
 			this.move(d, target.state.position, speed * DT);
 		}
 
-		// Its darkness drains, its core strikes.
+		// Being near it drains, its core strikes.
 		for (const p of able) {
 			const dist = this.distance(d, p);
 			if (dist <= m.radius) hits.push({ playerId: p.id, amount: m.drain * DT, touch: false });
@@ -271,26 +278,15 @@ export class AfflictionDirector {
 			) {
 				hits.push({ playerId: p.id, amount: m.touchDamage, touch: true });
 				d.touch.set(p.id, m.touchInterval);
+				d.strikes++;
 			} else {
 				d.touch.set(p.id, cooldown);
 			}
 		}
 	}
 
-	/** Gloom this player's lamp suffers from the darkness. */
-	private gloomFrom(d: Darkness, p: Prey): number {
-		if (d.state === 'banished') return 0;
-		if (d.state === 'gathering') return GATHER_GLOOM;
-		const dist = this.distance(d, p);
-		// Steep: lamps die outright within half the gutter radius and struggle beyond it.
-		return Math.max(
-			0,
-			Math.min(1, (1 - dist / this.def.manifestation.gutterRadius) * GUTTER_STEEPNESS)
-		);
-	}
-
 	/** Eye-to-core distance. */
-	private distance(d: Darkness, p: Prey): number {
+	private distance(d: Manifested, p: Prey): number {
 		const core = this.core(d);
 		const s = p.state;
 		return Math.hypot(
@@ -300,11 +296,11 @@ export class AfflictionDirector {
 		);
 	}
 
-	private core(d: Darkness): Vec3 {
+	private core(d: Manifested): Vec3 {
 		return [d.position[0], d.position[1] + this.def.manifestation.hitHeight / 2, d.position[2]];
 	}
 
-	private nearest(d: Darkness, able: Prey[]): Prey | null {
+	private nearest(d: Manifested, able: Prey[]): Prey | null {
 		let best: Prey | null = null;
 		let bestD = Infinity;
 		for (const p of able) {
@@ -318,10 +314,10 @@ export class AfflictionDirector {
 	}
 
 	/**
-	 * Drift toward a point along the nav grid. It's darkness, not a body: no collision, through
-	 * water, crawls and squeezes alike.
+	 * Move toward a point along the nav grid. It is simulated as a point, not a body: no
+	 * collision, through water, crawls and squeezes alike.
 	 */
-	private move(d: Darkness, goal: Vec3, step: number): void {
+	private move(d: Manifested, goal: Vec3, step: number): void {
 		d.repath -= DT;
 		if (d.repath <= 0 || d.pathIndex >= d.path.length) {
 			d.repath = REPATH;

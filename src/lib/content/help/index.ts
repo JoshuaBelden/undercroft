@@ -250,11 +250,11 @@ These are warnings. When they come thick and close together, it is time to think
 		id: 'the-gloaming',
 		title: 'The Gloaming',
 		category: 'Survival',
-		body: `Stay too long and the Gloaming comes for you itself: a darkness that moves. You'll know when it arrives. Every lamp falters at once, and something vast breathes out through the stone.
+		body: `Stay too long and the Gloaming comes for you itself. You'll know when it arrives: something vast breathes out through the stone, and then it is walking toward you.
 
-Near it, lamps die and the mind goes. Its touch is worse.
+Near it, the mind goes. Its touch is worse. It is slower while a lamp is on it, and quick when none is.
 
-Light is how you fight it. Hold a bright beam on it from a distance, before it gets close enough to put your lamp out, and keep it there. Only while the light holds does steel or shot bite. Two lamps are better than one.
+Light is how you fight it. Hold your lamp on it and keep it there. Only while the light holds does steel or shot bite. Two lamps are better than one.
 
 Drive it off and you'll all be carried out. It isn't over, though. Only the rite ends the Gloaming.`
 	},
