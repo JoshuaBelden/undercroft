@@ -5,6 +5,8 @@
 import type { AfflictionSnapshot } from './affliction/types.ts';
 import type { CreatureSnapshot } from './creature/types.ts';
 import type {
+	CrateSlot,
+	CratesSnapshot,
 	GameEvent,
 	InventoryAction,
 	ProjectileSnapshot,
@@ -47,7 +49,9 @@ export type ClientMessage =
 	/** Give up on the expedition: back to the surface, leaving what you carried where you stood. */
 	| { type: 'abandon' }
 	/** Rearrange or drop what you carry (the inventory screen). */
-	| { type: 'inventory'; action: InventoryAction };
+	| { type: 'inventory'; action: InventoryAction }
+	/** Done with the loot crate that is open. */
+	| { type: 'closeCrate' };
 
 export type AdminCommand =
 	| {
@@ -74,6 +78,8 @@ export type AdminCommand =
 	| { kind: 'resetRite' }
 	/** Teleport to a start or major room by piece name. */
 	| { kind: 'teleport'; room: string }
+	/** Shut every loot crate and fill them again, hidden. */
+	| { kind: 'resetCrates' }
 	/** New map; omit the seed for a random one. */
 	| { kind: 'regenerate'; seed?: number };
 
@@ -114,7 +120,14 @@ export type ServerMessage =
 			/** What happened this tick (shots, hits, pickups...). */
 			events: GameEvent[];
 			affliction: AfflictionSnapshot;
+			/** Loot crates opened and in use (where they stand is in the layout). */
+			crates: CratesSnapshot;
 	  }
+	/**
+	 * The loot crate you have open, sent while it is open: its slots, and how far along (0..1) the
+	 * first hidden one is to being revealed. `id: null` means it has closed.
+	 */
+	| { type: 'crate'; id: string | null; slots: CrateSlot[]; reveal: number }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }
 	/**
@@ -161,7 +174,8 @@ const CLIENT_TYPES = new Set<string>([
 	'rename',
 	'stopSpectating',
 	'abandon',
-	'inventory'
+	'inventory',
+	'closeCrate'
 ]);
 const SERVER_TYPES = new Set<string>([
 	'party',
@@ -172,6 +186,7 @@ const SERVER_TYPES = new Set<string>([
 	'reject',
 	'pong',
 	'tick',
+	'crate',
 	'map',
 	'extracted',
 	'died',

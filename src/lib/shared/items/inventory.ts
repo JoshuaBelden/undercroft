@@ -6,7 +6,8 @@ import type { InventoryAction, SlotRef } from './types.ts';
 /**
  * Inventory rules, shared by the game server (pickups, drops, the pack screen's requests, admin),
  * the simulation (what is in the hand, spending rounds, the weight of the load), the site (the
- * stash and the loadout) and the client (prompts, the inventory screens).
+ * stash and the loadout) and the client (prompts, the inventory screens). Underground, an open
+ * loot crate takes the stash's place.
  *
  * Everything is slots: two weapons and a defense slot (equipment), the backpack, the quick-use
  * slots and, on the surface, the stash. A slot holds one stack of up to the item's `maxStack`.
@@ -19,7 +20,10 @@ export type Slots = (ItemStack | null)[];
 /** What a request can touch: an inventory and, on the surface, the stash beside it. */
 export interface Belongings {
 	inventory: Inventory;
+	/** Underground, the slots of the loot crate that is open. */
 	stash?: Slots;
+	/** Stash slots that can't be touched: what is in a crate and hasn't been revealed yet. */
+	sealed?: ReadonlySet<number>;
 }
 
 /** How a request went: done, refused for the weight, or refused (no room, not allowed there). */
@@ -209,6 +213,7 @@ function list(b: Belongings, area: 'stash' | 'backpack' | 'quick'): Slots | unde
 function exists(b: Belongings, ref: SlotRef): boolean {
 	if (ref.area === 'equipment') return EQUIPMENT.includes(ref.slot);
 	const slots = list(b, ref.area);
+	if (ref.area === 'stash' && b.sealed?.has(ref.index)) return false;
 	return !!slots && ref.index >= 0 && ref.index < slots.length;
 }
 
@@ -231,7 +236,9 @@ function ownSlots(inv: Inventory, category: ItemCategory): SlotRef[] {
 }
 
 function refs(b: Belongings, area: 'stash' | 'backpack' | 'quick'): SlotRef[] {
-	return (list(b, area) ?? []).map((_, index): SlotRef => ({ area, index }));
+	return (list(b, area) ?? [])
+		.map((_, index): SlotRef => ({ area, index }))
+		.filter((ref) => exists(b, ref));
 }
 
 /**
@@ -399,7 +406,8 @@ export function equip(b: Belongings, from: SlotRef): MoveResult {
 export function canEquip(b: Belongings, from: SlotRef): boolean {
 	const copy: Belongings = {
 		inventory: cloneInventory(b.inventory),
-		stash: b.stash?.map((stack) => (stack ? { ...stack } : null))
+		stash: b.stash?.map((stack) => (stack ? { ...stack } : null)),
+		sealed: b.sealed
 	};
 	return equip(copy, from) === 'ok';
 }

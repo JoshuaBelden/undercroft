@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Rarity } from '#lib/content/items.ts';
+
 	interface Props {
 		/** What is in the slot. Null is something not known yet: a grey question mark. */
 		name: string | null;
@@ -13,9 +15,23 @@
 		image?: string;
 		/** Small print in the bottom-left corner (rounds loaded). */
 		detail?: string;
+		/** How hard the thing in it is to come by: colours the left and bottom edge. */
+		rarity?: Rarity;
 	}
 
-	let { name, count = 1, size = 'normal', empty = false, hint, image, detail }: Props = $props();
+	let {
+		name,
+		count = 1,
+		size = 'normal',
+		empty = false,
+		hint,
+		image,
+		detail,
+		rarity = 'common'
+	}: Props = $props();
+
+	/** Only something that is there and known has a rarity to show. */
+	const edge = $derived(!empty && name !== null && rarity !== 'common' ? rarity : null);
 </script>
 
 <!--
@@ -23,7 +39,15 @@
 	place of its own, so slots look the same on every screen. `ItemSlot` wraps it for slots you can
 	drag things between. See docs/dev/systems.md.
 -->
-<span class="slot" class:large={size === 'large'} class:empty>
+<span
+	class="slot"
+	class:large={size === 'large'}
+	class:empty
+	class:uncommon={edge === 'uncommon'}
+	class:rare={edge === 'rare'}
+	class:epic={edge === 'epic'}
+	class:legendary={edge === 'legendary'}
+>
 	{#if empty}
 		{#if hint}<span class="hint">{hint}</span>{/if}
 	{:else if name === null}
@@ -59,10 +83,36 @@
 		display: grid;
 		place-items: center;
 		padding: 8px;
-		border: 1px solid var(--border);
+		/* A screen recolours the border through --slot-border, which leaves the rarity edge alone. */
+		border: 1px solid var(--slot-border, var(--border));
 		border-radius: 12px;
 		background: rgb(255 255 255 / 0.04);
 		overflow: hidden;
+	}
+
+	/* Rarity: the left and bottom edge, 2px. Common things have none. */
+	.slot.uncommon {
+		--rarity: var(--rarity-uncommon);
+	}
+
+	.slot.rare {
+		--rarity: var(--rarity-rare);
+	}
+
+	.slot.epic {
+		--rarity: var(--rarity-epic);
+	}
+
+	.slot.legendary {
+		--rarity: var(--rarity-legendary);
+	}
+
+	.slot.uncommon,
+	.slot.rare,
+	.slot.epic,
+	.slot.legendary {
+		border-left: 2px solid var(--rarity);
+		border-bottom: 2px solid var(--rarity);
 	}
 
 	.slot.large {

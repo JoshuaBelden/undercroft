@@ -11,6 +11,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [{ center: [0, 1.4, 0.2], halfExtents: [1, 1.4, 0.2], rotation: [0, 0, 0, 1] }],
 		volumes: [],
 		triangles: 150
@@ -29,6 +30,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 1.85, 0], halfExtents: [4.4, 0.15, 2.4], rotation: [0, 0, 0, 1] },
 			{ center: [0.625, 1.975, 1.9], halfExtents: [0.125, 0.275, 0.5], rotation: [0, 0, 0, 1] },
@@ -85,6 +87,10 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [[0, 0.35, -2.4]],
+		crates: [
+			{ position: [3.41, 0, -0.3], yaw: -1.571 },
+			{ position: [-3.41, 0, -0.3], yaw: 1.571 }
+		],
 		colliders: [
 			{ center: [0, 0.9, -3.4], halfExtents: [1, 0.55, 0.45], rotation: [0, 0, 0, 1] },
 			{ center: [0, 3.875, -5.3], halfExtents: [3.75, 3.875, 0.7], rotation: [0, 0, 0, 1] },
@@ -124,6 +130,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 7.6, 0], halfExtents: [2, 0.2, 2.4], rotation: [0, 0, 0, 1] },
 			{ center: [0, 7, -3.2], halfExtents: [2, 0.2, 0.8], rotation: [0, 0, 0, 1] },
@@ -169,6 +176,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 2], rotation: [0, 0, 0, 1] },
@@ -228,6 +236,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 2.025, 0], halfExtents: [1.5, 0.975, 1.8], rotation: [0, 0, 0, 1] },
 			{ center: [1.05, 0.525, 0], halfExtents: [0.45, 0.525, 1.8], rotation: [0, 0, 0, 1] },
@@ -259,6 +268,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [1.5, 1.5, 1.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
@@ -279,6 +289,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [{ position: [0, 0, 0.836], yaw: 0 }],
 		colliders: [
 			{ center: [0, 1.5, -1.3], halfExtents: [1.5, 1.5, 0.7], rotation: [0, 0, 0, 1] },
 			{ center: [0, 3, 0.55], halfExtents: [1.5, 0.2, 1.45], rotation: [0, 0, 0, 1] },
@@ -301,6 +312,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 1.85, 0], halfExtents: [1.5, 0.15, 0.8], rotation: [0, 0, 0, 1] },
 			{ center: [0, 7, -3.5], halfExtents: [1.5, 0.2, 0.5], rotation: [0, 0, 0, 1] },
@@ -337,6 +349,11 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [
+			{ position: [3.06, 0, 0], yaw: -1.571 },
+			{ position: [1.7, 0, -1.06], yaw: 0 },
+			{ position: [1.7, 0, 1.06], yaw: -3.142 }
+		],
 		colliders: [
 			{ center: [-2, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [-0.5, 1.5, 1.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
@@ -366,6 +383,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 3, -1.35], halfExtents: [1.5, 0.2, 0.65], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, -1.35], halfExtents: [1.5, 0.1, 0.65], rotation: [0, 0, 0, 1] },
@@ -396,6 +414,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, -0.15, 3.35], halfExtents: [1.5, 0.15, 0.65], rotation: [0, 0, 0, 1] },
 			{ center: [0, 3.85, -3.5], halfExtents: [1.5, 0.15, 0.5], rotation: [0, 0, 0, 1] },
@@ -418,6 +437,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [1.5, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [1.5, 0.1, 2], rotation: [0, 0, 0, 1] },
@@ -440,6 +460,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [1.5, 1.5, 1.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
@@ -466,6 +487,12 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [
+			{ position: [5.41, 0, 1.8], yaw: -1.571 },
+			{ position: [5.41, 0, 0.4], yaw: -1.571 },
+			{ position: [-5.41, 0, -1.8], yaw: 1.571 },
+			{ position: [-5.41, 0, -0.4], yaw: 1.571 }
+		],
 		colliders: [
 			{ center: [3.475, 0.725, -3.58], halfExtents: [2.075, 0.725, 0.17], rotation: [0, 0, 0, 1] },
 			{ center: [-3.475, 0.725, -3.58], halfExtents: [2.075, 0.725, 0.17], rotation: [0, 0, 0, 1] },
@@ -503,6 +530,14 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [
+			{ position: [2, 0, -5.41], yaw: 0 },
+			{ position: [5.41, 0, 0.5], yaw: -1.571 },
+			{ position: [5.41, 0, -3], yaw: -1.571 },
+			{ position: [-5.41, 0, -2], yaw: 1.571 },
+			{ position: [-5.41, 0, 3.5], yaw: 1.571 },
+			{ position: [-2, 0, 5.41], yaw: -3.142 }
+		],
 		colliders: [
 			{ center: [0, 6.8, 0], halfExtents: [6, 0.2, 6], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 6], rotation: [0, 0, 0, 1] },
@@ -540,6 +575,12 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [
+			{ position: [-2.5, 0, -3.06], yaw: 0 },
+			{ position: [2.5, 0, 3.06], yaw: -3.142 },
+			{ position: [3.06, 0, -1.8], yaw: -1.571 },
+			{ position: [-3.06, 0, 1.8], yaw: 1.571 }
+		],
 		colliders: [
 			{ center: [0, 3.6, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
@@ -574,6 +615,10 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [],
 		extracts: [],
 		rites: [],
+		crates: [
+			{ position: [-1.06, 0, 0], yaw: 1.571 },
+			{ position: [1.06, 0, 0], yaw: -1.571 }
+		],
 		colliders: [
 			{ center: [0, 3.2, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 2], rotation: [0, 0, 0, 1] },
@@ -596,6 +641,7 @@ export const PIECES: Record<string, PieceDef> = {
 		spawns: [[-1.5, 0, 0]],
 		extracts: [[-3.2, 0, 0]],
 		rites: [],
+		crates: [{ position: [1, 0, -1.41], yaw: 0 }],
 		colliders: [
 			{ center: [0, 3.875, 0], halfExtents: [4, 0.125, 2], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 2], rotation: [0, 0, 0, 1] },

@@ -5,6 +5,11 @@
 	--text: #e2dccc;
 	--muted: #8f8577;
 	--accent: #00819d;
+	/* How hard an item is to come by: the left and bottom edge of its slot. Common has none. */
+	--rarity-uncommon: #9c9c9c;
+	--rarity-rare: #3fa650;
+	--rarity-epic: #3d83dc;
+	--rarity-legendary: #e3b92c;
 	/* Dark yellow: the button that launches an expedition (and confirms the loadout for it). */
 	--launch: #b08a1e;
 	--launch-bright: #cda42a;

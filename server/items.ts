@@ -1,8 +1,9 @@
 import { ITEMS } from '../src/lib/content/items.ts';
 import { BRICKS_PER_CELL } from '../src/lib/content/loadout.ts';
-import { LOOT } from '../src/lib/content/loot.ts';
+import { LOOSE_LOOT } from '../src/lib/content/loot.ts';
 import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import { addItem, newStack } from '../src/lib/shared/items/inventory.ts';
+import { rollLoose } from '../src/lib/shared/items/loot.ts';
 import { lookedAtItem } from '../src/lib/shared/items/pickup.ts';
 import type { ProjectileSnapshot, WorldItemSnapshot } from '../src/lib/shared/items/types.ts';
 import {
@@ -83,11 +84,10 @@ export class WorldItems {
 	}
 
 	/**
-	 * Scatter loot (seeded by the map seed): by walls, away from the start, and more of it the
-	 * farther in you go (see LOOT).
+	 * Scatter the little loot that lies loose (seeded by the map seed): by walls, away from the
+	 * start, and more of it the farther in you go (see LOOSE_LOOT). Most loot is in crates.
 	 */
 	scatterLoot(nav: NavGrid, seed: number, start: Vec3, cells: number): void {
-		if (!ITEMS[LOOT.item]) return;
 		const rng = new Rng(seed ^ 0x100f);
 		const distance = gridDistances(nav, [nearestPoint(nav, start)]);
 		const spots = nav.points
@@ -95,21 +95,23 @@ export class WorldItems {
 			.filter(
 				({ point, distance: d }) =>
 					d !== undefined &&
-					d >= LOOT.minDistance &&
+					d >= LOOSE_LOOT.minDistance &&
 					point.clearance === 'stand' &&
 					!point.water &&
 					point.neighbours.length <= 5
 			);
 		const far = spots.reduce((most, spot) => Math.max(most, spot.distance), 0);
-		const want = Math.round(cells * LOOT.perCell);
+		const want = Math.round(cells * LOOSE_LOOT.perCell);
 		const placed: Vec3[] = [];
 		for (let tries = 0; tries < want * 60 && placed.length < want && spots.length; tries++) {
 			const { point, distance: d } = rng.pick(spots);
-			if (rng.next() > Math.pow(d / far, LOOT.depthBias)) continue;
+			if (rng.next() > Math.pow(d / far, LOOSE_LOOT.depthBias)) continue;
 			const [x, y, z] = point.position;
-			if (placed.some((q) => Math.hypot(q[0] - x, q[2] - z) < LOOT.spacing)) continue;
+			if (placed.some((q) => Math.hypot(q[0] - x, q[2] - z) < LOOSE_LOOT.spacing)) continue;
+			const stack = rollLoose(d / far, rng);
+			if (!stack) continue;
 			placed.push(point.position);
-			this.place(newStack(LOOT.item), [x, y, z], rng.next() * Math.PI * 2);
+			this.place(stack, [x, y, z], rng.next() * Math.PI * 2);
 		}
 	}
 

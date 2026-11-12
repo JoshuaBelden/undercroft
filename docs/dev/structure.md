@@ -50,7 +50,7 @@ src/
       afflictions.ts        Affliction definitions: meter, omen stages, manifestation
       items.ts              item definitions (weapons, ammo, consumables)
       carry.ts              backpacks and how weight slows you
-      loot.ts               what loot is scattered and how densely
+      loot.ts               loot tables: what crates hold by rarity and depth; crate tuning
       economy.ts            shop stock, prices, sell-back
       loadout.ts            what lies around the map (bricks)
       items/headlamps.ts    headlamp models
@@ -75,6 +75,7 @@ server/
   rite.ts                   RiteDirector: clues, the rite room, performing; places rite items
   progress.ts               rite progress per player, kept across expeditions (MongoDB)
   items.ts                  WorldItems: items in the map, pickups, thrown items
+  crates.ts                 Crates: what loot crates hold, revealing it, who has one open
   config.ts                 environment
   db.ts                     MongoDB connection
   log.ts                    logging
@@ -83,6 +84,7 @@ scripts/
   build-assets.ts           optimizes Blender exports, writes the piece manifest
   blender/kit.py            builds the catacomb kit pieces inside Blender
   blender/items.py          builds the item models inside Blender
+  blender/props.py          builds the loot crate and adds crate markers inside Blender
 static/assets/              models, textures, audio served at /assets
 art/                        raw art sources (gitignored except README)
 ```

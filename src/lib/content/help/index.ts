@@ -86,7 +86,7 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 		category: 'Basics',
 		body: `You start with nothing: a headlamp and your hands.
 
-Whatever you carry out of the catacombs is yours. Your kit stays packed the way you carried it, ready for the next descent. Anything else you found goes into your stash.
+Whatever you carry out of the catacombs is yours. You come back to your loadout packed the way you carried it, with what you found still in your backpack. Move it to your stash, or sell it, before the next descent.
 
 The dashboard is where you land when you sign in. Its "Loadout" page ({action:inventory} from anywhere on the dashboard) shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
 
@@ -96,7 +96,7 @@ Things of a kind share a slot, up to a few of each. Drop one stack on another to
 
 Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
 
-Relics lie about the catacombs, more of them the deeper you go. They are worth money on the surface, but they are heavy, they fill your backpack, and the more of them you carry the sooner the Gloaming comes.
+What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the Gloaming comes.
 
 What you take down and don't bring back is gone. If you die, everything you carried stays where you fell, and so does anything you left lying down there.`
 	},
@@ -108,9 +108,9 @@ What you take down and don't bring back is gone. If you die, everything you carr
 
 What you buy goes to your stash, which only has so many slots: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
 
-Selling is done on the "Loadout" page: right-click something and choose Sell. Relics are what sell. Gear you bought can be sold back, for less than you paid. Some things nobody wants.
+Selling is done on the "Loadout" page: right-click something and choose Sell. What you find down there is what sells. Gear you bought can be sold back, for less than you paid. Some things nobody wants.
 
-A first descent with nothing is a short one. Bring out a relic or two, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
+A first descent with nothing is a short one. Bring out what a crate or two holds, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
 	},
 	{
 		id: 'parties',
@@ -181,6 +181,22 @@ What is in your hand is named in the bottom-right corner, with the rounds loaded
 Look at something on the floor and press {action:interact} to pick it up. It goes where it belongs if there is room: a weapon to an empty weapon slot, quick-use things to the wheel, the rest to your backpack. Press {action:drop} to put down what you're holding.
 
 If you die down here, everything you carried stays where you fell. Someone else might find it.`
+	},
+	{
+		id: 'crates',
+		title: 'Crates and loot',
+		category: 'Survival',
+		body: `Crates stand against the walls of rooms and dead ends. Look at one and hold {action:interact} to lift the lid.
+
+What is inside takes time to find. Each thing takes a moment to turn up, one after another, and until it does you can't tell what it is or take it. The best of a crate comes last. Step away before something has turned up and you start on it again next time; what you did find stays found.
+
+The crate opens beside your pack. Drag things across, or hold Shift and click to send them over. You can put things in as well as take them out. Press a movement key, or Close, to step away.
+
+Only one of you can go through a crate at a time. Once a crate has been opened its lid stays up, so you can tell which ones someone has been at. The lid can be heard, and so can the rummaging.
+
+How hard something is to come by shows on the left and bottom edge of its slot: nothing for common things, then grey, green, blue and yellow for uncommon, rare, epic and legendary. Hold the cursor over it to read what it is and what it sells for.
+
+A crate never holds much of the best. Deeper crates hold more.`
 	},
 	{
 		id: 'pack',

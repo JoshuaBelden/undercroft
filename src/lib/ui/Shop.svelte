@@ -102,6 +102,7 @@
 								count={ware.lot}
 								image={item?.image}
 								detail={String(ware.price)}
+								rarity={item?.rarity}
 							/>
 						</button>
 					{:else}
@@ -288,7 +289,7 @@
 
 	.ware:hover :global(.slot),
 	.ware:focus-visible :global(.slot) {
-		border-color: var(--text);
+		--slot-border: var(--text);
 		background: rgb(255 255 255 / 0.09);
 	}
 
@@ -297,7 +298,7 @@
 	}
 
 	.ware[aria-pressed='true'] :global(.slot) {
-		border-color: var(--accent);
+		--slot-border: var(--accent);
 		background: rgb(0 129 157 / 0.2);
 		box-shadow: 0 0 0 1px var(--accent);
 	}

@@ -16,13 +16,15 @@
 	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 	import { Effects } from '#lib/game/items/Effects.ts';
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
+	import { Crates } from '#lib/game/items/Crates.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
+	import { CRATES } from '#lib/content/loot.ts';
 	import { canTake, carriedCount, held, quickWith } from '#lib/shared/items/inventory.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
-	import { lookedAtItem } from '#lib/shared/items/pickup.ts';
-	import type { GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
+	import { lookedAtCrate, lookedAtItem } from '#lib/shared/items/pickup.ts';
+	import type { CrateSlot, GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
 	import { eyeHeight, healing } from '#lib/shared/player/simulate.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
@@ -55,6 +57,7 @@
 	import type { AdminCommand, ClientMessage, ServerMessage } from '#lib/shared/protocol.ts';
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
+	import CrateScreen from '#lib/ui/CrateScreen.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
@@ -69,8 +72,10 @@
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
 
 	let canvas: HTMLCanvasElement;
-	type PanelName = 'settings' | 'help' | 'admin' | 'inventory';
+	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'crate';
 	let panel = $state<PanelName | null>(null);
+	/** The loot crate that is open, as the server tells it (see the `crate` message). */
+	let crate = $state<{ id: string; slots: CrateSlot[]; reveal: number } | null>(null);
 	/** The rite as known so far, and (while its overlay shows) who carries each requirement. */
 	let rite = $state<RiteSnapshot | null>(null);
 	/** The rite overlay is wanted: it shows over play whenever there is a rite to show. */
@@ -129,6 +134,11 @@
 		/** What was carried out and kept; null when it was lost. */
 		carried: ItemStack[] | null;
 	} | null>(null);
+	/**
+	 * Where the surface begins once the result has been read: the loadout, for whoever came out
+	 * with what they carried (there is loot to put away); the dashboard otherwise.
+	 */
+	let surface = $state<'/(hub)' | '/(hub)/loadout'>('/(hub)');
 	/** Dead and watching a teammate; `name` is who (empty while nobody can be shown). */
 	let spectating = $state<{ name: string } | null>(null);
 	let spectateNext = (): void => {};
@@ -156,26 +166,43 @@
 
 	/*
 	 * This page is the expedition and nothing else: with none to show (it is over and its result
-	 * has been read, or the page was opened on the surface), go back to the dashboard and the party.
+	 * has been read, or the page was opened on the surface), go back to the surface and the party.
 	 */
 	$effect(() => {
 		if (connection.status !== 'connected' || !connection.party) return;
 		if (expedition || spectating || result || connection.welcome || me()?.inExpedition) return;
-		void goto(resolve('/(hub)'));
+		void goto(resolve(surface));
 	});
 	let sendInventory = (action: InventoryAction): void => {
 		void action;
 	};
 
-	/** Opening the pack is heard. */
-	let rummage = (): void => {};
+	/**
+	 * We shut the crate and the server hasn't answered yet: what it still sends about the crate
+	 * until then is old news, and must not open the screen again.
+	 */
+	let leavingCrate = false;
+
+	/** Done with the loot crate: tell the server, and straight back to play. */
+	function closeCrate(): void {
+		if (panel !== 'crate') return;
+		panel = null;
+		crate = null;
+		leavingCrate = true;
+		send({ type: 'closeCrate' });
+		if (expedition) void canvas.requestPointerLock();
+	}
 
 	function toggle(name: PanelName): void {
+		// With a crate open, the pack and menu keys put it away and nothing more.
+		if (panel === 'crate') {
+			closeCrate();
+			if (name === 'inventory' || name === 'settings') return;
+		}
 		const closing = panel === name;
 		// The pack can only be opened while you are down there and not on the floor.
 		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
 		panel = closing ? null : name;
-		if (panel === 'inventory') rummage();
 		if (panel) document.exitPointerLock();
 		// Putting the pack away goes straight back to play.
 		else if (name === 'inventory' && expedition) void canvas.requestPointerLock();
@@ -238,6 +265,7 @@
 							carried:
 								message.type === 'died' || message.type === 'abandoned' ? null : message.carried
 						};
+						surface = result.carried ? '/(hub)/loadout' : '/(hub)';
 						if (message.type === 'resolved') sounds.play('rite.resolve');
 						if (message.type === 'died' && message.spectating) startSpectating();
 						else endExpedition();
@@ -250,6 +278,25 @@
 					case 'map':
 						loadMap(message.layout);
 						break;
+					case 'crate':
+						if (message.id === null) {
+							// The server shut it (walked away, went down), or agreed that we did.
+							leavingCrate = false;
+							if (panel === 'crate') {
+								panel = null;
+								if (expedition && !downed) void canvas.requestPointerLock();
+							}
+							crate = null;
+						} else if (expedition && !leavingCrate) {
+							// Sent every tick while it is open: only what changed is worth redrawing.
+							const next = { id: message.id, slots: message.slots, reveal: message.reveal };
+							if (JSON.stringify(next) !== JSON.stringify(crate)) crate = next;
+							if (panel !== 'crate') {
+								panel = 'crate';
+								document.exitPointerLock();
+							}
+						}
+						break;
 					case 'tick':
 						// A tick still in flight after we left is not ours to show.
 						if (!expedition && !spectating) break;
@@ -261,6 +308,7 @@
 						remote.apply(message.players, client.playerId, message.serverTime);
 						creatures.apply(message.creatures);
 						worldItems.apply(message.items, message.projectiles);
+						crates.apply(message.crates);
 						for (const event of message.events) onGameEvent(event);
 						darkness.apply(message.affliction.manifestation);
 						if (JSON.stringify(message.affliction.rite) !== JSON.stringify(rite)) {
@@ -278,7 +326,6 @@
 		});
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
-		rummage = () => sounds.play('inventory.rummage');
 		sounds.oncaption = (cue) => {
 			if (settings.accessibility.captions) captions.push(cue);
 		};
@@ -291,6 +338,8 @@
 		const viewModel = new ViewModel(engine.viewScene, engine.viewCamera);
 		const worldItems = new WorldItems();
 		engine.scene.add(worldItems.root);
+		const crates = new Crates();
+		engine.scene.add(crates.root);
 		const effects = new Effects();
 		engine.scene.add(effects.root);
 		const muzzle = new THREE.Vector3();
@@ -298,6 +347,8 @@
 		let lastAction = 'none';
 		/** The floor item the player would pick up, if any. */
 		let pickupTarget: { id: string; item: string } | null = null;
+		/** The loot crate the player would open, if any (a floor item comes first). */
+		let crateTarget: string | null = null;
 		setMarkers = (enabled) => {
 			markers = enabled;
 			creatures.setMarkers(enabled);
@@ -329,6 +380,7 @@
 			}
 			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
 			void map.build(layout);
+			crates.build(layout.crates);
 			const world = buildCollisionWorld(layout, PIECES);
 			player.setWorld(world);
 			ambience.setMap(layout, world);
@@ -349,7 +401,10 @@
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
-			if (panel === 'inventory') panel = null;
+			if (panel === 'inventory' || panel === 'crate') panel = null;
+			crate = null;
+			leavingCrate = false;
+			crates.clear();
 			rite = null;
 			performing = false;
 			spectating = null;
@@ -377,7 +432,8 @@
 		/** Dead, with others still down there: keep the world and watch through their eyes. */
 		function startSpectating(): void {
 			expedition = false;
-			if (panel === 'inventory') panel = null;
+			if (panel === 'inventory' || panel === 'crate') panel = null;
+			crate = null;
 			spectating = { name: '' };
 			watchId = null;
 			player.leave();
@@ -523,6 +579,14 @@
 				case 'drop':
 					sounds.playAt('item.drop', event.position, 1, 2);
 					break;
+				case 'crateOpen':
+					sounds.playAt('crate.open', event.position, 1, 4);
+					break;
+				case 'rummage':
+					// Your own hands are right there; someone else's are heard from where they are.
+					if (event.player === self) sounds.play('inventory.rummage');
+					else sounds.playAt('inventory.rummage', event.position, 1, 3);
+					break;
 				case 'clue': {
 					// Everyone learns it at once, wherever they are.
 					sounds.play('clue.sting');
@@ -587,16 +651,22 @@
 			if (state && chosen >= 0) player.take(HAND.quick + chosen);
 		}
 
-		/** The floor item in reach that interact would pick up (same rule as the server). */
+		/**
+		 * The floor item in reach that interact would pick up, or failing that the loot crate it
+		 * would open (same rules as the server).
+		 */
 		function findPickup(state: PlayerState): void {
 			const world = player.collision;
 			pickupTarget = null;
+			crateTarget = null;
 			if (world && !state.downed && !state.swimming) {
 				const { origin, direction } = aimRay(state, eyeHeight(state));
 				const item = lookedAtItem(world, state.position, origin, direction, worldItems.snapshots);
 				if (item) pickupTarget = { id: item.id, item: item.item };
+				else crateTarget = lookedAtCrate(world, origin, direction, crates.placements)?.id ?? null;
 			}
 			worldItems.highlight(pickupTarget?.id ?? null);
+			crates.highlight(crateTarget);
 		}
 
 		/** The one held-action prompt to show, with its progress. */
@@ -627,6 +697,15 @@
 			const extract = extractPrompt(state);
 			if (extract)
 				return { prompt: extract, progress: state.extracting / EXPEDITION.extractSeconds };
+			if (crateTarget && settings.interface.itemPrompts) {
+				if (crates.inUse(crateTarget))
+					return { prompt: 'Someone is going through it', progress: 0 };
+				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
+				return {
+					prompt: state.opening > 0 ? 'Opening...' : `Hold ${key} to open the crate`,
+					progress: state.opening / CRATES.openSeconds
+				};
+			}
 			if (pickupTarget && settings.interface.itemPrompts) {
 				const key = settings.bindings.interact.map(bindingLabel).join(' / ') || 'Interact';
 				const name = ITEMS[pickupTarget.item]?.name ?? pickupTarget.item;
@@ -724,6 +803,7 @@
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
 			creatures.update(delta, player.collision, lamps);
 			worldItems.update(delta);
+			crates.update(delta);
 			effects.update(delta);
 			if (mapView) {
 				orbit.update();
@@ -784,8 +864,8 @@
 					: null;
 				if (state.performing > 0 && !performing) sounds.play('rite.begin');
 				performing = state.performing > 0;
-				if (panel === 'inventory') {
-					if (state.downed) {
+				if (panel === 'inventory' || panel === 'crate') {
+					if (state.downed && panel === 'inventory') {
 						panel = null;
 					} else {
 						const json = JSON.stringify(state.inventory);
@@ -821,6 +901,15 @@
 				case 'inventory':
 					toggle('inventory');
 					break;
+				// Walking away from a loot crate puts it away.
+				case 'moveForward':
+				case 'moveBack':
+				case 'moveLeft':
+				case 'moveRight':
+				case 'climb':
+				case 'stance':
+					closeCrate();
+					break;
 				case 'ritePanel':
 					// An overlay, not a menu: play goes on under it.
 					riteShown = !riteShown;
@@ -845,6 +934,7 @@
 			viewModel.dispose();
 			darkness.dispose();
 			worldItems.dispose();
+			crates.dispose();
 			effects.dispose();
 			playerAudio.dispose();
 			ambience.dispose();
@@ -962,6 +1052,18 @@
 		{inventory}
 		onaction={(action) => sendInventory(action)}
 		onclose={() => toggle('inventory')}
+	/>
+{:else if panel === 'crate' && inventory && crate}
+	<CrateScreen
+		{inventory}
+		slots={crate.slots}
+		reveal={crate.reveal}
+		moveKeys={(['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)
+			.map((action) => bindingLabel(settings.bindings[action][0] ?? ''))
+			.filter((label) => label)
+			.join(' / ')}
+		onaction={(action) => sendInventory(action)}
+		onclose={() => closeCrate()}
 	/>
 {:else if panel === 'admin'}
 	<AdminPanel

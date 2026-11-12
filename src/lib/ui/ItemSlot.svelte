@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ITEMS } from '#lib/content/items.ts';
+	import { ITEMS, rarityOf } from '#lib/content/items.ts';
 	import type { SlotRef } from '#lib/shared/items/types.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import type { ItemBoard } from './itemBoard.svelte.ts';
@@ -118,6 +118,7 @@
 		{hint}
 		image={def?.image}
 		detail={stack ? stackDetail(stack) : undefined}
+		rarity={stack ? rarityOf(stack.item) : undefined}
 	/>
 </button>
 
@@ -138,7 +139,7 @@
 
 	.item-slot.filled:hover :global(.slot),
 	.item-slot:focus-visible :global(.slot) {
-		border-color: var(--text);
+		--slot-border: var(--text);
 		background: rgb(255 255 255 / 0.09);
 	}
 
@@ -151,12 +152,12 @@
 	 * is lit, and where it can't go is dimmed.
 	 */
 	.item-slot.accepts :global(.slot) {
-		border-color: #005a6e;
+		--slot-border: #005a6e;
 		background: rgb(0 70 86 / 0.28);
 	}
 
 	.item-slot.over :global(.slot) {
-		border-color: var(--accent);
+		--slot-border: var(--accent);
 		background: rgb(0 129 157 / 0.2);
 	}
 

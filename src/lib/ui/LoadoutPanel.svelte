@@ -118,7 +118,7 @@
 
 	/* In the hand right now. */
 	.hand :global(.slot) {
-		border-color: var(--text);
+		--slot-border: var(--text);
 		box-shadow: inset 0 0 0 1px var(--text);
 	}
 </style>

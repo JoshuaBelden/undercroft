@@ -29,7 +29,13 @@ const SEED: { item: string; count: number }[] = [
 	{ item: 'bandage', count: 8 },
 	{ item: 'salts', count: 4 },
 	{ item: 'brick', count: 2 },
-	{ item: 'relic', count: 7 }
+	{ item: 'coins', count: 30 },
+	{ item: 'rosary', count: 3 },
+	{ item: 'tooth', count: 4 },
+	{ item: 'signet', count: 2 },
+	{ item: 'candlestick', count: 1 },
+	{ item: 'chalice', count: 1 },
+	{ item: 'relic', count: 1 }
 ];
 /** Money added, to try the store with. */
 const MONEY = 500;

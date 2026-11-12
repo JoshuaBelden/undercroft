@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ITEMS } from '#lib/content/items.ts';
+	import { ITEMS, RARITIES, rarityOf } from '#lib/content/items.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import { CATEGORY_LABELS, itemStats } from './items.ts';
 
@@ -23,6 +23,8 @@
 
 	const def = $derived(ITEMS[stack.item]);
 	const stats = $derived(itemStats(stack));
+	const rarity = $derived(rarityOf(stack.item));
+	const rarityName = $derived(RARITIES.find((r) => r.id === rarity)?.name ?? '');
 	const left = $derived(
 		anchor.right + GAP + WIDTH > window.innerWidth
 			? Math.max(GAP, anchor.left - GAP - WIDTH)
@@ -51,6 +53,7 @@
 		<div>
 			<p class="name">{def?.name ?? stack.item}</p>
 			{#if def}
+				<p class="rarity {rarity}">{rarityName}</p>
 				<p class="category">{CATEGORY_LABELS[def.category]}</p>
 			{/if}
 		</div>
@@ -118,6 +121,30 @@
 		font-size: 1.25rem;
 		font-weight: 600;
 		letter-spacing: 0.04em;
+	}
+
+	.rarity {
+		font-family: var(--font-ui);
+		font-size: 0.8rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		color: var(--muted);
+	}
+
+	.rarity.uncommon {
+		color: var(--rarity-uncommon);
+	}
+
+	.rarity.rare {
+		color: var(--rarity-rare);
+	}
+
+	.rarity.epic {
+		color: var(--rarity-epic);
+	}
+
+	.rarity.legendary {
+		color: var(--rarity-legendary);
 	}
 
 	.category {

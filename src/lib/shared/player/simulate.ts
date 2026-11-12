@@ -79,7 +79,8 @@ export function createPlayerState(
 		weapon: idleWeapon(),
 		bandaging: 0,
 		reviving: 0,
-		performing: 0
+		performing: 0,
+		opening: 0
 	};
 }
 

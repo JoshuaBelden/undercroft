@@ -54,6 +54,8 @@ A socket is an opening of a given type on a cell edge. Two sockets connect when 
 
 Tunables are `GenerateOptions` in `generate.ts`. Maps come out at roughly 30–70 pieces.
 
+After that the server chooses which of the pieces' crate markers have a loot crate (`placeCrates` in `src/lib/shared/map/crates.ts`, seeded by the same seed) and puts them in `layout.crates`. They are part of the layout because they are solid: both sides build them into the collision world. See [items.md](items.md#loot-crates).
+
 ## Adding a piece
 
 1. Build it in Blender following the kit conventions and export it to `art/export/`.

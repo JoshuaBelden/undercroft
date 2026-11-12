@@ -335,13 +335,24 @@ export const SOUNDS = {
 		volume: 0.35,
 		variation: 0.12
 	},
-	// Opening the pack underground.
+	// Going through a loot crate: once for each thing as it starts to be revealed.
 	'inventory.rummage': {
 		file: 'inventory.rummage',
 		synth: { kind: 'rustle' },
 		category: 'sfx',
 		volume: 0.4,
-		variation: 0.1
+		variation: 0.1,
+		caption: 'rummaging',
+		captionOthers: true
+	},
+	// The lid of a loot crate, the first time it is lifted.
+	'crate.open': {
+		synth: { kind: 'thud', cutoff: 500 },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.1,
+		caption: 'a lid creaks open',
+		captionOthers: true
 	},
 	// The surface.
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },

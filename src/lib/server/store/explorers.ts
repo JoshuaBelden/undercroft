@@ -1,6 +1,5 @@
 import type { Collection, Db } from 'mongodb';
-import { ITEMS } from '../../content/items.ts';
-import { addToSlots, applyAction, emptyInventory } from '../../shared/items/inventory.ts';
+import { applyAction, emptyInventory } from '../../shared/items/inventory.ts';
 import type { InventoryAction } from '../../shared/items/types.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
 import type { ExplorerDoc } from './accounts.ts';
@@ -38,9 +37,6 @@ export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 };
 
 const explorers = (db: Db): Collection<ExplorerDoc> => db.collection<ExplorerDoc>('explorers');
-
-/** Item kinds that never stay in a loadout: they go to the stash when you come back up. */
-const NOT_KIT = new Set(['loot', 'rite', 'clue']);
 
 /**
  * Change an explorer from the hub. `change` edits a copy and returns an error to refuse. The
@@ -113,8 +109,8 @@ export async function takeLoadout(db: Db, explorerId: string, session: string): 
 
 /**
  * Back from an expedition. `carried` is what they brought out (null if they died or were lost:
- * it stays in the catacombs). Their kit stays arranged as their loadout for next time; loot and
- * rite items go to the stash, as far as it has room (the rest stays in the backpack).
+ * it stays in the catacombs). All of it stays as their loadout, arranged as it was: the kit is
+ * ready for next time, and what they found is in the backpack for them to put away or sell.
  */
 export async function returnFromExpedition(
 	db: Db,
@@ -129,20 +125,11 @@ export async function returnFromExpedition(
 		);
 		return;
 	}
-	const explorer = await explorers(db).findOne({ _id: explorerId, underground: session });
-	if (!explorer) return;
 	const loadout = structuredClone(carried);
 	loadout.selected = 0;
-	const stash = explorer.stash;
-	// Only the backpack can hold these: they belong in no other slot.
-	loadout.backpack.forEach((stack, index) => {
-		if (!stack || !NOT_KIT.has(ITEMS[stack.item]?.kind ?? '')) return;
-		const left = addToSlots(stash, stack);
-		loadout.backpack[index] = left > 0 ? { ...stack, count: left } : null;
-	});
 	await explorers(db).updateOne(
 		{ _id: explorerId, underground: session },
-		{ $set: { underground: null, loadout, stash } }
+		{ $set: { underground: null, loadout } }
 	);
 }
 

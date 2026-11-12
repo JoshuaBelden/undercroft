@@ -18,9 +18,15 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 ## Ready
 
 - Navigation causes menu click sound
-- Real loot types, containers and loot tables (Phase 5 has one stand-in item)
-- Loot spawning by depth
 - Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant
+- Players should see other users health
+- We need bigger maps with multiple extraction rooms
+- After a player extracts, show the loadout page.
+- Add a treasure type of loot and filter. Add a sell all loot button
+- Add full screen mode
+- Improved background image on dashboard
+- Expedition explorer cards should be transparent.
+- Explore and extract effects
 
 ## Upnext - Items before closing off first affliction
 

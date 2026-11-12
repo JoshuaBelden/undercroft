@@ -1,3 +1,4 @@
+import { CRATES } from '../../content/loot.ts';
 import { toWorld } from './grid.ts';
 import type { ColliderBox, MapLayout, PieceDef, Quat, Vec3 } from './types.ts';
 
@@ -110,6 +111,16 @@ export function buildCollisionWorld(
 				...toWorldBox(volume, placement.rotation, toWorld(placement, volume.center))
 			});
 		}
+	}
+	// Loot crates are solid: a box each, turned to the crate's yaw.
+	for (const crate of layout.crates) {
+		const [w, h, d] = CRATES.size;
+		const q: Quat = [0, Math.sin(crate.yaw / 2), 0, Math.cos(crate.yaw / 2)];
+		world.boxes.push({
+			center: [crate.position[0], crate.position[1] + h / 2, crate.position[2]],
+			half: [w / 2, h / 2, d / 2],
+			axes: [rotate(q, [1, 0, 0]), rotate(q, [0, 1, 0]), rotate(q, [0, 0, 1])]
+		});
 	}
 	world.boxes.forEach((box, index) => {
 		const [lo, hi] = aabb(box);

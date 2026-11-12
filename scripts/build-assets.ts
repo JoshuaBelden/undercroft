@@ -2,8 +2,9 @@
  * Turns raw Blender exports (art/export/*.glb) into shippable map pieces.
  * Run with `pnpm asset:build`. See docs/dev/asset-pipeline.md.
  *
- * Creature models (art/export/creatures) and item models (art/export/items) get their own
- * lighter passes into static/assets/creatures and static/assets/items.
+ * Creature models (art/export/creatures), item models (art/export/items) and props
+ * (art/export/props) get their own lighter passes into static/assets/creatures,
+ * static/assets/items and static/assets/props.
  *
  * For each piece:
  *  1. Validates the root empty, footprint, sockets, markers and triangle budget.
@@ -25,6 +26,7 @@ import sharp from 'sharp';
 import { CELL, LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import type {
 	ColliderBox,
+	CrateMarker,
 	Edge,
 	PieceDef,
 	PieceSocket,
@@ -42,6 +44,10 @@ const CREATURE_TEXTURE = 1024;
 /** Item models (weapons, ammo, consumables): art/export/items -> static/assets/items. */
 const ITEM_SOURCE = path.join(SOURCE_DIR, 'items');
 const ITEM_OUT = path.join(ROOT, 'static', 'assets', 'items');
+/** Props (the loot crate): art/export/props -> static/assets/props. */
+const PROP_SOURCE = path.join(SOURCE_DIR, 'props');
+const PROP_OUT = path.join(ROOT, 'static', 'assets', 'props');
+const PROP_TEXTURE = 512;
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'shared', 'map', 'pieces.generated.ts');
 const URL_BASE = '/assets/map';
 const TEXTURE_DIR = 'textures';
@@ -55,7 +61,7 @@ const DEFAULT_TEXTURE = 1024;
 const TRI_BUDGET = { connector: 5000, room: 40000 };
 const EPS = 0.01;
 const FLOOR_SLACK = 0.3;
-const MARKER_PREFIXES = ['socket-', 'spawn-', 'extract-', 'rite-', 'col-', 'vol-'];
+const MARKER_PREFIXES = ['socket-', 'spawn-', 'extract-', 'rite-', 'crate-', 'col-', 'vol-'];
 
 class PieceError extends Error {}
 
@@ -126,6 +132,29 @@ function boxFromNode(node: Node): ColliderBox {
 	};
 }
 
+/**
+ * A crate-<n> empty: where a loot crate may stand, and which way it faces. The empty's local +Y
+ * in Blender (-Z here) points at the wall behind the crate; `yaw` is its turn about +Y.
+ */
+function crateFromNode(
+	piece: string,
+	label: string,
+	node: Node,
+	w: number,
+	d: number
+): CrateMarker {
+	const position = vec(node.getTranslation());
+	const [x, , z] = position;
+	if (Math.abs(x) > (w * CELL) / 2 + EPS || Math.abs(z) > (d * CELL) / 2 + EPS) {
+		throw new PieceError(`${piece}: ${label} at (${x}, ${z}) is outside the footprint`);
+	}
+	const r = node.getRotation();
+	if (Math.abs(r[0]) > EPS || Math.abs(r[2]) > EPS) {
+		throw new PieceError(`${piece}: ${label} must only be turned about the vertical axis`);
+	}
+	return { position, yaw: round(2 * Math.atan2(r[1], r[3])) };
+}
+
 /** Vertical extent of an oriented box (its 8 corners, rotated). */
 function boxYRange(box: ColliderBox): [number, number] {
 	const [x, y, z, w] = box.rotation;
@@ -169,6 +198,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const spawns: Vec3[] = [];
 	const extracts: Vec3[] = [];
 	const rites: Vec3[] = [];
+	const crates: CrateMarker[] = [];
 	const colliders: ColliderBox[] = [];
 	const volumes: VolumeBox[] = [];
 	const stripped: Node[] = [];
@@ -184,6 +214,8 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			extracts.push(position);
 		} else if (label.startsWith('rite-')) {
 			rites.push(position);
+		} else if (label.startsWith('crate-')) {
+			crates.push(crateFromNode(name, label, node, w, d));
 		} else if (label.startsWith('col-')) {
 			colliders.push(boxFromNode(node));
 			stripped.push(node);
@@ -253,6 +285,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		spawns,
 		extracts,
 		rites,
+		crates,
 		colliders,
 		volumes,
 		triangles
@@ -356,6 +389,40 @@ async function buildItems(io: NodeIO): Promise<void> {
 	console.log(`  items: ${built.join(', ')}`);
 }
 
+/**
+ * Props: textures re-encoded to WebP, one self-contained .glb each. Nodes keep their names and
+ * are not merged: the game moves some of them (the crate's lid).
+ */
+async function buildProps(io: NodeIO): Promise<void> {
+	if (!existsSync(PROP_SOURCE)) return;
+	mkdirSync(PROP_OUT, { recursive: true });
+	for (const f of readdirSync(PROP_OUT)) if (f.endsWith('.glb')) rmSync(path.join(PROP_OUT, f));
+	for (const f of readdirSync(PROP_SOURCE)
+		.filter((name) => name.endsWith('.glb'))
+		.sort()) {
+		const file = path.join(PROP_SOURCE, f);
+		const doc = await io.read(file);
+		for (const scene of doc.getRoot().listScenes()) scene.setExtras({});
+		await doc.transform(
+			dedup(),
+			weld(),
+			textureCompress({
+				encoder: sharp,
+				targetFormat: 'webp',
+				resize: [PROP_TEXTURE, PROP_TEXTURE],
+				quality: 85
+			}),
+			prune()
+		);
+		const out = path.join(PROP_OUT, f);
+		await io.write(out, doc);
+		const raw = (statSync(file).size / 1e6).toFixed(1);
+		console.log(
+			`  prop ${path.basename(f, '.glb')}: ${raw} MB -> ${(statSync(out).size / 1e3).toFixed(0)} KB`
+		);
+	}
+}
+
 async function writeManifest(pieces: PieceDef[]): Promise<void> {
 	const record = Object.fromEntries(pieces.map((p) => [p.name, p]));
 	const source = `// Generated by \`pnpm asset:build\` from art/export/*.glb. Do not edit by hand.
@@ -400,6 +467,7 @@ async function main(): Promise<void> {
 	await writeManifest(pieces);
 	await buildCreatures(io);
 	await buildItems(io);
+	await buildProps(io);
 	const textures = readdirSync(path.join(OUT_DIR, TEXTURE_DIR));
 	const textureBytes = textures.reduce(
 		(sum, f) => sum + statSync(path.join(OUT_DIR, TEXTURE_DIR, f)).size,

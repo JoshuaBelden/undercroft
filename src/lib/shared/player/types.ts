@@ -95,6 +95,8 @@ export interface PlayerState {
 	reviving: number;
 	/** Seconds spent performing the rite (server-driven). */
 	performing: number;
+	/** Seconds spent holding interact to open a loot crate (server-driven). */
+	opening: number;
 }
 
 /** What one slot holds. */

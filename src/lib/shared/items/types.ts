@@ -1,5 +1,5 @@
 import type { Vec3 } from '../map/types.ts';
-import type { EquipmentSlot } from '../player/types.ts';
+import type { EquipmentSlot, ItemStack } from '../player/types.ts';
 
 /** An item lying in the map, as broadcast in each tick. See docs/dev/items.md. */
 export interface WorldItemSnapshot {
@@ -9,6 +9,18 @@ export interface WorldItemSnapshot {
 	count: number;
 	position: Vec3;
 	yaw: number;
+}
+
+/**
+ * A slot of the loot crate a player has open, as that player is told it: what is there, nothing,
+ * or `'hidden'` for something not revealed yet (what it is is never sent).
+ */
+export type CrateSlot = ItemStack | null | 'hidden';
+
+/** Which loot crates have been opened (their lids stay up) and which someone is going through. */
+export interface CratesSnapshot {
+	open: string[];
+	busy: string[];
 }
 
 /** A thrown item in flight. */
@@ -71,6 +83,10 @@ export type GameEvent =
 	| { kind: 'drop'; player: string; item: string; position: Vec3 }
 	| { kind: 'creatureHit'; id: string; position: Vec3 }
 	| { kind: 'creatureDie'; id: string; position: Vec3 }
+	/** A loot crate was opened for the first time. */
+	| { kind: 'crateOpen'; id: string; player: string; position: Vec3 }
+	/** Someone going through a crate started on the next thing in it. */
+	| { kind: 'rummage'; player: string; position: Vec3 }
 	/** A clue was found: the requirements (item ids) and room (piece id) it revealed. */
 	| { kind: 'clue'; player: string; position: Vec3; requirements: string[]; room: string | null }
 	/** The Affliction reached a new omen stage. */

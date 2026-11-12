@@ -166,6 +166,7 @@
 		</div>
 		<div class="row">
 			<button type="button" onclick={() => onadmin({ kind: 'refillAmmo' })}>Refill ammo</button>
+			<button type="button" onclick={() => onadmin({ kind: 'resetCrates' })}>Reset crates</button>
 		</div>
 
 		<h3>Affliction</h3>

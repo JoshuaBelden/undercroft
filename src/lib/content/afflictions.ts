@@ -98,8 +98,8 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 		flavor:
 			'It darkens the catacombs a little at a time. Lamps gutter, flames shrink, and in the half-light that is left, someone is standing in the corner.',
 		image: 'affliction-gloaming-banner',
-		// Carrying 150 of loot (a full pack) fills it about half as fast again as time alone.
-		meter: { seconds: 1800, perKill: 0.04, perLoot: 0.000002 },
+		// Carrying 1000 of loot (a good haul) fills it about half as fast again as time alone.
+		meter: { seconds: 1800, perKill: 0.04, perLoot: 0.0000003 },
 		stages: [
 			{
 				at: 0.25,

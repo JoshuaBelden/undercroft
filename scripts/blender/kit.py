@@ -60,6 +60,7 @@ MATERIALS = {
     "mat-water": {"color": (0.015, 0.035, 0.035), "roughness": 0.04, "alpha": 0.88},
     "mat-floor-chapel": {"set": "Marble023", "tile": 2.0},
     "mat-wall-chapel": {"set": "Road015C", "tile": 2.5},
+    "mat-prop-planks": {"set": "Planks025A", "tile": 1.0},
 }
 
 PIECES = [

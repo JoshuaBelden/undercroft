@@ -75,6 +75,7 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 - **Markers** (empties, kebab-case prefixes):
   - `socket-<type>-<n>`: an opening, at floor level, on the footprint boundary, centred on a cell edge. The edge and cell are derived from the position.
   - `spawn-<n>`: player start. `extract-<n>`: extraction point. `rite-<n>`: where the rite is initiated.
+  - `crate-<n>`: where a loot crate may stand (the game fills only some). On the floor at the crate's centre, turned about Z only, with its local +Y pointing at the wall behind the crate. Leave 1.2 m of clear floor in front. `props.crate_marker(piece, x, y, wall)` adds one pushed back against the `'n'`, `'s'`, `'e'` or `'w'` wall near a point, and reports anything in its way.
 - **Collision:** `col-*` meshes are unit cubes scaled and rotated into place. They go into the manifest as oriented boxes and are stripped from the shipped model.
 - **Volumes:** `vol-<kind>-<n>` unit cubes mark gameplay volumes, such as `vol-water-0` (swimmable water) in the Cistern or `vol-squeeze-0` (slow, no sprinting) in `hall-squeeze`. Like colliders, they go into the manifest and are stripped from the model.
 - **Every water volume needs a way out:** steps, or an edge no more than 0.9 m above the water surface (the swim-out mantle height, `MOVEMENT.mantle.maxFromWater`). The Cistern has both: steps on the south side of the basin and a walkway 0.45 m above the water.
@@ -95,7 +96,7 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 1. **Validates:** the root empty and footprint, that sockets lie on the boundary and are centred on cell edges, that heights sit on a level, and the triangle budget. It exits non-zero naming the piece and marker.
 2. **Optimizes:** strips collision meshes, volumes and Blender scene properties, runs dedup, weld, and prune, and re-encodes textures to WebP at 1024 px. The 4K sources are never touched.
 3. **Writes shared textures:** each piece becomes `static/assets/map/<piece>.gltf` + `<piece>.bin`. Textures go to `static/assets/map/textures/<content-hash>.webp`, so a texture used by many pieces is stored, committed and downloaded once. On the client, `loadModel` (`src/lib/game/assets.ts`) also points every piece at one GPU texture per file. Output is deterministic: rebuilding unchanged pieces produces identical files, so git only stores what actually changed. The output folder is cleared first, so removed pieces and unused textures don't linger.
-4. **Generates `src/lib/shared/map/pieces.generated.ts`:** footprint, sockets, spawns, extracts, rite points, colliders, and volumes per piece. The server and client both read it, so the server never parses model files. Commit it with the built assets.
+4. **Generates `src/lib/shared/map/pieces.generated.ts`:** footprint, sockets, spawns, extracts, rite points, crate markers, colliders, and volumes per piece. The server and client both read it, so the server never parses model files. Commit it with the built assets.
 
 ### Creature models
 
@@ -112,6 +113,16 @@ Weapons, ammo and consumables are built by `scripts/blender/items.py` in the kit
 - **Materials:** plain PBR colours, no textures.
 
 `items.export_all()` writes `art/export/items/<id>.glb`. `pnpm asset:build` dedups, welds and prunes each one into `static/assets/items/<id>.glb` (a few KB each). See [items.md](items.md).
+
+### Props
+
+Things that stand in the map but aren't part of a piece: for now the loot crate. `scripts/blender/props.py` builds them in the kit .blend, each in a `prop-<name>` collection under a root empty; as with pieces and items, building skips a collection that exists.
+
+- **Origin:** on the floor, centred. The front faces -Y; the back (+Y) goes against a wall.
+- **Moving parts** are their own objects with the origin on the pivot. The crate's lid, `crate-lid`, has its origin on the back top edge; the game turns it about its X axis.
+- **Materials:** textured, from the sets in `kit.MATERIALS` (`mat-prop-planks` uses `Planks025A`).
+
+`props.export_all()` writes `art/export/props/<name>.glb`. `pnpm asset:build` re-encodes the textures to WebP at 512 px and writes `static/assets/props/<name>.glb`, keeping node names (the game looks the lid up by name).
 
 ## Audio
 

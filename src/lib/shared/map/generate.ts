@@ -367,7 +367,7 @@ export function generateLayout(
 	for (let attempt = 0; attempt < opts.attempts; attempt++) {
 		const rng = new Rng((seed + Math.imul(attempt, 0x9e3779b9)) >>> 0);
 		try {
-			return { seed, placements: tryGenerate(rng, pieces, kit, opts) };
+			return { seed, placements: tryGenerate(rng, pieces, kit, opts), crates: [] };
 		} catch (error) {
 			if (!(error instanceof GenerationFailed)) throw error;
 		}

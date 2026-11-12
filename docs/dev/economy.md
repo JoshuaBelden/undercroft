@@ -12,7 +12,8 @@ Between expeditions an explorer owns a **stash** (kept on the surface) and a **l
 | `src/lib/ui/Outfit.svelte`          | Stash and loadout (the dashboard's Loadout page)               |
 | `src/lib/shared/items/inventory.ts` | The slot rules, shared with the game server                    |
 | `src/lib/content/economy.ts`        | Shop stock and prices, sell-back rate, the currency's name     |
-| `src/lib/content/loot.ts`           | What loot is scattered and how densely                         |
+| `src/lib/content/loot.ts`           | Loot tables: what crates hold, by rarity and depth             |
+| `src/lib/shared/items/loot.ts`      | Rolling a crate's contents and loose loot from the tables      |
 | `src/lib/server/store/shop.ts`      | Buying, selling, admin grants, the ledger                      |
 | `src/routes/api/shop/`              | Shop endpoint                                                  |
 | `src/routes/api/admin/`             | Dev-mode account tools                                         |
@@ -35,7 +36,7 @@ Signing in lands on the dashboard. It is the `(hub)` route group: `+layout.svelt
 - **Social** (`/social`): `Social`: the party, friends and finding players (see [social.md](social.md)). It has no tab: the Social button in the frame is the link to it.
 - **Store** (`/store`): `Shop`. It has no tab: the money in the frame is the link to it.
 
-`/play` is the game and nothing else: the browser is sent there when an expedition starts, and back to the dashboard when it is over (see [expedition.md](expedition.md)). The party lives on the game server connection, which every page shares, so moving between dashboard pages keeps it.
+`/play` is the game and nothing else: the browser is sent there when an expedition starts, and back to the surface when it is over: the Loadout page for whoever came out with what they carried, the dashboard otherwise (see [expedition.md](expedition.md)). The party lives on the game server connection, which every page shares, so moving between dashboard pages keeps it.
 
 Links inside the group use route ids with `resolve` (`resolve('/(hub)/loadout')`), and the current tab is found from `page.route.id`: `resolve` returns relative paths during server rendering, so comparing it with the URL does not work.
 
@@ -82,7 +83,7 @@ The game server is the only writer while an explorer is underground.
 1. **Descent** (`Parties.begin`, `takeKit`): `takeLoadout` empties the loadout and sets `underground` to the session id, in one update. The inventory it returns is what `Session.addPlayer` gives the player. Fetching takes a moment, so a member who left meanwhile gets their kit straight back.
 2. **Underground:** the hub refuses changes (`underground`), and `ExplorerView.underground` is true.
 3. **Return** (`SessionHooks.onPlayerLeft(owner, carried)`, `giveBack`, `returnFromExpedition`):
-   - **Got out** (`extracted`, `banished`, `resolved`): `carried` is the player's inventory. It becomes the loadout as arranged, so the kit is ready for next time, except loot, rite items and clues (`NOT_KIT`), which go to the stash as far as it has room. What doesn't fit stays in the loadout's backpack.
+   - **Got out** (`extracted`, `banished`, `resolved`): `carried` is the player's inventory. All of it becomes the loadout, arranged as it was: the kit is ready for next time, and what was found stays in the backpack. The player lands on the Loadout page to put it in the stash or sell it.
    - **Didn't** (died, dropped for good, left the party while underground): `carried` is null. Nothing comes back: it is lying in the catacombs. The loadout was already emptied at descent.
    - Either way `underground` is cleared.
 
@@ -92,14 +93,52 @@ When the game server starts, `releaseAll` clears every `underground` marker: nob
 
 ## Loot
 
-Loot is what explorers carry out to sell. For now there is one stand-in item, the `relic` (`kind: 'loot'`, drawn as a plain cube), with a `value` and a weight, five to a backpack slot, so that carrying it is a choice. Real loot types, containers and loot tables are Phase 6.
+Loot is what explorers carry out to sell: items with `kind: 'loot'`, a `value`, a weight and a stack size, so that carrying it is a choice (coins stack to 20 and weigh nothing; a chalice takes a slot and weighs 1.8 kg). None has a model yet: on the floor they are boxes from `placeholder`.
 
-- **Where:** `WorldItems.scatterLoot` (`server/items.ts`), seeded by the map seed, driven by `LOOT` in `src/lib/content/loot.ts`: about `perCell` per map cell, on standing dry nav points by walls, none within `minDistance` of the start, `spacing` apart. A spot is used with probability (its floor distance from the start ÷ the farthest) to the power `depthBias`, so most of it lies far in.
+### Rarity
+
+Every item has a rarity (`ItemDef.rarity`, `rarityOf(item)`): `common` (when left out), `uncommon`, `rare`, `epic` or `legendary`. `RARITIES` lists them commonest first with their names. A slot holding something shows its rarity as a 2px left and bottom edge (none for common, then grey, green, blue, yellow: the `--rarity-*` colours in `src/app.css`), and the tooltip names it under the item's name. See [systems.md](systems.md#slots).
+
+| Rarity    | Loot                    |
+| --------- | ----------------------- |
+| Common    | Old coins, bone rosary  |
+| Uncommon  | Gold tooth, signet ring |
+| Rare      | Silver candlestick      |
+| Epic      | Chalice                 |
+| Legendary | Reliquary (id `relic`)  |
+
+### Tables
+
+All of it is data in `src/lib/content/loot.ts`. There is no editor: change the file.
+
+- `CRATE_LOOT`: everything a crate can hold, each with a `count` range (how many come together) and a `weight` near the start and at the far end of the map. Supplies (bandages, rounds, salts) are in it as common things.
+- `CRATE_RARITY`: how many things of each rarity a crate holds, as a fewest and a most: 1 to 5 common, 0 to 3 uncommon, 0 to 2 rare, 0 or 1 epic, 0 or 1 legendary. Each one above the fewest is there with probability `chance`, which also runs from a value near the start to one at the far end. A crate never has more than the most.
+- `LOOSE_LOOT`: the little that lies on the floor.
+
+**Depth** is one number from 0 to 1: a spot's distance along the floor from the start, divided by the farthest reachable point's (`gridDistances`). Descents only lead down, so it rises with the level too. Every weight and chance slides between its two values by it.
+
+`rollCrate(depth, rng)` (`src/lib/shared/items/loot.ts`) fills a crate:
+
+1. Roll how many of each rarity.
+2. If both an epic and a legendary came up, drop one of them (a coin toss).
+3. For each, draw an item of that rarity from `CRATE_LOOT` by weight.
+4. If that is more than the crate's 8 slots, leave out the commonest.
+5. Lay them out from the first slot, commonest first, so the best is revealed last.
+
+It is seeded by the map seed, so a seed gives the same crates with the same things in them.
+
+### Where it is
+
+- **Crates** hold most of it. See [items.md](items.md#loot-crates).
+- **Loose:** `WorldItems.scatterLoot` (`server/items.ts`), seeded by the map seed, driven by `LOOSE_LOOT`: about `perCell` per map cell, on standing dry nav points by walls, none within `minDistance` of the start, `spacing` apart. A spot is used with probability (its depth) to the power `depthBias`, so most of it lies far in. Each is one draw from the `CRATE_LOOT` entries of the rarities in `LOOSE_LOOT.rarities` (common and uncommon).
+
+### Carrying it
+
 - **Carrying:** loot is in the `other` category, so it only goes in the backpack.
 - **The meter:** loot carried hastens the Affliction. Each tick the meter gains `meter.perLoot` × the value all players carry between them (`lootValue`) × the tick length. See [affliction.md](affliction.md).
-- **Coming back:** loot goes to the stash, not the loadout (see above).
+- **Coming back:** loot stays in the loadout's backpack (see above); the player moves it to the stash or sells it.
 
-To add a loot item, add an `ItemDef` with `kind: 'loot'` and a `value`. Scattering more than one kind needs `LOOT` to become a table.
+To add a loot item, add an `ItemDef` with `kind: 'loot'`, a `value` and a `rarity`, and an entry in `CRATE_LOOT`. A rarity with nothing in `CRATE_LOOT` simply never turns up.
 
 ## Money and the shop
 
@@ -112,7 +151,7 @@ Everything to tune is in `src/lib/content/economy.ts`:
 - `sellPrice(item)`: loot sells for its `value` (in `ITEMS`), shop gear for the sell-back, anything else for nothing and can't be sold.
 - `ECONOMY.currency`: what money is called.
 
-Loot values are on the items (`value` in `src/lib/content/items.ts`), and how much loot there is to find is `LOOT` in `src/lib/content/loot.ts`.
+Loot values are on the items (`value` in `src/lib/content/items.ts`), and how much loot there is to find is `CRATE_RARITY`, `CRATES.fill` and `LOOSE_LOOT` in `src/lib/content/loot.ts`.
 
 `POST /api/shop` returns the `AccountView` afterwards:
 

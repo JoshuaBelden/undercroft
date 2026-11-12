@@ -1,6 +1,6 @@
 # Items, weapons and combat
 
-What players carry (equipment, backpack and quick-use slots, weight), weapons, defense, ammo and healing, items lying in the map, and fighting back. Loot and containers come later.
+What players carry (equipment, backpack and quick-use slots, weight), weapons, defense, ammo and healing, items lying in the map, loot crates, and fighting back. What crates hold is in [economy.md](economy.md#loot).
 
 ## Files
 
@@ -18,6 +18,11 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 | `src/lib/shared/items/types.ts`     | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`               |
 | `server/combat.ts`                  | Resolves shots, swings, throws and drops; damage and noise           |
 | `server/items.ts`                   | `WorldItems`: bricks scattered, pickups, drops, death drops, throws  |
+| `server/crates.ts`                  | `Crates`: what each loot crate holds, revealing it, who has it open  |
+| `src/lib/shared/map/crates.ts`      | `placeCrates`: which crate markers of a map have a crate             |
+| `src/lib/game/items/Crates.ts`      | Crate models, their lids, highlight of the one you'd open            |
+| `src/lib/ui/CrateScreen.svelte`     | The loot screen                                                      |
+| `scripts/blender/props.py`          | Builds the crate model and adds crate markers in the kit .blend      |
 | `src/lib/game/items/ViewModel.ts`   | The held item: procedural motion, own render pass                    |
 | `src/lib/game/items/WorldItems.ts`  | Floor and thrown items, highlight of what you'd pick up              |
 | `src/lib/game/items/Effects.ts`     | Muzzle flash light, impact puffs                                     |
@@ -136,6 +141,34 @@ Creatures (see [creatures.md](creatures.md)):
 
 Each `tick` carries `items`, `projectiles` and `events` (`GameEvent`): shots with their end point, swing results, throws, landings, breaks, reloads, dry clicks, pickups, drops, creature hits and deaths. Clients play sounds and effects for other players from these, and impacts and hits for everyone. Your own gunshot, swing and reload sounds come from prediction instead.
 
+## Loot crates
+
+Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 slots.
+
+**Where they stand.** Pieces carry `crate-<n>` markers: places a crate may stand, with its back to a wall (see [asset-pipeline.md](asset-pipeline.md)). A marker is only a possibility. `placeCrates(layout, PIECES, seed)` fills each with probability `CRATES.fill`, none within `CRATES.minDistance` of the start, seeded by the map seed. The server calls it once the layout is generated and stores the result in `layout.crates` (`id`, `position`, `yaw`), which goes to clients with the layout.
+
+**The dev crate.** The start room (`stairwell`) has a crate marker too. It is left empty for players; with the server in dev mode (`DEV_MODE=true`) it always has a crate, a few steps ahead of the spawn on the left, filled as if it were the deepest in the map. "Reset crates" in the admin panel fills it again.
+
+**Solid.** `buildCollisionWorld` adds a box of `CRATES.size` for each entry of `layout.crates`. Server and client both build the world from the layout, so movement prediction, line of sight and the nav grid all take crates into account. The box is a little higher than the model (0.55 m), above the nav grid's step height, so nothing treats a lid as a floor.
+
+**What is in them.** `Crates` (`server/crates.ts`) rolls each crate with `rollCrate` at its depth (see [economy.md](economy.md#tables)). Every slot that holds something starts **hidden**.
+
+**Opening.** Holding interact for `CRATES.openSeconds` (1 s) on the crate `lookedAtCrate` picks opens it: within `PICKUP.range` of the eye, within `CRATE_REACH.angle` of the look direction, nothing but the crate in the way. A floor item being looked at comes first (interact picks that up). `PlayerState.opening` counts the seconds (server-driven, like `performing`), and resets if any of that stops. The client shows "Hold E to open the crate" with the same rule.
+
+- **One at a time:** a crate someone has open can't be opened by anyone else ("Someone is going through it").
+- **The lid:** the first time a crate is opened its lid goes up and stays up, for everyone (`crateOpen` event; `tick.crates.open`). Creatures within `CRATES.noise` hear it and come to look.
+- **It shuts** when the player closes the screen (`closeCrate`), moves more than `CRATE_REACH.leave` from it, goes down, dies, leaves or loses their connection.
+
+**Revealing.** While someone has a crate open, `Crates.step` reveals its hidden slots one at a time, lowest first, `CRATES.revealSeconds` (1 s) each. Each slot starting raises a `rummage` event (the rummage sound, for everyone near). Closing the crate part-way through a slot loses that slot's progress; slots already revealed stay revealed, for whoever opens it next. The contents were laid out commonest first, so the best comes last.
+
+**What the player is told.** Hidden contents never leave the server. While a crate is open its user gets a `crate` message each tick: `slots` as `CrateSlot`s (a stack, `null`, or `'hidden'`) and `reveal`, how far along (0..1) the first hidden slot is. `{ id: null }` means it has shut.
+
+**Moving things.** The crate's slots stand where the stash does on the surface: `Session.inventory` runs the request with `applyAction({ inventory, stash: crate.slots, sealed: crate.hidden }, action)`, so every rule of the pack screen works both ways (drag, swap, shift-click, split, equip, drop, the weight limit on taking). `Belongings.sealed` are stash slots that don't exist as far as the rules go: hidden slots can't be taken from, swapped with or stacked onto. With no crate open, requests naming stash slots are refused as before.
+
+**The loot screen** (`CrateScreen`): most of the window, the crate's 8 slots (4 across) beside a `LoadoutPanel`, on one `ItemBoard`. A hidden slot is a dashed box; the one being revealed shows a progress bar and nothing else. Opening it releases the pointer. The Close button, the pack and menu keys, or any movement key (`moveForward`, `moveBack`, `moveLeft`, `moveRight`, `climb`, `stance`) shut it and take the pointer back.
+
+**Tuning:** `CRATES` (slots, seconds, fill, size, noise). To add crate places, add `crate-<n>` markers to pieces.
+
 ## Client
 
 - **ViewModel:** drawn in the engine's second pass (`viewScene`/`viewCamera`, depth cleared), so it never clips into walls.
@@ -156,5 +189,6 @@ These need `DEV_MODE`:
 
 - **Give** any item with a count (firearms come loaded); it goes where `addItem` puts it;
 - **Refill ammo** (fills the guns in the weapon slots and adds spare rounds);
+- **Reset crates** (`resetCrates`): shuts every loot crate and fills it again, hidden, with a new roll;
 - **Infinite ammo**;
 - **Kill all** creatures.

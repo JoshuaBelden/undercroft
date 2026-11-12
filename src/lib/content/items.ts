@@ -9,6 +9,18 @@ import type { SoundId } from './audio/sounds.ts';
 export type ItemKind =
 	'melee' | 'firearm' | 'throwable' | 'ammo' | 'consumable' | 'defense' | 'rite' | 'clue' | 'loot';
 
+/** How hard an item is to come by, commonest first. Shown on its slot and in its tooltip. */
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+/** Every rarity, commonest first, with the name shown for it. */
+export const RARITIES: { id: Rarity; name: string }[] = [
+	{ id: 'common', name: 'Common' },
+	{ id: 'uncommon', name: 'Uncommon' },
+	{ id: 'rare', name: 'Rare' },
+	{ id: 'epic', name: 'Epic' },
+	{ id: 'legendary', name: 'Legendary' }
+];
+
 /** Which slots take an item, and the stash filter it is listed under. */
 export type ItemCategory = 'weapon' | 'defense' | 'quick' | 'other';
 
@@ -97,6 +109,8 @@ export interface ItemDef {
 	weight: number;
 	/** What one sells for on the surface (loot). */
 	value?: number;
+	/** How hard it is to come by; common when left out. */
+	rarity?: Rarity;
 	melee?: MeleeSpec;
 	firearm?: FirearmSpec;
 	throwable?: ThrowSpec;
@@ -271,19 +285,103 @@ export const ITEMS: Record<string, ItemDef> = {
 		weight: 2,
 		defense: { reduction: 0.25 }
 	},
-	// Loot: a stand-in until there are real things to find (see docs/dev/economy.md).
-	relic: {
-		id: 'relic',
-		name: 'Relic',
+	// Loot: what is carried out and sold (see docs/dev/economy.md). None has a model yet.
+	coins: {
+		id: 'coins',
+		name: 'Old coins',
 		kind: 'loot',
 		category: 'other',
-		flavor: 'Something old that someone above will pay for. They never ask where it lay.',
+		flavor: 'Worn smooth. Laid on eyes once, or pressed into a palm for the crossing.',
 		model: null,
-		placeholder: { size: [0.2, 0.2, 0.2], color: 0x8a7a5a },
+		placeholder: { size: [0.08, 0.02, 0.08], color: 0x7a6a4a },
+		hold: HOLD_RIGHT,
+		maxStack: 20,
+		weight: 0.02,
+		value: 3
+	},
+	rosary: {
+		id: 'rosary',
+		name: 'Bone rosary',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'Beads turned from knuckles. Someone counted on these for a long time.',
+		model: null,
+		placeholder: { size: [0.12, 0.02, 0.12], color: 0xb8ad94 },
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
-		weight: 1.5,
-		value: 25
+		weight: 0.1,
+		value: 12
+	},
+	tooth: {
+		id: 'tooth',
+		name: 'Gold tooth',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'It came out easier than it should have.',
+		model: null,
+		placeholder: { size: [0.03, 0.03, 0.03], color: 0xc9a23a },
+		hold: HOLD_RIGHT,
+		maxStack: 10,
+		weight: 0.01,
+		value: 30,
+		rarity: 'uncommon'
+	},
+	signet: {
+		id: 'signet',
+		name: 'Signet ring',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'A crest nobody above remembers. The gold is still gold.',
+		model: null,
+		placeholder: { size: [0.04, 0.02, 0.04], color: 0xb8902e },
+		hold: HOLD_RIGHT,
+		maxStack: DEFAULT_STACK,
+		weight: 0.02,
+		value: 45,
+		rarity: 'uncommon'
+	},
+	candlestick: {
+		id: 'candlestick',
+		name: 'Silver candlestick',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'Black with tarnish and heavy in the hand. It will clean up.',
+		model: null,
+		placeholder: { size: [0.1, 0.3, 0.1], color: 0x8c9094 },
+		hold: HOLD_RIGHT,
+		maxStack: 2,
+		weight: 1.2,
+		value: 110,
+		rarity: 'rare'
+	},
+	chalice: {
+		id: 'chalice',
+		name: 'Chalice',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'Gilt inside, garnets round the stem. Whatever it held has dried to a stain.',
+		model: null,
+		placeholder: { size: [0.12, 0.2, 0.12], color: 0xc2a64e },
+		hold: HOLD_RIGHT,
+		maxStack: 1,
+		weight: 1.8,
+		value: 260,
+		rarity: 'epic'
+	},
+	relic: {
+		id: 'relic',
+		name: 'Reliquary',
+		kind: 'loot',
+		category: 'other',
+		flavor:
+			'A casket of gold and rock crystal with something small and brown inside. They never ask where it lay.',
+		model: null,
+		placeholder: { size: [0.2, 0.2, 0.2], color: 0xd9b84a },
+		hold: HOLD_RIGHT,
+		maxStack: 1,
+		weight: 3,
+		value: 600,
+		rarity: 'legendary'
 	},
 	// Rite items (see docs/dev/rite.md).
 	pendant: {
@@ -313,6 +411,11 @@ export const ITEMS: Record<string, ItemDef> = {
 		weight: 0
 	}
 };
+
+/** How hard an item is to come by. */
+export function rarityOf(item: string): Rarity {
+	return ITEMS[item]?.rarity ?? 'common';
+}
 
 /** How many slots there are, where it isn't the backpack's to say (see BACKPACKS). */
 export const SLOTS = {

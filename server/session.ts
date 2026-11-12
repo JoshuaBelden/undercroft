@@ -22,6 +22,7 @@ import { buildNav, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
+import { CRATES } from '../src/lib/content/loot.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import {
 	addItem,
@@ -34,8 +35,10 @@ import {
 	sanitizeAction,
 	spendQuick
 } from '../src/lib/shared/items/inventory.ts';
+import { CRATE_REACH } from '../src/lib/shared/items/pickup.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { aimRay, reequip } from '../src/lib/shared/items/weapons.ts';
+import { crateCentre, placeCrates } from '../src/lib/shared/map/crates.ts';
 import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
@@ -48,6 +51,7 @@ import {
 import type {
 	InputFrame,
 	Inventory,
+	ItemStack,
 	PlayerState,
 	SimEvent
 } from '../src/lib/shared/player/types.ts';
@@ -57,6 +61,7 @@ import { config } from './config.ts';
 import { hurt as hurtCreature, resolve, targets, type CombatContext } from './combat.ts';
 import { AfflictionDirector } from './affliction.ts';
 import { RiteDirector, scatterRite } from './rite.ts';
+import { Crates, type Crate } from './crates.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
 import { log } from './log.ts';
@@ -83,6 +88,8 @@ interface Player {
 	deepestLevel: number;
 	/** Most recent input simulated (held buttons the server acts on, like revive). */
 	lastInput: InputFrame | null;
+	/** The loot crate they have open (its id). */
+	crate: string | null;
 }
 
 const DT = 1 / SIM_RATE;
@@ -97,6 +104,13 @@ const SELF_REVIVE_DELAY = 3;
 const DARK = 0.02;
 /** Half-angle (radians) of the view cone used for "seeing" a creature. */
 const VIEW_HALF_ANGLE = 0.9;
+
+/** The map for a seed: the layout, and which of its crate markers have a crate. */
+function generate(seed: number): MapLayout {
+	const layout = generateLayout(seed, PIECES, MAP_KIT);
+	layout.crates = placeCrates(layout, PIECES, seed, config.devMode);
+	return layout;
+}
 
 /** Lets the owner (the party) follow who is still down there. */
 export interface SessionHooks {
@@ -124,11 +138,12 @@ export class Session {
 	/** Map seed, kept for logs, admin tools and reproducing a layout. */
 	seed = randomSeed();
 	/** Authoritative map layout, sent to clients in `welcome`. */
-	layout: MapLayout = generateLayout(this.seed, PIECES, MAP_KIT);
+	layout: MapLayout = generate(this.seed);
 	private world: CollisionWorld = buildCollisionWorld(this.layout, PIECES);
 	private nav: NavGrid = this.buildNav();
 	private creatures = new CreatureDirector(this.world, this.nav, this.seed);
 	private items = new WorldItems(this.world);
+	private crates!: Crates;
 	private affliction: AfflictionDirector;
 	private rite: RiteDirector;
 	/** The rite has been performed: everyone is carried out at the end of this tick. */
@@ -170,6 +185,7 @@ export class Session {
 			if (!piece) continue;
 			for (const [x, z, level] of occupiedCells(piece, placement)) cells.add(`${x},${z},${level}`);
 		}
+		this.crates = new Crates(this.world, this.layout.crates, this.nav, start, this.seed);
 		this.items.scatter(this.nav, this.seed, start, cells.size);
 		this.items.scatterLoot(this.nav, this.seed, start, cells.size);
 		scatterRite(
@@ -222,7 +238,8 @@ export class Session {
 			clock: null,
 			joinedAt: Date.now(),
 			deepestLevel: 0,
-			lastInput: null
+			lastInput: null,
+			crate: null
 		};
 		this.players.set(player.id, player);
 		this.hadPlayers = true;
@@ -251,6 +268,8 @@ export class Session {
 		player.processed = 0;
 		player.clock = null;
 		player.lastInput = null;
+		// Whatever screen they had open is gone with the old connection.
+		this.shutCrate(player);
 		this.send(player, {
 			type: 'welcome',
 			playerId: player.id,
@@ -275,6 +294,7 @@ export class Session {
 		this.spectators.delete(playerId);
 		const player = this.players.get(playerId);
 		if (!player) return;
+		this.shutCrate(player);
 		this.players.delete(playerId);
 		log.info(`Player ${player.name} left session ${this.id.slice(0, 8)}`);
 		this.hooks.onPlayerLeft?.(player.owner, carried);
@@ -321,13 +341,41 @@ export class Session {
 	/** A request from the pack screen: move, equip or split something, or drop it on the floor. */
 	inventory(playerId: string, raw: unknown): void {
 		const player = this.players.get(playerId);
-		const action = sanitizeAction(raw);
-		if (!player || !action) return;
+		if (!player) return;
 		const s = player.state;
 		if (s.downed || s.dead || s.extracted) return;
-		const inv = s.inventory;
+		const crate = player.crate ? this.crates.get(player.crate) : null;
+		if (crate) {
+			this.lootAction(player, crate, raw);
+			return;
+		}
+		const action = sanitizeAction(raw);
+		if (!action) return;
+		const inHand = held(s.inventory);
+		const { dropped } = applyAction({ inventory: s.inventory }, action);
+		this.afterInventory(player, inHand, dropped);
+	}
+
+	/**
+	 * The same, with a loot crate open: its slots stand where the stash does on the surface, so
+	 * things move both ways. What hasn't been revealed yet can't be touched.
+	 */
+	private lootAction(player: Player, crate: Crate, raw: unknown): void {
+		const action = sanitizeAction(raw, true);
+		if (!action) return;
+		const inv = player.state.inventory;
 		const inHand = held(inv);
-		const { dropped } = applyAction({ inventory: inv }, action);
+		const { dropped } = applyAction(
+			{ inventory: inv, stash: crate.slots, sealed: crate.hidden },
+			action
+		);
+		this.afterInventory(player, inHand, dropped);
+	}
+
+	/** After a request was carried out: what came out lands on the floor, the hand is checked. */
+	private afterInventory(player: Player, inHand: ItemStack | null, dropped?: ItemStack): void {
+		const s = player.state;
+		const inv = s.inventory;
 		if (dropped) {
 			const { origin, direction } = aimRay(s, eyeHeight(s));
 			this.items.drop(dropped, origin, direction);
@@ -335,6 +383,23 @@ export class Session {
 		}
 		// What's in the hand changed: whatever it was doing stops and the new item comes up.
 		if (held(inv) !== inHand) reequip(s.weapon);
+	}
+
+	/** The player is done with the loot crate they had open. */
+	closeCrate(playerId: string): void {
+		const player = this.players.get(playerId);
+		if (!player) return;
+		// Always answered, even if it had shut already: the client waits for this.
+		if (player.crate) this.shutCrate(player);
+		else this.send(player, { type: 'crate', id: null, slots: [], reveal: 0 });
+	}
+
+	private shutCrate(player: Player): void {
+		if (!player.crate) return;
+		const crate = this.crates.get(player.crate);
+		if (crate) this.crates.close(crate);
+		player.crate = null;
+		this.send(player, { type: 'crate', id: null, slots: [], reveal: 0 });
 	}
 
 	admin(playerId: string, command: AdminCommand): void {
@@ -408,6 +473,10 @@ export class Session {
 				this.rite.reset();
 				this.hooks.onRiteReset?.();
 				break;
+			case 'resetCrates':
+				for (const other of this.players.values()) this.shutCrate(other);
+				this.crates.fill();
+				break;
 			case 'teleport': {
 				const room = roomPoints(this.layout, PIECES, MAP_KIT).find((r) => r.name === command.room);
 				if (!room) return;
@@ -428,7 +497,8 @@ export class Session {
 
 	private regenerate(seed: number): void {
 		this.seed = seed;
-		this.layout = generateLayout(seed, PIECES, MAP_KIT);
+		for (const player of this.players.values()) this.shutCrate(player);
+		this.layout = generate(seed);
 		this.world = buildCollisionWorld(this.layout, PIECES);
 		this.nav = this.buildNav();
 		this.creatures = new CreatureDirector(this.world, this.nav, seed);
@@ -504,6 +574,7 @@ export class Session {
 		this.stepSanity();
 		this.stepRevives();
 		this.stepRite();
+		this.stepCrates();
 		// Anyone still alive down here after this tick? The dead can watch them.
 		const alive = [...this.players.values()].some((p) => !p.state.dead && !p.state.extracted);
 		for (const player of [...this.players.values()]) {
@@ -577,7 +648,8 @@ export class Session {
 			items: this.items.snapshots(),
 			projectiles: this.items.projectileSnapshots(),
 			events: this.events,
-			affliction: { ...this.affliction.snapshot(config.devMode), rite: this.rite.snapshot() }
+			affliction: { ...this.affliction.snapshot(config.devMode), rite: this.rite.snapshot() },
+			crates: this.crates.snapshot()
 		});
 		this.events = [];
 	}
@@ -771,6 +843,63 @@ export class Session {
 		}
 	}
 
+	/**
+	 * Loot crates: holding interact on one nobody is using opens it for that player. While they
+	 * have it open, what is in it is revealed a slot at a time and they are told what they can
+	 * see. It shuts when they walk away, go down or lose their connection.
+	 */
+	private stepCrates(): void {
+		for (const player of this.players.values()) {
+			const s = player.state;
+			const able = !s.downed && !s.dead && !s.extracted && !s.swimming;
+			const { origin, direction } = aimRay(s, eyeHeight(s));
+			if (player.crate) {
+				s.opening = 0;
+				const crate = this.crates.get(player.crate);
+				const centre = crate ? crateCentre(crate) : origin;
+				const away = Math.hypot(
+					centre[0] - origin[0],
+					centre[1] - origin[1],
+					centre[2] - origin[2]
+				);
+				const connected = player.socket.readyState === player.socket.OPEN;
+				if (!crate || !able || !connected || away > CRATE_REACH.leave) this.shutCrate(player);
+				continue;
+			}
+			const crate =
+				able && player.lastInput?.interact && !this.items.lookedAt(s, origin, direction)
+					? this.crates.lookedAt(origin, direction)
+					: null;
+			if (!crate || crate.user !== null) {
+				s.opening = 0;
+				continue;
+			}
+			s.opening += TICK_DT;
+			if (s.opening < CRATES.openSeconds) continue;
+			s.opening = 0;
+			player.crate = crate.id;
+			if (this.crates.open(crate, player.id)) {
+				this.events.push({
+					kind: 'crateOpen',
+					id: crate.id,
+					player: player.id,
+					position: crateCentre(crate)
+				});
+				// No source: creatures that hear the lid go and look.
+				this.creatures.hear(crate.position, CRATES.noise, null);
+			}
+			log.info(`${player.name} opened crate ${crate.id} in ${this.id.slice(0, 8)}`);
+		}
+		for (const crate of this.crates.step(TICK_DT)) {
+			if (!crate.user) continue;
+			this.events.push({ kind: 'rummage', player: crate.user, position: crateCentre(crate) });
+		}
+		for (const player of this.players.values()) {
+			const crate = player.crate ? this.crates.get(player.crate) : null;
+			if (crate) this.send(player, { type: 'crate', id: crate.id, ...this.crates.view(crate) });
+		}
+	}
+
 	private hurt(player: Player, amount: number): void {
 		const s = player.state;
 		if (s.flags.godMode || s.downed || s.dead) return;
@@ -789,6 +918,8 @@ export class Session {
 		s.extracting = 0;
 		s.bandaging = 0;
 		s.reviving = 0;
+		s.opening = 0;
+		this.shutCrate(player);
 		log.info(`Player ${player.name} is down`);
 	}
 
