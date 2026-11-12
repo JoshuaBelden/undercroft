@@ -8,6 +8,7 @@
 	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
+	import { startPrefetch } from '#lib/game/prefetch.svelte.ts';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import type { LayoutProps } from './$types';
@@ -38,6 +39,8 @@
 
 	onMount(() => {
 		void loadAccount();
+		// Shared models and sounds download in the background, so the descent loads quickly.
+		startPrefetch();
 		// Only these actions: every other key and click is left to the page.
 		const input = new InputMap(window, [
 			'toggleSettings',

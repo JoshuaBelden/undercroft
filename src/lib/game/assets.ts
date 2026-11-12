@@ -8,6 +8,7 @@ import {
 	type Object3D
 } from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 /**
@@ -16,9 +17,11 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
  *
  * Map pieces reference shared, content-hashed texture files. The browser fetches each file
  * once, and `shareTextures` makes every model that uses the same file share one GPU texture.
+ *
+ * Built meshes are meshopt-compressed (EXT_meshopt_compression), decoded here.
  */
 
-const loader = new GLTFLoader();
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const cache = new Map<string, Promise<Object3D>>();
 const textures = new Map<string, Texture>();
 
@@ -32,7 +35,7 @@ const TEXTURE_SLOTS = [
 	'alphaMap'
 ] as const;
 
-export async function loadModel(url: string): Promise<Object3D> {
+function modelSource(url: string): Promise<Object3D> {
 	let pending = cache.get(url);
 	if (!pending) {
 		pending = loader.loadAsync(url).then((gltf) => {
@@ -41,8 +44,16 @@ export async function loadModel(url: string): Promise<Object3D> {
 		});
 		cache.set(url, pending);
 	}
-	const scene = await pending;
-	return scene.clone(true);
+	return pending;
+}
+
+export async function loadModel(url: string): Promise<Object3D> {
+	return (await modelSource(url)).clone(true);
+}
+
+/** Load a model into the cache without making a copy (preloading, see preload.ts). */
+export async function warmModel(url: string): Promise<void> {
+	await modelSource(url);
 }
 
 export interface CharacterModel {
@@ -50,7 +61,7 @@ export interface CharacterModel {
 	clips: AnimationClip[];
 }
 
-const characterCache = new Map<string, Promise<{ scene: Object3D; clips: AnimationClip[] }>>();
+const characterCache = new Map<string, Promise<CharacterModel>>();
 
 /**
  * A skinned, animated model (creatures, the explorer). Cloned with SkeletonUtils so each copy
@@ -58,6 +69,16 @@ const characterCache = new Map<string, Promise<{ scene: Object3D; clips: Animati
  * the simulation moves the character, the clip only animates it in place.
  */
 export async function loadCharacter(url: string): Promise<CharacterModel> {
+	const { scene, clips } = await characterSource(url);
+	return { scene: cloneSkinned(scene), clips };
+}
+
+/** Load a character into the cache without making a copy (preloading, see preload.ts). */
+export async function warmCharacter(url: string): Promise<void> {
+	await characterSource(url);
+}
+
+function characterSource(url: string): Promise<CharacterModel> {
 	let pending = characterCache.get(url);
 	if (!pending) {
 		pending = loader.loadAsync(url).then((gltf) => {
@@ -66,8 +87,7 @@ export async function loadCharacter(url: string): Promise<CharacterModel> {
 		});
 		characterCache.set(url, pending);
 	}
-	const { scene, clips } = await pending;
-	return { scene: cloneSkinned(scene), clips };
+	return pending;
 }
 
 function rootBone(scene: Object3D): string | null {

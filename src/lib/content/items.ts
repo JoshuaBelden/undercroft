@@ -1,4 +1,5 @@
 import type { SoundId } from './audio/sounds.ts';
+import { modelUrl } from './models.ts';
 
 /**
  * Item definitions (data). Weapons, defense, ammo, consumables and loot. Behaviour is driven
@@ -130,9 +131,9 @@ export interface ItemDef {
 	category: ItemCategory;
 	/** A line or two about it, for the tooltip. */
 	flavor: string;
-	/** Picture in static/assets/images (no extension); without one the name is shown instead. */
+	/** Picture in static/assets/ui/images (no extension); without one the name is shown instead. */
 	image?: string;
-	/** Model in static/assets/items (world and held); null draws a placeholder. */
+	/** Model (`modelUrl`, built into static/assets/shared/items), world and held; null draws a placeholder. */
 	model: string | null;
 	/** How it looks on the floor until it has a model: a box of this size (m) and colour. */
 	placeholder?: { size: [number, number, number]; color: number };
@@ -194,7 +195,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor:
 			'A folding knife with a worn bone handle. Quick, quiet, and only as good as your nerve.',
 		image: 'knife',
-		model: '/assets/items/knife.glb',
+		model: modelUrl('shared/items/knife.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 0.3,
@@ -207,7 +208,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'weapon',
 		flavor: 'A yard of cold iron. Slow to swing, and nothing gets up quickly after it lands.',
 		image: 'crowbar',
-		model: '/assets/items/crowbar.glb',
+		model: modelUrl('shared/items/crowbar.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 2.5,
@@ -222,7 +223,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor:
 			'A loose brick from the walls. Good for a few blows, or for making a noise somewhere you are not.',
 		image: 'brick',
-		model: '/assets/items/brick.glb',
+		model: modelUrl('shared/items/brick.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 2.5,
@@ -245,7 +246,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor:
 			'Six chambers, and a report that carries a long way down here. Everything will know where you are.',
 		image: 'revolver',
-		model: '/assets/items/revolver.glb',
+		model: modelUrl('shared/items/revolver.glb'),
 		hold: { ...HOLD_RIGHT, aim: [0.06, -0.15, -0.34], muzzle: [0, 0.045, -0.21] },
 		maxStack: 1,
 		weight: 1.1,
@@ -273,7 +274,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'weapon',
 		flavor: 'Two barrels, cut short. Unanswerable up close; a rumour at any distance.',
 		image: 'shotgun',
-		model: '/assets/items/shotgun.glb',
+		model: modelUrl('shared/items/shotgun.glb'),
 		hold: {
 			offset: [0.2, -0.24, -0.5],
 			scale: 1,
@@ -307,7 +308,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		flavor: 'Loose rounds for the revolver.',
 		image: 'revolver_shells',
-		model: '/assets/items/ammo-revolver.glb',
+		model: modelUrl('shared/items/ammo-revolver.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 30,
 		weight: 0.015
@@ -319,7 +320,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		flavor: 'Paper-cased shells for the shotgun. Keep them dry.',
 		image: 'shotgun_shells',
-		model: '/assets/items/ammo-shotgun.glb',
+		model: modelUrl('shared/items/ammo-shotgun.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 20,
 		weight: 0.045
@@ -331,7 +332,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'quick',
 		flavor: 'Clean linen. Binding something, even a small thing, steadies the mind.',
 		image: 'bandages',
-		model: '/assets/items/bandage.glb',
+		model: modelUrl('shared/items/bandage.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
@@ -345,7 +346,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'quick',
 		flavor: 'A dry cell, half spent by whoever carried it last. Enough to buy a little more light.',
 		image: 'battery',
-		model: '/assets/items/battery.glb',
+		model: modelUrl('shared/items/battery.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
 		weight: 0.15,
@@ -360,7 +361,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'quick',
 		flavor: 'A stoppered vial that would wake the dead. Near enough, anyway.',
 		image: 'smelling_salts',
-		model: '/assets/items/salts.glb',
+		model: modelUrl('shared/items/salts.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
@@ -374,7 +375,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'quick',
 		flavor: 'A stub of soft chalk. A mark on the wall is the only thread back out.',
 		image: 'chalk',
-		model: '/assets/items/chalk.glb',
+		model: modelUrl('shared/items/chalk.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
 		weight: 0.01,

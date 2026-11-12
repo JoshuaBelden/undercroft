@@ -5,6 +5,7 @@
 	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 	import { imageUrl } from '#lib/content/images.ts';
 	import { connection, me, send } from '#lib/game/net/connection.svelte.ts';
+	import { prefetch } from '#lib/game/prefetch.svelte.ts';
 	import AfflictionPicker from '#lib/ui/AfflictionPicker.svelte';
 	import { dragScroll } from '#lib/ui/dragScroll.ts';
 	import ExplorerPane from '#lib/ui/ExplorerPane.svelte';
@@ -26,6 +27,13 @@
 	const resolved = $derived(party?.progress?.resolved ?? false);
 	/** Members who have not readied up yet. */
 	const waitingFor = $derived(party?.members.filter((member) => !member.ready).length ?? 0);
+
+	/** How far the background download of the shared assets has got (hidden once done). */
+	const preparing = $derived.by(() => {
+		const progress = prefetch.progress;
+		if (prefetch.done || !progress || progress.total === 0) return null;
+		return Math.min(99, Math.floor((progress.loaded / progress.total) * 100));
+	});
 
 	/** The host is choosing the Affliction. */
 	let picking = $state(false);
@@ -97,6 +105,10 @@
 
 			{#if connection.error}
 				<p class="note error" role="alert">{connection.error}</p>
+			{/if}
+
+			{#if preparing !== null}
+				<p class="note preparing" role="status">Preparing the descent... {preparing}%</p>
 			{/if}
 
 			{#if party.members.length > 1 && !you.inExpedition}
@@ -259,6 +271,10 @@
 	.ready {
 		font-weight: 600;
 		color: var(--accent);
+	}
+
+	.note.preparing {
+		font-size: 0.85em;
 	}
 
 	.note.error {

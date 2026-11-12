@@ -78,6 +78,8 @@
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import ExtractFade from '#lib/ui/ExtractFade.svelte';
+	import DescentLoading from '#lib/ui/DescentLoading.svelte';
+	import { preloadRun, type LoadProgress } from '#lib/game/preload.ts';
 	import Hud from '#lib/ui/Hud.svelte';
 	import RiteOverlay from '#lib/ui/RiteOverlay.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
@@ -184,6 +186,8 @@
 	let banner = $state<{ title: string; subtitle?: string; key: number } | null>(null);
 	/** Down in the catacombs (between `welcome` and extracting, dying or being banished out). */
 	let expedition = $state(false);
+	/** The run's assets are still loading (see src/lib/game/preload.ts): the loading bar shows. */
+	let loading = $state<LoadProgress | null>(null);
 	let send = (message: ClientMessage): void => {
 		void message;
 	};
@@ -319,8 +323,7 @@
 						playerId = message.playerId;
 						result = null;
 						expedition = true;
-						loadMap(message.layout);
-						if (!message.resumed) descend();
+						loadMap(message.layout, !message.resumed);
 						break;
 					case 'extracted':
 					case 'died':
@@ -494,7 +497,15 @@
 		let inRoom: number | null = null;
 		let bannerCheck = 0;
 
-		function loadMap(layout: MapLayout): void {
+		/** Which map load is current: a newer one (or leaving) makes an older one's finish moot. */
+		let loadId = 0;
+
+		/**
+		 * Build a map from the server's layout. Everything the run needs loads behind the loading
+		 * bar first; `arrived` (just got here, not back after a reconnect) plays the descent once
+		 * it is done.
+		 */
+		function loadMap(layout: MapLayout, arrived = false): void {
 			seed = layout.seed;
 			roomCells = {};
 			roomIds = {};
@@ -509,7 +520,20 @@
 				}
 			});
 			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
-			void map.build(layout);
+			const id = ++loadId;
+			loading = { loaded: 0, total: 0 };
+			void Promise.all([
+				preloadRun(layout, audio, (progress) => {
+					if (id === loadId) loading = progress;
+				}),
+				map.build(layout)
+			])
+				.finally(() => {
+					if (id !== loadId) return;
+					loading = null;
+					if (arrived) descend();
+				})
+				.catch((error) => console.error('Map load failed', error));
 			crates.build(layout.crates);
 			const world = buildCollisionWorld(layout, PIECES);
 			player.setWorld(world);
@@ -531,6 +555,8 @@
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
+			loadId++;
+			loading = null;
 			if (panel === 'inventory' || panel === 'crate') panel = null;
 			crate = null;
 			leavingCrate = false;
@@ -1188,16 +1214,17 @@
 			sessionId = id;
 			playerId = self;
 			expedition = true;
-			loadMap(layout);
+			loadMap(layout, !connection.welcome.resumed);
 			marks.apply(connection.marks);
-			if (!connection.welcome.resumed) descend();
 		}
 
 		const onLockChange = () => (locked = document.pointerLockElement === canvas);
 		document.addEventListener('pointerlockchange', onLockChange);
 		const requestLock = () => {
 			void audio.unlock();
-			if (!panel && !mapView && !spectating && !extracting) void canvas.requestPointerLock();
+			if (!panel && !mapView && !spectating && !extracting && !loading) {
+				void canvas.requestPointerLock();
+			}
 		};
 		canvas.addEventListener('click', requestLock);
 
@@ -1482,7 +1509,11 @@
 	/>
 {/if}
 
-{#if !locked && !panel && !mapView && !result && expedition && status === 'connected'}
+{#if loading}
+	<DescentLoading progress={loading} />
+{/if}
+
+{#if !locked && !panel && !mapView && !result && expedition && !loading && status === 'connected'}
 	<button type="button" class="descend" onclick={() => canvas.requestPointerLock()}>
 		Take Control
 	</button>

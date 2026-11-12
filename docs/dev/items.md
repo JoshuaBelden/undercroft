@@ -35,7 +35,7 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 
 - `category`: `weapon`, `defense`, `quick` or `other`. It decides which slots take the item (see Inventory) and which stash filter lists it.
 - `maxStack`: how many share a slot. Weapons and defense are 1; most other things use `DEFAULT_STACK` (5); ammo has its own (30 rounds, 20 shells). An item with its own state (rounds loaded, wear) must be 1, so two never merge. 0 means it can't be carried at all (clues).
-- `flavor`: a line or two for the tooltip. `image`: optional picture id in `static/assets/images` (built by `pnpm asset:images`); without one, slots and the tooltip show the name.
+- `flavor`: a line or two for the tooltip. `image`: optional picture id in `static/assets/ui/images` (built by `pnpm asset:images`); without one, slots and the tooltip show the name.
 - `melee`: `damage`, `range` (from the eye), `arc` (half-angle), `windup` (hit lands), `recovery`, `noise` (radius when it hits something), optional `breaksAfter` (bricks).
 - `firearm`: `damage` per pellet, `pellets`, `spread` (hip and aimed cone), `range` and `falloff` (fraction of damage lost by the end of the range), `interval`, `magazine`, `reloadTime`, `ammo` (item id of its rounds), `noise`, `sound` (the shot) and `reloadSound` (played as a reload starts; make it last about `reloadTime`, with the sound's `rate` if needed), `zoom` (the fraction of the field of view left when aimed: revolver 0.6, shotgun 0.7) and `recoil` (`RecoilSpec`: `pitch` and `yaw` throw your view, `rise`, `back` and `settle` jolt the gun in your hands).
 - `throwable`: `speed`, `damage`, `landNoise`, `duration`.
@@ -45,7 +45,7 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 - `defense`: `shield`, the points of creatures' blows it takes before the wearer does. The points used are kept on the stack (`ItemStack.worn`), so a worn coat stays worn after extraction; when they run out it is torn apart and gone.
 - `weight` is kg for one of it.
 
-`hold` places the model in the viewmodel: `offset` from the camera and `scale`. Firearms also give `aim`, where it moves when aiming down the sights (low and a little right, so it never covers the crosshair; without one, `AIM_OFFSET` in `ViewModel.ts`), and `muzzle`, the barrel's end in the model's own space (where the flare is drawn). `model` points at `static/assets/items/<id>.glb`. With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).
+`hold` places the model in the viewmodel: `offset` from the camera and `scale`. Firearms also give `aim`, where it moves when aiming down the sights (low and a little right, so it never covers the crosshair; without one, `AIM_OFFSET` in `ViewModel.ts`), and `muzzle`, the barrel's end in the model's own space (where the flare is drawn). `model` points at `modelUrl('shared/items/<id>.glb')` (built into `static/assets/shared/items/<id>.<hash>.glb`). With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).
 
 The first defense item, the `coat`, is a stand-in so the slot has something to hold.
 
@@ -195,7 +195,7 @@ The dead are searched like crates: the same 8 slots, loot tables, reveal and loo
 - **Not solid:** `buildCollisionWorld` skips them, so you step over a body and the nav grid ignores it.
 - **Looked at:** their middle is `CORPSES.lookHeight` (0.35 m) up (`crateCentre`).
 - **Searching** has the same prompt as a crate, plays `corpse.search` (the `bag_searching` recording) instead of the lid, and is heard only `CORPSES.noise` (3 m) away. There is no lid.
-- The model is `static/assets/props/corpse.glb` (see [asset-pipeline.md](asset-pipeline.md#props)).
+- The model is `static/assets/shared/props/corpse.<hash>.glb` (see [asset-pipeline.md](asset-pipeline.md#props)).
 
 ## Client
 

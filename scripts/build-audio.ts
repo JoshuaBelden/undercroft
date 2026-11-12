@@ -7,23 +7,31 @@
  *  2. Low-pass filters and resamples to OUTPUT_RATE.
  *  3. Optionally crops; trims leading/trailing silence (unless keepSilence) or slices it into one
  *     file per hit; optionally crossfades the ends into a seamless loop.
- *  4. Normalizes the peak, adds short fades, and writes 16-bit mono WAV to static/assets/audio.
- *  5. Writes src/lib/content/audio/files.generated.ts: sound file id -> list of URLs.
- *
- * Pure Node, no encoder needed. Files are small mono WAVs; switch to a compressed format
- * here later if the audio library grows.
+ *  4. Normalizes the peak, adds short fades, and encodes mono Opus in WebM (ffmpeg-static) to
+ *     static/assets/shared/audio/<file>.<content-hash>.webm, so each file can be cached forever.
+ *  5. Writes src/lib/content/audio/files.generated.ts: sound file id -> list of URLs, and the
+ *     size of each file (preload progress).
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
+import ffmpeg from 'ffmpeg-static';
 import { MPEGDecoder } from 'mpg123-decoder';
 import * as prettier from 'prettier';
 import { AUDIO_SOURCES, type AudioSource } from './audio.config.ts';
+import { hashedName } from './hashed.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SOURCE_DIR = path.join(ROOT, 'art', 'sfx');
-const OUT_DIR = path.join(ROOT, 'static', 'assets', 'audio');
+const OUT_DIR = path.join(ROOT, 'static', 'assets', 'shared', 'audio');
+/** Where sounds were built before assets were split into shared/, ui/ and afflictions/. */
+const LEGACY_DIR = path.join(ROOT, 'static', 'assets', 'audio');
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'content', 'audio', 'files.generated.ts');
-const URL_BASE = '/assets/audio';
+const URL_BASE = '/assets/shared/audio';
+/** Opus bitrates: one-shot sounds, and loops (ambience beds, breathing), which play for long. */
+const BITRATE = '48k';
+const LOOP_BITRATE = '64k';
 
 const OUTPUT_RATE = 32000;
 const PEAK = 0.89; // -1 dBFS
@@ -249,28 +257,46 @@ function finish(pcm: Pcm, fadeOut = FADE): Pcm {
 	return { rate: pcm.rate, samples: s };
 }
 
-function writeWav(file: string, pcm: Pcm): number {
-	const data = Buffer.alloc(pcm.samples.length * 2);
-	for (let i = 0; i < pcm.samples.length; i++) {
-		const v = Math.max(-1, Math.min(1, pcm.samples[i]));
-		data.writeInt16LE(Math.round(v * 32767), i * 2);
+/**
+ * Encode a clip as mono Opus in WebM and write it under a content-hashed name. Returns the file
+ * name and its size in bytes.
+ */
+function writeOpus(name: string, pcm: Pcm, bitrate: string): { file: string; bytes: number } {
+	if (!ffmpeg) throw new Error('ffmpeg-static has no binary for this platform');
+	const tmp = mkdtempSync(path.join(tmpdir(), 'undercroft-audio-'));
+	const out = path.join(tmp, 'clip.webm');
+	try {
+		const input = Buffer.from(pcm.samples.buffer, pcm.samples.byteOffset, pcm.samples.byteLength);
+		const args = [
+			'-hide_banner',
+			'-loglevel',
+			'error',
+			'-f',
+			'f32le',
+			'-ar',
+			String(pcm.rate),
+			'-ac',
+			'1',
+			'-i',
+			'pipe:0',
+			'-c:a',
+			'libopus',
+			'-b:a',
+			bitrate,
+			'-application',
+			'audio',
+			'-y',
+			out
+		];
+		const result = spawnSync(ffmpeg, args, { input });
+		if (result.status !== 0) throw new Error(`${name}: ffmpeg failed: ${result.stderr}`);
+		const data = readFileSync(out);
+		const file = hashedName(`${name}.webm`, data);
+		writeFileSync(path.join(OUT_DIR, file), data);
+		return { file, bytes: data.byteLength };
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
 	}
-	const header = Buffer.alloc(44);
-	header.write('RIFF', 0, 'ascii');
-	header.writeUInt32LE(36 + data.length, 4);
-	header.write('WAVE', 8, 'ascii');
-	header.write('fmt ', 12, 'ascii');
-	header.writeUInt32LE(16, 16);
-	header.writeUInt16LE(1, 20); // PCM
-	header.writeUInt16LE(1, 22); // mono
-	header.writeUInt32LE(pcm.rate, 24);
-	header.writeUInt32LE(pcm.rate * 2, 28);
-	header.writeUInt16LE(2, 32);
-	header.writeUInt16LE(16, 34);
-	header.write('data', 36, 'ascii');
-	header.writeUInt32LE(data.length, 40);
-	writeFileSync(file, Buffer.concat([header, data]));
-	return header.length + data.length;
 }
 
 async function main(): Promise<void> {
@@ -278,11 +304,13 @@ async function main(): Promise<void> {
 		console.error(`No raw audio found. Put recordings in ${SOURCE_DIR}`);
 		process.exit(1);
 	}
-	mkdirSync(OUT_DIR, { recursive: true });
 	// Clear previous output so removed sounds don't linger.
-	for (const f of readdirSync(OUT_DIR)) if (f.endsWith('.wav')) rmSync(path.join(OUT_DIR, f));
+	rmSync(OUT_DIR, { recursive: true, force: true });
+	rmSync(LEGACY_DIR, { recursive: true, force: true });
+	mkdirSync(OUT_DIR, { recursive: true });
 
 	const files: Record<string, string[]> = {};
+	const sizes: Record<string, number> = {};
 	let total = 0;
 	for (const source of AUDIO_SOURCES) {
 		const clips: Pcm[] = [];
@@ -306,9 +334,13 @@ async function main(): Promise<void> {
 			}
 		}
 		files[source.id] = clips.map((clip, i) => {
-			const name = clips.length > 1 ? `${source.id}-${i + 1}.wav` : `${source.id}.wav`;
-			total += writeWav(path.join(OUT_DIR, name), clip);
-			return `${URL_BASE}/${name}`;
+			const name = clips.length > 1 ? `${source.id}-${i + 1}` : source.id;
+			const bitrate = source.loopCrossfade ? LOOP_BITRATE : BITRATE;
+			const { file, bytes } = writeOpus(name, clip, bitrate);
+			total += bytes;
+			const url = `${URL_BASE}/${file}`;
+			sizes[url] = bytes;
+			return url;
 		});
 		const seconds = clips.reduce((sum, c) => sum + c.samples.length / c.rate, 0);
 		console.log(`  ${source.id}: ${clips.length} clip(s), ${seconds.toFixed(2)} s`);
@@ -318,6 +350,9 @@ async function main(): Promise<void> {
 
 /** Built sound files: file id -> variant URLs (one is picked at random each play). */
 export const AUDIO_FILES: Record<string, string[]> = ${JSON.stringify(files)};
+
+/** Size in bytes of each built sound file, by URL (preload progress). */
+export const AUDIO_BYTES: Record<string, number> = ${JSON.stringify(sizes)};
 `;
 	const config = await prettier.resolveConfig(MANIFEST);
 	writeFileSync(MANIFEST, await prettier.format(source, { ...config, filepath: MANIFEST }));

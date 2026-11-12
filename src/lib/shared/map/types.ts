@@ -46,6 +46,8 @@ export interface CrateMarker {
 export interface PieceDef {
 	name: string;
 	url: string;
+	/** Download size in bytes, with its textures (preload progress). */
+	bytes: number;
 	/** Footprint in cells, [x, z] before rotation. [0, 0] for caps, which occupy no cell. */
 	footprint: [number, number];
 	levels: number;
@@ -91,6 +93,11 @@ export interface KitEntry {
 	title?: string;
 	/** How the space sounds (reverb, damping); default 'tunnel'. See src/lib/content/audio/ambience.ts. */
 	acoustics?: Acoustics;
+	/**
+	 * Owned by one Affliction (key into AFFLICTIONS): only generated in its maps, and its model
+	 * lives in static/assets/afflictions/<id>/. Unset: shared by every map.
+	 */
+	affliction?: string;
 }
 
 export type Acoustics = 'tight' | 'tunnel' | 'hall' | 'vast';
@@ -119,6 +126,8 @@ export interface CratePlacement {
 
 export interface MapLayout {
 	seed: number;
+	/** The Affliction this map was generated for (its own pieces are in it); null for none. */
+	affliction: string | null;
 	placements: Placement[];
 	/** Loot crates (see docs/dev/items.md). Solid: they are part of the collision world. */
 	crates: CratePlacement[];

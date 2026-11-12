@@ -9,7 +9,7 @@ Models are built in Blender, exported as glTF binary (`.glb`), and loaded with T
 - **Origin:** at floor level, centered on the piece's grid footprint.
 - **Names:** lowercase-kebab-case, e.g. `hall-straight`, `ossuary-hall`. Object names survive export and are used to find markers.
 - **Materials:** Principled BSDF only. Keep textures power-of-two.
-- **Location:** `static/assets/<category>/<name>.glb`, e.g. `static/assets/rooms/ossuary-hall.glb`.
+- **Location:** built files live in `static/assets/` under content-hashed names (see [Delivery](#delivery)).
 
 ## Export settings
 
@@ -23,14 +23,40 @@ File > Export > glTF 2.0:
 
 ## Loading
 
-Register the path in `ASSETS` (`src/lib/game/assets.ts`) and load it:
+Look the built file up by its path without the hash and load it:
 
 ```ts
-const model = await loadModel(ASSETS.devCube);
+const model = await loadModel(modelUrl('shared/props/crate.glb'));
 engine.scene.add(model);
 ```
 
-Each file downloads once; `loadModel` returns a fresh clone each call.
+`modelUrl` (`src/lib/content/models.ts`) reads `src/lib/content/models.generated.ts`, which `pnpm asset:build` writes; a path that was never built fails `pnpm check`. Never write a bare `/assets/...` URL. Each file downloads once; `loadModel` returns a fresh clone each call. The loader decodes meshopt-compressed meshes (`MeshoptDecoder`).
+
+## Delivery
+
+Every run should download only what it uses, load it all before the player takes control, and never download a file twice.
+
+**Folders.** `static/assets/` is split by owner:
+
+```
+shared/            map, textures, creatures, player, items, props, audio: every run
+ui/images/         interface pictures (hub, menus)
+afflictions/<id>/  map, creatures: only runs against that Affliction
+dev/               the placeholder cube (dev only)
+```
+
+A map piece belongs to an Affliction when its kit entry says so (`affliction` in `src/lib/content/map/kit.ts`; the generator also only places it in that Affliction's maps, see [map-generation.md](map-generation.md)). A creature belongs to one when its raw export sits in `art/export/afflictions/<id>/creatures/` (the Gloaming's boss). The build scripts clear their output folders first, so a moved or removed file doesn't linger.
+
+**Content-hashed names.** Every built file is named `<name>.<hash>.<ext>` (`scripts/hashed.ts`): its name changes whenever its contents do, so the production proxy serves `/assets/*` as `immutable` with a one-year max-age (see [deployment.md](deployment.md)). Code finds files through the generated manifests: `PIECES` (map pieces), `modelUrl()` (other models), `AUDIO_FILES` (sounds) and `imageUrl()` (pictures). Map textures are named by their hash alone and shared by every piece.
+
+**Compression.** Meshes use `EXT_meshopt_compression` (map pieces with 16-bit positions so seams between pieces stay closed). Props are left uncompressed: quantization rewrites mesh node transforms, and the game animates the crate lid's node. Textures are WebP; sounds are Opus.
+
+**Preloading** (`src/lib/game/preload.ts`):
+
+- `prefetchCore` starts when the hub opens (`startPrefetch` in `src/lib/game/prefetch.svelte.ts`). It loads every shared model into the loader caches and fetches every sound into the browser cache, at low priority. The Expedition page shows "Preparing the descent... n%" until it's done.
+- `preloadRun` runs when a map arrives (`welcome`, or an admin regenerate). Behind the "Descending" bar (`DescentLoading.svelte`) it loads the map's pieces, the explorer, creatures, items and props, the Affliction's own models, and decodes every sound. Take Control appears and the descent stinger plays only once it's done, so nothing pops in or plays late mid-run. Progress is counted in bytes, from the sizes the build manifests record.
+
+A new model or sound is picked up automatically if it's in the content data (`CREATURES`, `ITEMS`, an Affliction's `manifestation.body`, `AUDIO_FILES`). A model loaded some other way needs adding to `sharedModels()` in `preload.ts`.
 
 ## Placeholder asset
 
@@ -96,15 +122,15 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 `scripts/build-assets.ts` processes every `art/export/*.glb`:
 
 1. **Validates:** the root empty and footprint, that sockets lie on the boundary and are centred on cell edges, that heights sit on a level, and the triangle budget. It exits non-zero naming the piece and marker.
-2. **Optimizes:** strips collision meshes, volumes and Blender scene properties, runs dedup, weld, and prune, and re-encodes textures to WebP at 1024 px. The 4K sources are never touched.
-3. **Writes shared textures:** each piece becomes `static/assets/map/<piece>.gltf` + `<piece>.bin`. Textures go to `static/assets/map/textures/<content-hash>.webp`, so a texture used by many pieces is stored, committed and downloaded once. On the client, `loadModel` (`src/lib/game/assets.ts`) also points every piece at one GPU texture per file. Output is deterministic: rebuilding unchanged pieces produces identical files, so git only stores what actually changed. The output folder is cleared first, so removed pieces and unused textures don't linger.
-4. **Generates `src/lib/shared/map/pieces.generated.ts`:** footprint, sockets, spawns, extracts, rite points, crate markers, colliders, and volumes per piece. The server and client both read it, so the server never parses model files. Commit it with the built assets.
+2. **Optimizes:** strips collision meshes, volumes and Blender scene properties, runs dedup, weld, and prune, re-encodes textures to WebP at 1024 px, and compresses the meshes (meshopt). The 4K sources are never touched.
+3. **Writes shared textures:** each piece becomes `static/assets/shared/map/<piece>.<hash>.gltf` + `<piece>.<hash>.bin` (or `afflictions/<id>/map/` for a piece owned by an Affliction). Textures go to `static/assets/shared/textures/<content-hash>.webp`, so a texture used by many pieces is stored, committed and downloaded once. On the client, `loadModel` (`src/lib/game/assets.ts`) also points every piece at one GPU texture per file. Output is deterministic: rebuilding unchanged pieces produces identical files, so git only stores what actually changed. The output folder is cleared first, so removed pieces and unused textures don't linger.
+4. **Generates `src/lib/shared/map/pieces.generated.ts`:** URL and download size, footprint, sockets, spawns, extracts, rite points, crate markers, colliders, and volumes per piece. The server and client both read it, so the server never parses model files. Commit it with the built assets.
 
 ### Creature models
 
-`art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is written to `static/assets/creatures/<name>.glb`. The witch drops from 53 MB to about 2.4 MB.
+`art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is meshopt-compressed and written to `static/assets/shared/creatures/<name>.<hash>.glb`. The witch drops from 53 MB to about 1.3 MB. Creatures in `art/export/afflictions/<id>/creatures/` go to `static/assets/afflictions/<id>/creatures/` (the Gloaming's boss, about 1 MB).
 
-The explorer (every player's body) goes through the same pass: `art/export/player/*.glb` to `static/assets/player/<name>.glb` (18.7 MB to about 3.9 MB). See [player.md](player.md#player-model).
+The explorer (every player's body) goes through the same pass: `art/export/player/*.glb` to `static/assets/shared/player/<name>.<hash>.glb` (18.7 MB to about 1.9 MB). See [player.md](player.md#player-model).
 
 On the client, `loadCharacter` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
 
@@ -116,7 +142,7 @@ Weapons, ammo and consumables are built by `scripts/blender/items.py` in the kit
 - **Orientation:** forward is +Y (the barrel or blade), up is +Z.
 - **Materials:** plain PBR colours, no textures.
 
-`items.export_all()` writes `art/export/items/<id>.glb`. `pnpm asset:build` dedups, welds and prunes each one into `static/assets/items/<id>.glb` (a few KB each). See [items.md](items.md).
+`items.export_all()` writes `art/export/items/<id>.glb`. `pnpm asset:build` dedups, welds and prunes and meshopt-compresses each one into `static/assets/shared/items/<id>.<hash>.glb` (a few KB each). See [items.md](items.md).
 
 #### Item models from elsewhere
 
@@ -139,7 +165,7 @@ Things that stand in the map but aren't part of a piece: the loot crate and the 
 - **Moving parts** are their own objects with the origin on the pivot. The crate's lid, `crate-lid`, has its origin on the back top edge; the game turns it about its X axis.
 - **Materials:** textured, from the sets in `kit.MATERIALS` (`mat-prop-planks` uses `Planks025A`).
 
-`props.export_all()` writes `art/export/props/<name>.glb`. `pnpm asset:build` re-encodes the textures to WebP at 512 px and writes `static/assets/props/<name>.glb`, keeping node names (the game looks the lid up by name).
+`props.export_all()` writes `art/export/props/<name>.glb`. `pnpm asset:build` re-encodes the textures to WebP at 512 px and writes `static/assets/shared/props/<name>.<hash>.glb`, keeping node names (the game looks the lid up by name).
 
 **Props from elsewhere** (scanned or generated, like `corpse.glb`: heavy, sitting anywhere) go in `art/export/props/` as they are, with an entry in `PROP_FIT` in `scripts/build-assets.ts`. The build stands them on the floor (lowest point at y = 0), centres them on the origin and simplifies them to the entry's `tris` (the corpse: 2 million to 12,000 triangles, 64.7 MB to about 600 KB). A static model belongs here, not in `art/export/creatures/` (that pass is for rigged, animated models and simplifies nothing).
 
@@ -150,10 +176,10 @@ Raw recordings go in `art/sfx/` (gitignored), named as downloaded. `pnpm asset:a
 1. Reads 16-bit PCM WAV or MP3 (any channel count or sample rate; MP3 is decoded with `mpg123-decoder`, mpg123 compiled to WebAssembly) and mixes to mono.
 2. Low-pass filters and resamples to 32 kHz, or to the entry's `rate` (22050 for long, dark ambience: about half the size).
 3. Optionally `crop`s to a section. Then it trims silence relative to the peak, or slices a recording of several hits into one file per hit (`maxClips` keeps at most that many, spread through the recording). `loopCrossfade` crossfades a clip's end into its start, for seamless loops such as water lapping. An entry can also list several source files, each becoming a variant of the same sound. Slicing uses onset detection (`slice: { minGap, maxLength, threshold }`), for example one footstep per file from a walking recording. Loops can set `keepSilence`.
-4. Normalizes to -1 dBFS, adds short fades, and writes mono WAV to `static/assets/audio/<id>.wav` (or `<id>-<n>.wav` for slices).
-5. Writes `src/lib/content/audio/files.generated.ts`, mapping each id to its variant URLs.
+4. Normalizes to -1 dBFS, adds short fades, and encodes mono Opus in WebM (48 kbps, 64 kbps for loops) to `static/assets/shared/audio/<id>.<hash>.webm` (or `<id>-<n>.<hash>.webm` for slices). The encoder is the ffmpeg binary from the `ffmpeg-static` dev dependency, so nothing needs installing.
+5. Writes `src/lib/content/audio/files.generated.ts`, mapping each id to its variant URLs (`AUDIO_FILES`) and each file to its size (`AUDIO_BYTES`).
 
-The build writes uncompressed mono WAV: no native encoder or downloaded binary is needed. The current set is about 3.2 MB. If the library grows (music, long ambience), switch the output to a compressed format. A pure-JavaScript MP3 encoder would avoid native binaries, but MP3 adds a short silence at the start of each file, so seamless loops would need to stay WAV.
+The whole set is about 0.9 MB (it was 7.1 MB as WAV). Opus in WebM decodes through `decodeAudioData` in current Chrome, Firefox and Edge. WebM records the encoder delay, so loops should stay seamless; check Safari and the loops by ear after changing the encoder settings.
 
 **Adding a sound:**
 
@@ -165,9 +191,9 @@ Only sounds listed in the config are built and committed. Recordings for later f
 
 ## Interface art
 
-Pictures for screens outside the catacombs go in `art/images/` (gitignored) as PNG, JPEG or WebP. `pnpm asset:images` (`scripts/build-images.ts`) converts every one to WebP in `static/assets/images/`, keeping the file name, scaled down to at most 2560 px wide.
+Pictures for screens outside the catacombs go in `art/images/` (gitignored) as PNG, JPEG or WebP. `pnpm asset:images` (`scripts/build-images.ts`) converts every one to WebP in `static/assets/ui/images/` as `<name>.<hash>.webp`, scaled down to at most 2560 px wide.
 
-It then writes `src/lib/content/images.generated.ts`, a content hash for every picture in that folder. Always refer to a picture through `imageUrl(name)` (`src/lib/content/images.ts`), never a bare `/assets/images/...` path: the URL carries the hash (`?v=...`), so a rebuilt picture gets a new URL and browsers can't keep showing an old cached copy. Commit the generated file with the pictures.
+It then writes `src/lib/content/images.generated.ts`, the URL of every picture. Always refer to a picture through `imageUrl(name)` (`src/lib/content/images.ts`), never a bare `/assets/...` path: a rebuilt picture gets a new URL, so browsers can cache each one forever and never show an old copy. Commit the generated file with the pictures.
 
 `login-bg` is the picture behind sign-in, the dashboard and the party screen. It is applied by the global `.backdrop-art` class in `src/app.css`, which darkens it so text stays readable; the element also sets `style:--backdrop-image={BACKDROP_IMAGE}` (the hashed URL). Adding `use:parallax` (`src/lib/ui/parallax.ts`) to the same element makes the picture drift away from the cursor; it is skipped for people who ask for reduced motion. To change the picture, replace `art/images/login-bg.png` and run `pnpm asset:images`. To put it behind another screen, add the class, `style:--backdrop-image={BACKDROP_IMAGE}` and `use:parallax` to that screen's outer element. The expedition results screen uses it too.
 

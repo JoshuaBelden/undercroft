@@ -1,6 +1,7 @@
 import type { AnimSlot, AnimationMap } from './animations.ts';
 import type { MovementTuning } from './player/movement.ts';
 import { MOVEMENT } from './player/movement.ts';
+import { modelUrl } from './models.ts';
 
 /**
  * Creature definitions. "Creature" is the code/doc name; never name them in game text.
@@ -94,7 +95,7 @@ export interface CreatureDef {
 export const CREATURES: Record<string, CreatureDef> = {
 	witch: {
 		id: 'witch',
-		model: '/assets/creatures/witch.glb',
+		model: modelUrl('shared/creatures/witch.glb'),
 		yawOffset: Math.PI,
 		height: 1.7,
 		// The model has no melee, jump, dodge, climb or crawl clip; those slots fall back or are

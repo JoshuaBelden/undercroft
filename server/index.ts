@@ -14,7 +14,7 @@ await releaseAll();
 
 const parties = new Parties();
 const social = new Social(parties);
-const wss = new WebSocketServer({ port: config.port });
+const wss = new WebSocketServer({ port: config.port, path: config.path });
 
 wss.on('connection', (socket) => {
 	/** Set by `hello`; every other message needs it. */
@@ -122,7 +122,7 @@ wss.on('connection', (socket) => {
 	});
 });
 
-log.info(`Game server listening on ws://localhost:${config.port}`);
+log.info(`Game server listening on ws://localhost:${config.port}${config.path ?? ''}`);
 
 async function shutdown(): Promise<void> {
 	log.info('Shutting down');

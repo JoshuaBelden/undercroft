@@ -19,6 +19,7 @@ export const MAP_KIT: MapKit = {
 	'gloaming-chapel': {
 		role: 'major',
 		final: true,
+		affliction: 'gloaming',
 		title: 'Gloaming Chapel',
 		acoustics: 'vast'
 	},

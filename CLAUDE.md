@@ -31,8 +31,10 @@ pnpm lint               # Prettier check + ESLint
 pnpm format             # Prettier
 pnpm asset:dev          # regenerate the placeholder dev asset
 pnpm asset:build        # art/export/*.glb -> optimized static/assets/map + piece manifest
-pnpm asset:audio        # art/sfx/*.wav -> processed static/assets/audio + sound file list
-pnpm asset:images       # art/images/*.png -> WebP in static/assets/images (interface art)
+pnpm asset:audio        # art/sfx/*.wav -> Opus in static/assets/shared/audio + sound file list
+pnpm asset:images       # art/images/*.png -> WebP in static/assets/ui/images (interface art)
+pnpm deploy:provision   # create the DigitalOcean droplet (needs DIGITALOCEAN_ACCESS_TOKEN)
+pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 ```
 
 ## Development rules

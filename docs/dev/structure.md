@@ -83,11 +83,15 @@ server/
   log.ts                    logging
 scripts/
   make-dev-asset.ts         generates the placeholder dev asset
-  build-assets.ts           optimizes Blender exports, writes the piece manifest
+  build-assets.ts           optimizes Blender exports, writes the piece and model manifests
+  build-audio.ts            builds Opus sounds from art/sfx
+  build-images.ts           builds WebP interface pictures from art/images
+  hashed.ts                 content-hashed file names for built assets
   blender/kit.py            builds the catacomb kit pieces inside Blender
   blender/items.py          builds the item models inside Blender
   blender/props.py          builds the loot crate and adds crate markers inside Blender
-static/assets/              models, textures, audio served at /assets
+deploy/                     production: Caddyfile, provision.ts (DigitalOcean), deploy.ts
+static/assets/              built models, textures, audio, pictures (content-hashed), served at /assets
 art/                        raw art sources (gitignored except README)
 ```
 

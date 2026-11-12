@@ -12,7 +12,7 @@
 		/** Nothing is in it: `name` is ignored and `hint` says what the slot is for. */
 		empty?: boolean;
 		hint?: string;
-		/** Picture in static/assets/images (no extension), shown instead of the name. */
+		/** Picture in static/assets/ui/images (no extension), shown instead of the name. */
 		image?: string;
 		/** Small print in the bottom-left corner (rounds loaded). */
 		detail?: string;

@@ -17,6 +17,7 @@ import {
 	illumination
 } from '../src/lib/shared/creature/visibility.ts';
 import { generateLayout } from '../src/lib/shared/map/generate.ts';
+import { AFFLICTIONS, DEFAULT_AFFLICTION } from '../src/lib/content/afflictions.ts';
 import { LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import { buildNav, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
@@ -121,8 +122,8 @@ const DARK = 0.02;
 const VIEW_HALF_ANGLE = 0.9;
 
 /** The map for a seed: the layout, and which of its crate markers have a crate. */
-function generate(seed: number): MapLayout {
-	const layout = generateLayout(seed, PIECES, MAP_KIT);
+function generate(seed: number, affliction: string): MapLayout {
+	const layout = generateLayout(seed, PIECES, MAP_KIT, { affliction });
 	layout.crates = placeCrates(layout, PIECES, seed);
 	return layout;
 }
@@ -153,21 +154,17 @@ export class Session {
 	/** Map seed, kept for logs, admin tools and reproducing a layout. */
 	seed = randomSeed();
 	/** Authoritative map layout, sent to clients in `welcome`. */
-	layout: MapLayout = generate(this.seed);
-	private world: CollisionWorld = buildCollisionWorld(this.layout, PIECES);
-	private nav: NavGrid = this.buildNav();
-	private creatures = new CreatureDirector(
-		this.world,
-		this.nav,
-		creatureSpawns(this.layout, PIECES),
-		this.seed
-	);
-	private items = new WorldItems(this.world);
+	layout!: MapLayout;
+	// Everything built from the map: set by `build`, from the constructor and `regenerate`.
+	private world!: CollisionWorld;
+	private nav!: NavGrid;
+	private creatures!: CreatureDirector;
+	private items!: WorldItems;
 	private crates!: Crates;
+	private affliction!: AfflictionDirector;
+	private rite!: RiteDirector;
 	/** Chalk marks on the walls. */
 	private marks = new Marks();
-	private affliction: AfflictionDirector;
-	private rite: RiteDirector;
 	/** Items not put in this map: quest items someone in the party already owns. */
 	private withheld = new Set<string>();
 	/** When the first player arrived (ms): the deadline counts from here. */
@@ -195,6 +192,22 @@ export class Session {
 		private chosen: string,
 		private hooks: SessionHooks = {}
 	) {
+		if (!AFFLICTIONS[chosen]) this.chosen = DEFAULT_AFFLICTION.id;
+		this.build(this.seed);
+	}
+
+	/** Generate the map for a seed (with the chosen Affliction's own pieces) and fill it. */
+	private build(seed: number): void {
+		this.layout = generate(seed, this.chosen);
+		this.world = buildCollisionWorld(this.layout, PIECES);
+		this.nav = this.buildNav();
+		this.creatures = new CreatureDirector(
+			this.world,
+			this.nav,
+			creatureSpawns(this.layout, PIECES),
+			seed
+		);
+		this.items = new WorldItems(this.world);
 		this.affliction = this.direct();
 		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
 		this.populate();
@@ -618,20 +631,8 @@ export class Session {
 	private regenerate(seed: number): void {
 		this.seed = seed;
 		for (const player of this.players.values()) this.shutCrate(player);
-		this.layout = generate(seed);
-		this.world = buildCollisionWorld(this.layout, PIECES);
-		this.nav = this.buildNav();
-		this.creatures = new CreatureDirector(
-			this.world,
-			this.nav,
-			creatureSpawns(this.layout, PIECES),
-			seed
-		);
-		this.items = new WorldItems(this.world);
-		this.affliction = this.direct();
 		const clues = this.rite.clues;
-		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
-		this.populate();
+		this.build(seed);
 		this.revealClues(clues);
 		for (const player of this.players.values()) {
 			const flags = player.state.flags;

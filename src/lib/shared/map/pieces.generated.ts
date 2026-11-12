@@ -4,7 +4,8 @@ import type { PieceDef } from './types.ts';
 export const PIECES: Record<string, PieceDef> = {
 	'cap-hall': {
 		name: 'cap-hall',
-		url: '/assets/map/cap-hall.gltf',
+		url: '/assets/shared/map/cap-hall.603f4847.gltf',
+		bytes: 598732,
 		footprint: [0, 0],
 		levels: 1,
 		sockets: [{ type: 'hall', cell: [0, 0], level: 0, edge: 'n' }],
@@ -20,7 +21,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	cistern: {
 		name: 'cistern',
-		url: '/assets/map/cistern.gltf',
+		url: '/assets/shared/map/cistern.4ffc6e73.gltf',
+		bytes: 2164879,
 		footprint: [3, 2],
 		levels: 3,
 		sockets: [
@@ -80,7 +82,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'extraction-shaft': {
 		name: 'extraction-shaft',
-		url: '/assets/map/extraction-shaft.gltf',
+		url: '/assets/shared/map/extraction-shaft.d17ff184.gltf',
+		bytes: 1681776,
 		footprint: [2, 2],
 		levels: 2,
 		sockets: [
@@ -125,7 +128,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'gloaming-chapel': {
 		name: 'gloaming-chapel',
-		url: '/assets/map/gloaming-chapel.gltf',
+		url: '/assets/afflictions/gloaming/map/gloaming-chapel.84af3c31.gltf',
+		bytes: 1967842,
 		footprint: [3, 3],
 		levels: 2,
 		sockets: [
@@ -172,7 +176,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-canal': {
 		name: 'hall-canal',
-		url: '/assets/map/hall-canal.gltf',
+		url: '/assets/shared/map/hall-canal.3630baaf.gltf',
+		bytes: 1279425,
 		footprint: [1, 2],
 		levels: 2,
 		sockets: [
@@ -220,7 +225,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-corner': {
 		name: 'hall-corner',
-		url: '/assets/map/hall-corner.gltf',
+		url: '/assets/shared/map/hall-corner.730e1dfa.gltf',
+		bytes: 1271048,
 		footprint: [1, 1],
 		levels: 1,
 		sockets: [
@@ -282,7 +288,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-crawl': {
 		name: 'hall-crawl',
-		url: '/assets/map/hall-crawl.gltf',
+		url: '/assets/shared/map/hall-crawl.bd499966.gltf',
+		bytes: 1273821,
 		footprint: [1, 2],
 		levels: 1,
 		sockets: [
@@ -314,7 +321,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-cross': {
 		name: 'hall-cross',
-		url: '/assets/map/hall-cross.gltf',
+		url: '/assets/shared/map/hall-cross.3fb28f9c.gltf',
+		bytes: 1274785,
 		footprint: [1, 1],
 		levels: 1,
 		sockets: [
@@ -342,7 +350,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-dead-end': {
 		name: 'hall-dead-end',
-		url: '/assets/map/hall-dead-end.gltf',
+		url: '/assets/shared/map/hall-dead-end.9e0f9e89.gltf',
+		bytes: 1273217,
 		footprint: [1, 1],
 		levels: 1,
 		sockets: [{ type: 'hall', cell: [0, 0], level: 0, edge: 's' }],
@@ -364,7 +373,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-flooded': {
 		name: 'hall-flooded',
-		url: '/assets/map/hall-flooded.gltf',
+		url: '/assets/shared/map/hall-flooded.c83dfaa8.gltf',
+		bytes: 1281511,
 		footprint: [1, 2],
 		levels: 2,
 		sockets: [
@@ -403,7 +413,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-side-room': {
 		name: 'hall-side-room',
-		url: '/assets/map/hall-side-room.gltf',
+		url: '/assets/shared/map/hall-side-room.c42230a9.gltf',
+		bytes: 1289189,
 		footprint: [2, 1],
 		levels: 1,
 		sockets: [
@@ -439,7 +450,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-squeeze': {
 		name: 'hall-squeeze',
-		url: '/assets/map/hall-squeeze.gltf',
+		url: '/assets/shared/map/hall-squeeze.5c6aefee.gltf',
+		bytes: 1270596,
 		footprint: [1, 1],
 		levels: 1,
 		sockets: [
@@ -472,7 +484,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-stairs-down': {
 		name: 'hall-stairs-down',
-		url: '/assets/map/hall-stairs-down.gltf',
+		url: '/assets/shared/map/hall-stairs-down.867f54ef.gltf',
+		bytes: 1273250,
 		footprint: [1, 2],
 		levels: 2,
 		sockets: [
@@ -497,7 +510,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-straight': {
 		name: 'hall-straight',
-		url: '/assets/map/hall-straight.gltf',
+		url: '/assets/shared/map/hall-straight.05662777.gltf',
+		bytes: 1270584,
 		footprint: [1, 1],
 		levels: 1,
 		sockets: [
@@ -521,7 +535,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-tee': {
 		name: 'hall-tee',
-		url: '/assets/map/hall-tee.gltf',
+		url: '/assets/shared/map/hall-tee.db0849df.gltf',
+		bytes: 1274152,
 		footprint: [1, 1],
 		levels: 1,
 		sockets: [
@@ -549,7 +564,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'ossuary-hall': {
 		name: 'ossuary-hall',
-		url: '/assets/map/ossuary-hall.gltf',
+		url: '/assets/shared/map/ossuary-hall.ab98adc2.gltf',
+		bytes: 1882681,
 		footprint: [3, 2],
 		levels: 2,
 		sockets: [
@@ -594,7 +610,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'quarry-gallery': {
 		name: 'quarry-gallery',
-		url: '/assets/map/quarry-gallery.gltf',
+		url: '/assets/shared/map/quarry-gallery.9de9de9a.gltf',
+		bytes: 602809,
 		footprint: [3, 3],
 		levels: 2,
 		sockets: [
@@ -641,7 +658,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'room-crypt': {
 		name: 'room-crypt',
-		url: '/assets/map/room-crypt.gltf',
+		url: '/assets/shared/map/room-crypt.12e752fe.gltf',
+		bytes: 1624419,
 		footprint: [2, 2],
 		levels: 1,
 		sockets: [
@@ -685,7 +703,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'room-small': {
 		name: 'room-small',
-		url: '/assets/map/room-small.gltf',
+		url: '/assets/shared/map/room-small.5656b0b0.gltf',
+		bytes: 1277630,
 		footprint: [1, 1],
 		levels: 1,
 		sockets: [
@@ -716,7 +735,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	stairwell: {
 		name: 'stairwell',
-		url: '/assets/map/stairwell.gltf',
+		url: '/assets/shared/map/stairwell.fb86d090.gltf',
+		bytes: 1383406,
 		footprint: [2, 1],
 		levels: 1,
 		sockets: [{ type: 'hall', cell: [1, 0], level: 0, edge: 'e' }],

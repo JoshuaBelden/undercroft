@@ -48,6 +48,8 @@ export interface GenerateOptions {
 	deadEndChance: number;
 	/** Fresh RNG streams to try before giving up. */
 	attempts: number;
+	/** The Affliction the map is for: pieces owned by any other Affliction are left out. */
+	affliction: string | null;
 }
 
 const DEFAULTS: GenerateOptions = {
@@ -60,7 +62,8 @@ const DEFAULTS: GenerateOptions = {
 	loops: 8,
 	loopMaxCells: 16,
 	deadEndChance: 0.55,
-	attempts: 64
+	attempts: 64,
+	affliction: null
 };
 
 interface OpenSocket extends WorldSocket {
@@ -413,10 +416,20 @@ export function generateLayout(
 	options: Partial<GenerateOptions> = {}
 ): MapLayout {
 	const opts = { ...DEFAULTS, ...options };
+	const own = Object.fromEntries(
+		Object.entries(kit).filter(
+			([, entry]) => !entry.affliction || entry.affliction === opts.affliction
+		)
+	);
 	for (let attempt = 0; attempt < opts.attempts; attempt++) {
 		const rng = new Rng((seed + Math.imul(attempt, 0x9e3779b9)) >>> 0);
 		try {
-			return { seed, placements: tryGenerate(rng, pieces, kit, opts), crates: [] };
+			return {
+				seed,
+				affliction: opts.affliction,
+				placements: tryGenerate(rng, pieces, own, opts),
+				crates: []
+			};
 		} catch (error) {
 			if (!(error instanceof GenerationFailed)) throw error;
 		}

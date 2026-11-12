@@ -1,13 +1,12 @@
-import { IMAGE_VERSIONS } from './images.generated.ts';
+import { IMAGE_URLS } from './images.generated.ts';
 
 /**
- * The URL of a picture in static/assets/images (name without extension). It carries the
- * picture's content hash, so a rebuilt picture gets a new URL and no browser keeps showing the
- * old one. Use it for every interface picture. See docs/dev/asset-pipeline.md.
+ * The URL of an interface picture (name without extension, built into static/assets/ui/images).
+ * The file name carries the picture's content hash, so it is cached forever and a rebuilt
+ * picture gets a new URL. Use it for every interface picture. See docs/dev/asset-pipeline.md.
  */
 export function imageUrl(name: string): string {
-	const version = IMAGE_VERSIONS[name];
-	return `/assets/images/${name}.webp${version ? `?v=${version}` : ''}`;
+	return IMAGE_URLS[name] ?? `/assets/ui/images/${name}.webp`;
 }
 
 /** The picture behind the screens outside the catacombs, for `style:--backdrop-image`. */

@@ -5,6 +5,7 @@
  */
 
 import type { AnimationMap } from './animations.ts';
+import { modelUrl } from './models.ts';
 
 export interface OmenStage {
 	/** Meter fraction (0..1) at which this stage begins. */
@@ -108,7 +109,7 @@ export interface AfflictionDef {
 	name: string;
 	/** A few lines about it, shown on its pane on the Afflictions page. */
 	flavor: string;
-	/** The picture behind its pane: a file name (no extension) in static/assets/images. */
+	/** The picture behind its pane: a file name (no extension) in static/assets/ui/images. */
 	image: string;
 	meter: {
 		/** Seconds underground (with anyone inside) for time alone to fill it. */
@@ -170,7 +171,7 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 		manifestation: {
 			// The model has no idle, crouch or crawl clip.
 			body: {
-				model: '/assets/creatures/gloaming_boss.glb',
+				model: modelUrl('afflictions/gloaming/creatures/gloaming_boss.glb'),
 				yawOffset: Math.PI,
 				// 1.7 m as exported; this stands it about as tall as its hit capsule (2.2 m).
 				scale: 1.3,

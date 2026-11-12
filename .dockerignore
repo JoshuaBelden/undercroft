@@ -1,0 +1,10 @@
+node_modules
+.svelte-kit
+build
+art
+.env
+.env.*
+.git
+.claude
+docs
+Claude outputs

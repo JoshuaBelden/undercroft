@@ -48,4 +48,4 @@ Run `pnpm format` to fix formatting.
 
 ## Production build
 
-`pnpm build` produces a Node server in `build/` (adapter-node). The game server runs separately with `pnpm start:server`. Deployment to DigitalOcean is covered in Phase 3.
+`pnpm build` produces a Node server in `build/` (adapter-node). The game server runs separately with `pnpm start:server`. Production runs both in Docker behind Caddy on a DigitalOcean droplet: see [deployment.md](deployment.md).

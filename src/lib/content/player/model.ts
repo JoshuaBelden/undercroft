@@ -1,4 +1,5 @@
 import type { AnimationMap } from '../animations.ts';
+import { modelUrl } from '../models.ts';
 
 /**
  * The explorer: the body every player is drawn with. See docs/dev/player.md (Player model).
@@ -18,7 +19,7 @@ export interface PlayerModelDef {
 }
 
 export const PLAYER_MODEL: PlayerModelDef = {
-	model: '/assets/player/explorer.glb',
+	model: modelUrl('shared/player/explorer.glb'),
 	yawOffset: Math.PI,
 	lampForward: 0.45,
 	// The model has no idle, jump, climb or gun clip. Also in the file and unused:

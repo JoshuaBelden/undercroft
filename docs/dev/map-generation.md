@@ -6,16 +6,16 @@ Building and exporting pieces is covered in [asset-pipeline.md](asset-pipeline.m
 
 ## Data
 
-| What                                                   | Where                                     |
-| ------------------------------------------------------ | ----------------------------------------- |
-| Piece geometry (shared textures in `textures/`)        | `static/assets/map/<piece>.gltf` + `.bin` |
-| Piece sockets, markers, colliders, volumes (generated) | `src/lib/shared/map/pieces.generated.ts`  |
-| Piece roles and weights (hand-authored)                | `src/lib/content/map/kit.ts`              |
-| Types                                                  | `src/lib/shared/map/types.ts`             |
-| Grid math                                              | `src/lib/shared/map/grid.ts`              |
-| Generator                                              | `src/lib/shared/map/generate.ts`          |
-| Seeded RNG                                             | `src/lib/shared/rng.ts`                   |
-| Client rendering                                       | `src/lib/game/map/MapRenderer.ts`         |
+| What                                                   | Where                                                                               |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Piece geometry (see asset-pipeline.md, Delivery)       | `static/assets/shared/map/<piece>.<hash>.gltf` + `.bin`, or `afflictions/<id>/map/` |
+| Piece sockets, markers, colliders, volumes (generated) | `src/lib/shared/map/pieces.generated.ts`                                            |
+| Piece roles and weights (hand-authored)                | `src/lib/content/map/kit.ts`                                                        |
+| Types                                                  | `src/lib/shared/map/types.ts`                                                       |
+| Grid math                                              | `src/lib/shared/map/grid.ts`                                                        |
+| Generator                                              | `src/lib/shared/map/generate.ts`                                                    |
+| Seeded RNG                                             | `src/lib/shared/rng.ts`                                                             |
+| Client rendering                                       | `src/lib/game/map/MapRenderer.ts`                                                   |
 
 ## Coordinates
 
@@ -42,9 +42,11 @@ A socket is an opening of a given type on a cell edge. Two sockets connect when 
 | `end`        | Dead ends that can close an opening instead of a cap.                                                                                                                         |
 | `cap`        | Seals an unused opening without occupying a cell. `seals` names the socket type.                                                                                              |
 
+Any entry can also set `affliction` (a key into `AFFLICTIONS`): the piece is then only generated in maps for that Affliction, and its built files live in `static/assets/afflictions/<id>/`, so other runs never download it. The Gloaming Chapel belongs to the Gloaming. The server passes the chosen Affliction as `GenerateOptions.affliction`, and the layout records it (`MapLayout.affliction`) so the client preloads the right Affliction's models.
+
 ## Algorithm
 
-`generateLayout(seed, PIECES, MAP_KIT)`:
+`generateLayout(seed, PIECES, MAP_KIT, { affliction })` (pieces owned by any other Affliction are dropped from the kit first):
 
 1. **Start:** place the start room with a random rotation, its first cell on world cell `[0, 0]`, then attach its `exit` piece (stairs down).
 2. **Main route:** visit every major room in random order, with the `final` room last, and the extraction rooms spaced evenly between them (with three major rooms and two extraction rooms: major, extraction, major, extraction, major, final). Before each room, attach a corridor of `corridor` (4–7) non-descending connectors. Pieces are tried in weighted random order, each matching socket and rotation is tried, and placements that overlap an occupied cell on any level are rejected. Each step grows from any open socket of the piece before (trying the others when nothing fits); a room that does not fit stretches its corridor by up to `stretch` more pieces. Before the final room, one corridor piece is forced to be a descending piece. Because descending pieces only go down, the final room is always strictly deeper than every other room.

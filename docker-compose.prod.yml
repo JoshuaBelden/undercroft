@@ -1,0 +1,60 @@
+# Production stack on the droplet (see docs/dev/deployment.md). Development uses
+# docker-compose.yml (MongoDB only). Variables come from /opt/undercroft/.env on the droplet.
+name: undercroft
+
+x-app: &app
+  build: .
+  image: undercroft:latest
+  restart: unless-stopped
+  depends_on:
+    - mongo
+
+services:
+  web:
+    <<: *app
+    command: ['node', 'build']
+    environment:
+      PORT: '3000'
+      ORIGIN: https://${DOMAIN:?set DOMAIN in .env}
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB: ${MONGODB_DB:-undercroft}
+      PUBLIC_GAME_SERVER_URL: wss://${DOMAIN}/ws
+      PUBLIC_DEV_MODE: 'false'
+
+  game:
+    <<: *app
+    command: ['node_modules/.bin/tsx', 'server/index.ts']
+    environment:
+      GAME_SERVER_PORT: '8787'
+      GAME_SERVER_PATH: /ws
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB: ${MONGODB_DB:-undercroft}
+      DEV_MODE: 'false'
+
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - web
+      - game
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  mongo-data:
+  caddy-data:
+  caddy-config:

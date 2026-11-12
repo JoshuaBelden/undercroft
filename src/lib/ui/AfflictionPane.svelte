@@ -50,7 +50,7 @@
 
 	/** Question-mark slots on an unknown pane. */
 	const UNKNOWN_SLOTS = 3;
-	/** The picture behind an unknown pane (static/assets/images). */
+	/** The picture behind an unknown pane (static/assets/ui/images). */
 	const UNKNOWN_IMAGE = 'affliction-unknown-banner';
 
 	const def = $derived(id === null ? null : (AFFLICTIONS[id] ?? null));

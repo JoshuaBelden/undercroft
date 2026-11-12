@@ -2,29 +2,37 @@
  * Turns raw Blender exports (art/export/*.glb) into shippable map pieces.
  * Run with `pnpm asset:build`. See docs/dev/asset-pipeline.md.
  *
- * Creature models (art/export/creatures), item models (art/export/items) and props
- * (art/export/props) get their own lighter passes into static/assets/creatures,
- * static/assets/items and static/assets/props.
+ * Creature models (art/export/creatures), the explorer (art/export/player), item models
+ * (art/export/items) and props (art/export/props) get their own lighter passes into
+ * static/assets/shared/<kind>. Creatures in art/export/afflictions/<id>/creatures belong to that
+ * Affliction and go to static/assets/afflictions/<id>/creatures.
  *
  * For each piece:
  *  1. Validates the root empty, footprint, sockets, markers and triangle budget.
  *  2. Strips collision meshes, then dedups, welds, prunes and re-encodes textures as WebP
- *     at 1024 px (or the root's `max_texture` property). Writes static/assets/map/<piece>.gltf
- *     + <piece>.bin; textures go to static/assets/map/textures/<content-hash>.webp, so a texture
- *     shared by many pieces is stored (and downloaded) once.
+ *     at 1024 px (or the root's `max_texture` property), and compresses the meshes (meshopt).
+ *     Writes <piece>.<hash>.gltf + <piece>.<hash>.bin to static/assets/shared/map, or to
+ *     static/assets/afflictions/<id>/map for a piece its kit entry gives to an Affliction.
+ *     Textures go to static/assets/shared/textures/<content-hash>.webp, so a texture shared by
+ *     many pieces is stored (and downloaded) once.
  *  3. Writes src/lib/shared/map/pieces.generated.ts with sockets, markers, colliders and volumes,
  *     so the server never needs to parse .glb files.
+ *
+ * Every file name carries a hash of its contents, so it can be cached forever. The other models
+ * are listed in src/lib/content/models.generated.ts (path without the hash -> URL and size),
+ * which `modelUrl()` reads.
  */
-import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { NodeIO, getBounds, type Document, type Node } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { dedup, prune, simplify, textureCompress, weld } from '@gltf-transform/functions';
-import { MeshoptSimplifier } from 'meshoptimizer';
+import { dedup, meshopt, prune, simplify, textureCompress, weld } from '@gltf-transform/functions';
+import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import * as prettier from 'prettier';
 import sharp from 'sharp';
+import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
+import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { CELL, LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import type {
 	ColliderBox,
@@ -38,24 +46,28 @@ import type {
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SOURCE_DIR = path.join(ROOT, 'art', 'export');
-const OUT_DIR = path.join(ROOT, 'static', 'assets', 'map');
-/** Rigged, animated creature models: art/export/creatures -> static/assets/creatures. */
+const ASSET_DIR = path.join(ROOT, 'static', 'assets');
+/** Built files in static/assets are served from here. */
+const URL_ROOT = '/assets';
+/** Shared, content-addressed map textures (static/assets/shared/textures). */
+const TEXTURE_DIR = 'shared/textures';
+/** Rigged, animated creature models: art/export/creatures -> static/assets/shared/creatures. */
 const CREATURE_SOURCE = path.join(SOURCE_DIR, 'creatures');
-const CREATURE_OUT = path.join(ROOT, 'static', 'assets', 'creatures');
 const CREATURE_TEXTURE = 1024;
-/** The explorer (every player's body), rigged and animated: art/export/player -> static/assets/player. */
+/** The explorer (every player's body), rigged and animated: art/export/player. */
 const PLAYER_SOURCE = path.join(SOURCE_DIR, 'player');
-const PLAYER_OUT = path.join(ROOT, 'static', 'assets', 'player');
-/** Item models (weapons, ammo, consumables): art/export/items -> static/assets/items. */
+/** Item models (weapons, ammo, consumables): art/export/items. */
 const ITEM_SOURCE = path.join(SOURCE_DIR, 'items');
-const ITEM_OUT = path.join(ROOT, 'static', 'assets', 'items');
 const ITEM_TEXTURE = 512;
 /** Items over this many triangles (sculpted or generated models) are simplified down to it. */
 const ITEM_TRIS = 6000;
-/** Props (the loot crate): art/export/props -> static/assets/props. */
+/** Props (the loot crate): art/export/props. */
 const PROP_SOURCE = path.join(SOURCE_DIR, 'props');
-const PROP_OUT = path.join(ROOT, 'static', 'assets', 'props');
 const PROP_TEXTURE = 512;
+/** Assets owned by one Affliction: art/export/afflictions/<id>/<kind>. */
+const AFFLICTION_SOURCE = path.join(SOURCE_DIR, 'afflictions');
+/** Folders from before assets were split into shared/ and afflictions/: removed on build. */
+const LEGACY_DIRS = ['map', 'creatures', 'player', 'items', 'props'];
 /**
  * Props made elsewhere (scanned or generated: heavy, sitting anywhere): stood on the floor,
  * centred on the origin and simplified to `tris`. Props built by scripts/blender/props.py are
@@ -65,8 +77,13 @@ const PROP_FIT: Record<string, { tris: number }> = {
 	corpse: { tris: 12000 }
 };
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'shared', 'map', 'pieces.generated.ts');
-const URL_BASE = '/assets/map';
-const TEXTURE_DIR = 'textures';
+const MODEL_MANIFEST = path.join(ROOT, 'src', 'lib', 'content', 'models.generated.ts');
+/**
+ * Mesh compression (EXT_meshopt_compression). Map pieces keep 16-bit positions (about 0.5 mm
+ * over a 30 m room) so seams between neighbouring pieces stay closed.
+ */
+const PIECE_MESHOPT = { encoder: MeshoptEncoder, level: 'medium', quantizePosition: 16 } as const;
+const MODEL_MESHOPT = { encoder: MeshoptEncoder, level: 'medium' } as const;
 const EXTENSIONS: Record<string, string> = {
 	'image/webp': 'webp',
 	'image/png': 'png',
@@ -299,18 +316,21 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			resize: [maxTexture, maxTexture],
 			quality: 85
 		}),
-		prune()
+		prune(),
+		meshopt(PIECE_MESHOPT)
 	);
 
-	const bytes = await writePiece(io, doc, name);
+	const affliction = MAP_KIT[name]?.affliction;
+	const { url, bytes, own } = await writePiece(io, doc, name, `${ownerDir(affliction)}/map`);
 	const raw = (statSync(file).size / 1e6).toFixed(1);
 	console.log(
-		`  ${name}: ${triangles} tris, ${raw} MB -> ${(bytes / 1e3).toFixed(0)} KB + shared textures`
+		`  ${name}${affliction ? ` (${affliction})` : ''}: ${triangles} tris, ${raw} MB -> ${(own / 1e3).toFixed(0)} KB + shared textures`
 	);
 
 	return {
 		name,
-		url: `${URL_BASE}/${name}.gltf`,
+		url,
+		bytes,
 		footprint: [w, d],
 		levels,
 		sockets,
@@ -326,44 +346,88 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	};
 }
 
-/** Remove previous build output so deleted pieces and unused textures do not linger. */
+/** Where an owner's assets live in static/assets: shared/, or afflictions/<id>/. */
+function ownerDir(affliction: string | undefined): string {
+	return affliction ? `afflictions/${affliction}` : 'shared';
+}
+
+/** Built models other than map pieces: path without hash (`shared/items/knife.glb`) -> file. */
+const models: Record<string, { url: string; bytes: number }> = {};
+
+/**
+ * Remove previous build output so deleted models and unused textures do not linger. Clears the
+ * kinds this script builds, in shared/ and in every afflictions/<id>/, and the old flat folders.
+ */
 function cleanOutput(): void {
-	mkdirSync(OUT_DIR, { recursive: true });
-	for (const f of readdirSync(OUT_DIR)) {
-		if (/\.(glb|gltf|bin)$/.test(f)) rmSync(path.join(OUT_DIR, f));
+	const kinds = ['map', 'textures', 'creatures', 'player', 'items', 'props'];
+	for (const kind of kinds)
+		rmSync(path.join(ASSET_DIR, 'shared', kind), { recursive: true, force: true });
+	const afflictions = path.join(ASSET_DIR, 'afflictions');
+	if (existsSync(afflictions)) {
+		for (const id of readdirSync(afflictions)) {
+			for (const kind of kinds)
+				rmSync(path.join(afflictions, id, kind), { recursive: true, force: true });
+		}
 	}
-	rmSync(path.join(OUT_DIR, TEXTURE_DIR), { recursive: true, force: true });
-	mkdirSync(path.join(OUT_DIR, TEXTURE_DIR));
+	for (const dir of LEGACY_DIRS)
+		rmSync(path.join(ASSET_DIR, dir), { recursive: true, force: true });
+	mkdirSync(path.join(ASSET_DIR, TEXTURE_DIR), { recursive: true });
 }
 
 /**
- * Write a piece as <name>.gltf + <name>.bin with its textures in the shared, content-addressed
- * texture folder. Returns the bytes written for the piece itself (excluding textures).
+ * Write a piece as <name>.<hash>.gltf + <name>.<hash>.bin in `dir` (relative to static/assets),
+ * with its textures in the shared, content-addressed texture folder. Returns its URL, the bytes a
+ * client downloads for it (with textures, counting shared ones too) and the piece's own bytes.
  */
-async function writePiece(io: NodeIO, doc: Document, name: string): Promise<number> {
+async function writePiece(
+	io: NodeIO,
+	doc: Document,
+	name: string,
+	dir: string
+): Promise<{ url: string; bytes: number; own: number }> {
+	const out = path.join(ASSET_DIR, dir);
+	mkdirSync(out, { recursive: true });
 	const root = doc.getRoot();
+	let textureBytes = 0;
 	for (const texture of root.listTextures()) {
 		const image = texture.getImage();
 		if (!image) continue;
 		const ext = EXTENSIONS[texture.getMimeType()] ?? 'bin';
-		const hash = createHash('sha256').update(image).digest('hex').slice(0, 16);
-		const uri = `${TEXTURE_DIR}/${hash}.${ext}`;
-		const file = path.join(OUT_DIR, uri);
-		if (!existsSync(file)) writeFileSync(file, image);
+		const file = `${contentHash(image, 16)}.${ext}`;
+		const target = path.join(ASSET_DIR, TEXTURE_DIR, file);
+		if (!existsSync(target)) writeFileSync(target, image);
+		const uri = `${path.posix.relative(dir, TEXTURE_DIR)}/${file}`;
 		texture.setURI(uri);
+		textureBytes += image.byteLength;
 	}
 	root.listBuffers().forEach((buffer, i) => buffer.setURI(i ? `${name}-${i}.bin` : `${name}.bin`));
 
 	const { json, resources } = await io.writeJSON(doc);
-	const gltf = JSON.stringify(json);
-	writeFileSync(path.join(OUT_DIR, `${name}.gltf`), gltf);
-	let bytes = gltf.length;
-	for (const [uri, data] of Object.entries(resources)) {
-		if (uri.startsWith(`${TEXTURE_DIR}/`)) continue;
-		writeFileSync(path.join(OUT_DIR, uri), data);
-		bytes += data.byteLength;
+	let own = 0;
+	for (const buffer of json.buffers ?? []) {
+		if (!buffer.uri) continue;
+		const data = resources[buffer.uri];
+		const file = hashedName(buffer.uri, data);
+		writeFileSync(path.join(out, file), data);
+		buffer.uri = file;
+		own += data.byteLength;
 	}
-	return bytes;
+	const gltf = JSON.stringify(json);
+	const file = hashedName(`${name}.gltf`, gltf);
+	writeFileSync(path.join(out, file), gltf);
+	own += gltf.length;
+	return { url: `${URL_ROOT}/${dir}/${file}`, bytes: own + textureBytes, own };
+}
+
+/** Write a self-contained .glb under a content-hashed name and list it in the model manifest. */
+async function writeModel(io: NodeIO, doc: Document, dir: string, name: string): Promise<number> {
+	const out = path.join(ASSET_DIR, dir);
+	mkdirSync(out, { recursive: true });
+	const glb = await io.writeBinary(doc);
+	const file = hashedName(`${name}.glb`, glb);
+	writeFileSync(path.join(out, file), glb);
+	models[`${dir}/${name}.glb`] = { url: `${URL_ROOT}/${dir}/${file}`, bytes: glb.byteLength };
+	return glb.byteLength;
 }
 
 /**
@@ -374,11 +438,9 @@ async function buildCharacters(
 	io: NodeIO,
 	label: string,
 	source: string,
-	target: string
+	dir: string
 ): Promise<void> {
 	if (!existsSync(source)) return;
-	mkdirSync(target, { recursive: true });
-	for (const f of readdirSync(target)) if (f.endsWith('.glb')) rmSync(path.join(target, f));
 	for (const f of readdirSync(source)
 		.filter((name) => name.endsWith('.glb'))
 		.sort()) {
@@ -397,11 +459,10 @@ async function buildCharacters(
 				resize: [CREATURE_TEXTURE, CREATURE_TEXTURE],
 				quality: 85
 			}),
-			prune()
+			prune(),
+			meshopt(MODEL_MESHOPT)
 		);
-		const out = path.join(target, f);
-		await io.write(out, doc);
-		const mb = (statSync(out).size / 1e6).toFixed(2);
+		const mb = ((await writeModel(io, doc, dir, path.basename(f, '.glb'))) / 1e6).toFixed(2);
 		const raw = (statSync(file).size / 1e6).toFixed(1);
 		console.log(
 			`  ${label} ${path.basename(f, '.glb')}: ${raw} MB -> ${mb} MB, animations: ${animations.join(', ')}`
@@ -460,8 +521,6 @@ function frameItem(doc: Document, frame: ItemFrame): void {
 async function buildItems(io: NodeIO): Promise<void> {
 	await MeshoptSimplifier.ready;
 	if (!existsSync(ITEM_SOURCE)) return;
-	mkdirSync(ITEM_OUT, { recursive: true });
-	for (const f of readdirSync(ITEM_OUT)) if (f.endsWith('.glb')) rmSync(path.join(ITEM_OUT, f));
 	const built: string[] = [];
 	for (const f of readdirSync(ITEM_SOURCE)
 		.filter((name) => name.endsWith('.glb'))
@@ -489,12 +548,11 @@ async function buildItems(io: NodeIO): Promise<void> {
 				})
 			);
 		}
-		await doc.transform(prune());
-		const out = path.join(ITEM_OUT, f);
-		await io.write(out, doc);
+		await doc.transform(prune(), meshopt(MODEL_MESHOPT));
+		const size = await writeModel(io, doc, 'shared/items', id);
 		const raw = statSync(file).size;
 		if (raw > 1e6) {
-			const kb = Math.round(statSync(out).size / 1e3);
+			const kb = Math.round(size / 1e3);
 			console.log(
 				`  item ${id}: ${tris} -> ${triangleCount(doc)} tris, ${(raw / 1e6).toFixed(1)} MB -> ${kb} KB${frame ? '' : ' (no entry in items.config.ts: left as exported)'}`
 			);
@@ -517,13 +575,12 @@ function standOnFloor(doc: Document, name: string): void {
 /**
  * Props: textures re-encoded to WebP, one self-contained .glb each. Nodes keep their names and
  * are not merged: the game moves some of them (the crate's lid). Ones in PROP_FIT are also stood
- * on the floor and simplified.
+ * on the floor and simplified. No meshopt: its quantization rewrites mesh node transforms, which
+ * the game animates.
  */
 async function buildProps(io: NodeIO): Promise<void> {
 	await MeshoptSimplifier.ready;
 	if (!existsSync(PROP_SOURCE)) return;
-	mkdirSync(PROP_OUT, { recursive: true });
-	for (const f of readdirSync(PROP_OUT)) if (f.endsWith('.glb')) rmSync(path.join(PROP_OUT, f));
 	for (const f of readdirSync(PROP_SOURCE)
 		.filter((name) => name.endsWith('.glb'))
 		.sort()) {
@@ -549,11 +606,10 @@ async function buildProps(io: NodeIO): Promise<void> {
 			}),
 			prune()
 		);
-		const out = path.join(PROP_OUT, f);
-		await io.write(out, doc);
+		const bytes = await writeModel(io, doc, 'shared/props', id);
 		const raw = (statSync(file).size / 1e6).toFixed(1);
 		const size = fit ? `, ${tris} -> ${triangleCount(doc)} tris` : '';
-		console.log(`  prop ${id}: ${raw} MB -> ${(statSync(out).size / 1e3).toFixed(0)} KB${size}`);
+		console.log(`  prop ${id}: ${raw} MB -> ${(bytes / 1e3).toFixed(0)} KB${size}`);
 	}
 }
 
@@ -564,8 +620,33 @@ import type { PieceDef } from './types.ts';
 
 export const PIECES: Record<string, PieceDef> = ${JSON.stringify(record)};
 `;
-	const config = await prettier.resolveConfig(MANIFEST);
-	writeFileSync(MANIFEST, await prettier.format(source, { ...config, filepath: MANIFEST }));
+	await writeFormatted(MANIFEST, source);
+}
+
+/** src/lib/content/models.generated.ts: every model but the map pieces, for `modelUrl()`. */
+async function writeModelManifest(): Promise<void> {
+	const sorted = Object.fromEntries(Object.entries(models).sort(([a], [b]) => a.localeCompare(b)));
+	const source = `// Generated by \`pnpm asset:build\` from art/export. Do not edit by hand.
+
+/** Built models: path in static/assets without the content hash -> URL and size in bytes. */
+export const MODELS = ${JSON.stringify(sorted)} as const;
+`;
+	await writeFormatted(MODEL_MANIFEST, source);
+}
+
+async function writeFormatted(file: string, source: string): Promise<void> {
+	const config = await prettier.resolveConfig(file);
+	writeFileSync(file, await prettier.format(source, { ...config, filepath: file }));
+}
+
+/** Rigged creatures: the shared ones, then each Affliction's own. */
+async function buildCreatures(io: NodeIO): Promise<void> {
+	await buildCharacters(io, 'creature', CREATURE_SOURCE, 'shared/creatures');
+	if (!existsSync(AFFLICTION_SOURCE)) return;
+	for (const id of readdirSync(AFFLICTION_SOURCE).sort()) {
+		const source = path.join(AFFLICTION_SOURCE, id, 'creatures');
+		await buildCharacters(io, `${id} creature`, source, `${ownerDir(id)}/creatures`);
+	}
 }
 
 async function main(): Promise<void> {
@@ -573,8 +654,11 @@ async function main(): Promise<void> {
 		console.error(`No raw exports found. Export pieces from Blender into ${SOURCE_DIR}`);
 		process.exit(1);
 	}
+	await Promise.all([MeshoptEncoder.ready, MeshoptDecoder.ready]);
 	cleanOutput();
-	const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
+	const io = new NodeIO()
+		.registerExtensions(ALL_EXTENSIONS)
+		.registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
 	const files = readdirSync(SOURCE_DIR)
 		.filter((f) => f.endsWith('.glb'))
 		.sort();
@@ -599,17 +683,19 @@ async function main(): Promise<void> {
 	}
 	if (failed) process.exit(1);
 	await writeManifest(pieces);
-	await buildCharacters(io, 'creature', CREATURE_SOURCE, CREATURE_OUT);
-	await buildCharacters(io, 'player', PLAYER_SOURCE, PLAYER_OUT);
+	await buildCreatures(io);
+	await buildCharacters(io, 'player', PLAYER_SOURCE, 'shared/player');
 	await buildItems(io);
 	await buildProps(io);
-	const textures = readdirSync(path.join(OUT_DIR, TEXTURE_DIR));
+	await writeModelManifest();
+	const textureDir = path.join(ASSET_DIR, TEXTURE_DIR);
+	const textures = readdirSync(textureDir);
 	const textureBytes = textures.reduce(
-		(sum, f) => sum + statSync(path.join(OUT_DIR, TEXTURE_DIR, f)).size,
+		(sum, f) => sum + statSync(path.join(textureDir, f)).size,
 		0
 	);
 	console.log(
-		`Built ${pieces.length} pieces + ${textures.length} shared textures (${(textureBytes / 1e6).toFixed(1)} MB) -> ${path.relative(ROOT, OUT_DIR)}`
+		`Built ${pieces.length} pieces + ${textures.length} shared textures (${(textureBytes / 1e6).toFixed(1)} MB) and ${Object.keys(models).length} models -> ${path.relative(ROOT, ASSET_DIR)}`
 	);
 }
 

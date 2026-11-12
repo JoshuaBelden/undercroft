@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CRATES } from '#lib/content/loot.ts';
+import { modelUrl } from '#lib/content/models.ts';
 import { loadModel } from '#lib/game/assets.ts';
 import type { CratesSnapshot } from '#lib/shared/items/types.ts';
 import type { CratePlacement } from '#lib/shared/map/types.ts';
@@ -15,8 +16,8 @@ interface Shown {
 	materials: Map<THREE.Mesh, THREE.Material | THREE.Material[]>;
 }
 
-const MODEL = '/assets/props/crate.glb';
-const CORPSE_MODEL = '/assets/props/corpse.glb';
+const MODEL = modelUrl('shared/props/crate.glb');
+const CORPSE_MODEL = modelUrl('shared/props/corpse.glb');
 const LID = 'crate-lid';
 const HIGHLIGHT = new THREE.Color(0x2a2418);
 /** Seconds the lid takes to swing up. */

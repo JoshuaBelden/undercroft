@@ -16,14 +16,8 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Full audio pass and mix
 - Help system complete and reviewed
 - Settings complete: graphics, audio, controls, accessibility
-- Performance pass (light budget, model LODs, network bandwidth)
-- Asset delivery for production. Today every asset is fetched the first time it's used, so players only download what they see. The gaps:
-  - Affliction-owned assets: add `affliction?` to `KitEntry` so `gloaming-chapel` only shows up in Gloaming maps. Reorganize `static/assets/` (and `art/export/`) into `shared/`, `ui/` and `afflictions/<id>/`.
-  - Preload per run: a `preloadRun(layout, affliction)` in `src/lib/game/assets.ts` warms the model, character and sound caches during a descent progress bar, so nothing loads mid-run (no late footsteps, no boss pop-in). The hub prefetches the core set in the background.
-  - Shrink: Opus instead of WAV in `build-audio.ts` (~5 MB → ~0.5 MB). Meshopt in `build-assets.ts` plus `MeshoptDecoder` (explorer 3.9 MB, witch 2.4 MB, ossuary-hall 1.5 MB). KTX2 textures later, with LODs.
-  - Cache forever: content-hash every built file name (map textures already are), look up hand-written content URLs through a generated `assetUrl()`, and serve `/assets/*` as `immutable` with a one-year max-age from a CDN or reverse proxy in front of adapter-node.
-  - Baseline: 21.7 MB total in `static/assets` (Nov 2026).
-- Prefetch assets with progress shown on dashboard
+- Performance pass (light budget, model LODs, KTX2 textures, network bandwidth). Asset baseline: 15 MB in `static/assets` after meshopt and Opus (Nov 2026; textures are 3.9 MB of it).
+- First deploy to DigitalOcean: provision and release (see docs/dev/deployment.md), then check solo and co-op over `wss` on the live domain, and that sounds decode in Safari.
 - Balance pass: meter pacing, loot values, Thrall difficulty, candle tiers
 - Fix map clipping - Approaching a crawl section you can see through the map, and rubble dead ends has a triangle you can see through.
 
