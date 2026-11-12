@@ -8,6 +8,7 @@ import { gridDistances, nearestPoint, type NavGrid } from '../src/lib/shared/map
 import type { MapKit, MapLayout, PieceDef, Vec3 } from '../src/lib/shared/map/types.ts';
 import type { PlayerState } from '../src/lib/shared/player/types.ts';
 import { Rng } from '../src/lib/shared/rng.ts';
+import type { Crates } from './crates.ts';
 import type { WorldItems } from './items.ts';
 
 /**
@@ -98,6 +99,8 @@ function cellOf(position: Vec3): string {
  *
  * - each required item lies in one of the major rooms, other than the rite's own, so there is
  *   somewhere recognisable to look for it;
+ * - a required item marked `crate` is in one of the loot crates instead (or, in a map with no
+ *   crates, in a major room like the others);
  * - clue copies are spread from near the start to far from it, outside the rite's room.
  */
 export function scatterRite(
@@ -108,7 +111,8 @@ export function scatterRite(
 	nav: NavGrid,
 	start: Vec3,
 	seed: number,
-	items: WorldItems
+	items: WorldItems,
+	crates: Crates
 ): void {
 	const rng = new Rng(seed ^ 0x51ce);
 	const riteCells = cellsOf(layout, pieces, spec.room);
@@ -139,7 +143,13 @@ export function scatterRite(
 			items.place(newStack(item), [x, y, z], rng.next() * Math.PI * 2);
 		};
 		for (let i = 0; i < spec.clues; i++) lay('clue');
-		for (const { item, count } of spec.requirements) for (let i = 0; i < count; i++) lay(item);
+		for (const { item, count, crate } of spec.requirements) {
+			for (let i = 0; i < count; i++) {
+				// One kept in a crate is in the crate nearest the start.
+				if (crate && ITEMS[item] && crates.stow(newStack(item), rng, true)) continue;
+				lay(item);
+			}
+		}
 		return;
 	}
 
@@ -150,8 +160,9 @@ export function scatterRite(
 				.filter((id) => kit[id]?.role === 'major' && id !== spec.room)
 		)
 	];
-	for (const { item, count } of spec.requirements) {
+	for (const { item, count, crate } of spec.requirements) {
 		for (let i = 0; i < count; i++) {
+			if (crate && ITEMS[item] && crates.stow(newStack(item), rng)) continue;
 			const cells = majors.length ? cellsOf(layout, pieces, rng.pick(majors)) : null;
 			const inRoom = cells ? floor.filter(({ point }) => cells.has(cellOf(point.position))) : [];
 			place(item, inRoom.length ? inRoom : floor);

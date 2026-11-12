@@ -3,7 +3,7 @@
 
 	/**
 	 * The column of round buttons beside a grid of items (the stash, the store): show everything,
-	 * or only one category (or the ammunition, or the treasure). Bind `filter` and filter the grid by it.
+	 * or only one category (or the ammunition, the treasure or the quest items). Bind `filter` and filter the grid by it.
 	 */
 	interface Props {
 		filter: ItemFilter;
@@ -19,6 +19,7 @@
 		{ id: 'defense', label: 'Defense' },
 		{ id: 'quick', label: 'Quick use' },
 		{ id: 'treasure', label: 'Treasure' },
+		{ id: 'quest', label: 'Quest items' },
 		{ id: 'other', label: 'Other' }
 	];
 </script>

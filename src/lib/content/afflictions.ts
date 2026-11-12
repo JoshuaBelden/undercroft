@@ -49,8 +49,11 @@ export interface ManifestationSpec {
 
 /** The rite that resolves an Affliction. See docs/dev/rite.md. */
 export interface RiteSpec {
-	/** What the holder must carry (item ids). Clues reveal these slots in this order. */
-	requirements: { item: string; count: number }[];
+	/**
+	 * What the holder must carry (item ids). Clues reveal these slots in this order. One with
+	 * `crate` set is found in a loot crate; the others lie on the floor of a major room.
+	 */
+	requirements: { item: string; count: number; crate?: boolean }[];
 	/** Piece id of the room the rite is performed in. */
 	room: string;
 	/** Seconds the holder holds interact to perform it. */
@@ -64,7 +67,7 @@ export interface RiteSpec {
 	clueCopies: number;
 	/**
 	 * Testing aid: put one clue and every required item a few steps from where players start,
-	 * instead of out in the map.
+	 * instead of out in the map. One found in a crate goes in the crate nearest the start.
 	 */
 	atStart: boolean;
 }
@@ -150,7 +153,7 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 		},
 		// The full rite (5 candles, 1 chalk, the Pendant) comes back with those items in Phase 6.
 		rite: {
-			requirements: [{ item: 'pendant', count: 1 }],
+			requirements: [{ item: 'pendant', count: 1, crate: true }],
 			room: 'gloaming-chapel',
 			seconds: 5,
 			clues: 1,

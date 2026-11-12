@@ -17,9 +17,11 @@
 		detail?: string;
 		/** How hard the thing in it is to come by: colours the left and bottom edge. */
 		rarity?: Rarity;
+		/** A quest item: a purple edge in place of the rarity's, and a purple mark. */
+		quest?: boolean;
 		/**
 		 * A small icon in the bottom-left corner, before any `detail`: what kind of thing it is
-		 * (`slotMark`: weapon, defense, treasure). `label` is read out.
+		 * (`slotMark`: quest item, weapon, defense, treasure). `label` is read out.
 		 */
 		mark?: { icon: string; label: string };
 	}
@@ -33,11 +35,13 @@
 		image,
 		detail,
 		rarity = 'common',
+		quest = false,
 		mark
 	}: Props = $props();
 
-	/** Only something that is there and known has a rarity to show. */
-	const edge = $derived(!empty && name !== null && rarity !== 'common' ? rarity : null);
+	/** Only something that is there and known has a rarity to show. A quest item shows that instead. */
+	const shown = $derived(!empty && name !== null);
+	const edge = $derived(shown && !quest && rarity !== 'common' ? rarity : null);
 </script>
 
 <!--
@@ -53,6 +57,7 @@
 	class:rare={edge === 'rare'}
 	class:epic={edge === 'epic'}
 	class:legendary={edge === 'legendary'}
+	class:quest={shown && quest}
 >
 	{#if empty}
 		{#if hint}<span class="hint">{hint}</span>{/if}
@@ -77,7 +82,7 @@
 			</span>
 		{/if}
 		{#if count > 1}
-			<span class="count">×{count}</span>
+			<span class="count">{count}</span>
 		{/if}
 	{/if}
 </span>
@@ -121,10 +126,20 @@
 		--rarity: var(--rarity-legendary);
 	}
 
+	/* Quest items: the same edge in purple, and a purple mark. */
+	.slot.quest {
+		--rarity: var(--quest);
+	}
+
+	.slot.quest .kind {
+		color: var(--quest);
+	}
+
 	.slot.uncommon,
 	.slot.rare,
 	.slot.epic,
-	.slot.legendary {
+	.slot.legendary,
+	.slot.quest {
 		border-left: 2px solid var(--rarity);
 		border-bottom: 2px solid var(--rarity);
 	}
@@ -177,6 +192,8 @@
 		position: absolute;
 		bottom: 5px;
 		right: 8px;
+		font-size: 0.82rem;
+		opacity: 0.75;
 	}
 
 	/* The bottom-left corner: the kind of thing it is, then the small print. */

@@ -141,6 +141,16 @@ Creatures (see [creatures.md](creatures.md)):
 
 Each `tick` carries `items`, `projectiles` and `events` (`GameEvent`): shots with their end point, swing results, throws, landings, breaks, reloads, dry clicks, pickups, drops, creature hits and deaths. Clients play sounds and effects for other players from these, and impacts and hits for everyone. Your own gunshot, swing and reload sounds come from prediction instead.
 
+## Quest items
+
+An item with `quest: true` is one of a kind and needed for a rite: the Pendant. It is not a rarity and not in the loot tables. In the interface (`src/lib/ui/items.ts`):
+
+- its slot has a purple left and bottom edge in place of a rarity's (`--quest` in `src/app.css`; `Slot`'s `quest` prop) and a purple star in the bottom-left corner (`slotMark`, `FILTER_ICONS.quest`);
+- it is listed under the Quest items filter (`ItemFilters`, `matchesFilter`), not under Other;
+- its tooltip says "Unique" in purple where the rarity goes, and "Quest item" for its category.
+
+Where one is found is the rite's to say (`crate` on the requirement, see [rite.md](rite.md#in-the-map)). To add one, set `quest: true` on its `ItemDef`.
+
 ## Loot crates
 
 Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 slots.
@@ -189,6 +199,6 @@ These need `DEV_MODE`:
 
 - **Give** any item with a count (firearms come loaded); it goes where `addItem` puts it;
 - **Refill ammo** (fills the guns in the weapon slots and adds spare rounds);
-- **Reset crates** (`resetCrates`): shuts every loot crate and fills it again, hidden, with a new roll;
+- **Reset crates** (`resetCrates`): shuts every loot crate and fills it again, hidden, with a new roll (a quest item still in a crate stays in it);
 - **Infinite ammo**;
 - **Kill all** creatures.

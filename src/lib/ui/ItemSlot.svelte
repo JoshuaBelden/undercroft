@@ -119,6 +119,7 @@
 		image={def?.image}
 		detail={stack ? stackDetail(stack) : undefined}
 		rarity={stack ? rarityOf(stack.item) : undefined}
+		quest={stack ? def?.quest : undefined}
 		mark={stack ? slotMark(stack.item) : undefined}
 	/>
 </button>

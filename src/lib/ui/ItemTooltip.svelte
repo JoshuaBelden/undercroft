@@ -53,7 +53,11 @@
 		<div>
 			<p class="name">{def?.name ?? stack.item}</p>
 			{#if def}
-				<p class="rarity {rarity}">{rarityName}</p>
+				{#if def.quest}
+					<p class="rarity quest">Unique</p>
+				{:else}
+					<p class="rarity {rarity}">{rarityName}</p>
+				{/if}
 				<p class="category">{categoryLabel(def.id)}</p>
 			{/if}
 		</div>
@@ -147,6 +151,10 @@
 
 	.rarity.legendary {
 		color: var(--rarity-legendary);
+	}
+
+	.rarity.quest {
+		color: var(--quest);
 	}
 
 	.category {

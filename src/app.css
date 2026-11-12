@@ -10,6 +10,8 @@
 	--rarity-rare: #3fa650;
 	--rarity-epic: #3d83dc;
 	--rarity-legendary: #e3b92c;
+	/* Quest items (one of a kind, needed for a rite): the same edge, and their mark, in purple. */
+	--quest: #a45fd8;
 	/* Dark yellow: the button that launches an expedition (and confirms the loadout for it). */
 	--launch: #b08a1e;
 	--launch-bright: #cda42a;

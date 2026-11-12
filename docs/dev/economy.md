@@ -97,7 +97,7 @@ Loot is what explorers carry out to sell: items with `kind: 'loot'`, a `value`, 
 
 ### Rarity
 
-Every item has a rarity (`ItemDef.rarity`, `rarityOf(item)`): `common` (when left out), `uncommon`, `rare`, `epic` or `legendary`. `RARITIES` lists them commonest first with their names. A slot holding something shows its rarity as a 2px left and bottom edge (none for common, then grey, green, blue, yellow: the `--rarity-*` colours in `src/app.css`), and the tooltip names it under the item's name. See [systems.md](systems.md#slots).
+Every item has a rarity (`ItemDef.rarity`, `rarityOf(item)`): `common` (when left out), `uncommon`, `rare`, `epic` or `legendary`. `RARITIES` lists them commonest first with their names. A slot holding something shows its rarity as a 2px left and bottom edge (none for common, then grey, green, blue, yellow: the `--rarity-*` colours in `src/app.css`), and the tooltip names it under the item's name. See [systems.md](systems.md#slots). Quest items show a purple edge instead (see [items.md](items.md#quest-items)).
 
 | Rarity    | Loot                    |
 | --------- | ----------------------- |

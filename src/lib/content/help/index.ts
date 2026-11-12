@@ -94,7 +94,7 @@ The loadout has a place for everything. Two weapons, and one thing worn for prot
 
 Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to equip it, split a stack, sell it or drop it. Dropping something on the surface throws it away for good.
 
-Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, treasure or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
+Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
 
 What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the Gloaming comes.
 
@@ -106,7 +106,7 @@ Press {action:toggleFullscreen} on any screen, or choose Display under Graphics 
 		id: 'the-shop',
 		title: 'The store',
 		category: 'Basics',
-		body: `Click your money, at the top right of the dashboard, to open the store. It is closed to you once you are ready to descend. The round buttons beside it show only weapons, ammunition, protection, quick-use items, treasure or everything else. Click something to see what it is and what it costs, choose how many, and press Purchase.
+		body: `Click your money, at the top right of the dashboard, to open the store. It is closed to you once you are ready to descend. The round buttons beside it show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. Click something to see what it is and what it costs, choose how many, and press Purchase.
 
 What you buy goes to your stash, which only has so many slots: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
 
@@ -264,7 +264,7 @@ Drive it off and you'll all be carried out. It isn't over, though. Only the rite
 
 At first, nothing is. Scraps of writing lie about the catacombs, left by those who came before. Press {action:interact} on one to read it: each tells you something the rite needs, and the last tells you where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
 
-For the Gloaming, the rite needs the Pendant. It lies in one of the great rooms.
+For the Gloaming, the rite needs the Pendant. It is shut away in one of the crates. There is only one: things like it are edged in purple and marked with a star in the corner of their slot.
 
 One person has to carry everything the rite needs. If it's spread between you, drop things for that person to pick up. If they die, what they carried lies where they fell.
 

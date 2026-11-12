@@ -17,7 +17,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- Use new icon images
 - Use new witch and player models
 
 - Improved background image on dashboard
@@ -38,7 +37,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Add actual model for the Affliction
 - Add item models that show in hands
 - Shrines: hold one item through death or extraction
-- Add icon images to items
 - Add audio assets
 - Chalk marks on walls (one per stick)
 

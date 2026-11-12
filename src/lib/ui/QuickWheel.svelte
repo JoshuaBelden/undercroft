@@ -51,7 +51,7 @@
 			{#if place.stack}
 				<span class="name">{ITEMS[place.stack.item]?.name ?? place.stack.item}</span>
 				{#if place.stack.count > 1}
-					<span class="count">×{place.stack.count}</span>
+					<span class="count">{place.stack.count}</span>
 				{/if}
 			{/if}
 		</div>
@@ -120,8 +120,9 @@
 		right: 8px;
 		bottom: 5px;
 		font-family: var(--font-display);
-		font-size: 0.95rem;
+		font-size: 0.82rem;
 		font-weight: 600;
+		opacity: 0.75;
 	}
 
 	.dot {

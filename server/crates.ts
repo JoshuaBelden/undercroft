@@ -1,3 +1,4 @@
+import { ITEMS } from '../src/lib/content/items.ts';
 import { CRATES } from '../src/lib/content/loot.ts';
 import type { Slots } from '../src/lib/shared/items/inventory.ts';
 import { rollCrate } from '../src/lib/shared/items/loot.ts';
@@ -6,6 +7,7 @@ import type { CrateSlot, CratesSnapshot } from '../src/lib/shared/items/types.ts
 import type { CollisionWorld } from '../src/lib/shared/map/collision.ts';
 import { gridDistances, nearestPoint, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import type { CratePlacement, Vec3 } from '../src/lib/shared/map/types.ts';
+import type { ItemStack } from '../src/lib/shared/player/types.ts';
 import { Rng } from '../src/lib/shared/rng.ts';
 
 /**
@@ -32,6 +34,10 @@ export class Crates {
 	private crates = new Map<string, Crate>();
 	/** How deep each crate is: 0 at the start, 1 at the farthest point of the map. */
 	private depth = new Map<string, number>();
+	/** How far each crate is from the start along the floor (m). */
+	private fromStart = new Map<string, number>();
+	/** The dev crate at the start, if the map has it. */
+	private debug: string | null = null;
 	/** Counts fills, so refilling (admin) gives something new. */
 	private fills = 0;
 
@@ -48,6 +54,8 @@ export class Crates {
 			const d = distance[nearestPoint(nav, position)];
 			// The dev crate at the start is filled like the deepest, so there is more to look at.
 			this.depth.set(id, debug ? 1 : far > 0 && d !== undefined ? d / far : 0);
+			this.fromStart.set(id, d ?? Infinity);
+			if (debug) this.debug = id;
 			this.crates.set(id, {
 				id,
 				position,
@@ -61,16 +69,50 @@ export class Crates {
 		this.fill();
 	}
 
-	/** Shut every crate and fill it again, hidden. Seeded by the map seed. */
+	/**
+	 * Shut every crate and fill it again, hidden. Seeded by the map seed. Quest items still in a
+	 * crate stay in it: there is only one of each, and the roll would lose it.
+	 */
 	fill(): void {
 		const rng = new Rng(this.seed ^ 0x10075 ^ Math.imul(this.fills++, 0x9e3779b9));
 		for (const crate of this.crates.values()) {
+			const kept = crate.slots.filter((stack) => stack !== null && ITEMS[stack.item]?.quest);
 			crate.slots = rollCrate(this.depth.get(crate.id) ?? 0, rng);
 			crate.hidden = new Set(crate.slots.flatMap((stack, index) => (stack ? [index] : [])));
 			crate.user = null;
 			crate.opened = false;
 			crate.progress = 0;
+			for (const stack of kept) if (stack) this.put(crate, stack);
 		}
+	}
+
+	/**
+	 * Put something in one of the map's crates, on top of what the crate rolled (a rite's item).
+	 * `nearStart` picks the crate nearest the start; otherwise any but the dev crate, by `rng`.
+	 * Returns false if the map has no crate to put it in.
+	 */
+	stow(stack: ItemStack, rng: Rng, nearStart = false): boolean {
+		const all = [...this.crates.values()];
+		if (all.length === 0) return false;
+		const distance = (crate: Crate): number => this.fromStart.get(crate.id) ?? Infinity;
+		const out = all.filter((crate) => crate.id !== this.debug);
+		const crate = nearStart
+			? all.reduce((best, c) => (distance(c) < distance(best) ? c : best))
+			: rng.pick(out.length ? out : all);
+		this.put(crate, stack);
+		return true;
+	}
+
+	/**
+	 * Add a stack to a crate, hidden, after everything else in it so it is the last revealed. A
+	 * full crate loses its commonest thing (the first slot) to make room.
+	 */
+	private put(crate: Crate, stack: ItemStack): void {
+		const held = crate.slots.filter((s) => s !== null);
+		if (held.length >= crate.slots.length) held.shift();
+		held.push(stack);
+		crate.slots = crate.slots.map((_, index) => held[index] ?? null);
+		crate.hidden = new Set(held.map((_, index) => index));
 	}
 
 	get(id: string): Crate | null {

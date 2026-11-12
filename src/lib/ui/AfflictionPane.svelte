@@ -44,6 +44,7 @@
 						? {
 								name: ITEMS[requirement.item]?.name ?? requirement.item,
 								image: ITEMS[requirement.item]?.image,
+								quest: ITEMS[requirement.item]?.quest,
 								count: requirement.count
 							}
 						: null
@@ -78,6 +79,7 @@
 					<Slot
 						name={requirement?.name ?? null}
 						image={requirement?.image}
+						quest={requirement?.quest}
 						count={requirement?.count}
 					/>
 				</li>

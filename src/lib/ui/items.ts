@@ -40,45 +40,49 @@ export const FILTER_ICONS: Record<ItemFilter, string> = {
 	defense: 'M12 3l7 2.500v6c0 4.500-3 7.800-7 9.500-4-1.700-7-5-7-9.500v-6z',
 	quick: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',
 	treasure: 'M7 4h10l4 5-9 11L3 9z',
+	quest: 'M12 2l2.500 7.500L22 12l-7.500 2.500L12 22l-2.500-7.500L2 12l7.500-2.500z',
 	other:
 		'M6 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM18 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z'
 };
 
 /**
- * The mark in the bottom-left corner of an item's slot: its filter icon, for weapons, defense
- * and treasure. Other things have none.
+ * The mark in the bottom-left corner of an item's slot: its filter icon, for quest items,
+ * weapons, defense and treasure. Other things have none.
  */
 export function slotMark(item: string): { icon: string; label: string } | undefined {
 	const def = ITEMS[item];
 	if (!def) return undefined;
+	if (def.quest) return { icon: FILTER_ICONS.quest, label: 'Quest item' };
 	if (def.treasure) return { icon: FILTER_ICONS.treasure, label: 'Treasure' };
 	if (def.category === 'weapon') return { icon: FILTER_ICONS.weapon, label: 'Weapon' };
 	if (def.category === 'defense') return { icon: FILTER_ICONS.defense, label: 'Defense' };
 	return undefined;
 }
 
-/** What an item is called in its tooltip: its category, or Treasure. */
+/** What an item is called in its tooltip: its category, or Treasure, or Quest item. */
 export function categoryLabel(item: string): string {
 	const def = ITEMS[item];
 	if (!def) return '';
+	if (def.quest) return 'Quest item';
 	return def.treasure ? 'Treasure' : CATEGORY_LABELS[def.category];
 }
 
 /**
- * What a grid of items is showing: everything, one category, ammunition or treasure
- * (`ItemFilters`). Ammunition and treasure are in the `other` category for slotting, but have
- * filters of their own.
+ * What a grid of items is showing: everything, one category, ammunition, treasure or quest items
+ * (`ItemFilters`). Ammunition, treasure and quest items are in the `other` category for
+ * slotting, but have filters of their own.
  */
-export type ItemFilter = 'all' | ItemCategory | 'ammo' | 'treasure';
+export type ItemFilter = 'all' | ItemCategory | 'ammo' | 'treasure' | 'quest';
 
 /**
- * Whether an item is shown under a filter. Ammunition is listed under `ammo` and treasure under
- * `treasure`, not under `other`.
+ * Whether an item is shown under a filter. Ammunition is listed under `ammo`, treasure under
+ * `treasure` and quest items under `quest`, not under `other`.
  */
 export function matchesFilter(item: string, filter: ItemFilter): boolean {
 	if (filter === 'all') return true;
 	const def = ITEMS[item];
 	if (!def) return false;
+	if (def.quest) return filter === 'quest';
 	if (def.kind === 'ammo') return filter === 'ammo';
 	if (def.treasure) return filter === 'treasure';
 	return def.category === filter;

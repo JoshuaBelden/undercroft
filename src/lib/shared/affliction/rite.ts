@@ -24,7 +24,9 @@ export function revealed(spec: RiteSpec, clues: number): { slots: number; room: 
 export function riteSnapshot(spec: RiteSpec, clues: number): RiteSnapshot {
 	const known = revealed(spec, clues);
 	return {
-		requirements: spec.requirements.map((r, i) => (i < known.slots ? { ...r } : null)),
+		requirements: spec.requirements.map((r, i) =>
+			i < known.slots ? { item: r.item, count: r.count } : null
+		),
 		room: known.room ? spec.room : null,
 		seconds: spec.seconds
 	};

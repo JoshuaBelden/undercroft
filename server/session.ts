@@ -196,7 +196,8 @@ export class Session {
 			this.nav,
 			start,
 			this.seed,
-			this.items
+			this.items,
+			this.crates
 		);
 	}
 

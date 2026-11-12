@@ -116,6 +116,11 @@ export interface ItemDef {
 	treasure?: boolean;
 	/** How hard it is to come by; common when left out. */
 	rarity?: Rarity;
+	/**
+	 * A quest item: one of a kind, and needed for a rite. Listed under its own stash filter, with a
+	 * purple edge and a star on its slot in place of a rarity.
+	 */
+	quest?: boolean;
 	melee?: MeleeSpec;
 	firearm?: FirearmSpec;
 	throwable?: ThrowSpec;
@@ -140,6 +145,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'weapon',
 		flavor:
 			'A folding knife with a worn bone handle. Quick, quiet, and only as good as your nerve.',
+		image: 'knife',
 		model: '/assets/items/knife.glb',
 		hold: HOLD_RIGHT,
 		maxStack: 1,
@@ -152,6 +158,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'melee',
 		category: 'weapon',
 		flavor: 'A yard of cold iron. Slow to swing, and nothing gets up quickly after it lands.',
+		image: 'crowbar',
 		model: '/assets/items/crowbar.glb',
 		hold: HOLD_RIGHT,
 		maxStack: 1,
@@ -166,6 +173,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'quick',
 		flavor:
 			'A loose brick from the walls. Good for a few blows, or for making a noise somewhere you are not.',
+		image: 'brick',
 		model: '/assets/items/brick.glb',
 		hold: HOLD_RIGHT,
 		maxStack: 1,
@@ -188,6 +196,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'weapon',
 		flavor:
 			'Six chambers, and a report that carries a long way down here. Everything will know where you are.',
+		image: 'revolver',
 		model: '/assets/items/revolver.glb',
 		hold: HOLD_RIGHT,
 		maxStack: 1,
@@ -212,6 +221,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'firearm',
 		category: 'weapon',
 		flavor: 'Two barrels, cut short. Unanswerable up close; a rumour at any distance.',
+		image: 'shotgun',
 		model: '/assets/items/shotgun.glb',
 		hold: { offset: [0.2, -0.24, -0.5], scale: 1 },
 		maxStack: 1,
@@ -236,6 +246,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'ammo',
 		category: 'other',
 		flavor: 'Loose rounds for the revolver.',
+		image: 'revolver_shells',
 		model: '/assets/items/ammo-revolver.glb',
 		hold: HOLD_RIGHT,
 		maxStack: 30,
@@ -247,6 +258,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'ammo',
 		category: 'other',
 		flavor: 'Paper-cased shells for the shotgun. Keep them dry.',
+		image: 'shotgun_shells',
 		model: '/assets/items/ammo-shotgun.glb',
 		hold: HOLD_RIGHT,
 		maxStack: 20,
@@ -258,6 +270,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'consumable',
 		category: 'quick',
 		flavor: 'Clean linen. Binding something, even a small thing, steadies the mind.',
+		image: 'bandages',
 		model: '/assets/items/bandage.glb',
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
@@ -270,6 +283,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'consumable',
 		category: 'quick',
 		flavor: 'A stoppered vial that would wake the dead. Near enough, anyway.',
+		image: 'smelling_salts',
 		model: '/assets/items/salts.glb',
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
@@ -283,6 +297,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'defense',
 		category: 'defense',
 		flavor: 'Quilted wool, stiff with old wax. It will not stop them. It makes them work for it.',
+		image: 'padded_coat',
 		model: null,
 		placeholder: { size: [0.4, 0.12, 0.5], color: 0x4a4238 },
 		hold: HOLD_RIGHT,
@@ -298,6 +313,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		treasure: true,
 		flavor: 'Worn smooth. Laid on eyes once, or pressed into a palm for the crossing.',
+		image: 'coins',
 		model: null,
 		placeholder: { size: [0.08, 0.02, 0.08], color: 0x7a6a4a },
 		hold: HOLD_RIGHT,
@@ -312,6 +328,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		treasure: true,
 		flavor: 'Beads turned from knuckles. Someone counted on these for a long time.',
+		image: 'bone_rosary',
 		model: null,
 		placeholder: { size: [0.12, 0.02, 0.12], color: 0xb8ad94 },
 		hold: HOLD_RIGHT,
@@ -326,6 +343,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		treasure: true,
 		flavor: 'It came out easier than it should have.',
+		image: 'gold_tooth',
 		model: null,
 		placeholder: { size: [0.03, 0.03, 0.03], color: 0xc9a23a },
 		hold: HOLD_RIGHT,
@@ -341,6 +359,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		treasure: true,
 		flavor: 'A crest nobody above remembers. The gold is still gold.',
+		image: 'signet_ring',
 		model: null,
 		placeholder: { size: [0.04, 0.02, 0.04], color: 0xb8902e },
 		hold: HOLD_RIGHT,
@@ -356,6 +375,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		treasure: true,
 		flavor: 'Black with tarnish and heavy in the hand. It will clean up.',
+		image: 'silver_candlestick',
 		model: null,
 		placeholder: { size: [0.1, 0.3, 0.1], color: 0x8c9094 },
 		hold: HOLD_RIGHT,
@@ -371,6 +391,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		treasure: true,
 		flavor: 'Gilt inside, garnets round the stem. Whatever it held has dried to a stain.',
+		image: 'chalice',
 		model: null,
 		placeholder: { size: [0.12, 0.2, 0.12], color: 0xc2a64e },
 		hold: HOLD_RIGHT,
@@ -387,6 +408,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		treasure: true,
 		flavor:
 			'A casket of gold and rock crystal with something small and brown inside. They never ask where it lay.',
+		image: 'reliquary',
 		model: null,
 		placeholder: { size: [0.2, 0.2, 0.2], color: 0xd9b84a },
 		hold: HOLD_RIGHT,
@@ -402,7 +424,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'rite',
 		category: 'other',
 		flavor: 'Heavier than it should be, and never quite warm.',
-		image: 'gloaming-pendant',
+		image: 'pendant',
+		quest: true,
 		model: null,
 		placeholder: { size: [0.1, 0.03, 0.14], color: 0xb08a3a },
 		hold: HOLD_RIGHT,
@@ -416,6 +439,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'clue',
 		category: 'other',
 		flavor: 'A torn scrap in a cramped hand.',
+		image: 'note',
 		model: null,
 		placeholder: { size: [0.21, 0.01, 0.3], color: 0xcfc4a6 },
 		hold: HOLD_RIGHT,
