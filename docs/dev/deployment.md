@@ -71,3 +71,7 @@ docker compose -f docker-compose.prod.yml --env-file ../.env logs -f game
 **Moving to managed MongoDB** later only means pointing `MONGODB_URI` for `web` and `game` at it in `docker-compose.prod.yml` and dropping the `mongo` service.
 
 A CDN (DigitalOcean Spaces CDN) in front of `/assets` isn't needed for the beta: assets are cached forever after the first visit. Revisit it if players are far from the droplet's region.
+
+## Changing the domain
+
+Point the new name's A record at the droplet, then on the droplet set `DOMAIN=<new name>` in `/opt/undercroft/.env` and run `docker compose -f docker-compose.prod.yml --env-file ../.env up -d` in `/opt/undercroft/app`. Caddy gets a certificate for the new name by itself. Until there is a real domain, `<ip-with-dashes>.sslip.io` (a public DNS name that resolves to the IP inside it) works for HTTPS.

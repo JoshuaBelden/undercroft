@@ -17,7 +17,7 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Help system complete and reviewed
 - Settings complete: graphics, audio, controls, accessibility
 - Performance pass (light budget, model LODs, KTX2 textures, network bandwidth). Asset baseline: 15 MB in `static/assets` after meshopt and Opus (Nov 2026; textures are 3.9 MB of it).
-- First deploy to DigitalOcean: provision and release (see docs/dev/deployment.md), then check solo and co-op over `wss` on the live domain, and that sounds decode in Safari.
+- Live beta checks on https://64-23-154-42.sslip.io (s-1vcpu-1gb droplet in sfo3): solo and co-op over `wss`, sounds decode in Safari. Then buy a domain, point an A record at 64.23.154.42 and set `DOMAIN` in /opt/undercroft/.env (see docs/dev/deployment.md).
 - Balance pass: meter pacing, loot values, Thrall difficulty, candle tiers
 - Fix map clipping - Approaching a crawl section you can see through the map, and rubble dead ends has a triangle you can see through.
 
@@ -49,3 +49,4 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Gear durability and repair costs; repair in the hub (moved from Phase 5)
 - Rope, climbing, descending, mapping by laying out on ground
 - Jumping, mantling
+- feats, season pass
