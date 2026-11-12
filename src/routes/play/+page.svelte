@@ -196,11 +196,27 @@
 		if (expedition) void canvas.requestPointerLock();
 	}
 
+	/**
+	 * Back to play from the admin screen: moving does it, so you can try a change at once.
+	 * A key press counts as a user gesture, so the pointer can be captured again here.
+	 */
+	function closeAdmin(): void {
+		if (panel !== 'admin') return;
+		panel = null;
+		if (expedition && !mapView) void canvas.requestPointerLock();
+	}
+
 	function toggle(name: PanelName): void {
 		// With a crate open, the pack and menu keys put it away and nothing more.
 		if (panel === 'crate') {
 			closeCrate();
 			if (name === 'inventory' || name === 'settings') return;
+		}
+		// Esc on the admin screen just closes it; Esc again opens settings. (Esc can't capture the
+		// pointer: browsers don't count it as a user gesture. A click or a move key does.)
+		if (panel === 'admin' && name === 'settings') {
+			panel = null;
+			return;
 		}
 		const closing = panel === name;
 		// The pack can only be opened while you are down there and not on the floor.
@@ -989,7 +1005,7 @@
 				case 'inventory':
 					toggle('inventory');
 					break;
-				// Walking away from a loot crate puts it away.
+				// Walking away from a loot crate puts it away; moving also leaves the admin screen.
 				case 'moveForward':
 				case 'moveBack':
 				case 'moveLeft':
@@ -997,6 +1013,7 @@
 				case 'climb':
 				case 'stance':
 					closeCrate();
+					closeAdmin();
 					break;
 				case 'ritePanel':
 					// An overlay, not a menu: play goes on under it.

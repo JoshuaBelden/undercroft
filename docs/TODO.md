@@ -17,9 +17,7 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Ready
 
-- admin screen escape should close, not open settings
-- Weapon reload mechanics, audio
-- Add item models that show in hands
+- Add item models that show in hands - usage and reload should show center progress
 - Improved background image on dashboard
 - Explore and extract effects
 - Players should see other users health
@@ -32,6 +30,7 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - We need bigger maps with multiple extraction rooms
 - Gloaming rite, full requirements: 5 candles, 1 chalk, the Pendant
 - Review Lore and Flavor text
+- Shoulder swap weapons
 
 ## Backlog: Beta polish and deployment
 

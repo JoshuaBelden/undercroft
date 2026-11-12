@@ -64,19 +64,19 @@ Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played
 
 `settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y), `graphics` (FOV, brightness, quality, camera shake, fullscreen) and `accessibility` (subtitles and sound captions, caption size; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
 
-**The settings screen** is `src/lib/ui/Settings.svelte`. It fills the window: a top bar whose tabs are the groups (Account, Audio, Graphics, Mouse, Accessibility, Interface, Controls) and a Back button, the selected group's title, then that group's settings in a container that scrolls on its own, so the screen never grows past the window.
+**The settings screen** is `src/lib/ui/Settings.svelte`, built on `TabScreen.svelte` (the admin screen uses the same one). A `TabScreen` fills the window: a top bar whose tabs are the groups (here Account, Audio, Graphics, Mouse, Accessibility, Interface, Controls) and a Back button, the selected group's title, then that group's fields in a container that scrolls on its own, so the screen never grows past the window. It styles the field classes for everything inside it: `setting` (a row: pill, then `hint`), `pill` (`name` left, `value` right; a `button.pill` is an action, a `label.pill` with a text input is an entry), and its `actions` and `footer` snippets add bar buttons and a footer.
 
 - **On the dashboard** it is the `/settings` page (`src/routes/settings/`), outside the `(hub)` group so it replaces the dashboard's bar. Back (or the `toggleSettings` key) returns to the page you came from.
 - **In `/play`** (underground) it is laid over the game with the `dim` prop, opened by `toggleSettings`. It is not a navigation there, so the game keeps running behind it. The page passes `onvolume`, `ongraphics` and `onaccount` so changes apply at once.
 
-Every setting is a pill (`--setting-width`, 400px) with its name on the left and its value on the right, and no value needs the keyboard except the gamer tag. Two snippets draw them:
+Every setting is a pill (`--setting-width`, 400px) with its name on the left and its value on the right, and no value needs the keyboard except the gamer tag. Two components draw them:
 
-- `slider` for numbers: the pill itself is the slider, filled up to the value.
-- `stepper` for choices and on/off: `<` and `>` either side of the value step through the options and wrap round.
+- `SliderField` for numbers: the pill itself is the slider, filled up to the value.
+- `StepperField` for choices and on/off: `<` and `>` either side of the value step through the options and wrap round.
 
 An optional `hint` is shown beside the pill.
 
-**Adding a setting:** add it to `Settings` and `defaults()`, then render a `slider` or `stepper` for it in its group in `Settings.svelte`. Keep the label short enough for the pill and put the explanation in `hint`.
+**Adding a setting:** add it to `Settings` and `defaults()`, then render a `SliderField` or `StepperField` for it in its group in `Settings.svelte`. Keep the label short enough for the pill and put the explanation in `hint`.
 
 ## Fullscreen
 
@@ -140,7 +140,11 @@ Blank lines separate paragraphs. `{action:name}` renders the current binding. `H
 
 `devMode` (`src/lib/dev.ts`) is true on the dev server or when `PUBLIC_DEV_MODE=true`. `AdminPanel` (F10) renders nothing unless `devMode` is true. Gate every debug tool the same way.
 
-Current tools: connection, session and player IDs; stats overlay toggle (F3); map seed and regenerate; map debug view; noclip, infinite stamina and battery, and teleport to rooms. Player commands are sent to the server, which only accepts them when its own `DEV_MODE=true` (see [player.md](player.md)).
+**The admin screen** is a `TabScreen` laid like settings, one group per area: Session (connection, IDs, stats overlay), Map (seed, regenerate, debug view), Player (cheat toggles, sanity, teleport to rooms), Items (give, refill ammo, reset crates), Affliction (meter, force manifestation, banish), Rite, Creatures and Account (surface grants). It reopens on the group last used. To add a tool, put it in its group in `AdminPanel.svelte` with the same fields: `StepperField` for on/off, the `action` snippet for a command, a `form.setting` with a `label.pill` input and a submit button for a value.
+
+- **Leaving it:** a move key (`moveForward`, `moveBack`, `moveLeft`, `moveRight`, `climb`, `stance`) closes it and captures the mouse again, so a change can be tried at once. Esc only closes it; Esc again opens settings. Esc can't capture the mouse (browsers don't count it as a user gesture), so click or move to carry on. `InputMap` passes Esc through even from a text field.
+
+Player commands are sent to the server, which only accepts them when its own `DEV_MODE=true` (see [player.md](player.md)).
 
 ## Typefaces
 

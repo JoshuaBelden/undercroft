@@ -118,7 +118,9 @@ export class InputMap {
 	};
 }
 
+/** In a text field, keys are typing, not game input. Esc still gets out of a menu. */
 function isTyping(event: KeyboardEvent): boolean {
+	if (event.code === 'Escape') return false;
 	const element = event.target as HTMLElement | null;
 	return element?.tagName === 'INPUT' || element?.tagName === 'TEXTAREA';
 }
