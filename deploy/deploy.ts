@@ -56,6 +56,7 @@ try {
 	console.log(`Uploading ${version} (${commit}) to ${target}...`);
 	run('ssh', [target, 'mkdir -p /opt/undercroft']);
 	run('scp', [archive, `${target}:/opt/undercroft/release.tar.gz`]);
+	const compose = 'docker compose -f docker-compose.prod.yml --env-file ../.env';
 	const remote = [
 		'set -e',
 		'cd /opt/undercroft',
@@ -63,7 +64,10 @@ try {
 		'rm -rf app.next && mkdir app.next && tar xzf release.tar.gz -C app.next',
 		'rm -rf app && mv app.next app && rm release.tar.gz',
 		'cd app',
-		'docker compose -f docker-compose.prod.yml --env-file ../.env up -d --build --remove-orphans',
+		`${compose} up -d --build --remove-orphans`,
+		// Caddy's Caddyfile is a single-file mount, so a running Caddy keeps the old file after `app`
+		// is replaced. Recreate it when what it runs differs from the new one.
+		`{ ${compose} exec -T caddy cat /etc/caddy/Caddyfile | cmp -s - deploy/Caddyfile || ${compose} up -d --force-recreate caddy; }`,
 		'docker image prune -f'
 	].join(' && ');
 	run('ssh', [target, remote]);

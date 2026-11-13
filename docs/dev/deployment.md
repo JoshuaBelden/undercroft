@@ -48,7 +48,7 @@ Commit first: the deploy ships `git archive HEAD` (or the tag or commit given wi
 pnpm deploy:release --host <droplet ip or domain> --domain play.example.com
 ```
 
-On the droplet, `/opt/undercroft/.env` (production settings: `DOMAIN`, `MONGODB_DB`) is written on the first deploy and never touched again. `/opt/undercroft/app` is replaced each time. `docker compose up -d --build` then rebuilds the image and restarts what changed. The database lives in the `undercroft_mongo-data` volume and survives deploys. Players connected to the game server are dropped when it restarts; they reconnect into the hub.
+On the droplet, `/opt/undercroft/.env` (production settings: `DOMAIN`, `MONGODB_DB`) is written on the first deploy and never touched again. `/opt/undercroft/app` is replaced each time. `docker compose up -d --build` then rebuilds the image and restarts what changed. Caddy's Caddyfile is mounted as a single file, so a running Caddy would keep the old one: the deploy compares the two and recreates Caddy when they differ (a couple of seconds offline). The database lives in the `undercroft_mongo-data` volume and survives deploys. Players connected to the game server are dropped when it restarts; they reconnect into the hub.
 
 Production always runs with `DEV_MODE=false` and `PUBLIC_DEV_MODE=false` (set in `docker-compose.prod.yml`), so the in-game debug tools (F10) never ship enabled. The admin app is a different thing, behind its own sign-in. `PUBLIC_GAME_SERVER_URL` is `wss://<DOMAIN>/ws`, and the game server only accepts WebSockets on `/ws` (`GAME_SERVER_PATH`).
 
