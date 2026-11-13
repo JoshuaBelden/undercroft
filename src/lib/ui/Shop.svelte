@@ -4,6 +4,7 @@
 	import { SHOP, money, type ShopEntry } from '#lib/content/economy.ts';
 	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
+	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import ItemFilters from './ItemFilters.svelte';
 	import {
@@ -74,7 +75,8 @@
 		busy = false;
 	}
 
-	// Escape closes the details. Caught before the dashboard hears it, which would open Settings.
+	// Escape closes the details (the controller's B too: menu() below). Caught before the dashboard
+	// hears it, which would open Settings.
 	$effect(() => {
 		if (!selected) return;
 		const onKey = (event: KeyboardEvent): void => {
@@ -129,7 +131,12 @@
 </div>
 
 {#if entry}
-	<aside class="details" aria-labelledby="details-title" transition:fly={{ x: 420, duration: 220 }}>
+	<aside
+		class="details"
+		aria-labelledby="details-title"
+		transition:fly={{ x: 420, duration: 220 }}
+		{@attach menu({ back: close })}
+	>
 		<header>
 			<div class="picture">
 				{#if def?.image}
@@ -186,7 +193,7 @@
 			</p>
 			<p class="purse">You have {@render coins(explorer.money)}</p>
 			<div class="buy">
-				<div class="quantity">
+				<div class="quantity" data-pad-stepper>
 					<button
 						type="button"
 						aria-label="One fewer"

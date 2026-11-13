@@ -6,12 +6,10 @@ Keyboard, mouse and controller all work at the same time, as in most PC games. W
 
 ## Status
 
-| Part                                | What                                                                                                                                             | State   |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
-| 1. The controller plays the game    | Reading controllers, analog move and look, creeping and sprint, wheels, playing without the mouse captured, icons, rumble, settings, admin, help | Done    |
-| 2. The controller drives every menu | Focus navigation on every screen, item slots, dialogs, the dashboard pages                                                                       | Planned |
-
-Until part 2 lands, these need the mouse: the pack, loot crates, the settings overlay, the spectate bar, the results screen's Continue and the Ready button.
+| Part                                | What                                                                                                                                             | State |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| 1. The controller plays the game    | Reading controllers, analog move and look, creeping and sprint, wheels, playing without the mouse captured, icons, rumble, settings, admin, help | Done  |
+| 2. The controller drives every menu | Focus navigation on every screen, item slots, dialogs, the dashboard pages                                                                       | Done  |
 
 ## Files
 
@@ -21,6 +19,8 @@ Until part 2 lands, these need the mouse: the pack, loot crates, the settings ov
 | `src/lib/game/input/device.svelte.ts` | `device`, the last device used (reactive); the bindings to show for it                  |
 | `src/lib/game/input/actions.ts`       | `PAD_DEFAULTS`, `defaultPadBindings()`, labels for controller buttons                   |
 | `src/lib/game/input/InputMap.ts`      | Controller buttons as actions, beside keys and mouse buttons; the sticks                |
+| `src/lib/game/input/menus.ts`         | Menus: `menu()`, focus moved by the D-pad and stick, A/B/X/Y, tabs, scrolling           |
+| `src/lib/ui/ItemSlot.svelte`          | Item slots with a controller: carry, send, the item menu (`ItemBoard.carry`)            |
 | `src/lib/settings/settings.svelte.ts` | `padBindings` and the `controller` group                                                |
 | `src/lib/game/player/LocalPlayer.ts`  | Analog movement, creeping on a light push, toggle sprint, stick look, the wheel pointer |
 | `src/lib/content/rumble.ts`           | Rumble effects (data)                                                                   |
@@ -39,8 +39,9 @@ The Gamepad API has no button events: the state has to be read every frame. `gam
 - **Only while the window has focus** (`document.hasFocus()`), as the keyboard already behaves.
 - **Dead zone:** radial, `settings.controller.deadZone` (15% by default). Inside it a stick reads 0; past it, the value is rescaled to start from 0.
 - **Triggers** (LT/RT) are analog: they count as pressed past `TRIGGER_PRESS`.
-- **The left stick also presses the move actions.** A direction counts as pressed while that axis is past `STICK_PRESS`, so everything that reacts to a move key (walking away from a crate closes it, moving leaves the admin screen) also reacts to the stick.
+- **The left stick also presses the move actions.** A direction counts as pressed while that axis is past `STICK_PRESS`, so everything that reacts to a move key (walking away from a crate closes it, moving leaves the admin screen) also reacts to the stick. Not while a menu is open: there the stick moves the focus, and B closes the crate or the admin screen.
 - **Dialogs:** while a modal `<dialog>` is open, controller presses don't reach the `InputMap`. Key presses don't either (`Dialog.svelte` stops them).
+- **Menus:** while a menu is open, the buttons it moves with don't reach the `InputMap` (see [Menus](#menus)).
 
 ## The last device used
 
@@ -110,7 +111,7 @@ Sound needs a gesture too, but only once per page load ("sticky" activation); si
 
 The id isn't reliable everywhere: on Windows, Chrome and Firefox name every XInput controller the same, and a PlayStation controller through Steam Input looks like an Xbox one. Settings > Controller > Button icons (Auto / Xbox / PlayStation) overrides the detection.
 
-In help text, `{action:name}` renders the binding for the device in use. `{pad:name}` always renders the controller button (the Controller topic uses it).
+In help text, `{action:name}` renders the binding for the device in use. `{pad:name}` always renders the controller button, and `{button:PadA}` a fixed one (the menu buttons); the Playing with a controller topic uses both.
 
 ## Rumble
 
@@ -128,21 +129,37 @@ Settings > Controller: look sensitivity, invert Y (separate from the mouse's), s
 
 Admin > Controller (dev only): each connected controller with its id, layout and detected icon set, its sticks, triggers and buttons live, and a Test rumble button. Use it to check a new controller or browser.
 
-## Menus (part 2)
+## Menus
 
-Every screen is built from native buttons and inputs, so one focus system drives them all:
+Every screen is built from native buttons, links and inputs, so one focus system drives them all (`menus.ts`):
 
-- The D-pad or left stick moves the focus to the nearest control in that direction, with a visible highlight and a quiet `ui.focus` tick.
-- A presses; B backs out one step, the same chain as Esc (dialog, then panel, then page).
-- LB/RB switch tabs (settings, admin, the dashboard); the right stick scrolls the list under the focus.
-- On a focused slider or stepper, left and right change the value instead of moving away.
-- A screen opens with its first control focused, or the one last used there.
+- The D-pad or left stick moves the focus to the nearest control that way (held, it repeats), with a quiet `ui.focus` tick.
+- A presses it. B backs out one step, the same chain as Esc: dialog, then panel, then page. On the dashboard B goes back to the Expedition page.
+- LB/RB switch tabs: the settings and admin groups, the dashboard's tabs (from the store or social, to the first or last).
+- The right stick scrolls whatever scrolls around the focus.
+- On a slider, or a stepper (a value with arrows either side), left and right change the value instead of moving away.
+- A menu opens on its first control outside its header (where tabs and Close are), or on the one used last there: the dashboard remembers each page, settings and admin each group.
+- Typing (sign-in, a gamer tag, the store's quantity) still needs a keyboard; there is no on-screen keyboard.
 
-Item slots: A picks an item up (slots that would take it are lit dark blue, as when dragging), A on a lit slot puts it down, B cancels. Y opens the item menu, X sends the item where it belongs (shift-click). This uses `ItemBoard.startDrag` and `dropOn`, so the rules for what goes where stay in one place.
+**Which menu has the controller.** A screen marks its root with `{@attach menu({ back, tabs, key })}`. The one on top gets the controller: inside an open modal dialog if there is one, otherwise the one latest in the page (an overlay is rendered after what it covers, a menu inside another after that one). While any menu is open it keeps the D-pad, the left stick's directions, A, B, X, Y, LB and RB from the `InputMap`; View and Menu (the pack and settings) still work. So D-pad right moves the focus instead of opening Help while a menu is open; on the dashboard Help is the ? button.
 
-Some actions sit on menu buttons: D-pad right is Help, View the pack, Menu the settings. While a menu has the focus, the D-pad moves it and those actions wait.
+**The focus** is the browser's own, set with `focus({ focusVisible: true })`, so the `:focus-visible` styles keyboard users see are the highlight. While a controller is in use, something in the open menu always has the focus: when a menu opens, or the focused control goes away (a tab switch, an item taken), it moves to the control used last, else the nearest to where it was.
 
-It covers every dashboard page, the settings page, Help and every dialog. Typing (sign-in, the gamer tag) still needs a keyboard; there is no on-screen keyboard.
+**Item slots.** A picks an item up; the slots that would take it are lit dark blue, as when dragging, and the one with the focus is lit when it would take it. A on a lit slot puts it down, A on the slot it came from (or B) puts it back. X sends an item where it belongs (shift-click), Y opens the item menu at the slot. Carrying is `ItemBoard`'s dragging (`ItemBoard.carry`), so the rules for what goes where stay in one place.
+
+**Markup that steers it:**
+
+| Markup                                      | What                                                                                                                                                              |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{@attach menu({ back, tabs, key })}`       | A menu. `back` is B, `tabs(by)` is LB (-1) / RB (1), `key` remembers the control used last across openings                                                        |
+| `data-pad-first`                            | Open on the first control inside this; while it has none, wait for one (a crate's slots, revealed one by one)                                                     |
+| `data-pad-scroll`                           | What the right stick scrolls when nothing around the focus does (a `TabScreen`'s fields, with the focus on its tabs, as in Help)                                  |
+| `data-pad-stepper`                          | One stop for a value with buttons either side (and maybe a field between): left and right press its first and last buttons (`StepperField`, the store's quantity) |
+| `padpress` event (`CustomEvent<PadButton>`) | Sent to the focused control before A, B, X or Y does anything; `preventDefault()` says it was handled (`ItemSlot.svelte`)                                         |
+
+**Adding a screen:** give its root `{@attach menu({ back: onclose })}`. `Panel`, `Dialog` and `TabScreen` already have it, so screens built from them need nothing more. Buttons and links inside just work.
+
+It covers every dashboard page and the account menu, the settings, account, About and error pages, Help, every dialog (the bug report too), the pack, crates, the settings and admin overlays, the store's item details, the spectate bar, the results screen and the launch countdown. The sign-in pages are left out: they need typing.
 
 ## Testing
 

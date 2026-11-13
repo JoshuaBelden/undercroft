@@ -1593,12 +1593,10 @@
 		title={crate.corpse ? 'Corpse' : 'Crate'}
 		slots={crate.slots}
 		reveal={crate.reveal}
-		moveKeys={device.kind === 'pad'
-			? 'left stick'
-			: (['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)
-					.map((action) => bindingLabel(settings.bindings[action][0] ?? ''))
-					.filter((label) => label)
-					.join(' / ')}
+		moveKeys={(['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)
+			.map((action) => bindingLabel(settings.bindings[action][0] ?? ''))
+			.filter((label) => label)
+			.join(' / ')}
 		onaction={(action) => sendInventory(action)}
 		onclose={() => closeCrate()}
 	/>

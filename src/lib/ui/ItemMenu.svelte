@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { menu } from '#lib/game/input/menus.ts';
 	import type { MenuEntry } from './itemBoard.svelte.ts';
 
 	/**
@@ -66,6 +67,7 @@
 	bind:clientHeight={height}
 	onkeydown={key}
 	{@attach focusFirst}
+	{@attach menu({ back: onclose })}
 >
 	{#each entries as entry (entry.id)}
 		<button type="button" role="menuitem" onclick={() => onchoose(entry.id)}>

@@ -29,8 +29,12 @@
 	type Part = { text: string } | { keys: string[] };
 	type Block = { list: false; parts: Part[] } | { list: true; items: Part[][] };
 
-	/** The bindings a token shows: `{action:name}` the device in use's, `{pad:name}` the controller's. */
+	/**
+	 * The bindings a token shows: `{action:name}` the device in use's, `{pad:name}` always the
+	 * controller's, `{button:PadA}` that controller button.
+	 */
 	function codes(kind: string, name: string): readonly string[] {
+		if (kind === 'button') return [name];
 		if (kind === 'pad') return settings.padBindings[name as Action] ?? [];
 		return promptCodes(name as Action);
 	}
@@ -38,7 +42,7 @@
 	function parts(line: string): Part[] {
 		const out: Part[] = [];
 		let last = 0;
-		for (const match of line.matchAll(/\{(action|pad):(\w+)\}/g)) {
+		for (const match of line.matchAll(/\{(action|pad|button):(\w+)\}/g)) {
 			if (match.index > last) out.push({ text: line.slice(last, match.index) });
 			const shown = codes(match[1] ?? '', match[2] ?? '');
 			out.push(shown.length ? { keys: [...shown] } : { text: 'unbound' });

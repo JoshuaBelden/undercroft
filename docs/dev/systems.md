@@ -50,6 +50,8 @@ Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. M
 
 **Controllers** play through the same actions, with their buttons bound apart from the keys (`settings.padBindings`); the sticks are `input.moveStick()` and `input.lookStick()`. See [controller.md](controller.md).
 
+**Menus** take the controller's D-pad and face buttons: a screen's root gets `{@attach menu({ back: onclose })}` (`menus.ts`), and its buttons and links work with the controller. `Panel`, `Dialog` and `TabScreen` already have it. See [controller.md](controller.md#menus).
+
 **Adding an action:** add it to `ACTIONS`, and its controller button (or none) to `PAD_DEFAULTS`. It appears in the settings controls list automatically. Use `{action:name}` in help text to show the player's binding.
 
 ## Audio
@@ -107,7 +109,7 @@ An optional `hint` is shown beside the pill.
 {/if}
 ```
 
-Render it only while it should be open. It is a native modal `<dialog>`: focus stays inside it, the page behind cannot be clicked, and Escape calls `onclose`. Key presses inside it do not reach the `InputMap`, so Escape closes the dialog and not the screen under it. The settings screen's "Reset to defaults" is the first use.
+Render it only while it should be open. It is a native modal `<dialog>`: focus stays inside it, the page behind cannot be clicked, and Escape (or a controller's B) calls `onclose`. Key presses inside it do not reach the `InputMap`, so Escape closes the dialog and not the screen under it. The settings screen's "Reset to defaults" is the first use.
 
 ## Slots
 
@@ -138,7 +140,7 @@ Help topics are data in `src/lib/content/help/index.ts`:
 { id: 'headlamp', title: 'Headlamp', category: 'Surviving', body: 'Press {action:headlamp} to...' }
 ```
 
-Blank lines separate paragraphs, and a paragraph whose lines all start with `- ` is a list. `{action:name}` shows the player's current binding as a key cap (`KeyCap`), or "unbound": the controller's button while a controller is in use. `{pad:name}` shows the controller's button (see [controller.md](controller.md#button-icons)). `category` is one of `HELP_CATEGORIES` (Getting started, Expeditions, The surface, Moving, Surviving, Gear and loot, The Gloaming, Settings). Each is a tab of the help screen, with its topics in the order they appear in the file.
+Blank lines separate paragraphs, and a paragraph whose lines all start with `- ` is a list. `{action:name}` shows the player's current binding as a key cap (`KeyCap`), or "unbound": the controller's button while a controller is in use. `{pad:name}` and `{button:PadA}` show controller buttons (see [controller.md](controller.md#button-icons)). `category` is one of `HELP_CATEGORIES` (Getting started, Expeditions, The surface, Moving, Surviving, Gear and loot, The Gloaming, Settings). Each is a tab of the help screen, with its topics in the order they appear in the file.
 
 `HelpScreen.svelte` is a full-window `TabScreen`, like the settings: a tab per section, with the section's articles as plain text in one readable column. It opens with F1 (`toggleHelp`) or the ? button on the dashboard, and over the game view underground (darkened, `dim`). New players start on Getting started: "Your first descent" and "Keys". Add topics for each feature as it ships, and keep both of those up to date when the first steps or the main keys change.
 

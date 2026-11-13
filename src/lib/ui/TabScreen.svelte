@@ -1,5 +1,6 @@
 <script lang="ts" generics="G extends string">
 	import type { Snippet } from 'svelte';
+	import { menu } from '#lib/game/input/menus.ts';
 
 	/**
 	 * A full-window screen whose top bar's tabs are its groups: the settings screen and the
@@ -38,9 +39,20 @@
 		footer,
 		children
 	}: Props = $props();
+
+	/** The controller's LB/RB: the group before or after, round. */
+	function step(by: -1 | 1): void {
+		group = groups[(groups.indexOf(group) + by + groups.length) % groups.length] ?? group;
+	}
 </script>
 
-<section class="screen" class:dim class:solid aria-label={label}>
+<section
+	class="screen"
+	class:dim
+	class:solid
+	aria-label={label}
+	{@attach menu({ back: onclose, tabs: step, key: `${label}/${group}` })}
+>
 	<header>
 		<nav aria-label="{label} groups">
 			{#each groups as name (name)}
@@ -62,7 +74,7 @@
 		<div class="content">
 			<h1>{group}</h1>
 
-			<div class="fields">
+			<div class="fields" data-pad-scroll>
 				{@render children()}
 			</div>
 

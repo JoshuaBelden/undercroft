@@ -111,6 +111,18 @@ export class ItemBoard {
 		}
 	}
 
+	/**
+	 * The controller's A on a slot (docs/dev/controller.md): pick up what is there, or put down
+	 * what is carried, on a slot that takes it or back where it came from. Carrying is dragging.
+	 */
+	carry(ref: SlotRef, stack: ItemStack | null): void {
+		const dragging = this.dragging;
+		if (!dragging) {
+			if (stack && !this.locked) this.startDrag(ref, stack);
+		} else if (same(dragging.ref, ref)) this.endDrag();
+		else if (this.allows(ref)) this.dropOn(ref);
+	}
+
 	/** Shift-click: straight to where it belongs on the other side. */
 	quick(ref: SlotRef): void {
 		if (!this.locked) this.options.act({ kind: 'quick', from: ref });

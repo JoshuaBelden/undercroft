@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { menu } from '#lib/game/input/menus.ts';
+
 	interface Props {
 		/** Who is being watched; empty while there is nobody to show yet. */
 		name: string;
@@ -9,7 +11,7 @@
 	let { name, onnext, onleave }: Props = $props();
 </script>
 
-<div class="bar">
+<div class="bar" {@attach menu()}>
 	<span class="label">You are dead</span>
 	<span class="watching">{name ? `Watching ${name}` : 'Waiting for the others...'}</span>
 	<button type="button" onclick={onnext}>Next</button>

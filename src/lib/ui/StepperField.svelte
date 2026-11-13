@@ -16,7 +16,7 @@
 <div class="setting">
 	<div class="pill steps" role="group" aria-label={label}>
 		<span class="name">{label}</span>
-		<span class="stepper">
+		<span class="stepper" data-pad-stepper>
 			<button
 				type="button"
 				class="arrow"

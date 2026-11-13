@@ -7,6 +7,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { startGamepads } from '#lib/game/input/gamepad.ts';
+	import { onMenuMove } from '#lib/game/input/menus.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { connection, start } from '#lib/game/net/connection.svelte.ts';
@@ -44,11 +45,21 @@
 		const from = navigation.from?.route.id;
 		const to = navigation.to?.route.id;
 		if (!from || !to || from === to || from === '/play' || to === '/play') return;
+		menuSound('ui.click');
+	});
+
+	// The controller moving the focus in a menu, anywhere: a quiet tick (docs/dev/controller.md).
+	onMount(() => onMenuMove(() => menuSound('ui.focus')));
+
+	function menuSound(id: 'ui.click' | 'ui.focus'): void {
+		// Until the page is clicked or a key pressed, the browser keeps it silent (a controller
+		// doesn't count): skip the sound rather than have them all play at the first click.
+		if (!navigator.userActivation.hasBeenActive) return;
 		for (const category of ['master', 'sfx'] as const) {
 			audio.setVolume(category, settings.audio[category]);
 		}
-		void audio.unlock().then(() => sounds.play('ui.click'));
-	});
+		void audio.unlock().then(() => sounds.play(id));
+	}
 
 	onMount(() => () => audio.dispose());
 

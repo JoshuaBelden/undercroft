@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
+	import { menu } from '#lib/game/input/menus.ts';
 	import { GAME_VERSION } from '#lib/shared/version.ts';
 	import { parallax } from '#lib/ui/parallax.ts';
 
@@ -11,10 +13,27 @@
 		{ path: '/about/changes', label: "What's new" },
 		{ path: '/about/credits', label: 'Credits' }
 	] as const;
+
+	/** The controller's B: to the dashboard, as Back is. */
+	function back(): void {
+		void goto(resolve('/(hub)'));
+	}
+
+	/** The controller's LB/RB: the tab before or after, round. */
+	function switchTab(by: -1 | 1): void {
+		const at = TABS.findIndex((tab) => tab.path === page.route.id);
+		const tab = TABS[(at + by + TABS.length) % TABS.length];
+		if (tab) void goto(resolve(tab.path));
+	}
 </script>
 
 <!-- Open without signing in (src/hooks.server.ts), so the sign-in page can link here. -->
-<div class="about backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
+<div
+	class="about backdrop-art"
+	style:--backdrop-image={BACKDROP_IMAGE}
+	use:parallax
+	{@attach menu({ back, tabs: switchTab, key: page.route.id ?? undefined })}
+>
 	<header>
 		<nav aria-label="About">
 			{#each TABS as tab (tab.path)}

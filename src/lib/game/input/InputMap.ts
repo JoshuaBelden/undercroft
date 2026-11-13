@@ -1,6 +1,7 @@
 import { ACTIONS, type Action, type Bindings } from './actions.ts';
 import type { InputDevice } from './device.svelte.ts';
 import { pads, type Stick } from './gamepad.ts';
+import { menuTakes } from './menus.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
 
 /** `device` says what pressed it: the keyboard or mouse, or a controller. */
@@ -100,9 +101,12 @@ export class InputMap {
 		}
 	}
 
-	/** A dialog keeps key presses from the game (Dialog.svelte), and the controller's too. */
+	/**
+	 * A dialog keeps key presses from the game (Dialog.svelte), and the controller's too. An open
+	 * menu keeps the buttons it moves with (menus.ts).
+	 */
 	private onPadPress = (code: string): void => {
-		if (document.querySelector('dialog:modal')) return;
+		if (document.querySelector('dialog:modal') || menuTakes(code)) return;
 		this.fire(code, settings.padBindings, 'pad', null);
 	};
 
