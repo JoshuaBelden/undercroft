@@ -122,6 +122,20 @@ export async function adminAccount(
 	session.account = await api<AccountView>('/api/admin', 'POST', change);
 }
 
+/**
+ * Delete the account for good, confirmed with the gamer tag typed out, the password (if it has
+ * one) and a two-step code (if that is on). Then off to the sign-in page. Throws `ApiError`.
+ */
+export async function deleteAccount(confirm: {
+	gamerTag: string;
+	password: string;
+	code: string;
+}): Promise<void> {
+	await api('/api/account', 'DELETE', confirm);
+	session.account = null;
+	location.href = '/auth/sign-in';
+}
+
 export async function signOut(): Promise<void> {
 	await api('/api/auth/sign-out', 'POST');
 	session.account = null;

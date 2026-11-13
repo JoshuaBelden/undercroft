@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { GAME_ORIGIN } from '$app/env/private';
 import { database } from '#lib/server/db.ts';
 import { explorersOf, memberRow, sessionCount } from '#lib/server/members.ts';
@@ -8,6 +8,7 @@ import {
 	ADMIN,
 	activeSuspension,
 	audit,
+	deleteAccount,
 	deleteSessionsFor,
 	disableTotp,
 	getAccount,
@@ -174,5 +175,19 @@ export const actions: Actions = {
 		await setRole(db, account._id, false);
 		await audit(db, admin, 'removeAdmin', account._id, account.gamerTag);
 		return { notice: 'No longer an admin' };
+	},
+
+	/** Delete the account for good (docs/dev/accounts.md#deleting-an-account). */
+	delete: async ({ params, request, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		if (account._id === admin.id) return fail(400, { error: "You can't delete your own account" });
+		const form = await request.formData();
+		if (String(form.get('confirmTag') ?? '').trim() !== account.gamerTag) {
+			return fail(400, { error: `Type the gamer tag, ${account.gamerTag}, to delete the account` });
+		}
+		await deleteAccount(db, account._id);
+		await audit(db, admin, 'deleteAccount', account._id, account.gamerTag);
+		redirect(303, '/members?deleted=' + encodeURIComponent(account.gamerTag));
 	}
 };

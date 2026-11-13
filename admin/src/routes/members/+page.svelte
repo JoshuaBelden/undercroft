@@ -10,6 +10,12 @@
 
 <h1>Members</h1>
 
+{#if data.deleted}
+	<p class="notice" role="status">
+		Deleted {data.deleted}. Their posts now show as by a deleted player.
+	</p>
+{/if}
+
 <form class="toolbar" method="GET">
 	<input
 		name="q"

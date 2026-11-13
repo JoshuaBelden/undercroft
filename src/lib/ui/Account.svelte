@@ -6,6 +6,7 @@
 		ApiError,
 		changeGamerTag,
 		changePassword,
+		deleteAccount,
 		disableTwoStep,
 		enableTwoStep,
 		loadAccount,
@@ -59,6 +60,28 @@
 		} catch (caught) {
 			tagMessage = message(caught);
 		}
+	}
+
+	/** Deleting the account: the confirmation form is open. */
+	let deleting = $state(false);
+	let confirmTag = $state('');
+	let confirmPassword = $state('');
+	let confirmCode = $state('');
+	let deleteMessage = $state('');
+
+	async function removeAccount(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		deleteMessage = '';
+		try {
+			await deleteAccount({ gamerTag: confirmTag, password: confirmPassword, code: confirmCode });
+		} catch (caught) {
+			deleteMessage = message(caught);
+		}
+	}
+
+	function cancelDelete(): void {
+		deleting = false;
+		confirmTag = confirmPassword = confirmCode = deleteMessage = '';
 	}
 
 	// --- Sign-in
@@ -191,6 +214,54 @@
 				<span class="name">Sign out</span>
 			</button>
 		</div>
+		{#if deleting}
+			<form class="stack" onsubmit={removeAccount}>
+				<p class="hint">
+					This deletes your account for good: your explorer, everything in your stash, your coins
+					and your friends list. It can't be undone. Bug reports, ideas and feedback you sent stay,
+					without your name.
+				</p>
+				<label class="pill">
+					<span class="name">Type your gamer tag</span>
+					<input type="text" autocomplete="off" required bind:value={confirmTag} />
+				</label>
+				{#if account.hasPassword}
+					<label class="pill">
+						<span class="name">Password</span>
+						<input
+							type="password"
+							autocomplete="current-password"
+							required
+							bind:value={confirmPassword}
+						/>
+					</label>
+				{/if}
+				{#if account.mfa}
+					<label class="pill">
+						<span class="name">Two-step code</span>
+						<input type="text" autocomplete="one-time-code" required bind:value={confirmCode} />
+					</label>
+				{/if}
+				<div class="setting">
+					<button type="submit" class="pill danger">
+						<span class="name">Delete my account</span>
+					</button>
+					<button type="button" class="pill" onclick={cancelDelete}>
+						<span class="name">Cancel</span>
+					</button>
+				</div>
+				{#if deleteMessage}
+					<p class="hint error" role="alert">{deleteMessage}</p>
+				{/if}
+			</form>
+		{:else}
+			<div class="setting">
+				<button type="button" class="pill" onclick={() => (deleting = true)}>
+					<span class="name">Delete account</span>
+				</button>
+				<p class="hint">Remove your account and everything on it, for good.</p>
+			</div>
+		{/if}
 	{:else if group === 'Sign-in'}
 		<form class="stack" onsubmit={savePassword}>
 			{#if account.hasPassword}
@@ -381,7 +452,8 @@
 		text-transform: none;
 	}
 
-	.error {
+	.error,
+	.danger .name {
 		color: #ff9a70;
 	}
 

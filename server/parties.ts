@@ -376,8 +376,8 @@ export class Parties {
 	}
 
 	/**
-	 * Send an account away for good (an admin suspended it): told why, disconnected, and out of
-	 * their party and expedition at once, with no place held.
+	 * Send an account away for good (an admin suspended it, or it was deleted): told why,
+	 * disconnected, and out of their party and expedition at once, with no place held.
 	 */
 	expel(account: string, reason: string): void {
 		const member = this.find(account);
@@ -387,7 +387,7 @@ export class Parties {
 			member.socket.close();
 		}
 		member.connected = false;
-		log.info(`Party ${tag(member.party)}: ${member.name} was suspended; removed`);
+		log.info(`Party ${tag(member.party)}: ${member.name} was sent away (${reason}); removed`);
 		this.remove(member);
 	}
 

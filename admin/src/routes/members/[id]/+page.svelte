@@ -138,6 +138,32 @@
 			/>
 		{/if}
 	</section>
+
+	<section class="panel">
+		<h2>Delete account</h2>
+		{#if self}
+			<p class="muted">You can't delete your own account here.</p>
+		{:else}
+			<p>
+				For good: the account, its explorer and stash, its friendships and votes. Bug reports, ideas
+				and feedback stay, shown as by a deleted player; runs stay in the stats.
+			</p>
+			<Action
+				action="delete"
+				label="Delete account"
+				danger
+				confirm="Delete {member.gamerTag} for good? This can't be undone."
+			>
+				<input
+					name="confirmTag"
+					required
+					autocomplete="off"
+					placeholder="Type {member.gamerTag}"
+					aria-label="Type the gamer tag to confirm"
+				/>
+			</Action>
+		{/if}
+	</section>
 </div>
 
 <section class="panel wide">

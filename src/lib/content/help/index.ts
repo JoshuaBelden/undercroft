@@ -379,7 +379,7 @@ That person goes to the place and holds {action:interact}. Nothing has to be set
 		category: 'The surface',
 		body: `Click your gamer tag at the top right of the dashboard for your Account screen, or to sign out.
 
-- Profile: change your gamer tag, the name other players see.
+- Profile: change your gamer tag, the name other players see. Delete account is here too: it removes your account, your explorer, your stash and your friends list for good, after you type your gamer tag (and your password, and a two-step code if you use one). Bug reports, ideas and feedback you sent stay, without your name.
 - Sign-in: change your password, and link your Discord account so you can sign in with it. If you made your account with Discord, you can set a password here too.
 - Security: two-step sign-in, and signing out every other browser.
 

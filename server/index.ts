@@ -18,7 +18,7 @@ await releaseAll();
 
 const parties = new Parties();
 const social = new Social(parties);
-const stopSuspensions = watchSuspensions(parties);
+const stopSuspensions = watchSuspensions(parties, social);
 const stopStatus = watchStatus(parties);
 /*
  * permessage-deflate, keeping its dictionary between messages: consecutive ticks are nearly the

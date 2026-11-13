@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { BOARD_STATUSES, IDEA, IDEA_STATUSES } from '#lib/content.ts';
+	import { BOARD_STATUSES, DELETED_ACCOUNT, IDEA, IDEA_STATUSES } from '#lib/content.ts';
 	import { formatTime } from '#lib/format.ts';
 	import Action from '#lib/ui/Action.svelte';
 	import type { PageProps } from './$types';
@@ -10,6 +10,12 @@
 	/** Ideas another can be merged into: on the board and not merged themselves. */
 	const targets = $derived(data.board.filter((idea) => idea.status !== 'declined'));
 </script>
+
+{#snippet author(idea: { author: string; authorTag: string })}
+	{#if idea.author === DELETED_ACCOUNT.id}{idea.authorTag}{:else}<a
+			href={resolve('/members/[id]', { id: idea.author })}>{idea.authorTag}</a
+		>{/if}
+{/snippet}
 
 <svelte:head><title>Ideas · Undercroft Admin</title></svelte:head>
 
@@ -42,7 +48,7 @@
 			{#each data.pending as idea (idea._id)}
 				<article class="panel">
 					<p class="meta">
-						From <a href={resolve('/members/[id]', { id: idea.author })}>{idea.authorTag}</a> ·
+						From {@render author(idea)} ·
 						{formatTime(idea.createdAt)}
 					</p>
 					<Action action="approve" label="Approve" primary fields={{ id: idea._id }}>
@@ -100,7 +106,7 @@
 				</summary>
 				<div class="body">
 					<p class="meta">
-						From <a href={resolve('/members/[id]', { id: idea.author })}>{idea.authorTag}</a> ·
+						From {@render author(idea)} ·
 						{formatTime(idea.createdAt)} · changed {formatTime(idea.updatedAt)}
 					</p>
 					<Action action="update" label="Save" primary fields={{ id: idea._id }}>

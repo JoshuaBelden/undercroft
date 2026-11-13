@@ -3,6 +3,7 @@
  * one folder up. Safe in the browser: nothing here touches the database.
  */
 export { AUDIT_ACTIONS, type AuditAction } from '../../../src/lib/content/admin.ts';
+export { DELETED_ACCOUNT } from '../../../src/lib/content/account.ts';
 export {
 	BOARD_STATUSES,
 	IDEA,

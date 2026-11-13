@@ -59,6 +59,7 @@ Search by email, gamer tag or Discord name (a case-insensitive substring); witho
 - **Turn off two-step sign-in**: for someone who lost their phone and their recovery codes. Only once you are sure it is them.
 - **Change the gamer tag**: for a name that shouldn't be one. Other players see the new one from their next connection.
 - **Make admin**, **Remove admin**.
+- **Delete account**: for good, after typing the gamer tag; not your own. Then back to the member list. What goes and what stays: [accounts.md](accounts.md#deleting-an-account).
 
 ### Suspending
 

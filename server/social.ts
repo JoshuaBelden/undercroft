@@ -105,6 +105,25 @@ export class Social {
 		}
 	}
 
+	/** Everyone on the lists of the accounts that are here: friends, and requests either way. */
+	listed(): string[] {
+		const accounts = new Set<string>();
+		for (const { friendships } of this.known.values()) {
+			for (const entry of everyone(friendships)) accounts.add(entry.account);
+		}
+		return [...accounts];
+	}
+
+	/** These accounts were deleted: their invites go, and lists that had them are read again. */
+	async forget(deleted: string[]): Promise<void> {
+		const gone = new Set(deleted);
+		this.dropInvites((invite) => gone.has(invite.from) || gone.has(invite.to));
+		const affected = [...this.known]
+			.filter(([, known]) => everyone(known.friendships).some((entry) => gone.has(entry.account)))
+			.map(([account]) => account);
+		await this.reload(...affected);
+	}
+
 	stop(): void {
 		for (const invite of this.invites) clearTimeout(invite.timer);
 		this.invites = [];
@@ -258,6 +277,11 @@ export class Social {
 	private refuse(member: Member, reason: string): void {
 		this.parties.tell(member, { type: 'partyError', reason });
 	}
+}
+
+/** Every account on someone's lists. */
+function everyone(friendships: Friendships): Tagged[] {
+	return [...friendships.friends, ...friendships.incoming, ...friendships.outgoing];
 }
 
 /** Whether an invite is between these two accounts, either way round. */

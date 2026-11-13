@@ -8,6 +8,7 @@ What changed in each version of Undercroft, newest first. Players see these in g
 - If something breaks while you play, the game asks whether you want to report it, with the error attached. Nothing is sent unless you say so.
 - Ideas and feedback: suggest ideas, vote for the ones you want most, and send feedback only the team reads. Open it from the menu under your gamer tag.
 - The Credits page links to the game's source code.
+- Delete your account from the Account screen, under Profile. Your explorer, stash and friends list go for good; reports, ideas and feedback you sent stay without your name.
 
 ## 0.1.0 - 2026-11-13
 

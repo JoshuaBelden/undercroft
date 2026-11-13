@@ -25,6 +25,12 @@ export const ACCOUNT = {
 };
 
 /**
+ * What a deleted account's bug reports, ideas and feedback say instead of who wrote them
+ * (`deleteAccount` in src/lib/server/store/deletion.ts).
+ */
+export const DELETED_ACCOUNT = { id: 'deleted', gamerTag: 'Deleted player' } as const;
+
+/**
  * How often each thing may be tried before it is refused for a while: `count` tries per `minutes`.
  * Keyed by the email or account (and, for the emails we send, by the address they came from too).
  * `signIn` and `code` count only wrong passwords and codes; `forgot` counts every email sent.

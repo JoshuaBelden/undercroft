@@ -61,6 +61,7 @@ Endpoints (JSON):
 | `POST /api/auth/sign-out`       | Ends the session                                                             |
 | `GET /api/account`              | `AccountView`: gamer tag, explorer, rite progress                            |
 | `PATCH /api/account`            | `{ gamerTag }`: change the gamer tag                                         |
+| `DELETE /api/account`           | `{ gamerTag, password, code }`: delete the account (see below), sign out     |
 | `POST /api/ticket`              | `{ ticket }` for the game server                                             |
 | `POST /api/account/password`    | `{ current, password }`: change it (or set one); signs out other browsers    |
 | `POST /api/account/mfa/setup`   | `{ secret, qr }`: a new secret (kept as `totpPending`) and its QR code (SVG) |
@@ -83,11 +84,23 @@ The gamer tag is the name other players see: in the lobby, while spectating, in 
 
 The gamer tag at the top right of the dashboard is a menu (`AccountMenu.svelte`): Account and Sign out. It closes on Escape (which then doesn't also back out of the page), on a click elsewhere, and after a choice; the arrow keys move between its items. Account opens `/account`, a TabScreen like `/settings` and, like it, outside the dashboard group, so it replaces the frame. Escape (`toggleSettings`) leaves it. Its groups:
 
-- **Profile**: the gamer tag (sends `rename` after a change), the email, Sign out.
+- **Profile**: the gamer tag (sends `rename` after a change), the email, Sign out, Delete account.
 - **Sign-in**: change or set the password; link or unlink Discord (shown when Discord is configured, or already linked).
 - **Security**: turn two-step sign-in on (QR code, the key as text, a code to confirm, then the recovery codes once) or off; sign out everywhere else.
 
 Account things live only here, not in Settings, so the gamer tag can't be changed underground.
+
+## Deleting an account
+
+`deleteAccount` (`src/lib/server/store/deletion.ts`) is the one way an account goes, used by the admin app's member page (docs/dev/admin.md#members) and by Delete account on the Account screen (`DELETE /api/account`). The player confirms by typing their gamer tag (any case), plus their password if they have one (counted under the `signIn` limit) and a two-step code if that is on. Admins type the gamer tag exactly and can't delete themselves. Either way it goes in the audit log with the account id and gamer tag (`deleteAccount`, or `deleteOwnAccount` with the player as the one who did it).
+
+- **Removed:** the account; its `sessions`, `tickets`, `adminSessions`, `resets` and `challenges`; its explorers with their `ledger` and rite `progress`; every `friends` document it is in (friendships and requests, both ways); its `ideaVotes`, each taking one off its idea's `votes`.
+- **Kept, anonymous:** its `reports`, `feedback` and `ideas`, with the account and gamer tag replaced by `DELETED_ACCOUNT` (`deleted`, "Deleted player"; the admin app doesn't link those to a member page). Its `runs` stay as they are: they name only the explorer id, which no longer leads anywhere, so the stats stay whole. GitHub issues already filed from its reports aren't touched.
+- **The game server** checks every minute (`server/suspensions.ts`, with suspensions): `deletedAmong` looks for everyone connected and everyone on their friend lists. A deleted player still connected is sent away (`Parties.expel`), and `Social.forget` drops their invites and reads the lists of anyone online who had them again.
+
+The email and gamer tag are free to be used again at once.
+
+Adding a collection that stores an account or explorer id: decide whether it is removed or anonymized, and add it to `deleteAccount`.
 
 ## Forgot password
 
