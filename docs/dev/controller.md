@@ -6,10 +6,10 @@ Keyboard, mouse and controller all work at the same time, as in most PC games. W
 
 ## Status
 
-| Part                                | What                                                                                                                                             | State                  |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
-| 1. The controller plays the game    | Reading controllers, analog move and look, creeping and sprint, wheels, playing without the mouse captured, icons, rumble, settings, admin, help | Built; to test by hand |
-| 2. The controller drives every menu | Focus navigation on every screen, item slots, dialogs, the dashboard pages                                                                       | Planned                |
+| Part                                | What                                                                                                                                             | State   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| 1. The controller plays the game    | Reading controllers, analog move and look, creeping and sprint, wheels, playing without the mouse captured, icons, rumble, settings, admin, help | Done    |
+| 2. The controller drives every menu | Focus navigation on every screen, item slots, dialogs, the dashboard pages                                                                       | Planned |
 
 Until part 2 lands, these need the mouse: the pack, loot crates, the settings overlay, the spectate bar, the results screen's Continue and the Ready button.
 
