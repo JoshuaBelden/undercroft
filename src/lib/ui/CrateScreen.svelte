@@ -69,14 +69,16 @@
 		<div class="body">
 			<section class="crate">
 				<h3>Inside</h3>
-				<!-- The controller starts on what is found, as it is revealed. -->
-				<div class="grid" style:--columns={CRATES.columns} data-pad-first>
+				<div class="grid" style:--columns={CRATES.columns}>
 					{#each slots as slot, index (index)}
 						{#if slot === 'hidden'}
+							<!-- The controller's focus can rest here too, so the grid moves as a grid. -->
 							<span
 								class="sealed"
 								class:revealing={index === revealing}
 								role="img"
+								tabindex="-1"
+								data-pad-stop
 								aria-label="{title} slot {index + 1}: {index === revealing
 									? 'being searched'
 									: 'not searched yet'}"
@@ -216,6 +218,13 @@
 	.sealed.revealing {
 		border-style: solid;
 		border-color: var(--muted);
+	}
+
+	/* Lit as an item slot is (ItemSlot.svelte). */
+	.sealed:focus-visible {
+		outline: none;
+		border-color: var(--text);
+		background: rgb(255 255 255 / 0.09);
 	}
 
 	.bar {

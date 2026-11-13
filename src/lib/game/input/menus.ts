@@ -11,8 +11,8 @@ import { pads } from './gamepad.ts';
  *
  * A menu opens on its first control outside its header (where tabs and Close live). Markup can
  * steer it:
- * - `data-pad-first`: open on the first control inside this instead, waiting for one to appear
- *   (a crate's slots, revealed one by one).
+ * - `data-pad-stop` with `tabindex="-1"`: somewhere the focus can rest that isn't a control
+ *   (a crate's sealed slot), so a grid with gaps still moves as a grid.
  * - `data-pad-scroll`: what the right stick scrolls when nothing around the focus does (a
  *   TabScreen's fields, with the focus on its tabs).
  * - `data-pad-stepper`: a value with a button either side (and maybe a field between): it is one
@@ -131,7 +131,7 @@ function loop(now: number): void {
 	lastFrame = now;
 	const menu = top();
 	if (menu && device.kind === 'pad') {
-		if (!focused(menu)) focusStart(menu, true);
+		if (!focused(menu)) focusStart(menu);
 		if (held && !pads.isDown(held.code)) held = null;
 		if (held && now >= held.at) {
 			held.at = now + REPEAT_EVERY;
@@ -303,7 +303,8 @@ function owner(element: Element): Menu | null {
 /** The controls in a menu the focus can stop on, in page order (not those of a menu inside it). */
 function controls(menu: Menu): HTMLElement[] {
 	return [...menu.root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((control) => {
-		if (control.matches(':disabled, [tabindex="-1"]') || control.closest('[inert]')) return false;
+		if (control.matches(':disabled, [tabindex="-1"]:not([data-pad-stop])')) return false;
+		if (control.closest('[inert]')) return false;
 		if (!control.checkVisibility({ visibilityProperty: true })) return false;
 		// A stepper is one stop: its first control stands for it.
 		const stepper = control.closest('[data-pad-stepper]');
@@ -326,10 +327,9 @@ function focused(menu: Menu): HTMLElement | null {
 
 /**
  * Put the focus in a menu: back on the control used last, or the one nearest where it was (that
- * one went away), or the one used last time it was open, or where it opens. `waiting`: not until
- * its `data-pad-first` has a control (a press doesn't wait).
+ * one went away), or the one used last time it was open, or where it opens.
  */
-function focusStart(menu: Menu, waiting = false): void {
+function focusStart(menu: Menu): void {
 	const all = controls(menu);
 	let start: HTMLElement | undefined;
 	if (menu.last && all.includes(menu.last)) start = menu.last;
@@ -337,9 +337,6 @@ function focusStart(menu: Menu, waiting = false): void {
 	else {
 		const index = menu.key === undefined ? undefined : remembered.get(menu.key);
 		start = index === undefined ? undefined : all[index];
-		const first = menu.root.querySelector('[data-pad-first]');
-		start ??= first ? all.find((control) => first.contains(control)) : undefined;
-		if (!start && first && waiting) return;
 		start ??= all.find((control) => !inHeader(menu, control)) ?? all[0];
 	}
 	if (start) focus(start);

@@ -145,14 +145,14 @@ Every screen is built from native buttons, links and inputs, so one focus system
 
 **The focus** is the browser's own, set with `focus({ focusVisible: true })`, so the `:focus-visible` styles keyboard users see are the highlight. While a controller is in use, something in the open menu always has the focus: when a menu opens, or the focused control goes away (a tab switch, an item taken), it moves to the control used last, else the nearest to where it was.
 
-**Item slots.** A picks an item up; the slots that would take it are lit dark blue, as when dragging, and the one with the focus is lit when it would take it. A on a lit slot puts it down, A on the slot it came from (or B) puts it back. X sends an item where it belongs (shift-click), Y opens the item menu at the slot. Carrying is `ItemBoard`'s dragging (`ItemBoard.carry`), so the rules for what goes where stay in one place.
+**Item slots.** A picks an item up; the slots that would take it are lit dark blue, as when dragging, and the one with the focus is lit when it would take it. A on a lit slot puts it down, A on the slot it came from (or B) puts it back. X sends an item where it belongs (shift-click), Y opens the item menu at the slot. Carrying is `ItemBoard`'s dragging (`ItemBoard.carry`), so the rules for what goes where stay in one place. A crate opens on its top-left slot: the focus can rest on slots not searched yet, and stays put when one is revealed.
 
 **Markup that steers it:**
 
 | Markup                                      | What                                                                                                                                                              |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `{@attach menu({ back, tabs, key })}`       | A menu. `back` is B, `tabs(by)` is LB (-1) / RB (1), `key` remembers the control used last across openings                                                        |
-| `data-pad-first`                            | Open on the first control inside this; while it has none, wait for one (a crate's slots, revealed one by one)                                                     |
+| `data-pad-stop` with `tabindex="-1"`        | Somewhere the focus can rest that isn't a control, so a grid with gaps still moves as a grid (a crate's sealed slots)                                             |
 | `data-pad-scroll`                           | What the right stick scrolls when nothing around the focus does (a `TabScreen`'s fields, with the focus on its tabs, as in Help)                                  |
 | `data-pad-stepper`                          | One stop for a value with buttons either side (and maybe a field between): left and right press its first and last buttons (`StepperField`, the store's quantity) |
 | `padpress` event (`CustomEvent<PadButton>`) | Sent to the focused control before A, B, X or Y does anything; `preventDefault()` says it was handled (`ItemSlot.svelte`)                                         |
