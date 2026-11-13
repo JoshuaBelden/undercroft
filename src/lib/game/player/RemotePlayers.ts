@@ -21,6 +21,9 @@ const MAX_SAMPLES = 10;
 /** A jump this far (m) between snapshots is a teleport: snap instead of sliding. */
 const TELEPORT = 6;
 
+const frustum = new THREE.Frustum();
+const viewProjection = new THREE.Matrix4();
+
 interface RemoteBody {
 	name: string;
 	root: THREE.Group;
@@ -145,8 +148,11 @@ export class RemotePlayers {
 		}
 	}
 
-	update(delta: number): void {
+	/** `camera`: what the local player sees, so lamps lighting nothing in view skip their shadows. */
+	update(delta: number, camera: THREE.Camera): void {
 		const t = Math.min(1, delta * 12);
+		viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+		frustum.setFromProjectionMatrix(viewProjection);
 		const renderTime = performance.now() / 1000 + (this.offset ?? 0) - INTERPOLATION_DELAY;
 		for (const remote of this.bodies.values()) {
 			const { root, body, head, state } = remote;
@@ -161,7 +167,10 @@ export class RemotePlayers {
 			body.update(delta, state, head.rotation.y);
 			remote.since += delta;
 			const lit = state.headlamp !== 0 && state.battery > 0;
-			remote.lamp.update(lit ? { ...state, lampClock: state.lampClock + remote.since } : state);
+			remote.lamp.update(
+				lit ? { ...state, lampClock: state.lampClock + remote.since } : state,
+				frustum
+			);
 		}
 	}
 

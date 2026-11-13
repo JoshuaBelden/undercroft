@@ -12,6 +12,8 @@ const FLASH_RANGE = 18;
 const FLASH_ANGLE = 1.15;
 const FLASH_COLOR = new THREE.Color(0xffb366);
 
+const reach = new THREE.Sphere();
+
 /**
  * A player's headlamp: a shadow-casting spotlight on a head object (the camera for the local
  * player, a head pivot for remote players), driven by the shared `headlampOutput` so flicker
@@ -63,7 +65,11 @@ export class Headlamp {
 		this.flashEnd = performance.now() + FLASH_TIME * 1000;
 	}
 
-	update(state: PlayerState | null): void {
+	/**
+	 * `view`: the camera's frustum, for a lamp that isn't the camera's own. Its shadow map is only
+	 * redrawn while its light could land on something in view.
+	 */
+	update(state: PlayerState | null, view?: THREE.Frustum): void {
 		const out = state ? headlampOutput(state, this.model) : null;
 		// Off = zero intensity, never `visible = false`: changing the number of visible lights
 		// makes Three.js recompile every material, which hitches each time a lamp is toggled.
@@ -81,6 +87,16 @@ export class Headlamp {
 		this.light.distance = lamp.range + (peak.range - lamp.range) * f;
 		this.light.angle = lamp.angle + (FLASH_ANGLE - lamp.angle) * f;
 		this.light.color.copy(this.color).lerp(FLASH_COLOR, f);
+		// Redrawing a shadow map is a pass over everything near the lamp, every frame. An unlit lamp
+		// (and one whose light can't reach the view) keeps its old map instead: Three.js skips it.
+		// Never castShadow = false, which recompiles every material, like changing the light count.
+		let seen = this.light.intensity > 0;
+		if (seen && view) {
+			this.light.getWorldPosition(reach.center);
+			reach.radius = this.light.distance;
+			seen = view.intersectsSphere(reach);
+		}
+		this.light.shadow.autoUpdate = seen;
 	}
 
 	dispose(): void {

@@ -1233,7 +1233,7 @@
 			updateWheel(player.state, active);
 			updateChalkWheel(player.state, active);
 			player.update(delta, active);
-			remote.update(delta);
+			remote.update(delta, engine.camera);
 			const self = player.state;
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
 			creatures.update(delta, player.collision, lamps);

@@ -19,7 +19,7 @@ src/
     game/
       Engine.ts             Three.js renderer, scene, camera, frame loop, stats, light budget
       assets.ts             glTF model loading and cache, asset path registry
-      map/MapRenderer.ts    places map pieces from a layout
+      map/MapRenderer.ts    places map pieces from a layout, merged into chunks by material
       player/               local player prediction, headlamp light, remote players, player audio
       creatures/            creature models, animation, half-light fade, sounds
       affliction/           the manifestation (the figure) renderer

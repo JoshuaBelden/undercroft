@@ -16,7 +16,7 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Full audio pass and mix
 - Help system complete and reviewed
 - Settings complete: graphics, audio, controls, accessibility
-- Performance pass (light budget, model LODs, KTX2 textures). Asset baseline: 15 MB in `static/assets` after meshopt and Opus (Nov 2026; textures are 3.9 MB of it). Network is done: ticks are compressed (about 200 bytes for four players, see docs/dev/systems.md).
+- Performance pass: compare F3 stats (fps, draw calls) before and after the map merge and lamp shadow skipping on a low-end machine, then decide on KTX2 textures (GPU memory) and LODs. Asset baseline: 15 MB in `static/assets` after meshopt and Opus (Nov 2026; textures are 3.9 MB of it). Done: compressed ticks (about 200 bytes for four players, see docs/dev/systems.md), the map merged into chunks, shadows only for lamps lighting the view.
 - Set `SOURCE_URL` in src/lib/content/credits.ts once the GitHub repository is public.
 - Fill in the Credits placeholders (`todo: true` in src/lib/content/credits.ts): inspirations, model, animation and sound sources, AI tools, testers.
 - Balance pass: meter pacing, loot values, Thrall difficulty, candle tiers

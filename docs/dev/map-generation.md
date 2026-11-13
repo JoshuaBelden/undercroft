@@ -59,6 +59,10 @@ Tunables are `GenerateOptions` in `generate.ts`. Maps come out at roughly 90–2
 
 After that the server chooses which of the pieces' crate markers have a loot crate (`placeCrates` in `src/lib/shared/map/crates.ts`, seeded by the same seed) and puts them in `layout.crates`. They are part of the layout because they are solid: both sides build them into the collision world. See [items.md](items.md#loot-crates).
 
+## Rendering
+
+`MapRenderer.build` places each piece from the asset cache, then merges the whole map, which doesn't move, into chunks: one mesh per material per 12 m chunk (`CHUNK`, three cells) and level, in world space. A typical map is about 190 pieces and 95,000 triangles. Drawn piece by piece that's several hundred draw calls, and again in every lamp's shadow pass. Merged, it's a few dozen, and the camera and each lamp still skip the chunks outside their view. Merging decodes the quantized (meshopt) vertex data into floats, so the merged map takes more memory than the cached pieces. Raycasts against `MapRenderer.root` (chalk marks, footstep surfaces) see the merged meshes. Their materials are the pieces' own, so the material names still tell the surface. A mesh with several materials isn't merged.
+
 ## Adding a piece
 
 1. Build it in Blender following the kit conventions and export it to `art/export/`.
