@@ -8,6 +8,7 @@
 	import { SANITY } from '#lib/content/player/sanity.ts';
 	import { devMode } from '#lib/dev.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
+	import { setGameContext } from '#lib/game/diagnostics.ts';
 	import { Ambience } from '#lib/game/audio/Ambience.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { CaptionFeed } from '#lib/game/audio/captions.svelte.ts';
@@ -495,6 +496,8 @@
 		let roomIds: Record<string, number> = {};
 		/** The titled room the player was last in; null in the passages between. */
 		let inRoom: number | null = null;
+		/** Its title, for bug reports. */
+		let roomName: string | null = null;
 		let bannerCheck = 0;
 
 		/** Which map load is current: a newer one (or leaving) makes an older one's finish moot. */
@@ -676,8 +679,21 @@
 			if (room === inRoom) return;
 			inRoom = room;
 			const title = roomCells[key];
+			roomName = room !== null ? (title ?? null) : null;
 			if (room !== null && title) banner = { title, key: (banner?.key ?? 0) + 1 };
 		}
+
+		/** What a bug report says about the expedition (docs/dev/reports.md). */
+		setGameContext(() =>
+			expedition
+				? {
+						mode: hud.party.length > 1 ? 'coop' : 'solo',
+						seed,
+						room: roomName,
+						stats: { ...stats, rtt }
+					}
+				: null
+		);
 
 		/** Standing in the room the rite is held in (once a clue has told where that is). */
 		function inRiteRoom(position: Vec3): boolean {
@@ -1409,6 +1425,7 @@
 
 		return () => {
 			if (leaveTimer) clearTimeout(leaveTimer);
+			setGameContext(null);
 			unsubscribe();
 			document.removeEventListener('pointerlockchange', onLockChange);
 			canvas.removeEventListener('click', requestLock);

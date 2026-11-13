@@ -1,17 +1,18 @@
 # Deployment
 
-The beta runs on one DigitalOcean droplet: Docker Compose with four containers, behind Caddy on one domain.
+The beta runs on one DigitalOcean droplet: Docker Compose with five containers, behind Caddy on one domain and its `admin.` subdomain.
 
 ```
 browser ──https──> caddy ─┬─ /ws       ──> game  (tsx server/index.ts, port 8787)
                           ├─ /assets/* ──> web   (immutable, one-year cache)
                           └─ everything ──> web  (node build, port 3000)
-                  game, web ──> mongo (named volume)
+browser ──https──> caddy ─── admin.<domain> ──> admin (node admin/build, port 3001)
+           game, web, admin ──> mongo (named volume)
 ```
 
 | File                      | What                                                                        |
 | ------------------------- | --------------------------------------------------------------------------- |
-| `Dockerfile`              | One image for `web` and `game` (`pnpm install`, `pnpm build`)               |
+| `Dockerfile`              | One image for `web`, `game` and `admin` (`pnpm install`, both builds)       |
 | `docker-compose.prod.yml` | The production stack. Development keeps `docker-compose.yml` (MongoDB only) |
 | `deploy/Caddyfile`        | TLS (automatic, Let's Encrypt), routing, asset caching, compression         |
 | `deploy/provision.ts`     | Creates the droplet, firewall and DNS record (`pnpm deploy:provision`)      |
@@ -49,7 +50,7 @@ pnpm deploy:release --host <droplet ip or domain> --domain play.example.com
 
 On the droplet, `/opt/undercroft/.env` (production settings: `DOMAIN`, `MONGODB_DB`) is written on the first deploy and never touched again. `/opt/undercroft/app` is replaced each time. `docker compose up -d --build` then rebuilds the image and restarts what changed. The database lives in the `undercroft_mongo-data` volume and survives deploys. Players connected to the game server are dropped when it restarts; they reconnect into the hub.
 
-Production always runs with `DEV_MODE=false` and `PUBLIC_DEV_MODE=false` (set in `docker-compose.prod.yml`), so admin tools never ship enabled. `PUBLIC_GAME_SERVER_URL` is `wss://<DOMAIN>/ws`, and the game server only accepts WebSockets on `/ws` (`GAME_SERVER_PATH`).
+Production always runs with `DEV_MODE=false` and `PUBLIC_DEV_MODE=false` (set in `docker-compose.prod.yml`), so the in-game debug tools (F10) never ship enabled. The admin app is a different thing, behind its own sign-in. `PUBLIC_GAME_SERVER_URL` is `wss://<DOMAIN>/ws`, and the game server only accepts WebSockets on `/ws` (`GAME_SERVER_PATH`).
 
 ## Caching
 
@@ -97,6 +98,30 @@ Password-reset emails and "Sign in with Discord" need keys in `/opt/undercroft/.
 2. Copy the Client ID and Client Secret into `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`.
 
 Keep these keys out of the repository and out of chat, like the DigitalOcean token.
+
+## Bug reports on GitHub
+
+Bug reports are filed as issues by the site and the admin app ([reports.md](reports.md)). Without a token they are kept for the admin app, not filed.
+
+1. On GitHub: Settings → Developer settings → Fine-grained tokens → Generate new token. Repository access: only `undercroft`. Permissions: **Issues: Read and write**, nothing else. Give it an expiry and put a reminder in your calendar to renew it.
+2. Create the labels `from-game` and `crash` in the repository (`bug` exists already); GitHub ignores labels that don't exist.
+3. Set `GITHUB_TOKEN=github_pat_...` in `.env` (and `GITHUB_REPO=owner/name` if it isn't `JoshuaBelden/undercroft`), then `up -d` as above.
+
+## Admins
+
+The admin app ([admin.md](admin.md)) is at `https://admin.<DOMAIN>`. It needs:
+
+- **DNS**: an `admin` A record to the droplet (at GoDaddy for `undercroft.us`). Caddy gets its certificate by itself once the record resolves.
+- **The first admin**: an account with two-step sign-in on (the game's Account screen), made an admin on the droplet:
+
+  ```
+  cd /opt/undercroft/app
+  docker compose -f docker-compose.prod.yml --env-file ../.env exec web node_modules/.bin/tsx scripts/admin-grant.ts you@example.com
+  ```
+
+  After that, admins make others admins from their member page.
+
+It shares `RESEND_API_KEY` and `GITHUB_TOKEN` with the site, so password resets and filing work from it with no more setup. It is one more Node process, about 60 MB of the droplet's memory.
 
 ## Changing the domain
 

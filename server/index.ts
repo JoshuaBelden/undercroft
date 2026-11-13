@@ -1,4 +1,4 @@
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, type RawData } from 'ws';
 import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
 import { GAME_VERSION } from '../src/lib/shared/version.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
@@ -6,15 +6,20 @@ import { currentTag, identify } from './accounts.ts';
 import { releaseAll } from './belongings.ts';
 import { config } from './config.ts';
 import { closeDb, connectDb } from './db.ts';
+import { crashMessage, serverCrash } from './errors.ts';
 import { log } from './log.ts';
 import { Parties, type Member } from './parties.ts';
 import { Social } from './social.ts';
+import { watchStatus } from './stats.ts';
+import { watchSuspensions } from './suspensions.ts';
 
 await connectDb();
 await releaseAll();
 
 const parties = new Parties();
 const social = new Social(parties);
+const stopSuspensions = watchSuspensions(parties);
+const stopStatus = watchStatus(parties);
 /*
  * permessage-deflate, keeping its dictionary between messages: consecutive ticks are nearly the
  * same, so a four-player tick of about 8 KB goes out as a few hundred bytes. It costs some CPU
@@ -32,7 +37,8 @@ wss.on('connection', (socket) => {
 	/** Looking up who they are (a `hello` is being checked). */
 	let identifying = false;
 
-	socket.on('message', (data) => {
+	/** One message from this player. Anything that throws is caught below. */
+	const handle = (data: RawData): void => {
 		const message = decodeClient(data.toString());
 		if (!message) return;
 
@@ -125,6 +131,22 @@ wss.on('connection', (socket) => {
 				break;
 			}
 		}
+	};
+
+	/*
+	 * A message that throws doesn't take the server down: the error is recorded and this player is
+	 * asked whether to report it (docs/dev/reports.md#crashes).
+	 */
+	socket.on('message', (data) => {
+		try {
+			handle(data);
+		} catch (error) {
+			const where = member ? `Message from ${member.name}` : 'Message';
+			void serverCrash(error, where).then((id) => {
+				if (socket.readyState !== socket.OPEN) return;
+				socket.send(encode({ type: 'serverError', id, message: crashMessage(error) }));
+			});
+		}
 	});
 
 	socket.on('close', () => {
@@ -139,11 +161,23 @@ log.info(
 async function shutdown(): Promise<void> {
 	log.info('Shutting down');
 	social.stop();
+	stopSuspensions();
+	stopStatus();
 	parties.stop();
 	wss.close();
 	await closeDb();
 	process.exit(0);
 }
 
+/*
+ * Anything else that throws: recorded, then the process exits and Docker starts it again (a
+ * state nobody expected is not one to keep running in). A rejected promise is only recorded.
+ */
+process.on('uncaughtException', (error) => {
+	void serverCrash(error, 'Uncaught').finally(() => process.exit(1));
+});
+process.on('unhandledRejection', (reason) => {
+	void serverCrash(reason, 'Unhandled rejection');
+});
 process.on('SIGINT', () => void shutdown());
 process.on('SIGTERM', () => void shutdown());

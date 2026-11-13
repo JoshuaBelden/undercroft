@@ -33,7 +33,12 @@ export const THROTTLE = {
 	signIn: { count: 10, minutes: 15 },
 	forgot: { count: 3, minutes: 60 },
 	forgotFromAddress: { count: 10, minutes: 60 },
-	code: { count: 6, minutes: 15 }
+	code: { count: 6, minutes: 15 },
+	// Player reports (docs/dev/reports.md), per account: every one sent counts.
+	report: { count: 6, minutes: 60 },
+	idea: { count: 5, minutes: 60 },
+	feedback: { count: 6, minutes: 60 },
+	vote: { count: 120, minutes: 60 }
 } satisfies Record<string, { count: number; minutes: number }>;
 
 export type ThrottleRule = keyof typeof THROTTLE;
@@ -58,7 +63,8 @@ export const DISCORD_RESULTS: Record<string, { message: string; error: boolean }
 		message: 'That Discord account is already linked to another Undercroft account',
 		error: true
 	},
-	linked: { message: 'Discord is linked. You can sign in with it now', error: false }
+	linked: { message: 'Discord is linked. You can sign in with it now', error: false },
+	suspended: { message: 'This account is suspended', error: true }
 };
 
 /** A gamer tag as typed, tidied; null if it isn't allowed. */

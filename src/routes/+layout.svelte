@@ -11,6 +11,9 @@
 	import { connection, start } from '#lib/game/net/connection.svelte.ts';
 	import { settings } from '#lib/settings/settings.svelte.ts';
 	import { toggleFullscreen, watchFullscreen } from '#lib/ui/fullscreen.svelte.ts';
+	import { bugReport } from '#lib/game/crash.svelte.ts';
+	import BugReport from '#lib/ui/BugReport.svelte';
+	import CrashDialog from '#lib/ui/CrashDialog.svelte';
 	import LaunchCountdown from '#lib/ui/LaunchCountdown.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -101,4 +104,12 @@
 
 {#if page.route.id !== '/play'}
 	<LaunchCountdown />
+{/if}
+
+<!-- Reports, on every page, underground too (docs/dev/reports.md). Only once signed in. -->
+{#if data.account}
+	<CrashDialog />
+	{#if bugReport.open}
+		<BugReport />
+	{/if}
 {/if}

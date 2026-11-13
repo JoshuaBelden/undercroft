@@ -4,6 +4,10 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- Report a bug from the game: from the menu under your gamer tag, or the settings screen, even underground. You see every detail that goes with it first.
+- If something breaks while you play, the game asks whether you want to report it, with the error attached. Nothing is sent unless you say so.
+- Ideas and feedback: suggest ideas, vote for the ones you want most, and send feedback only the team reads. Open it from the menu under your gamer tag.
+
 ## 0.1.0 - 2026-11-13
 
 The first closed beta. Thank you for testing.

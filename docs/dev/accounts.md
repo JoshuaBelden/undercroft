@@ -27,7 +27,7 @@ The whole game is behind sign-in. An account is an email, a gamer tag, and a way
 
 ## Data (MongoDB)
 
-- `accounts`: `_id`, `email` (lower-cased, unique), `password` (`scrypt$<salt>$<hash>`, from `node:crypto`; missing on an account made with Discord until one is set), `gamerTag`, `tagKey` (lower-cased tag, unique, so tags can't differ only by case), `discord` (`{ id, username }`; `discord.id` unique), `totp` (`secret`, `enabledAt`, `recovery`: the sha256 of each unused recovery code, `usedStep`: the last time step accepted), `totpPending` (a secret being set up).
+- `accounts`: `_id`, `email` (lower-cased, unique), `password` (`scrypt$<salt>$<hash>`, from `node:crypto`; missing on an account made with Discord until one is set), `gamerTag`, `tagKey` (lower-cased tag, unique, so tags can't differ only by case), `discord` (`{ id, username }`; `discord.id` unique), `totp` (`secret`, `enabledAt`, `recovery`: the sha256 of each unused recovery code, `usedStep`: the last time step accepted), `totpPending` (a secret being set up), `role` (`'admin'`: can use the admin app, see [admin.md](admin.md)), `suspended` (`reason`, `until`, `by`, `at`: set by an admin, see [admin.md](admin.md#suspending)), `lastSeen` (when a game ticket was last issued), `createdAt`.
 - `explorers`: `_id`, `account`, `money`, `stash` (one entry per stash slot: a stack or null), `loadout` (an `Inventory`), `layout` (how those two are stored; older documents are converted when read, see [economy.md](economy.md)), `underground`. One per account today, created the first time it is needed (`explorerFor`). It is a separate collection, keyed by its own id, so an account can have several later.
 - `sessions`: `_id` is the cookie value; `account`, `expires` (30 days).
 - `tickets`: `_id` is the ticket; `account`, `expires` (12 hours).
@@ -37,6 +37,8 @@ The whole game is behind sign-in. An account is an email, a gamer tag, and a way
 - `throttle`: `_id` is `<rule>:<key>`; `count`, `expires`. See [Limits](#limits).
 - `progress`: rite progress, keyed by explorer (see [rite.md](rite.md)).
 - `ledger`: the economy log (see [economy.md](economy.md#the-ledger)).
+- `adminSessions`, `adminLog`: the admin app's sessions and audit log; `runs`, `serverStatus`: game stats (see [admin.md](admin.md)).
+- `reports`, `errors`, `ideas`, `ideaVotes`, `feedback`: what players send us (see [reports.md](reports.md)).
 
 Sessions, tickets, resets, challenges, sign-ups and throttles have a TTL index, so MongoDB removes them when they expire. `ensureIndexes` creates all the indexes (`ensureAuthIndexes` for `auth.ts`'s) and runs when either process connects.
 
@@ -99,7 +101,7 @@ Account things live only here, not in Settings, so the gamer tag can't be change
 
 TOTP (RFC 6238: SHA-1, 6 digits, 30 seconds, as every authenticator app expects), in `src/lib/server/totp.ts` with `node:crypto`. A code is accepted one step either side of now, and never for a step at or before `usedStep`, so a code can't be replayed. Recovery codes look like `xxxxx-xxxxx`; only their hashes are kept, and each is removed when used.
 
-Signing in: once the password (or Discord) is right, `signIn` (`session.ts`) either creates the session or, if the account has `totp`, starts a challenge and sets the `undercroft.challenge` cookie. The browser goes to `/auth/mfa`, and `POST /api/auth/mfa` (`finishChallenge`) creates the session when the code is right. Any new way of signing in should go through `signIn`, so two-step sign-in applies to it.
+Signing in: once the password (or Discord) is right, `signIn` (`session.ts`) refuses a suspended account (with the reason), or creates the session, or, if the account has `totp`, starts a challenge and sets the `undercroft.challenge` cookie. The browser goes to `/auth/mfa`, and `POST /api/auth/mfa` (`finishChallenge`) creates the session when the code is right. Any new way of signing in should go through `signIn`, so two-step sign-in applies to it.
 
 Setting up: `/mfa/setup` stores the secret as `totpPending` and returns it with a QR code (`qrcode`, as SVG, shown in an `<img>`). Only `/mfa/enable` with a code from that secret moves it to `totp`, so a bad scan can't lock anyone out.
 
@@ -122,7 +124,7 @@ Unlinking is refused for an account without a password, so it always has a way i
 
 ## Limits
 
-`throttle(db, rule, key)` counts a try and says whether it is allowed; `throttled` only checks. The rules are data (`THROTTLE` in `content/account.ts`): `signIn` (per email) and `code` (per account, through `checkSecondFactor`) count only wrong passwords and codes, so getting it right never uses one up; `forgot` (per email) and `forgotFromAddress` (per IP) count every reset email. A challenge also ends after too many attempts.
+`throttle(db, rule, key)` counts a try and says whether it is allowed; `throttled` only checks. The rules are data (`THROTTLE` in `content/account.ts`): `signIn` (per email) and `code` (per account, through `checkSecondFactor`) count only wrong passwords and codes, so getting it right never uses one up; `forgot` (per email) and `forgotFromAddress` (per IP) count every reset email. `report`, `idea`, `feedback` and `vote` (per account) count every one sent (see [reports.md](reports.md)). A challenge also ends after too many attempts.
 
 ## The game server
 

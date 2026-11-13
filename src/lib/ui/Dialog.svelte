@@ -16,9 +16,11 @@
 		children: Snippet;
 		/** The command buttons, in order, centred in the footer. */
 		footer: Snippet;
+		/** Room for a form (a bug report): wider than a question. */
+		wide?: boolean;
 	}
 
-	let { title, onclose, children, footer }: Props = $props();
+	let { title, onclose, children, footer, wide = false }: Props = $props();
 
 	/** Opens the dialog as a modal, and keeps its key presses from reaching the game's input map. */
 	function modal(dialog: HTMLDialogElement): () => void {
@@ -38,7 +40,7 @@
 	}
 </script>
 
-<dialog {@attach modal} aria-labelledby="dialog-title" oncancel={cancelled}>
+<dialog {@attach modal} class:wide aria-labelledby="dialog-title" oncancel={cancelled}>
 	<header>
 		<h2 id="dialog-title">{title}</h2>
 	</header>
@@ -61,6 +63,10 @@
 		background: rgb(20 17 15 / 0.8);
 		color: var(--text);
 		overflow: hidden;
+	}
+
+	dialog.wide {
+		width: min(640px, calc(100vw - 32px));
 	}
 
 	/* Only while open: a closed dialog must stay hidden. */

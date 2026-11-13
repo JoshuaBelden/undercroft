@@ -355,6 +355,42 @@ export class Parties {
 		return member.party.members.length > 1 ? 'inParty' : 'online';
 	}
 
+	/** How busy the server is, for the admin app (server/stats.ts). */
+	census(): { online: number; parties: number; expeditions: number; underground: number } {
+		let online = 0;
+		let underground = 0;
+		let expeditions = 0;
+		for (const party of this.parties.values()) {
+			if (party.session) expeditions++;
+			for (const member of party.members) {
+				if (member.connected) online++;
+				if (member.playerId) underground++;
+			}
+		}
+		return { online, parties: this.parties.size, expeditions, underground };
+	}
+
+	/** Every account with a member here, connected or with their place held. */
+	accounts(): string[] {
+		return [...this.byAccount.keys()];
+	}
+
+	/**
+	 * Send an account away for good (an admin suspended it): told why, disconnected, and out of
+	 * their party and expedition at once, with no place held.
+	 */
+	expel(account: string, reason: string): void {
+		const member = this.find(account);
+		if (!member) return;
+		if (member.socket.readyState === member.socket.OPEN) {
+			member.socket.send(encode({ type: 'reject', reason }));
+			member.socket.close();
+		}
+		member.connected = false;
+		log.info(`Party ${tag(member.party)}: ${member.name} was suspended; removed`);
+		this.remove(member);
+	}
+
 	/** Tell a member something only they should hear. */
 	tell(member: Member, message: ServerMessage): void {
 		this.send(member, message);

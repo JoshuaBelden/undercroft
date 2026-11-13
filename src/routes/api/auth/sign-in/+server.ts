@@ -24,5 +24,6 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 		return json({ error: 'Wrong email or password' }, { status: 401 });
 	}
 	const result = await signIn(db, cookies, account, url.protocol === 'https:');
+	if (typeof result === 'object') return json({ error: result.suspended }, { status: 403 });
 	return json(result === 'mfa' ? { mfa: true } : { ok: true });
 };

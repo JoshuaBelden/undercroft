@@ -73,6 +73,9 @@ import { randomSeed } from '../src/lib/shared/rng.ts';
 import { config } from './config.ts';
 import { hurt as hurtCreature, resolve, targets, type CombatContext } from './combat.ts';
 import { AfflictionDirector } from './affliction.ts';
+import { crashMessage, serverCrash } from './errors.ts';
+import { carriedValue, logRun } from './stats.ts';
+import type { RunOutcome } from '../src/lib/server/store/runs.ts';
 import { RiteDirector, scatterRite } from './rite.ts';
 import { Crates, type Crate } from './crates.ts';
 import { CreatureDirector } from './creatures.ts';
@@ -186,6 +189,12 @@ export class Session {
 	private tick = 0;
 	private timer: NodeJS.Timeout | null = null;
 	private hadPlayers = false;
+	/** How many players went down (for game stats). */
+	private joined = 0;
+	/** When the Affliction manifested (ms); null until it does. */
+	private manifestedAt: number | null = null;
+	/** Players whose run has been written (server/stats.ts), so each is written once. */
+	private logged = new Set<string>();
 	/**
 	 * The world items list as last sent in a tick. A tick leaves the list out while it is unchanged;
 	 * null makes the next tick carry it (a new map, someone arriving or reconnecting).
@@ -324,6 +333,7 @@ export class Session {
 		this.players.set(player.id, player);
 		this.itemsSent = null;
 		this.hadPlayers = true;
+		this.joined++;
 		this.startedAt ??= Date.now();
 		this.send(player, {
 			type: 'welcome',
@@ -382,6 +392,8 @@ export class Session {
 		const player = this.players.get(playerId);
 		if (!player) return;
 		this.shutCrate(player);
+		// Not extracted, dead or abandoned: they left the party or dropped for good.
+		this.logRun(player, carried ? 'extracted' : 'left', carried);
 		this.players.delete(playerId);
 		log.info(`Player ${player.name} left session ${this.id.slice(0, 8)}`);
 		this.hooks.onPlayerLeft?.(player.owner, carried);
@@ -405,6 +417,7 @@ export class Session {
 		if (!player || player.state.dead || player.state.extracted) return;
 		this.items.dropAll(allStacks(player.state.inventory), player.state.position);
 		this.send(player, { type: 'abandoned', ...this.summary(player) });
+		this.logRun(player, 'abandoned', null);
 		log.info(`Player ${player.name} abandoned session ${this.id.slice(0, 8)}`);
 		this.removePlayer(player.id);
 	}
@@ -542,6 +555,8 @@ export class Session {
 			return;
 		}
 		switch (command.kind) {
+			case 'throw':
+				throw new Error('Test error from the admin panel');
 			case 'noclip':
 			case 'infiniteStamina':
 			case 'infiniteBattery':
@@ -673,7 +688,29 @@ export class Session {
 	}
 
 	private start(): void {
-		this.timer = setInterval(() => this.step(), 1000 / TICK_RATE);
+		this.timer = setInterval(() => this.safeStep(), 1000 / TICK_RATE);
+	}
+
+	/** Errors already told to the players, so one that repeats every tick is told once. */
+	private crashesTold = new Set<string>();
+
+	/**
+	 * A tick that throws doesn't stop the expedition: the error is recorded, everyone in it (and
+	 * watching) is asked whether to report it, once per error, and the next tick runs as usual.
+	 */
+	private safeStep(): void {
+		try {
+			this.step();
+		} catch (error) {
+			const message = crashMessage(error);
+			void serverCrash(error, `Session ${this.id.slice(0, 8)} tick`).then((id) => {
+				if (this.crashesTold.has(message)) return;
+				this.crashesTold.add(message);
+				const crash: ServerMessage = { type: 'serverError', id, message };
+				for (const player of this.players.values()) this.send(player, crash);
+				for (const spectator of this.spectators.values()) this.sendTo(spectator.socket, crash);
+			});
+		}
 	}
 
 	stop(): void {
@@ -732,6 +769,7 @@ export class Session {
 					...(this.timedOut ? { lost: true } : {})
 				});
 				log.info(`Player ${player.name} died in session ${this.id.slice(0, 8)}`);
+				this.logRun(player, this.timedOut ? 'lost' : 'died', null);
 			} else {
 				this.escaped++;
 				this.send(player, {
@@ -740,6 +778,7 @@ export class Session {
 					carried: allStacks(player.state.inventory)
 				});
 				log.info(`Player ${player.name} extracted from session ${this.id.slice(0, 8)}`);
+				this.logRun(player, 'extracted', player.state.inventory);
 			}
 			this.removePlayer(player.id, player.state.dead ? null : player.state.inventory);
 			if (player.state.dead && alive) {
@@ -755,6 +794,7 @@ export class Session {
 					...this.summary(player),
 					carried: allStacks(player.state.inventory)
 				});
+				this.logRun(player, 'banished', player.state.inventory);
 				this.removePlayer(player.id, player.state.inventory);
 			}
 		}
@@ -812,6 +852,27 @@ export class Session {
 		};
 	}
 
+	/** Write how a player's expedition went, once (server/stats.ts). */
+	private logRun(player: Player, outcome: RunOutcome, carried: Inventory | null): void {
+		if (this.logged.has(player.id)) return;
+		this.logged.add(player.id);
+		const summary = this.summary(player);
+		logRun({
+			explorer: player.owner,
+			session: this.id,
+			seed: this.seed,
+			affliction: this.chosen,
+			outcome,
+			...summary,
+			carriedValue: carriedValue(carried),
+			partySize: this.joined,
+			manifestedAfter:
+				this.manifestedAt && this.startedAt
+					? Math.round((this.manifestedAt - this.startedAt) / 1000)
+					: null
+		});
+	}
+
 	private combat(): CombatContext {
 		return {
 			world: this.world,
@@ -866,6 +927,7 @@ export class Session {
 			log.info(`Session ${this.id.slice(0, 8)} omen stage ${this.affliction.stage}`);
 		}
 		if (!manifested && this.affliction.manifested) {
+			this.manifestedAt ??= Date.now();
 			this.events.push({ kind: 'manifest' });
 			log.info(`Session ${this.id.slice(0, 8)}: the Affliction manifests`);
 		}

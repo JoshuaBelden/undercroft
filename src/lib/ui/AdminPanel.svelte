@@ -180,6 +180,13 @@
 					saveSettings();
 				}}
 			/>
+			{@render action('Throw a server error', () => onadmin({ kind: 'throw' }))}
+			{@render action('Throw a client error', () => {
+				setTimeout(() => {
+					throw new Error('Test error from the admin panel');
+				});
+			})}
+			<p class="hint">Try the crash prompt and bug reports (docs/dev/reports.md).</p>
 		{:else if group === 'Map'}
 			{@render info('Seed', seed === null ? '—' : String(seed))}
 			<form class="setting" onsubmit={regenerate}>

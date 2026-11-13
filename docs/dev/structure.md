@@ -32,6 +32,8 @@ src/
         captions.svelte.ts  sound caption feed and direction
       net/
         GameClient.ts       WebSocket client, reconnect, RTT
+      diagnostics.ts        what a bug report carries (version, GPU, the game, the console)
+      crash.svelte.ts       the crash prompt and the bug report form state
     settings/
       settings.svelte.ts    persisted player settings ($state)
     account/
@@ -42,6 +44,11 @@ src/
       store/accounts.ts     accounts, sessions, tickets, explorers (also used by the game server)
       store/explorers.ts    stash and loadout; descent and return (also used by the game server)
       store/shop.ts         buying, selling, admin grants, the ledger
+      store/admin.ts        roles, admin-app sessions, the audit log (also used by admin/)
+      store/reports.ts      bug reports and crashes (errors), grouped by fingerprint
+      store/feedback.ts     the ideas board, votes, private feedback
+      store/runs.ts         game stats: runs and the game server status
+      github.ts             filing bug reports as GitHub issues
     content/
       help/index.ts         player help topics
       map/kit.ts            map piece roles and weights
@@ -58,17 +65,24 @@ src/
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
       credits.ts            the Credits page: AI statement, inspirations, assets, tools
+      reports.ts            bug report, idea and feedback rules; idea statuses
+      admin.ts              admin app rules; audit log action names
       changelog.ts          release notes, parsed from CHANGELOG.md
     ui/                     Svelte components (Panel, Dialog, Slot, TabScreen, HelpScreen, menus, overlays)
-  hooks.server.ts           finds the account for each request; all but sign-in and About is behind it
+  hooks.server.ts           finds the account for each request; all but sign-in and About is behind it; records server errors
+  hooks.client.ts           console capture and the crash prompt for errors nobody caught
   routes/
     (hub)/                  dashboard: frame (+layout) and a page per tab
       +page.svelte          Expedition: the party, the Affliction, launch
-      loadout/ afflictions/ store/ social/
+      loadout/ afflictions/ store/ social/ feedback/ (ideas and feedback)
     play/+page.svelte       expedition: the game view (client-only)
     auth/                   sign-in and sign-up pages
     about/                  What's new (release notes) and Credits, open without signing in
-    api/                    JSON endpoints: auth, account, ticket, explorer, shop, admin (dev)
+    api/                    JSON endpoints: auth, account, ticket, explorer, shop, report, ideas, feedback, admin (dev)
+    +error.svelte           a page that couldn't be shown; offers to report a server error
+admin/                      the admin app (its own SvelteKit app, docs/dev/admin.md)
+  src/routes/               dashboard, members, bug reports, crashes, ideas, feedback, audit log
+  src/lib/server/store.ts   the game's store code, re-exported
 server/
   index.ts                  WebSocket server entry
   accounts.ts               who a connection is, from the ticket in its hello
@@ -82,6 +96,9 @@ server/
   items.ts                  WorldItems: items in the map, pickups, thrown items
   crates.ts                 Crates: what loot crates hold, revealing it, who has one open
   marks.ts                  Marks: chalk marks on the walls, checking a new one
+  errors.ts                 errors on the game server: recorded, told to the players they hit
+  suspensions.ts            closes the connections of suspended accounts
+  stats.ts                  writes runs and the server status for the admin app
   config.ts                 environment
   db.ts                     MongoDB connection
   log.ts                    logging
@@ -91,6 +108,7 @@ scripts/
   build-audio.ts            builds Opus sounds from art/sfx
   build-images.ts           builds WebP interface pictures from art/images
   hashed.ts                 content-hashed file names for built assets
+  admin-grant.ts            pnpm admin:grant: make an account an admin
   blender/kit.py            builds the catacomb kit pieces inside Blender
   blender/items.py          builds the item models inside Blender
   blender/props.py          builds the loot crate and adds crate markers inside Blender

@@ -1,3 +1,6 @@
+# The game (this folder) and the admin app (admin/, docs/dev/admin.md).
+packages:
+  - admin
 engineStrict: true
 onlyBuiltDependencies:
   - esbuild

@@ -25,6 +25,8 @@ docker compose up -d    # start MongoDB
 pnpm dev                # SvelteKit client
 pnpm dev:server         # game server (watch mode)
 pnpm dev:seed [email]   # dev: fill explorers' stashes with items to test with
+pnpm dev:admin          # admin app (admin/, port 5174; docs/dev/admin.md)
+pnpm admin:grant <email> # make an account an admin (--remove to undo)
 pnpm build              # production build (adapter-node)
 pnpm check              # svelte-check + TypeScript
 pnpm lint               # Prettier check + ESLint
@@ -76,6 +78,7 @@ src/
     dev.ts      # dev mode flag
   routes/       # SvelteKit pages and API routes
 server/         # authoritative game server
+admin/          # admin app (separate SvelteKit app, shares src/lib/server/store)
 scripts/        # one-off tooling (asset generation)
 static/assets/  # .glb models, textures, audio (optimized, committed)
 art/            # raw art: .blend, 4K textures, raw exports (gitignored)

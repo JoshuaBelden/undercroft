@@ -1,0 +1,167 @@
+/*
+ * The admin app's look: the game's colour tokens and type (src/app.css, imported first), set for
+ * dense tables and forms rather than a game screen.
+ */
+
+body {
+	font-family: var(--font-ui);
+	font-size: 15px;
+}
+
+a {
+	color: var(--accent);
+}
+
+.panel {
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 20px;
+}
+
+input,
+select,
+textarea {
+	font: inherit;
+	color: var(--text);
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 7px 10px;
+}
+
+textarea {
+	resize: vertical;
+	min-height: 70px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+button {
+	font: inherit;
+	color: var(--text);
+	background: transparent;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 6px 14px;
+	cursor: pointer;
+}
+
+button:hover {
+	border-color: var(--muted);
+}
+
+button.primary {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+}
+
+button.danger {
+	border-color: #a33;
+	color: #f0a0a0;
+}
+
+button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.error {
+	color: #f0a0a0;
+	margin: 0;
+}
+
+.notice {
+	color: #9fd8a8;
+	margin: 0;
+}
+
+.muted {
+	color: var(--muted);
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+th,
+td {
+	text-align: left;
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--border);
+	vertical-align: top;
+}
+
+th {
+	font-weight: 600;
+	color: var(--muted);
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+/* A wide table scrolls inside its box, never the page. */
+.table-wrap {
+	overflow-x: auto;
+}
+
+.badge {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 999px;
+	font-size: 12px;
+	border: 1px solid var(--border);
+	color: var(--muted);
+	white-space: nowrap;
+}
+
+.badge.warn {
+	border-color: #a33;
+	color: #f0a0a0;
+}
+
+.badge.good {
+	border-color: #3fa650;
+	color: #9fd8a8;
+}
+
+.badge.info {
+	border-color: var(--accent);
+	color: #8fd3e3;
+}
+
+.toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	margin-bottom: 16px;
+}
+
+.stack {
+	display: grid;
+	gap: 16px;
+}
+
+pre {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	white-space: pre-wrap;
+	word-break: break-word;
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 10px;
+	margin: 0;
+	max-height: 360px;
+	overflow: auto;
+}

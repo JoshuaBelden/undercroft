@@ -386,5 +386,18 @@ That person goes to the place and holds {action:interact}. Nothing has to be set
 Forgot your password? On the sign-in page, choose "Forgot your password?" and we'll email you a link to choose a new one. It works once, for an hour. Choosing a new password signs you out everywhere else.
 
 Two-step sign-in asks for a code from an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, 1Password, Authy and others) after your password, so a stolen password isn't enough. When you turn it on you get eight recovery codes: keep them somewhere safe. If you lose your phone, each one signs you in once.`
+	},
+	{
+		id: 'feedback',
+		title: 'Bugs, ideas and feedback',
+		category: 'The surface',
+		body: `Found something broken, or want something added? Click your gamer tag at the top right of the dashboard.
+
+- Report a bug: say what happened and how to make it happen again. It goes on the list of things to fix. You can also report one from the settings screen, down in the catacombs too.
+- Ideas and feedback: the board of ideas other players suggested. Vote for the ones you want most (once each, and you can take a vote back): the ones with the most votes are looked at first. Suggest your own: it shows on the board once the team has read it. Or send feedback only the team reads.
+
+A bug report can carry details about the game and your computer: the version, your browser and graphics card, and, underground, the map, the room and the frame rate. You see all of it before sending, and can leave it out. It never includes your email, gamer tag or password.
+
+If something goes wrong while you play, the game asks whether you want to report it, with the error already attached. Nothing is sent unless you choose to.`
 	}
 ];

@@ -93,7 +93,9 @@ export type AdminCommand =
 	/** Rub out every chalk mark. */
 	| { kind: 'clearMarks' }
 	/** New map; omit the seed for a random one. */
-	| { kind: 'regenerate'; seed?: number };
+	| { kind: 'regenerate'; seed?: number }
+	/** Throw an error on the game server, to try the crash prompt (docs/dev/reports.md). */
+	| { kind: 'throw' };
 
 export type ServerMessage =
 	/** Your party, sent on joining and whenever it changes. `you` is your member id. */
@@ -167,7 +169,12 @@ export type ServerMessage =
 	/** The manifestation was banished: everyone leaves the expedition. */
 	| ({ type: 'banished'; carried: ItemStack[] } & ExpeditionSummary)
 	/** Your progress on an Affliction was reset (`resetAffliction`): reload the account. */
-	| { type: 'afflictionReset'; id: string };
+	| { type: 'afflictionReset'; id: string }
+	/**
+	 * Something broke on the game server while handling you or your expedition. `id` is the error
+	 * recorded (null without a database); the client asks whether to report it.
+	 */
+	| { type: 'serverError'; id: string | null; message: string };
 
 /** How one explorer's expedition went: sent with every way out of it, for the results screen. */
 export interface ExpeditionSummary {
@@ -230,7 +237,8 @@ const SERVER_TYPES = new Set<string>([
 	'abandoned',
 	'spectateEnd',
 	'banished',
-	'afflictionReset'
+	'afflictionReset',
+	'serverError'
 ]);
 
 function decode(raw: string, allowed: Set<string>): unknown {

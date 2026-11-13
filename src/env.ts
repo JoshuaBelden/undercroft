@@ -36,6 +36,15 @@ export const variables = defineEnvVars({
 		description: 'Discord application client secret.',
 		schema: (value) => value ?? ''
 	},
+	GITHUB_TOKEN: {
+		description:
+			'Fine-grained GitHub token with Issues read/write on GITHUB_REPO, to file bug reports. Empty: reports are only kept.',
+		schema: (value) => value ?? ''
+	},
+	GITHUB_REPO: {
+		description: 'Where bug reports are filed, as owner/name.',
+		schema: (value) => value || 'JoshuaBelden/undercroft'
+	},
 	PUBLIC_DEV_MODE: {
 		public: true,
 		description: 'Enables admin and debug tools when "true". Never set in player builds.',

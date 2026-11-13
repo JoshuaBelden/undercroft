@@ -47,6 +47,7 @@ export const GET: RequestHandler = async ({ cookies, url, locals }) => {
 	const linked = await accountByDiscord(db, discord.id);
 	if (linked) {
 		const result = await signIn(db, cookies, linked, secure);
+		if (typeof result === 'object') back('suspended');
 		redirect(303, result === 'mfa' ? '/auth/mfa' : '/');
 	}
 

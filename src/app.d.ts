@@ -2,7 +2,10 @@
 // for information about these interfaces
 declare global {
 	namespace App {
-		// interface Error {}
+		interface Error {
+			/** A bug on the server: its id in `errors`, so a report about it is grouped with it. */
+			errorId?: string;
+		}
 		interface Locals {
 			/** The signed-in account (set in hooks.server.ts); null on the sign-in pages. */
 			account: { id: string; email: string; gamerTag: string } | null;

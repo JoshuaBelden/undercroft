@@ -4,6 +4,7 @@
 		applyAudioOptions,
 		type AudioCategory
 	} from '#lib/game/audio/AudioManager.ts';
+	import { openBugReport } from '#lib/game/crash.svelte.ts';
 	import { ACTIONS, bindingLabel, type Action } from '#lib/game/input/actions.ts';
 	import {
 		FRAME_CAPS,
@@ -98,6 +99,7 @@
 
 <TabScreen label="Settings" groups={GROUPS} bind:group {onclose} {dim}>
 	{#snippet actions()}
+		<button type="button" class="back" onclick={() => openBugReport()}>Report a bug</button>
 		{#if onabandon}
 			<button type="button" class="back abandon" onclick={() => (confirmingAbandon = true)}>
 				Abandon expedition

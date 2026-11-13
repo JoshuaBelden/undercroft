@@ -10,8 +10,12 @@ import {
 	type Slots
 } from '../../shared/items/inventory.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
+import { ensureAdminIndexes } from './admin.ts';
 import { ensureAuthIndexes } from './auth.ts';
+import { ensureFeedbackIndexes } from './feedback.ts';
 import { ensureFriendIndexes } from './friends.ts';
+import { ensureReportIndexes } from './reports.ts';
+import { ensureRunIndexes } from './runs.ts';
 
 /**
  * Accounts, sessions, game tickets and explorers in MongoDB. Used by the SvelteKit server (sign-in,
@@ -35,7 +39,38 @@ export interface AccountDoc {
 	totp?: TotpDoc;
 	/** A secret being set up: shown as a QR code, not in force until a code from it is entered. */
 	totpPending?: string;
+	/** Staff: an `admin` can sign in to the admin app (docs/dev/admin.md). */
+	role?: 'admin';
+	/** Set by an admin: no sign-in and no play while it is in force (see `activeSuspension`). */
+	suspended?: SuspensionDoc;
+	/** The last time a game ticket was issued: about the last time they played. */
+	lastSeen?: Date;
 	createdAt: Date;
+}
+
+export interface SuspensionDoc {
+	/** Shown to the player when they try to sign in. */
+	reason: string;
+	/** When it lifts by itself; missing: until an admin lifts it. */
+	until?: Date;
+	/** The admin's account id. */
+	by: string;
+	at: Date;
+}
+
+/** The account's suspension, if it is in force now. One whose end date has passed is not. */
+export function activeSuspension(account: AccountDoc, now = new Date()): SuspensionDoc | null {
+	const suspension = account.suspended;
+	if (!suspension) return null;
+	return suspension.until && suspension.until <= now ? null : suspension;
+}
+
+/** A suspension as the player is told it. */
+export function suspensionMessage(suspension: SuspensionDoc): string {
+	const until = suspension.until
+		? ` until ${suspension.until.toISOString().slice(0, 16).replace('T', ' ')} UTC`
+		: '';
+	return `This account is suspended${until}: ${suspension.reason}`;
 }
 
 export interface TotpDoc {
@@ -116,6 +151,10 @@ export async function ensureIndexes(db: Db): Promise<void> {
 	await tickets(db).createIndex({ expires: 1 }, { expireAfterSeconds: 0 });
 	await ensureFriendIndexes(db);
 	await ensureAuthIndexes(db);
+	await ensureAdminIndexes(db);
+	await ensureReportIndexes(db);
+	await ensureFeedbackIndexes(db);
+	await ensureRunIndexes(db);
 }
 
 /**
@@ -228,6 +267,40 @@ export async function getAccount(db: Db, accountId: string): Promise<AccountDoc 
 	return accounts(db).findOne({ _id: accountId });
 }
 
+/**
+ * Suspend an account (admin): signed out of every browser and game ticket at once. The game
+ * server closes a connection that is still open within a minute (server/suspensions.ts).
+ */
+export async function suspendAccount(
+	db: Db,
+	accountId: string,
+	suspension: SuspensionDoc
+): Promise<void> {
+	await accounts(db).updateOne({ _id: accountId }, { $set: { suspended: suspension } });
+	await deleteSessionsFor(db, accountId);
+}
+
+export async function liftSuspension(db: Db, accountId: string): Promise<void> {
+	await accounts(db).updateOne({ _id: accountId }, { $unset: { suspended: '' } });
+}
+
+/**
+ * Which of these accounts are suspended now, with what the player is told. The game server asks
+ * about everyone connected, to close the connections of anyone an admin just suspended.
+ */
+export async function suspendedAmong(db: Db, ids: string[]): Promise<Map<string, string>> {
+	const found = new Map<string, string>();
+	if (ids.length === 0) return found;
+	const docs = await accounts(db)
+		.find({ _id: { $in: ids }, suspended: { $exists: true } })
+		.toArray();
+	for (const account of docs) {
+		const suspension = activeSuspension(account);
+		if (suspension) found.set(account._id, suspensionMessage(suspension));
+	}
+	return found;
+}
+
 /** Start a browser session; returns the cookie value. */
 export async function createSession(db: Db, accountId: string): Promise<string> {
 	const token = randomBytes(32).toString('hex');
@@ -239,9 +312,11 @@ export async function createSession(db: Db, accountId: string): Promise<string> 
 	return token;
 }
 
+/** The account a browser session belongs to. None while the account is suspended. */
 export async function sessionAccount(db: Db, token: string): Promise<AccountDoc | null> {
 	const session = await sessions(db).findOne({ _id: token, expires: { $gt: new Date() } });
-	return session ? getAccount(db, session.account) : null;
+	const account = session ? await getAccount(db, session.account) : null;
+	return account && !activeSuspension(account) ? account : null;
 }
 
 export async function deleteSession(db: Db, token: string): Promise<void> {
@@ -267,6 +342,7 @@ export async function createTicket(db: Db, accountId: string): Promise<string> {
 		account: accountId,
 		expires: new Date(Date.now() + ACCOUNT.ticketHours * 3600_000)
 	});
+	await accounts(db).updateOne({ _id: accountId }, { $set: { lastSeen: new Date() } });
 	return token;
 }
 
@@ -278,7 +354,7 @@ export async function redeemTicket(
 	if (typeof token !== 'string' || !/^[0-9a-f]{64}$/.test(token)) return null;
 	const ticket = await tickets(db).findOne({ _id: token, expires: { $gt: new Date() } });
 	const account = ticket ? await getAccount(db, ticket.account) : null;
-	if (!account) return null;
+	if (!account || activeSuspension(account)) return null;
 	return { account, explorer: await explorerFor(db, account._id) };
 }
 

@@ -2,7 +2,13 @@ import { error, type Cookies } from '@sveltejs/kit';
 import type { Db } from 'mongodb';
 import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } from '$app/env/private';
 import { ACCOUNT } from '#lib/content/account.ts';
-import { createSession, getAccount, type AccountDoc } from '#lib/server/store/accounts.ts';
+import {
+	activeSuspension,
+	createSession,
+	getAccount,
+	suspensionMessage,
+	type AccountDoc
+} from '#lib/server/store/accounts.ts';
 import { startChallenge } from '#lib/server/store/auth.ts';
 
 export const SESSION_COOKIE = 'undercroft.session';
@@ -67,7 +73,10 @@ export async function signIn(
 	cookies: Cookies,
 	account: AccountDoc,
 	secure: boolean
-): Promise<'signedIn' | 'mfa'> {
+): Promise<'signedIn' | 'mfa' | { suspended: string }> {
+	// Suspended by an admin: no session, and the reason (see docs/dev/admin.md#suspending).
+	const suspension = activeSuspension(account);
+	if (suspension) return { suspended: suspensionMessage(suspension) };
 	if (account.totp) {
 		const challenge = await startChallenge(db, account._id);
 		setStepCookie(cookies, CHALLENGE_COOKIE, challenge, ACCOUNT.challengeMinutes, secure);

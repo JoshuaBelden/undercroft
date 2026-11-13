@@ -37,4 +37,4 @@ You're welcome to use AI tools (the project itself is built with Claude Code; se
 
 ## Reporting bugs
 
-Open an issue with what happened, what you expected, and how to reproduce it. Include your browser, the version from the bottom of the dashboard, and solo or co-op. The browser console log (F12) helps a lot.
+Players can report bugs from the game itself (the account menu, or the settings screen): the report becomes an issue here, with the version and details attached. You can also open an issue with what happened, what you expected, and how to reproduce it. Include your browser, the version from the bottom of the dashboard, and solo or co-op. The browser console log (F12) helps a lot.

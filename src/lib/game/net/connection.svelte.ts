@@ -1,5 +1,6 @@
 import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
 import { ApiError, gameTicket, loadAccount } from '#lib/account/account.svelte.ts';
+import { promptCrash } from '#lib/game/crash.svelte.ts';
 import type { MarkSnapshot } from '#lib/shared/items/types.ts';
 import type { PartyMember, PartyState } from '#lib/shared/party/types.ts';
 import type { ClientMessage, ServerMessage } from '#lib/shared/protocol.ts';
@@ -165,6 +166,14 @@ function receive(message: ServerMessage): void {
 			break;
 		case 'marks':
 			connection.marks = message.marks;
+			break;
+		case 'serverError':
+			// Something broke on the game server: ask whether to report it (docs/dev/reports.md).
+			promptCrash({
+				source: 'game',
+				message: message.message,
+				...(message.id ? { errorId: message.id } : {})
+			});
 			break;
 		case 'extracted':
 		case 'died':

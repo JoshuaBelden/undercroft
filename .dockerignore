@@ -1,6 +1,9 @@
 node_modules
 .svelte-kit
 build
+admin/node_modules
+admin/.svelte-kit
+admin/build
 art
 .env
 .env.*

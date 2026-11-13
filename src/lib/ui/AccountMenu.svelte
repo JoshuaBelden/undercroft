@@ -2,10 +2,11 @@
 	import { tick } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { signOut } from '#lib/account/account.svelte.ts';
+	import { openBugReport } from '#lib/game/crash.svelte.ts';
 
 	/**
-	 * The gamer tag at the top right of the dashboard, as a menu: the Account screen, and signing
-	 * out. Closes on Escape, on a click anywhere else, and once something is chosen.
+	 * The gamer tag at the top right of the dashboard, as a menu: the Account screen, ideas and
+	 * feedback, reporting a bug, and signing out. Closes on Escape, on a click anywhere else, and once something is chosen.
 	 */
 	interface Props {
 		gamerTag: string;
@@ -87,6 +88,19 @@
 	{#if open}
 		<div class="menu" role="menu" tabindex="-1" bind:this={menu} onkeydown={onMenuKey}>
 			<a role="menuitem" href={resolve('/account')} onclick={() => close(false)}>Account</a>
+			<a role="menuitem" href={resolve('/(hub)/feedback')} onclick={() => close(false)}>
+				Ideas and feedback
+			</a>
+			<button
+				type="button"
+				role="menuitem"
+				onclick={() => {
+					close(false);
+					openBugReport();
+				}}
+			>
+				Report a bug
+			</button>
 			<button
 				type="button"
 				role="menuitem"

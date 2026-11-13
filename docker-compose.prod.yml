@@ -25,6 +25,24 @@ services:
       MAIL_FROM: ${MAIL_FROM:-Undercroft <noreply@${DOMAIN}>}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      # Bug reports filed on GitHub (docs/dev/reports.md). Empty: reports are only kept.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_REPO: ${GITHUB_REPO:-JoshuaBelden/undercroft}
+
+  # The admin app on admin.<DOMAIN> (docs/dev/admin.md).
+  admin:
+    <<: *app
+    command: ['node', 'admin/build']
+    environment:
+      PORT: '3001'
+      ORIGIN: https://admin.${DOMAIN}
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB: ${MONGODB_DB:-undercroft}
+      GAME_ORIGIN: https://${DOMAIN}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-Undercroft <noreply@${DOMAIN}>}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_REPO: ${GITHUB_REPO:-JoshuaBelden/undercroft}
 
   game:
     <<: *app
@@ -48,6 +66,7 @@ services:
     depends_on:
       - web
       - game
+      - admin
     ports:
       - '80:80'
       - '443:443'
