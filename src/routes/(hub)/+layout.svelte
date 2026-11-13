@@ -9,6 +9,7 @@
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
 	import { startPrefetch } from '#lib/game/prefetch.svelte.ts';
+	import AccountMenu from '#lib/ui/AccountMenu.svelte';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import type { LayoutProps } from './$types';
@@ -41,13 +42,9 @@
 		void loadAccount();
 		// Shared models and sounds download in the background, so the descent loads quickly.
 		startPrefetch();
-		// Only these actions: every other key and click is left to the page.
-		const input = new InputMap(window, [
-			'toggleSettings',
-			'toggleHelp',
-			'toggleSocial',
-			'inventory'
-		]);
+		// Only these actions: every other key and click is left to the page. Not `inventory`: it
+		// is Tab, which moves between buttons and fields up here.
+		const input = new InputMap(window, ['toggleSettings', 'toggleHelp', 'toggleSocial']);
 		const unsubscribe = input.onPressed((action) => {
 			// The key backs out one step: it closes Help, then returns to the Expedition page, and
 			// only from there opens the settings page.
@@ -61,11 +58,6 @@
 			if (action === 'toggleSocial') {
 				help = false;
 				void goto(resolve(social ? '/(hub)' : '/(hub)/social'));
-			}
-			// The key that opens the pack underground opens the Loadout page up here.
-			if (action === 'inventory') {
-				help = false;
-				void goto(resolve('/(hub)/loadout'));
 			}
 		});
 		return () => {
@@ -117,7 +109,7 @@
 					<span aria-hidden="true">{explorer.money}</span>
 				</a>
 			{/if}
-			<span class="tag">{gamerTag}</span>
+			<AccountMenu {gamerTag} />
 		</div>
 	</header>
 
@@ -288,11 +280,6 @@
 
 	.sign {
 		margin-right: -0.12em;
-	}
-
-	.tag {
-		font-family: var(--font-ui);
-		color: var(--text);
 	}
 
 	/*

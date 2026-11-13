@@ -4,7 +4,6 @@
 	import { resolve } from '$app/paths';
 	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
-	import { send } from '#lib/game/net/connection.svelte.ts';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import Settings from '#lib/ui/Settings.svelte';
 
@@ -31,8 +30,7 @@
 </script>
 
 <div class="page backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
-	<!-- A new gamer tag is told to the game server, so the party sees it. -->
-	<Settings onclose={close} onaccount={() => send({ type: 'rename' })} />
+	<Settings onclose={close} />
 </div>
 
 <style>

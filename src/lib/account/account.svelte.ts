@@ -57,6 +57,45 @@ export async function changeGamerTag(gamerTag: string): Promise<void> {
 }
 
 /**
+ * Change the password (`current` is needed when it has one), or set one for an account made with
+ * Discord. Every other browser is signed out. Throws `ApiError` if refused.
+ */
+export async function changePassword(current: string, password: string): Promise<void> {
+	session.account = await api<AccountView>('/api/account/password', 'POST', { current, password });
+}
+
+/** Start turning on two-step sign-in: the secret, and a QR code (SVG) of it for the app. */
+export async function startTwoStep(): Promise<{ secret: string; qr: string }> {
+	return api<{ secret: string; qr: string }>('/api/account/mfa/setup', 'POST');
+}
+
+/** Turn two-step sign-in on with a code from the app. Returns the recovery codes, shown once. */
+export async function enableTwoStep(code: string): Promise<string[]> {
+	const result = await api<{ codes: string[]; account: AccountView }>(
+		'/api/account/mfa/enable',
+		'POST',
+		{ code }
+	);
+	session.account = result.account;
+	return result.codes;
+}
+
+/** Turn two-step sign-in off, with a code from the app or a recovery code. */
+export async function disableTwoStep(code: string): Promise<void> {
+	session.account = await api<AccountView>('/api/account/mfa/disable', 'POST', { code });
+}
+
+/** Unlink Discord. Refused when the account has no password. */
+export async function unlinkDiscord(): Promise<void> {
+	session.account = await api<AccountView>('/api/account/discord', 'DELETE');
+}
+
+/** Sign out every other browser; this one stays signed in. */
+export async function signOutElsewhere(): Promise<void> {
+	await api('/api/account/sessions', 'DELETE');
+}
+
+/**
  * Rearrange the stash and the loadout: move, equip or split something, or throw it away
  * (`drop`). Throws `ApiError` if it is refused.
  */

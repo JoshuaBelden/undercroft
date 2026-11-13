@@ -44,7 +44,7 @@ You are not alone. Keep quiet, keep your light off what you don't want to see, a
 
 When your pack is full, or the time is running short, go back to the sealed door you started beside and hold {action:interact} to climb out. If you die, everything you carried stays down there.
 
-On the surface, open the Loadout page ({action:inventory}) and sell your treasure. Then click your money to open the store, and buy a knife, a bandage and smelling salts before you go deeper.
+On the surface, open the Loadout page and sell your treasure. Then click your money to open the store, and buy a knife, a bandage and smelling salts before you go deeper.
 
 Press {action:toggleHelp} at any time, on the surface or underground, to read more.`
 	},
@@ -139,7 +139,7 @@ You can also give up from anywhere: open the settings ({action:toggleSettings}) 
 		category: 'Expeditions',
 		body: `The dashboard's "Expedition" page is where you set out from. It shows everyone in your party: at first, only you. Descend alone, or bring up to three friends.
 
-To bring someone, open the Social page ({action:toggleSocial}, or the Social button at the bottom right). Search for their gamer tag and add them; once they accept, they are your friend. The page lists all your friends, online or not. Invite one who is online and not already in a party and, when they accept, they join your party. Once you have invited someone, the page shows your party: who is in it, and who has yet to accept. The host can kick someone out of it, and anyone can leave. The others see your gamer tag, which you can change in the settings ({action:toggleSettings}).
+To bring someone, open the Social page ({action:toggleSocial}, or the Social button at the bottom right). Search for their gamer tag and add them; once they accept, they are your friend. The page lists all your friends, online or not. Invite one who is online and not already in a party and, when they accept, they join your party. Once you have invited someone, the page shows your party: who is in it, and who has yet to accept. The host can kick someone out of it, and anyone can leave. The others see your gamer tag, which you can change on your Account screen: click your gamer tag at the top right.
 
 The host, whoever started the party, chooses the Affliction you go against. Then each of you presses Launch Expedition and confirms your loadout: that makes you ready, and the others see it. Once you are ready you can't change your loadout or use the store, unless you cancel.
 
@@ -159,7 +159,7 @@ If your connection drops underground, your place is held for a minute. You're st
 
 Whatever you carry out of the catacombs is yours. You come back to your loadout packed the way you carried it, with what you found still in your backpack. Move it to your stash, or sell it, before the next descent.
 
-The dashboard is where you land when you sign in. Its "Loadout" page ({action:inventory} from anywhere on the dashboard) shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
+The dashboard is where you land when you sign in. Its "Loadout" page shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
 
 The loadout has a place for everything. Two weapons, and one thing worn for protection: it takes the blows of whatever catches you before you do, until it is torn apart. The pale bar over your health underground is what it has left, and the wear stays on it when you come back up. A backpack that takes anything. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
 
@@ -372,5 +372,19 @@ For the Gloaming, the rite needs five candles, a stick of chalk and the Pendant.
 One person has to carry everything the rite needs. If it's spread between you, drop things for that person to pick up. If they die, what they carried lies where they fell.
 
 That person goes to the place and holds {action:interact}. Nothing has to be set down, and nothing has to be fought. When it's done the Affliction is resolved: the omens lift and it won't come for you. You still have to get out before time runs out.`
+	},
+	{
+		id: 'account',
+		title: 'Your account',
+		category: 'The surface',
+		body: `Click your gamer tag at the top right of the dashboard for your Account screen, or to sign out.
+
+- Profile: change your gamer tag, the name other players see.
+- Sign-in: change your password, and link your Discord account so you can sign in with it. If you made your account with Discord, you can set a password here too.
+- Security: two-step sign-in, and signing out every other browser.
+
+Forgot your password? On the sign-in page, choose "Forgot your password?" and we'll email you a link to choose a new one. It works once, for an hour. Choosing a new password signs you out everywhere else.
+
+Two-step sign-in asks for a code from an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, 1Password, Authy and others) after your password, so a stolen password isn't enough. When you turn it on you get eight recovery codes: keep them somewhere safe. If you lose your phone, each one signs you in once.`
 	}
 ];

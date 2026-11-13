@@ -1,12 +1,4 @@
 <script lang="ts">
-	import { ACCOUNT } from '#lib/content/account.ts';
-	import {
-		ApiError,
-		changeGamerTag,
-		loadAccount,
-		session,
-		signOut
-	} from '#lib/account/account.svelte.ts';
 	import {
 		AUDIO_CATEGORIES,
 		applyAudioOptions,
@@ -39,46 +31,19 @@
 		onvolume?: (category: AudioCategory, value: number) => void;
 		/** Graphics settings changed; re-apply them to the renderer. */
 		ongraphics?: () => void;
-		/** The gamer tag was changed (the game server should read it again). */
-		onaccount?: () => void;
 		/** Underground: offer to abandon the expedition (asked to confirm first). */
 		onabandon?: () => void;
 	}
 
-	let { onclose, dim = false, onvolume, ongraphics, onaccount, onabandon }: Props = $props();
+	let { onclose, dim = false, onvolume, ongraphics, onabandon }: Props = $props();
 
-	const GROUPS = [
-		'Account',
-		'Audio',
-		'Graphics',
-		'Mouse',
-		'Accessibility',
-		'Interface',
-		'Controls'
-	] as const;
-	let group = $state<(typeof GROUPS)[number]>('Account');
+	const GROUPS = ['Audio', 'Graphics', 'Mouse', 'Accessibility', 'Interface', 'Controls'] as const;
+	let group = $state<(typeof GROUPS)[number]>('Audio');
 
-	let gamerTag = $state(session.account?.gamerTag ?? '');
-	let tagMessage = $state('');
 	/** Asking whether to really reset everything. */
 	let confirmingReset = $state(false);
 	/** Asking whether to really abandon the expedition. */
 	let confirmingAbandon = $state(false);
-	if (!session.account) void loadAccount().then((account) => (gamerTag = account?.gamerTag ?? ''));
-
-	async function saveTag(event: SubmitEvent): Promise<void> {
-		event.preventDefault();
-		tagMessage = '';
-		try {
-			await changeGamerTag(gamerTag);
-			gamerTag = session.account?.gamerTag ?? gamerTag;
-			tagMessage = 'Saved';
-			onaccount?.();
-		} catch (caught) {
-			tagMessage = caught instanceof ApiError ? caught.message : 'Could not reach the server';
-		}
-	}
-
 	const QUALITIES: readonly GraphicsQuality[] = ['low', 'medium', 'high'];
 	const CAPTION_SIZES: readonly CaptionSize[] = ['small', 'medium', 'large'];
 
@@ -140,31 +105,7 @@
 		{/if}
 	{/snippet}
 
-	{#if group === 'Account'}
-		<form class="setting" onsubmit={saveTag}>
-			<label class="pill">
-				<span class="name">Gamer tag</span>
-				<input
-					type="text"
-					minlength={ACCOUNT.tagMin}
-					maxlength={ACCOUNT.tagMax}
-					required
-					autocomplete="off"
-					bind:value={gamerTag}
-				/>
-			</label>
-			{#if gamerTag !== (session.account?.gamerTag ?? gamerTag)}
-				<button type="submit">Save</button>
-			{/if}
-			<p class="hint" role="status">{tagMessage || 'The name other players see.'}</p>
-		</form>
-		<div class="setting">
-			<button type="button" class="pill" onclick={() => void signOut()}>
-				<span class="name">Sign out</span>
-			</button>
-			<p class="hint">Signed in as {session.account?.email ?? '...'}</p>
-		</div>
-	{:else if group === 'Audio'}
+	{#if group === 'Audio'}
 		{#each AUDIO_CATEGORIES as category (category)}
 			<SliderField
 				label={AUDIO_LABELS[category]}

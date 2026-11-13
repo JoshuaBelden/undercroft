@@ -82,6 +82,22 @@ A CDN (DigitalOcean Spaces CDN) in front of `/assets` isn't needed for the beta:
 
 `--domain` only matters on the first deploy, when it writes `/opt/undercroft/.env`. After that the domain in that file is the one used, so changing it means editing the file (below), not passing a new `--domain`.
 
+## Email and Discord
+
+Password-reset emails and "Sign in with Discord" need keys in `/opt/undercroft/.env` on the droplet. The first deploy writes that file and later deploys never touch it, so add these lines by hand, then run `docker compose -f docker-compose.prod.yml --env-file ../.env up -d` in `/opt/undercroft/app`. Without them the site still works: the Discord button is hidden, and reset links only go to the `web` log (`... logs -f web`), which is also a way to help a player by hand.
+
+**Resend** (email). The droplet can't send mail itself (DigitalOcean blocks SMTP), so emails go through Resend's HTTPS API.
+
+1. Make an account at resend.com, add the domain `undercroft.us`, and add the DNS records it lists (SPF and DKIM, as TXT/MX records) at GoDaddy. Wait for Resend to show the domain as verified.
+2. Create an API key with sending access only, then set `RESEND_API_KEY=re_...` in `.env`. `MAIL_FROM` defaults to `Undercroft <noreply@<DOMAIN>>`, which must be on the verified domain.
+
+**Discord** (sign-in).
+
+1. At discord.com/developers/applications, create an application named Undercroft. Under OAuth2, add the redirect `https://undercroft.us/auth/discord/callback` (and `http://localhost:5173/auth/discord/callback` for development).
+2. Copy the Client ID and Client Secret into `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`.
+
+Keep these keys out of the repository and out of chat, like the DigitalOcean token.
+
 ## Changing the domain
 
 Point the new name's A record at the droplet, then on the droplet set `DOMAIN=<new name>` in `/opt/undercroft/.env` and run `docker compose -f docker-compose.prod.yml --env-file ../.env up -d` in `/opt/undercroft/app`. Caddy gets a certificate for the new name by itself, and for `www.<name>`, which it redirects to the bare name (add a `www` CNAME to the domain for that). Until there is a real domain, `<ip-with-dashes>.sslip.io` (a public DNS name that resolves to the IP inside it) works for HTTPS.

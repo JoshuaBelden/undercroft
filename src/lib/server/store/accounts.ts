@@ -10,6 +10,7 @@ import {
 	type Slots
 } from '../../shared/items/inventory.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
+import { ensureAuthIndexes } from './auth.ts';
 import { ensureFriendIndexes } from './friends.ts';
 
 /**
@@ -22,13 +23,29 @@ export interface AccountDoc {
 	_id: string;
 	/** Lower-cased; unique. */
 	email: string;
-	/** `scrypt$<salt>$<hash>`, both hex. */
-	password: string;
+	/** `scrypt$<salt>$<hash>`, both hex. Missing on an account made with Discord until one is set. */
+	password?: string;
 	/** The name other players see. */
 	gamerTag: string;
 	/** Lower-cased gamer tag; unique, so two tags can't differ only by case. */
 	tagKey: string;
+	/** The Discord account it signs in with, if linked. `discord.id` is unique. */
+	discord?: { id: string; username: string };
+	/** Two-step sign-in, when it is on. */
+	totp?: TotpDoc;
+	/** A secret being set up: shown as a QR code, not in force until a code from it is entered. */
+	totpPending?: string;
 	createdAt: Date;
+}
+
+export interface TotpDoc {
+	/** Base32 (see src/lib/server/totp.ts). */
+	secret: string;
+	enabledAt: Date;
+	/** sha256 (hex) of each recovery code not yet used. */
+	recovery: string[];
+	/** The last time step a code was accepted for, so one code can't be used twice. */
+	usedStep: number;
 }
 
 /** The character an account plays. One per account today; nothing assumes only one. */
@@ -67,14 +84,16 @@ interface ProgressDoc {
 	resolved?: boolean;
 }
 
-export type AccountError = 'email' | 'password' | 'tag' | 'emailTaken' | 'tagTaken';
+export type AccountError =
+	'email' | 'password' | 'tag' | 'emailTaken' | 'tagTaken' | 'discordTaken';
 
 export const ACCOUNT_ERRORS: Record<AccountError, string> = {
 	email: 'Enter a valid email address',
 	password: `Passwords need at least ${ACCOUNT.passwordMin} characters`,
 	tag: `Gamer tags are ${ACCOUNT.tagMin} to ${ACCOUNT.tagMax} letters, numbers, spaces, - or _`,
 	emailTaken: 'That email already has an account',
-	tagTaken: 'That gamer tag is taken'
+	tagTaken: 'That gamer tag is taken',
+	discordTaken: 'That Discord account is already linked to another Undercroft account'
 };
 
 /** The stash and loadout are slots. Explorers from before that are converted when next read. */
@@ -89,32 +108,43 @@ const tickets = (db: Db): Collection<SessionDoc> => db.collection<SessionDoc>('t
 export async function ensureIndexes(db: Db): Promise<void> {
 	await accounts(db).createIndex({ email: 1 }, { unique: true });
 	await accounts(db).createIndex({ tagKey: 1 }, { unique: true });
+	await accounts(db).createIndex({ 'discord.id': 1 }, { unique: true, sparse: true });
+	await sessions(db).createIndex({ account: 1 });
 	await explorers(db).createIndex({ account: 1 });
 	// MongoDB removes these itself once they expire.
 	await sessions(db).createIndex({ expires: 1 }, { expireAfterSeconds: 0 });
 	await tickets(db).createIndex({ expires: 1 }, { expireAfterSeconds: 0 });
 	await ensureFriendIndexes(db);
+	await ensureAuthIndexes(db);
 }
 
+/**
+ * A new account. It has a password, or a linked Discord account (whose email it takes), or both.
+ */
 export async function createAccount(
 	db: Db,
-	input: { email: unknown; password: unknown; gamerTag: unknown }
+	input: {
+		email: unknown;
+		password?: unknown;
+		gamerTag: unknown;
+		discord?: { id: string; username: string };
+	}
 ): Promise<{ account: AccountDoc } | { error: AccountError }> {
 	const email = cleanEmail(input.email);
 	const gamerTag = cleanTag(input.gamerTag);
 	if (!email) return { error: 'email' };
-	if (typeof input.password !== 'string' || input.password.length < ACCOUNT.passwordMin) {
-		return { error: 'password' };
-	}
+	if (!input.discord && !validPassword(input.password)) return { error: 'password' };
+	if (input.password !== undefined && !validPassword(input.password)) return { error: 'password' };
 	if (!gamerTag) return { error: 'tag' };
 	const account: AccountDoc = {
 		_id: randomUUID(),
 		email,
-		password: await hashPassword(input.password),
 		gamerTag,
 		tagKey: gamerTag.toLowerCase(),
 		createdAt: new Date()
 	};
+	if (typeof input.password === 'string') account.password = await hashPassword(input.password);
+	if (input.discord) account.discord = input.discord;
 	try {
 		await accounts(db).insertOne(account);
 	} catch (error) {
@@ -135,8 +165,27 @@ export async function verifyLogin(
 	const cleaned = cleanEmail(email);
 	if (!cleaned || typeof password !== 'string') return null;
 	const account = await accounts(db).findOne({ email: cleaned });
-	if (!account || !(await checkPassword(password, account.password))) return null;
+	if (!account?.password || !(await checkPassword(password, account.password))) return null;
 	return account;
+}
+
+/** Whether this is a password we'd accept for an account. */
+export function validPassword(password: unknown): password is string {
+	return typeof password === 'string' && password.length >= ACCOUNT.passwordMin;
+}
+
+/** Set the account's password (it may not have had one: made with Discord). */
+export async function setAccountPassword(
+	db: Db,
+	accountId: string,
+	password: unknown
+): Promise<AccountError | null> {
+	if (!validPassword(password)) return 'password';
+	await accounts(db).updateOne(
+		{ _id: accountId },
+		{ $set: { password: await hashPassword(password) } }
+	);
+	return null;
 }
 
 export async function setGamerTag(
@@ -167,7 +216,7 @@ export async function setPassword(
 ): Promise<AccountError | null> {
 	const cleaned = cleanEmail(email);
 	if (!cleaned) return 'email';
-	if (typeof password !== 'string' || password.length < ACCOUNT.passwordMin) return 'password';
+	if (!validPassword(password)) return 'password';
 	const result = await accounts(db).updateOne(
 		{ email: cleaned },
 		{ $set: { password: await hashPassword(password) } }
@@ -197,6 +246,14 @@ export async function sessionAccount(db: Db, token: string): Promise<AccountDoc 
 
 export async function deleteSession(db: Db, token: string): Promise<void> {
 	await sessions(db).deleteOne({ _id: token });
+}
+
+/** Sign the account out of every browser (and every game ticket), except the session `keep`. */
+export async function deleteSessionsFor(db: Db, accountId: string, keep?: string): Promise<void> {
+	await sessions(db).deleteMany(
+		keep ? { account: accountId, _id: { $ne: keep } } : { account: accountId }
+	);
+	await tickets(db).deleteMany({ account: accountId });
 }
 
 /**
@@ -302,7 +359,16 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 			resolved: doc.resolved === true
 		}))
 	};
-	return { id: account._id, email: account.email, gamerTag: account.gamerTag, explorer: view };
+	return {
+		id: account._id,
+		email: account.email,
+		gamerTag: account.gamerTag,
+		hasPassword: account.password !== undefined,
+		discord: account.discord?.username ?? null,
+		mfa: account.totp !== undefined,
+		recoveryCodesLeft: account.totp?.recovery.length ?? 0,
+		explorer: view
+	};
 }
 
 function hash(password: string, salt: Buffer): Promise<Buffer> {
@@ -311,12 +377,12 @@ function hash(password: string, salt: Buffer): Promise<Buffer> {
 	});
 }
 
-async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string): Promise<string> {
 	const salt = randomBytes(16);
 	return `scrypt$${salt.toString('hex')}$${(await hash(password, salt)).toString('hex')}`;
 }
 
-async function checkPassword(password: string, stored: string): Promise<boolean> {
+export async function checkPassword(password: string, stored: string): Promise<boolean> {
 	const [scheme, salt, expected] = stored.split('$');
 	if (scheme !== 'scrypt' || !salt || !expected) return false;
 	const actual = await hash(password, Buffer.from(salt, 'hex'));
@@ -329,7 +395,8 @@ function duplicate(error: unknown): AccountError | null {
 	if (typeof error !== 'object' || error === null || !('code' in error) || error.code !== 11000) {
 		return null;
 	}
-	return String((error as { message?: unknown }).message).includes('tagKey')
-		? 'tagTaken'
-		: 'emailTaken';
+	const message = String((error as { message?: unknown }).message);
+	if (message.includes('tagKey')) return 'tagTaken';
+	if (message.includes('discord')) return 'discordTaken';
+	return 'emailTaken';
 }

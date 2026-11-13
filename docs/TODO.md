@@ -25,8 +25,8 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - mapping
 - Creatures should be able to crawl
 - Doors
-- SSO with Discord and Steam, Link a provider to an existing email account
-- Password recovery (needs an email service)
+- Steam sign-in (OpenID 2.0, no email: recovery would go through Steam). Discord sign-in, linking and password recovery are done (docs/dev/accounts.md)
+- Verify the email address at sign-up (the email service is there now)
 - Keybinding screen with conflict detection and reset to defaults: players can change every keyboard shortcut themselves. It goes in the Controls group of the settings screen, which only lists the current bindings for now. Not needed before this phase.
 - Allow Explorer images
 - Equip chalk symbols like emotes: choose the eight on your chalk wheel (`markWheel`, see docs/dev/marks.md)

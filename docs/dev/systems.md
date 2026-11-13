@@ -46,7 +46,7 @@ Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. M
 - `input.onPressed(fn)` for presses; returns an unsubscribe function.
 - `input.consumeLook()` returns mouse movement since the last call while the pointer is locked (mouse look is an axis, not an action).
 
-**Tab** never moves the browser's focus: `src/routes/+layout.svelte` cancels it on every page (in the capture phase, so dialogs can't let it through), and the input map treats it as any other key. By default it is the `inventory` action: the pack underground, and the Loadout page on the dashboard. Nothing happens while a text field has focus, since the input map ignores keys typed there.
+**Tab** is a game key only in the game view (`/play`): there `src/routes/+layout.svelte` stops it moving the browser's focus (in the capture phase, so dialogs can't let it through), and the input map treats it as any other key. By default it is the `inventory` action, the pack. Everywhere else (the dashboard, settings, account, the sign-in pages) Tab moves between buttons and fields as usual, and no page binds `inventory`.
 
 **Adding an action:** add it to `ACTIONS`. It appears in the settings controls list automatically. Use `{action:name}` in help text to show the player's binding.
 

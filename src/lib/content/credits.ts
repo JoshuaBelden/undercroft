@@ -118,6 +118,14 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 				license: 'Apache-2.0 (driver)'
 			},
 			{
+				name: 'node-qrcode',
+				detail: 'The QR code for two-step sign-in',
+				url: 'https://github.com/soldair/node-qrcode',
+				license: 'MIT'
+			},
+			{ name: 'Resend', detail: 'Password-reset emails', url: 'https://resend.com' },
+			{ name: 'Discord', detail: 'Sign in with Discord', url: 'https://discord.com' },
+			{
 				name: 'glTF Transform and meshoptimizer',
 				detail: 'Model optimization',
 				url: 'https://gltf-transform.dev',

@@ -1,11 +1,8 @@
 import { json, redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { database } from '#lib/server/db.ts';
-import { SESSION_COOKIE } from '#lib/server/session.ts';
+import { isOpen, SESSION_COOKIE } from '#lib/server/session.ts';
 import { sessionAccount } from '#lib/server/store/accounts.ts';
-
-/** Paths that work without being signed in: the sign-in pages, their endpoints, and About. */
-const OPEN = ['/auth/', '/api/auth/', '/about'];
 
 /**
  * Every request: find the account from the session cookie. The whole game is behind sign-in, so
@@ -19,7 +16,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		: null;
 
 	const path = event.url.pathname;
-	if (!account && !OPEN.some((open) => path.startsWith(open))) {
+	if (!account && !isOpen(path)) {
 		if (path.startsWith('/api/')) return json({ error: 'Sign in first' }, { status: 401 });
 		redirect(303, '/auth/sign-in');
 	}

@@ -26,6 +26,13 @@ The first closed beta. Thank you for testing.
 - Your stash, loadout and the Store live on the surface. Whatever you take down and lose stays lost.
 - Draw chalk marks on any wall to find your way or warn your party.
 
+### Your account
+
+- Forgot your password? The sign-in page can now email you a link to choose a new one.
+- Sign in with Discord, or link Discord to the account you already have.
+- Two-step sign-in with an authenticator app, with recovery codes in case you lose your phone.
+- Click your gamer tag for the new Account screen: gamer tag, password, Discord, two-step sign-in, and signing out everywhere else. The gamer tag and Sign out moved there from the settings.
+
 ### Settings
 
 - Accessibility: Reduce flashing (gentle lamp flicker, softer gunshots and hurt flash), press-to-switch Sprint and Aim, and Mono audio.
@@ -45,6 +52,7 @@ The first closed beta. Thank you for testing.
 
 ### Fixes
 
+- Tab moves between buttons and fields again on the dashboard, the settings and the sign-in pages. It still opens your pack underground, but no longer opens the Loadout page.
 - You can no longer walk upright into the narrowing rock before a crawlspace or squeeze and see through the walls.
 - Closed a gap in the rock at rubble dead ends.
 - Much less network traffic during an expedition (about 40 times less), which helps on slow or busy connections.

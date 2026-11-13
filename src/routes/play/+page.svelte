@@ -1539,7 +1539,6 @@
 		onclose={() => (panel = null)}
 		onvolume={(category, value) => audio.setVolume(category, value)}
 		ongraphics={() => applyGraphics()}
-		onaccount={() => send({ type: 'rename' })}
 		onabandon={expedition
 			? () => {
 					panel = null;

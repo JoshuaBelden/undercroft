@@ -20,6 +20,11 @@ services:
       MONGODB_DB: ${MONGODB_DB:-undercroft}
       PUBLIC_GAME_SERVER_URL: wss://${DOMAIN}/ws
       PUBLIC_DEV_MODE: 'false'
+      # Password-reset emails and Discord sign-in (docs/dev/deployment.md#email-and-discord).
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-Undercroft <noreply@${DOMAIN}>}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
 
   game:
     <<: *app

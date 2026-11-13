@@ -19,6 +19,23 @@ export const variables = defineEnvVars({
 		description: 'MongoDB database name.',
 		schema: (value) => value || 'undercroft'
 	},
+	RESEND_API_KEY: {
+		description:
+			'Resend API key, for password-reset emails. Without it the email is written to the server log.',
+		schema: (value) => value ?? ''
+	},
+	MAIL_FROM: {
+		description: 'Who emails come from (an address on the domain verified with Resend).',
+		schema: (value) => value || 'Undercroft <noreply@undercroft.us>'
+	},
+	DISCORD_CLIENT_ID: {
+		description: 'Discord application client id, for "Sign in with Discord". Empty hides it.',
+		schema: (value) => value ?? ''
+	},
+	DISCORD_CLIENT_SECRET: {
+		description: 'Discord application client secret.',
+		schema: (value) => value ?? ''
+	},
 	PUBLIC_DEV_MODE: {
 		public: true,
 		description: 'Enables admin and debug tools when "true". Never set in player builds.',

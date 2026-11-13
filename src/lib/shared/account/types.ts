@@ -7,6 +7,14 @@ export interface AccountView {
 	email: string;
 	/** The name other players see. */
 	gamerTag: string;
+	/** Has a password (an account made with Discord may not, until one is set). */
+	hasPassword: boolean;
+	/** The linked Discord account's username, or null. */
+	discord: string | null;
+	/** Two-step sign-in is on. */
+	mfa: boolean;
+	/** Recovery codes not used yet (0 when two-step sign-in is off). */
+	recoveryCodesLeft: number;
 	explorer: ExplorerView;
 }
 

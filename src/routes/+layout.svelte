@@ -49,14 +49,15 @@
 	onMount(() => () => audio.dispose());
 
 	/*
-	 * Tab never moves the browser's focus, anywhere: it is a game key (by default the pack
-	 * underground and the Loadout page on the dashboard). This is about the browser's own use of
-	 * the key, not a binding, so it is named here; what Tab does goes through the input map as ever.
-	 * Caught on the way down, so a dialog that keeps its keys to itself can't let it through.
+	 * In the game view Tab never moves the browser's focus: it is a game key there (by default the
+	 * pack). Everywhere else (the dashboard, settings, account, sign-in) Tab moves between buttons
+	 * and fields as usual. This is about the browser's own use of the key, not a binding, so it is
+	 * named here; what Tab does goes through the input map as ever. Caught on the way down, so a
+	 * dialog that keeps its keys to itself can't let it through.
 	 */
 	onMount(() => {
 		const noFocusMove = (event: KeyboardEvent): void => {
-			if (event.key === 'Tab') event.preventDefault();
+			if (event.key === 'Tab' && page.route.id === '/play') event.preventDefault();
 		};
 		window.addEventListener('keydown', noFocusMove, true);
 		return () => window.removeEventListener('keydown', noFocusMove, true);

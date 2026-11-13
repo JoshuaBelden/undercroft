@@ -1,22 +1,26 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { ACCOUNT } from '#lib/content/account.ts';
-	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
+	import { page } from '$app/state';
+	import { ACCOUNT, DISCORD_RESULTS } from '#lib/content/account.ts';
 	import { api, ApiError } from '#lib/account/account.svelte.ts';
-	import AboutLinks from './AboutLinks.svelte';
-	import { parallax } from './parallax.ts';
+	import AuthPage from './AuthPage.svelte';
 
 	interface Props {
 		/** Creating an account (asks for a gamer tag) or signing in to one. */
 		mode: 'sign-up' | 'sign-in';
+		/** Offer "Continue with Discord". */
+		discord: boolean;
 	}
 
-	let { mode }: Props = $props();
+	let { mode, discord }: Props = $props();
 
 	let email = $state('');
 	let password = $state('');
 	let gamerTag = $state('');
-	let error = $state('');
+	/** Back from Discord without signing in: why. */
+	const fromDiscord = DISCORD_RESULTS[page.url.searchParams.get('discord') ?? ''];
+	let error = $state(fromDiscord?.message ?? '');
 	let busy = $state(false);
 
 	const signingUp = $derived(mode === 'sign-up');
@@ -27,11 +31,15 @@
 		busy = true;
 		error = '';
 		try {
-			await api(
+			const result = await api<{ ok?: true; mfa?: true }>(
 				signingUp ? '/api/auth/sign-up' : '/api/auth/sign-in',
 				'POST',
 				signingUp ? { email, password, gamerTag } : { email, password }
 			);
+			if (result.mfa) {
+				await goto(resolve('/auth/mfa'));
+				return;
+			}
 			// A full load, so the server sees the new session.
 			location.href = resolve('/(hub)');
 		} catch (caught) {
@@ -41,122 +49,62 @@
 	}
 </script>
 
-<main class="backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
-	<form onsubmit={submit}>
-		<h2>{signingUp ? 'Create an account' : 'Sign in'}</h2>
+<AuthPage title={signingUp ? 'Create an account' : 'Sign in'} onsubmit={submit}>
+	<label>
+		<span>Email</span>
+		<input type="email" autocomplete="email" required bind:value={email} />
+	</label>
 
-		<label>
-			<span>Email</span>
-			<input type="email" autocomplete="email" required bind:value={email} />
-		</label>
+	<label>
+		<span>Password</span>
+		<input
+			type="password"
+			autocomplete={signingUp ? 'new-password' : 'current-password'}
+			minlength={signingUp ? ACCOUNT.passwordMin : undefined}
+			required
+			bind:value={password}
+		/>
+	</label>
 
+	{#if signingUp}
 		<label>
-			<span>Password</span>
+			<span>Gamer tag</span>
 			<input
-				type="password"
-				autocomplete={signingUp ? 'new-password' : 'current-password'}
-				minlength={signingUp ? ACCOUNT.passwordMin : undefined}
+				type="text"
+				autocomplete="nickname"
+				minlength={ACCOUNT.tagMin}
+				maxlength={ACCOUNT.tagMax}
 				required
-				bind:value={password}
+				bind:value={gamerTag}
 			/>
 		</label>
-
-		{#if signingUp}
-			<label>
-				<span>Gamer tag</span>
-				<input
-					type="text"
-					autocomplete="nickname"
-					minlength={ACCOUNT.tagMin}
-					maxlength={ACCOUNT.tagMax}
-					required
-					bind:value={gamerTag}
-				/>
-			</label>
-			<p class="muted">
-				Your gamer tag is the name other players see. You can change it later in the settings.
-			</p>
-		{/if}
-
-		{#if error}
-			<p class="error" role="alert">{error}</p>
-		{/if}
-
-		<button type="submit" class="primary" disabled={busy}>
-			{signingUp ? 'Create account' : 'Sign in'}
-		</button>
-
 		<p class="muted">
-			{#if signingUp}
-				Already have an account? <a href={resolve('/auth/sign-in')}>Sign in</a>
-			{:else}
-				New here? <a href={resolve('/auth/sign-up')}>Create an account</a>
-			{/if}
+			Your gamer tag is the name other players see. You can change it later on your Account screen.
 		</p>
-	</form>
+	{:else}
+		<p class="muted"><a href={resolve('/auth/forgot')}>Forgot your password?</a></p>
+	{/if}
 
-	<AboutLinks />
-</main>
+	{#if error}
+		<p class="error" role="alert">{error}</p>
+	{/if}
 
-<style>
-	main {
-		min-height: 100vh;
-		display: grid;
-		place-content: center;
-		justify-items: center;
-		gap: 32px;
-		padding: 24px;
-	}
+	<button type="submit" class="primary" disabled={busy}>
+		{signingUp ? 'Create account' : 'Sign in'}
+	</button>
 
-	form {
-		width: min(360px, calc(100vw - 48px));
-		display: grid;
-		gap: 14px;
-		padding: 24px;
-		background: var(--panel);
-		border: 1px solid var(--border);
-	}
+	{#if discord}
+		<p class="or">or</p>
+		<a class="discord" href={resolve('/auth/discord')} data-sveltekit-reload>
+			Continue with Discord
+		</a>
+	{/if}
 
-	h2 {
-		margin: 0 0 4px;
-		font-size: 1rem;
-		font-weight: normal;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-	}
-
-	label {
-		display: grid;
-		gap: 6px;
-	}
-
-	label span {
-		font-size: 0.8rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--muted);
-	}
-
-	input {
-		width: 100%;
-	}
-
-	.primary {
-		border-color: var(--accent);
-	}
-
-	.muted {
-		margin: 0;
-		color: var(--muted);
-		font-size: 0.9rem;
-	}
-
-	.error {
-		margin: 0;
-		color: #ff9a70;
-	}
-
-	a {
-		color: var(--text);
-	}
-</style>
+	<p class="muted">
+		{#if signingUp}
+			Already have an account? <a href={resolve('/auth/sign-in')}>Sign in</a>
+		{:else}
+			New here? <a href={resolve('/auth/sign-up')}>Create an account</a>
+		{/if}
+	</p>
+</AuthPage>

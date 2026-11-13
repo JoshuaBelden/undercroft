@@ -2,7 +2,7 @@
 
 ## Versions
 
-The version lives in one place, `version` in `package.json`. `src/lib/shared/version.ts` reads it (`GAME_VERSION`) for the client and the game server. Players see it at the top of the What's new page and under the sign-in form. The dashboard links to What's new and Credits with the pills at its bottom left. The game server logs it at start, and `pnpm deploy:release` prints it.
+The version lives in one place, `version` in `package.json`. `src/lib/shared/version.ts` reads it (`GAME_VERSION`) for the client and the game server. Players see it at the top of the What's new page. The dashboard links to What's new and Credits with the pills at its bottom left. The game server logs it at start, and `pnpm deploy:release` prints it.
 
 Undercroft uses [semantic versioning](https://semver.org), at 0.x during the beta:
 
@@ -41,7 +41,7 @@ pnpm deploy:release --host 64.23.154.42 --domain undercroft.us --ref v0.2.0
 
 The **Credits** page (`/about/credits`) is data in `src/lib/content/credits.ts`: the creator, the statement on AI use, which AI tools made what, and sections for inspirations, art, sound, tools and testers. When you add a third-party asset, tool or source, add its credit in the same change, with its license. Entries marked `todo: true` are placeholders: they show (in yellow) only in dev mode, so players never see an empty slot. `SOURCE_URL` links the source code, which the AGPL asks for on a hosted copy; set it once the repository is public.
 
-Both About pages are open without signing in (`OPEN` in `src/hooks.server.ts`), so the sign-in page can link to them.
+Both About pages are behind sign-in, like everything but the sign-in pages (`isOpen` in `src/lib/server/session.ts`).
 
 ## Licenses
 
