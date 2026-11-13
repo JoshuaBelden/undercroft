@@ -17,3 +17,9 @@
 		reverse_proxy web:3000
 	}
 }
+
+# www goes to the bare name, so sign-in cookies live on one origin. Needs a `www` DNS record (a
+# CNAME to the domain); without one, Caddy only logs that it can't get this certificate.
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
