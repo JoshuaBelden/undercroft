@@ -3,10 +3,21 @@
 **Undercroft**. A co-op (and solo) first-person horror extraction game set in the catacombs.
 
 - Game design: `docs/HANDOFF.md`
-- Phase plan (start → beta): `docs/TODO.md`
+- Work items: GitHub Issues (https://github.com/JoshuaBelden/undercroft/issues)
 - Dev docs: `docs/dev/`
 
-Read `docs/HANDOFF.md` before designing any gameplay feature. Check `docs/TODO.md` for the current phase and stay inside its scope.
+Read `docs/HANDOFF.md` before designing any gameplay feature. Work in progress is the `Beta` milestone; post-beta ideas carry the `backlog` label. Stay inside the scope of the issue you're working on. Issues labelled `from-game` are bug reports filed by players from inside the game.
+
+## Every feature covers
+
+Each feature addresses six cross-cutting aspects, so they grow with the game instead of being bolted on at the end:
+
+- **Dev docs**: `docs/dev/` explains each system and how to extend it.
+- **Help system**: in-game player help for what it added.
+- **Admin utilities**: debug and admin tools for testing it.
+- **Audio**: sound for what it added.
+- **Player settings**: settings it needs.
+- **Keyboard assignments**: bindings it adds, all remappable.
 
 ## Tech stack
 
@@ -84,7 +95,6 @@ static/assets/  # .glb models, textures, audio (optimized, committed)
 art/            # raw art: .blend, 4K textures, raw exports (gitignored)
 docs/
   HANDOFF.md
-  TODO.md
   LORE.md
   dev/          # developer docs, updated as features land
 ```
@@ -95,6 +105,6 @@ When a feature lands, update in the same change:
 
 - `docs/dev/`: how the system works and how to extend it
 - Player help content, if the feature is player-facing
-- `docs/TODO.md`: mark the item done
+- The GitHub issue: reference it in the commit (`Closes #12`) so it closes when pushed
 - `CHANGELOG.md`: a line under `## Unreleased`, written for players, if they will notice it
 - `src/lib/content/credits.ts`: a credit for any new third-party asset, tool or source

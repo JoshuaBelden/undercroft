@@ -74,7 +74,7 @@ docs/dev/          developer documentation, one page per system
 ## Documentation
 
 - [docs/dev/](docs/dev/): how each system works and how to extend it. Start with [structure.md](docs/dev/structure.md) and [systems.md](docs/dev/systems.md).
-- [docs/TODO.md](docs/TODO.md): what's being worked on now and the backlog.
+- [Issues](https://github.com/JoshuaBelden/undercroft/issues): what's being worked on now (the Beta milestone) and the backlog.
 - [CLAUDE.md](CLAUDE.md): the project's rules, for contributors and AI coding agents.
 - [docs/dev/releasing.md](docs/dev/releasing.md): versions, release notes and credits.
 - [docs/dev/deployment.md](docs/dev/deployment.md): hosting.

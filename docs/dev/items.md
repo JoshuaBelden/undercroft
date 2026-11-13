@@ -49,7 +49,7 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 
 The first defense item, the `coat`, is a stand-in so the slot has something to hold.
 
-`chalk` (quick-use, with a model) and `candle` (backpack, unlit, a placeholder box) are rite supplies, sold in the store and found in crates. Chalk draws marks on walls (`chalk: { marks }`, see [marks.md](marks.md)). Candles do nothing in the hand yet: the Gloaming rite's full requirements come next (see `docs/TODO.md`), and lighting them comes with light sources.
+`chalk` (quick-use, with a model) and `candle` (backpack, unlit, a placeholder box) are rite supplies, sold in the store and found in crates. Chalk draws marks on walls (`chalk: { marks }`, see [marks.md](marks.md)). Candles do nothing in the hand yet: lighting them comes with light sources ([#26](https://github.com/JoshuaBelden/undercroft/issues/26)).
 
 ## Inventory
 
