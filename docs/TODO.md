@@ -19,7 +19,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Performance pass (light budget, model LODs, KTX2 textures, network bandwidth). Asset baseline: 15 MB in `static/assets` after meshopt and Opus (Nov 2026; textures are 3.9 MB of it).
 - Live beta checks on https://64-23-154-42.sslip.io (s-1vcpu-1gb droplet in sfo3): solo and co-op over `wss`, sounds decode in Safari. Then buy a domain, point an A record at 64.23.154.42 and set `DOMAIN` in /opt/undercroft/.env (see docs/dev/deployment.md).
 - Balance pass: meter pacing, loot values, Thrall difficulty, candle tiers
-- Fix map clipping - Approaching a crawl section you can see through the map, and rubble dead ends has a triangle you can see through.
 
 ## Backlog - Post Beta Ideas
 
@@ -50,3 +49,4 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Rope, climbing, descending, mapping by laying out on ground
 - Jumping, mantling
 - feats, season pass
+- controller support

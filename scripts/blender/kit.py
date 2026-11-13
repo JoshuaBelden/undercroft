@@ -917,13 +917,13 @@ def rock_plug(mb, prof, y_plane, toward, mat, z0=0.0):
     hub = Vector((0.1, y_plane - toward * 0.35, z0 + 1.1))
     outline = [Vector((x, y_plane, z0 + z)) for x, z in prof]
     facing = (0, -toward, 0)
-    for i in range(len(outline) - 1):
-        a, b = outline[i], outline[i + 1]
-        ma = a.lerp(hub, 0.5) + Vector((0, -toward * 0.08 * math.sin(i), 0))
-        mbp = b.lerp(hub, 0.5) + Vector((0, -toward * 0.08 * math.sin(i + 1), 0))
-        mb.face([a, b, mbp, ma], mat, facing=facing, smooth=True)
-        mb.face([ma, mbp, hub], mat, facing=facing, smooth=True)
-    mb.face([outline[-1], outline[0], outline[0].lerp(hub, 0.5), outline[-1].lerp(hub, 0.5)], mat, facing=facing)
+    # One ring halfway to the hub, shared by neighbouring faces so the plug has no cracks.
+    mid = [p.lerp(hub, 0.5) + Vector((0, -toward * 0.08 * math.sin(i), 0)) for i, p in enumerate(outline)]
+    n = len(outline)
+    for i in range(n):
+        j = (i + 1) % n  # the last pair closes the outline along the floor
+        mb.face([outline[i], outline[j], mid[j], mid[i]], mat, facing=facing, smooth=True)
+        mb.face([mid[i], mid[j], hub], mat, facing=facing, smooth=True)
 
 
 def vol_box(coll, parent, name, lo, hi):
@@ -1079,13 +1079,42 @@ def _build_narrow_hall(name, footprint_d, target, ease, jitter, seed, force):
     return coll, root, half, total
 
 
+def narrow_end_cols(coll, root, hall, target, ease, half, tight, total, radius=0.3, margin=0.02, step=0.2):
+    """Collision for the stretches where a narrow hall eases between the hall and its tight profile.
+
+    Stepped boxes follow the narrowing walls and lowering ceiling, so a player can't walk upright
+    into rock that has closed in around them (which shows the void behind the single-sided walls).
+    Walls count only below the head of the tallest capsule that fits; the ceiling covers the arch
+    across the capsule's reach. The .blend versions were measured from the hand-edited meshes.
+    """
+    span = half - tight
+    n = max(1, math.ceil(span / step - 1e-6))
+    for sgn, side in ((-1, "s"), (1, "n")):
+        col_box(coll, root, f"col-end-{side}-floor", (-1.5, min(sgn * tight, sgn * half), -0.2), (1.5, max(sgn * tight, sgn * half), 0))
+        for i in range(n):
+            a = tight + span * i / n
+            b = tight + span * (i + 1) / n
+            # Narrowest point of the slice: the end nearest the middle.
+            d = half - a
+            f = smoothstep(ease[0], ease[1], d) * smoothstep(ease[0], ease[1], total - d)
+            prof = morph(hall, target, f)
+            ceil_c = max(z for _, z in prof)
+            top = max(0.35, min(ceil_c, 1.75) - radius - 0.05)
+            hw = min(abs(x) for x, z in prof if z <= top)
+            reach = max(0.0, hw - radius + 0.15)
+            ceil = min((z for x, z in prof if abs(x) <= reach and z > top), default=ceil_c)
+            y0, y1 = sorted((sgn * a, sgn * b))
+            col_box(coll, root, f"col-end-{side}-{i}-wall-w", (-1.5, y0, 0), (-(hw - margin), y1, 3.0))
+            col_box(coll, root, f"col-end-{side}-{i}-wall-e", (hw - margin, y0, 0), (1.5, y1, 3.0))
+            col_box(coll, root, f"col-end-{side}-{i}-ceiling", (-1.5, y0, ceil - margin), (1.5, y1, 3.4))
+
+
 def build_hall_crawl(force=False):
     """2 cells: the hall drops to a ~1 m crawlspace through the middle."""
     coll, root, half, total = _build_narrow_hall("hall-crawl", 2, crawl_profile(), (0.4, 2.2), 0.07, 9.1, force)
     tight = half - 2.2
     col_box(coll, root, "col-floor", (-1.5, -half, -0.2), (1.5, half, 0))
-    hall_cols(coll, root, -half, -tight, prefix="end-s")
-    hall_cols(coll, root, tight, half, prefix="end-n")
+    narrow_end_cols(coll, root, hall_profile(), crawl_profile(), (0.4, 2.2), half, tight, total)
     col_box(coll, root, "col-crawl-ceiling", (-1.5, -tight, 1.05), (1.5, tight, 3.0))
     col_box(coll, root, "col-crawl-wall-w", (-1.5, -tight, 0), (-0.6, tight, 1.05))
     col_box(coll, root, "col-crawl-wall-e", (0.6, -tight, 0), (1.5, tight, 1.05))
@@ -1097,8 +1126,7 @@ def build_hall_squeeze(force=False):
     coll, root, half, total = _build_narrow_hall("hall-squeeze", 1, squeeze_profile(), (0.15, 1.3), 0.05, 12.4, force)
     tight = half - 1.3
     col_box(coll, root, "col-floor", (-1.5, -half, -0.2), (1.5, half, 0))
-    hall_cols(coll, root, -half, -tight, prefix="end-s")
-    hall_cols(coll, root, tight, half, prefix="end-n")
+    narrow_end_cols(coll, root, hall_profile(), squeeze_profile(), (0.15, 1.3), half, tight, total)
     col_box(coll, root, "col-squeeze-wall-w", (-1.5, -tight, 0), (-0.35, tight, 3.0))
     col_box(coll, root, "col-squeeze-wall-e", (0.35, -tight, 0), (1.5, tight, 3.0))
     # The tight part: movement slows (and you grunt) while inside it. See docs/dev/player.md.
