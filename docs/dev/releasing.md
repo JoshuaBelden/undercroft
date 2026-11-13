@@ -2,7 +2,7 @@
 
 ## Versions
 
-The version lives in one place, `version` in `package.json`. `src/lib/shared/version.ts` reads it (`GAME_VERSION`) for the client and the game server. Players see it at the bottom left of the dashboard and the sign-in page, and on the About pages. The game server logs it at start, and `pnpm deploy:release` prints it.
+The version lives in one place, `version` in `package.json`. `src/lib/shared/version.ts` reads it (`GAME_VERSION`) for the client and the game server. Players see it at the top of the What's new page and under the sign-in form. The dashboard links to What's new and Credits with the pills at its bottom left. The game server logs it at start, and `pnpm deploy:release` prints it.
 
 Undercroft uses [semantic versioning](https://semver.org), at 0.x during the beta:
 
@@ -20,18 +20,22 @@ Undercroft uses [semantic versioning](https://semver.org), at 0.x during the bet
 
 The in-game **What's new** page (`/about/changes`) reads the file at build time (`src/lib/content/changelog.ts`) and shows every release, with the Unreleased section as "In this build". The parser only understands what the file uses: `##` releases (`## 0.2.0 - 2026-12-01`), `###` headings, `- ` bullets, paragraphs, and **bold**, `code` and [links](https://example.com) within a line. Anything above the first `##` is the file's introduction and isn't shown.
 
-## Cutting a release
+## Day to day, and cutting a release
+
+Work goes to GitHub as usual: commit (with its CHANGELOG line under Unreleased), `git push`. Pushing doesn't touch the live game. Nothing deploys automatically.
+
+When what's on GitHub is ready for testers:
 
 ```
-pnpm release minor            # or patch, major, or an exact 0.3.0
-git push && git push origin v0.2.0
-pnpm deploy:release --host 64.23.154.42 --domain <DOMAIN>
+pnpm release minor                    # or patch, major, or an exact 0.3.0: commits and tags v0.2.0
+git push --follow-tags                # the release commit and its tag
 gh release create v0.2.0 --notes-from-tag   # optional: a release page on GitHub
+pnpm deploy:release --host 64.23.154.42 --domain undercroft.us --ref v0.2.0
 ```
+
+`--ref v0.2.0` ships exactly what was tagged, whatever you have checked out or changed since. Without `--ref` it ships your local `HEAD`, which is handy for a quick fix between releases. The live build then shows the Unreleased notes as "In this build", under the last version number. To roll back, deploy the previous tag (`--ref v0.1.0`). The database isn't rolled back, so only do that when the newer release didn't change what's stored.
 
 `scripts/release.ts` needs a clean working tree and something under `## Unreleased`. It sets the version in `package.json`, renames the section to `## <version> - <date>`, starts a new empty Unreleased, commits `Release v<version>` and makes an annotated tag `v<version>` that holds the notes. It doesn't push or deploy.
-
-Deploying between releases is fine: the live build then shows the Unreleased notes as "In this build", under the last version number.
 
 ## Credits
 

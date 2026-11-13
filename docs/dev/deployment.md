@@ -41,7 +41,7 @@ Wait a few minutes after it finishes for cloud-init to install Docker.
 
 ## Deploy
 
-Commit first: the deploy ships `git archive HEAD`, which includes the built `static/assets`.
+Commit first: the deploy ships `git archive HEAD` (or the tag or commit given with `--ref`, for a release: see [releasing.md](releasing.md)), which includes the built `static/assets`.
 
 ```
 pnpm deploy:release --host <droplet ip or domain> --domain play.example.com

@@ -22,7 +22,7 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 ## Backlog - Post Beta Ideas
 
-- Bug and crash reporting
+- Bug and crash reporting, feature request, feedback
 - fine tune loot tables
 - mapping
 - Creatures should be able to crawl

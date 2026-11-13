@@ -64,6 +64,6 @@ git('tag', '-a', `v${next}`, '-m', `Undercroft ${next}\n\n${notes}`);
 console.log(`Released v${next} (was ${current}).
 
 Next:
-  git push && git push origin v${next}
-  pnpm deploy:release --host <droplet> --domain <domain>
-  gh release create v${next} --notes-from-tag     (optional: a GitHub release page)`);
+  git push --follow-tags
+  gh release create v${next} --notes-from-tag     (optional: a GitHub release page)
+  pnpm deploy:release --host 64.23.154.42 --domain undercroft.us --ref v${next}`);

@@ -9,7 +9,6 @@
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
 	import { startPrefetch } from '#lib/game/prefetch.svelte.ts';
-	import AboutLinks from '#lib/ui/AboutLinks.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import type { LayoutProps } from './$types';
@@ -126,8 +125,27 @@
 		{@render children()}
 	</main>
 
+	<!-- The release notes and the credits, bottom left: the social button's style. -->
 	<div class="about">
-		<AboutLinks />
+		<a class="pill" href={resolve('/about/changes')} title="What changed in each version">
+			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+				<path
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.6"
+					stroke-linejoin="round"
+					d="M12 2.5l2.3 6.2 6.2 2.3-6.2 2.3-2.3 6.2-2.3-6.2-6.2-2.3 6.2-2.3z"
+				/>
+			</svg>
+			<span>What's new</span>
+		</a>
+		<a class="pill" href={resolve('/about/credits')} title="Who made Undercroft, and with what">
+			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+				<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6" />
+				<path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 10.5v6M12 7v1.2" />
+			</svg>
+			<span>Credits</span>
+		</a>
 	</div>
 
 	<div class="corner">
@@ -295,6 +313,8 @@
 		position: fixed;
 		left: 20px;
 		bottom: 20px;
+		display: flex;
+		gap: 10px;
 	}
 
 	.corner {

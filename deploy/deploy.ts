@@ -1,8 +1,8 @@
 /**
- * Ships the committed code (git HEAD, with its built static/assets) to the droplet and
- * restarts the stack. See docs/dev/deployment.md.
+ * Ships committed code (git HEAD, or a release tag with --ref, with its built static/assets) to
+ * the droplet and restarts the stack. See docs/dev/deployment.md and docs/dev/releasing.md.
  *
- *   pnpm deploy:release --host <droplet ip or domain> --domain play.example.com
+ *   pnpm deploy:release --host <droplet ip or domain> --domain play.example.com [--ref v0.2.0]
  *
  * Uses your ssh/scp (key login as root, set up by deploy/provision.ts). Uncommitted changes are
  * not deployed: commit first. On the droplet:
@@ -10,7 +10,7 @@
  *   /opt/undercroft/app    the release, replaced each deploy; the database lives in a volume
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -19,7 +19,9 @@ const { values: args } = parseArgs({
 	options: {
 		host: { type: 'string' },
 		domain: { type: 'string' },
-		user: { type: 'string', default: 'root' }
+		user: { type: 'string', default: 'root' },
+		/** What to ship: a tag (a release), branch or commit. */
+		ref: { type: 'string', default: 'HEAD' }
 	}
 });
 if (!args.host || !args.domain) {
@@ -34,16 +36,23 @@ if (!/^[a-z0-9.-]+$/i.test(args.domain) || !/^[a-z0-9.:-]+$/i.test(args.host)) {
 const run = (command: string, list: string[]) =>
 	execFileSync(command, list, { stdio: 'inherit', encoding: 'utf8' });
 
-const dirty = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
-if (dirty) console.warn('Uncommitted changes are not deployed; shipping HEAD.');
-const commit = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim();
-const version = (JSON.parse(readFileSync('package.json', 'utf8')) as { version: string }).version;
+const ref = args.ref;
+if (!/^[\w./^~-]+$/.test(ref) || ref.startsWith('-')) {
+	console.error('--ref must be a tag, branch or commit.');
+	process.exit(1);
+}
+const git = (...list: string[]) => execFileSync('git', list, { encoding: 'utf8' }).trim();
+if (ref === 'HEAD' && git('status', '--porcelain')) {
+	console.warn('Uncommitted changes are not deployed; shipping HEAD.');
+}
+const commit = git('rev-parse', '--short', `${ref}^{commit}`);
+const version = (JSON.parse(git('show', `${ref}:package.json`)) as { version: string }).version;
 
 const target = `${args.user}@${args.host}`;
 const tmp = mkdtempSync(path.join(tmpdir(), 'undercroft-release-'));
 const archive = path.join(tmp, 'release.tar.gz');
 try {
-	run('git', ['archive', '--format=tar.gz', '-o', archive, 'HEAD']);
+	run('git', ['archive', '--format=tar.gz', '-o', archive, ref]);
 	console.log(`Uploading ${version} (${commit}) to ${target}...`);
 	run('ssh', [target, 'mkdir -p /opt/undercroft']);
 	run('scp', [archive, `${target}:/opt/undercroft/release.tar.gz`]);
