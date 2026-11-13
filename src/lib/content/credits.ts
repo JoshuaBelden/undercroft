@@ -163,6 +163,7 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 				license: 'GPL'
 			},
 			{ name: 'Vite', detail: 'Builds', url: 'https://vite.dev', license: 'MIT' },
+			{ name: 'Vitest', detail: 'Unit tests', url: 'https://vitest.dev', license: 'MIT' },
 			{
 				name: 'Caddy',
 				detail: 'The web server',

@@ -42,6 +42,7 @@ Every change must leave these clean, with zero errors and zero warnings:
 ```
 pnpm check   # svelte-check + TypeScript, fails on warnings
 pnpm lint    # Prettier check + ESLint, fails on warnings
+pnpm test    # unit tests (Vitest), see testing.md
 ```
 
 Run `pnpm format` to fix formatting.

@@ -41,6 +41,8 @@ pnpm admin:grant <email> # make an account an admin (--remove to undo)
 pnpm build              # production build (adapter-node)
 pnpm check              # svelte-check + TypeScript
 pnpm lint               # Prettier check + ESLint
+pnpm test               # unit tests (Vitest; pnpm test:watch to rerun on save)
+pnpm test:coverage      # unit tests with a coverage report (coverage/index.html)
 pnpm format             # Prettier
 pnpm asset:dev          # regenerate the placeholder dev asset
 pnpm asset:build        # art/export/*.glb -> optimized static/assets/map + piece manifest
@@ -54,11 +56,11 @@ pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 
 ## Development rules
 
-- **No unit tests.** Do not create test files or add test frameworks.
+- **Unit tests** with Vitest, for the shared game logic and the game server (a real `Session` runs in tests with fake sockets and no database). Colocate them as `*.test.ts` next to the code. No other test frameworks. See `docs/dev/testing.md`.
 - **No Playwright or browser automation tests.**
-- **Zero errors, zero warnings.** Every change must leave `pnpm check` and `pnpm lint` clean. This includes Svelte compiler warnings (a11y, unused props, reactivity), TypeScript errors, and lint warnings.
+- **Zero errors, zero warnings.** Every change must leave `pnpm check`, `pnpm lint` and `pnpm test` clean. This includes Svelte compiler warnings (a11y, unused props, reactivity), TypeScript errors, and lint warnings.
 - **Fix warnings, don't suppress them.** Ignore comments only when truly unavoidable, with a one-line reason next to them.
-- Run `pnpm check` and `pnpm lint` before considering any task complete.
+- Run `pnpm check`, `pnpm lint` and `pnpm test` before considering any task complete. A change to shared or server logic comes with tests for it.
 
 ## Architecture rules
 
@@ -87,6 +89,7 @@ src/
     ui/         # Svelte components (HUD, menus, hub, help, admin)
     content/    # data definitions (help topics, afflictions, items, rooms...)
     dev.ts      # dev mode flag
+    shared/testing/ # fixtures for *.test.ts (real maps, hand-built worlds)
   routes/       # SvelteKit pages and API routes
 server/         # authoritative game server
 admin/          # admin app (separate SvelteKit app, shares src/lib/server/store)

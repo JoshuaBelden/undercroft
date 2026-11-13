@@ -16,6 +16,7 @@ src/
       creature/             creature snapshot type, half-light visibility
       affliction/           Affliction snapshot type
       items/                inventory helpers, weapon step, pickup rule, item/event types
+      testing/              fixtures for the unit tests (docs/dev/testing.md)
     game/
       Engine.ts             Three.js renderer, scene, camera, frame loop, stats, light budget
       assets.ts             glTF model loading and cache, asset path registry
@@ -84,7 +85,9 @@ admin/                      the admin app (its own SvelteKit app, docs/dev/admin
   src/routes/               dashboard, members, bug reports, crashes, ideas, feedback, audit log
   src/lib/server/store.ts   the game's store code, re-exported
 server/
-  index.ts                  WebSocket server entry
+  index.ts                  WebSocket server entry (startup, shutdown)
+  connection.ts             one connection: hello, and every message routed to its party or expedition
+  testing/                  fixtures for the server tests: fake sockets, a real Session (docs/dev/testing.md)
   accounts.ts               who a connection is, from the ticket in its hello
   belongings.ts             loadouts taken down at descent, belongings given back after
   session.ts                Session: authoritative state and tick loop, sanity, revives

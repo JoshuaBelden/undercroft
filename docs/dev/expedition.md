@@ -8,7 +8,7 @@ A **party** is the group that descends together (one to `PARTY.maxSize` players;
 | ------------------------------------------------ | -------------------------------------------------------------------------------------- |
 | Parties (ready, countdown, starting expeditions) | `server/parties.ts`                                                                    |
 | Session (map, players, simulation, extraction)   | `server/session.ts`                                                                    |
-| Connection routing                               | `server/index.ts`                                                                      |
+| Connection routing                               | `server/connection.ts`                                                                 |
 | Party rules (size, countdown, reconnect times)   | `src/lib/content/party.ts`                                                             |
 | Party state sent to clients                      | `src/lib/shared/party/types.ts`                                                        |
 | Lobby: the Expedition page                       | `src/routes/(hub)/+page.svelte`, `ExplorerPane`, `AfflictionPicker`, `LaunchCountdown` |

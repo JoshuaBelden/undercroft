@@ -22,7 +22,7 @@ Flow:
 
 `GameClient` reconnects every 2 seconds after a drop, and a player who dropped takes their place back, in the party and underground (see [expedition.md](expedition.md#reconnection)). Parties and the expedition lifecycle are in [expedition.md](expedition.md).
 
-**Adding a message:** add it to `ClientMessage` or `ServerMessage` in `protocol.ts`, add its `type` to the matching allowed set, handle it in `server/index.ts`, `parties.ts` or `session.ts`, and in the client.
+**Adding a message:** add it to `ClientMessage` or `ServerMessage` in `protocol.ts`, add its `type` to the matching allowed set, handle it in `server/connection.ts`, `parties.ts` or `session.ts`, and in the client.
 
 ## Rendering
 

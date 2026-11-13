@@ -26,8 +26,8 @@ Read [docs/dev/structure.md](docs/dev/structure.md) first, then the doc for the 
 
 ## Before you open a pull request
 
-1. `pnpm check` and `pnpm lint` must both finish with **zero errors and zero warnings**. Fix a warning rather than silencing it.
-2. Play-test your change: there's no automated test suite (unit or browser tests aren't used in this project), so describe what you tried in the pull request.
+1. `pnpm check`, `pnpm lint` and `pnpm test` must all finish with **zero errors and zero warnings**. Fix a warning rather than silencing it.
+2. Add unit tests for changes to shared or server logic (see [docs/dev/testing.md](docs/dev/testing.md)), and play-test your change: there are no browser tests, so describe what you tried in the pull request.
 3. Update the docs in the same change: the `docs/dev/` page for the system, the in-game help if players will notice, and an entry under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), written for players.
 4. Keep the pull request to one change, with a clear title and a description of what and why.
 

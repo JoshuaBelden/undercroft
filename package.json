@@ -24,6 +24,9 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"release": "tsx scripts/release.ts",
 		"lint": "prettier --check . && eslint . --max-warnings 0",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
 		"format": "prettier --write .",
 		"asset:dev": "tsx scripts/make-dev-asset.ts",
 		"asset:build": "tsx scripts/build-assets.ts",
@@ -45,6 +48,7 @@
 		"@types/qrcode": "^1.5.6",
 		"@types/three": "^0.187.0",
 		"@types/ws": "^8.18.2",
+		"@vitest/coverage-v8": "^5.1.0",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
@@ -60,7 +64,8 @@
 		"tsx": "^4.23.15",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.60.1",
-		"vite": "^8.3.0"
+		"vite": "^8.3.0",
+		"vitest": "^5.1.0"
 	},
 	"dependencies": {
 		"mongodb": "^7.8.0",
