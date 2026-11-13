@@ -4,6 +4,8 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+## 0.1.0 - 2026-11-13
+
 The first closed beta. Thank you for testing.
 
 ### Descend
