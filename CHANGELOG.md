@@ -30,6 +30,7 @@ The first closed beta. Thank you for testing.
 
 - You can no longer walk upright into the narrowing rock before a crawlspace or squeeze and see through the walls.
 - Closed a gap in the rock at rubble dead ends.
+- Much less network traffic during an expedition (about 40 times less), which helps on slow or busy connections.
 
 ### Known issues
 

@@ -186,6 +186,11 @@ export class Session {
 	private tick = 0;
 	private timer: NodeJS.Timeout | null = null;
 	private hadPlayers = false;
+	/**
+	 * The world items list as last sent in a tick. A tick leaves the list out while it is unchanged;
+	 * null makes the next tick carry it (a new map, someone arriving or reconnecting).
+	 */
+	private itemsSent: string | null = null;
 
 	/** `affliction` is the one the party's host chose (key into AFFLICTIONS). */
 	constructor(
@@ -208,6 +213,7 @@ export class Session {
 			seed
 		);
 		this.items = new WorldItems(this.world);
+		this.itemsSent = null;
 		this.affliction = this.direct();
 		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
 		this.populate();
@@ -316,6 +322,7 @@ export class Session {
 			crate: null
 		};
 		this.players.set(player.id, player);
+		this.itemsSent = null;
 		this.hadPlayers = true;
 		this.startedAt ??= Date.now();
 		this.send(player, {
@@ -340,6 +347,7 @@ export class Session {
 		const player = this.players.get(playerId);
 		if (!player) return false;
 		player.socket = socket;
+		this.itemsSent = null;
 		player.queue = [];
 		player.ack = -1;
 		player.processed = 0;
@@ -757,13 +765,17 @@ export class Session {
 			state: p.state,
 			ack: p.ack
 		}));
+		const items = this.items.snapshots();
+		const itemsKey = JSON.stringify(items);
+		const itemsChanged = itemsKey !== this.itemsSent;
+		this.itemsSent = itemsKey;
 		this.broadcast({
 			type: 'tick',
 			tick: this.tick,
 			serverTime: Date.now(),
 			players,
 			creatures: this.creatures.snapshots(),
-			items: this.items.snapshots(),
+			...(itemsChanged ? { items } : {}),
 			projectiles: this.items.projectileSnapshots(),
 			events: this.events,
 			affliction: {

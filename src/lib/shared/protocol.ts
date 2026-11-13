@@ -127,8 +127,8 @@ export type ServerMessage =
 			serverTime: number;
 			players: PlayerSnapshot[];
 			creatures: CreatureSnapshot[];
-			/** Items lying in the map. */
-			items: WorldItemSnapshot[];
+			/** Items lying in the map: left out while unchanged since the last tick sent to you. */
+			items?: WorldItemSnapshot[];
 			/** Thrown items in flight. */
 			projectiles: ProjectileSnapshot[];
 			/** What happened this tick (shots, hits, pickups...). */

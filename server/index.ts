@@ -15,7 +15,16 @@ await releaseAll();
 
 const parties = new Parties();
 const social = new Social(parties);
-const wss = new WebSocketServer({ port: config.port, path: config.path });
+/*
+ * permessage-deflate, keeping its dictionary between messages: consecutive ticks are nearly the
+ * same, so a four-player tick of about 8 KB goes out as a few hundred bytes. It costs some CPU
+ * and about 300 KB of memory per connection. Small messages (pongs) aren't worth compressing.
+ */
+const wss = new WebSocketServer({
+	port: config.port,
+	path: config.path,
+	perMessageDeflate: { zlibDeflateOptions: { level: 3 }, threshold: 256 }
+});
 
 wss.on('connection', (socket) => {
 	/** Set by `hello`; every other message needs it. */

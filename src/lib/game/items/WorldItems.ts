@@ -40,9 +40,12 @@ export class WorldItems {
 		this.root.name = 'world-items';
 	}
 
-	apply(items: WorldItemSnapshot[], projectiles: ProjectileSnapshot[]): void {
-		this.snapshots = items;
-		this.sync(this.items, items, false);
+	/** Items undefined: unchanged since the last tick (the server leaves the list out). */
+	apply(items: WorldItemSnapshot[] | undefined, projectiles: ProjectileSnapshot[]): void {
+		if (items) {
+			this.snapshots = items;
+			this.sync(this.items, items, false);
+		}
 		this.sync(this.flying, projectiles, true);
 	}
 
