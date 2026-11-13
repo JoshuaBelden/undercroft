@@ -17,7 +17,8 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 - Help system complete and reviewed
 - Settings complete: graphics, audio, controls, accessibility
 - Performance pass (light budget, model LODs, KTX2 textures, network bandwidth). Asset baseline: 15 MB in `static/assets` after meshopt and Opus (Nov 2026; textures are 3.9 MB of it).
-- Live beta checks on https://64-23-154-42.sslip.io (s-1vcpu-1gb droplet in sfo3): solo and co-op over `wss`, sounds decode in Safari. Then buy a domain, point an A record at 64.23.154.42 and set `DOMAIN` in /opt/undercroft/.env (see docs/dev/deployment.md).
+- Buy a domain for the beta (live now at https://64-23-154-42.sslip.io): point an A record at 64.23.154.42 and set `DOMAIN` in /opt/undercroft/.env (see docs/dev/deployment.md). Then set `SOURCE_URL` in src/lib/content/credits.ts once the GitHub repository is public.
+- Fill in the Credits placeholders (`todo: true` in src/lib/content/credits.ts): inspirations, model, animation and sound sources, AI tools, testers.
 - Balance pass: meter pacing, loot values, Thrall difficulty, candle tiers
 
 ## Backlog - Post Beta Ideas

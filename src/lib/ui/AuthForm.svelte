@@ -3,6 +3,7 @@
 	import { ACCOUNT } from '#lib/content/account.ts';
 	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
 	import { api, ApiError } from '#lib/account/account.svelte.ts';
+	import AboutLinks from './AboutLinks.svelte';
 	import { parallax } from './parallax.ts';
 
 	interface Props {
@@ -93,6 +94,8 @@
 			{/if}
 		</p>
 	</form>
+
+	<AboutLinks />
 </main>
 
 <style>

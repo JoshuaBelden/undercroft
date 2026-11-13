@@ -10,7 +10,7 @@
  *   /opt/undercroft/app    the release, replaced each deploy; the database lives in a volume
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -37,13 +37,14 @@ const run = (command: string, list: string[]) =>
 const dirty = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
 if (dirty) console.warn('Uncommitted changes are not deployed; shipping HEAD.');
 const commit = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim();
+const version = (JSON.parse(readFileSync('package.json', 'utf8')) as { version: string }).version;
 
 const target = `${args.user}@${args.host}`;
 const tmp = mkdtempSync(path.join(tmpdir(), 'undercroft-release-'));
 const archive = path.join(tmp, 'release.tar.gz');
 try {
 	run('git', ['archive', '--format=tar.gz', '-o', archive, 'HEAD']);
-	console.log(`Uploading ${commit} to ${target}...`);
+	console.log(`Uploading ${version} (${commit}) to ${target}...`);
 	run('ssh', [target, 'mkdir -p /opt/undercroft']);
 	run('scp', [archive, `${target}:/opt/undercroft/release.tar.gz`]);
 	const remote = [
@@ -57,7 +58,7 @@ try {
 		'docker image prune -f'
 	].join(' && ');
 	run('ssh', [target, remote]);
-	console.log(`Deployed ${commit}: https://${args.domain}`);
+	console.log(`Deployed ${version} (${commit}): https://${args.domain}`);
 } finally {
 	rmSync(tmp, { recursive: true, force: true });
 }

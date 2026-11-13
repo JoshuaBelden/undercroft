@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
+import { GAME_VERSION } from '../src/lib/shared/version.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
 import { currentTag, identify } from './accounts.ts';
 import { releaseAll } from './belongings.ts';
@@ -122,7 +123,9 @@ wss.on('connection', (socket) => {
 	});
 });
 
-log.info(`Game server listening on ws://localhost:${config.port}${config.path ?? ''}`);
+log.info(
+	`Undercroft ${GAME_VERSION} game server listening on ws://localhost:${config.port}${config.path ?? ''}`
+);
 
 async function shutdown(): Promise<void> {
 	log.info('Shutting down');

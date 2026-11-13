@@ -9,6 +9,7 @@
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
 	import { startPrefetch } from '#lib/game/prefetch.svelte.ts';
+	import AboutLinks from '#lib/ui/AboutLinks.svelte';
 	import HelpPanel from '#lib/ui/HelpPanel.svelte';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import type { LayoutProps } from './$types';
@@ -124,6 +125,10 @@
 	<main>
 		{@render children()}
 	</main>
+
+	<div class="about">
+		<AboutLinks />
+	</div>
 
 	<div class="corner">
 		<a
@@ -283,6 +288,13 @@
 		min-width: 0;
 		/* A little air between a full-width page and the edges of the window. */
 		padding: 0 50px;
+	}
+
+	/* The version and the way to the release notes and credits, out of the way. */
+	.about {
+		position: fixed;
+		left: 20px;
+		bottom: 20px;
 	}
 
 	.corner {

@@ -8,6 +8,7 @@ src/
     dev.ts                  devMode flag (gates admin tools)
     shared/                 code shared by client and server
       constants.ts          protocol version, tick rate, ports
+      version.ts            the game version (from package.json)
       protocol.ts           WebSocket message types, encode/decode
       rng.ts                seeded PRNG (deterministic on server and client)
       player/               player state types, fixed-step simulation, headlamp output
@@ -56,14 +57,17 @@ src/
       loadout.ts            what lies around the map (bricks)
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
+      credits.ts            the Credits page: AI statement, inspirations, assets, tools
+      changelog.ts          release notes, parsed from CHANGELOG.md
     ui/                     Svelte components (Panel, Dialog, Slot, menus, overlays)
-  hooks.server.ts           finds the account for each request; everything is behind sign-in
+  hooks.server.ts           finds the account for each request; all but sign-in and About is behind it
   routes/
     (hub)/                  dashboard: frame (+layout) and a page per tab
       +page.svelte          Expedition: the party, the Affliction, launch
       loadout/ afflictions/ store/ social/
     play/+page.svelte       expedition: the game view (client-only)
     auth/                   sign-in and sign-up pages
+    about/                  What's new (release notes) and Credits, open without signing in
     api/                    JSON endpoints: auth, account, ticket, explorer, shop, admin (dev)
 server/
   index.ts                  WebSocket server entry

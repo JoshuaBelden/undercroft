@@ -34,6 +34,7 @@ pnpm asset:build        # art/export/*.glb -> optimized static/assets/map + piec
 pnpm asset:audio        # art/sfx/*.wav -> Opus in static/assets/shared/audio + sound file list
 pnpm asset:images       # art/images/*.png -> WebP in static/assets/ui/images (interface art)
 pnpm deploy:provision   # create the DigitalOcean droplet (needs DIGITALOCEAN_ACCESS_TOKEN)
+pnpm release <bump>     # version + dated release notes + tag (docs/dev/releasing.md)
 pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 ```
 
@@ -91,3 +92,5 @@ When a feature lands, update in the same change:
 - `docs/dev/`: how the system works and how to extend it
 - Player help content, if the feature is player-facing
 - `docs/TODO.md`: mark the item done
+- `CHANGELOG.md`: a line under `## Unreleased`, written for players, if they will notice it
+- `src/lib/content/credits.ts`: a credit for any new third-party asset, tool or source

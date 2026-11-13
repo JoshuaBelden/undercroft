@@ -46,6 +46,8 @@ pnpm lint    # Prettier check + ESLint, fails on warnings
 
 Run `pnpm format` to fix formatting.
 
+Contributing: see [CONTRIBUTING.md](../../CONTRIBUTING.md). Versions and release notes: [releasing.md](releasing.md).
+
 ## Production build
 
 `pnpm build` produces a Node server in `build/` (adapter-node). The game server runs separately with `pnpm start:server`. Production runs both in Docker behind Caddy on a DigitalOcean droplet: see [deployment.md](deployment.md).

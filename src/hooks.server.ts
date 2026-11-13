@@ -4,8 +4,8 @@ import { database } from '#lib/server/db.ts';
 import { SESSION_COOKIE } from '#lib/server/session.ts';
 import { sessionAccount } from '#lib/server/store/accounts.ts';
 
-/** Paths that work without being signed in: the sign-in pages and their endpoints. */
-const OPEN = ['/auth/', '/api/auth/'];
+/** Paths that work without being signed in: the sign-in pages, their endpoints, and About. */
+const OPEN = ['/auth/', '/api/auth/', '/about'];
 
 /**
  * Every request: find the account from the session cookie. The whole game is behind sign-in, so
