@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addItem, emptyInventory, newStack } from '../src/lib/shared/items/inventory.ts';
-import { identify, currentTag } from './accounts.ts';
+import { identify, currentProfile } from './accounts.ts';
 import { giveBack, lockKit, owned, releaseAll, takeKit } from './belongings.ts';
 import { crashMessage, serverCrash } from './errors.ts';
 import { Progress } from './progress.ts';
@@ -94,7 +94,7 @@ afterEach(() => vi.useRealTimers());
 describe('without a database', () => {
 	it('nobody is signed in, kits are empty and nothing is written', async () => {
 		expect(await identify('ticket')).toBeNull();
-		expect(await currentTag('acc')).toBeNull();
+		expect(await currentProfile('acc')).toBeNull();
 		expect(await takeKit('exp', 's')).toEqual(emptyInventory());
 		expect(await owned(['exp'])).toEqual(new Set());
 		giveBack('exp', 's', null);
@@ -111,21 +111,23 @@ describe('with a database', () => {
 		db.current = fakeDb();
 	});
 
-	it('identifies a ticket and reads a gamer tag', async () => {
-		const identity = { account: 'a', explorer: 'e', gamerTag: 'Tag' };
+	it('identifies a ticket and reads a gamer tag and avatar', async () => {
+		const identity = { account: 'a', explorer: 'e', gamerTag: 'Tag', avatar: '/avatars/a?v=5' };
 		store.redeemTicket.mockResolvedValue({
-			account: { _id: 'a', gamerTag: 'Tag' },
+			account: { _id: 'a', gamerTag: 'Tag', avatar: 5 },
 			explorer: { _id: 'e' }
 		});
-		store.getAccount.mockResolvedValue({ gamerTag: 'Tag' });
+		store.getAccount.mockResolvedValue({ _id: 'a', gamerTag: 'Tag' });
 		expect(await identify('ticket')).toEqual(identity);
 		store.redeemTicket.mockResolvedValue(null);
 		expect(await identify('expired')).toBeNull();
-		expect(await currentTag('a')).toBe('Tag');
+		expect(await currentProfile('a')).toEqual({ gamerTag: 'Tag', avatar: null });
+		store.getAccount.mockResolvedValue(null);
+		expect(await currentProfile('a')).toBeNull();
 		store.redeemTicket.mockImplementation(boom);
 		store.getAccount.mockImplementation(boom);
 		expect(await identify('ticket')).toBeNull();
-		expect(await currentTag('a')).toBeNull();
+		expect(await currentProfile('a')).toBeNull();
 	});
 
 	it('takes and gives back belongings, falling back to nothing when the store fails', async () => {

@@ -13,6 +13,7 @@ import {
 	accountByDiscord,
 	accountByEmail,
 	linkDiscord,
+	refreshDiscord,
 	startSignup
 } from '#lib/server/store/auth.ts';
 import type { RequestHandler } from './$types';
@@ -35,7 +36,7 @@ export const GET: RequestHandler = async ({ cookies, url, locals }) => {
 	if (!code || !state || url.searchParams.get('state') !== state) back('cancelled');
 	const user = await discordUser(url.origin, code);
 	if (!user) back('failed');
-	const discord = { id: user.id, username: user.username };
+	const discord = { id: user.id, username: user.username, avatar: user.avatar };
 	const db = await database();
 	const secure = url.protocol === 'https:';
 
@@ -46,6 +47,7 @@ export const GET: RequestHandler = async ({ cookies, url, locals }) => {
 
 	const linked = await accountByDiscord(db, discord.id);
 	if (linked) {
+		await refreshDiscord(db, linked._id, discord);
 		const result = await signIn(db, cookies, linked, secure);
 		if (typeof result === 'object') back('suspended');
 		redirect(303, result === 'mfa' ? '/auth/mfa' : '/');

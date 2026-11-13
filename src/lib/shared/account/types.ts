@@ -7,6 +7,12 @@ export interface AccountView {
 	email: string;
 	/** The name other players see. */
 	gamerTag: string;
+	/** The avatar shown for them (their upload, else their Discord avatar), or null for none. */
+	avatar: string | null;
+	/** The avatar is one they uploaded (it can be removed). */
+	avatarUploaded: boolean;
+	/** Their linked Discord account has an avatar: it shows when they have no upload. */
+	discordAvatar: boolean;
 	/** Has a password (an account made with Discord may not, until one is set). */
 	hasPassword: boolean;
 	/** The linked Discord account's username, or null. */

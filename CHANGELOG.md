@@ -4,6 +4,8 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- Avatars: upload a picture on the Account screen and frame it in the circle. It shows beside your gamer tag and on your pane on the Expedition screen, for your whole party. Signed in with Discord? Your Discord avatar is used until you upload your own.
+
 ## 0.2.0 - 2026-11-13
 
 - Report a bug from the game: from the menu under your gamer tag, or the settings screen, even underground. You see every detail that goes with it first.

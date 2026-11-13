@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { PartyMember } from '#lib/shared/party/types.ts';
+	import Avatar from '#lib/ui/Avatar.svelte';
 
 	/**
 	 * One member of the party as a tall pane on the Expedition page, shaped like an Affliction's
-	 * pane: their picture (none yet: a figure in the dark), their gamer tag, and whether they are
-	 * ready to descend.
+	 * pane: their gamer tag, their avatar (none: a figure in the dark), and whether they are ready
+	 * to descend.
 	 */
 	interface Props {
 		member: PartyMember;
@@ -28,11 +29,13 @@
 </script>
 
 <article class="pane" class:ready={member.ready} class:away={!member.connected}>
-	<!-- Stands in for the explorer's picture until there is art. -->
-	<svg class="figure" viewBox="0 0 200 320" aria-hidden="true">
-		<circle cx="100" cy="74" r="38" />
-		<path d="M22 320c0-98 30-168 78-168s78 70 78 168z" />
-	</svg>
+	{#if !member.avatar}
+		<!-- No avatar: a figure in the dark. -->
+		<svg class="figure" viewBox="0 0 200 320" aria-hidden="true">
+			<circle cx="100" cy="74" r="38" />
+			<path d="M22 320c0-98 30-168 78-168s78 70 78 168z" />
+		</svg>
+	{/if}
 
 	<header>
 		<h2>{member.name}</h2>
@@ -41,6 +44,12 @@
 			{#if you}<span>You</span>{/if}
 		</p>
 	</header>
+
+	{#if member.avatar}
+		<div class="portrait">
+			<Avatar src={member.avatar} size={208} lit={member.ready} />
+		</div>
+	{/if}
 
 	<p class="status">{status}</p>
 </article>
@@ -90,6 +99,23 @@
 		padding: 0 20px;
 		text-align: center;
 		text-shadow: 0 2px 12px rgb(0 0 0 / 0.9);
+	}
+
+	.portrait {
+		position: relative;
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 0;
+		/* Sized by the pane, so the avatar can shrink to fit a short window. */
+		container-type: size;
+	}
+
+	.portrait :global(.avatar) {
+		width: min(208px, 90cqw, 90cqh);
+		height: min(208px, 90cqw, 90cqh);
+		box-shadow: 0 10px 40px rgb(0 0 0 / 0.7);
 	}
 
 	h2 {

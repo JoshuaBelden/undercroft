@@ -20,6 +20,7 @@ export const AUDIT_ACTIONS = {
 	sendReset: 'Sent a password reset',
 	disableTotp: 'Turned off two-step sign-in',
 	renameTag: 'Changed the gamer tag',
+	removeAvatar: 'Removed the avatar',
 	deleteAccount: 'Deleted the account',
 	/** Not an admin: the player, from their Account screen (logged so admins can tell who it was). */
 	deleteOwnAccount: 'Deleted their own account',
