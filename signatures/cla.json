@@ -1,3 +1,12 @@
 {
-   "signedContributors": []
+  "signedContributors": [
+    {
+      "name": "CelesteBelden",
+      "id": 25823584,
+      "comment_id": 6860852527,
+      "created_at": "2026-11-13T18:00:21Z",
+      "repoId": 1456014461,
+      "pullRequestNo": 1
+    }
+  ]
 }
