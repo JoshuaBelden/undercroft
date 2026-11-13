@@ -59,7 +59,7 @@ src/
       audio/                sound registry and footstep surfaces
       credits.ts            the Credits page: AI statement, inspirations, assets, tools
       changelog.ts          release notes, parsed from CHANGELOG.md
-    ui/                     Svelte components (Panel, Dialog, Slot, menus, overlays)
+    ui/                     Svelte components (Panel, Dialog, Slot, TabScreen, HelpScreen, menus, overlays)
   hooks.server.ts           finds the account for each request; all but sign-in and About is behind it
   routes/
     (hub)/                  dashboard: frame (+layout) and a page per tab

@@ -33,6 +33,11 @@ The first closed beta. Thank you for testing.
 - Mouse: a separate Aiming sensitivity. Audio: mute the game while it's in the background.
 - New help topic: Comfort and accessibility.
 
+### Help
+
+- Help is now a full screen with sections, starting with Getting started: your first descent, and the keys you need.
+- Every topic reviewed against the game.
+
 ### Sound
 
 - A new mix: gunshots are the loudest thing you'll hear (the shotgun more than the revolver), and the creature's steps are as clear as your own. Its death cry, falling stones and some small clicks were too loud or too quiet.

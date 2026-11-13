@@ -69,7 +69,7 @@
 	import AdminPanel from '#lib/ui/AdminPanel.svelte';
 	import Captions from '#lib/ui/Captions.svelte';
 	import CrateScreen from '#lib/ui/CrateScreen.svelte';
-	import HelpPanel from '#lib/ui/HelpPanel.svelte';
+	import HelpScreen from '#lib/ui/HelpScreen.svelte';
 	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
@@ -1548,7 +1548,7 @@
 			: undefined}
 	/>
 {:else if panel === 'help'}
-	<HelpPanel onclose={() => (panel = null)} />
+	<HelpScreen dim onclose={() => (panel = null)} />
 {:else if panel === 'inventory' && inventory}
 	<InventoryScreen
 		{inventory}

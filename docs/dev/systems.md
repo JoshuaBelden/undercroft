@@ -133,10 +133,12 @@ To add a menu entry, add it to `ItemBoard.entries` and handle it in `choose`.
 Help topics are data in `src/lib/content/help/index.ts`:
 
 ```ts
-{ id: 'headlamp', title: 'Headlamp', category: 'Light', body: 'Press {action:headlamp} to...' }
+{ id: 'headlamp', title: 'Headlamp', category: 'Surviving', body: 'Press {action:headlamp} to...' }
 ```
 
-Blank lines separate paragraphs. `{action:name}` renders the current binding. `HelpPanel` lists topics; open it with F1 or from the main menu. Each phase adds topics for what it ships.
+Blank lines separate paragraphs, and a paragraph whose lines all start with `- ` is a list. `{action:name}` shows the player's current binding as a key cap (`KeyCap`), or "unbound". `category` is one of `HELP_CATEGORIES` (Getting started, Expeditions, The surface, Moving, Surviving, Gear and loot, The Gloaming, Settings). Each is a tab of the help screen, with its topics in the order they appear in the file.
+
+`HelpScreen.svelte` is a full-window `TabScreen`, like the settings: a tab per section, with the section's articles as plain text in one readable column. It opens with F1 (`toggleHelp`) or the ? button on the dashboard, and over the game view underground (darkened, `dim`). New players start on Getting started: "Your first descent" and "Keys". Add topics for each feature as it ships, and keep both of those up to date when the first steps or the main keys change.
 
 ## Admin and dev mode
 

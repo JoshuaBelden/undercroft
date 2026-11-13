@@ -18,6 +18,8 @@
 		onclose: () => void;
 		/** Darken what is behind the screen (the game view). */
 		dim?: boolean;
+		/** Hide what is behind almost entirely: for reading (the help screen). */
+		solid?: boolean;
 		/** Extra buttons in the bar, before Back. */
 		actions?: Snippet;
 		/** Under the fields, right-aligned. */
@@ -31,13 +33,14 @@
 		group = $bindable(),
 		onclose,
 		dim = false,
+		solid = false,
 		actions,
 		footer,
 		children
 	}: Props = $props();
 </script>
 
-<section class="screen" class:dim aria-label={label}>
+<section class="screen" class:dim class:solid aria-label={label}>
 	<header>
 		<nav aria-label="{label} groups">
 			{#each groups as name (name)}
@@ -55,16 +58,18 @@
 		<button type="button" class="back" onclick={onclose}>Back</button>
 	</header>
 
-	<div class="content">
-		<h1>{group}</h1>
+	<div class="body">
+		<div class="content">
+			<h1>{group}</h1>
 
-		<div class="fields">
-			{@render children()}
+			<div class="fields">
+				{@render children()}
+			</div>
+
+			{#if footer}
+				<div class="footer">{@render footer()}</div>
+			{/if}
 		</div>
-
-		{#if footer}
-			<div class="footer">{@render footer()}</div>
-		{/if}
 	</div>
 </section>
 
@@ -81,6 +86,16 @@
 
 	.screen.dim {
 		background: rgb(0 0 0 / 0.6);
+	}
+
+	/* Solid under the bar; the bar itself keeps a hint of what is behind. */
+	.screen.solid .body {
+		background: rgb(10 9 8 / 0.88);
+	}
+
+	.screen.solid header {
+		background: rgb(20 17 15 / 0.9);
+		backdrop-filter: blur(6px);
 	}
 
 	/* The bar matches the dashboard's (src/routes/(hub)/+layout.svelte): it stands in for it. */
@@ -128,6 +143,14 @@
 	}
 
 	/* Everything under the bar shares what is left of the window; only the fields scroll. */
+	/* Everything under the bar. */
+	.body {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
 	.content {
 		flex: 1;
 		min-height: 0;

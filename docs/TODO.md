@@ -14,7 +14,6 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 ## Ready: Beta polish and deployment
 
 - Audio: recordings for the 21 sounds still synthesized (`pnpm asset:levels` lists them: melee, bricks, bullet impacts, being hurt, heartbeat, whispers, the manifestation, rite and clue bells, store purchase), then a listening pass on the new mix (docs/dev/player.md#mix).
-- Help system complete and reviewed
 - Performance pass: compare F3 stats (fps, draw calls) before and after the map merge and lamp shadow skipping on a low-end machine, then decide on KTX2 textures (GPU memory) and LODs. Asset baseline: 15 MB in `static/assets` after meshopt and Opus (Nov 2026; textures are 3.9 MB of it). Done: compressed ticks (about 200 bytes for four players, see docs/dev/systems.md), the map merged into chunks, shadows only for lamps lighting the view.
 - Set `SOURCE_URL` in src/lib/content/credits.ts once the GitHub repository is public.
 - Fill in the Credits placeholders (`todo: true` in src/lib/content/credits.ts): inspirations, model, animation and sound sources, AI tools, testers.

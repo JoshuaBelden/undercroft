@@ -9,7 +9,7 @@
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
 	import { startPrefetch } from '#lib/game/prefetch.svelte.ts';
-	import HelpPanel from '#lib/ui/HelpPanel.svelte';
+	import HelpScreen from '#lib/ui/HelpScreen.svelte';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import type { LayoutProps } from './$types';
 
@@ -196,7 +196,7 @@
 </div>
 
 {#if help}
-	<HelpPanel onclose={() => (help = false)} />
+	<HelpScreen onclose={() => (help = false)} />
 {/if}
 
 <style>

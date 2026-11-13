@@ -67,10 +67,13 @@ export function defaultBindings(): Bindings {
 }
 
 /** Human-readable label for a binding code, e.g. 'KeyW' -> 'W'. */
+/** The three main mouse buttons, by name; side buttons stay numbered (Mouse 4, Mouse 5). */
+const MOUSE_LABELS: Record<string, string> = { Mouse0: 'MLB', Mouse1: 'MMB', Mouse2: 'MRB' };
+
 export function bindingLabel(code: string): string {
 	if (code.startsWith('Key')) return code.slice(3);
 	if (code.startsWith('Digit')) return code.slice(5);
-	if (code.startsWith('Mouse')) return `Mouse ${Number(code.slice(5)) + 1}`;
+	if (code.startsWith('Mouse')) return MOUSE_LABELS[code] ?? `Mouse ${Number(code.slice(5)) + 1}`;
 	if (code === 'WheelUp') return 'Wheel up';
 	if (code === 'WheelDown') return 'Wheel down';
 	return code;
