@@ -26,6 +26,7 @@
 		"asset:build": "tsx scripts/build-assets.ts",
 		"asset:audio": "tsx scripts/build-audio.ts",
 		"asset:images": "tsx scripts/build-images.ts",
+		"asset:levels": "tsx scripts/audio-levels.ts",
 		"deploy:provision": "tsx deploy/provision.ts",
 		"deploy:release": "tsx deploy/deploy.ts"
 	},

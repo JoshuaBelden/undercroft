@@ -285,6 +285,14 @@ function writeOpus(name: string, pcm: Pcm, bitrate: string): { file: string; byt
 			bitrate,
 			'-application',
 			'audio',
+			// The same input always gives the same bytes (no random segment id or date), so an unchanged
+			// sound keeps its hashed name and players' caches keep it.
+			'-fflags',
+			'+bitexact',
+			'-flags:a',
+			'+bitexact',
+			'-map_metadata',
+			'-1',
 			'-y',
 			out
 		];

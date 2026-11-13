@@ -202,7 +202,7 @@ export const SOUNDS = {
 		file: 'ambience.rockfall',
 		synth: { kind: 'rockfall' },
 		category: 'ambience',
-		volume: 0.7,
+		volume: 0.4,
 		variation: 0.1,
 		caption: 'stones falling, far off'
 	},
@@ -233,7 +233,7 @@ export const SOUNDS = {
 		file: 'creature.step',
 		synth: { kind: 'shuffle' },
 		category: 'sfx',
-		volume: 0.55,
+		volume: 0.8,
 		variation: 0.15,
 		caption: 'shuffling steps'
 	},
@@ -263,10 +263,10 @@ export const SOUNDS = {
 		caption: 'ragged breathing nearby'
 	},
 	'creature.hurt': {
+		file: 'creature.hurt',
 		synth: { kind: 'snarl' },
 		category: 'sfx',
-		volume: 0.8,
-		rate: 1.35,
+		volume: 0.7,
 		variation: 0.1,
 		caption: 'pained shriek'
 	},
@@ -274,7 +274,7 @@ export const SOUNDS = {
 		file: 'creature.die',
 		synth: { kind: 'snarl' },
 		category: 'sfx',
-		volume: 1,
+		volume: 0.5,
 		caption: 'dying rattle'
 	},
 	// Items and weapons.
@@ -282,7 +282,7 @@ export const SOUNDS = {
 		file: 'revolver.fire',
 		synth: { kind: 'gunshot', boom: 95, length: 1.8, bright: 4200 },
 		category: 'sfx',
-		volume: 1,
+		volume: 0.55,
 		variation: 0.04,
 		caption: 'gunshot',
 		captionOthers: true
@@ -360,12 +360,18 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'brick shatters'
 	},
-	'item.pickup': { synth: { kind: 'rustle' }, category: 'sfx', volume: 0.5, variation: 0.1 },
+	'item.pickup': {
+		file: 'item.pickup',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.3,
+		variation: 0.1
+	},
 	'item.drop': {
 		file: 'item.drop',
 		synth: { kind: 'thud', cutoff: 700 },
 		category: 'sfx',
-		volume: 0.4,
+		volume: 0.25,
 		variation: 0.15,
 		caption: 'something dropped',
 		captionOthers: true
@@ -397,9 +403,10 @@ export const SOUNDS = {
 	},
 	// The lid of a loot crate, the first time it is lifted.
 	'crate.open': {
+		file: 'crate.open',
 		synth: { kind: 'thud', cutoff: 500 },
 		category: 'sfx',
-		volume: 0.5,
+		volume: 0.6,
 		variation: 0.1,
 		caption: 'a lid creaks open',
 		captionOthers: true
@@ -416,30 +423,32 @@ export const SOUNDS = {
 	},
 	// Chalk on stone: a mark drawn, or rubbed out by whoever drew it.
 	'chalk.draw': {
+		file: 'chalk',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
-		volume: 0.45,
-		rate: 1.6,
+		volume: 0.6,
 		variation: 0.1,
 		caption: 'chalk scratches on stone',
 		captionOthers: true
 	},
 	'chalk.rub': {
+		file: 'chalk',
 		synth: { kind: 'rustle' },
 		category: 'sfx',
-		volume: 0.35,
+		volume: 0.4,
+		rate: 0.7,
 		variation: 0.1,
 		caption: 'chalk is rubbed away',
 		captionOthers: true
 	},
 	// The surface.
 	/** Moving between pages (the tabs, the store, social, settings). */
-	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 },
+	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.8 },
 	// Stingers on the music bus (dry: no muffling or reverb from where you stand).
 	'expedition.intro': { file: 'expedition.intro', category: 'music', volume: 0.8 },
-	'expedition.outro': { file: 'expedition.outro', category: 'music', volume: 0.8 },
+	'expedition.outro': { file: 'expedition.outro', category: 'music', volume: 0.5 },
 	/** Finding something epic, legendary or a quest item (revealed in a crate, or picked up). */
-	'loot.found': { file: 'loot.found', category: 'music', volume: 0.8 },
+	'loot.found': { file: 'loot.found', category: 'music', volume: 0.65 },
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
 	'shop.sell': {
 		file: 'shop.sell',
@@ -508,7 +517,7 @@ export const SOUNDS = {
 		file: 'battery.charged',
 		synth: { kind: 'click' },
 		category: 'sfx',
-		volume: 0.7,
+		volume: 0.45,
 		caption: 'a battery clicks into place'
 	},
 	// The headlamp running low (under its lowAlert volts), once a minute while it's on.
@@ -528,10 +537,10 @@ export const SOUNDS = {
 		caption: 'linen being wound'
 	},
 	'defense.torn': {
+		file: 'defense.torn',
 		synth: { kind: 'rustle' },
 		category: 'sfx',
 		volume: 0.7,
-		rate: 0.6,
 		caption: 'cloth tears'
 	},
 	heartbeat: {
@@ -547,8 +556,8 @@ export const SOUNDS = {
 		variation: 0.15,
 		caption: 'whispering'
 	},
-	'headlamp.on': { file: 'headlamp.on', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 },
-	'headlamp.off': { file: 'headlamp.off', synth: { kind: 'click' }, category: 'sfx', volume: 0.5 }
+	'headlamp.on': { file: 'headlamp.on', synth: { kind: 'click' }, category: 'sfx', volume: 0.9 },
+	'headlamp.off': { file: 'headlamp.off', synth: { kind: 'click' }, category: 'sfx', volume: 0.9 }
 } satisfies Record<string, SoundDef>;
 
 export type SoundId = keyof typeof SOUNDS;

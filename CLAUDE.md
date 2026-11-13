@@ -33,6 +33,7 @@ pnpm asset:dev          # regenerate the placeholder dev asset
 pnpm asset:build        # art/export/*.glb -> optimized static/assets/map + piece manifest
 pnpm asset:audio        # art/sfx/*.wav -> Opus in static/assets/shared/audio + sound file list
 pnpm asset:images       # art/images/*.png -> WebP in static/assets/ui/images (interface art)
+pnpm asset:levels       # how loud every sound plays, for mixing (docs/dev/player.md#mix)
 pnpm deploy:provision   # create the DigitalOcean droplet (needs DIGITALOCEAN_ACCESS_TOKEN)
 pnpm release <bump>     # version + dated release notes + tag (docs/dev/releasing.md)
 pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)

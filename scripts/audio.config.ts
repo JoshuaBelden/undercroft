@@ -125,5 +125,14 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	// Going through a corpse's things.
 	{ id: 'corpse.search', file: 'bag_searching.wav' },
 	// A creature's breathing, looped; heard close by (see Creatures.ts).
-	{ id: 'creature.breath', file: 'sfx_witch_breathing.mp3', loopCrossfade: 0.5, keepSilence: true }
+	{ id: 'creature.breath', file: 'sfx_witch_breathing.mp3', loopCrossfade: 0.5, keepSilence: true },
+	// A crate's lid lifting.
+	{ id: 'crate.open', file: 'drawer_open.wav' },
+	// Something taken off the floor into the pack.
+	{ id: 'item.pickup', file: 'zipper_bag.wav' },
+	// Chalk on stone (drawn, and slowed down for rubbing a mark out).
+	{ id: 'chalk', file: 'writing.wav' },
+	// Worn protection torn apart.
+	{ id: 'defense.torn', file: 'velcro.wav' },
+	{ id: 'creature.hurt', file: 'witch-growl.mp3' }
 ];

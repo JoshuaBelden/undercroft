@@ -33,6 +33,11 @@ The first closed beta. Thank you for testing.
 - Mouse: a separate Aiming sensitivity. Audio: mute the game while it's in the background.
 - New help topic: Comfort and accessibility.
 
+### Sound
+
+- A new mix: gunshots are the loudest thing you'll hear (the shotgun more than the revolver), and the creature's steps are as clear as your own. Its death cry, falling stones and some small clicks were too loud or too quiet.
+- Real recordings for opening crates, picking things up, chalk, torn protection and wounded creatures.
+
 ### Fixes
 
 - You can no longer walk upright into the narrowing rock before a crawlspace or squeeze and see through the walls.
