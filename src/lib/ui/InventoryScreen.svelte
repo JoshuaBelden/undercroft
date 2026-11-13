@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { BACKPACKS } from '#lib/content/carry.ts';
+	import { menu } from '#lib/game/input/menus.ts';
 	import type { InventoryAction } from '#lib/shared/items/types.ts';
 	import type { Inventory } from '#lib/shared/player/types.ts';
 	import CarriedWeight from './CarriedWeight.svelte';
@@ -27,7 +28,7 @@
 </script>
 
 <div class="backdrop">
-	<section class="panel" aria-labelledby="pack-title">
+	<section class="panel" aria-labelledby="pack-title" {@attach menu({ back: onclose })}>
 		<header>
 			<div class="title">
 				<h2 id="pack-title">{BACKPACKS[inventory.pack]?.name ?? 'Your pack'}</h2>

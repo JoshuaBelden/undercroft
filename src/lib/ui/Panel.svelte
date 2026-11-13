@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { menu } from '#lib/game/input/menus.ts';
 
 	interface Props {
 		title: string;
@@ -11,7 +12,7 @@
 </script>
 
 <div class="backdrop">
-	<section class="panel" aria-label={title}>
+	<section class="panel" aria-label={title} {@attach menu({ back: onclose })}>
 		<header>
 			<h2>{title}</h2>
 			<button type="button" onclick={onclose}>Close</button>

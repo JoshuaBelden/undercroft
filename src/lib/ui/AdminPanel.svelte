@@ -7,6 +7,7 @@
 		'Affliction',
 		'Rite',
 		'Creatures',
+		'Controller',
 		'Account'
 	] as const;
 	type Group = (typeof GROUPS)[number];
@@ -18,6 +19,9 @@
 	import { adminAccount, ApiError } from '#lib/account/account.svelte.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { devMode } from '#lib/dev.ts';
+	import { device, padFamily } from '#lib/game/input/device.svelte.ts';
+	import { canVibrate, connectedPads, familyOf, playRumble } from '#lib/game/input/gamepad.ts';
+	import type { PadFamily } from '#lib/game/input/actions.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import type { PlayerFlags } from '#lib/shared/player/types.ts';
 	import type { AdminCommand } from '#lib/shared/protocol.ts';
@@ -71,6 +75,51 @@
 	});
 
 	const onOff = (value: boolean): string => (value ? 'On' : 'Off');
+
+	const FAMILY_NAMES: Record<PadFamily, string> = { xbox: 'Xbox', playstation: 'PlayStation' };
+
+	/** One connected controller, as the Controller group shows it. */
+	interface PadReading {
+		index: number;
+		id: string;
+		kind: string;
+		pressed: string;
+		sticks: string;
+		vibrates: boolean;
+	}
+
+	const inUse = $derived(
+		device.kind === 'pad' ? `Controller, ${FAMILY_NAMES[padFamily()]} icons` : 'Keyboard and mouse'
+	);
+
+	/** The connected controllers, read every frame while the Controller group shows. */
+	let pads = $state<PadReading[]>([]);
+	$effect(() => {
+		if (group !== 'Controller') return;
+		let frame = requestAnimationFrame(function read() {
+			pads = connectedPads().map((pad) => ({
+				index: pad.index,
+				id: pad.id,
+				kind:
+					pad.mapping === 'standard'
+						? `Standard, ${FAMILY_NAMES[familyOf(pad)]}`
+						: 'Not standard: ignored',
+				// Buttons by index; analog ones (the triggers) with how far they are in.
+				pressed:
+					pad.buttons
+						.flatMap((button, index) =>
+							button.value > 0.05 || button.pressed
+								? [button.value < 1 ? `${index} (${button.value.toFixed(2)})` : `${index}`]
+								: []
+						)
+						.join(', ') || '—',
+				sticks: pad.axes.map((axis) => axis.toFixed(2)).join('  '),
+				vibrates: canVibrate(pad)
+			}));
+			frame = requestAnimationFrame(read);
+		});
+		return () => cancelAnimationFrame(frame);
+	});
 
 	let seedInput = $state('');
 	let moneyInput = $state('100');
@@ -280,6 +329,16 @@
 				onstep={() => onmarkers(!markers)}
 				hint="Markers drawn through walls."
 			/>
+		{:else if group === 'Controller'}
+			{@render info('In use', inUse)}
+			{#each pads as pad (pad.index)}
+				{@render info(`Controller ${pad.index}`, pad.kind, pad.id)}
+				{@render info('Buttons', pad.pressed)}
+				{@render info('Sticks', pad.sticks, pad.vibrates ? undefined : "Can't vibrate here.")}
+			{:else}
+				<p class="hint">No controllers. Browsers only show one once a button on it is pressed.</p>
+			{/each}
+			{@render action('Test rumble', () => playRumble('hit'), 'On every controller.')}
 		{:else}
 			<form
 				class="setting"

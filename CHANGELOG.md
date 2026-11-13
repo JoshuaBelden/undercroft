@@ -9,6 +9,10 @@ What changed in each version of Undercroft, newest first. Players see these in g
 - Ideas and feedback: suggest ideas, vote for the ones you want most, and send feedback only the team reads. Open it from the menu under your gamer tag.
 - The Credits page links to the game's source code.
 - Delete your account from the Account screen, under Profile. Your explorer, stash and friends list go for good; reports, ideas and feedback you sent stay without your name.
+- Play with an Xbox, PlayStation or Steam controller, with the keyboard and mouse still working beside it. On-screen buttons follow whichever you used last.
+- Move with the left stick and push it gently to creep without a sound. Sprint is a click of the stick by default, and the controller rumbles when you fire, get hit or go down.
+- Every menu works with the controller too: the dashboard, the store, your pack and crates, settings, help and every dialog. Pick items up with A and put them down where they light up.
+- Settings > Controller: look sensitivity, invert Y, dead zone, vibration, sprint (toggle or hold) and the button icons.
 
 ## 0.1.0 - 2026-11-13
 

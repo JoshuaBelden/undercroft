@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { menu } from '#lib/game/input/menus.ts';
 	import { connection, send } from '#lib/game/net/connection.svelte.ts';
 
 	/**
@@ -17,15 +18,19 @@
 	const seconds = $derived(
 		connection.launchAt === null ? null : Math.max(1, Math.ceil((connection.launchAt - now) / 1000))
 	);
+
+	function cancel(): void {
+		send({ type: 'ready', ready: false });
+	}
 </script>
 
 {#if seconds !== null}
-	<div class="countdown" role="timer" aria-live="assertive">
+	<div class="countdown" role="timer" aria-live="assertive" {@attach menu({ back: cancel })}>
 		<p class="label">Descending in</p>
 		{#key seconds}
 			<p class="seconds">{seconds}</p>
 		{/key}
-		<button type="button" onclick={() => send({ type: 'ready', ready: false })}>Cancel</button>
+		<button type="button" onclick={cancel}>Cancel</button>
 	</div>
 {/if}
 

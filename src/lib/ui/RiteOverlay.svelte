@@ -17,7 +17,7 @@
 		rite: RiteSnapshot;
 		/** For each requirement, who in the party carries it and how many; `self` is this player. */
 		carriers: { name: string; count: number; self: boolean }[][];
-		/** The interact key, as bound ("E"), shown as a keycap; empty when unbound. */
+		/** The interact binding ("KeyE"; see KeyCap), shown as a keycap; empty when unbound. */
 		interactKey: string;
 	}
 
@@ -80,7 +80,7 @@
 					<span class="name">{room}</span>
 					<span class="who"
 						>One of you carries it all here and holds {#if interactKey}<KeyCap
-								label={interactKey}
+								code={interactKey}
 							/>{:else}interact{/if}</span
 					>
 				</span>

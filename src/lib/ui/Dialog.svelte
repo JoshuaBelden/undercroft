@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { menu } from '#lib/game/input/menus.ts';
 
 	/**
 	 * A small modal dialog for questions and confirmations anywhere in the game: a header with the
 	 * title, the content, and a footer of commands. Buttons put in `footer` are drawn as pills; give
 	 * the one that carries out the action `class="primary"`.
 	 *
-	 * Render it while it should be open (`{#if asking}<Dialog ...>`). Escape asks to close it.
+	 * Render it while it should be open (`{#if asking}<Dialog ...>`). Escape (or the controller's B)
+	 * asks to close it.
 	 */
 	interface Props {
 		title: string;
@@ -40,7 +42,13 @@
 	}
 </script>
 
-<dialog {@attach modal} class:wide aria-labelledby="dialog-title" oncancel={cancelled}>
+<dialog
+	{@attach modal}
+	{@attach menu({ back: onclose })}
+	class:wide
+	aria-labelledby="dialog-title"
+	oncancel={cancelled}
+>
 	<header>
 		<h2 id="dialog-title">{title}</h2>
 	</header>

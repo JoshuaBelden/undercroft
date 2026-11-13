@@ -1,17 +1,24 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { openBugReport } from '#lib/game/crash.svelte.ts';
+	import { menu } from '#lib/game/input/menus.ts';
 
 	/**
 	 * A page that couldn't be shown. A bug on our server (it has an `errorId`, from
 	 * hooks.server.ts) can be reported from here, grouped with the error it recorded.
 	 */
 	const errorId = $derived(page.error?.errorId);
+
+	/** The controller's B: back to the dashboard, as the link is. */
+	function back(): void {
+		void goto(resolve('/(hub)'));
+	}
 </script>
 
 <main class="backdrop-art">
-	<div class="box">
+	<div class="box" {@attach menu({ back })}>
 		<h1>{page.status === 404 ? 'Nothing down here' : 'Something went wrong'}</h1>
 		<p>{page.status === 404 ? "That page doesn't exist." : page.error?.message}</p>
 		<div class="actions">

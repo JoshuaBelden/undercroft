@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { BACKPACKS } from '#lib/content/carry.ts';
 	import { CRATES } from '#lib/content/loot.ts';
+	import { bindingLabel } from '#lib/game/input/actions.ts';
+	import { device, padFamily } from '#lib/game/input/device.svelte.ts';
+	import { menu } from '#lib/game/input/menus.ts';
 	import type { CrateSlot, InventoryAction } from '#lib/shared/items/types.ts';
 	import type { Inventory } from '#lib/shared/player/types.ts';
 	import CarriedWeight from './CarriedWeight.svelte';
@@ -24,7 +27,7 @@
 		slots: CrateSlot[];
 		/** How far along (0..1) the first hidden slot is to being revealed. */
 		reveal: number;
-		/** What to press to walk away, e.g. "W / A / S / D". */
+		/** What to press to walk away, e.g. "W / A / S / D". (With a controller, B steps away.) */
 		moveKeys: string;
 		onaction: (action: InventoryAction) => void;
 		onclose: () => void;
@@ -47,7 +50,7 @@
 </script>
 
 <div class="backdrop">
-	<section class="panel" aria-labelledby="crate-title">
+	<section class="panel" aria-labelledby="crate-title" {@attach menu({ back: onclose })}>
 		<header>
 			<div class="title">
 				<h2 id="crate-title">{title}</h2>
@@ -55,7 +58,11 @@
 					{left > 0 ? 'Searching...' : 'Searched'}
 				</p>
 			</div>
-			<p class="hint">Move ({moveKeys}) to step away</p>
+			{#if device.kind === 'pad'}
+				<p class="hint">{bindingLabel('PadB', padFamily())} to step away</p>
+			{:else}
+				<p class="hint">Move ({moveKeys}) to step away</p>
+			{/if}
 			<button type="button" onclick={onclose}>Close</button>
 		</header>
 
@@ -65,10 +72,13 @@
 				<div class="grid" style:--columns={CRATES.columns}>
 					{#each slots as slot, index (index)}
 						{#if slot === 'hidden'}
+							<!-- The controller's focus can rest here too, so the grid moves as a grid. -->
 							<span
 								class="sealed"
 								class:revealing={index === revealing}
 								role="img"
+								tabindex="-1"
+								data-pad-stop
 								aria-label="{title} slot {index + 1}: {index === revealing
 									? 'being searched'
 									: 'not searched yet'}"
@@ -208,6 +218,13 @@
 	.sealed.revealing {
 		border-style: solid;
 		border-color: var(--muted);
+	}
+
+	/* Lit as an item slot is (ItemSlot.svelte). */
+	.sealed:focus-visible {
+		outline: none;
+		border-color: var(--text);
+		background: rgb(255 255 255 / 0.09);
 	}
 
 	.bar {

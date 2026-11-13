@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { signOut } from '#lib/account/account.svelte.ts';
 	import { openBugReport } from '#lib/game/crash.svelte.ts';
+	import { menu as padMenu } from '#lib/game/input/menus.ts';
 
 	/**
 	 * The gamer tag at the top right of the dashboard, as a menu: the Account screen, ideas and
@@ -86,7 +87,14 @@
 	</button>
 
 	{#if open}
-		<div class="menu" role="menu" tabindex="-1" bind:this={menu} onkeydown={onMenuKey}>
+		<div
+			class="menu"
+			role="menu"
+			tabindex="-1"
+			bind:this={menu}
+			onkeydown={onMenuKey}
+			{@attach padMenu({ back: () => close(true) })}
+		>
 			<a role="menuitem" href={resolve('/account')} onclick={() => close(false)}>Account</a>
 			<a role="menuitem" href={resolve('/(hub)/feedback')} onclick={() => close(false)}>
 				Ideas and feedback

@@ -10,7 +10,7 @@
 		remaining: number;
 		/** What happens next ("Waiting for help...", "Reaching for your salts..."). */
 		message: string;
-		/** The key that surrenders when held, as bound ("Space"); empty when unbound. */
+		/** The binding that surrenders when held ("Space"; see KeyCap); empty when unbound. */
 		surrenderKey: string;
 		/** 0..1 of the hold to surrender. */
 		surrender: number;

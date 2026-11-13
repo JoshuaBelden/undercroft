@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ITEMS, rarityOf } from '#lib/content/items.ts';
+	import type { PadButton } from '#lib/game/input/menus.ts';
 	import type { SlotRef } from '#lib/shared/items/types.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import type { ItemBoard } from './itemBoard.svelte.ts';
@@ -9,7 +10,8 @@
 	/**
 	 * A slot things are dragged between: drag it onto another slot, shift-click it to send it where
 	 * it belongs, right-click it (or the keyboard's menu key) for the alternate menu, and hover or
-	 * focus it for the tooltip. All of it is reported to the screen's `ItemBoard`.
+	 * focus it for the tooltip. A controller carries with A, sends with X and opens the menu with Y.
+	 * All of it is reported to the screen's `ItemBoard`.
 	 */
 	interface Props {
 		board: ItemBoard;
@@ -85,6 +87,34 @@
 	function point(event: Event): void {
 		board.point(ref, event.currentTarget as HTMLElement);
 	}
+
+	/** The controller: carrying moves with the focus, as dragging does with the cursor. */
+	function pad(slot: HTMLElement): () => void {
+		const press = (event: Event): void => {
+			const button = (event as CustomEvent<PadButton>).detail;
+			if (button === 'a') {
+				board.carry(ref, stack);
+				if (!board.dragging) board.point(ref, slot);
+			} else if (button === 'b' && board.dragging) board.endDrag();
+			else if (button === 'x' && stack && !board.dragging) board.quick(ref);
+			else if (button === 'y' && stack && !board.dragging) {
+				// At the slot, as from the keyboard.
+				const rect = slot.getBoundingClientRect();
+				board.openMenu(ref, stack, rect.left + rect.width / 2, rect.top + rect.height / 2);
+			} else return;
+			event.preventDefault();
+		};
+		const focus = (): void => board.hover(ref, true);
+		const blur = (): void => board.hover(ref, false);
+		slot.addEventListener('padpress', press);
+		slot.addEventListener('focus', focus);
+		slot.addEventListener('blur', blur);
+		return () => {
+			slot.removeEventListener('padpress', press);
+			slot.removeEventListener('focus', focus);
+			slot.removeEventListener('blur', blur);
+		};
+	}
 </script>
 
 <button
@@ -109,6 +139,7 @@
 	onpointerleave={() => board.unpoint()}
 	onfocus={point}
 	onblur={() => board.unpoint()}
+	{@attach pad}
 >
 	<Slot
 		name={def?.name ?? stack?.item ?? ''}

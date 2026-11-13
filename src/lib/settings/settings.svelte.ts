@@ -1,4 +1,9 @@
-import { defaultBindings, type Action, type Bindings } from '#lib/game/input/actions.ts';
+import {
+	defaultBindings,
+	defaultPadBindings,
+	type Action,
+	type Bindings
+} from '#lib/game/input/actions.ts';
 import type { AudioCategory } from '#lib/game/audio/AudioManager.ts';
 
 /**
@@ -18,6 +23,24 @@ export interface ControlSettings {
 	/** Multiplier on the look speed while aiming down sights (on top of mouseSensitivity). */
 	aimSensitivity: number;
 	invertY: boolean;
+}
+
+/** The controller's sprint button: a click starts and the run ends itself, or held like the key. */
+export type SprintMode = 'toggle' | 'hold';
+
+/** Which controller icons to show: as detected, or always one set. */
+export type ButtonIcons = 'auto' | 'xbox' | 'playstation';
+
+/** See docs/dev/controller.md. */
+export interface ControllerSettings {
+	/** Multiplier on the right stick's top turn speed. */
+	lookSensitivity: number;
+	invertY: boolean;
+	/** How far (0..1) a stick must be pushed before it counts. */
+	deadZone: number;
+	vibration: boolean;
+	sprint: SprintMode;
+	icons: ButtonIcons;
 }
 
 /** Through the explorer's eyes, or from behind their shoulder. */
@@ -68,6 +91,8 @@ export interface Settings {
 	audio: Record<AudioCategory, number>;
 	sound: SoundSettings;
 	bindings: Bindings;
+	/** Controller buttons per action, apart from the keys so new defaults reach saved settings. */
+	padBindings: Bindings;
 	interface: {
 		showStats: boolean;
 		/** What is in your hand, named at the bottom of the screen. */
@@ -76,6 +101,7 @@ export interface Settings {
 		itemPrompts: boolean;
 	};
 	controls: ControlSettings;
+	controller: ControllerSettings;
 	graphics: GraphicsSettings;
 	accessibility: AccessibilitySettings;
 }
@@ -86,8 +112,17 @@ function defaults(): Settings {
 		audio: { master: 0.8, music: 0.6, ambience: 0.8, sfx: 0.8 },
 		sound: { muteInBackground: false },
 		bindings: defaultBindings(),
+		padBindings: defaultPadBindings(),
 		interface: { showStats: false, quickSlots: true, itemPrompts: true },
 		controls: { mouseSensitivity: 1, aimSensitivity: 1, invertY: false },
+		controller: {
+			lookSensitivity: 1,
+			invertY: false,
+			deadZone: 0.15,
+			vibration: true,
+			sprint: 'toggle',
+			icons: 'auto'
+		},
 		graphics: {
 			view: 'first',
 			fov: 75,
@@ -121,8 +156,10 @@ function load(): Settings {
 			audio: { ...base.audio, ...saved.audio },
 			sound: { ...base.sound, ...saved.sound },
 			bindings: knownBindings(base.bindings, saved.bindings),
+			padBindings: knownBindings(base.padBindings, saved.padBindings),
 			interface: { ...base.interface, ...saved.interface },
 			controls: { ...base.controls, ...saved.controls },
+			controller: { ...base.controller, ...saved.controller },
 			graphics: { ...base.graphics, ...saved.graphics },
 			accessibility: { ...base.accessibility, ...saved.accessibility }
 		};

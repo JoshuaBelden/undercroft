@@ -2,6 +2,7 @@
 	import { money, sellPrice } from '#lib/content/economy.ts';
 	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
 	import { ITEMS } from '#lib/content/items.ts';
+	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExpeditionSummary } from '#lib/shared/protocol.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import { slotMark, stackDetail } from './items.ts';
@@ -65,7 +66,7 @@
 
 <!-- The whole window, like the screens on the surface: the expedition is over. -->
 <main class="screen backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
-	<section class="recap" aria-labelledby="recap-title">
+	<section class="recap" aria-labelledby="recap-title" {@attach menu()}>
 		<p class="kicker">{affliction ? `${affliction} · ` : ''}Expedition over</p>
 		<h1 id="recap-title">{TITLES[outcome]}</h1>
 		{#if note}

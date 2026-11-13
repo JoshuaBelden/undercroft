@@ -7,6 +7,7 @@
 	import { money } from '#lib/content/economy.ts';
 	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
+	import { menu } from '#lib/game/input/menus.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
 	import { startPrefetch } from '#lib/game/prefetch.svelte.ts';
 	import AccountMenu from '#lib/ui/AccountMenu.svelte';
@@ -37,6 +38,19 @@
 		{ path: '/(hub)/loadout', label: 'Loadout' },
 		{ path: '/(hub)/afflictions', label: 'Afflictions' }
 	] as const;
+
+	/** The controller's B: back to the Expedition page. */
+	function up(): void {
+		if (page.route.id !== '/(hub)') void goto(resolve('/(hub)'));
+	}
+
+	/** The controller's LB/RB: the tab before or after, round (from the store or social, the ends). */
+	function switchTab(by: -1 | 1): void {
+		const at = TABS.findIndex((tab) => tab.path === page.route.id);
+		const next = at < 0 ? (by > 0 ? 0 : TABS.length - 1) : (at + by + TABS.length) % TABS.length;
+		const tab = TABS[next];
+		if (tab) void goto(resolve(tab.path));
+	}
 
 	onMount(() => {
 		void loadAccount();
@@ -72,6 +86,7 @@
 	style:--hub-bar="{bar}px"
 	style:--backdrop-image={BACKDROP_IMAGE}
 	use:parallax
+	{@attach menu({ back: up, tabs: switchTab, key: page.route.id ?? undefined })}
 >
 	<header bind:clientHeight={bar}>
 		<nav aria-label="Dashboard">

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
+	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import AfflictionPane from './AfflictionPane.svelte';
 	import { dragScroll } from './dragScroll.ts';
@@ -37,7 +38,12 @@
 	}
 </script>
 
-<dialog {@attach modal} aria-labelledby="picker-title" oncancel={cancelled}>
+<dialog
+	{@attach modal}
+	{@attach menu({ back: onclose })}
+	aria-labelledby="picker-title"
+	oncancel={cancelled}
+>
 	<header>
 		<h2 id="picker-title">Choose an Affliction</h2>
 		<button type="button" class="back" onclick={onclose}>Back</button>
