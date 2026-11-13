@@ -15,12 +15,12 @@ Every phase addresses six cross-cutting aspects, so they grow with the game inst
 
 - Audio: recordings for the 21 sounds still synthesized (`pnpm asset:levels` lists them: melee, bricks, bullet impacts, being hurt, heartbeat, whispers, the manifestation, rite and clue bells, store purchase), then a listening pass on the new mix (docs/dev/player.md#mix).
 - Performance: check F3 stats (fps, draw calls) on a low-end machine, then decide on KTX2 textures (GPU memory) and LODs. Asset baseline: 15 MB in `static/assets` (textures are 3.9 MB of it).
-- Set `SOURCE_URL` in src/lib/content/credits.ts once the GitHub repository is public.
-- Turn on bug filing and the admin app in production: a fine-grained GitHub token (Issues only) and the `from-game` and `crash` labels, the `admin` DNS record at GoDaddy, then the first admin with `admin:grant` (docs/dev/deployment.md#admins). Bug reports, the crash prompt, ideas and feedback, and the admin app (members, stats) are done (docs/dev/reports.md, docs/dev/admin.md).
-- Fill in the Credits placeholders (`todo: true` in src/lib/content/credits.ts): inspirations, model, animation and sound sources, AI tools, testers.
+- Fill in the remaining Credits placeholders (`todo: true` in src/lib/content/credits.ts): inspirations, the image generator, any AI sound or writing tools, testers. Name the Freesound creators whose sounds are CC BY.
 
 ## Backlog - Post Beta Ideas
 
+- Discord avatar pulled over
+- Design and Implement a Logo
 - Allow Explorer model and images changes
 - Show gamer tags above explorer models
 - Report players feature (maybe)

@@ -29,7 +29,7 @@ export const CREATOR = 'Joshua Belden';
  * Where the source code lives. The code is AGPL-3.0, which asks that players of a hosted copy can
  * get its source: the page links here. Null hides the link (before the repository is public).
  */
-export const SOURCE_URL: string | null = null;
+export const SOURCE_URL: string | null = 'https://github.com/JoshuaBelden/undercroft';
 
 /** The statement on AI use, one paragraph per entry. Written in the creator's voice. */
 export const AI_STATEMENT: string[] = [
@@ -45,7 +45,11 @@ export const AI_TOOLS: Credit[] = [
 		detail: 'Code and developer documentation',
 		url: 'https://claude.com/claude-code'
 	},
-	{ name: 'TODO: 3D model generator', detail: 'Which models it made', todo: true },
+	{
+		name: 'Meshy',
+		detail: 'The explorer, creature, corpse and most item models, with their rigs and animations',
+		url: 'https://www.meshy.ai'
+	},
 	{ name: 'TODO: image generator', detail: 'Item pictures and backgrounds', todo: true },
 	{ name: 'TODO: sound or text tools', detail: 'Which sounds or writing', todo: true }
 ];
@@ -71,9 +75,12 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 				url: 'https://ambientcg.com',
 				license: 'CC0 1.0'
 			},
-			{ name: 'TODO: explorer model and animations', detail: 'Source', todo: true },
-			{ name: 'TODO: creature models', detail: 'Source', todo: true },
-			{ name: 'TODO: item and prop models', detail: 'Source', todo: true },
+			{
+				name: 'Explorer, creature, corpse and item models',
+				detail:
+					'Generated, rigged and animated with Meshy, then cleaned up and fitted in Blender. The catacombs, crates and remaining items are modelled by hand.',
+				url: 'https://www.meshy.ai'
+			},
 			{
 				name: 'Barlow',
 				detail: 'Typeface, by Jeremy Tribby',
@@ -91,7 +98,19 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 	{
 		id: 'sound',
 		title: 'Sound',
-		entries: [{ name: 'TODO: sound effect sources', detail: 'Library or creator', todo: true }]
+		entries: [
+			{
+				name: 'Pixabay',
+				detail: 'Sound effects',
+				url: 'https://pixabay.com/sound-effects/',
+				license: 'Pixabay Content License'
+			},
+			{
+				name: 'Freesound',
+				detail: 'Sound effects shared by its community',
+				url: 'https://freesound.org'
+			}
+		]
 	},
 	{
 		id: 'tools',
