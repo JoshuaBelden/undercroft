@@ -11,6 +11,7 @@ import {
 } from '../../shared/items/inventory.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
 import { ensureAdminIndexes } from './admin.ts';
+import { accountAvatar } from './avatars.ts';
 import { ensureAuthIndexes } from './auth.ts';
 import { ensureFeedbackIndexes } from './feedback.ts';
 import { ensureFriendIndexes } from './friends.ts';
@@ -34,7 +35,9 @@ export interface AccountDoc {
 	/** Lower-cased gamer tag; unique, so two tags can't differ only by case. */
 	tagKey: string;
 	/** The Discord account it signs in with, if linked. `discord.id` is unique. */
-	discord?: { id: string; username: string };
+	discord?: DiscordLink;
+	/** The version of the avatar they uploaded, if any (the picture is in `avatars`: avatars.ts). */
+	avatar?: number;
 	/** Two-step sign-in, when it is on. */
 	totp?: TotpDoc;
 	/** A secret being set up: shown as a QR code, not in force until a code from it is entered. */
@@ -46,6 +49,14 @@ export interface AccountDoc {
 	/** The last time a game ticket was issued: about the last time they played. */
 	lastSeen?: Date;
 	createdAt: Date;
+}
+
+/** A linked Discord account, as it was the last time they signed in with it or linked it. */
+export interface DiscordLink {
+	id: string;
+	username: string;
+	/** Their Discord avatar's hash (null: Discord's default picture). Missing on older links. */
+	avatar?: string | null;
 }
 
 export interface SuspensionDoc {
@@ -166,7 +177,7 @@ export async function createAccount(
 		email: unknown;
 		password?: unknown;
 		gamerTag: unknown;
-		discord?: { id: string; username: string };
+		discord?: DiscordLink;
 	}
 ): Promise<{ account: AccountDoc } | { error: AccountError }> {
 	const email = cleanEmail(input.email);
@@ -439,6 +450,9 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 		id: account._id,
 		email: account.email,
 		gamerTag: account.gamerTag,
+		avatar: accountAvatar(account),
+		avatarUploaded: account.avatar !== undefined,
+		discordAvatar: !!account.discord?.avatar,
 		hasPassword: account.password !== undefined,
 		discord: account.discord?.username ?? null,
 		mfa: account.totp !== undefined,

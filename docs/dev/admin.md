@@ -58,6 +58,7 @@ Search by email, gamer tag or Discord name (a case-insensitive substring); witho
 - **Email a password reset**: the game's own reset email, linking to `GAME_ORIGIN`.
 - **Turn off two-step sign-in**: for someone who lost their phone and their recovery codes. Only once you are sure it is them.
 - **Change the gamer tag**: for a name that shouldn't be one. Other players see the new one from their next connection.
+- **Remove picture**: their uploaded avatar, for a picture that shouldn't be one (`removeAvatar`). The page shows it, or their Discord avatar, which can't be removed here. Other players see it gone from their next connection. See [accounts.md](accounts.md#avatars).
 - **Make admin**, **Remove admin**.
 - **Delete account**: for good, after typing the gamer tag; not your own. Then back to the member list. What goes and what stays: [accounts.md](accounts.md#deleting-an-account).
 

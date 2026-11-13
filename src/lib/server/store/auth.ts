@@ -8,7 +8,8 @@ import {
 	getAccount,
 	setAccountPassword,
 	type AccountDoc,
-	type AccountError
+	type AccountError,
+	type DiscordLink
 } from './accounts.ts';
 
 /**
@@ -31,7 +32,7 @@ interface ChallengeDoc extends ExpiringDoc {
 /** A Discord sign-up waiting for its gamer tag. */
 export interface SignupDoc {
 	_id: string;
-	discord: { id: string; username: string };
+	discord: DiscordLink;
 	email: string;
 	expires: Date;
 }
@@ -285,12 +286,24 @@ export async function accountByEmail(db: Db, email: string): Promise<AccountDoc 
 export async function linkDiscord(
 	db: Db,
 	accountId: string,
-	discord: { id: string; username: string }
+	discord: DiscordLink
 ): Promise<AccountError | null> {
 	const other = await accountByDiscord(db, discord.id);
 	if (other && other._id !== accountId) return 'discordTaken';
 	await accounts(db).updateOne({ _id: accountId }, { $set: { discord } });
 	return null;
+}
+
+/**
+ * Signed in with Discord again: keep their username and avatar as Discord has them now, so a new
+ * Discord avatar shows here too.
+ */
+export async function refreshDiscord(
+	db: Db,
+	accountId: string,
+	discord: DiscordLink
+): Promise<void> {
+	await accounts(db).updateOne({ _id: accountId, 'discord.id': discord.id }, { $set: { discord } });
 }
 
 /** Unlink Discord. Refused for an account with no password: it would have no way in. */
@@ -303,11 +316,7 @@ export async function unlinkDiscord(db: Db, accountId: string): Promise<'noPassw
 }
 
 /** Someone new signed in with Discord: keep who they are while they choose a gamer tag. */
-export async function startSignup(
-	db: Db,
-	discord: { id: string; username: string },
-	email: string
-): Promise<string> {
+export async function startSignup(db: Db, discord: DiscordLink, email: string): Promise<string> {
 	const id = token();
 	await signups(db).insertOne({
 		_id: id,

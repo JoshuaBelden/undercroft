@@ -19,7 +19,8 @@ function connect(name: string, socket = new FakeSocket()): { member: Member; soc
 	const member = parties.connect(socket.ws, {
 		account: `acc-${name}`,
 		explorer: `exp-${name}`,
-		gamerTag: name
+		gamerTag: name,
+		avatar: null
 	});
 	return { member, socket };
 }
@@ -190,10 +191,26 @@ describe('Parties', () => {
 		parties.expel('acc-Nobody', 'x');
 	});
 
-	it('renaming tells the party', () => {
+	it('a new gamer tag or avatar tells the party, and the same ones change nothing', () => {
 		const { host, guest } = pair();
-		parties.rename(guest.member, 'Renamed');
-		expect(partyOf(host.socket).members.map((m) => m.name)).toContain('Renamed');
+		parties.updateProfile(guest.member, { gamerTag: 'Renamed', avatar: '/avatars/a?v=1' });
+		const seen = partyOf(host.socket).members.find((m) => m.id === guest.member.id)!;
+		expect(seen.name).toBe('Renamed');
+		expect(seen.avatar).toBe('/avatars/a?v=1');
+		const sent = host.socket.sent.length;
+		parties.updateProfile(guest.member, { gamerTag: 'Renamed', avatar: '/avatars/a?v=1' });
+		expect(host.socket.sent.length).toBe(sent);
+		parties.updateProfile(guest.member, { gamerTag: 'Renamed', avatar: null });
+		expect(partyOf(host.socket).members.find((m) => m.id === guest.member.id)!.avatar).toBeNull();
+	});
+
+	it('a member starts with the avatar they connected with, and takes a new one on reconnecting', () => {
+		const socket = new FakeSocket();
+		parties.connect(socket.ws, { account: 'acc-A', explorer: 'exp-A', gamerTag: 'A', avatar: 'x' });
+		expect(partyOf(socket).members[0].avatar).toBe('x');
+		const again = new FakeSocket();
+		parties.connect(again.ws, { account: 'acc-A', explorer: 'exp-A', gamerTag: 'A', avatar: 'y' });
+		expect(partyOf(again).members[0].avatar).toBe('y');
 	});
 
 	it('resetting an Affliction is refused for a bad id and underground, and told when done', async () => {

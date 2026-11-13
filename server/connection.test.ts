@@ -10,10 +10,10 @@ import { FakeSocket, fakeTime } from './testing/harness.ts';
 vi.mock('./accounts.ts', () => ({
 	identify: vi.fn(async (ticket: unknown) =>
 		typeof ticket === 'string' && ticket.startsWith('ok-')
-			? { account: `acc-${ticket}`, explorer: `exp-${ticket}`, gamerTag: ticket }
+			? { account: `acc-${ticket}`, explorer: `exp-${ticket}`, gamerTag: ticket, avatar: null }
 			: null
 	),
-	currentTag: vi.fn(async () => 'Renamed')
+	currentProfile: vi.fn(async () => ({ gamerTag: 'Renamed', avatar: '/avatars/x?v=2' }))
 }));
 
 let parties: Parties;
@@ -70,9 +70,10 @@ describe('a connection', () => {
 		socket.receive({ type: 'ready', ready: false });
 		socket.receive({ type: 'kick', member: 'nobody' });
 		expect(socket.last('partyError')!.reason).toBe('They are not in your party');
-		socket.receive({ type: 'rename' });
+		socket.receive({ type: 'profile' });
 		await vi.advanceTimersByTimeAsync(0);
 		expect(socket.last('party')!.party.members[0].name).toBe('Renamed');
+		expect(socket.last('party')!.party.members[0].avatar).toBe('/avatars/x?v=2');
 		socket.receive({ type: 'resetAffliction', id: 'gloaming' });
 		await vi.advanceTimersByTimeAsync(0);
 		expect(socket.last('afflictionReset')).toBeDefined();

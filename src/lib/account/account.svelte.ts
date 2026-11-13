@@ -90,6 +90,26 @@ export async function unlinkDiscord(): Promise<void> {
 	session.account = await api<AccountView>('/api/account/discord', 'DELETE');
 }
 
+/**
+ * Upload a new avatar: the square the crop editor made (docs/dev/accounts.md#avatars). Throws
+ * `ApiError` if it is refused.
+ */
+export async function uploadAvatar(image: Blob): Promise<void> {
+	const response = await fetch('/api/account/avatar', {
+		method: 'PUT',
+		headers: { 'content-type': image.type || 'application/octet-stream' },
+		body: image
+	});
+	const data = (await response.json().catch(() => ({}))) as AccountView & { error?: string };
+	if (!response.ok) throw new ApiError(data.error ?? 'Something went wrong', response.status);
+	session.account = data;
+}
+
+/** Remove the uploaded avatar: the Discord one shows again, if they have one. */
+export async function removeAvatar(): Promise<void> {
+	session.account = await api<AccountView>('/api/account/avatar', 'DELETE');
+}
+
 /** Sign out every other browser; this one stays signed in. */
 export async function signOutElsewhere(): Promise<void> {
 	await api('/api/account/sessions', 'DELETE');

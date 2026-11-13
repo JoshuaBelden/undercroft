@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { ACCOUNT, DISCORD_RESULTS } from '#lib/content/account.ts';
+	import { ACCOUNT, AVATAR, DISCORD_RESULTS } from '#lib/content/account.ts';
 	import {
 		ApiError,
 		changeGamerTag,
@@ -10,12 +10,16 @@
 		disableTwoStep,
 		enableTwoStep,
 		loadAccount,
+		removeAvatar,
 		session,
 		signOut,
 		signOutElsewhere,
 		startTwoStep,
-		unlinkDiscord
+		unlinkDiscord,
+		uploadAvatar
 	} from '#lib/account/account.svelte.ts';
+	import Avatar from './Avatar.svelte';
+	import AvatarEditor from './AvatarEditor.svelte';
 	import TabScreen from './TabScreen.svelte';
 
 	/**
@@ -24,13 +28,13 @@
 	 */
 	interface Props {
 		onclose: () => void;
-		/** The gamer tag was changed (the game server should read it again). */
-		onrename: () => void;
+		/** The gamer tag or avatar was changed (the game server should read them again). */
+		onprofile: () => void;
 		/** Offer linking Discord (the Discord application is configured). */
 		discord: boolean;
 	}
 
-	let { onclose, onrename, discord }: Props = $props();
+	let { onclose, onprofile, discord }: Props = $props();
 
 	/** Back from linking Discord: what came of it. */
 	const notice = DISCORD_RESULTS[page.url.searchParams.get('discord') ?? ''];
@@ -56,11 +60,64 @@
 		try {
 			await changeGamerTag(gamerTag);
 			tagMessage = 'Saved';
-			onrename();
+			onprofile();
 		} catch (caught) {
 			tagMessage = message(caught);
 		}
 	}
+
+	/** The picture being framed in the crop editor. */
+	let framing = $state<File | null>(null);
+	let picker = $state<HTMLInputElement>();
+	let avatarMessage = $state('');
+
+	function chosen(event: Event & { currentTarget: HTMLInputElement }): void {
+		const file = event.currentTarget.files?.[0];
+		// The same file can be chosen again next time.
+		event.currentTarget.value = '';
+		if (!file) return;
+		if (file.size > AVATAR.maxSourceBytes) {
+			avatarMessage = `That picture is too big (up to ${AVATAR.maxSourceBytes / 1024 / 1024} MB)`;
+			return;
+		}
+		avatarMessage = '';
+		framing = file;
+	}
+
+	async function saveAvatar(image: Blob): Promise<string | null> {
+		try {
+			await uploadAvatar(image);
+		} catch (caught) {
+			return message(caught);
+		}
+		framing = null;
+		avatarMessage = 'Saved';
+		onprofile();
+		return null;
+	}
+
+	async function dropAvatar(): Promise<void> {
+		avatarMessage = '';
+		try {
+			await removeAvatar();
+			avatarMessage = 'Removed';
+			onprofile();
+		} catch (caught) {
+			avatarMessage = message(caught);
+		}
+	}
+
+	const avatarHint = $derived(
+		!account
+			? ''
+			: account.avatarUploaded
+				? account.discordAvatar
+					? 'Your picture shows instead of your Discord avatar. Remove it to use Discord’s again.'
+					: 'The picture other players see beside your gamer tag.'
+				: account.discordAvatar
+					? 'Your Discord avatar. Upload a picture to use another.'
+					: 'Upload a picture for other players to see beside your gamer tag.'
+	);
 
 	/** Deleting the account: the confirmation form is open. */
 	let deleting = $state(false);
@@ -185,6 +242,32 @@
 	{#if !account}
 		<p class="hint">Loading...</p>
 	{:else if group === 'Profile'}
+		<div class="setting">
+			<Avatar src={account.avatar} size={72} />
+			<div class="avatar-actions">
+				<button type="button" class="pill" onclick={() => picker?.click()}>
+					<span class="name">{account.avatarUploaded ? 'Change picture' : 'Upload a picture'}</span>
+				</button>
+				{#if account.avatarUploaded}
+					<button type="button" class="pill" onclick={() => void dropAvatar()}>
+						<span class="name">Remove picture</span>
+					</button>
+				{/if}
+			</div>
+			<input
+				class="picker"
+				type="file"
+				accept="image/png, image/jpeg, image/webp, image/gif"
+				tabindex="-1"
+				aria-hidden="true"
+				bind:this={picker}
+				onchange={chosen}
+			/>
+			<p class="hint" role="status">{avatarMessage || avatarHint}</p>
+		</div>
+		{#if framing}
+			<AvatarEditor file={framing} onclose={() => (framing = null)} onsave={saveAvatar} />
+		{/if}
 		<form class="setting" onsubmit={saveTag}>
 			<label class="pill">
 				<span class="name">Gamer tag</span>
@@ -439,6 +522,17 @@
 		color: var(--text);
 		font-size: inherit;
 		text-align: right;
+	}
+
+	.avatar-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	/* Opened from the Upload button: the browser's own file control isn't shown. */
+	.picker {
+		display: none;
 	}
 
 	a.pill {

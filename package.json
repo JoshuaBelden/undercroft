@@ -58,7 +58,6 @@
 		"mpg123-decoder": "^1.0.3",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
-		"sharp": "^0.35.5",
 		"svelte": "^5.57.2",
 		"svelte-check": "^4.6.0",
 		"tsx": "^4.23.15",
@@ -70,6 +69,7 @@
 	"dependencies": {
 		"mongodb": "^7.8.0",
 		"qrcode": "^1.5.4",
+		"sharp": "^0.35.5",
 		"three": "^0.187.0",
 		"ws": "^8.22.2"
 	},

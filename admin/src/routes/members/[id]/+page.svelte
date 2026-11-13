@@ -39,6 +39,28 @@
 			<dt>Account id</dt>
 			<dd><code>{member.id}</code></dd>
 		</dl>
+		<div class="avatar">
+			{#if data.avatar.uploaded}
+				<img src={data.avatar.uploaded} alt="Their uploaded avatar" width="96" height="96" />
+				<Action
+					action="removeAvatar"
+					label="Remove picture"
+					confirm="Remove {member.gamerTag}'s picture?"
+					danger
+				/>
+			{:else if data.avatar.discord}
+				<img
+					src={data.avatar.discord}
+					alt="Their Discord avatar"
+					width="96"
+					height="96"
+					referrerpolicy="no-referrer"
+				/>
+				<span class="muted">From Discord: they have no upload to remove</span>
+			{:else}
+				<span class="muted">No avatar</span>
+			{/if}
+		</div>
 		<Action action="rename" label="Change gamer tag">
 			<input
 				name="gamerTag"
@@ -277,6 +299,18 @@
 	h2 {
 		margin: 0 0 12px;
 		font-size: 20px;
+	}
+
+	.avatar {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		margin: 0 0 12px;
+	}
+
+	.avatar img {
+		border-radius: 50%;
+		object-fit: cover;
 	}
 
 	h3 {
