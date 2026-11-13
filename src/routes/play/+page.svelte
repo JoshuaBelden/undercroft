@@ -35,6 +35,8 @@
 	import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
+	import { device, promptCode } from '#lib/game/input/device.svelte.ts';
+	import { rumble } from '#lib/game/input/gamepad.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
 	import { connection, gameClient, me, start, subscribe } from '#lib/game/net/connection.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
@@ -231,6 +233,11 @@
 		return !!def && (def.quest === true || def.rarity === 'epic' || def.rarity === 'legendary');
 	}
 
+	/** Capture the pointer again for mouse play; the controller plays without it. */
+	function capture(): void {
+		if (device.kind !== 'pad') void canvas.requestPointerLock();
+	}
+
 	/** Done with the loot crate: tell the server, and straight back to play. */
 	function closeCrate(): void {
 		if (panel !== 'crate') return;
@@ -238,7 +245,7 @@
 		crate = null;
 		leavingCrate = true;
 		send({ type: 'closeCrate' });
-		if (expedition) void canvas.requestPointerLock();
+		if (expedition) capture();
 	}
 
 	/**
@@ -248,7 +255,7 @@
 	function closeAdmin(): void {
 		if (panel !== 'admin') return;
 		panel = null;
-		if (expedition && !mapView) void canvas.requestPointerLock();
+		if (expedition && !mapView) capture();
 	}
 
 	function toggle(name: PanelName): void {
@@ -269,7 +276,7 @@
 		panel = closing ? null : name;
 		if (panel) document.exitPointerLock();
 		// Putting the pack away goes straight back to play.
-		else if (name === 'inventory' && expedition) void canvas.requestPointerLock();
+		else if (name === 'inventory' && expedition) capture();
 	}
 
 	onMount(() => {
@@ -375,7 +382,7 @@
 							leavingCrate = false;
 							if (panel === 'crate') {
 								panel = null;
-								if (expedition && !downed) void canvas.requestPointerLock();
+								if (expedition && !downed) capture();
 							}
 							crate = null;
 						} else if (expedition && !leavingCrate) {
@@ -748,6 +755,7 @@
 					// The kick throws your aim up and a little aside: you bring it back down yourself.
 					if (gun) player.kick(gun.recoil.pitch, (Math.random() * 2 - 1) * gun.recoil.yaw);
 					const heavy = (gun?.pellets ?? 1) > 1;
+					rumble(heavy ? 'heavyShot' : 'shot');
 					// First person, the flare is on the gun in your hands; otherwise in the world.
 					const drawn = viewModel.flash(heavy);
 					effects.shot(ViewModel.muzzle(head, muzzle), event.direction, {
@@ -1160,6 +1168,7 @@
 				shake = Math.min(1, shake + (lastSanity - state.sanity) / 30);
 				hud.hurt++;
 				sounds.play('player.hurt');
+				rumble('hit');
 			}
 			lastSanity = state.sanity;
 			const shield = shieldOf(state.inventory)?.left ?? null;
@@ -1204,8 +1213,8 @@
 			text: string,
 			progress = 0
 		): { prompt: string; promptKey?: string; progress: number } {
-			const cap = bindingLabel(settings.bindings[action][0] ?? '');
-			if (cap) return { prompt: text, promptKey: cap, progress };
+			const code = promptCode(action);
+			if (code) return { prompt: text, promptKey: code, progress };
 			return { prompt: `${action[0].toUpperCase()}${action.slice(1)} ${text}`, progress };
 		}
 
@@ -1245,7 +1254,9 @@
 		canvas.addEventListener('click', requestLock);
 
 		engine.onUpdate((delta) => {
-			const active = locked && !panel && !mapView && !extracting;
+			// A controller can't capture the pointer (browsers don't count it as a gesture): while it
+			// is the device in use, the game plays without.
+			const active = (locked || device.kind === 'pad') && !panel && !mapView && !extracting;
 			updateWheel(player.state, active);
 			updateChalkWheel(player.state, active);
 			player.update(delta, active);
@@ -1353,6 +1364,7 @@
 					gloom: state.gloom,
 					party: party(state)
 				};
+				if (state.downed && !downed) rumble('downed');
 				downed = state.downed
 					? {
 							remaining: 1 - state.downedTime / SANITY.bleedOut,
@@ -1453,10 +1465,10 @@
 	});
 </script>
 
-<canvas bind:this={canvas}></canvas>
+<canvas bind:this={canvas} class:pad={device.kind === 'pad'}></canvas>
 
 {#if spawned && !mapView && !result}
-	<Hud {...hud} lampKey={bindingLabel(settings.bindings.headlamp[0] ?? '')} />
+	<Hud {...hud} lampKey={promptCode('headlamp')} />
 {/if}
 
 {#if wheel && spawned && !mapView && !result}
@@ -1480,7 +1492,7 @@
 		remaining={downed.remaining}
 		message={downed.message}
 		surrender={downed.surrender}
-		surrenderKey={bindingLabel(settings.bindings.climb[0] ?? '')}
+		surrenderKey={promptCode('climb')}
 	/>
 {/if}
 
@@ -1489,7 +1501,7 @@
 		affliction={afflictionName}
 		{rite}
 		carriers={riteCarriers}
-		interactKey={bindingLabel(settings.bindings.interact[0] ?? '')}
+		interactKey={promptCode('interact')}
 	/>
 	{#if deadline !== null}
 		<ExpeditionClock seconds={deadline} arrival={calmed || manifested ? null : (meter ?? 0)} />
@@ -1530,10 +1542,14 @@
 	<DescentLoading progress={loading} />
 {/if}
 
-{#if !locked && !panel && !mapView && !result && expedition && !loading && status === 'connected'}
+{#if !locked && device.kind !== 'pad' && !panel && !mapView && !result && expedition && !loading && status === 'connected'}
 	<button type="button" class="descend" onclick={() => canvas.requestPointerLock()}>
 		Take Control
 	</button>
+{/if}
+
+{#if device.lost && expedition}
+	<div class="pad-lost" role="status">Controller disconnected</div>
 {/if}
 
 {#if status === 'disconnected' || status === 'connecting'}
@@ -1577,10 +1593,12 @@
 		title={crate.corpse ? 'Corpse' : 'Crate'}
 		slots={crate.slots}
 		reveal={crate.reveal}
-		moveKeys={(['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)
-			.map((action) => bindingLabel(settings.bindings[action][0] ?? ''))
-			.filter((label) => label)
-			.join(' / ')}
+		moveKeys={device.kind === 'pad'
+			? 'left stick'
+			: (['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)
+					.map((action) => bindingLabel(settings.bindings[action][0] ?? ''))
+					.filter((label) => label)
+					.join(' / ')}
 		onaction={(action) => sendInventory(action)}
 		onclose={() => closeCrate()}
 	/>
@@ -1613,6 +1631,11 @@
 		cursor: crosshair;
 	}
 
+	/* Playing with a controller: no cursor over the game. */
+	canvas.pad {
+		cursor: none;
+	}
+
 	.descend {
 		position: fixed;
 		left: 50%;
@@ -1633,6 +1656,22 @@
 		position: fixed;
 		left: 50%;
 		top: 50%;
+		transform: translate(-50%, -50%);
+		padding: 14px 28px;
+		font: 13px var(--font-ui);
+		letter-spacing: 0.15em;
+		text-transform: uppercase;
+		color: var(--text);
+		background: rgb(0 0 0 / 0.7);
+		border: 1px solid rgb(226 220 204 / 0.2);
+		z-index: 16;
+	}
+
+	/* Above "Take Control", which shows once the controller is gone. */
+	.pad-lost {
+		position: fixed;
+		left: 50%;
+		top: 38%;
 		transform: translate(-50%, -50%);
 		padding: 14px 28px;
 		font: 13px var(--font-ui);

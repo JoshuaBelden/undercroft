@@ -11,13 +11,13 @@
 		volts: number;
 		/** 0 off, 1 low, 2 bright */
 		headlamp: number;
-		/** The key that switches the headlamp, as bound (e.g. "F"); empty when unbound. */
+		/** The binding that switches the headlamp ("KeyF", "PadUp"; see KeyCap); empty when unbound. */
 		lampKey: string;
 		stance: string;
 		creep: boolean;
 		/** Context prompt, e.g. "Hold E to climb out"; null hides it. */
 		prompt: string | null;
-		/** A key shown as a keycap in the prompt, as bound; null for none. */
+		/** A binding shown as a keycap in the prompt ("KeyE"; see KeyCap); null for none. */
 		promptKey: string | null;
 		/** 0..1 progress of a held action (extraction); 0 hides the bar. */
 		progress: number;
@@ -99,7 +99,7 @@
 		<div class="posture">{posture}</div>
 	{/if}
 	<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
-		{#if lampKey}<KeyCap label={lampKey} />{/if}
+		{#if lampKey}<KeyCap code={lampKey} />{/if}
 		<span class="cells">
 			{#each [0, 1, 2, 3] as cell (cell)}
 				<span class="cell" class:on={cell < bars}></span>

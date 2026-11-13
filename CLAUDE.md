@@ -17,7 +17,7 @@ Each feature addresses six cross-cutting aspects, so they grow with the game ins
 - **Admin utilities**: debug and admin tools for testing it.
 - **Audio**: sound for what it added.
 - **Player settings**: settings it needs.
-- **Keyboard assignments**: bindings it adds, all remappable.
+- **Keyboard and controller assignments**: bindings it adds, keys and controller buttons, all remappable.
 
 ## Tech stack
 
@@ -69,7 +69,7 @@ pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 - **Imports**: SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions (`#lib/game/Engine.ts`, `#lib/settings/settings.svelte.ts`). The server imports shared code by relative path with `.ts` extensions.
 - **Environment variables**: client-visible variables are declared in `src/env.ts` and read from `$app/env/public`. The server reads `process.env` via `server/config.ts`.
 - **Game content is data-driven.** Afflictions, Thralls, items, recipes, candle tiers, rooms, and loot tables are defined as data, not hardcoded in logic.
-- **Input**: never hardcode keys. All input goes through the input map so keybindings stay remappable.
+- **Input**: never hardcode keys or buttons. All input, keyboard, mouse and controller, goes through the input map so bindings stay remappable. Every new action gets a controller button (or none) in `PAD_DEFAULTS` (see `docs/dev/controller.md`).
 - **Audio**: all sound goes through the audio manager (categories: master, music, ambience, SFX). No voice chat in the first beta.
 - **Settings**: all player settings go through the settings store and persist.
 - **Admin/debug tools** are gated behind dev mode or the admin role and never ship enabled to players.

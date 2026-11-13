@@ -6,13 +6,17 @@
 	} from '#lib/game/audio/AudioManager.ts';
 	import { openBugReport } from '#lib/game/crash.svelte.ts';
 	import { ACTIONS, bindingLabel, type Action } from '#lib/game/input/actions.ts';
+	import { padFamily } from '#lib/game/input/device.svelte.ts';
+	import { canRumble, standardPads } from '#lib/game/input/gamepad.ts';
 	import {
 		FRAME_CAPS,
 		resetSettings,
 		saveSettings,
 		settings,
+		type ButtonIcons,
 		type CaptionSize,
-		type GraphicsQuality
+		type GraphicsQuality,
+		type SprintMode
 	} from '#lib/settings/settings.svelte.ts';
 	import Dialog from './Dialog.svelte';
 	import { fullscreen, toggleFullscreen } from './fullscreen.svelte.ts';
@@ -38,7 +42,15 @@
 
 	let { onclose, dim = false, onvolume, ongraphics, onabandon }: Props = $props();
 
-	const GROUPS = ['Audio', 'Graphics', 'Mouse', 'Accessibility', 'Interface', 'Controls'] as const;
+	const GROUPS = [
+		'Audio',
+		'Graphics',
+		'Mouse',
+		'Controller',
+		'Accessibility',
+		'Interface',
+		'Controls'
+	] as const;
 	let group = $state<(typeof GROUPS)[number]>('Audio');
 
 	/** Asking whether to really reset everything. */
@@ -47,6 +59,13 @@
 	let confirmingAbandon = $state(false);
 	const QUALITIES: readonly GraphicsQuality[] = ['low', 'medium', 'high'];
 	const CAPTION_SIZES: readonly CaptionSize[] = ['small', 'medium', 'large'];
+	const SPRINT_MODES: readonly SprintMode[] = ['toggle', 'hold'];
+	const ICON_SETS: readonly ButtonIcons[] = ['auto', 'xbox', 'playstation'];
+	const ICON_NAMES: Record<ButtonIcons, string> = {
+		auto: 'Auto',
+		xbox: 'Xbox',
+		playstation: 'PlayStation'
+	};
 
 	const AUDIO_LABELS: Record<AudioCategory, string> = {
 		master: 'Master',
@@ -60,6 +79,13 @@
 		const [name, note] = ACTIONS[action].label.split(' (');
 		return { action, name, note: note?.replace(/\)$/, '') };
 	});
+
+	/** An action's keys, then its controller buttons ("Tab / I / View"). */
+	function bindingText(action: Action): string {
+		const keys = settings.bindings[action].map((code) => bindingLabel(code));
+		const pad = settings.padBindings[action].map((code) => bindingLabel(code, padFamily()));
+		return [...keys, ...pad].join(' / ');
+	}
 
 	/** The option `by` places along from the current one, wrapping round at either end. */
 	function stepped<T>(options: readonly T[], current: T, by: number): T {
@@ -249,6 +275,69 @@
 				saveSettings();
 			}}
 		/>
+	{:else if group === 'Controller'}
+		<SliderField
+			label="Look sensitivity"
+			value={settings.controller.lookSensitivity}
+			min={0.2}
+			max={3}
+			step={0.05}
+			text={settings.controller.lookSensitivity.toFixed(2)}
+			onset={(value) => {
+				settings.controller.lookSensitivity = value;
+				saveSettings();
+			}}
+		/>
+		<StepperField
+			label="Invert Y"
+			text={onOff(settings.controller.invertY)}
+			onstep={() => {
+				settings.controller.invertY = !settings.controller.invertY;
+				saveSettings();
+			}}
+		/>
+		<SliderField
+			label="Dead zone"
+			value={settings.controller.deadZone}
+			min={0.05}
+			max={0.4}
+			step={0.01}
+			text={percent(settings.controller.deadZone)}
+			onset={(value) => {
+				settings.controller.deadZone = value;
+				saveSettings();
+			}}
+			hint="How far a stick has to move before it counts. Raise it if you drift without touching it."
+		/>
+		<StepperField
+			label="Vibration"
+			text={onOff(settings.controller.vibration)}
+			onstep={() => {
+				settings.controller.vibration = !settings.controller.vibration;
+				saveSettings();
+			}}
+			hint={standardPads().length && !canRumble()
+				? "This controller or browser can't vibrate."
+				: undefined}
+		/>
+		<StepperField
+			label="Sprint"
+			text={settings.controller.sprint === 'toggle' ? 'Toggle' : 'Hold'}
+			onstep={(by) => {
+				settings.controller.sprint = stepped(SPRINT_MODES, settings.controller.sprint, by);
+				saveSettings();
+			}}
+			hint="Toggle: click the stick to run until you stop, slow down, aim or creep. Hold: run while the stick is held in."
+		/>
+		<StepperField
+			label="Button icons"
+			text={ICON_NAMES[settings.controller.icons]}
+			onstep={(by) => {
+				settings.controller.icons = stepped(ICON_SETS, settings.controller.icons, by);
+				saveSettings();
+			}}
+			hint="Auto matches the controller you use. Pick one if the icons don't match yours."
+		/>
 	{:else if group === 'Accessibility'}
 		<StepperField
 			label="Captions"
@@ -287,7 +376,7 @@
 				settings.accessibility.toggleSprint = !settings.accessibility.toggleSprint;
 				saveSettings();
 			}}
-			hint="Press the sprint key once to run, instead of holding it. You stop running when you stop moving or change stance."
+			hint="Press the sprint key once to run, instead of holding it. You stop running when you stop moving or change stance. The controller's sprint is set under Controller."
 		/>
 		<StepperField
 			label="Aim"
@@ -340,7 +429,7 @@
 			<div class="setting">
 				<div class="pill">
 					<span class="name">{control.name}</span>
-					<kbd class="value">{settings.bindings[control.action].map(bindingLabel).join(' / ')}</kbd>
+					<kbd class="value">{bindingText(control.action)}</kbd>
 				</div>
 				{#if control.note}
 					<p class="hint">{control.note}</p>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { HELP_CATEGORIES, HELP_TOPICS, type HelpCategory } from '#lib/content/help/index.ts';
-	import { bindingLabel, type Action } from '#lib/game/input/actions.ts';
+	import type { Action } from '#lib/game/input/actions.ts';
+	import { promptCodes } from '#lib/game/input/device.svelte.ts';
 	import { settings } from '#lib/settings/settings.svelte.ts';
 	import KeyCap from './KeyCap.svelte';
 	import TabScreen from './TabScreen.svelte';
@@ -24,17 +25,23 @@
 	let section = $state<HelpCategory>(sections[0] ?? 'Getting started');
 	const topics = $derived(HELP_TOPICS.filter((topic) => topic.category === section));
 
-	/** A run of text, or a key shown as a key cap (the player's current binding). */
+	/** A run of text, or bindings shown as key caps (or controller buttons), by code. */
 	type Part = { text: string } | { keys: string[] };
 	type Block = { list: false; parts: Part[] } | { list: true; items: Part[][] };
+
+	/** The bindings a token shows: `{action:name}` the device in use's, `{pad:name}` the controller's. */
+	function codes(kind: string, name: string): readonly string[] {
+		if (kind === 'pad') return settings.padBindings[name as Action] ?? [];
+		return promptCodes(name as Action);
+	}
 
 	function parts(line: string): Part[] {
 		const out: Part[] = [];
 		let last = 0;
-		for (const match of line.matchAll(/\{action:(\w+)\}/g)) {
+		for (const match of line.matchAll(/\{(action|pad):(\w+)\}/g)) {
 			if (match.index > last) out.push({ text: line.slice(last, match.index) });
-			const codes = settings.bindings[match[1] as Action] ?? [];
-			out.push(codes.length ? { keys: codes.map(bindingLabel) } : { text: 'unbound' });
+			const shown = codes(match[1] ?? '', match[2] ?? '');
+			out.push(shown.length ? { keys: [...shown] } : { text: 'unbound' });
 			last = match.index + match[0].length;
 		}
 		if (last < line.length) out.push({ text: line.slice(last) });
@@ -57,7 +64,7 @@
 	{#each content as part, i (i)}
 		{#if 'keys' in part}
 			{#each part.keys as key, k (k)}{#if k > 0}<span class="or">/</span>{/if}<KeyCap
-					label={key}
+					code={key}
 					size="large"
 				/>{/each}
 		{:else}{part.text}{/if}

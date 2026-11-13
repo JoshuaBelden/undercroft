@@ -8,7 +8,7 @@
 	 */
 	interface Props {
 		text: string;
-		/** The key to show as a keycap (as bound, e.g. "E"). */
+		/** The binding to show as a keycap or controller button ("KeyE", "PadX"; see KeyCap). */
 		key?: string | null;
 		/** 0..1 hold progress; 0 shows the empty pill. */
 		progress?: number;
@@ -19,7 +19,7 @@
 
 <div class="pill" class:holding={progress > 0} role="status">
 	<div class="fill" style:width="{Math.min(1, Math.max(0, progress)) * 100}%"></div>
-	{#if key}<span class="cap"><KeyCap label={key} size="large" /></span>{/if}
+	{#if key}<span class="cap"><KeyCap code={key} size="large" /></span>{/if}
 	{#if text}<span class="text">{text}</span>{/if}
 </div>
 

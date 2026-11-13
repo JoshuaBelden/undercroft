@@ -42,13 +42,15 @@ toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] }
 
 Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. Mouse buttons count as game input only while the pointer is captured, so clicks on menus and text fields are left alone. Bindings persist in settings.
 
-- `input.isDown(action)` for held input.
-- `input.onPressed(fn)` for presses; returns an unsubscribe function.
+- `input.isDown(action)` for held input (`input.isDown(action, 'pad')` for one device only).
+- `input.onPressed(fn)` for presses, with the device that pressed it; returns an unsubscribe function.
 - `input.consumeLook()` returns mouse movement since the last call while the pointer is locked (mouse look is an axis, not an action).
 
 **Tab** is a game key only in the game view (`/play`): there `src/routes/+layout.svelte` stops it moving the browser's focus (in the capture phase, so dialogs can't let it through), and the input map treats it as any other key. By default it is the `inventory` action, the pack. Everywhere else (the dashboard, settings, account, the sign-in pages) Tab moves between buttons and fields as usual, and no page binds `inventory`.
 
-**Adding an action:** add it to `ACTIONS`. It appears in the settings controls list automatically. Use `{action:name}` in help text to show the player's binding.
+**Controllers** play through the same actions, with their buttons bound apart from the keys (`settings.padBindings`); the sticks are `input.moveStick()` and `input.lookStick()`. See [controller.md](controller.md).
+
+**Adding an action:** add it to `ACTIONS`, and its controller button (or none) to `PAD_DEFAULTS`. It appears in the settings controls list automatically. Use `{action:name}` in help text to show the player's binding.
 
 ## Audio
 
@@ -64,9 +66,9 @@ Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played
 
 ## Settings
 
-`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio` (volumes), `sound` (mute in background), `bindings`, `interface`, `controls` (mouse sensitivity, aiming sensitivity, invert Y), `graphics` (view, FOV, brightness, quality, camera shake, fullscreen, render resolution, frame rate limit) and `accessibility` (subtitles and sound captions, caption size, reduce flashing, toggle sprint and aim, mono audio; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
+`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio` (volumes), `sound` (mute in background), `bindings`, `padBindings` (controller buttons), `interface`, `controls` (mouse sensitivity, aiming sensitivity, invert Y), `controller` (see [controller.md](controller.md#settings)), `graphics` (view, FOV, brightness, quality, camera shake, fullscreen, render resolution, frame rate limit) and `accessibility` (subtitles and sound captions, caption size, reduce flashing, toggle sprint and aim, mono audio; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
 
-**The settings screen** is `src/lib/ui/Settings.svelte`, built on `TabScreen.svelte` (the admin screen uses the same one). A `TabScreen` fills the window: a top bar whose tabs are the groups (here Account, Audio, Graphics, Mouse, Accessibility, Interface, Controls) and a Back button, the selected group's title, then that group's fields in a container that scrolls on its own, so the screen never grows past the window. It styles the field classes for everything inside it: `setting` (a row: pill, then `hint`), `pill` (`name` left, `value` right; a `button.pill` is an action, a `label.pill` with a text input is an entry), and its `actions` and `footer` snippets add bar buttons and a footer.
+**The settings screen** is `src/lib/ui/Settings.svelte`, built on `TabScreen.svelte` (the admin screen uses the same one). A `TabScreen` fills the window: a top bar whose tabs are the groups (here Audio, Graphics, Mouse, Controller, Accessibility, Interface, Controls) and a Back button, the selected group's title, then that group's fields in a container that scrolls on its own, so the screen never grows past the window. It styles the field classes for everything inside it: `setting` (a row: pill, then `hint`), `pill` (`name` left, `value` right; a `button.pill` is an action, a `label.pill` with a text input is an entry), and its `actions` and `footer` snippets add bar buttons and a footer.
 
 - **On the dashboard** it is the `/settings` page (`src/routes/settings/`), outside the `(hub)` group so it replaces the dashboard's bar. Back (or the `toggleSettings` key) returns to the page you came from.
 - **In `/play`** (underground) it is laid over the game with the `dim` prop, opened by `toggleSettings`. It is not a navigation there, so the game keeps running behind it. The page passes `onvolume`, `ongraphics` and `onaccount` so changes apply at once.
@@ -136,7 +138,7 @@ Help topics are data in `src/lib/content/help/index.ts`:
 { id: 'headlamp', title: 'Headlamp', category: 'Surviving', body: 'Press {action:headlamp} to...' }
 ```
 
-Blank lines separate paragraphs, and a paragraph whose lines all start with `- ` is a list. `{action:name}` shows the player's current binding as a key cap (`KeyCap`), or "unbound". `category` is one of `HELP_CATEGORIES` (Getting started, Expeditions, The surface, Moving, Surviving, Gear and loot, The Gloaming, Settings). Each is a tab of the help screen, with its topics in the order they appear in the file.
+Blank lines separate paragraphs, and a paragraph whose lines all start with `- ` is a list. `{action:name}` shows the player's current binding as a key cap (`KeyCap`), or "unbound": the controller's button while a controller is in use. `{pad:name}` shows the controller's button (see [controller.md](controller.md#button-icons)). `category` is one of `HELP_CATEGORIES` (Getting started, Expeditions, The surface, Moving, Surviving, Gear and loot, The Gloaming, Settings). Each is a tab of the help screen, with its topics in the order they appear in the file.
 
 `HelpScreen.svelte` is a full-window `TabScreen`, like the settings: a tab per section, with the section's articles as plain text in one readable column. It opens with F1 (`toggleHelp`) or the ? button on the dashboard, and over the game view underground (darkened, `dim`). New players start on Getting started: "Your first descent" and "Keys". Add topics for each feature as it ships, and keep both of those up to date when the first steps or the main keys change.
 
@@ -144,7 +146,7 @@ Blank lines separate paragraphs, and a paragraph whose lines all start with `- `
 
 `devMode` (`src/lib/dev.ts`) is true on the dev server or when `PUBLIC_DEV_MODE=true`. `AdminPanel` (F10) renders nothing unless `devMode` is true. Gate every debug tool the same way.
 
-**The admin screen** is a `TabScreen` laid like settings, one group per area: Session (connection, IDs, stats overlay), Map (seed, regenerate, debug view), Player (cheat toggles, sanity, teleport to rooms), Items (give, refill ammo, reset crates), Affliction (meter, force manifestation, banish), Rite, Creatures and Account (surface grants). It reopens on the group last used. To add a tool, put it in its group in `AdminPanel.svelte` with the same fields: `StepperField` for on/off, the `action` snippet for a command, a `form.setting` with a `label.pill` input and a submit button for a value.
+**The admin screen** is a `TabScreen` laid like settings, one group per area: Session (connection, IDs, stats overlay), Map (seed, regenerate, debug view), Player (cheat toggles, sanity, teleport to rooms), Items (give, refill ammo, reset crates), Affliction (meter, force manifestation, banish), Rite, Creatures, Controller (connected controllers live, test rumble) and Account (surface grants). It reopens on the group last used. To add a tool, put it in its group in `AdminPanel.svelte` with the same fields: `StepperField` for on/off, the `action` snippet for a command, a `form.setting` with a `label.pill` input and a submit button for a value.
 
 - **Leaving it:** a move key (`moveForward`, `moveBack`, `moveLeft`, `moveRight`, `climb`, `stance`) closes it and captures the mouse again, so a change can be tried at once. Esc only closes it; Esc again opens settings. Esc can't capture the mouse (browsers don't count it as a user gesture), so click or move to carry on. `InputMap` passes Esc through even from a text field.
 

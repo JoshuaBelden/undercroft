@@ -1,5 +1,7 @@
 import { ITEMS } from '#lib/content/items.ts';
 import { MOVEMENT } from '#lib/content/player/movement.ts';
+import type { Action } from '#lib/game/input/actions.ts';
+import type { InputDevice } from '#lib/game/input/device.svelte.ts';
 import type { InputMap } from '#lib/game/input/InputMap.ts';
 import type { GameClient } from '#lib/game/net/GameClient.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
@@ -37,6 +39,14 @@ const STANCE_CYCLE: Stance[] = ['stand', 'crouch', 'crawl'];
 const LONG_PRESS_MS = 350;
 /** How far (pixels of mouse movement) the quick-use wheel's pointer can go from the centre. */
 const WHEEL_REACH = 120;
+/** The right stick's top turn speed (radians a second) at sensitivity 1: about 180 degrees. */
+const PAD_TURN = Math.PI;
+/** The right stick's turn speed goes with its push raised to this: small pushes aim finely. */
+const LOOK_CURVE = 2;
+/** A left-stick push shorter than this creeps (slow and silent), as holding the stance key does. */
+const CREEP_PUSH = 0.5;
+/** The controller's toggled sprint ends when the left stick drops below this push. */
+const SPRINT_PUSH = 0.6;
 
 /**
  * The local player: samples input every fixed step, predicts movement with the shared
@@ -61,7 +71,7 @@ export class LocalPlayer {
 	/** Wanted stance, cycled by the stance key; the simulation rises only when there is room. */
 	private stance: Stance = 'stand';
 	private lamp: HeadlampMode = 1;
-	/** Creeping (slow, silent walk): true while the stance key is held. */
+	/** Creeping (slow, silent walk): while the stance key is held, or the left stick pushed lightly. */
 	private creep = false;
 	private stancePressedAt: number | null = null;
 	private offset: Vec3 = [0, 0, 0];
@@ -77,26 +87,31 @@ export class LocalPlayer {
 	/** What the predicted simulation did since the last `drainEvents` (for instant feedback). */
 	private events: SimEvent[] = [];
 	/**
-	 * Sprint and aim switched on by a press, with the toggle settings (accessibility): instead of
-	 * holding the key. Sprint ends when you stop moving or change stance; aim when the gun leaves
-	 * your hand.
+	 * Sprint and aim switched on by a press, instead of held: sprint with Accessibility > Toggle
+	 * sprint on the keyboard, or Settings > Controller > Sprint: Toggle on the controller
+	 * (`sprintBy` is which one); aim with Toggle aim. Sprint ends when you stop moving or change
+	 * stance, and the controller's when you slow down or aim too (`updateSprint`); aim when the
+	 * gun leaves your hand.
 	 */
-	private sprintOn = false;
+	private sprintBy: InputDevice | null = null;
 	private aimOn = false;
 
 	constructor(
 		private input: InputMap,
 		private client: GameClient
 	) {
-		this.unsubscribe = input.onPressed((action) => {
+		this.unsubscribe = input.onPressed((action, device) => {
 			if (!this.state) return;
 			// Tap vs. long press is decided in `updateStanceKey` once we know how long it's held.
-			if (action === 'stance') {
+			// Swimming has no stance: the controller's stance button is swim down there, and nobody
+			// should climb out of the water crouched.
+			if (action === 'stance' && !this.state.swimming) {
 				this.stancePressedAt = performance.now();
-				this.sprintOn = false;
+				this.sprintBy = null;
 			}
-			if (action === 'sprint' && settings.accessibility.toggleSprint)
-				this.sprintOn = !this.sprintOn;
+			if (action === 'sprint' && this.sprintToggles(device)) {
+				this.sprintBy = this.sprintBy ? null : device;
+			}
 			// Only a gun aims: with anything else the aim key throws, every press.
 			if (action === 'aim' && settings.accessibility.toggleAim && this.gunInHand()) {
 				this.aimOn = !this.aimOn;
@@ -122,10 +137,18 @@ export class LocalPlayer {
 		return !!(stack && ITEMS[stack.item]?.firearm);
 	}
 
-	/** Sprinting this frame: the key held, or switched on (toggle setting). */
+	/** Sprinting this frame: switched on, or held on a device where it isn't a toggle. */
 	private sprinting(active: boolean): boolean {
 		if (!active) return false;
-		return settings.accessibility.toggleSprint ? this.sprintOn : this.input.isDown('sprint');
+		const key = !this.sprintToggles('keyboard') && this.input.isDown('sprint', 'keyboard');
+		const pad = !this.sprintToggles('pad') && this.input.isDown('sprint', 'pad');
+		return this.sprintBy !== null || key || pad;
+	}
+
+	/** Whether this device's sprint button switches sprint on and off rather than being held. */
+	private sprintToggles(device: InputDevice): boolean {
+		if (device === 'pad') return settings.controller.sprint === 'toggle';
+		return settings.accessibility.toggleSprint;
 	}
 
 	/** Aiming this frame: the key held, or switched on with a gun in hand (toggle setting). */
@@ -164,10 +187,21 @@ export class LocalPlayer {
 		return { stance: this.stance, creep: this.creep };
 	}
 
+	/** The controller's switched-on sprint also ends when you slow down (the left stick) or aim. */
+	private updateSprint(active: boolean): void {
+		if (this.sprintBy !== 'pad') return;
+		const stick = this.input.moveStick();
+		const slow = Math.hypot(stick.x, stick.y) < SPRINT_PUSH;
+		if (!active || slow || this.aiming(active) || this.stancePressedAt !== null) {
+			this.sprintBy = null;
+		}
+	}
+
 	/**
 	 * Stance key: a tap (released within LONG_PRESS_MS) cycles walk -> crouch -> crawl; while the
 	 * key is held, you creep (slow, silent), and releasing a hold leaves the stance unchanged.
-	 * Sprinting stops creeping and drops back to a normal walk.
+	 * A light push of the left stick creeps too. Sprinting stops creeping and drops back to a
+	 * normal walk.
 	 */
 	private updateStanceKey(active: boolean): void {
 		const input = this.input;
@@ -179,8 +213,11 @@ export class LocalPlayer {
 			}
 			this.stancePressedAt = null;
 		}
+		const stick = input.moveStick();
+		const push = Math.hypot(stick.x, stick.y);
+		const lightPush = active && push > 0 && push < CREEP_PUSH;
 		// Creep starts on press so it responds immediately; a tap only creeps for its brief moment.
-		this.creep = this.stancePressedAt !== null && !sprinting;
+		this.creep = (this.stancePressedAt !== null || lightPush) && !sprinting;
 		if (sprinting) this.stance = 'stand';
 	}
 
@@ -239,11 +276,15 @@ export class LocalPlayer {
 	 * menu is open: the player then stands still (but the simulation keeps running).
 	 */
 	update(delta: number, active: boolean): void {
+		this.updateSprint(active);
 		this.updateStanceKey(active);
 		const [dx, dy] = this.input.consumeLook();
+		const stick = this.input.lookStick();
+		const push = Math.hypot(stick.x, stick.y);
 		if (this.wheel) {
-			const x = this.wheel.x + dx;
-			const y = this.wheel.y + dy;
+			// The right stick points straight at a slot; letting it go back keeps the choice.
+			const x = push > 0 ? stick.x * WHEEL_REACH : this.wheel.x + dx;
+			const y = push > 0 ? stick.y * WHEEL_REACH : this.wheel.y + dy;
 			const scale = Math.min(1, WHEEL_REACH / (Math.hypot(x, y) || 1));
 			this.wheel = { x: x * scale, y: y * scale };
 		} else if (active) {
@@ -252,6 +293,15 @@ export class LocalPlayer {
 			const speed = LOOK_SPEED * settings.controls.mouseSensitivity * aim * this.lookScale;
 			this.yaw -= dx * speed;
 			this.pitch -= dy * speed * (settings.controls.invertY ? -1 : 1);
+			// The right stick turns at a speed, not by a distance: its push, curved.
+			const turn =
+				PAD_TURN *
+				settings.controller.lookSensitivity *
+				this.lookScale *
+				delta *
+				push ** (LOOK_CURVE - 1);
+			this.yaw -= stick.x * turn;
+			this.pitch -= stick.y * turn * (settings.controller.invertY ? -1 : 1);
 			this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch));
 		}
 		// Recoil throws the view over a few frames, not in one jump.
@@ -331,10 +381,16 @@ export class LocalPlayer {
 	private sample(active: boolean): InputFrame {
 		const input = this.input;
 		const axis = (pos: boolean, neg: boolean) => (pos ? 1 : 0) - (neg ? 1 : 0);
-		const moveX = active ? axis(input.isDown('moveRight'), input.isDown('moveLeft')) : 0;
-		const moveZ = active ? axis(input.isDown('moveForward'), input.isDown('moveBack')) : 0;
+		// The left stick, when pushed, as it is: half a push walks at half speed.
+		const stick = input.moveStick();
+		const pushed = stick.x !== 0 || stick.y !== 0;
+		const key = (action: Action) => input.isDown(action, 'keyboard');
+		const keysX = axis(key('moveRight'), key('moveLeft'));
+		const keysZ = axis(key('moveForward'), key('moveBack'));
+		const moveX = !active ? 0 : pushed ? stick.x : keysX;
+		const moveZ = !active ? 0 : pushed ? -stick.y : keysZ;
 		// A switched-on sprint ends when you stop; a switched-on aim when the gun leaves the hand.
-		if (active && moveX === 0 && moveZ === 0) this.sprintOn = false;
+		if (active && moveX === 0 && moveZ === 0) this.sprintBy = null;
 		if (!this.gunInHand()) this.aimOn = false;
 		return {
 			seq: this.seq++,

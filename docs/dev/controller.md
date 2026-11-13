@@ -6,32 +6,33 @@ Keyboard, mouse and controller all work at the same time, as in most PC games. W
 
 ## Status
 
-| Part                                | What                                                                                                                                             | State   |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
-| 1. The controller plays the game    | Reading controllers, analog move and look, creeping and sprint, wheels, playing without the mouse captured, icons, rumble, settings, admin, help | Planned |
-| 2. The controller drives every menu | Focus navigation on every screen, item slots, dialogs, the dashboard pages                                                                       | Planned |
+| Part                                | What                                                                                                                                             | State                  |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| 1. The controller plays the game    | Reading controllers, analog move and look, creeping and sprint, wheels, playing without the mouse captured, icons, rumble, settings, admin, help | Built; to test by hand |
+| 2. The controller drives every menu | Focus navigation on every screen, item slots, dialogs, the dashboard pages                                                                       | Planned                |
 
 Until part 2 lands, these need the mouse: the pack, loot crates, the settings overlay, the spectate bar, the results screen's Continue and the Ready button.
 
 ## Files
 
-| File                                   | What                                                                                    |
-| -------------------------------------- | --------------------------------------------------------------------------------------- |
-| `src/lib/game/input/gamepad.svelte.ts` | Reads controllers each frame: buttons, sticks, presses, rumble; the last device used    |
-| `src/lib/game/input/actions.ts`        | `pad` defaults on every action, `defaultPadBindings()`, labels for controller buttons   |
-| `src/lib/game/input/InputMap.ts`       | Controller buttons as actions, beside keys and mouse buttons; the sticks                |
-| `src/lib/settings/settings.svelte.ts`  | `padBindings` and the `controller` group                                                |
-| `src/lib/game/player/LocalPlayer.ts`   | Analog movement, creeping on a light push, toggle sprint, stick look, the wheel pointer |
-| `src/lib/content/rumble.ts`            | Rumble effects (data)                                                                   |
-| `src/lib/ui/KeyCap.svelte`             | A binding on screen: a keycap, or a controller button in the current icon set           |
-| `src/lib/ui/Settings.svelte`           | The Controller tab; controller buttons in the Controls list                             |
-| `src/lib/ui/AdminPanel.svelte`         | The Controller group (dev)                                                              |
-| `src/routes/+layout.svelte`            | Starts reading controllers, once for the whole site                                     |
-| `src/routes/play/+page.svelte`         | Playing without the mouse captured, rumble, the disconnect notice                       |
+| File                                  | What                                                                                    |
+| ------------------------------------- | --------------------------------------------------------------------------------------- |
+| `src/lib/game/input/gamepad.ts`       | Reads controllers each frame: buttons, sticks, presses; rumble                          |
+| `src/lib/game/input/device.svelte.ts` | `device`, the last device used (reactive); the bindings to show for it                  |
+| `src/lib/game/input/actions.ts`       | `PAD_DEFAULTS`, `defaultPadBindings()`, labels for controller buttons                   |
+| `src/lib/game/input/InputMap.ts`      | Controller buttons as actions, beside keys and mouse buttons; the sticks                |
+| `src/lib/settings/settings.svelte.ts` | `padBindings` and the `controller` group                                                |
+| `src/lib/game/player/LocalPlayer.ts`  | Analog movement, creeping on a light push, toggle sprint, stick look, the wheel pointer |
+| `src/lib/content/rumble.ts`           | Rumble effects (data)                                                                   |
+| `src/lib/ui/KeyCap.svelte`            | A binding on screen: a keycap, or a controller button in the current icon set           |
+| `src/lib/ui/Settings.svelte`          | The Controller tab; controller buttons in the Controls list                             |
+| `src/lib/ui/AdminPanel.svelte`        | The Controller group (dev)                                                              |
+| `src/routes/+layout.svelte`           | Starts reading controllers, once for the whole site                                     |
+| `src/routes/play/+page.svelte`        | Playing without the mouse captured, rumble, the disconnect notice                       |
 
 ## Reading controllers
 
-The Gamepad API has no button events: the state has to be read every frame. `gamepad.svelte.ts` does that in its own `requestAnimationFrame` loop, started once by the root layout, so it runs on the dashboard as well as underground.
+The Gamepad API has no button events: the state has to be read every frame. `gamepad.ts` does that in its own `requestAnimationFrame` loop, started once by the root layout, so it runs on the dashboard as well as underground.
 
 - **Standard layout only.** Pads whose `mapping` isn't `'standard'` are skipped.
 - **Every controller drives the one player.** Co-op is online, so a browser has one player. The buttons of all connected controllers are merged, and the last one pressed picks the icons.
@@ -43,7 +44,7 @@ The Gamepad API has no button events: the state has to be read every frame. `gam
 
 ## The last device used
 
-`gamepad.svelte.ts` keeps `device`, reactive:
+`device` (`device.svelte.ts`, reactive) is kept up to date by `gamepad.ts`:
 
 - **Controller:** any button pressed, or a stick or trigger past its dead zone.
 - **Keyboard and mouse:** any key, click or wheel, or the mouse moving more than a few pixels (a bumped desk doesn't switch).
@@ -68,7 +69,7 @@ A controller binding is a code, like a key's `KeyboardEvent.code`:
 
 These are the 17 standard buttons less the guide button, which the system keeps. The PlayStation touchpad and the Steam Deck's back grips aren't bound: every supported controller plays the same in every browser.
 
-Controller bindings are their own settings group, `settings.padBindings` (action -> codes), not part of `settings.bindings`. Saved settings keep every binding list as it was saved, so a separate group is what lets existing players get the controller defaults. The defaults sit beside the keyboard ones, as `pad` on each action in `ACTIONS`. The layout is fixed until the keybinding screen (post beta) can change it; the Controls tab lists it.
+Controller bindings are their own settings group, `settings.padBindings` (action -> codes), not part of `settings.bindings`. Saved settings keep every binding list as it was saved, so a separate group is what lets existing players get the controller defaults. The defaults are `PAD_DEFAULTS`, below `ACTIONS` in `actions.ts`. The layout is fixed until the keybinding screen (post beta) can change it; the Controls tab lists it.
 
 | Button     | Action                                  | Button      | Action                        |
 | ---------- | --------------------------------------- | ----------- | ----------------------------- |
@@ -88,7 +89,7 @@ No controller button: choosing primary or secondary directly (Y swaps the two), 
 
 - **Analog movement.** The left stick fills `InputFrame.moveX`/`moveZ` with its value (-1..1). The server already clamps them to that range and only normalises a wish longer than 1, so half a push walks at half speed. No protocol or server change.
 - **A light push creeps.** Below `CREEP_PUSH` (about half), the client sends `sneak: true`, exactly as holding the stance key does: capped at the creep speed and silent to creatures (`noiseRadius` in `server/creatures.ts` looks at the flag, not the speed). Past it, a normal, audible walk. The HUD shows creep either way.
-- **Sprint** on L3 is a toggle by default (`settings.controller.sprint`): a click starts it, and stopping, slowing below `SPRINT_PUSH`, aiming or creeping ends it. Set to Hold, it behaves like the keyboard. Holding a stick click down while pushing that stick is uncomfortable, hence the toggle.
+- **Sprint** on L3 is a toggle by default (`settings.controller.sprint`): a click starts it, and stopping, slowing below `SPRINT_PUSH`, aiming or creeping ends it. Set to Hold, it is held like the sprint key. Holding a stick click down while pushing that stick is uncomfortable, hence the toggle. The keyboard has its own (Accessibility > Sprint, off by default): `LocalPlayer.sprintBy` remembers which device switched sprint on, so each follows its own setting and the controller's also ends on slowing or aiming.
 - **B in water** is swim down: stance is bound to it too, but a stance press is ignored while swimming (for every device), so nobody climbs out of the water crouched. Swimming where you look (push forward looking up or down) works with the stick as it does with keys.
 - **Climbing stays on A.** The simulation never climbs on its own (`simulate.ts`, "Never automatic"): a haul costs stamina and can be heard.
 - **Looking.** The right stick, after its dead zone, goes through a curve (finer near the centre, faster toward the edge) to at most `PAD_TURN` (about 180 degrees a second) times `settings.controller.lookSensitivity`. Aiming slows it by the same zoom as the mouse (`lookScale`). No turn boost at the edge and no aim assist; both are tuning for the balance pass if wanted.
@@ -96,7 +97,7 @@ No controller button: choosing primary or secondary directly (Y swaps the two), 
 
 ## Playing without the mouse captured
 
-Underground, the game normally runs only while the pointer is locked. Browsers don't count a controller press as a user gesture, so a controller can't capture the pointer (or go fullscreen). While the controller is the device in use, the play page runs the game without the lock: "Take Control" isn't shown (A on it just plays), and the cursor is hidden over the game. Using the mouse again goes back to needing a click to capture it.
+Underground, the game normally runs only while the pointer is locked. Browsers don't count a controller press as a user gesture, so a controller can't capture the pointer (or go fullscreen). While the controller is the device in use, the play page runs the game without the lock: "Take Control" isn't shown (A on it just plays), and the cursor is hidden over the game. Using the mouse again goes back to needing a click to capture it. Closing the pack, a crate or the admin screen captures the pointer again only for the mouse (`capture()`).
 
 Sound needs a gesture too, but only once per page load ("sticky" activation); signing in or any click before the descent gives it.
 
@@ -139,6 +140,8 @@ Every screen is built from native buttons and inputs, so one focus system drives
 
 Item slots: A picks an item up (slots that would take it are lit dark blue, as when dragging), A on a lit slot puts it down, B cancels. Y opens the item menu, X sends the item where it belongs (shift-click). This uses `ItemBoard.startDrag` and `dropOn`, so the rules for what goes where stay in one place.
 
+Some actions sit on menu buttons: D-pad right is Help, View the pack, Menu the settings. While a menu has the focus, the D-pad moves it and those actions wait.
+
 It covers every dashboard page, the settings page, Help and every dialog. Typing (sign-in, the gamer tag) still needs a keyboard; there is no on-screen keyboard.
 
 ## Testing
@@ -147,4 +150,4 @@ There are no automated tests. Each part is checked by hand with an Xbox controll
 
 ## Adding an action
 
-Give it a `pad` default in `ACTIONS` beside its keys (an empty list if it has no button), and it reaches existing players' settings automatically.
+Give it an entry in `PAD_DEFAULTS` (an empty list if it has no button; TypeScript refuses a missing one), and it reaches existing players' settings automatically.

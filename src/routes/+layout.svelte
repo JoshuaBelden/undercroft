@@ -6,6 +6,7 @@
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
+	import { startGamepads } from '#lib/game/input/gamepad.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { connection, start } from '#lib/game/net/connection.svelte.ts';
@@ -80,6 +81,9 @@
 			stop();
 		};
 	});
+
+	// Controllers are read every frame on every page (docs/dev/controller.md), once for the site.
+	onMount(startGamepads);
 </script>
 
 <!--

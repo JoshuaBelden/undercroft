@@ -1,7 +1,8 @@
 /**
  * Player-facing help content. Each phase adds topics for the features it ships.
  * Body is plain text; blank lines separate paragraphs. `{action:name}` renders the
- * player's current key binding for that action, e.g. `{action:toggleHelp}`.
+ * player's current key binding for that action, e.g. `{action:toggleHelp}` (the controller's
+ * button while a controller is in use). `{pad:name}` always renders the controller's button.
  * A paragraph whose lines all start with "- " is a list. The help screen (HelpScreen.svelte)
  * has a tab per category, in HELP_CATEGORIES order, showing its topics in the order they appear
  * here.
@@ -68,6 +69,20 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 - {action:drop} drop what is in your hand
 - {action:toggleView} over the shoulder or through your eyes
 - {action:toggleSettings} settings, {action:toggleHelp} help`
+	},
+	{
+		id: 'controller',
+		title: 'Playing with a controller',
+		category: 'Getting started',
+		body: `Any controller with the standard layout works, Xbox, PlayStation and Steam controllers among them. The keyboard and mouse keep working too, and the buttons shown on screen follow whichever you used last.
+
+Move with the left stick: push it gently to creep, a slow walk that makes no footstep sound. Look with the right stick. Click {pad:sprint} to run until you stop, slow down, aim or creep.
+
+{pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, and swims down in water. {pad:interact} interacts and revives. {pad:attack} attacks, fires or uses what is in your hand, {pad:aim} aims or throws, and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
+
+{pad:headlamp} switches the headlamp, {pad:drop} drops what you hold, {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. {pad:inventory} opens your pack and {pad:toggleSettings} the settings. For now, the pack, crates and menus still need the mouse.
+
+Settings > Controller has look sensitivity, invert Y, the dead zone, vibration, sprint (toggle or hold) and the button icons. A controller the game doesn't recognise has to be mapped to the standard layout in your system's or Steam's own controller settings.`
 	},
 	{
 		id: 'movement',
