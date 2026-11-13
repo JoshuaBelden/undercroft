@@ -26,6 +26,13 @@ The first closed beta. Thank you for testing.
 - Your stash, loadout and the Store live on the surface. Whatever you take down and lose stays lost.
 - Draw chalk marks on any wall to find your way or warn your party.
 
+### Settings
+
+- Accessibility: Reduce flashing (gentle lamp flicker, softer gunshots and hurt flash), press-to-switch Sprint and Aim, and Mono audio.
+- Graphics: Render resolution and a Frame rate limit, for slower machines and laptops.
+- Mouse: a separate Aiming sensitivity. Audio: mute the game while it's in the background.
+- New help topic: Comfort and accessibility.
+
 ### Fixes
 
 - You can no longer walk upright into the narrowing rock before a crawlspace or squeeze and see through the walls.

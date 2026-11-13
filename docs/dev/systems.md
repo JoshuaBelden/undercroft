@@ -28,7 +28,7 @@ Flow:
 
 `Engine` owns the renderer, scene, camera and frame loop. Register per-frame work with `engine.onUpdate(fn)`; it returns an unsubscribe function. Call `dispose()` on teardown.
 
-**Graphics settings:** `engine.applyGraphics(settings.graphics)` applies FOV, brightness (tone-mapping exposure) and quality (pixel ratio, shadows, shadow map size). Call it again when the settings change.
+**Graphics settings:** `engine.applyGraphics(settings.graphics)` applies FOV, brightness (tone-mapping exposure), quality (pixel ratio, shadows, shadow map size), the render resolution (`renderScale`, 0.5 to 1, multiplying the quality's pixel ratio) and the frame rate limit (`frameCap`: 30, 60 or 0 for none; the frame loop skips screen refreshes until the next frame is due). Call it again when the settings change.
 
 **Light budget:** `LIGHT_BUDGET` caps active dynamic lights (ambient excluded). The stats overlay shows the count and turns red when over budget. Every candle, headlamp, torch and glow stick counts. Short flashes borrow a light that already exists rather than adding one: a gunshot lights the shooter's headlamp (see [items.md](items.md#client)).
 
@@ -52,7 +52,7 @@ Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. M
 
 ## Audio
 
-All sound goes through `AudioManager`. Categories: `master`, `music`, `ambience`, `sfx`. Each category is a gain bus feeding master; volumes come from settings.
+All sound goes through `AudioManager`. Categories: `master`, `music`, `ambience`, `sfx`. Each category is a gain bus feeding master; volumes come from settings. After master, an output stage applies two settings: mono (`accessibility.monoAudio`, a gain node mixing down to one channel, which both speakers then play) and muting while the game is in the background (`sound.muteInBackground`: tab hidden or window not focused). Every page has its own manager, so `applyAudioOptions()` re-applies both to all live managers. The settings screen calls it, and so do focus and visibility changes.
 
 ```ts
 audio.play('/assets/audio/drip.ogg', { category: 'ambience', loop: true });
@@ -64,7 +64,7 @@ Game sounds are registered by id in `src/lib/content/audio/sounds.ts` and played
 
 ## Settings
 
-`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio`, `bindings`, `interface`, `controls` (mouse sensitivity, invert Y), `graphics` (FOV, brightness, quality, camera shake, fullscreen) and `accessibility` (subtitles and sound captions, caption size; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
+`settings` is a persisted `$state` object in `settings.svelte.ts`. Groups: `audio` (volumes), `sound` (mute in background), `bindings`, `interface`, `controls` (mouse sensitivity, aiming sensitivity, invert Y), `graphics` (view, FOV, brightness, quality, camera shake, fullscreen, render resolution, frame rate limit) and `accessibility` (subtitles and sound captions, caption size, reduce flashing, toggle sprint and aim, mono audio; see [player.md](player.md#subtitles-and-sound-captions)), plus `profile` (the player name shown to the party). Change a value, then call `saveSettings()`. New keys merge in automatically; bump `SETTINGS_VERSION` only if an existing key changes meaning (this resets saved settings).
 
 **The settings screen** is `src/lib/ui/Settings.svelte`, built on `TabScreen.svelte` (the admin screen uses the same one). A `TabScreen` fills the window: a top bar whose tabs are the groups (here Account, Audio, Graphics, Mouse, Accessibility, Interface, Controls) and a Back button, the selected group's title, then that group's fields in a container that scrolls on its own, so the screen never grows past the window. It styles the field classes for everything inside it: `setting` (a row: pill, then `hint`), `pill` (`name` left, `value` right; a `button.pill` is an action, a `label.pill` with a text input is an entry), and its `actions` and `footer` snippets add bar buttons and a footer.
 

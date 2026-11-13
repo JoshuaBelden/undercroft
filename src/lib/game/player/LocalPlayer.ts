@@ -1,3 +1,4 @@
+import { ITEMS } from '#lib/content/items.ts';
 import { MOVEMENT } from '#lib/content/player/movement.ts';
 import type { InputMap } from '#lib/game/input/InputMap.ts';
 import type { GameClient } from '#lib/game/net/GameClient.ts';
@@ -5,6 +6,7 @@ import { settings } from '#lib/settings/settings.svelte.ts';
 import { SIM_RATE } from '#lib/shared/constants.ts';
 import type { CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
+import { held } from '#lib/shared/items/inventory.ts';
 import { clonePlayerState, eyeHeight, stepPlayer } from '#lib/shared/player/simulate.ts';
 import {
 	HAND,
@@ -74,6 +76,13 @@ export class LocalPlayer {
 	private wheel: { x: number; y: number } | null = null;
 	/** What the predicted simulation did since the last `drainEvents` (for instant feedback). */
 	private events: SimEvent[] = [];
+	/**
+	 * Sprint and aim switched on by a press, with the toggle settings (accessibility): instead of
+	 * holding the key. Sprint ends when you stop moving or change stance; aim when the gun leaves
+	 * your hand.
+	 */
+	private sprintOn = false;
+	private aimOn = false;
 
 	constructor(
 		private input: InputMap,
@@ -82,7 +91,16 @@ export class LocalPlayer {
 		this.unsubscribe = input.onPressed((action) => {
 			if (!this.state) return;
 			// Tap vs. long press is decided in `updateStanceKey` once we know how long it's held.
-			if (action === 'stance') this.stancePressedAt = performance.now();
+			if (action === 'stance') {
+				this.stancePressedAt = performance.now();
+				this.sprintOn = false;
+			}
+			if (action === 'sprint' && settings.accessibility.toggleSprint)
+				this.sprintOn = !this.sprintOn;
+			// Only a gun aims: with anything else the aim key throws, every press.
+			if (action === 'aim' && settings.accessibility.toggleAim && this.gunInHand()) {
+				this.aimOn = !this.aimOn;
+			}
 			if (action === 'headlamp') this.lamp = ((this.lamp + 1) % 3) as HeadlampMode;
 			if (action === 'primaryWeapon') this.select = HAND.primary;
 			if (action === 'secondaryWeapon') this.select = HAND.secondary;
@@ -97,6 +115,24 @@ export class LocalPlayer {
 	/** Take something in the hand (see `Inventory.selected`): what the quick-use wheel chose. */
 	take(selected: number): void {
 		this.select = selected;
+	}
+
+	private gunInHand(): boolean {
+		const stack = this.state ? held(this.state.inventory) : null;
+		return !!(stack && ITEMS[stack.item]?.firearm);
+	}
+
+	/** Sprinting this frame: the key held, or switched on (toggle setting). */
+	private sprinting(active: boolean): boolean {
+		if (!active) return false;
+		return settings.accessibility.toggleSprint ? this.sprintOn : this.input.isDown('sprint');
+	}
+
+	/** Aiming this frame: the key held, or switched on with a gun in hand (toggle setting). */
+	private aiming(active: boolean): boolean {
+		if (!active || this.wheel) return false;
+		if (settings.accessibility.toggleAim && this.gunInHand()) return this.aimOn;
+		return this.input.isDown('aim');
 	}
 
 	/** Open the quick-use wheel: until it closes, the mouse moves its pointer, not the view. */
@@ -135,7 +171,7 @@ export class LocalPlayer {
 	 */
 	private updateStanceKey(active: boolean): void {
 		const input = this.input;
-		const sprinting = active && input.isDown('sprint');
+		const sprinting = this.sprinting(active);
 		if (this.stancePressedAt !== null && !input.isDown('stance')) {
 			const held = performance.now() - this.stancePressedAt;
 			if (held < LONG_PRESS_MS) {
@@ -211,7 +247,9 @@ export class LocalPlayer {
 			const scale = Math.min(1, WHEEL_REACH / (Math.hypot(x, y) || 1));
 			this.wheel = { x: x * scale, y: y * scale };
 		} else if (active) {
-			const speed = LOOK_SPEED * settings.controls.mouseSensitivity * this.lookScale;
+			// Aiming (zoomed in) has its own sensitivity on top of the general one.
+			const aim = this.lookScale < 1 ? settings.controls.aimSensitivity : 1;
+			const speed = LOOK_SPEED * settings.controls.mouseSensitivity * aim * this.lookScale;
 			this.yaw -= dx * speed;
 			this.pitch -= dy * speed * (settings.controls.invertY ? -1 : 1);
 			this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch));
@@ -295,20 +333,23 @@ export class LocalPlayer {
 		const axis = (pos: boolean, neg: boolean) => (pos ? 1 : 0) - (neg ? 1 : 0);
 		const moveX = active ? axis(input.isDown('moveRight'), input.isDown('moveLeft')) : 0;
 		const moveZ = active ? axis(input.isDown('moveForward'), input.isDown('moveBack')) : 0;
+		// A switched-on sprint ends when you stop; a switched-on aim when the gun leaves the hand.
+		if (active && moveX === 0 && moveZ === 0) this.sprintOn = false;
+		if (!this.gunInHand()) this.aimOn = false;
 		return {
 			seq: this.seq++,
 			moveX,
 			moveZ,
 			yaw: this.yaw,
 			pitch: this.pitch,
-			sprint: active && input.isDown('sprint'),
+			sprint: this.sprinting(active),
 			sneak: this.creep,
 			climb: active && input.isDown('climb'),
 			swimDown: active && input.isDown('swimDown'),
 			interact: active && input.isDown('interact'),
 			// Choosing from the wheel is not a swing or a shot.
 			attack: active && !this.wheel && input.isDown('attack'),
-			aim: active && !this.wheel && input.isDown('aim'),
+			aim: this.aiming(active),
 			reload: active && input.isDown('reload'),
 			drop: active && input.isDown('drop'),
 			select: this.takeSelect(),

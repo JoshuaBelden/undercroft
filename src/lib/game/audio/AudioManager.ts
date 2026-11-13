@@ -7,7 +7,11 @@
  * - a reverb send (the size of the space): `setReverb`.
  * Positional sounds (`playBufferAt`) are placed in 3D around the listener (`setListener`).
  * Voice is intentionally absent until voice chat is in scope.
+ *
+ * After the master bus, an output stage applies two settings to every manager at once
+ * (`applyAudioOptions`): mono (accessibility) and muting while the game is in the background.
  */
+import { settings } from '#lib/settings/settings.svelte.ts';
 
 const OPEN_FREQUENCY = 20000;
 const MUFFLED_FREQUENCY = 500;
@@ -43,8 +47,30 @@ export interface SoundHandle {
 
 type Vec3 = [number, number, number];
 
+/** Every manager with a live context, so a settings change reaches them all. */
+const live = new Set<AudioManager>();
+
+/** The game is out of sight: its tab hidden or its window not focused. */
+function inBackground(): boolean {
+	return typeof document !== 'undefined' && (document.hidden || !document.hasFocus());
+}
+
+/** Re-apply mono and background muting to every manager (after the settings change). */
+export function applyAudioOptions(): void {
+	for (const manager of live) manager.applyOptions();
+}
+
+if (typeof window !== 'undefined') {
+	for (const event of ['blur', 'focus'] as const) window.addEventListener(event, applyAudioOptions);
+	document.addEventListener('visibilitychange', applyAudioOptions);
+}
+
 export class AudioManager {
 	private context: AudioContext | null = null;
+	/** Silenced while in the background (with the setting). */
+	private output: GainNode | null = null;
+	/** Mixes down to one channel with the mono setting; both speakers then play it. */
+	private downmix: GainNode | null = null;
 	private buses = new Map<AudioCategory, GainNode>();
 	private muffler: BiquadFilterNode | null = null;
 	private reverbSend: GainNode | null = null;
@@ -166,9 +192,23 @@ export class AudioManager {
 		this.reverbSend.gain.setTargetAtTime(wet, this.context.currentTime, 0.3);
 	}
 
+	/** Apply the mono and mute-in-background settings to this manager's output. */
+	applyOptions(): void {
+		const { context, output, downmix } = this;
+		if (!context || !output || !downmix) return;
+		const mono = settings.accessibility.monoAudio;
+		downmix.channelCount = mono ? 1 : 2;
+		downmix.channelCountMode = mono ? 'explicit' : 'max';
+		const muted = settings.sound.muteInBackground && inBackground();
+		output.gain.setTargetAtTime(muted ? 0 : 1, context.currentTime, 0.05);
+	}
+
 	dispose(): void {
+		live.delete(this);
 		void this.context?.close();
 		this.context = null;
+		this.output = null;
+		this.downmix = null;
 		this.buses.clear();
 		this.muffler = null;
 		this.reverbSend = null;
@@ -204,7 +244,12 @@ export class AudioManager {
 			this.context = context;
 			const master = context.createGain();
 			master.gain.value = this.volumes.master;
-			master.connect(context.destination);
+			this.output = context.createGain();
+			this.downmix = context.createGain();
+			this.downmix.channelInterpretation = 'speakers';
+			master.connect(this.output).connect(this.downmix).connect(context.destination);
+			live.add(this);
+			this.applyOptions();
 			this.buses.set('master', master);
 			// World sounds (sfx, ambience) go through the muffler, and also send to the reverb.
 			// Music bypasses both.

@@ -249,6 +249,20 @@ What you would have heard appears as text above your items, with an arrow for wh
 Captions tell you what a sound is like, not what made it.`
 	},
 	{
+		id: 'comfort',
+		title: 'Comfort and accessibility',
+		category: 'Basics',
+		body: `The settings ({action:toggleSettings}) can make the catacombs easier to play.
+
+Reduce flashing, under Accessibility: your lamp's flicker and cut-outs fade gently instead of strobing, and gunshots and the red flash when you are hurt are much softer. The lamp still lights as much as before, so you see what everyone else sees.
+
+Sprint and Aim, under Accessibility: press the key once instead of holding it. You stop running when you stop moving or change stance. A gun stays raised until you press aim again or put it away.
+
+Mono audio, under Accessibility: both ears hear everything. Turn on Captions too, to see which way a sound came from.
+
+Under Graphics, turn down Camera shake, and if the game stutters, lower the Render resolution or set a Frame rate limit (on a laptop, 60 saves battery). Aiming sensitivity is under Mouse. Under Audio, you can mute the game while another tab or window is in front.`
+	},
+	{
 		id: 'fighting-back',
 		title: 'Fighting back',
 		category: 'Survival',

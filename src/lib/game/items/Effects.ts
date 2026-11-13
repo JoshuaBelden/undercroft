@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { flashStrength } from '#lib/game/flashing.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
 import { createFlare, type Flare } from './flare.ts';
 
@@ -73,7 +74,7 @@ export class Effects {
 		if (options.flare) {
 			const flare = this.flares.find((f) => !f.lit) ?? this.flares[0];
 			flare.mesh.position.copy(at).addScaledVector(forward, 0.05);
-			flare.fire(options.heavy ? 0.75 : 0.5, 0.06);
+			flare.fire((options.heavy ? 0.75 : 0.5) * Math.sqrt(flashStrength()), 0.06);
 		}
 		if (options.own) this.pulseLeft = PULSE_TIME;
 		// Flame: tongues blown out of the barrel, fast and spreading, gone in a quarter second.
@@ -134,7 +135,7 @@ export class Effects {
 	update(delta: number, camera: THREE.Camera): void {
 		camera.getWorldQuaternion(this.camera);
 		this.pulseLeft = Math.max(0, this.pulseLeft - delta);
-		this.ambient.intensity = PULSE * (this.pulseLeft / PULSE_TIME) ** 2;
+		this.ambient.intensity = PULSE * flashStrength() * (this.pulseLeft / PULSE_TIME) ** 2;
 		for (const flare of this.flares) flare.update(delta);
 		for (const puff of [...this.puffs]) {
 			puff.age += delta;

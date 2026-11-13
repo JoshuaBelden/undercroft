@@ -7,9 +7,14 @@
 		session,
 		signOut
 	} from '#lib/account/account.svelte.ts';
-	import { AUDIO_CATEGORIES, type AudioCategory } from '#lib/game/audio/AudioManager.ts';
+	import {
+		AUDIO_CATEGORIES,
+		applyAudioOptions,
+		type AudioCategory
+	} from '#lib/game/audio/AudioManager.ts';
 	import { ACTIONS, bindingLabel, type Action } from '#lib/game/input/actions.ts';
 	import {
+		FRAME_CAPS,
 		resetSettings,
 		saveSettings,
 		settings,
@@ -98,6 +103,13 @@
 
 	const percent = (value: number): string => `${Math.round(value * 100)}%`;
 	const onOff = (value: boolean): string => (value ? 'On' : 'Off');
+	const holdToggle = (toggle: boolean): string => (toggle ? 'Press to switch' : 'Hold');
+
+	/** A setting that changes how sound is mixed: mono, muting in the background. */
+	function audioOptionChanged(): void {
+		saveSettings();
+		applyAudioOptions();
+	}
 
 	function graphicsChanged(): void {
 		saveSettings();
@@ -115,6 +127,7 @@
 		resetSettings();
 		ongraphics?.();
 		for (const category of AUDIO_CATEGORIES) onvolume?.(category, settings.audio[category]);
+		applyAudioOptions();
 	}
 </script>
 
@@ -163,6 +176,15 @@
 				onset={(value) => setVolume(category, value)}
 			/>
 		{/each}
+		<StepperField
+			label="In the background"
+			text={settings.sound.muteInBackground ? 'Muted' : 'Playing'}
+			onstep={() => {
+				settings.sound.muteInBackground = !settings.sound.muteInBackground;
+				audioOptionChanged();
+			}}
+			hint="Whether you still hear the game while another tab or window is in front. Underground, the expedition carries on either way."
+		/>
 	{:else if group === 'Graphics'}
 		<StepperField
 			label="Display"
@@ -217,6 +239,28 @@
 			}}
 		/>
 		<SliderField
+			label="Render resolution"
+			value={settings.graphics.renderScale}
+			min={0.5}
+			max={1}
+			step={0.05}
+			text={percent(settings.graphics.renderScale)}
+			onset={(value) => {
+				settings.graphics.renderScale = value;
+				graphicsChanged();
+			}}
+			hint="Draws fewer pixels and scales them up: the biggest gain in frame rate on a slow graphics card, at the cost of a softer picture."
+		/>
+		<StepperField
+			label="Frame rate limit"
+			text={settings.graphics.frameCap ? `${settings.graphics.frameCap} fps` : 'None'}
+			onstep={(by) => {
+				settings.graphics.frameCap = stepped(FRAME_CAPS, settings.graphics.frameCap, by);
+				graphicsChanged();
+			}}
+			hint="Caps how often the picture is drawn. Saves battery and keeps a laptop cooler and quieter."
+		/>
+		<SliderField
 			label="Camera shake"
 			value={settings.graphics.cameraShake}
 			min={0}
@@ -240,6 +284,19 @@
 				settings.controls.mouseSensitivity = value;
 				saveSettings();
 			}}
+		/>
+		<SliderField
+			label="Aiming sensitivity"
+			value={settings.controls.aimSensitivity}
+			min={0.2}
+			max={2}
+			step={0.05}
+			text={settings.controls.aimSensitivity.toFixed(2)}
+			onset={(value) => {
+				settings.controls.aimSensitivity = value;
+				saveSettings();
+			}}
+			hint="Look speed while aiming down the sights, on top of the sensitivity above."
 		/>
 		<StepperField
 			label="Invert Y"
@@ -270,6 +327,42 @@
 				);
 				saveSettings();
 			}}
+		/>
+		<StepperField
+			label="Reduce flashing"
+			text={onOff(settings.accessibility.reduceFlashing)}
+			onstep={() => {
+				settings.accessibility.reduceFlashing = !settings.accessibility.reduceFlashing;
+				saveSettings();
+			}}
+			hint="Lamp flicker and cut-outs fade gently instead of strobing, and gunshots and the hurt flash are much softer. Your lamp lights exactly as much as before."
+		/>
+		<StepperField
+			label="Sprint"
+			text={holdToggle(settings.accessibility.toggleSprint)}
+			onstep={() => {
+				settings.accessibility.toggleSprint = !settings.accessibility.toggleSprint;
+				saveSettings();
+			}}
+			hint="Press the sprint key once to run, instead of holding it. You stop running when you stop moving or change stance."
+		/>
+		<StepperField
+			label="Aim"
+			text={holdToggle(settings.accessibility.toggleAim)}
+			onstep={() => {
+				settings.accessibility.toggleAim = !settings.accessibility.toggleAim;
+				saveSettings();
+			}}
+			hint="Press the aim key once to raise a gun to your eye, and again to lower it. Anything else in your hand is still thrown with a press."
+		/>
+		<StepperField
+			label="Mono audio"
+			text={onOff(settings.accessibility.monoAudio)}
+			onstep={() => {
+				settings.accessibility.monoAudio = !settings.accessibility.monoAudio;
+				audioOptionChanged();
+			}}
+			hint="Both ears hear everything. Captions still show which way a sound came from."
 		/>
 	{:else if group === 'Interface'}
 		<StepperField

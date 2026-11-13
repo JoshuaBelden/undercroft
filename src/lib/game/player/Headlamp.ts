@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { DEFAULT_HEADLAMP, type HeadlampModel } from '#lib/content/items/headlamps.ts';
+import { flashStrength, SteadyLight } from '#lib/game/flashing.ts';
 import { headlampOutput } from '#lib/shared/player/headlamp.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 
@@ -27,6 +28,8 @@ export class Headlamp {
 	private color: THREE.Color;
 	/** performance.now() (ms) when the current flash ends. */
 	private flashEnd = 0;
+	/** Smooths flicker and cut-outs with the "Reduce flashing" setting. */
+	private steady = new SteadyLight();
 
 	constructor(
 		head: THREE.Object3D,
@@ -74,11 +77,11 @@ export class Headlamp {
 		// Off = zero intensity, never `visible = false`: changing the number of visible lights
 		// makes Three.js recompile every material, which hitches each time a lamp is toggled.
 		const lamp = out?.on
-			? { intensity: out.intensity, range: out.range, angle: out.angle }
-			: { intensity: 0, range: FLASH_RANGE, angle: FLASH_ANGLE };
+			? { intensity: this.steady.follow(out.intensity), range: out.range, angle: out.angle }
+			: { intensity: this.steady.follow(0), range: FLASH_RANGE, angle: FLASH_ANGLE };
 		// Flash strength, 1 at the shot fading to 0 (squared: a sharp peak, a quick fall).
 		const left = (this.flashEnd - performance.now()) / (FLASH_TIME * 1000);
-		const f = left > 0 ? Math.min(1, left) ** 2 : 0;
+		const f = left > 0 ? Math.min(1, left) ** 2 * flashStrength() : 0;
 		const peak = {
 			intensity: Math.max(FLASH_INTENSITY, lamp.intensity),
 			range: Math.max(FLASH_RANGE, lamp.range)

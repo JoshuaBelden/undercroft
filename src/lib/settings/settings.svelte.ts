@@ -15,6 +15,8 @@ export type GraphicsQuality = 'low' | 'medium' | 'high';
 export interface ControlSettings {
 	/** Multiplier on the base look speed. */
 	mouseSensitivity: number;
+	/** Multiplier on the look speed while aiming down sights (on top of mouseSensitivity). */
+	aimSensitivity: number;
 	invertY: boolean;
 }
 
@@ -32,7 +34,14 @@ export interface GraphicsSettings {
 	cameraShake: number;
 	/** The whole site fills the screen (see src/lib/ui/fullscreen.svelte.ts). */
 	fullscreen: boolean;
+	/** Fraction of the quality preset's resolution actually rendered, 0.5 .. 1. */
+	renderScale: number;
+	/** Frames per second at most; 0 = as many as the screen shows. */
+	frameCap: FrameCap;
 }
+
+export const FRAME_CAPS = [0, 30, 60] as const;
+export type FrameCap = (typeof FRAME_CAPS)[number];
 
 export type CaptionSize = 'small' | 'medium' | 'large';
 
@@ -40,11 +49,24 @@ export interface AccessibilitySettings {
 	/** Subtitles and sound captions: show what is heard as text. */
 	captions: boolean;
 	captionSize: CaptionSize;
+	/** Steadier lamp flicker and cut-outs, and a softer muzzle flash (photosensitivity). */
+	reduceFlashing: boolean;
+	/** Sprint and aim: press once to start, again to stop, instead of holding the key. */
+	toggleSprint: boolean;
+	toggleAim: boolean;
+	/** Both ears hear the same: everything is mixed to mono. */
+	monoAudio: boolean;
+}
+
+export interface SoundSettings {
+	/** Silence the game while its tab or window isn't the one in front. */
+	muteInBackground: boolean;
 }
 
 export interface Settings {
 	version: number;
 	audio: Record<AudioCategory, number>;
+	sound: SoundSettings;
 	bindings: Bindings;
 	interface: {
 		showStats: boolean;
@@ -62,18 +84,28 @@ function defaults(): Settings {
 	return {
 		version: SETTINGS_VERSION,
 		audio: { master: 0.8, music: 0.6, ambience: 0.8, sfx: 0.8 },
+		sound: { muteInBackground: false },
 		bindings: defaultBindings(),
 		interface: { showStats: false, quickSlots: true, itemPrompts: true },
-		controls: { mouseSensitivity: 1, invertY: false },
+		controls: { mouseSensitivity: 1, aimSensitivity: 1, invertY: false },
 		graphics: {
 			view: 'first',
 			fov: 75,
 			brightness: 1,
 			quality: 'high',
 			cameraShake: 1,
-			fullscreen: false
+			fullscreen: false,
+			renderScale: 1,
+			frameCap: 0
 		},
-		accessibility: { captions: false, captionSize: 'medium' }
+		accessibility: {
+			captions: false,
+			captionSize: 'medium',
+			reduceFlashing: false,
+			toggleSprint: false,
+			toggleAim: false,
+			monoAudio: false
+		}
 	};
 }
 
@@ -87,6 +119,7 @@ function load(): Settings {
 		return {
 			...base,
 			audio: { ...base.audio, ...saved.audio },
+			sound: { ...base.sound, ...saved.sound },
 			bindings: knownBindings(base.bindings, saved.bindings),
 			interface: { ...base.interface, ...saved.interface },
 			controls: { ...base.controls, ...saved.controls },

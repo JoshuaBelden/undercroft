@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { settings } from '#lib/settings/settings.svelte.ts';
 	import HoldPrompt from './HoldPrompt.svelte';
 	import KeyCap from './KeyCap.svelte';
 	import PartyHealth, { type PartyMember } from './PartyHealth.svelte';
@@ -68,7 +69,7 @@
 
 {#if hurt > 0}
 	{#key hurt}
-		<div class="hurt" aria-hidden="true"></div>
+		<div class="hurt" class:gentle={settings.accessibility.reduceFlashing} aria-hidden="true"></div>
 	{/key}
 {/if}
 
@@ -144,6 +145,23 @@
 		background: radial-gradient(ellipse at center, transparent 30%, rgb(120 10 10 / 0.55) 100%);
 		pointer-events: none;
 		animation: hurt 0.6s ease-out forwards;
+	}
+
+	/* "Reduce flashing": fainter, and fading in and out slowly rather than striking. */
+	.hurt.gentle {
+		animation: hurt-gentle 1.4s ease-in-out forwards;
+	}
+
+	@keyframes hurt-gentle {
+		from {
+			opacity: 0;
+		}
+		30% {
+			opacity: 0.45;
+		}
+		to {
+			opacity: 0;
+		}
 	}
 
 	@keyframes hurt {

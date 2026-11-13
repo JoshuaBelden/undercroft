@@ -62,6 +62,9 @@ export class Engine {
 	/** Field of view from the settings, and the fraction of it in use (aiming narrows it). */
 	private baseFov = 75;
 	private zoom = 1;
+	/** Frames per second at most (0: every frame the screen shows), and when the last one ran. */
+	private frameCap = 0;
+	private lastFrame = 0;
 
 	/** Narrow the view to `factor` of the field of view from the settings (1 = all of it). */
 	setZoom(factor: number): void {
@@ -78,7 +81,10 @@ export class Engine {
 		this.camera.fov = this.baseFov * this.zoom;
 		this.camera.updateProjectionMatrix();
 		this.renderer.toneMappingExposure = graphics.brightness;
-		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.pixelRatio));
+		// The render resolution scales the preset's: fewer pixels is the biggest saving on a weak GPU.
+		const scale = Math.min(1, Math.max(0.5, graphics.renderScale));
+		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.pixelRatio) * scale);
+		this.frameCap = graphics.frameCap;
 		this.shadowMapSize = quality.shadowMapSize;
 		if (this.renderer.shadowMap.enabled !== quality.shadows) {
 			this.renderer.shadowMap.enabled = quality.shadows;
@@ -96,6 +102,14 @@ export class Engine {
 	start(): void {
 		const frame = (timestamp?: number) => {
 			this.frameHandle = requestAnimationFrame(frame);
+			// Capped: skip screen refreshes until the next frame is due. Due times step by the interval
+			// (not from when a frame actually ran), so the rate stays steady; a long stall starts over.
+			if (this.frameCap > 0 && timestamp !== undefined) {
+				const interval = 1000 / this.frameCap;
+				if (timestamp - this.lastFrame < interval - 1) return;
+				this.lastFrame += interval;
+				if (timestamp - this.lastFrame > interval) this.lastFrame = timestamp;
+			}
 			this.timer.update(timestamp);
 			const delta = Math.min(this.timer.getDelta(), 0.1);
 			for (const update of this.updaters) update(delta);

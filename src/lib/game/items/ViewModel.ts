@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ITEMS } from '#lib/content/items.ts';
 import { loadModel } from '#lib/game/assets.ts';
+import { flashStrength, SteadyLight } from '#lib/game/flashing.ts';
 import { createFlare } from './flare.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import { EQUIP_TIME } from '#lib/shared/items/weapons.ts';
@@ -34,6 +35,8 @@ export class ViewModel {
 	private ambient = new THREE.AmbientLight(0xffffff, DARK_FILL);
 	private flare = createFlare();
 	private flashLeft = 0;
+	/** The lamp's flicker on the gun, smoothed with the "Reduce flashing" setting. */
+	private steady = new SteadyLight();
 	private item: string | null = null;
 	private model: THREE.Object3D | null = null;
 	private loading = 0;
@@ -64,11 +67,12 @@ export class ViewModel {
 		if (!def) return;
 
 		const out = headlampOutput(state);
+		const level = this.steady.follow(out.on ? out.level : 0);
 		this.flashLeft = Math.max(0, this.flashLeft - delta);
 		this.flare.update(delta);
 		this.fill.intensity =
-			(out.on ? FILL * out.level * (state.headlamp === 2 ? 1.3 : 1) : 0) +
-			FLASH_FILL * (this.flashLeft / FLASH_TIME) ** 2;
+			FILL * level * (state.headlamp === 2 ? 1.3 : 1) +
+			FLASH_FILL * flashStrength() * (this.flashLeft / FLASH_TIME) ** 2;
 
 		const w = state.weapon;
 		const speed = Math.hypot(state.velocity[0], state.velocity[2]);
@@ -165,7 +169,7 @@ export class ViewModel {
 	flash(heavy: boolean): boolean {
 		if (!this.root.visible || !this.model) return false;
 		this.flashLeft = FLASH_TIME;
-		this.flare.fire(heavy ? 0.42 : 0.3, 0.055);
+		this.flare.fire((heavy ? 0.42 : 0.3) * Math.sqrt(flashStrength()), 0.055);
 		return true;
 	}
 
