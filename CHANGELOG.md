@@ -4,6 +4,8 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- The game's fonts now come from the game itself rather than Google, so pages load without a stop at another site and nothing about you is sent there.
+
 ## 0.2.0 - 2026-11-13
 
 - Report a bug from the game: from the menu under your gamer tag, or the settings screen, even underground. You see every detail that goes with it first.

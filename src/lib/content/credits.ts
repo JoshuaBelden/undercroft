@@ -92,6 +92,12 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 				detail: 'Typeface, by Natanael Gama',
 				url: 'https://fonts.google.com/specimen/Cinzel',
 				license: 'SIL Open Font License 1.1'
+			},
+			{
+				name: 'Fontsource',
+				detail: 'Packages the typefaces so the game serves them itself',
+				url: 'https://fontsource.org',
+				license: 'MIT'
 			}
 		]
 	},

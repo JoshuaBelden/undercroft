@@ -22,15 +22,6 @@
 		path === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(path);
 </script>
 
-<svelte:head>
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-	<link
-		rel="stylesheet"
-		href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap"
-	/>
-</svelte:head>
-
 {#if data.admin}
 	<div class="shell">
 		<aside>
