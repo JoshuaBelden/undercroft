@@ -3,12 +3,13 @@ import type { WebSocket } from 'ws';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { PARTY } from '../src/lib/content/party.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
+import { markWheel } from '../src/lib/content/marks.ts';
 import { allStacks } from '../src/lib/shared/items/inventory.ts';
 import { allReady, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import type { FriendStatus } from '../src/lib/shared/social/types.ts';
 import type { Identity } from './accounts.ts';
-import { giveBack, lockKit, owned, takeKit } from './belongings.ts';
+import { giveBack, lockKit, markWheels, owned, takeKit } from './belongings.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
 import { Session } from './session.ts';
@@ -296,9 +297,10 @@ export class Parties {
 	 */
 	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
 		const going = [...party.members];
-		const [kits, onSurface] = await Promise.all([
+		const [kits, onSurface, wheels] = await Promise.all([
 			Promise.all(going.map((m) => takeKit(m.explorer, session.id))),
-			owned(going.map((m) => m.explorer))
+			owned(going.map((m) => m.explorer)),
+			markWheels(going.map((m) => m.explorer))
 		]);
 		// A quest item someone already owns (kept on the surface, or brought down) isn't put in the map.
 		const quest =
@@ -313,7 +315,8 @@ export class Parties {
 				giveBack(m.explorer, session.id, kits[i]);
 				return;
 			}
-			m.playerId = session.addPlayer(m.socket, m.name, m.explorer, kits[i]).id;
+			const wheel = markWheel(wheels.get(m.explorer));
+			m.playerId = session.addPlayer(m.socket, m.name, m.explorer, kits[i], wheel).id;
 		});
 		if (party.session !== session) return;
 		if (session.playerCount === 0) {

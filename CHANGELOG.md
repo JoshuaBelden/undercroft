@@ -4,6 +4,8 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- Choose the eight chalk marks on your wheel: press Chalk wheel on the Loadout page. Thirteen new marks to pick from, all free: Loot, Trap, Water, Way out, Stairs, Wait here, Meet here, Creature, Safe, Locked, Crate, Help and Someone fell.
+
 ## 0.2.0 - 2026-11-13
 
 - Report a bug from the game: from the menu under your gamer tag, or the settings screen, even underground. You see every detail that goes with it first.

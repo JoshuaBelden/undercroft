@@ -339,6 +339,8 @@ A crate never holds much of the best. Deeper crates hold more.`
 
 Face a wall, the floor, or anything close enough to touch, and hold {action:attack}. A wheel of marks opens: arrows, a cross for a dead end, a circle for somewhere you have been, and more. Move the mouse toward one and let go, and it is drawn where you were looking. A stick of chalk makes one mark.
 
+You choose the eight marks on your wheel. On the surface, open the Loadout page and press Chalk wheel: pick a place on the wheel, then the mark to go there, and save. There are marks for loot, traps, water, a way out, somewhere to wait or meet, and more, and every one is yours to use. The new wheel goes down with you on your next descent.
+
 Marks are only chalk. In the dark you won't see them; a lamp on the wall brings them out. Come close to one and you can see who drew it.
 
 You can rub out your own marks: look at one and hold {action:interact}. Other people's marks are theirs to keep.`

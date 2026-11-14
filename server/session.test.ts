@@ -404,6 +404,24 @@ describe('chalk marks', () => {
 		session.mark(bare.id, SYMBOL, wall.point, wall.normal);
 		expect(bare.socket.all('marks')).toHaveLength(1);
 	});
+
+	it("follows the player's own wheel: told in welcome, and nothing off it is drawn", () => {
+		const session = open(SEED);
+		const wheel = ['loot', 'trap', 'water', 'exit', 'stairs', 'wait', 'meet', 'help'];
+		const diver = new Diver(session, 'A', kit(['chalk', 2]), wheel);
+		const { socket } = diver;
+		expect(socket.last('welcome')!.markWheel).toEqual(wheel);
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		diver.hold({ select: HAND.quick }, 0.5);
+		const wall = wallInReach(session, diver);
+		diver.hold({ select: HAND.quick, yaw: wall.yaw, pitch: 0 }, 0.1);
+		// A default symbol they left off their wheel is refused.
+		expect(wheel).not.toContain(SYMBOL);
+		session.mark(diver.id, SYMBOL, wall.point, wall.normal);
+		expect(socket.all('marks')).toHaveLength(1);
+		session.mark(diver.id, 'loot', wall.point, wall.normal);
+		expect(socket.last('marks')!.marks).toMatchObject([{ symbol: 'loot', by: diver.id }]);
+	});
 });
 
 describe('down, dead and revived', () => {

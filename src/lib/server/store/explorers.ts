@@ -167,3 +167,39 @@ export async function itemsOwned(db: Db, explorerIds: string[]): Promise<Set<str
 	}
 	return items;
 }
+
+/**
+ * Save the eight chalk symbols on an explorer's wheel (already checked with `cleanMarkWheel`).
+ * Refused, like any change from the hub, while underground or ready to descend: the wheel they
+ * descend with is the one they had when they readied.
+ */
+export async function setMarkWheel(
+	db: Db,
+	explorerId: string,
+	wheel: string[]
+): Promise<{ explorer: ExplorerDoc } | { error: ExplorerError }> {
+	const result = await explorers(db).findOneAndUpdate(
+		{ _id: explorerId, underground: null, ready: { $ne: true } },
+		{ $set: { markWheel: [...wheel] } },
+		{ returnDocument: 'after' }
+	);
+	if (result) return { explorer: result };
+	const doc = await explorers(db).findOne({ _id: explorerId }, { projection: { underground: 1 } });
+	if (!doc) return { error: 'missing' };
+	return { error: doc.underground !== null ? 'underground' : 'ready' };
+}
+
+/** Admin: back to the default wheel. Works any time; it counts from their next descent. */
+export async function resetMarkWheel(db: Db, explorerId: string): Promise<void> {
+	await explorers(db).updateOne({ _id: explorerId }, { $unset: { markWheel: '' } });
+}
+
+/** The saved wheel of each of these explorers (those who have saved one). */
+export async function markWheelsOf(db: Db, explorerIds: string[]): Promise<Map<string, string[]>> {
+	const docs = await explorers(db)
+		.find({ _id: { $in: explorerIds } }, { projection: { markWheel: 1 } })
+		.toArray();
+	const wheels = new Map<string, string[]>();
+	for (const doc of docs) if (doc.markWheel) wheels.set(doc._id, doc.markWheel);
+	return wheels;
+}

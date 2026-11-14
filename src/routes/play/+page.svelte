@@ -20,7 +20,7 @@
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { Crates } from '#lib/game/items/Crates.ts';
 	import { Marks } from '#lib/game/items/Marks.ts';
-	import { MARKS, markWheel } from '#lib/content/marks.ts';
+	import { DEFAULT_MARK_WHEEL, MARKS } from '#lib/content/marks.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { DISTANT_SHOT } from '#lib/content/audio/sounds.ts';
@@ -151,6 +151,8 @@
 	} | null>(null);
 	/** The chalk wheel while attack is held with chalk in the hand: the pointer and the symbol. */
 	let chalkWheel = $state<{ pointer: { x: number; y: number }; chosen: number } | null>(null);
+	/** The chalk symbols on this player's wheel, as the server sent them in `welcome`. */
+	let chalkSymbols = $state<readonly string[]>(DEFAULT_MARK_WHEEL);
 	/** Who drew the chalk mark you are close to, and where it is on the screen. */
 	let markLabel = $state<{ name: string; x: number; y: number } | null>(null);
 	let meter = $state<number | null>(null);
@@ -331,6 +333,7 @@
 						playerId = message.playerId;
 						result = null;
 						expedition = true;
+						chalkSymbols = message.markWheel;
 						loadMap(message.layout, !message.resumed);
 						break;
 					case 'extracted':
@@ -978,14 +981,14 @@
 				player.openWheel();
 			}
 			const pointer = player.wheelPointer ?? { x: 0, y: 0 };
-			const chosen = wheelChoice(pointer, markWheel());
+			const chosen = wheelChoice(pointer, chalkSymbols);
 			if (holding) {
 				chalkWheel = { pointer, chosen };
 				return;
 			}
 			player.closeWheel();
 			chalkWheel = null;
-			const symbol = markWheel()[chosen];
+			const symbol = chalkSymbols[chosen];
 			const spot = state && symbol ? chalkSpot(state) : null;
 			if (spot && symbol) client.send({ type: 'mark', symbol, ...spot });
 		}
@@ -1235,9 +1238,10 @@
 		// Usually the expedition began while the dashboard was showing: its `welcome` is waiting.
 		start();
 		if (connection.welcome) {
-			const { sessionId: id, playerId: self, layout } = connection.welcome;
+			const { sessionId: id, playerId: self, layout, markWheel } = connection.welcome;
 			sessionId = id;
 			playerId = self;
+			chalkSymbols = markWheel;
 			expedition = true;
 			loadMap(layout, !connection.welcome.resumed);
 			marks.apply(connection.marks);
@@ -1476,7 +1480,7 @@
 {/if}
 
 {#if chalkWheel && spawned && !mapView && !result}
-	<MarkWheel symbols={markWheel()} pointer={chalkWheel.pointer} chosen={chalkWheel.chosen} />
+	<MarkWheel symbols={chalkSymbols} pointer={chalkWheel.pointer} chosen={chalkWheel.chosen} />
 {/if}
 
 {#if markLabel && spawned && !panel && !mapView && !result}

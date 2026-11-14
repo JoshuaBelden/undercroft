@@ -6,6 +6,7 @@
 	import { applyAction } from '#lib/shared/items/inventory.ts';
 	import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
 	import CarriedWeight from './CarriedWeight.svelte';
+	import ChalkWheelDialog from './ChalkWheelDialog.svelte';
 	import Dialog from './Dialog.svelte';
 	import { ItemBoard } from './itemBoard.svelte.ts';
 	import { matchesFilter, type ItemFilter } from './items.ts';
@@ -61,6 +62,19 @@
 	});
 	/** Asking before the treasure is sold. */
 	let sellingTreasure = $state(false);
+	/** Choosing the symbols on the chalk wheel. */
+	let choosingChalk = $state(false);
+
+	/** The new wheel shows at once; what the server says is what stays. */
+	function saveChalk(wheel: string[]): void {
+		const account = session.account;
+		choosingChalk = false;
+		if (!account) return;
+		error = '';
+		account.explorer.markWheel = wheel;
+		onchange?.('move');
+		send('/api/explorer/marks', { wheel });
+	}
 
 	/** Requests not yet answered; they are sent one at a time, in order. */
 	let waiting = 0;
@@ -168,6 +182,9 @@
 		<header>
 			<h2 id="loadout-title">Loadout</h2>
 			<CarriedWeight inventory={explorer.loadout} />
+			<button type="button" class="chalk" onclick={() => (choosingChalk = true)}>
+				Chalk wheel
+			</button>
 		</header>
 		<LoadoutPanel inventory={explorer.loadout} {board} />
 		{#if error || explorer.underground || ready}
@@ -182,6 +199,15 @@
 </div>
 
 <ItemOverlays {board} />
+
+{#if choosingChalk}
+	<ChalkWheelDialog
+		wheel={explorer.markWheel}
+		locked={explorer.underground || ready}
+		onsave={saveChalk}
+		onclose={() => (choosingChalk = false)}
+	/>
+{/if}
 
 {#if sellingTreasure}
 	<Dialog title="Sell all treasure" onclose={() => (sellingTreasure = false)}>
@@ -240,11 +266,15 @@
 		scrollbar-color: var(--border) transparent;
 	}
 
-	/* The loadout's title with what it weighs beside it. */
+	/* The loadout's title with what it weighs beside it, and the chalk wheel at the end. */
 	header {
 		display: flex;
 		align-items: baseline;
 		gap: 16px;
+	}
+
+	.chalk {
+		margin-left: auto;
 	}
 
 	h2 {
