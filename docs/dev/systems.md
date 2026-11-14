@@ -156,7 +156,7 @@ Player commands are sent to the server, which only accepts them when its own `DE
 
 ## Typefaces
 
-The interface uses the same typefaces as the Apostate project: the Barlow family and Cinzel, loaded from Google Fonts in `src/routes/+layout.svelte`. They are named by tokens in `src/app.css`, and components use the tokens, never a family name:
+The interface uses the same typefaces as the Apostate project: the Barlow family and Cinzel, self-hosted from the `@fontsource/*` packages: `@import`s at the top of `src/app.css` pull in only the weights used (400, 600, 700; Cinzel 400 and 700), and Vite bundles the `.woff2` files with content-hashed names under `/_app/immutable/`, so browsers cache them for good. Each weight's CSS splits the font by `unicode-range` (latin, latin-ext, vietnamese...), so a browser downloads only the subsets a page actually draws. The admin app imports `src/app.css` and gets the same fonts. Nothing is loaded from Google: no third-party connection before first paint, and no player IP address sent to another company. They are named by tokens in `src/app.css`, and components use the tokens, never a family name:
 
 | Token            | Typeface              | Used for                                      |
 | ---------------- | --------------------- | --------------------------------------------- |
@@ -166,4 +166,4 @@ The interface uses the same typefaces as the Apostate project: the Barlow family
 | `--font-lore`    | Cinzel                | The title, room banners, results and downed   |
 | `--font-mono`    | system monospace      | Key caps, the stats overlay                   |
 
-To change a typeface, change the token and the font link together.
+To change a typeface or add a weight: `pnpm add -D -w @fontsource/<family>`, add its `@import '@fontsource/<family>/<weight>.css'` to `src/app.css`, change the token, and credit it in `src/lib/content/credits.ts`.
