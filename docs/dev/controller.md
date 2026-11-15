@@ -44,7 +44,7 @@ The Gamepad API has no button events: the state has to be read every frame. `gam
 - **Only while the window has focus** (`document.hasFocus()`), as the keyboard already behaves.
 - **Dead zone:** radial, `settings.controller.deadZone` (15% by default). Inside it a stick reads 0; past it, the value is rescaled to start from 0.
 - **Triggers** (LT/RT) are analog: they count as pressed past `TRIGGER_PRESS`.
-- **The left stick also presses the move actions.** A direction counts as pressed while that axis is past `STICK_PRESS`, so everything that reacts to a move key (walking away from a crate closes it, moving leaves the admin screen) also reacts to the stick. Not while a menu is open: there the stick moves the focus, and B closes the crate or the admin screen.
+- **The left stick also presses the move actions.** A direction counts as pressed while that axis is past `STICK_PRESS`, so everything that reacts to a move key (walking away from a crate closes it, moving leaves the admin screen) also reacts to the stick. Not while a menu is open: there the stick moves the focus, and B closes the crate or the admin screen. So in the in-game menu, where the keyboard can still walk, a controller stands still.
 - **Dialogs:** while a modal `<dialog>` is open, controller presses don't reach the `InputMap`. Key presses don't either (`Dialog.svelte` stops them).
 - **Menus:** while a menu is open, the buttons it moves with don't reach the `InputMap` (see [Menus](#menus)).
 

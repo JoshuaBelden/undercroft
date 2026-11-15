@@ -84,6 +84,7 @@ The rules are all in `src/lib/shared/items/inventory.ts`, and work on `Belonging
 Underground, the `inventory` action (Tab or I, View on the controller) opens `GameMenu`: a **Pack** tab (`PackPanel`, below) and a **Rite** tab (`RitePanel` and Abandon expedition, see [rite.md](rite.md#the-rite-tab)). Click a tab, or press LB/RB with the controller (the menu's `tabs`). The same action, B or Close puts it away. It doesn't pause anything: the server can't pause a co-op game.
 
 - **It opens on the Pack tab.** It only opens while you are down there and on your feet: never while downed, or dead and spectating. Going down closes it.
+- **Hands busy.** While it is open the client sends `reading: true` in its `InputFrame`s, and `handsBusy` (`src/lib/shared/player/simulate.ts`) takes away sprint, interact, attack, aim, reload, drop and `select`: no fighting, using, picking up, climbing out, reviving, swapping or running. Walking, stance and the headlamp still work. The server applies it in `sanitizeFrame`, the client to the frames it predicts with, so they agree and a client can't keep its hands by not using them. The movement keys walk (`LocalPlayer.update`'s `reading`); the controller's left stick stays the menu's, so with a controller you stand still. The look stays put: the pointer is free for the menu.
 - **The tabs share one place:** both panes sit in the same grid cell, the hidden one `inert` and invisible, so the menu is as big as its bigger tab and keeps its size from one to the other. Switching blurs whatever had the focus in the old tab, and the controller starts on the new one where it was last (the menu's `key` is per tab).
 - **Adding a tab:** a name in `MENU_TABS` (`GameMenu.svelte`), when it shows in `tabs`, and its pane in the markup.
 
@@ -111,7 +112,7 @@ The held item is advanced by `stepWeapon`, called from `stepPlayer`, so it is pr
 - a `shots` counter;
 - the previous frame's buttons, for press edges.
 
-`InputFrame` fields: `attack`, `aim`, `reload`, `drop` and `select` (what to take in the hand, as `Inventory.selected`, for one frame; otherwise -1).
+`InputFrame` fields: `attack`, `aim`, `reload`, `drop` and `select` (what to take in the hand, as `Inventory.selected`, for one frame; otherwise -1). All of them are off while `reading` (see [the in-game menu](#the-in-game-menu)).
 
 The rules:
 

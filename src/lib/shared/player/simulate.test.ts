@@ -67,6 +67,35 @@ describe('sanitizeFrame', () => {
 		expect(frame.headlamp).toBe(0);
 		expect(frame.select).toBe(-1);
 	});
+
+	it('takes the hands away while reading, and leaves walking alone', () => {
+		const busy = {
+			seq: 1,
+			moveZ: 1,
+			stance: 'crouch',
+			headlamp: 2,
+			sprint: true,
+			interact: true,
+			attack: true,
+			aim: true,
+			reload: true,
+			drop: true,
+			select: 2
+		};
+		const reading = sanitizeFrame({ ...busy, reading: true })!;
+		expect(reading).toMatchObject({ moveZ: 1, stance: 'crouch', headlamp: 2, reading: true });
+		expect(reading).toMatchObject({
+			sprint: false,
+			interact: false,
+			attack: false,
+			aim: false,
+			reload: false,
+			drop: false,
+			select: -1
+		});
+		const playing = sanitizeFrame(busy)!;
+		expect(playing).toMatchObject({ sprint: true, attack: true, select: 2, reading: false });
+	});
 });
 
 describe('clonePlayerState', () => {

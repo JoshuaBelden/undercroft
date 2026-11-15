@@ -117,7 +117,28 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		drop: false,
 		select: -1,
 		stance: s.stance,
-		headlamp: s.headlamp
+		headlamp: s.headlamp,
+		reading: false
+	};
+}
+
+/**
+ * While the in-game menu is open (`reading`), both hands are on it: you can still walk, change
+ * stance and switch the headlamp, but not sprint, interact, use, aim, reload, drop or take
+ * something in hand. The server applies it to every frame it receives (`sanitizeFrame`) and the
+ * client to the frames it predicts with, so the two agree. See docs/dev/items.md.
+ */
+export function handsBusy(frame: InputFrame): InputFrame {
+	if (!frame.reading) return frame;
+	return {
+		...frame,
+		sprint: false,
+		interact: false,
+		attack: false,
+		aim: false,
+		reload: false,
+		drop: false,
+		select: -1
 	};
 }
 
@@ -140,7 +161,7 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 	if (typeof f.seq !== 'number' || !Number.isInteger(f.seq)) return null;
 	const stance: Stance = f.stance === 'crouch' || f.stance === 'crawl' ? f.stance : 'stand';
 	const lamp = f.headlamp === 1 || f.headlamp === 2 ? f.headlamp : 0;
-	return {
+	return handsBusy({
 		seq: f.seq,
 		moveX: num(f.moveX, -1, 1),
 		moveZ: num(f.moveZ, -1, 1),
@@ -157,8 +178,9 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		drop: f.drop === true,
 		select: typeof f.select === 'number' && Number.isInteger(f.select) ? f.select : -1,
 		stance,
-		headlamp: lamp
-	};
+		headlamp: lamp,
+		reading: f.reading === true
+	});
 }
 
 /** Advance `s` by one fixed step. Mutates and returns `s`. */

@@ -296,7 +296,7 @@ If you die down here, everything you carried stays where you fell. Someone else 
 		id: 'pack',
 		title: 'Your pack',
 		category: 'Gear and loot',
-		body: `Press {action:inventory} to open your pack. It is the first tab of the menu; the Rite tab beside it shows what you know of the rite. You can't open the menu while you're down. The catacombs don't wait while you look through it.
+		body: `Press {action:inventory} to open your pack. It is the first tab of the menu; the Rite tab beside it shows what you know of the rite. You can't open the menu while you're down. The catacombs don't wait while you look through it, and your hands are full: you can walk, but not fight, use or pick up anything, or run. With a controller you stand still.
 
 It is laid out like your loadout on the surface. Equipment: two weapons, and what you wear for protection. The backpack, which takes anything. And the quick-use slots, which are what the wheel offers. The slot in your hand is outlined.
 

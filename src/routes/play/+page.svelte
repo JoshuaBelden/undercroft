@@ -1372,9 +1372,11 @@
 			// Before the player reads the mouse: in the free camera, the mouse is the camera's.
 			if (freecam) flyFreecam(delta);
 			const active = (locked || device.kind === 'pad') && !panel && !mapView && !extracting;
+			// With the menu open the keys still walk, but the hands are on it (docs/dev/items.md).
+			const reading = panel === 'menu' && !mapView && !extracting;
 			updateWheel(player.state, active);
 			updateChalkWheel(player.state, active);
-			player.update(delta, active);
+			player.update(delta, active, reading);
 			remote.update(delta, engine.camera);
 			const self = player.state;
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
