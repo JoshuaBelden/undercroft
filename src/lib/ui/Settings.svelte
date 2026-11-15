@@ -416,6 +416,15 @@
 			hint="Names the thing on the floor you are looking at."
 		/>
 		<StepperField
+			label="Show rite and party panel"
+			text={onOff(settings.interface.ritePanel)}
+			onstep={() => {
+				settings.interface.ritePanel = !settings.interface.ritePanel;
+				saveSettings();
+			}}
+			hint="Underground, what the rite needs and your party's health, down the left. Off, only the Affliction's name stays at the left edge."
+		/>
+		<StepperField
 			label="Performance stats"
 			text={onOff(settings.interface.showStats)}
 			onstep={() => {

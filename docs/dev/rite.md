@@ -14,7 +14,7 @@ The rite is how an Affliction is resolved (see `docs/HANDOFF.md`). Players learn
 | `server/rite.ts`                     | `RiteDirector` (hints found, the room, who can perform), scatter    |
 | `server/hints.ts`                    | Hint spots: crates, corpses, walls, furniture; spreading the copies |
 | `server/progress.ts`                 | `Progress`: hints found and resolutions, kept across expeditions    |
-| `src/lib/ui/RiteOverlay.svelte`      | The rite overlay                                                    |
+| `src/lib/ui/RiteOverlay.svelte`      | The rite overlay; hidden, just the name and the toggle's binding    |
 | `src/lib/ui/AfflictionPane.svelte`   | An Affliction on the Afflictions page                               |
 
 ## Data
@@ -71,7 +71,17 @@ On the Afflictions page each known pane ends with a Join Expedition button (`onj
 
 After the real Afflictions come `UNKNOWN_PANES` (4) panes for ones nobody has met: "Unknown", `UNKNOWN_SLOTS` question-mark slots, and the `affliction-unknown-banner` picture. Lower the number as Afflictions are added to `AFFLICTIONS`; a new one needs only `flavor`, `image` and its picture.
 
-The rite overlay is always shown at the middle of the left edge underground, including while spectating (there is no key for it). It has no background or border: the Affliction's name in a pill ("Resolved" beside it once it is done), the hints found in italics, then a grey line down the left with a tick to each requirement and, last, the room. A requirement a hint has revealed shows a small [slot](systems.md#slots) with its picture, greyed out unless this player carries some of it (`carriers` marks this player `self`); an unrevealed one shows only the question-mark slot, and an unknown room reads "Location: Unknown". Under each name is who in the party carries it (from the player snapshots). It is an overlay, not a menu: it takes no clicks, the pointer stays locked and play goes on under it. It is hidden while a menu or the results are showing.
+The rite overlay is shown at the middle of the left edge underground, including while spectating. It has no background or border: the Affliction's name in a pill ("Resolved" beside it once it is done), the hints found in italics, then a grey line down the left with a tick to each requirement and, last, the room. A requirement a hint has revealed shows a small [slot](systems.md#slots) with its picture, greyed out unless this player carries some of it (`carriers` marks this player `self`); an unrevealed one shows only the question-mark slot, and an unknown room reads "Location: Unknown". Under each name is who in the party carries it (from the player snapshots). It is an overlay, not a menu: it takes no clicks, the pointer stays locked and play goes on under it. It is hidden while a menu or the results are showing.
+
+### Hiding the panel
+
+On a tablet the overlay and the party panel below it (`PartyHealth`, see [player.md](player.md)) cover a good part of the screen, so players can hide both together:
+
+- **The setting** is `settings.interface.ritePanel` (on by default), Settings > Interface > Show rite and party panel. It persists like every setting.
+- **The action** `toggleRitePanel` (Interface; `KeyH`, `PadR3` in `PAD_DEFAULTS`) flips that setting and saves it, from the play page's `onPressed` switch, as `toggleView` and `toggleStats` do. It plays `ui.toggle`, a quiet tick (the menu click, quieter and higher). It only does anything underground: the dashboard doesn't handle it.
+- **Hidden,** `RiteOverlay` gets `open={false}` and draws only its header: the Affliction's name in its pill ("Resolved" beside it once done) and a `KeyCap` of `promptCode('toggleRitePanel')`, so it follows remapping and shows the controller button or the key, whichever was used last. `Hud` gets `partyShown={false}` and leaves out `PartyHealth`, and with it the posture and headlamp battery drawn under this player's bars. The vignette, prompts, held item, ammunition and the expedition clock stay.
+
+It isn't hidden automatically by screen size. Anything else added down the left edge underground should follow the same setting.
 
 ## The holder and performing it
 
