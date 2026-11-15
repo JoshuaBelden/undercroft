@@ -92,7 +92,8 @@ async function arrive(name: string): Promise<{ member: Member; socket: FakeSocke
 	const member = parties.connect(socket.ws, {
 		account: `acc-${name}`,
 		explorer: `exp-${name}`,
-		gamerTag: name
+		gamerTag: name,
+		avatar: null
 	});
 	await social.connected(member);
 	return { member, socket };

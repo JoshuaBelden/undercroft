@@ -4,16 +4,19 @@
 	import { signOut } from '#lib/account/account.svelte.ts';
 	import { openBugReport } from '#lib/game/crash.svelte.ts';
 	import { menu as padMenu } from '#lib/game/input/menus.ts';
+	import Avatar from '#lib/ui/Avatar.svelte';
 
 	/**
-	 * The gamer tag at the top right of the dashboard, as a menu: the Account screen, ideas and
+	 * The avatar and gamer tag at the top right of the dashboard, as a menu: the Account screen, ideas and
 	 * feedback, reporting a bug, and signing out. Closes on Escape, on a click anywhere else, and once something is chosen.
 	 */
 	interface Props {
 		gamerTag: string;
+		/** Their avatar's URL, or null (a figure shows instead). */
+		avatar: string | null;
 	}
 
-	let { gamerTag }: Props = $props();
+	let { gamerTag, avatar }: Props = $props();
 
 	let open = $state(false);
 	let root = $state<HTMLElement>();
@@ -80,6 +83,7 @@
 		onclick={() => (open ? close(false) : void show(null))}
 		onkeydown={onButtonKey}
 	>
+		<Avatar src={avatar} size={28} />
 		<span>{gamerTag}</span>
 		<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
 			<path fill="none" stroke="currentColor" stroke-width="1.6" d="M2.5 4.5 6 8l3.5-3.5" />
@@ -134,7 +138,8 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		padding: 0 14px 0 18px;
+		/* The avatar sits in the pill's round left end. */
+		padding: 0 14px 0 3px;
 		border: 1px solid var(--border);
 		border-radius: 999px;
 		background: rgb(4 3 3 / 0.92);

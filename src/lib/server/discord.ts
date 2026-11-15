@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { redirect, type Cookies } from '@sveltejs/kit';
 import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } from '$app/env/private';
 import { OAUTH_COOKIE, setStepCookie } from '#lib/server/session.ts';
+import { isDiscordAvatar } from '#lib/shared/account/avatar.ts';
 
 /**
  * "Sign in with Discord": the OAuth2 authorization-code flow, with the `identify` and `email`
@@ -42,6 +43,8 @@ export interface DiscordUser {
 	globalName: string | null;
 	/** Null if Discord has no verified email for them. */
 	email: string | null;
+	/** Their avatar's hash; null for Discord's default picture (or anything that isn't a hash). */
+	avatar: string | null;
 }
 
 /** Trade the code Discord sent back for who the player is. Null if Discord refuses. */
@@ -71,12 +74,14 @@ export async function discordUser(origin: string, code: string): Promise<Discord
 		global_name?: string | null;
 		email?: string | null;
 		verified?: boolean;
+		avatar?: string | null;
 	};
 	if (!user.id || !user.username) return null;
 	return {
 		id: user.id,
 		username: user.username,
 		globalName: user.global_name ?? null,
-		email: user.verified && user.email ? user.email.toLowerCase() : null
+		email: user.verified && user.email ? user.email.toLowerCase() : null,
+		avatar: isDiscordAvatar(user.avatar) ? user.avatar : null
 	};
 }

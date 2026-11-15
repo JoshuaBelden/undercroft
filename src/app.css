@@ -1,3 +1,20 @@
+/*
+ * The typefaces behind the --font-* tokens below, served from our own origin (Fontsource,
+ * bundled by Vite with content-hashed names) rather than Google Fonts: no third-party
+ * connection before first paint, and no player IP sent to Google. Only the weights we use.
+ */
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow/700.css';
+@import '@fontsource/barlow-condensed/400.css';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow-condensed/700.css';
+@import '@fontsource/barlow-semi-condensed/400.css';
+@import '@fontsource/barlow-semi-condensed/600.css';
+@import '@fontsource/barlow-semi-condensed/700.css';
+@import '@fontsource/cinzel/400.css';
+@import '@fontsource/cinzel/700.css';
+
 :root {
 	--bg: #0a0908;
 	--panel: #14110f;
@@ -16,7 +33,7 @@
 	--launch: #b08a1e;
 	--launch-bright: #cda42a;
 	/*
-	 * Typefaces (the Barlow family and Cinzel, loaded in src/routes/+layout.svelte):
+	 * Typefaces (the Barlow family and Cinzel, imported at the top of this file):
 	 * display for headings and numbers, body for running text, ui for controls and labels,
 	 * lore for the title and in-world text, mono for key caps and debug read-outs.
 	 */

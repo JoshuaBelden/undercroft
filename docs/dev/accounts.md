@@ -13,6 +13,10 @@ The whole game is behind sign-in. An account is an email, a gamer tag, and a way
 | `src/lib/server/totp.ts`                           | Authenticator codes (RFC 6238)                                   |
 | `src/lib/server/mail.ts`                           | Email through Resend (or the log, without a key)                 |
 | `src/lib/server/discord.ts`                        | The Discord OAuth2 round trip                                    |
+| `src/lib/shared/account/avatar.ts`                 | `avatarUrl`: which avatar shows (upload, Discord, none)          |
+| `src/lib/server/avatarImage.ts`                    | `processAvatar`: an upload checked and stored again as WebP      |
+| `src/lib/server/store/avatars.ts`                  | Uploaded avatars in MongoDB                                      |
+| `src/lib/ui/Avatar.svelte`, `AvatarEditor.svelte`  | An avatar in a circle; the crop editor                           |
 | `src/lib/server/db.ts`                             | The SvelteKit server's MongoDB connection                        |
 | `src/lib/server/session.ts`                        | The cookies; `signIn` (a session, or a two-step challenge first) |
 | `src/hooks.server.ts`                              | Finds the account for every request; gates everything else       |
@@ -27,8 +31,9 @@ The whole game is behind sign-in. An account is an email, a gamer tag, and a way
 
 ## Data (MongoDB)
 
-- `accounts`: `_id`, `email` (lower-cased, unique), `password` (`scrypt$<salt>$<hash>`, from `node:crypto`; missing on an account made with Discord until one is set), `gamerTag`, `tagKey` (lower-cased tag, unique, so tags can't differ only by case), `discord` (`{ id, username }`; `discord.id` unique), `totp` (`secret`, `enabledAt`, `recovery`: the sha256 of each unused recovery code, `usedStep`: the last time step accepted), `totpPending` (a secret being set up), `role` (`'admin'`: can use the admin app, see [admin.md](admin.md)), `suspended` (`reason`, `until`, `by`, `at`: set by an admin, see [admin.md](admin.md#suspending)), `lastSeen` (when a game ticket was last issued), `createdAt`.
+- `accounts`: `_id`, `email` (lower-cased, unique), `password` (`scrypt$<salt>$<hash>`, from `node:crypto`; missing on an account made with Discord until one is set), `gamerTag`, `tagKey` (lower-cased tag, unique, so tags can't differ only by case), `discord` (`{ id, username, avatar }`, as of the last Discord sign-in or link; `discord.id` unique), `avatar` (the version of the picture they uploaded, see [Avatars](#avatars)), `totp` (`secret`, `enabledAt`, `recovery`: the sha256 of each unused recovery code, `usedStep`: the last time step accepted), `totpPending` (a secret being set up), `role` (`'admin'`: can use the admin app, see [admin.md](admin.md)), `suspended` (`reason`, `until`, `by`, `at`: set by an admin, see [admin.md](admin.md#suspending)), `lastSeen` (when a game ticket was last issued), `createdAt`.
 - `explorers`: `_id`, `account`, `money`, `stash` (one entry per stash slot: a stack or null), `loadout` (an `Inventory`), `layout` (how those two are stored; older documents are converted when read, see [economy.md](economy.md)), `underground`. One per account today, created the first time it is needed (`explorerFor`). It is a separate collection, keyed by its own id, so an account can have several later.
+- `avatars`: `_id` is the account; `image` (the WebP), `version`, `updatedAt`. See [Avatars](#avatars).
 - `sessions`: `_id` is the cookie value; `account`, `expires` (30 days).
 - `tickets`: `_id` is the ticket; `account`, `expires` (12 hours).
 - `resets`: `_id` is the sha256 of an emailed reset token (the token itself is never stored); `account`, `expires` (1 hour).
@@ -68,6 +73,9 @@ Endpoints (JSON):
 | `POST /api/account/mfa/enable`  | `{ code }`: turns it on; `{ codes, account }`, the recovery codes shown once |
 | `POST /api/account/mfa/disable` | `{ code }` (app or recovery code): turns it off                              |
 | `DELETE /api/account/discord`   | Unlink Discord; refused without a password                                   |
+| `PUT /api/account/avatar`       | Body: the picture itself. A new avatar; answers with the `AccountView`       |
+| `DELETE /api/account/avatar`    | Remove the uploaded avatar (Discord's shows again)                           |
+| `GET /avatars/<account>?v=<n>`  | An uploaded avatar (WebP), cached for good: `v` changes with every upload    |
 | `DELETE /api/account/sessions`  | Sign out every other browser                                                 |
 
 A refusal is `{ error }` with a message for the player. Sign-in gives the same message for a wrong password and an unknown email.
@@ -78,23 +86,43 @@ On the client, `session.account` (`account.svelte.ts`) holds the last `AccountVi
 
 ## The gamer tag
 
-The gamer tag is the name other players see: in the lobby, while spectating, in the rite overlay. It is 3 to 24 letters, numbers, spaces, `-` or `_`, and unique regardless of case (`cleanTag`). It is set at sign-up and changed on the Account screen. After a change the client sends `rename` to the game server, which reads the tag from the database again; the client never sends a name.
+The gamer tag is the name other players see: in the lobby, while spectating, in the rite overlay. It is 3 to 24 letters, numbers, spaces, `-` or `_`, and unique regardless of case (`cleanTag`). It is set at sign-up and changed on the Account screen. After a change the client sends `profile` to the game server, which reads the tag (and the avatar) from the database again; the client never sends a name.
 
 ## The Account screen
 
 The gamer tag at the top right of the dashboard is a menu (`AccountMenu.svelte`): Account and Sign out. It closes on Escape (which then doesn't also back out of the page), on a click elsewhere, and after a choice; the arrow keys move between its items. Account opens `/account`, a TabScreen like `/settings` and, like it, outside the dashboard group, so it replaces the frame. Escape (`toggleSettings`) leaves it. Its groups:
 
-- **Profile**: the gamer tag (sends `rename` after a change), the email, Sign out, Delete account.
+- **Profile**: the avatar (see [Avatars](#avatars)), the gamer tag (sends `profile` after a change), the email, Sign out, Delete account.
 - **Sign-in**: change or set the password; link or unlink Discord (shown when Discord is configured, or already linked).
 - **Security**: turn two-step sign-in on (QR code, the key as text, a code to confirm, then the recovery codes once) or off; sign out everywhere else.
 
 Account things live only here, not in Settings, so the gamer tag can't be changed underground.
 
+## Avatars
+
+The picture beside a player's gamer tag: at the top right of the dashboard (`AccountMenu`), on the Account screen, and on their pane on the Expedition page (`ExplorerPane`). Which one shows is `avatarUrl` (`src/lib/shared/account/avatar.ts`):
+
+1. **A picture they uploaded**, if they have one: `/avatars/<account>?v=<version>`.
+2. **Otherwise their Discord avatar**, if they linked Discord and have one there: straight from Discord's image server (`cdn.discordapp.com`, a still WebP). The hash is kept on `accounts.discord.avatar` and refreshed each time they sign in with Discord or link it (`refreshDiscord`, `linkDiscord`), so a change on Discord shows from their next Discord sign-in. Only hashes that look like Discord's (`isDiscordAvatar`) are kept, as they go into a URL.
+3. **Otherwise none**: `Avatar.svelte` draws a figure in the dark (also when a picture fails to load).
+
+An upload overrides Discord's; removing it brings Discord's back. `AccountView` has `avatar` (the URL to show), `avatarUploaded` and `discordAvatar`; `PartyMember` has `avatar`.
+
+**Uploading.** Upload a picture (Account > Profile) opens the browser's file picker (PNG, JPEG, WebP, GIF; up to `AVATAR.maxSourceBytes`), then the crop editor (`AvatarEditor.svelte`): the picture behind a round window, moved and zoomed until the right part shows. The window is a scroller, so dragging, touch, the arrow keys (with it focused) and the controller's right stick (`data-pad-scroll`) all move it with no bindings of their own; the Zoom slider (left and right on a controller) and the wheel zoom about the middle. Save draws the window into an `AVATAR.uploadSize` square (WebP, or JPEG where the browser can't write WebP) and `PUT`s it.
+
+The server never keeps what was sent: `processAvatar` (`src/lib/server/avatarImage.ts`, with sharp) decodes it, refuses anything that isn't a picture, too many bytes (`AVATAR.maxUploadBytes`) or too many pixels, turns it upright, crops it square and writes a new `AVATAR.size` WebP. Only the pixels survive, so no metadata (a phone photo's location) reaches other players. Uploads count under the `avatar` limit (see [Limits](#limits)). `saveAvatar` stores it in `avatars` and puts its version on the account, so knowing an account's avatar URL never means reading the picture. `GET /avatars/<account>` is behind sign-in like the rest of the site.
+
+**Telling the party.** After an upload or a removal the client sends `profile`, and the game server reads the gamer tag and avatar again (`currentProfile`, `Parties.updateProfile`). Everyone in the party gets it at once in `party`.
+
+**Moderation.** An admin can remove an uploaded avatar from the member page (`removeAvatar`, in the audit log; see [admin.md](admin.md#members)). A Discord avatar can't be removed here: it is Discord's, and goes when they unlink Discord.
+
+Account deletion removes the `avatars` document with the rest.
+
 ## Deleting an account
 
 `deleteAccount` (`src/lib/server/store/deletion.ts`) is the one way an account goes, used by the admin app's member page (docs/dev/admin.md#members) and by Delete account on the Account screen (`DELETE /api/account`). The player confirms by typing their gamer tag (any case), plus their password if they have one (counted under the `signIn` limit) and a two-step code if that is on. Admins type the gamer tag exactly and can't delete themselves. Either way it goes in the audit log with the account id and gamer tag (`deleteAccount`, or `deleteOwnAccount` with the player as the one who did it).
 
-- **Removed:** the account; its `sessions`, `tickets`, `adminSessions`, `resets` and `challenges`; its explorers with their `ledger` and rite `progress`; every `friends` document it is in (friendships and requests, both ways); its `ideaVotes`, each taking one off its idea's `votes`.
+- **Removed:** the account; its `sessions`, `tickets`, `adminSessions`, `resets` and `challenges`; its explorers with their `ledger` and rite `progress`; every `friends` document it is in (friendships and requests, both ways); its `ideaVotes`, each taking one off its idea's `votes`; its uploaded avatar (`avatars`).
 - **Kept, anonymous:** its `reports`, `feedback` and `ideas`, with the account and gamer tag replaced by `DELETED_ACCOUNT` (`deleted`, "Deleted player"; the admin app doesn't link those to a member page). Its `runs` stay as they are: they name only the explorer id, which no longer leads anywhere, so the stats stay whole. GitHub issues already filed from its reports aren't touched.
 - **The game server** checks every minute (`server/suspensions.ts`, with suspensions): `deletedAmong` looks for everyone connected and everyone on their friend lists. A deleted player still connected is sent away (`Parties.expel`), and `Social.forget` drops their invites and reads the lists of anyone online who had them again.
 
@@ -137,7 +165,7 @@ Unlinking is refused for an account without a password, so it always has a way i
 
 ## Limits
 
-`throttle(db, rule, key)` counts a try and says whether it is allowed; `throttled` only checks. The rules are data (`THROTTLE` in `content/account.ts`): `signIn` (per email) and `code` (per account, through `checkSecondFactor`) count only wrong passwords and codes, so getting it right never uses one up; `forgot` (per email) and `forgotFromAddress` (per IP) count every reset email. `report`, `idea`, `feedback` and `vote` (per account) count every one sent (see [reports.md](reports.md)). A challenge also ends after too many attempts.
+`throttle(db, rule, key)` counts a try and says whether it is allowed; `throttled` only checks. The rules are data (`THROTTLE` in `content/account.ts`): `signIn` (per email) and `code` (per account, through `checkSecondFactor`) count only wrong passwords and codes, so getting it right never uses one up; `forgot` (per email) and `forgotFromAddress` (per IP) count every reset email. `report`, `idea`, `feedback` and `vote` (per account) count every one sent (see [reports.md](reports.md)); so does `avatar` (per account), every picture uploaded. A challenge also ends after too many attempts.
 
 ## The game server
 

@@ -1,7 +1,7 @@
 import type { RawData, WebSocket } from 'ws';
 import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
-import { currentTag, identify } from './accounts.ts';
+import { currentProfile, identify } from './accounts.ts';
 import { crashMessage, serverCrash } from './errors.ts';
 import type { Parties, Member } from './parties.ts';
 import type { Social } from './social.ts';
@@ -69,10 +69,10 @@ export function serve(socket: WebSocket, parties: Parties, social: Social): void
 			case 'social':
 				void social.act(member, message.action);
 				break;
-			case 'rename': {
-				const renamed = member;
-				void currentTag(renamed.account).then((tag) => {
-					if (tag) parties.rename(renamed, tag);
+			case 'profile': {
+				const changed = member;
+				void currentProfile(changed.account).then((profile) => {
+					if (profile) parties.updateProfile(changed, profile);
 				});
 				break;
 			}
