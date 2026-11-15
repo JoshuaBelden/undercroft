@@ -7,9 +7,10 @@
 	 * black. A controller button is drawn in the same style, in the current icon set (`padFamily`):
 	 * round face buttons (letters, or PlayStation's shapes), the d-pad with the pressed arm dark,
 	 * the rest by name. Pass the binding's code (`promptCode`), so it follows remapping and the
-	 * device in use. With `tint="control"` (the dashboard's shortcuts, ButtonHint.svelte) it takes
-	 * the colours of the control it sits in instead: `--hint-cap` for the cap (the control's text
-	 * colour; `--text` by default) and `--hint-label` for the letter (its background; `--bg`).
+	 * device in use. With `tint="control"` (the dashboard's shortcuts, ButtonHint.svelte, and the
+	 * hold prompts underground, HoldPrompt.svelte) it takes the colours of the control it sits in
+	 * instead: `--hint-cap` for the cap (the control's text colour; `--text` by default) and
+	 * `--hint-label` for the letter (its background; `--bg`).
 	 */
 	interface Props {
 		/** The binding, e.g. "KeyF" or "PadA". */
