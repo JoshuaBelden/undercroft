@@ -99,7 +99,6 @@
 		<div class="posture">{posture}</div>
 	{/if}
 	<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
-		{#if lampKey}<KeyCap code={lampKey} />{/if}
 		<span class="cells">
 			{#each [0, 1, 2, 3] as cell (cell)}
 				<span class="cell" class:on={cell < bars}></span>
@@ -108,6 +107,8 @@
 		<!-- Rounded up: a lamp that still gives any light never reads 0 V. -->
 		<span class="volts">{Math.ceil(volts)}V</span>
 		<span>{LAMP_LABELS[headlamp] ?? ''}</span>
+		<!-- After what it switches, in the HUD's own colours (KeyCap's tint="control"). -->
+		{#if lampKey}<KeyCap code={lampKey} tint="control" />{/if}
 	</div>
 </PartyHealth>
 

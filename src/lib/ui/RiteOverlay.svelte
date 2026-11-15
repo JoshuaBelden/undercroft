@@ -81,6 +81,7 @@
 					<span class="who"
 						>One of you carries it all here and holds {#if interactKey}<KeyCap
 								code={interactKey}
+								tint="control"
 							/>{:else}interact{/if}</span
 					>
 				</span>

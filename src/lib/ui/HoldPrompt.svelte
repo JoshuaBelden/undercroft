@@ -4,7 +4,7 @@
 	/**
 	 * Prompt for a hold-key action ("Hold E to climb out"): a pill whose background fills as the
 	 * key is held. Use it for every hold prompt so they all look the same. With `key` it shows that
-	 * key before the text if there is any, in the pill's own colours (KeyCap's `tint="control"`).
+	 * key after the text if there is any, in the pill's own colours (KeyCap's `tint="control"`).
 	 */
 	interface Props {
 		text: string;
@@ -19,8 +19,8 @@
 
 <div class="pill" class:holding={progress > 0} role="status">
 	<div class="fill" style:width="{Math.min(1, Math.max(0, progress)) * 100}%"></div>
-	{#if key}<span class="cap"><KeyCap code={key} size="large" tint="control" /></span>{/if}
 	{#if text}<span class="text">{text}</span>{/if}
+	{#if key}<span class="cap"><KeyCap code={key} size="large" tint="control" /></span>{/if}
 </div>
 
 <style>
