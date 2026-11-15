@@ -7,7 +7,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { startGamepads } from '#lib/game/input/gamepad.ts';
-	import { onMenuMove } from '#lib/game/input/menus.ts';
+	import { onMenuHold, onMenuMove } from '#lib/game/input/menus.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { connection, start } from '#lib/game/net/connection.svelte.ts';
@@ -50,8 +50,10 @@
 
 	// The controller moving the focus in a menu, anywhere: a quiet tick (docs/dev/controller.md).
 	onMount(() => onMenuMove(() => menuSound('ui.focus')));
+	// And a button held in a menu pressing its control (Launch, the store): another.
+	onMount(() => onMenuHold(() => menuSound('ui.hold')));
 
-	function menuSound(id: 'ui.click' | 'ui.focus'): void {
+	function menuSound(id: 'ui.click' | 'ui.focus' | 'ui.hold'): void {
 		// Until the page is clicked or a key pressed, the browser keeps it silent (a controller
 		// doesn't count): skip the sound rather than have them all play at the first click.
 		if (!navigator.userActivation.hasBeenActive) return;

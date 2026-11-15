@@ -446,6 +446,8 @@ export const SOUNDS = {
 	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.8 },
 	/** The controller moving the focus in a menu (docs/dev/controller.md): quieter and higher. */
 	'ui.focus': { synth: { kind: 'click' }, category: 'sfx', volume: 0.2, rate: 1.8 },
+	/** A controller button held in a menu pressed its control (Launch, the store): a lower tick. */
+	'ui.hold': { synth: { kind: 'click' }, category: 'sfx', volume: 0.35, rate: 1.2 },
 	// Stingers on the music bus (dry: no muffling or reverb from where you stand).
 	'expedition.intro': { file: 'expedition.intro', category: 'music', volume: 0.8 },
 	'expedition.outro': { file: 'expedition.outro', category: 'music', volume: 0.5 },

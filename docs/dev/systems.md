@@ -44,9 +44,10 @@ Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. M
 
 - `input.isDown(action)` for held input (`input.isDown(action, 'pad')` for one device only).
 - `input.onPressed(fn)` for presses, with the device that pressed it; returns an unsubscribe function.
+- `new InputMap(window, only, padOnly)` outside the game: `only` limits it to those actions, and `padOnly` adds actions heard from the controller alone, their keys left to the page.
 - `input.consumeLook()` returns mouse movement since the last call while the pointer is locked (mouse look is an axis, not an action).
 
-**Tab** is a game key only in the game view (`/play`): there `src/routes/+layout.svelte` stops it moving the browser's focus (in the capture phase, so dialogs can't let it through), and the input map treats it as any other key. By default it is the `inventory` action, the pack. Everywhere else (the dashboard, settings, account, the sign-in pages) Tab moves between buttons and fields as usual, and no page binds `inventory`.
+**Tab** is a game key only in the game view (`/play`): there `src/routes/+layout.svelte` stops it moving the browser's focus (in the capture phase, so dialogs can't let it through), and the input map treats it as any other key. By default it is the `inventory` action, the pack. Everywhere else (the dashboard, settings, account, the sign-in pages) Tab moves between buttons and fields as usual, and no page binds `inventory` to its keys: the dashboard hears it from the controller only (View goes to the Loadout page).
 
 **Controllers** play through the same actions, with their buttons bound apart from the keys (`settings.padBindings`); the sticks are `input.moveStick()` and `input.lookStick()`. See [controller.md](controller.md).
 

@@ -21,11 +21,14 @@ export class InputMap {
 
 	/**
 	 * `only` limits it to those actions: keys and clicks bound to anything else are left alone
-	 * (for screens outside the game, where the page needs them).
+	 * (for screens outside the game, where the page needs them). `padOnly` adds actions heard from
+	 * the controller alone, whose keys are left to the page too (the dashboard's Loadout on View:
+	 * its key, Tab, moves between buttons there).
 	 */
 	constructor(
 		target: Window = window,
-		private only: readonly Action[] | null = null
+		private only: readonly Action[] | null = null,
+		private padOnly: readonly Action[] = []
 	) {
 		this.target = target;
 		target.addEventListener('keydown', this.onKeyDown);
@@ -93,7 +96,11 @@ export class InputMap {
 	/** Tell the listeners about every action `code` is bound to in `bindings`. */
 	private fire(code: string, bindings: Bindings, device: InputDevice, event: Event | null): void {
 		for (const action of Object.keys(ACTIONS) as Action[]) {
-			if (this.only && !this.only.includes(action)) continue;
+			const heard =
+				!this.only ||
+				this.only.includes(action) ||
+				(device === 'pad' && this.padOnly.includes(action));
+			if (!heard) continue;
 			if (bindings[action].includes(code)) {
 				event?.preventDefault();
 				for (const listener of this.listeners) listener(action, device);

@@ -6,6 +6,7 @@
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
+	import ButtonHint from './ButtonHint.svelte';
 	import ItemFilters from './ItemFilters.svelte';
 	import {
 		categoryLabel,
@@ -60,6 +61,9 @@
 		selected = null;
 		error = '';
 	}
+
+	/** Purchase can be pressed (and held Y presses it: menus.ts, data-pad-hold). */
+	const canBuy = $derived(!busy && !explorer.underground && !ready && explorer.money >= total);
 
 	async function purchase(bought: ShopEntry): Promise<void> {
 		if (busy) return;
@@ -223,9 +227,13 @@
 				<button
 					type="button"
 					class="purchase"
-					disabled={busy || explorer.underground || ready || explorer.money < total}
+					disabled={!canBuy}
+					data-pad-hold="y"
 					onclick={() => void purchase(entry)}
 				>
+					{#if canBuy}
+						<ButtonHint code="PadY" hold />
+					{/if}
 					Purchase
 				</button>
 			</div>
@@ -572,6 +580,10 @@
 
 	.purchase {
 		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
 		padding: 10px 20px;
 		border-color: var(--accent);
 		border-radius: 999px;

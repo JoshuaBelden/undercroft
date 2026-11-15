@@ -7,6 +7,7 @@
 	import { connection, me, send } from '#lib/game/net/connection.svelte.ts';
 	import { prefetch } from '#lib/game/prefetch.svelte.ts';
 	import AfflictionPicker from '#lib/ui/AfflictionPicker.svelte';
+	import ButtonHint from '#lib/ui/ButtonHint.svelte';
 	import { dragScroll } from '#lib/ui/dragScroll.ts';
 	import ExplorerPane from '#lib/ui/ExplorerPane.svelte';
 	import { launch } from '#lib/ui/launch.svelte.ts';
@@ -92,13 +93,18 @@
 					Cancel
 				</button>
 			{:else}
+				<!-- Held X launches from anywhere on the page (menus.ts, data-pad-hold). -->
 				<button
 					type="button"
 					class="pill go"
 					disabled={!affliction}
 					title={affliction ? undefined : 'An Affliction has to be chosen first'}
+					data-pad-hold="x"
 					onclick={confirmLoadout}
 				>
+					{#if affliction}
+						<ButtonHint code="PadX" hold />
+					{/if}
 					Launch Expedition
 				</button>
 			{/if}
@@ -243,6 +249,10 @@
 
 	/* Launch: the one dark yellow button. */
 	.pill.go {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
 		padding: 14px 20px;
 		border-color: var(--launch);
 		background: var(--launch);

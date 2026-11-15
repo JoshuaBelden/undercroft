@@ -19,7 +19,10 @@ Keyboard, mouse and controller all work at the same time, as in most PC games. W
 | `src/lib/game/input/device.svelte.ts` | `device`, the last device used (reactive); the bindings to show for it                  |
 | `src/lib/game/input/actions.ts`       | `PAD_DEFAULTS`, `defaultPadBindings()`, labels for controller buttons                   |
 | `src/lib/game/input/InputMap.ts`      | Controller buttons as actions, beside keys and mouse buttons; the sticks                |
-| `src/lib/game/input/menus.ts`         | Menus: `menu()`, focus moved by the D-pad and stick, A/B/X/Y, tabs, scrolling           |
+| `src/lib/game/input/menus.ts`         | Menus: `menu()`, focus moved by the D-pad and stick, A/B/X/Y, tabs, scrolling, holds    |
+| `src/lib/game/input/hold.ts`          | `HOLD_TIME`; a menu hold told from a quick press (unit tested)                          |
+| `src/lib/game/input/hints.svelte.ts`  | Which menu has the controller, and the hold under way, for the icons (reactive)         |
+| `src/lib/ui/ButtonHint.svelte`        | A shortcut's button inside the control it presses; a ring that fills for a hold         |
 | `src/lib/ui/ItemSlot.svelte`          | Item slots with a controller: carry, send, the item menu (`ItemBoard.carry`)            |
 | `src/lib/settings/settings.svelte.ts` | `padBindings` and the `controller` group                                                |
 | `src/lib/game/player/LocalPlayer.ts`  | Analog movement, creeping on a light push, toggle sprint, stick look, the wheel pointer |
@@ -70,12 +73,12 @@ A controller binding is a code, like a key's `KeyboardEvent.code`:
 
 These are the 17 standard buttons less the guide button, which the system keeps. The PlayStation touchpad and the Steam Deck's back grips aren't bound: every supported controller plays the same in every browser.
 
-Controller bindings are their own settings group, `settings.padBindings` (action -> codes), not part of `settings.bindings`. Saved settings keep every binding list as it was saved, so a separate group is what lets existing players get the controller defaults. The defaults are `PAD_DEFAULTS`, below `ACTIONS` in `actions.ts`. The layout is fixed until the keybinding screen (post beta) can change it; the Controls tab lists it.
+Controller bindings are their own settings group, `settings.padBindings` (action -> codes), not part of `settings.bindings`. The defaults are `PAD_DEFAULTS`, below `ACTIONS` in `actions.ts`. The layout is fixed until the keybinding screen (post beta) can change it; the Controls tab lists it. Since players can't change it yet, a saved layout is only an older one: loading settings always takes `PAD_DEFAULTS` (`load` in `settings.svelte.ts`), so a new button for an existing action (R3 for Social) reaches everyone. When the keybinding screen arrives, load the saved one again, with a way to bring new defaults to players who never changed theirs.
 
 | Button     | Action                                  | Button      | Action                        |
 | ---------- | --------------------------------------- | ----------- | ----------------------------- |
 | Left stick | Move (a light push creeps)              | Right stick | Look; points at an open wheel |
-| L3         | Sprint (toggle, or hold: a setting)     | R3          | Free                          |
+| L3         | Sprint (toggle, or hold: a setting)     | R3          | Social (on the dashboard)     |
 | A          | Climb / swim up / surrender (hold)      | RT          | Attack / fire / use           |
 | B          | Stance (tap / hold to creep); swim down | LT          | Aim (hold) / throw            |
 | X          | Interact / revive (hold)                | LB          | Quick-use wheel (hold)        |
@@ -84,7 +87,7 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | D-pad left | Camera: first person / shoulder         | D-pad right | Help                          |
 | View       | Pack                                    | Menu        | Settings                      |
 
-No controller button: choosing primary or secondary directly (Y swaps the two), friends, fullscreen (browsers only allow it from a click or a key), performance stats and the admin panel. Their prompts and help show the keyboard key even while the controller is in use.
+No controller button: choosing primary or secondary directly (Y swaps the two), fullscreen (browsers only allow it from a click or a key), performance stats and the admin panel. Their prompts and help show the keyboard key even while the controller is in use.
 
 ## Moving and looking
 
@@ -143,9 +146,32 @@ Every screen is built from native buttons, links and inputs, so one focus system
 
 **Which menu has the controller.** A screen marks its root with `{@attach menu({ back, tabs, key })}`. The one on top gets the controller: inside an open modal dialog if there is one, otherwise the one latest in the page (an overlay is rendered after what it covers, a menu inside another after that one). While any menu is open it keeps the D-pad, the left stick's directions, A, B, X, Y, LB and RB from the `InputMap`; View and Menu (the pack and settings) still work. So D-pad right moves the focus instead of opening Help while a menu is open; on the dashboard Help is the ? button.
 
+**The dashboard's shortcuts.** Beyond moving and pressing, the dashboard (`src/routes/(hub)/+layout.svelte` and its pages) has shortcuts, each with its button on screen (see below):
+
+| Shortcut          | Button              | Where                                                                                |
+| ----------------- | ------------------- | ------------------------------------------------------------------------------------ |
+| Tabs              | LB / RB             | Every dashboard page; the icons sit either side of the tab bar                       |
+| Loadout           | View (`inventory`)  | Goes to the Loadout page. Not a toggle: B goes back                                  |
+| Social            | R3 (`toggleSocial`) | Opens the Social page. R3 doesn't close it, B does (its key, O, still toggles)       |
+| Launch Expedition | hold X              | Expedition page, while Launch can be pressed. Cancel, once ready, is a focus and A   |
+| Confirm loadout   | hold X              | Loadout page, while Confirm shows                                                    |
+| Store             | hold Y              | Every dashboard page but the Store itself, and not while ready (the store is closed) |
+| Purchase          | hold Y              | The store's item details, while Purchase can be pressed                              |
+
+View and R3 go through the `InputMap` (bindings, remappable). The dashboard's input map hears `inventory` from the controller only (`InputMap`'s `padOnly`): its key is Tab, which moves the focus there. The holds and LB/RB are menu buttons, fixed like A and B.
+
+**Holds.** A control with `data-pad-hold="x"` (or `"y"`) is pressed by holding that button for `HOLD_TIME` (600 ms, in `hold.ts`: tune the feel there), from anywhere in its menu, while it is enabled and its menu has the controller. The ring around its icon fills as it is held, and `ui.hold`, a quiet tick, plays when it completes (the root layout, `onMenuHold`). Letting go early empties the ring and does what a quick press of the button does: the focused control's `padpress`, on release instead of on press. So on the Loadout page a quick X on an item slot still sends it and a quick Y opens its menu, while a hold confirms or opens the store. Where no control is held for a button (the pack, crates, the store), X and Y act on press as before.
+
+- A hold only counts from a fresh press: holding X through Launch doesn't go on to confirm on the Loadout page.
+- One at a time: a press of the other button meanwhile acts on press.
+- If the control goes away, is disabled or a menu opens over it, the hold empties and letting go does nothing. Nor does the window losing the focus.
+- `Hold` (`hold.ts`) is the timing alone, without the DOM, and is unit tested; `menus.ts` reads the buttons and presses the control.
+
+**Buttons on screen.** `ButtonHint` shows a shortcut's button (`KeyCap`, in the current icon set) inside the control it presses, before its label, only while the controller is the device in use: keyboard and mouse players see nothing. With `hold` it draws the ring. Each page renders it only where its shortcut works right then (Launch only while it can be pressed, the store not on the Store page or while ready, Social not on the Social page), and a menu button's (LB/RB, a hold) shows only while its menu is the one the controller drives (`hints.top`), so not under an open dialog, Help or the item menu. It is hidden from screen readers (the label says it), and `--hint-gap` sets the space before the label where the control isn't a flex row with a gap.
+
 **The focus** is the browser's own, set with `focus({ focusVisible: true })`, so the `:focus-visible` styles keyboard users see are the highlight. While a controller is in use, something in the open menu always has the focus: when a menu opens, or the focused control goes away (a tab switch, an item taken), it moves to the control used last, else the nearest to where it was.
 
-**Item slots.** A picks an item up; the slots that would take it are lit dark blue, as when dragging, and the one with the focus is lit when it would take it. A on a lit slot puts it down, A on the slot it came from (or B) puts it back. X sends an item where it belongs (shift-click), Y opens the item menu at the slot. Carrying is `ItemBoard`'s dragging (`ItemBoard.carry`), so the rules for what goes where stay in one place. A crate opens on its top-left slot: the focus can rest on slots not searched yet, and stays put when one is revealed.
+**Item slots.** A picks an item up; the slots that would take it are lit dark blue, as when dragging, and the one with the focus is lit when it would take it. A on a lit slot puts it down, A on the slot it came from (or B) puts it back. X sends an item where it belongs (shift-click), Y opens the item menu at the slot: on release on the Loadout page, where holding them confirms or opens the store (see Holds above). Carrying is `ItemBoard`'s dragging (`ItemBoard.carry`), so the rules for what goes where stay in one place. A crate opens on its top-left slot: the focus can rest on slots not searched yet, and stays put when one is revealed.
 
 **Markup that steers it:**
 
@@ -155,6 +181,7 @@ Every screen is built from native buttons, links and inputs, so one focus system
 | `data-pad-stop` with `tabindex="-1"`        | Somewhere the focus can rest that isn't a control, so a grid with gaps still moves as a grid (a crate's sealed slots)                                             |
 | `data-pad-scroll`                           | What the right stick scrolls when nothing around the focus does (a `TabScreen`'s fields, with the focus on its tabs, as in Help)                                  |
 | `data-pad-stepper`                          | One stop for a value with buttons either side (and maybe a field between): left and right press its first and last buttons (`StepperField`, the store's quantity) |
+| `data-pad-hold="x"` / `"y"`                 | Holding that button presses this control from anywhere in the menu (Launch, Confirm loadout, the store, Purchase); put a `ButtonHint` with `hold` in it           |
 | `padpress` event (`CustomEvent<PadButton>`) | Sent to the focused control before A, B, X or Y does anything; `preventDefault()` says it was handled (`ItemSlot.svelte`)                                         |
 
 **Adding a screen:** give its root `{@attach menu({ back: onclose })}`. `Panel`, `Dialog` and `TabScreen` already have it, so screens built from them need nothing more. Buttons and links inside just work.
@@ -163,7 +190,7 @@ It covers every dashboard page and the account menu, the settings, account, Abou
 
 ## Testing
 
-There are no automated tests. Each part is checked by hand with an Xbox controller in Chrome, Firefox and Safari on macOS. PlayStation detection and Steam controllers haven't been tried on real hardware; the PlayStation icons can still be seen with the Button icons setting.
+The hold timing (`hold.ts`) has unit tests; nothing else here can run without a browser. Each part is checked by hand with an Xbox controller in Chrome, Firefox and Safari on macOS. PlayStation detection and Steam controllers haven't been tried on real hardware; the PlayStation icons can still be seen with the Button icons setting.
 
 ## Adding an action
 

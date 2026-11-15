@@ -156,7 +156,9 @@ function load(): Settings {
 			audio: { ...base.audio, ...saved.audio },
 			sound: { ...base.sound, ...saved.sound },
 			bindings: knownBindings(base.bindings, saved.bindings),
-			padBindings: knownBindings(base.padBindings, saved.padBindings),
+			// Players can't change the controller layout until the keybinding screen (post beta),
+			// so a saved one is only an older layout: take today's, so a new default reaches them.
+			padBindings: base.padBindings,
 			interface: { ...base.interface, ...saved.interface },
 			controls: { ...base.controls, ...saved.controls },
 			controller: { ...base.controller, ...saved.controller },
