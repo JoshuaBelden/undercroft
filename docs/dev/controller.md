@@ -80,16 +80,16 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | Button     | Action                                  | Button      | Action                        |
 | ---------- | --------------------------------------- | ----------- | ----------------------------- |
 | Left stick | Move (a light push creeps)              | Right stick | Look; points at an open wheel |
-| L3         | Sprint (toggle, or hold: a setting)     | R3          | Rite and party panel; Social  |
+| L3         | Sprint (toggle, or hold: a setting)     | R3          | Rite panel; Social            |
 | A          | Climb / swim up / surrender (hold)      | RT          | Attack / fire / use           |
 | B          | Stance (tap / hold to creep); swim down | LT          | Aim (hold) / throw            |
 | X          | Interact / revive (hold)                | LB          | Quick-use wheel (hold)        |
 | Y          | Other weapon                            | RB          | Reload                        |
 | D-pad up   | Headlamp mode                           | D-pad down  | Drop held item                |
 | D-pad left | Camera: first person / shoulder         | D-pad right | Help                          |
-| View       | Pack                                    | Menu        | Settings                      |
+| View       | Pack and rite (the in-game menu)        | Menu        | Settings                      |
 
-R3 is the rite and party panel underground (hide or show it, see [rite.md](rite.md#hiding-the-panel)) and Social on the dashboard (see the dashboard's shortcuts below). The two never listen at once, so they share the button.
+R3 is the rite panel underground (hide or show it, see [rite.md](rite.md#hiding-the-panel)) and Social on the dashboard (see the dashboard's shortcuts below). The two never listen at once, so they share the button.
 
 No controller button: choosing primary or secondary directly (Y swaps the two), fullscreen (browsers only allow it from a click or a key), performance stats and the admin panel. Their prompts and help show the keyboard key even while the controller is in use.
 
@@ -105,7 +105,7 @@ No controller button: choosing primary or secondary directly (Y swaps the two), 
 
 ## Playing without the mouse captured
 
-Underground, the game normally runs only while the pointer is locked. Browsers don't count a controller press as a user gesture, so a controller can't capture the pointer (or go fullscreen). While the controller is the device in use, the play page runs the game without the lock: "Take Control" isn't shown (A on it just plays), and the cursor is hidden over the game. Using the mouse again goes back to needing a click to capture it. Closing the pack, a crate or the admin screen captures the pointer again only for the mouse (`capture()`).
+Underground, the game normally runs only while the pointer is locked. Browsers don't count a controller press as a user gesture, so a controller can't capture the pointer (or go fullscreen). While the controller is the device in use, the play page runs the game without the lock: "Take Control" isn't shown (A on it just plays), and the cursor is hidden over the game. Using the mouse again goes back to needing a click to capture it. Closing the in-game menu, a crate or the admin screen captures the pointer again only for the mouse (`capture()`).
 
 Sound needs a gesture too, but only once per page load ("sticky" activation); signing in or any click before the descent gives it.
 
@@ -203,7 +203,7 @@ The icon is drawn in its control's own two colours, swapped, rather than the whi
 
 **Adding a screen:** give its root `{@attach menu({ back: onclose })}`. `Panel`, `Dialog` and `TabScreen` already have it, so screens built from them need nothing more. Buttons and links inside just work.
 
-It covers every dashboard page and the account menu, the settings, account, About and error pages, Help, every dialog (the bug report too), the pack, crates, the settings and admin overlays, the store's item details, the spectate bar, the results screen and the launch countdown. The sign-in pages are left out: they need typing.
+It covers every dashboard page and the account menu, the settings, account, About and error pages, Help, every dialog (the bug report too), the in-game menu (LB/RB switch between Pack and Rite), crates, the settings and admin overlays, the store's item details, the spectate bar, the results screen and the launch countdown. The sign-in pages are left out: they need typing.
 
 ## Testing
 

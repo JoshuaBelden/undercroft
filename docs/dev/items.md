@@ -10,8 +10,9 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 | `src/lib/content/carry.ts`          | Backpacks (slots) and `CARRY` (weight limits, slowdown)                   |
 | `src/lib/content/loadout.ts`        | How many bricks lie around                                                |
 | `src/lib/shared/items/inventory.ts` | Inventory rules: slots, stacking, moving, equipping, weight               |
-| `src/lib/ui/InventoryScreen.svelte` | The pack screen                                                           |
-| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (pack screen and Loadout page)                |
+| `src/lib/ui/GameMenu.svelte`        | The in-game menu underground: the Pack and Rite tabs                      |
+| `src/lib/ui/PackPanel.svelte`       | The Pack tab (the pack screen)                                            |
+| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (Pack tab and Loadout page)                   |
 | `src/lib/ui/QuickWheel.svelte`      | The quick-use wheel; `wheel.ts` decides which slot is chosen              |
 | `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread      |
 | `src/lib/shared/items/pickup.ts`    | Which floor item you're looking at (shared by server and client)          |
@@ -78,9 +79,17 @@ The rules are all in `src/lib/shared/items/inventory.ts`, and work on `Belonging
 
 **Weight** is the one limit besides slots. Everything carried counts (`carriedWeight`). Up to `CARRY.comfortable` kg there is no effect. From there to `CARRY.max` the ground speed falls evenly to `CARRY.slowest` (`speedFactor`, applied in `stepPlayer`, so it is predicted). Nothing can be picked up, or taken from the stash, past `CARRY.max` (`heavy`). `canTake` says whether one more would fit, or why not (`heavy`, `full`); the client uses it for the pick-up prompt.
 
+### The in-game menu
+
+Underground, the `inventory` action (Tab or I, View on the controller) opens `GameMenu`: a **Pack** tab (`PackPanel`, below) and a **Rite** tab (`RitePanel` and Abandon expedition, see [rite.md](rite.md#the-rite-tab)). Click a tab, or press LB/RB with the controller (the menu's `tabs`). The same action, B or Close puts it away. It doesn't pause anything: the server can't pause a co-op game.
+
+- **It opens on the Pack tab.** While you are down, or dead and spectating, the pack can't be used: there is no Pack tab, and the menu opens on the Rite tab. Going down with the Pack tab showing closes the menu (the pack always has); on the Rite tab it stays open.
+- **The tabs share one place:** both panes sit in the same grid cell, the hidden one `inert` and invisible, so the menu is as big as its bigger tab and keeps its size from one to the other. Switching blurs whatever had the focus in the old tab, and the controller starts on the new one where it was last (the menu's `key` is per tab).
+- **Adding a tab:** a name in `MENU_TABS` (`GameMenu.svelte`), when it shows in `tabs`, and its pane in the markup.
+
 ### The pack screen
 
-The `inventory` action opens `InventoryScreen`: a `LoadoutPanel` (EQUIPMENT, BACKPACK, QUICK USE), with the weight carried beside the title, with the slot in the hand outlined. It doesn't pause anything, and it closes if you go down. Slots are `ItemSlot`s on an `ItemBoard` (see [systems.md](systems.md#item-slots)): drag onto another slot, shift-click, or right-click for Equip / Unequip, Split and Drop. Each sends an `inventory` message carrying an `InventoryAction`.
+The Pack tab (`PackPanel`) is a `LoadoutPanel` (EQUIPMENT, BACKPACK, QUICK USE), with the weight carried beside the title, with the slot in the hand outlined. Slots are `ItemSlot`s on an `ItemBoard` (see [systems.md](systems.md#item-slots)): drag onto another slot, shift-click, or right-click for Equip / Unequip, Split and Drop. Each sends an `inventory` message carrying an `InventoryAction`.
 
 The server checks the request (`sanitizeAction`, which refuses stash slots), applies it in `Session.inventory` with `applyAction`, and refuses it while downed. A `drop` lands on the floor in front of you. If what's in the hand changed, the held item's action is cancelled and the new one comes up (`reequip`). These changes are not predicted: the client sees them in the next snapshot.
 
