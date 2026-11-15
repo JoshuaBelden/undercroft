@@ -4,9 +4,11 @@
 	import { SHOP, money, type ShopEntry } from '#lib/content/economy.ts';
 	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
+	import { device } from '#lib/game/input/device.svelte.ts';
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import ItemFilters from './ItemFilters.svelte';
+	import KeyCap from './KeyCap.svelte';
 	import {
 		categoryLabel,
 		COIN_SIGN,
@@ -163,7 +165,7 @@
 			</button>
 		</header>
 
-		<div class="about">
+		<div class="about" data-pad-scroll>
 			{#if def?.flavor}
 				<p class="flavor">{def.flavor}</p>
 			{/if}
@@ -193,7 +195,11 @@
 			</p>
 			<p class="purse">You have {@render coins(explorer.money)}</p>
 			<div class="buy">
-				<div class="quantity" data-pad-stepper>
+				<!-- With a controller, the right stick's left and right change it (docs/dev/controller.md). -->
+				{#if device.kind === 'pad'}
+					<span class="pad-hint"><KeyCap code="PadRStickX" size="large" /></span>
+				{/if}
+				<div class="quantity" data-pad-stick-stepper>
 					<button
 						type="button"
 						aria-label="One fewer"
@@ -522,6 +528,12 @@
 	.buy {
 		display: flex;
 		gap: 12px;
+	}
+
+	.pad-hint {
+		align-self: center;
+		display: flex;
+		margin-right: -4px;
 	}
 
 	/* One pill: fewer, how many, more. */

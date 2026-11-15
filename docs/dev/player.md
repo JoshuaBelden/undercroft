@@ -217,6 +217,7 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 - **Sneaking** plays no footsteps.
 - **Expedition stingers:** `expedition.intro` (`sfx_expedition_intro.mp3`) on arriving underground and `expedition.outro` (`sfx_extraction_outro.mp3`) on leaving alive, both on the music bus. See [expedition.md](expedition.md#leaving-and-results).
 - **Menu click:** `ui.click` (`menu_click.wav`) plays on every move between pages off the expedition: the dashboard tabs, store, social, settings, the keys that switch them, and back/forward. The root layout (`src/routes/+layout.svelte`) plays it from `onNavigate`, so any new page gets it for free. It skips navigation into or out of `/play` and query-only changes.
+- **Menu ticks (controller):** `ui.focus` as the focus moves in a menu, and the lower `ui.step` as the right stick steps a value (the store's quantity). The root layout plays them from `onMenuMove` (see [controller.md](controller.md#menus)).
 
 ### Mix
 
