@@ -89,6 +89,11 @@ export interface KitEntry {
 	descends?: boolean;
 	/** Major rooms: placed last on the main route, after a descent, so it is the deepest. */
 	final?: boolean;
+	/**
+	 * Connectors: a minor room rather than a passage. Start, major and extraction pieces are rooms
+	 * already. Only the map debug view uses it (docs/dev/map-generation.md#debug-grid).
+	 */
+	room?: boolean;
 	/** Name shown in the room banner when a player first enters it. */
 	title?: string;
 	/** How the space sounds (reverb, damping); default 'tunnel'. See src/lib/content/audio/ambience.ts. */

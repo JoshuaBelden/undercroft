@@ -69,4 +69,19 @@ After that the server chooses which of the pieces' crate markers have a loot cra
 2. Run `pnpm asset:build`.
 3. Add it to `MAP_KIT` with a role (and a weight for connectors). Caps must have a single socket of the type they seal. Pieces that change level need `descends: true`.
 
-The admin panel shows the current seed. Restart the game server to get a new one.
+## Debug grid
+
+In dev mode, the admin panel (F10) Map group shows the current seed, regenerates the map from a seed you type (or a random one), and turns on the map debug view. F9 (`toggleFreecam`, remappable, no controller button) flies the same view freely from where you stand: move keys to fly, Space and X for up and down, sprint for four times the speed. F9 again puts you back in your body, which never moved. While flying, interact (E) moves your body to the camera and puts you in it, looking the same way: the eyes go where the camera was and you fall to the floor below (with noclip on, you stay there). It's the `teleportTo` admin command; the server does nothing over no floor at all (`dropSpot` in `src/lib/shared/map/points.ts`). Reload (R) brings the camera back to your body and keeps flying. The admin panel's Map group has both as buttons while the free camera is on, and the side panel shows the keys as they are bound.
+
+The map debug view is fully lit and draws a grid over the map (Map group, **Grid**, on by default), through walls:
+
+| Drawn             | Means                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| Yellow fill       | A room cell: start, major, extraction, and connectors with `room: true` in `MAP_KIT` (minor rooms). |
+| Grey cell outline | A cell some piece occupies, on its level's floor. Edges with no entrance only get this.             |
+| Green panel       | An entrance (socket) with a piece on both sides: a way through.                                     |
+| Red panel         | A blocked entrance: sealed by a cap, closed by a dead end, or open with nothing across it.          |
+
+Down the left, a panel counts what the map is made of: rooms (start, major, extraction, minor), tunnels (every other connector), dead ends, caps, connected and blocked entrances, cells and levels, then how many of each room and tunnel piece. A new connector that is a room, not a passage, sets `room: true` in `MAP_KIT` to be counted and highlighted as one.
+
+`mapDebugGrid(layout, PIECES, MAP_KIT)` (`src/lib/shared/map/debug.ts`, tested) works this out from the layout; `MapDebugGrid` (`src/lib/game/map/MapDebugGrid.ts`) draws it. A red panel with no cap or dead end behind it is a generator bug: the generator seals every opening.

@@ -44,6 +44,7 @@ import { aimRay, reequip } from '../src/lib/shared/items/weapons.ts';
 import { crateCentre, placeCrates } from '../src/lib/shared/map/crates.ts';
 import {
 	creatureSpawns,
+	dropSpot,
 	roomPoints,
 	rubbleSites,
 	spawnPoint
@@ -656,6 +657,19 @@ export class Session {
 				const room = roomPoints(this.layout, PIECES, MAP_KIT).find((r) => r.name === command.room);
 				if (!room) return;
 				player.state.position = this.freeSpot(room.position);
+				player.state.velocity = [0, 0, 0];
+				break;
+			}
+			case 'teleportTo': {
+				const at = command.position;
+				if (!Array.isArray(at) || at.length !== 3 || !at.every(Number.isFinite)) return;
+				const [x, y, z] = at as Vec3;
+				const feet: Vec3 = [x, y - eyeHeight(player.state), z];
+				const spot = player.state.flags.noclip
+					? feet
+					: dropSpot(this.world, feet, MOVEMENT.stances.stand.height, MOVEMENT.radius);
+				if (!spot) return;
+				player.state.position = spot;
 				player.state.velocity = [0, 0, 0];
 				break;
 			}
