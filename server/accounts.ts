@@ -1,12 +1,19 @@
 import { getAccount, redeemTicket } from '../src/lib/server/store/accounts.ts';
+import { accountAvatar } from '../src/lib/server/store/avatars.ts';
 import { getDb } from './db.ts';
 import { log } from './log.ts';
 
+/** How a player shows to others: their gamer tag and avatar. */
+export interface Profile {
+	gamerTag: string;
+	/** Their avatar's URL, or null for none. */
+	avatar: string | null;
+}
+
 /** Who a connection is: resolved from the ticket in its `hello`. */
-export interface Identity {
+export interface Identity extends Profile {
 	account: string;
 	explorer: string;
-	gamerTag: string;
 }
 
 /**
@@ -23,7 +30,8 @@ export async function identify(ticket: unknown): Promise<Identity | null> {
 		return {
 			account: found.account._id,
 			explorer: found.explorer._id,
-			gamerTag: found.account.gamerTag
+			gamerTag: found.account.gamerTag,
+			avatar: accountAvatar(found.account)
 		};
 	} catch (error) {
 		log.warn(`Could not check a ticket: ${(error as Error).message}`);
@@ -31,14 +39,15 @@ export async function identify(ticket: unknown): Promise<Identity | null> {
 	}
 }
 
-/** An account's gamer tag as it is now (it can be changed on the site while connected). */
-export async function currentTag(account: string): Promise<string | null> {
+/** An account's gamer tag and avatar as they are now (both can be changed on the site while connected). */
+export async function currentProfile(account: string): Promise<Profile | null> {
 	const db = getDb();
 	if (!db) return null;
 	try {
-		return (await getAccount(db, account))?.gamerTag ?? null;
+		const found = await getAccount(db, account);
+		return found ? { gamerTag: found.gamerTag, avatar: accountAvatar(found) } : null;
 	} catch (error) {
-		log.warn(`Could not read a gamer tag: ${(error as Error).message}`);
+		log.warn(`Could not read a profile: ${(error as Error).message}`);
 		return null;
 	}
 }

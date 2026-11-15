@@ -8,7 +8,7 @@ import type { AccountDoc, ExplorerDoc } from './accounts.ts';
  *
  * Removed: the account, its sessions, game and admin tickets, reset links and two-step
  * challenges, its explorers (stash, loadout, ledger, rite progress), its friendships and friend
- * requests (both sides), and its votes on ideas (each idea's count goes down to match).
+ * requests (both sides), its uploaded avatar, and its votes on ideas (each idea's count goes down to match).
  *
  * Kept, with nothing that says who: bug reports, ideas and feedback it wrote (shown as
  * `DELETED_ACCOUNT`), and the runs its explorers logged (they name only the explorer id, which no
@@ -36,6 +36,7 @@ export async function deleteAccount(db: Db, accountId: string): Promise<AccountD
 	await db.collection<ExplorerDoc>('explorers').deleteMany(owned);
 
 	await db.collection<{ accounts: string[] }>('friends').deleteMany({ accounts: accountId });
+	await db.collection<{ _id: string }>('avatars').deleteOne({ _id: accountId });
 
 	const votes = db.collection<{ _id: string; idea: string; account: string }>('ideaVotes');
 	const voted = await votes.find(owned).toArray();

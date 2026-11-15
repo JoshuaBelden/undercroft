@@ -32,7 +32,8 @@ describe('allReady', () => {
 		name: 'n',
 		ready,
 		inExpedition: false,
-		connected
+		connected,
+		avatar: null
 	});
 	const party = (over: Partial<PartyState>): PartyState => ({
 		leader: 'm',

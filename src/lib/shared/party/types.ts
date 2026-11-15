@@ -9,6 +9,8 @@ export interface PartyMember {
 	/** Their account id: what friends are listed by. */
 	account: string;
 	name: string;
+	/** Their avatar's URL (an upload, or their Discord avatar), or null: none. */
+	avatar: string | null;
 	/** Has confirmed their loadout and is waiting to descend. */
 	ready: boolean;
 	/** Down in the catacombs right now (false once they have climbed out or died). */
