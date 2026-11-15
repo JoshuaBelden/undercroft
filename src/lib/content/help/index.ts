@@ -85,7 +85,7 @@ Move with the left stick: push it gently to creep, a slow walk that makes no foo
 
 In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. While a menu is open, the D-pad and face buttons work the menu, not the game.
 
-In your pack, a crate or the Loadout page, {button:PadA} picks an item up and the slots that would take it light up; {button:PadA} on one puts it down, and {button:PadB} puts it back. {button:PadX} sends an item straight where it belongs, and {button:PadY} opens its menu. Typing, such as a friend's gamer tag, still needs a keyboard.
+In your pack, a crate or the Loadout page, {button:PadA} picks an item up and the slots that would take it light up; {button:PadA} on one puts it down, and {button:PadB} puts it back. {button:PadX} sends an item straight where it belongs, and {button:PadY} opens its menu. In a crate or a corpse, once {button:PadX} has sent an item to your pack you move on to the next one, so you can empty it by pressing {button:PadX} again and again. Typing, such as a friend's gamer tag, still needs a keyboard.
 
 Settings > Controller has look sensitivity, invert Y, the dead zone, vibration, sprint (toggle or hold) and the button icons. A controller the game doesn't recognise has to be mapped to the standard layout in your system's or Steam's own controller settings.`
 	},
