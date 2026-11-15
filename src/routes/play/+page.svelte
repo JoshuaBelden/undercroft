@@ -1429,6 +1429,11 @@
 					settings.graphics.view = settings.graphics.view === 'shoulder' ? 'first' : 'shoulder';
 					saveSettings();
 					break;
+				case 'toggleRitePanel':
+					settings.interface.ritePanel = !settings.interface.ritePanel;
+					saveSettings();
+					sounds.play('ui.toggle');
+					break;
 				case 'toggleStats':
 					settings.interface.showStats = !settings.interface.showStats;
 					saveSettings();
@@ -1472,7 +1477,7 @@
 <canvas bind:this={canvas} class:pad={device.kind === 'pad'}></canvas>
 
 {#if spawned && !mapView && !result}
-	<Hud {...hud} lampKey={promptCode('headlamp')} />
+	<Hud {...hud} lampKey={promptCode('headlamp')} partyShown={settings.interface.ritePanel} />
 {/if}
 
 {#if wheel && spawned && !mapView && !result}
@@ -1506,6 +1511,8 @@
 		{rite}
 		carriers={riteCarriers}
 		interactKey={promptCode('interact')}
+		open={settings.interface.ritePanel}
+		toggleKey={promptCode('toggleRitePanel')}
 	/>
 	{#if deadline !== null}
 		<ExpeditionClock seconds={deadline} arrival={calmed || manifested ? null : (meter ?? 0)} />

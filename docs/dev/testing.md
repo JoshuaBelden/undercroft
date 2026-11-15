@@ -46,6 +46,7 @@ Fixtures (only test files import them):
 - **Rules.** Inventory: stacking, weight limit, swaps, sealed crate slots, splitting and dropping keep counts right. Movement: steps, ledges, low ceilings, water, stamina, the lamp.
 - **The expedition, end to end.** `server/session.test.ts` plays it through a real `Session`: shooting and stabbing creatures, throwing, dropping and picking up, opening crates, chalk marks, going down and being revived, dying and watching, extracting, the deadline, banishing, the rite, admin commands, and a tick that throws.
 - **Parties and friends.** `parties.test.ts` (readying, the countdown, descending together, dropping and coming back, kicking), `social.test.ts` (requests, invites, presence), `connection.test.ts` (hello, and every message routed).
+- **Controller focus in a crate.** `src/lib/ui/crateFocus.test.ts`: where the focus goes after X sends an item out of a crate, with the server's answer worked out by the real inventory rules (it fits, the pack is full, part of a stack fits).
 - **Sanitizers.** Everything that reads untrusted network input (`sanitizeFrame`, `sanitizeAction`, `sanitizeRef`, admin commands, marks) rejects or clamps junk.
 
 Not unit tested: rendering (Three.js), audio, Svelte components, the site's MongoDB stores (`src/lib/server/store/`) and the server's process wiring. Those are play-tested.

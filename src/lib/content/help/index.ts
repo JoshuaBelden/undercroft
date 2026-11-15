@@ -69,6 +69,7 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 - {action:inventory} your pack
 - {action:drop} drop what is in your hand
 - {action:toggleView} over the shoulder or through your eyes
+- {action:toggleRitePanel} hide or show the rite and your party's health
 - {action:toggleSettings} settings, {action:toggleHelp} help`
 	},
 	{
@@ -81,11 +82,11 @@ Move with the left stick: push it gently to creep, a slow walk that makes no foo
 
 {pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, and swims down in water. {pad:interact} interacts and revives. {pad:attack} attacks, fires or uses what is in your hand, {pad:aim} aims or throws, and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
 
-{pad:headlamp} switches the headlamp, {pad:drop} drops what you hold, {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. {pad:inventory} opens your pack and {pad:toggleSettings} the settings.
+{pad:headlamp} switches the headlamp, {pad:drop} drops what you hold, {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. Click {pad:toggleRitePanel} to hide the rite and your party's health down the left, and again to bring them back. {pad:inventory} opens your pack and {pad:toggleSettings} the settings.
 
-In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. While a menu is open, the D-pad and face buttons work the menu, not the game.
+In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. In the store, push the right stick left or right to choose how many. While a menu is open, the D-pad and face buttons work the menu, not the game.
 
-In your pack, a crate or the Loadout page, {button:PadA} picks an item up and the slots that would take it light up; {button:PadA} on one puts it down, and {button:PadB} puts it back. {button:PadX} sends an item straight where it belongs, and {button:PadY} opens its menu. On the Loadout page they act when you let go, so that holding them can do something else (below). Typing, such as a friend's gamer tag, still needs a keyboard.
+In your pack, a crate or the Loadout page, {button:PadA} picks an item up and the slots that would take it light up; {button:PadA} on one puts it down, and {button:PadB} puts it back. {button:PadX} sends an item straight where it belongs, and {button:PadY} opens its menu. In a crate or a corpse, once {button:PadX} has sent an item to your pack you move on to the next one, so you can empty it by pressing {button:PadX} again and again. On the Loadout page {button:PadX} and {button:PadY} act when you let go, so that holding them can do something else (below). Typing, such as a friend's gamer tag, still needs a keyboard.
 
 On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
 
@@ -386,6 +387,8 @@ Long ago, the keepers of the dead held back the dusk each evening with a rite. T
 		title: 'The rite',
 		category: 'The Gloaming',
 		body: `The rite is what ends it. What is known about it is always at the left of your view down here: the Affliction's name, the hints you have found, then a line joining everything the rite needs and where it must be done. Once a hint has told you what a thing is, its picture appears beside it, greyed out until you carry it yourself.
+
+If it covers too much of your screen, press {action:toggleRitePanel} to hide it, along with your party's health. Only the Affliction's name stays at the left edge, with the button that brings the rest back. It stays hidden on your next descent until you press it again, or turn Show rite and party panel back on under Interface in the settings.
 
 At first, nothing is. Scraps of writing were left about the catacombs by those who came before: pinned to the walls of the great rooms, lying on coffins and altars, stuffed in crates, in the pockets of the dead. Never just dropped on the floor. Press {action:interact} on one to read it (in a crate, right-click it and choose Read). Whichever scrap you find, it tells you the next thing, always in the same order, until you know everything the rite needs and where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
 

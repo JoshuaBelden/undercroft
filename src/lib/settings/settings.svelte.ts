@@ -99,6 +99,11 @@ export interface Settings {
 		quickSlots: boolean;
 		/** "Press E to pick up ..." prompts for things on the floor. */
 		itemPrompts: boolean;
+		/**
+		 * Underground, the rite down the left and the party's health below it. Off, only the
+		 * Affliction's name stays, in a pill (docs/dev/rite.md).
+		 */
+		ritePanel: boolean;
 	};
 	controls: ControlSettings;
 	controller: ControllerSettings;
@@ -113,7 +118,7 @@ function defaults(): Settings {
 		sound: { muteInBackground: false },
 		bindings: defaultBindings(),
 		padBindings: defaultPadBindings(),
-		interface: { showStats: false, quickSlots: true, itemPrompts: true },
+		interface: { showStats: false, quickSlots: true, itemPrompts: true, ritePanel: true },
 		controls: { mouseSensitivity: 1, aimSensitivity: 1, invertY: false },
 		controller: {
 			lookSensitivity: 1,

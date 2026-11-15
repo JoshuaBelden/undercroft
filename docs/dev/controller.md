@@ -20,10 +20,12 @@ Keyboard, mouse and controller all work at the same time, as in most PC games. W
 | `src/lib/game/input/actions.ts`       | `PAD_DEFAULTS`, `defaultPadBindings()`, labels for controller buttons                   |
 | `src/lib/game/input/InputMap.ts`      | Controller buttons as actions, beside keys and mouse buttons; the sticks                |
 | `src/lib/game/input/menus.ts`         | Menus: `menu()`, focus moved by the D-pad and stick, A/B/X/Y, tabs, scrolling, holds    |
+| `src/lib/game/input/repeat.ts`        | Held directions in menus repeating, and the right stick stepping a value (tested)       |
 | `src/lib/game/input/hold.ts`          | `HOLD_TIME`; a menu hold told from a quick press (unit tested)                          |
 | `src/lib/game/input/hints.svelte.ts`  | Which menu has the controller, and the hold under way, for the icons (reactive)         |
 | `src/lib/ui/ButtonHint.svelte`        | A shortcut's button inside the control it presses; the slide that fills for a hold      |
 | `src/lib/ui/ItemSlot.svelte`          | Item slots with a controller: carry, send, the item menu (`ItemBoard.carry`)            |
+| `src/lib/ui/crateFocus.ts`            | Where the focus goes once X has sent an item out of a crate (`CrateFocus`)              |
 | `src/lib/settings/settings.svelte.ts` | `padBindings` and the `controller` group                                                |
 | `src/lib/game/player/LocalPlayer.ts`  | Analog movement, creeping on a light push, toggle sprint, stick look, the wheel pointer |
 | `src/lib/content/rumble.ts`           | Rumble effects (data)                                                                   |
@@ -78,7 +80,7 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | Button     | Action                                  | Button      | Action                        |
 | ---------- | --------------------------------------- | ----------- | ----------------------------- |
 | Left stick | Move (a light push creeps)              | Right stick | Look; points at an open wheel |
-| L3         | Sprint (toggle, or hold: a setting)     | R3          | Social (on the dashboard)     |
+| L3         | Sprint (toggle, or hold: a setting)     | R3          | Rite and party panel; Social  |
 | A          | Climb / swim up / surrender (hold)      | RT          | Attack / fire / use           |
 | B          | Stance (tap / hold to creep); swim down | LT          | Aim (hold) / throw            |
 | X          | Interact / revive (hold)                | LB          | Quick-use wheel (hold)        |
@@ -86,6 +88,8 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | D-pad up   | Headlamp mode                           | D-pad down  | Drop held item                |
 | D-pad left | Camera: first person / shoulder         | D-pad right | Help                          |
 | View       | Pack                                    | Menu        | Settings                      |
+
+R3 is the rite and party panel underground (hide or show it, see [rite.md](rite.md#hiding-the-panel)) and Social on the dashboard (see the dashboard's shortcuts below). The two never listen at once, so they share the button.
 
 No controller button: choosing primary or secondary directly (Y swaps the two), fullscreen (browsers only allow it from a click or a key), performance stats and the admin panel. Their prompts and help show the keyboard key even while the controller is in use.
 
@@ -141,6 +145,7 @@ Every screen is built from native buttons, links and inputs, so one focus system
 - LB/RB switch tabs: the settings and admin groups, the dashboard's tabs (from the store or social, to the first or last).
 - The right stick scrolls whatever scrolls around the focus.
 - On a slider, or a stepper (a value with arrows either side), left and right change the value instead of moving away.
+- The store's quantity is on the right stick instead (`data-pad-stick-stepper`): while the item details are open, its left and right make it fewer or more wherever the focus is, with a quiet `ui.step` tick. Held, it repeats at the same rate as a held direction, with no speed-up (`repeat.ts`); at 1 or 99 the disabled button isn't pressed, so there is no tick. The quantity is no stop for the D-pad or left stick, so they go straight to Purchase. A push mostly sideways steps and doesn't scroll; up and down still scroll the details. Typing a number and the − / + buttons work as before.
 - A menu opens on its first control outside its header (where tabs and Close are), or on the one used last there: the dashboard remembers each page, settings and admin each group.
 - Typing (sign-in, a gamer tag, the store's quantity) still needs a keyboard; there is no on-screen keyboard.
 
@@ -182,16 +187,19 @@ The icon is drawn in its control's own two colours, swapped, rather than the whi
 
 **Item slots.** A picks an item up; the slots that would take it are lit dark blue, as when dragging, and the one with the focus is lit when it would take it. A on a lit slot puts it down, A on the slot it came from (or B) puts it back. X sends an item where it belongs (shift-click), Y opens the item menu at the slot: on release on the Loadout page, where holding them confirms or opens the store (see Holds above). Carrying is `ItemBoard`'s dragging (`ItemBoard.carry`), so the rules for what goes where stay in one place. A crate opens on its top-left slot: the focus can rest on slots not searched yet, and stays put when one is revealed.
 
+**Looting with X.** In a crate (or a corpse: the same screen), once X has sent an item to the pack, the focus moves on to the next slot in reading order (to the right, then the start of the next row) that holds something or is still sealed, so pressing X again and again empties the crate. The server carries the move out, so `CrateScreen` doesn't move the focus on the press: it tells `CrateFocus` (`crateFocus.ts`) about every press in the screen, and `CrateFocus` waits for the crate's slots to change. Only a slot left empty moves the focus. It stays put when the pack is full (nothing changes), when only part of a stack fit, and on the last thing in the crate (no wrap to the top). It doesn't move either if the focus has left the slot by the time the answer comes, or if another button was pressed since. A hint read with X leaves its slot too, so that moves on as well. Sending from the pack into the crate, and the stash on the Loadout page, don't move the focus. The move is `moveFocus(control)` in `menus.ts`, the D-pad's own: lit, scrolled to, and the `ui.focus` tick. A screen that moves the focus by itself uses it too.
+
 **Markup that steers it:**
 
-| Markup                                      | What                                                                                                                                                              |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{@attach menu({ back, tabs, key })}`       | A menu. `back` is B, `tabs(by)` is LB (-1) / RB (1), `key` remembers the control used last across openings                                                        |
-| `data-pad-stop` with `tabindex="-1"`        | Somewhere the focus can rest that isn't a control, so a grid with gaps still moves as a grid (a crate's sealed slots)                                             |
-| `data-pad-scroll`                           | What the right stick scrolls when nothing around the focus does (a `TabScreen`'s fields, with the focus on its tabs, as in Help)                                  |
-| `data-pad-stepper`                          | One stop for a value with buttons either side (and maybe a field between): left and right press its first and last buttons (`StepperField`, the store's quantity) |
-| `data-pad-hold="x"` / `"y"`                 | Holding that button presses this control from anywhere in the menu (Launch, Confirm loadout, the store, Purchase); put a `ButtonHint` with `hold` in it           |
-| `padpress` event (`CustomEvent<PadButton>`) | Sent to the focused control before A, B, X or Y does anything; `preventDefault()` says it was handled (`ItemSlot.svelte`)                                         |
+| Markup                                      | What                                                                                                                                                            |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{@attach menu({ back, tabs, key })}`       | A menu. `back` is B, `tabs(by)` is LB (-1) / RB (1), `key` remembers the control used last across openings                                                      |
+| `data-pad-stop` with `tabindex="-1"`        | Somewhere the focus can rest that isn't a control, so a grid with gaps still moves as a grid (a crate's sealed slots)                                           |
+| `data-pad-scroll`                           | What the right stick scrolls when nothing around the focus does (a `TabScreen`'s fields, with the focus on its tabs, as in Help)                                |
+| `data-pad-stepper`                          | One stop for a value with buttons either side (and maybe a field between): left and right press its first and last buttons (`StepperField`)                     |
+| `data-pad-stick-stepper`                    | Like `data-pad-stepper`, but the right stick's left and right press its first and last buttons, wherever the focus is, and it is no stop (the store's quantity) |
+| `data-pad-hold="x"` / `"y"`                 | Holding that button presses this control from anywhere in the menu (Launch, Confirm loadout, the store, Purchase); put a `ButtonHint` with `hold` in it         |
+| `padpress` event (`CustomEvent<PadButton>`) | Sent to the focused control before A, B, X or Y does anything; `preventDefault()` says it was handled (`ItemSlot.svelte`)                                       |
 
 **Adding a screen:** give its root `{@attach menu({ back: onclose })}`. `Panel`, `Dialog` and `TabScreen` already have it, so screens built from them need nothing more. Buttons and links inside just work.
 
@@ -199,7 +207,7 @@ It covers every dashboard page and the account menu, the settings, account, Abou
 
 ## Testing
 
-The hold timing (`hold.ts`) has unit tests; nothing else here can run without a browser. Each part is checked by hand with an Xbox controller in Chrome, Firefox and Safari on macOS. PlayStation detection and Steam controllers haven't been tried on real hardware; the PlayStation icons can still be seen with the Button icons setting.
+Only the repeat timing and the right stick's step (`repeat.test.ts`), the hold timing (`hold.test.ts`), and where the focus goes after X in a crate (`src/lib/ui/crateFocus.test.ts`, against the real inventory rules) are unit tested. The rest is checked by hand with an Xbox controller in Chrome, Firefox and Safari on macOS. PlayStation detection and Steam controllers haven't been tried on real hardware; the PlayStation icons can still be seen with the Button icons setting.
 
 ## Adding an action
 

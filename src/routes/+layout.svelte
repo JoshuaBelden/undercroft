@@ -48,12 +48,13 @@
 		menuSound('ui.click');
 	});
 
-	// The controller moving the focus in a menu, anywhere: a quiet tick (docs/dev/controller.md).
-	onMount(() => onMenuMove(() => menuSound('ui.focus')));
+	// The controller moving the focus in a menu, anywhere, or stepping a value with the right
+	// stick: a quiet tick (docs/dev/controller.md).
+	onMount(() => onMenuMove((tick) => menuSound(tick === 'step' ? 'ui.step' : 'ui.focus')));
 	// And a button held in a menu pressing its control (Launch, the store): another.
 	onMount(() => onMenuHold(() => menuSound('ui.hold')));
 
-	function menuSound(id: 'ui.click' | 'ui.focus' | 'ui.hold'): void {
+	function menuSound(id: 'ui.click' | 'ui.focus' | 'ui.step' | 'ui.hold'): void {
 		// Until the page is clicked or a key pressed, the browser keeps it silent (a controller
 		// doesn't count): skip the sound rather than have them all play at the first click.
 		if (!navigator.userActivation.hasBeenActive) return;
