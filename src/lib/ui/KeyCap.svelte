@@ -6,8 +6,8 @@
 	 * A binding shown on screen. A key is a small white rounded cap with the key's label in bold
 	 * black. A controller button is drawn in the same style, in the current icon set (`padFamily`):
 	 * round face buttons (letters, or PlayStation's shapes), the d-pad with the pressed arm dark,
-	 * a stick pushed left or right by its short name between two arrows, the rest by name. Pass
-	 * the binding's code (`promptCode`), so it follows remapping and the device in use.
+	 * the rest by name. Pass the binding's code (`promptCode`), so it follows remapping and the
+	 * device in use.
 	 */
 	interface Props {
 		/** The binding, e.g. "KeyF" or "PadA". */
@@ -34,14 +34,11 @@
 	};
 	/** The d-pad arm each direction lights, as a turn from up. */
 	const DPAD: Record<string, number> = { PadUp: 0, PadRight: 90, PadDown: 180, PadLeft: 270 };
-	/** A stick pushed left or right: its short name, Xbox style and PlayStation. */
-	const STICKS: Record<string, readonly [string, string]> = { PadRStickX: ['RS', 'R'] };
 
 	const family = $derived(padFamily());
 	const label = $derived(bindingLabel(code, family));
 	const face = $derived(FACES[code]?.[family === 'playstation' ? 1 : 0]);
 	const turn = $derived(DPAD[code]);
-	const stick = $derived(STICKS[code]?.[family === 'playstation' ? 1 : 0]);
 </script>
 
 {#if face}
@@ -58,12 +55,6 @@
 			<path class="cross" d="M4 1h2v3h3v2H6v3H4V6H1V4h3z" />
 			<path class="arm" d="M4 1h2v3H4z" transform="rotate({turn} 5 5)" />
 		</svg>
-	</kbd>
-{:else if stick}
-	<kbd class="key stick" class:large={size === 'large'} title={label}>
-		<svg viewBox="0 0 4 8" aria-hidden="true"><path d="M3.6 1L0.4 4l3.2 3z" /></svg>
-		{stick}
-		<svg viewBox="0 0 4 8" aria-hidden="true"><path d="M0.4 1l3.2 3-3.2 3z" /></svg>
 	</kbd>
 {:else}
 	<kbd class="key" class:wide={label.length > 1} class:large={size === 'large'}>{label}</kbd>
@@ -137,31 +128,6 @@
 		stroke: currentColor;
 		stroke-width: 1.4;
 		stroke-linejoin: round;
-	}
-
-	/* A stick pushed sideways: an arrow either side of its name. */
-	.key.stick {
-		gap: 1px;
-		padding: 0 2px;
-	}
-
-	.key.stick.large {
-		gap: 2px;
-		padding: 0 4px;
-	}
-
-	.stick svg {
-		width: 4px;
-		height: 8px;
-	}
-
-	.stick.large svg {
-		width: 6px;
-		height: 12px;
-	}
-
-	.stick path {
-		fill: currentColor;
 	}
 
 	.dpad .cross {

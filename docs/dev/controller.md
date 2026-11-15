@@ -59,16 +59,15 @@ It decides the icons in prompts and help and, underground, whether the game need
 
 A controller binding is a code, like a key's `KeyboardEvent.code`:
 
-| Code                                   | Button (Xbox / PlayStation)                |
-| -------------------------------------- | ------------------------------------------ |
-| `PadA` `PadB` `PadX` `PadY`            | A B X Y / Cross Circle Square Triangle     |
-| `PadLB` `PadRB`                        | LB RB / L1 R1                              |
-| `PadLT` `PadRT`                        | LT RT / L2 R2                              |
-| `PadView` `PadMenu`                    | View Menu / Create Options                 |
-| `PadL3` `PadR3`                        | Stick clicks                               |
-| `PadUp` `PadDown` `PadLeft` `PadRight` | D-pad                                      |
-| `PadStickUp` `PadStickDown` ...        | Left stick pushed that way (move actions)  |
-| `PadRStickX`                           | Right stick left/right: an icon, not bound |
+| Code                                   | Button (Xbox / PlayStation)               |
+| -------------------------------------- | ----------------------------------------- |
+| `PadA` `PadB` `PadX` `PadY`            | A B X Y / Cross Circle Square Triangle    |
+| `PadLB` `PadRB`                        | LB RB / L1 R1                             |
+| `PadLT` `PadRT`                        | LT RT / L2 R2                             |
+| `PadView` `PadMenu`                    | View Menu / Create Options                |
+| `PadL3` `PadR3`                        | Stick clicks                              |
+| `PadUp` `PadDown` `PadLeft` `PadRight` | D-pad                                     |
+| `PadStickUp` `PadStickDown` ...        | Left stick pushed that way (move actions) |
 
 These are the 17 standard buttons less the guide button, which the system keeps. The PlayStation touchpad and the Steam Deck's back grips aren't bound: every supported controller plays the same in every browser.
 
@@ -113,8 +112,6 @@ Sound needs a gesture too, but only once per page load ("sticky" activation); si
 
 The id isn't reliable everywhere: on Windows, Chrome and Firefox name every XInput controller the same, and a PlayStation controller through Steam Input looks like an Xbox one. Settings > Controller > Button icons (Auto / Xbox / PlayStation) overrides the detection.
 
-`PadRStickX` is drawn too (its short name, RS or R, between two arrows), for the right stick stepping a value in a menu. Nothing binds to it.
-
 In help text, `{action:name}` renders the binding for the device in use. `{pad:name}` always renders the controller button, and `{button:PadA}` a fixed one (the menu buttons); the Playing with a controller topic uses both.
 
 ## Rumble
@@ -142,7 +139,7 @@ Every screen is built from native buttons, links and inputs, so one focus system
 - LB/RB switch tabs: the settings and admin groups, the dashboard's tabs (from the store or social, to the first or last).
 - The right stick scrolls whatever scrolls around the focus.
 - On a slider, or a stepper (a value with arrows either side), left and right change the value instead of moving away.
-- The store's quantity is on the right stick instead (`data-pad-stick-stepper`): while the item details are open, its left and right make it fewer or more wherever the focus is, with a quiet `ui.step` tick. Held, it repeats at the same rate as a held direction, with no speed-up (`repeat.ts`); at 1 or 99 the disabled button isn't pressed, so there is no tick. The quantity is no stop for the D-pad or left stick, so they go straight to Purchase. A push mostly sideways steps and doesn't scroll; up and down still scroll the details. A right-stick icon shows by it while the controller is in use. Typing a number and the − / + buttons work as before.
+- The store's quantity is on the right stick instead (`data-pad-stick-stepper`): while the item details are open, its left and right make it fewer or more wherever the focus is, with a quiet `ui.step` tick. Held, it repeats at the same rate as a held direction, with no speed-up (`repeat.ts`); at 1 or 99 the disabled button isn't pressed, so there is no tick. The quantity is no stop for the D-pad or left stick, so they go straight to Purchase. A push mostly sideways steps and doesn't scroll; up and down still scroll the details. Typing a number and the − / + buttons work as before.
 - A menu opens on its first control outside its header (where tabs and Close are), or on the one used last there: the dashboard remembers each page, settings and admin each group.
 - Typing (sign-in, a gamer tag, the store's quantity) still needs a keyboard; there is no on-screen keyboard.
 

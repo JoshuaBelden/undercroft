@@ -133,9 +133,7 @@ const PAD_LABELS: Record<string, readonly [string, string]> = {
 	PadStickUp: ['Left stick up', 'Left stick up'],
 	PadStickDown: ['Left stick down', 'Left stick down'],
 	PadStickLeft: ['Left stick left', 'Left stick left'],
-	PadStickRight: ['Left stick right', 'Left stick right'],
-	// Only ever shown (KeyCap draws it): what steps a menu's `data-pad-stick-stepper`. Not bound.
-	PadRStickX: ['Right stick left/right', 'Right stick left/right']
+	PadStickRight: ['Left stick right', 'Left stick right']
 };
 
 /** True for a controller binding code ('PadA'), false for a key or mouse button. */
