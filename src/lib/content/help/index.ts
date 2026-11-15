@@ -154,7 +154,7 @@ Don't stay too long. The time at the top of your view is how long you have left.
 
 Once you're out, your expedition is over. The results show how it went (time underground, how deep you got, creatures killed, crates opened, hints found) and what you brought out; Continue takes you to your loadout to put the haul away. In a group, the others can stay down; the expedition ends when everyone is out.
 
-You can also give up from anywhere: press {action:inventory}, go to the Rite tab and choose Abandon expedition. You go back to the surface, but everything you carried stays where you stood.`
+You can also give up from anywhere, as long as you're on your feet: press {action:inventory}, go to the Rite tab and choose Abandon expedition. You go back to the surface, but everything you carried stays where you stood.`
 	},
 	{
 		id: 'parties',
@@ -296,7 +296,7 @@ If you die down here, everything you carried stays where you fell. Someone else 
 		id: 'pack',
 		title: 'Your pack',
 		category: 'Gear and loot',
-		body: `Press {action:inventory} to open your pack. It is the first tab of the menu; the Rite tab beside it shows what you know of the rite. The catacombs don't wait while you look through it.
+		body: `Press {action:inventory} to open your pack. It is the first tab of the menu; the Rite tab beside it shows what you know of the rite. You can't open the menu while you're down. The catacombs don't wait while you look through it.
 
 It is laid out like your loadout on the surface. Equipment: two weapons, and what you wear for protection. The backpack, which takes anything. And the quick-use slots, which are what the wheel offers. The slot in your hand is outlined.
 

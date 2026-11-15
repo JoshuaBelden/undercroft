@@ -23,8 +23,7 @@
 	interface Props {
 		/** The tab showing. */
 		tab: MenuTab;
-		/** What you carry; null while the pack can't be used (down, or dead and watching): no Pack tab. */
-		inventory: Inventory | null;
+		inventory: Inventory;
 		/** The Affliction this rite resolves, e.g. "The Gloaming". */
 		affliction: string;
 		/** The rite as known so far; null for no Rite tab. */
@@ -34,8 +33,8 @@
 		/** The interact binding (RitePanel). */
 		interactKey: string;
 		onaction: (action: InventoryAction) => void;
-		/** Given, the Rite tab offers to abandon the expedition (asked to confirm first). */
-		onabandon?: () => void;
+		/** Abandon the expedition (asked to confirm first). */
+		onabandon: () => void;
 		onclose: () => void;
 	}
 
@@ -51,7 +50,7 @@
 		onclose
 	}: Props = $props();
 
-	const tabs = $derived(MENU_TABS.filter((name) => (name === 'Pack' ? !!inventory : !!rite)));
+	const tabs = $derived(MENU_TABS.filter((name) => name === 'Pack' || !!rite));
 	const current = $derived(tabs.includes(tab) ? tab : (tabs[0] ?? tab));
 	/** Asking whether to really abandon the expedition. */
 	let confirmingAbandon = $state(false);
@@ -100,19 +99,15 @@
 		</header>
 
 		<div class="panes" bind:this={panes}>
-			{#if inventory}
-				<div class="pane" aria-label="Pack" inert={current !== 'Pack'}>
-					<PackPanel {inventory} {onaction} />
-				</div>
-			{/if}
+			<div class="pane" aria-label="Pack" inert={current !== 'Pack'}>
+				<PackPanel {inventory} {onaction} />
+			</div>
 			{#if rite}
 				<div class="pane rite" aria-label="Rite" inert={current !== 'Rite'}>
 					<RitePanel {affliction} {rite} {carriers} {interactKey} />
-					{#if onabandon}
-						<button type="button" class="abandon" onclick={() => (confirmingAbandon = true)}>
-							Abandon expedition
-						</button>
-					{/if}
+					<button type="button" class="abandon" onclick={() => (confirmingAbandon = true)}>
+						Abandon expedition
+					</button>
 				</div>
 			{/if}
 		</div>
@@ -130,7 +125,7 @@
 				class="primary"
 				onclick={() => {
 					confirmingAbandon = false;
-					onabandon?.();
+					onabandon();
 				}}
 			>
 				Abandon

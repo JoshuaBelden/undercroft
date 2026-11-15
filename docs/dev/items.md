@@ -83,7 +83,7 @@ The rules are all in `src/lib/shared/items/inventory.ts`, and work on `Belonging
 
 Underground, the `inventory` action (Tab or I, View on the controller) opens `GameMenu`: a **Pack** tab (`PackPanel`, below) and a **Rite** tab (`RitePanel` and Abandon expedition, see [rite.md](rite.md#the-rite-tab)). Click a tab, or press LB/RB with the controller (the menu's `tabs`). The same action, B or Close puts it away. It doesn't pause anything: the server can't pause a co-op game.
 
-- **It opens on the Pack tab.** While you are down, or dead and spectating, the pack can't be used: there is no Pack tab, and the menu opens on the Rite tab. Going down with the Pack tab showing closes the menu (the pack always has); on the Rite tab it stays open.
+- **It opens on the Pack tab.** It only opens while you are down there and on your feet: never while downed, or dead and spectating. Going down closes it.
 - **The tabs share one place:** both panes sit in the same grid cell, the hidden one `inert` and invisible, so the menu is as big as its bigger tab and keeps its size from one to the other. Switching blurs whatever had the focus in the old tab, and the controller starts on the new one where it was last (the menu's `key` is per tab).
 - **Adding a tab:** a name in `MENU_TABS` (`GameMenu.svelte`), when it shows in `tabs`, and its pane in the markup.
 

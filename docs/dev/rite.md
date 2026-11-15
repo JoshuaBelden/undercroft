@@ -75,7 +75,7 @@ Underground, what is known of the rite (`RitePanel`) is shown at the middle of t
 
 ### The Rite tab
 
-The same `RitePanel`, all of it whether or not the panel is hidden, is the Rite tab of the in-game menu (`GameMenu`, opened by the `inventory` action; see [items.md](items.md#the-in-game-menu)). It is there while spectating too, and while downed, when it is the only tab. Under it is Abandon expedition (see [expedition.md](expedition.md#abandoning)).
+The same `RitePanel`, all of it whether or not the panel is hidden, is the Rite tab of the in-game menu (`GameMenu`, opened by the `inventory` action; see [items.md](items.md#the-in-game-menu)). Under it is Abandon expedition (see [expedition.md](expedition.md#abandoning)).
 
 ### Hiding the panel
 

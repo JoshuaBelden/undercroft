@@ -296,12 +296,10 @@
 			return;
 		}
 		const closing = panel === name;
-		// The menu opens down there, or while watching: on the pack, or on the rite while you are
-		// down or dead (the pack can't be used then).
+		// The menu only opens down there and on your feet, on the pack: never while down or dead.
 		if (name === 'menu' && !closing) {
-			const pack = expedition && spawned && !downed;
-			if (!pack && !(rite && ((expedition && spawned) || spectating))) return;
-			menuTab = pack ? 'Pack' : 'Rite';
+			if (!expedition || !spawned || downed) return;
+			menuTab = 'Pack';
 		}
 		panel = closing ? null : name;
 		if (panel) document.exitPointerLock();
@@ -1492,8 +1490,7 @@
 				if (state.performing > 0 && !performing) sounds.play('rite.begin');
 				performing = state.performing > 0;
 				if (panel === 'menu' || panel === 'crate') {
-					// Going down puts the pack away; the rite can stay.
-					if (state.downed && panel === 'menu' && menuTab === 'Pack') {
+					if (state.downed && panel === 'menu') {
 						panel = null;
 					} else {
 						const json = JSON.stringify(state.inventory);
@@ -1726,21 +1723,19 @@
 	/>
 {:else if panel === 'help'}
 	<HelpScreen dim onclose={() => (panel = null)} />
-{:else if panel === 'menu' && (inventory || menuTab !== 'Pack')}
+{:else if panel === 'menu' && inventory}
 	<GameMenu
 		bind:tab={menuTab}
-		inventory={downed || spectating ? null : inventory}
+		{inventory}
 		affliction={afflictionName}
 		{rite}
 		carriers={riteCarriers}
 		interactKey={promptCode('interact')}
 		onaction={(action) => sendInventory(action)}
-		onabandon={expedition
-			? () => {
-					panel = null;
-					send({ type: 'abandon' });
-				}
-			: undefined}
+		onabandon={() => {
+			panel = null;
+			send({ type: 'abandon' });
+		}}
 		onclose={() => toggle('menu')}
 	/>
 {:else if panel === 'crate' && inventory && crate}
