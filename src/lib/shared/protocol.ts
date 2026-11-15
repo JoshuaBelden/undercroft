@@ -43,8 +43,8 @@ export type ClientMessage =
 	| { type: 'affliction'; id: string }
 	/** Friends and party invites (see docs/dev/social.md). */
 	| { type: 'social'; action: SocialAction }
-	/** The gamer tag was changed on the site: read it again. */
-	| { type: 'rename' }
+	/** The gamer tag or avatar was changed on the site: read them again. */
+	| { type: 'profile' }
 	/** Dead and watching the others: stop, and go back to the surface. */
 	| { type: 'stopSpectating' }
 	/** Give up on the expedition: back to the surface, leaving what you carried where you stood. */
@@ -212,7 +212,7 @@ const CLIENT_TYPES = new Set<string>([
 	'ready',
 	'affliction',
 	'social',
-	'rename',
+	'profile',
 	'stopSpectating',
 	'abandon',
 	'inventory',

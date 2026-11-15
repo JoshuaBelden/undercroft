@@ -31,6 +31,7 @@
 
 	const explorer = $derived(session.account?.explorer ?? null);
 	const gamerTag = $derived(session.account?.gamerTag ?? data.account?.gamerTag ?? '');
+	const avatar = $derived(session.account?.avatar ?? null);
 
 	/** The dashboard's screens, in the order of the tabs. The store is reached from the money. */
 	const TABS = [
@@ -124,7 +125,7 @@
 					<span aria-hidden="true">{explorer.money}</span>
 				</a>
 			{/if}
-			<AccountMenu {gamerTag} />
+			<AccountMenu {gamerTag} {avatar} />
 		</div>
 	</header>
 

@@ -397,9 +397,9 @@ That person goes to the place and holds {action:interact}. Nothing has to be set
 		id: 'account',
 		title: 'Your account',
 		category: 'The surface',
-		body: `Click your gamer tag at the top right of the dashboard for your Account screen, or to sign out.
+		body: `Click your avatar and gamer tag at the top right of the dashboard for your Account screen, or to sign out.
 
-- Profile: change your gamer tag, the name other players see. Delete account is here too: it removes your account, your explorer, your stash and your friends list for good, after you type your gamer tag (and your password, and a two-step code if you use one). Bug reports, ideas and feedback you sent stay, without your name.
+- Profile: your avatar, the picture other players see beside your gamer tag and on your pane before a descent. Upload a picture, then move and zoom it until the right part shows in the circle (drag it, or use the right stick on a controller). If you linked Discord, your Discord avatar shows until you upload one; remove yours to go back to it. Your gamer tag is here too, the name other players see. Delete account is here too: it removes your account, your explorer, your stash and your friends list for good, after you type your gamer tag (and your password, and a two-step code if you use one). Bug reports, ideas and feedback you sent stay, without your name.
 - Sign-in: change your password, and link your Discord account so you can sign in with it. If you made your account with Discord, you can set a password here too.
 - Security: two-step sign-in, and signing out every other browser.
 

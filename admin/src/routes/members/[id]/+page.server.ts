@@ -10,6 +10,7 @@ import {
 	audit,
 	deleteAccount,
 	deleteSessionsFor,
+	discordAvatarUrl,
 	disableTotp,
 	getAccount,
 	liftSuspension,
@@ -17,6 +18,7 @@ import {
 	listIdeas,
 	listReports,
 	readAudit,
+	removeAvatar,
 	runsOf,
 	requestReset,
 	resetMail,
@@ -36,6 +38,12 @@ export const load: PageServerLoad = async ({ params }) => {
 	const { explorers, ledger } = await explorersOf(db, account._id);
 	return {
 		member: memberRow(account),
+		avatar: {
+			/** Their upload, served by this app (the game's URL is on another site). */
+			uploaded:
+				account.avatar !== undefined ? `/members/${account._id}/avatar?v=${account.avatar}` : null,
+			discord: account.discord ? discordAvatarUrl(account.discord.id, account.discord.avatar) : null
+		},
 		signIn: {
 			password: account.password !== undefined,
 			discord: account.discord?.username ?? null,
@@ -154,6 +162,14 @@ export const actions: Actions = {
 		if ('error' in result) return fail(400, { error: ACCOUNT_ERRORS[result.error] });
 		await audit(db, admin, 'renameTag', account._id, `${account.gamerTag} → ${result.gamerTag}`);
 		return { notice: `Now ${result.gamerTag}. Others see it from their next connection` };
+	},
+
+	removeAvatar: async ({ params, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		if (!(await removeAvatar(db, account._id))) return fail(400, { error: 'They have no picture' });
+		await audit(db, admin, 'removeAvatar', account._id);
+		return { notice: 'Picture removed. Others see it gone from their next connection' };
 	},
 
 	grantAdmin: async ({ params, locals }) => {

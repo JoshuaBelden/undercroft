@@ -25,6 +25,26 @@ export const ACCOUNT = {
 };
 
 /**
+ * Avatars: the picture beside the gamer tag (docs/dev/accounts.md#avatars). The Account screen
+ * crops what the player chooses to a square of `uploadSize`; the server checks it and keeps it as
+ * a `size` WebP.
+ */
+export const AVATAR = {
+	/** Pixels square, as stored and served. */
+	size: 256,
+	/** Pixels square the crop editor sends (more than `size`, so the server scales it down). */
+	uploadSize: 512,
+	/** WebP quality the server stores it at. */
+	quality: 82,
+	/** Largest upload accepted, in bytes (under the site's 512 KB request limit). */
+	maxUploadBytes: 400 * 1024,
+	/** Largest picture the crop editor will open, in bytes. */
+	maxSourceBytes: 20 * 1024 * 1024,
+	/** Zoom range in the crop editor: 1 fills the square with the picture's short side. */
+	zoomMax: 4
+};
+
+/**
  * What a deleted account's bug reports, ideas and feedback say instead of who wrote them
  * (`deleteAccount` in src/lib/server/store/deletion.ts).
  */
@@ -44,7 +64,9 @@ export const THROTTLE = {
 	report: { count: 6, minutes: 60 },
 	idea: { count: 5, minutes: 60 },
 	feedback: { count: 6, minutes: 60 },
-	vote: { count: 120, minutes: 60 }
+	vote: { count: 120, minutes: 60 },
+	// A new avatar, per account: every upload counts.
+	avatar: { count: 10, minutes: 60 }
 } satisfies Record<string, { count: number; minutes: number }>;
 
 export type ThrottleRule = keyof typeof THROTTLE;

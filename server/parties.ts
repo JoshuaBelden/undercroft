@@ -7,7 +7,7 @@ import { allStacks } from '../src/lib/shared/items/inventory.ts';
 import { allReady, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import type { FriendStatus } from '../src/lib/shared/social/types.ts';
-import type { Identity } from './accounts.ts';
+import type { Identity, Profile } from './accounts.ts';
 import { giveBack, lockKit, owned, takeKit } from './belongings.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
@@ -22,6 +22,8 @@ export interface Member {
 	explorer: string;
 	/** Their gamer tag. */
 	name: string;
+	/** Their avatar's URL, or null. */
+	avatar: string | null;
 	socket: WebSocket;
 	/** Their loadout is confirmed and locked, and they are waiting to descend. */
 	ready: boolean;
@@ -89,6 +91,7 @@ export class Parties {
 			back.socket = socket;
 			back.connected = true;
 			back.name = identity.gamerTag;
+			back.avatar = identity.avatar;
 			if (old !== socket && old.readyState === old.OPEN) {
 				old.send(encode({ type: 'reject', reason: 'You connected from somewhere else' }));
 				old.close();
@@ -102,6 +105,7 @@ export class Parties {
 			account: identity.account,
 			explorer: identity.explorer,
 			name: identity.gamerTag,
+			avatar: identity.avatar,
 			socket,
 			ready: false,
 			wantReady: false,
@@ -243,10 +247,11 @@ export class Parties {
 		this.changed(member.party);
 	}
 
-	/** Their gamer tag changed. */
-	rename(member: Member, name: string): void {
-		if (name === member.name) return;
-		member.name = name;
+	/** Their gamer tag or avatar changed (on the site): the party sees the new ones. */
+	updateProfile(member: Member, profile: Profile): void {
+		if (profile.gamerTag === member.name && profile.avatar === member.avatar) return;
+		member.name = profile.gamerTag;
+		member.avatar = profile.avatar;
 		this.changed(member.party);
 	}
 
@@ -526,6 +531,7 @@ export class Parties {
 				id: m.id,
 				account: m.account,
 				name: m.name,
+				avatar: m.avatar,
 				ready: m.ready,
 				inExpedition: !!m.playerId && !!party.session?.has(m.playerId),
 				connected: m.connected
