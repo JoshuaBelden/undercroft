@@ -163,7 +163,7 @@
 			</button>
 		</header>
 
-		<div class="about">
+		<div class="about" data-pad-scroll>
 			{#if def?.flavor}
 				<p class="flavor">{def.flavor}</p>
 			{/if}
@@ -193,7 +193,7 @@
 			</p>
 			<p class="purse">You have {@render coins(explorer.money)}</p>
 			<div class="buy">
-				<div class="quantity" data-pad-stepper>
+				<div class="quantity" data-pad-stick-stepper>
 					<button
 						type="button"
 						aria-label="One fewer"
