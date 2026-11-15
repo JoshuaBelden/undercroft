@@ -34,6 +34,8 @@
 		gloom: number;
 		/** Everyone on the expedition (this player included): health and stamina, bottom-left. */
 		party: PartyMember[];
+		/** Show the party panel (hidden with the rite panel, Settings > Interface). */
+		partyShown?: boolean;
 	}
 
 	let {
@@ -52,7 +54,8 @@
 		ammo,
 		aiming,
 		gloom,
-		party
+		party,
+		partyShown = true
 	}: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
@@ -94,22 +97,24 @@
 	</div>
 {/if}
 
-<PartyHealth members={party}>
-	{#if posture}
-		<div class="posture">{posture}</div>
-	{/if}
-	<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
-		{#if lampKey}<KeyCap code={lampKey} />{/if}
-		<span class="cells">
-			{#each [0, 1, 2, 3] as cell (cell)}
-				<span class="cell" class:on={cell < bars}></span>
-			{/each}
-		</span>
-		<!-- Rounded up: a lamp that still gives any light never reads 0 V. -->
-		<span class="volts">{Math.ceil(volts)}V</span>
-		<span>{LAMP_LABELS[headlamp] ?? ''}</span>
-	</div>
-</PartyHealth>
+{#if partyShown}
+	<PartyHealth members={party}>
+		{#if posture}
+			<div class="posture">{posture}</div>
+		{/if}
+		<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
+			{#if lampKey}<KeyCap code={lampKey} />{/if}
+			<span class="cells">
+				{#each [0, 1, 2, 3] as cell (cell)}
+					<span class="cell" class:on={cell < bars}></span>
+				{/each}
+			</span>
+			<!-- Rounded up: a lamp that still gives any light never reads 0 V. -->
+			<span class="volts">{Math.ceil(volts)}V</span>
+			<span>{LAMP_LABELS[headlamp] ?? ''}</span>
+		</div>
+	</PartyHealth>
+{/if}
 
 <style>
 	.vignette {
