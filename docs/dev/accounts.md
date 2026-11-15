@@ -142,6 +142,8 @@ Adding a collection that stores an account or explorer id: decide whether it is 
 
 TOTP (RFC 6238: SHA-1, 6 digits, 30 seconds, as every authenticator app expects), in `src/lib/server/totp.ts` with `node:crypto`. A code is accepted one step either side of now, and never for a step at or before `usedStep`, so a code can't be replayed. Recovery codes look like `xxxxx-xxxxx`; only their hashes are kept, and each is removed when used.
 
+**Local testing:** under `pnpm dev` and `pnpm dev:admin`, `000000` passes as an authenticator code for any account, both when signing in and when turning two-step on. `totp.ts` checks `import.meta.env.DEV`, which Vite sets to `false` in every build, so this never works on a deployed server (not even one with `PUBLIC_DEV_MODE`).
+
 Signing in: once the password (or Discord) is right, `signIn` (`session.ts`) refuses a suspended account (with the reason), or creates the session, or, if the account has `totp`, starts a challenge and sets the `undercroft.challenge` cookie. The browser goes to `/auth/mfa`, and `POST /api/auth/mfa` (`finishChallenge`) creates the session when the code is right. Any new way of signing in should go through `signIn`, so two-step sign-in applies to it.
 
 Setting up: `/mfa/setup` stores the secret as `totpPending` and returns it with a QR code (`qrcode`, as SVG, shown in an `<img>`). Only `/mfa/enable` with a code from that secret moves it to `totp`, so a bad scan can't lock anyone out.
