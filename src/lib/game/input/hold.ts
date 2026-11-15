@@ -19,7 +19,7 @@ export class Hold {
 		private readonly length: number = HOLD_TIME
 	) {}
 
-	/** How far it has got, 0..1: what the ring around the button shows. 0 once cancelled. */
+	/** How far it has got, 0..1: how far the slide across the control has gone. 0 once cancelled. */
 	progress(now: number): number {
 		if (this.cancelled) return 0;
 		if (this.done) return 1;

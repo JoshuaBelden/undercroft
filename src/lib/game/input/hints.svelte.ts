@@ -1,7 +1,7 @@
 /**
  * What the controller's menus show on screen (`ButtonHint.svelte`), kept up to date by menus.ts:
  * which menu has the controller (menu buttons only work in it), and the hold under way, for the
- * ring around its button. See docs/dev/controller.md.
+ * slide across its control. See docs/dev/controller.md.
  */
 export const hints = $state({
 	/** The root of the menu the controller drives, or null when none is open. */

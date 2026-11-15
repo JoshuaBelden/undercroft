@@ -76,10 +76,10 @@
 				data-pad-hold="x"
 				onclick={() => void confirm()}
 			>
+				Confirm loadout
 				{#if !busy}
 					<ButtonHint code="PadX" hold />
 				{/if}
-				Confirm loadout
 			</button>
 		</div>
 	{/if}
@@ -135,8 +135,10 @@
 		background: rgb(255 255 255 / 0.1);
 	}
 
-	/* The same dark yellow as the Launch button it follows. */
+	/* The same dark yellow as the Launch button it follows; its controller button too. */
 	.go {
+		--hint-cap: var(--panel);
+		--hint-label: var(--launch);
 		display: flex;
 		align-items: center;
 		gap: 10px;
@@ -148,6 +150,7 @@
 
 	.go:hover:not(:disabled),
 	.go:focus-visible {
+		--hint-label: var(--launch-bright);
 		border-color: var(--launch-bright);
 		background: var(--launch-bright);
 	}

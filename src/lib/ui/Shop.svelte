@@ -231,10 +231,10 @@
 					data-pad-hold="y"
 					onclick={() => void purchase(entry)}
 				>
+					Purchase
 					{#if canBuy}
 						<ButtonHint code="PadY" hold />
 					{/if}
-					Purchase
 				</button>
 			</div>
 		</footer>
@@ -578,7 +578,10 @@
 		margin: 0;
 	}
 
+	/* Its controller button is in its colours, swapped: a light cap, the letter in the blue. */
 	.purchase {
+		--hint-cap: var(--text);
+		--hint-label: var(--accent);
 		flex: 1;
 		display: flex;
 		align-items: center;

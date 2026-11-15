@@ -102,10 +102,10 @@
 					data-pad-hold="x"
 					onclick={confirmLoadout}
 				>
+					Launch Expedition
 					{#if affliction}
 						<ButtonHint code="PadX" hold />
 					{/if}
-					Launch Expedition
 				</button>
 			{/if}
 
@@ -247,8 +247,10 @@
 		background: rgb(255 255 255 / 0.1);
 	}
 
-	/* Launch: the one dark yellow button. */
+	/* Launch: the one dark yellow button. Its controller button is in its colours, swapped. */
 	.pill.go {
+		--hint-cap: var(--panel);
+		--hint-label: var(--launch);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -263,6 +265,7 @@
 
 	.pill.go:hover:not(:disabled),
 	.pill.go:focus-visible {
+		--hint-label: var(--launch-bright);
 		border-color: var(--launch-bright);
 		background: var(--launch-bright);
 	}

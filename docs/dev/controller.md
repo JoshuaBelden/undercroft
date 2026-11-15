@@ -22,7 +22,7 @@ Keyboard, mouse and controller all work at the same time, as in most PC games. W
 | `src/lib/game/input/menus.ts`         | Menus: `menu()`, focus moved by the D-pad and stick, A/B/X/Y, tabs, scrolling, holds    |
 | `src/lib/game/input/hold.ts`          | `HOLD_TIME`; a menu hold told from a quick press (unit tested)                          |
 | `src/lib/game/input/hints.svelte.ts`  | Which menu has the controller, and the hold under way, for the icons (reactive)         |
-| `src/lib/ui/ButtonHint.svelte`        | A shortcut's button inside the control it presses; a ring that fills for a hold         |
+| `src/lib/ui/ButtonHint.svelte`        | A shortcut's button inside the control it presses; the slide that fills for a hold      |
 | `src/lib/ui/ItemSlot.svelte`          | Item slots with a controller: carry, send, the item menu (`ItemBoard.carry`)            |
 | `src/lib/settings/settings.svelte.ts` | `padBindings` and the `controller` group                                                |
 | `src/lib/game/player/LocalPlayer.ts`  | Analog movement, creeping on a light push, toggle sprint, stick look, the wheel pointer |
@@ -146,7 +146,7 @@ Every screen is built from native buttons, links and inputs, so one focus system
 
 **Which menu has the controller.** A screen marks its root with `{@attach menu({ back, tabs, key })}`. The one on top gets the controller: inside an open modal dialog if there is one, otherwise the one latest in the page (an overlay is rendered after what it covers, a menu inside another after that one). While any menu is open it keeps the D-pad, the left stick's directions, A, B, X, Y, LB and RB from the `InputMap`; View and Menu (the pack and settings) still work. So D-pad right moves the focus instead of opening Help while a menu is open; on the dashboard Help is the ? button.
 
-**The dashboard's shortcuts.** Beyond moving and pressing, the dashboard (`src/routes/(hub)/+layout.svelte` and its pages) has shortcuts, each with its button on screen (see below):
+**The dashboard's shortcuts.** Beyond moving and pressing, the dashboard (`src/routes/(hub)/+layout.svelte` and its pages) has shortcuts, each but View with its button on screen (see below):
 
 | Shortcut          | Button              | Where                                                                                |
 | ----------------- | ------------------- | ------------------------------------------------------------------------------------ |
@@ -160,14 +160,23 @@ Every screen is built from native buttons, links and inputs, so one focus system
 
 View and R3 go through the `InputMap` (bindings, remappable). The dashboard's input map hears `inventory` from the controller only (`InputMap`'s `padOnly`): its key is Tab, which moves the focus there. The holds and LB/RB are menu buttons, fixed like A and B.
 
-**Holds.** A control with `data-pad-hold="x"` (or `"y"`) is pressed by holding that button for `HOLD_TIME` (600 ms, in `hold.ts`: tune the feel there), from anywhere in its menu, while it is enabled and its menu has the controller. The ring around its icon fills as it is held, and `ui.hold`, a quiet tick, plays when it completes (the root layout, `onMenuHold`). Letting go early empties the ring and does what a quick press of the button does: the focused control's `padpress`, on release instead of on press. So on the Loadout page a quick X on an item slot still sends it and a quick Y opens its menu, while a hold confirms or opens the store. Where no control is held for a button (the pack, crates, the store), X and Y act on press as before.
+**Holds.** A control with `data-pad-hold="x"` (or `"y"`) is pressed by holding that button for `HOLD_TIME` (600 ms, in `hold.ts`: tune the feel there), from anywhere in its menu, while it is enabled and its menu has the controller. A grey slide fills the control's background from left to right as it is held, like a crate's search bar, and `ui.hold`, a quiet tick, plays when it completes (the root layout, `onMenuHold`). Letting go early empties it and does what a quick press of the button does: the focused control's `padpress`, on release instead of on press. So on the Loadout page a quick X on an item slot still sends it and a quick Y opens its menu, while a hold confirms or opens the store. Where no control is held for a button (the pack, crates, the store), X and Y act on press as before.
 
 - A hold only counts from a fresh press: holding X through Launch doesn't go on to confirm on the Loadout page.
 - One at a time: a press of the other button meanwhile acts on press.
 - If the control goes away, is disabled or a menu opens over it, the hold empties and letting go does nothing. Nor does the window losing the focus.
 - `Hold` (`hold.ts`) is the timing alone, without the DOM, and is unit tested; `menus.ts` reads the buttons and presses the control.
 
-**Buttons on screen.** `ButtonHint` shows a shortcut's button (`KeyCap`, in the current icon set) inside the control it presses, before its label, only while the controller is the device in use: keyboard and mouse players see nothing. With `hold` it draws the ring. Each page renders it only where its shortcut works right then (Launch only while it can be pressed, the store not on the Store page or while ready, Social not on the Social page), and a menu button's (LB/RB, a hold) shows only while its menu is the one the controller drives (`hints.top`), so not under an open dialog, Help or the item menu. It is hidden from screen readers (the label says it), and `--hint-gap` sets the space before the label where the control isn't a flex row with a gap.
+**Buttons on screen.** `ButtonHint` shows a shortcut's button (`KeyCap`, in the current icon set) inside the control it presses, after its label, only while the controller is the device in use: keyboard and mouse players see nothing. With `hold` it also draws the slide: absolutely placed in the control, under its label (`[data-pad-hold]` in `src/app.css` makes the control its box and clips it to the control's shape). Each page renders it only where its shortcut works right then (Launch only while it can be pressed, the store not on the Store page or while ready, Social not on the Social page), and a menu button's (LB/RB, a hold) shows only while its menu is the one the controller drives (`hints.top`), so not under an open dialog, Help or the item menu. It is hidden from screen readers (the label says it), and `--hint-gap` sets the space after the label where the control isn't a flex row with a gap.
+
+The icon is drawn in its control's own two colours, swapped, rather than the white keycap and coloured letters of the HUD and Help (`KeyCap`'s `tint="control"`): the control sets `--hint-cap` to its text colour and `--hint-label` to its background.
+
+| Control                            | Cap (`--hint-cap`) | Letter (`--hint-label`)                 |
+| ---------------------------------- | ------------------ | --------------------------------------- |
+| Launch, Confirm loadout            | `--panel` (dark)   | `--launch` (`--launch-bright` when lit) |
+| Purchase                           | `--text`           | `--accent`                              |
+| The money (Store)                  | `--accent`         | `--bg`                                  |
+| Tabs (LB/RB), Social: the defaults | `--text`           | `--bg`                                  |
 
 **The focus** is the browser's own, set with `focus({ focusVisible: true })`, so the `:focus-visible` styles keyboard users see are the highlight. While a controller is in use, something in the open menu always has the focus: when a menu opens, or the focused control goes away (a tab switch, an item taken), it moves to the control used last, else the nearest to where it was.
 

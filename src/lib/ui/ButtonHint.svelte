@@ -5,16 +5,18 @@
 	import KeyCap from './KeyCap.svelte';
 
 	/**
-	 * A controller shortcut's button, inside the control it presses, before its label: only while
+	 * A controller shortcut's button, inside the control it presses, after its label: only while
 	 * the controller is the device in use, so keyboard and mouse players see nothing. A menu button
-	 * (LB/RB, a hold) shows only while its menu is the one the controller drives. With `hold`, a
-	 * ring around it fills while the button is held for this control (`data-pad-hold`, menus.ts).
-	 * Space before the label: `--hint-gap` (0 by default, for a flex row with its own gap).
+	 * (LB/RB, a hold) shows only while its menu is the one the controller drives. It is drawn in
+	 * the control's own colours (KeyCap's `tint="control"`: the control sets `--hint-cap` and
+	 * `--hint-label`). With `hold`, a grey slide fills the control's background from the left while
+	 * the button is held for it (`data-pad-hold`, menus.ts). Space after the label: `--hint-gap`
+	 * (0 by default, for a flex row with its own gap).
 	 */
 	interface Props {
 		/** The button ("PadX", or a binding from `settings.padBindings`). Nothing shows for ''. */
 		code: string;
-		/** Held, not pressed: the ring. */
+		/** Held, not pressed: the slide. */
 		hold?: boolean;
 	}
 
@@ -34,26 +36,9 @@
 <!-- Only a picture of what the control's label says: screen readers have the label. -->
 <span class="hint" class:shown bind:this={hint} aria-hidden="true">
 	{#if shown}
-		{#if hold}
-			<span class="ring">
-				<svg viewBox="0 0 24 24">
-					<circle class="track" cx="12" cy="12" r="10.5" />
-					{#if progress > 0}
-						<circle
-							class="fill"
-							cx="12"
-							cy="12"
-							r="10.5"
-							pathLength="1"
-							stroke-dasharray="1"
-							stroke-dashoffset={1 - progress}
-						/>
-					{/if}
-				</svg>
-				<KeyCap {code} />
-			</span>
-		{:else}
-			<KeyCap {code} />
+		<KeyCap {code} tint="control" />
+		{#if hold && progress > 0}
+			<span class="slide" style:width="{progress * 100}%"></span>
 		{/if}
 	{/if}
 </span>
@@ -63,44 +48,23 @@
 		display: none;
 	}
 
-	/* Taller than a line of text, but it doesn't make the control any taller. */
 	.hint.shown {
 		display: inline-flex;
 		flex: none;
 		align-items: center;
-		margin-block: -4px;
-		margin-inline-end: var(--hint-gap, 0);
+		margin-inline-start: var(--hint-gap, 0);
 		vertical-align: middle;
 	}
 
-	.ring {
-		position: relative;
-		display: grid;
-		place-items: center;
-		width: 22px;
-		height: 22px;
-	}
-
-	.ring svg {
+	/*
+	 * The hold, across the whole control from its left edge, under its label: the control is the
+	 * slide's box ([data-pad-hold] in app.css). Grey, as a crate's search bar fills.
+	 */
+	.slide {
 		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		/* From the top, clockwise. */
-		rotate: -90deg;
-	}
-
-	circle {
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 1.8;
-	}
-
-	.track {
-		opacity: 0.3;
-	}
-
-	.fill {
-		stroke-linecap: round;
+		inset: 0 auto 0 0;
+		z-index: -1;
+		background: color-mix(in srgb, var(--muted) 50%, transparent);
+		pointer-events: none;
 	}
 </style>

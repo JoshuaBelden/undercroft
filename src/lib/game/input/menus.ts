@@ -251,7 +251,7 @@ function holdable(menu: Menu, button: PadButton): HTMLElement | null {
 	return controls(menu).find((control) => control.dataset.padHold === button) ?? null;
 }
 
-/** The ring around the held button's icon (ButtonHint.svelte). */
+/** The slide across the held-for control's background (ButtonHint.svelte). */
 function showHold(control: HTMLElement | null, progress: number): void {
 	if (hints.target !== control) hints.target = control;
 	if (hints.progress !== progress) hints.progress = progress;

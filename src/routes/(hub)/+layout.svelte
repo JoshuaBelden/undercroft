@@ -115,9 +115,6 @@
 					class:current={page.route.id === tab.path}
 					aria-current={page.route.id === tab.path ? 'page' : undefined}
 				>
-					{#if tab.path === '/(hub)/loadout' && !loadout}
-						<ButtonHint code={settings.padBindings.inventory[0] ?? ''} />
-					{/if}
 					{tab.label}
 				</a>
 			{/each}
@@ -145,11 +142,11 @@
 					title="Store"
 					data-pad-hold={store ? undefined : 'y'}
 				>
+					<span class="sign" aria-hidden="true">＄</span>
+					<span aria-hidden="true">{explorer.money}</span>
 					{#if !store}
 						<ButtonHint code="PadY" hold />
 					{/if}
-					<span class="sign" aria-hidden="true">＄</span>
-					<span aria-hidden="true">{explorer.money}</span>
 				</a>
 			{/if}
 			<AccountMenu {gamerTag} {avatar} />
@@ -192,9 +189,6 @@
 			aria-current={social ? 'page' : undefined}
 			title="Friends, your party and invites"
 		>
-			{#if !social}
-				<ButtonHint code={settings.padBindings.toggleSocial[0] ?? ''} />
-			{/if}
 			<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
 				<path
 					fill="none"
@@ -207,6 +201,9 @@
 			<span>Social</span>
 			{#if waiting > 0}
 				<span class="badge" aria-hidden="true">{waiting}</span>
+			{/if}
+			{#if !social}
+				<ButtonHint code={settings.padBindings.toggleSocial[0] ?? ''} />
 			{/if}
 		</a>
 		<a class="icon" href={resolve('/settings')} aria-label="Settings" title="Settings">
@@ -262,9 +259,6 @@
 
 	/* Tabs are plain white text; the one you are on gets a white pill outline. */
 	nav a {
-		display: flex;
-		align-items: center;
-		gap: 8px;
 		padding: 6px 16px;
 		border: 1px solid transparent;
 		border-radius: 999px;
@@ -307,7 +301,10 @@
 		font-weight: bold;
 		color: var(--accent);
 		font-variant-numeric: tabular-nums;
+		/* Its controller button: the blue cap, the letter dark as the bar. */
 		--hint-gap: 8px;
+		--hint-cap: var(--accent);
+		--hint-label: var(--bg);
 	}
 
 	.coins:hover,
