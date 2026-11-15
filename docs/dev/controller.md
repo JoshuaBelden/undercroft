@@ -75,7 +75,7 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | Button     | Action                                  | Button      | Action                        |
 | ---------- | --------------------------------------- | ----------- | ----------------------------- |
 | Left stick | Move (a light push creeps)              | Right stick | Look; points at an open wheel |
-| L3         | Sprint (toggle, or hold: a setting)     | R3          | Free                          |
+| L3         | Sprint (toggle, or hold: a setting)     | R3          | Rite and party panel          |
 | A          | Climb / swim up / surrender (hold)      | RT          | Attack / fire / use           |
 | B          | Stance (tap / hold to creep); swim down | LT          | Aim (hold) / throw            |
 | X          | Interact / revive (hold)                | LB          | Quick-use wheel (hold)        |
@@ -83,6 +83,8 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | D-pad up   | Headlamp mode                           | D-pad down  | Drop held item                |
 | D-pad left | Camera: first person / shoulder         | D-pad right | Help                          |
 | View       | Pack                                    | Menu        | Settings                      |
+
+R3 is the rite and party panel underground (hide or show it, see [rite.md](rite.md#hiding-the-panel)).
 
 No controller button: choosing primary or secondary directly (Y swaps the two), friends, fullscreen (browsers only allow it from a click or a key), performance stats and the admin panel. Their prompts and help show the keyboard key even while the controller is in use.
 

@@ -45,6 +45,8 @@ export const ACTIONS = {
 		category: 'Interface',
 		defaults: ['KeyV']
 	},
+	// Underground: hides or shows the rite and the party's health down the left (docs/dev/rite.md).
+	toggleRitePanel: { label: 'Rite and party panel', category: 'Interface', defaults: ['KeyH'] },
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },
 	toggleAdmin: { label: 'Admin panel (dev)', category: 'Interface', defaults: ['F10'] }
 } as const satisfies Record<string, ActionDefinition>;
@@ -97,6 +99,7 @@ export const PAD_DEFAULTS: Record<Action, readonly string[]> = {
 	toggleSocial: [],
 	toggleFullscreen: [],
 	toggleView: ['PadLeft'],
+	toggleRitePanel: ['PadR3'],
 	toggleStats: [],
 	toggleAdmin: []
 };
