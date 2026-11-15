@@ -54,15 +54,29 @@ function codeAt(key: Buffer, step: number): string {
 }
 
 /**
+ * Local development only: all zeros (`000000`) is a code for any account. Vite sets
+ * `import.meta.env.DEV` to true under `vite dev` and writes `false` into every build, so this
+ * never works on a deployed server. Outside Vite (tsx scripts) `import.meta.env` is undefined.
+ */
+const DEV_CODE = import.meta.env?.DEV === true;
+
+/**
  * The time step this code belongs to, or null if it is wrong. One step either side is allowed,
  * for a phone clock that is a little off. A step at or before `usedStep` is refused, so a code
- * someone saw can't be used again.
+ * someone saw can't be used again. `devCode` is only passed by tests.
  */
-export function verifyCode(secret: string, code: string, usedStep = -1): number | null {
+export function verifyCode(
+	secret: string,
+	code: string,
+	usedStep = -1,
+	devCode = DEV_CODE
+): number | null {
 	const typed = code.replace(/\s/g, '');
 	if (!/^\d+$/.test(typed) || typed.length !== ACCOUNT.totpDigits) return null;
-	const key = decode(secret);
 	const now = Math.floor(Date.now() / 1000 / ACCOUNT.totpPeriod);
+	// A step after `usedStep`, so the dev code works again straight away.
+	if (devCode && /^0+$/.test(typed)) return Math.max(now, usedStep + 1);
+	const key = decode(secret);
 	for (const step of [now - 1, now, now + 1]) {
 		if (step > usedStep && codeAt(key, step) === typed) return step;
 	}
