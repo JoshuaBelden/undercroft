@@ -21,6 +21,7 @@ Keyboard, mouse and controller all work at the same time, as in most PC games. W
 | `src/lib/game/input/InputMap.ts`      | Controller buttons as actions, beside keys and mouse buttons; the sticks                |
 | `src/lib/game/input/menus.ts`         | Menus: `menu()`, focus moved by the D-pad and stick, A/B/X/Y, tabs, scrolling           |
 | `src/lib/ui/ItemSlot.svelte`          | Item slots with a controller: carry, send, the item menu (`ItemBoard.carry`)            |
+| `src/lib/ui/crateFocus.ts`            | Where the focus goes once X has sent an item out of a crate (`CrateFocus`)              |
 | `src/lib/settings/settings.svelte.ts` | `padBindings` and the `controller` group                                                |
 | `src/lib/game/player/LocalPlayer.ts`  | Analog movement, creeping on a light push, toggle sprint, stick look, the wheel pointer |
 | `src/lib/content/rumble.ts`           | Rumble effects (data)                                                                   |
@@ -149,6 +150,8 @@ Every screen is built from native buttons, links and inputs, so one focus system
 
 **Item slots.** A picks an item up; the slots that would take it are lit dark blue, as when dragging, and the one with the focus is lit when it would take it. A on a lit slot puts it down, A on the slot it came from (or B) puts it back. X sends an item where it belongs (shift-click), Y opens the item menu at the slot. Carrying is `ItemBoard`'s dragging (`ItemBoard.carry`), so the rules for what goes where stay in one place. A crate opens on its top-left slot: the focus can rest on slots not searched yet, and stays put when one is revealed.
 
+**Looting with X.** In a crate (or a corpse: the same screen), once X has sent an item to the pack, the focus moves on to the next slot in reading order (to the right, then the start of the next row) that holds something or is still sealed, so pressing X again and again empties the crate. The server carries the move out, so `CrateScreen` doesn't move the focus on the press: it tells `CrateFocus` (`crateFocus.ts`) about every press in the screen, and `CrateFocus` waits for the crate's slots to change. Only a slot left empty moves the focus. It stays put when the pack is full (nothing changes), when only part of a stack fit, and on the last thing in the crate (no wrap to the top). It doesn't move either if the focus has left the slot by the time the answer comes, or if another button was pressed since. A hint read with X leaves its slot too, so that moves on as well. Sending from the pack into the crate, and the stash on the Loadout page, don't move the focus. The move is `moveFocus(control)` in `menus.ts`, the D-pad's own: lit, scrolled to, and the `ui.focus` tick. A screen that moves the focus by itself uses it too.
+
 **Markup that steers it:**
 
 | Markup                                      | What                                                                                                                                                              |
@@ -165,7 +168,7 @@ It covers every dashboard page and the account menu, the settings, account, Abou
 
 ## Testing
 
-There are no automated tests. Each part is checked by hand with an Xbox controller in Chrome, Firefox and Safari on macOS. PlayStation detection and Steam controllers haven't been tried on real hardware; the PlayStation icons can still be seen with the Button icons setting.
+Where the focus goes after X in a crate has unit tests (`src/lib/ui/crateFocus.test.ts`, against the real inventory rules). The rest is checked by hand with an Xbox controller in Chrome, Firefox and Safari on macOS. PlayStation detection and Steam controllers haven't been tried on real hardware; the PlayStation icons can still be seen with the Button icons setting.
 
 ## Adding an action
 

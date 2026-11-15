@@ -4,6 +4,7 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- Looting with a controller: once X has sent an item from a crate or corpse to your pack, you move on to the next one, so pressing X again and again empties it.
 - Hide the rite and your party's health down the left of the screen with H, or by clicking the right stick, and bring them back the same way. Only the Affliction's name stays. Handy on a tablet; it's also under Settings > Interface.
 - The game's fonts now come from the game itself rather than Google, so pages load without a stop at another site and nothing about you is sent there.
 - Avatars: upload a picture on the Account screen and frame it in the circle. It shows beside your gamer tag and on your pane on the Expedition screen, for your whole party. Signed in with Discord? Your Discord avatar is used until you upload your own.

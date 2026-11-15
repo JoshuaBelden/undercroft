@@ -3,10 +3,11 @@
 	import { CRATES } from '#lib/content/loot.ts';
 	import { bindingLabel } from '#lib/game/input/actions.ts';
 	import { device, padFamily } from '#lib/game/input/device.svelte.ts';
-	import { menu } from '#lib/game/input/menus.ts';
+	import { menu, moveFocus, type PadButton } from '#lib/game/input/menus.ts';
 	import type { CrateSlot, InventoryAction } from '#lib/shared/items/types.ts';
 	import type { Inventory } from '#lib/shared/player/types.ts';
 	import CarriedWeight from './CarriedWeight.svelte';
+	import { CrateFocus } from './crateFocus.ts';
 	import { ItemBoard } from './itemBoard.svelte.ts';
 	import ItemOverlays from './ItemOverlays.svelte';
 	import ItemSlot from './ItemSlot.svelte';
@@ -47,10 +48,43 @@
 		}),
 		act: (action) => onaction(action)
 	});
+
+	/** The crate's slots on screen: one element each, in slot order (sealed, or an item slot). */
+	let grid = $state<HTMLElement>();
+	/** After X sends an item away, the focus moves on to the next thing in the crate. */
+	const follow = new CrateFocus();
+
+	/** Every controller press in the crate screen, after the slot pressed has handled it. */
+	function pressed(panel: HTMLElement): () => void {
+		const press = (event: Event): void => {
+			const index = grid ? [...grid.children].indexOf(event.target as Element) : -1;
+			// An item slot handles X by sending its stack where it belongs (ItemSlot.svelte).
+			const sent = (event as CustomEvent<PadButton>).detail === 'x' && event.defaultPrevented;
+			follow.press(slots, index, sent);
+		};
+		panel.addEventListener('padpress', press);
+		return () => panel.removeEventListener('padpress', press);
+	}
+
+	// The server's answer to an X: the item has gone, so on to the next slot, unless the focus has
+	// already moved away from the slot X was pressed on.
+	$effect(() => {
+		const move = follow.update(slots);
+		if (!move || !grid || device.kind !== 'pad') return;
+		const to = grid.children.item(move.to);
+		if (document.activeElement === grid.children.item(move.from) && to instanceof HTMLElement) {
+			moveFocus(to);
+		}
+	});
 </script>
 
 <div class="backdrop">
-	<section class="panel" aria-labelledby="crate-title" {@attach menu({ back: onclose })}>
+	<section
+		class="panel"
+		aria-labelledby="crate-title"
+		{@attach menu({ back: onclose })}
+		{@attach pressed}
+	>
 		<header>
 			<div class="title">
 				<h2 id="crate-title">{title}</h2>
@@ -69,7 +103,7 @@
 		<div class="body">
 			<section class="crate">
 				<h3>Inside</h3>
-				<div class="grid" style:--columns={CRATES.columns}>
+				<div class="grid" style:--columns={CRATES.columns} bind:this={grid}>
 					{#each slots as slot, index (index)}
 						{#if slot === 'hidden'}
 							<!-- The controller's focus can rest here too, so the grid moves as a grid. -->
