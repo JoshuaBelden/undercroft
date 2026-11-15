@@ -1,24 +1,24 @@
-| `src/lib/ui/MarkWheel.svelte` | The chalk wheel |
-| `src/lib/ui/MarkGlyph.svelte` | One symbol drawn from its strokes (the wheel and the dialog) |
-| `src/lib/ui/ChalkWheelDialog.svelte` | Choosing your eight, from the Loadout page |
-| `src/routes/api/explorer/marks` | Saving the wheel (`setMarkWheel` in `store/explorers.ts`) |# Chalk marks
+# Chalk marks
 
 Explorers draw marks on walls, floors and ceilings with chalk, to find their way and to tell each other things. A mark lasts the whole expedition, everyone in it sees it, and only whoever drew it can rub it out. Marks are lit only by lamps, so they cost nothing against the light budget and can't be seen in the dark.
 
 ## Files
 
-| File                                | What                                                                |
-| ----------------------------------- | ------------------------------------------------------------------- |
-| `src/lib/content/marks.ts`          | `MARK_SYMBOLS`, `DEFAULT_MARK_WHEEL`, `markWheel()`, `MARKS` tuning |
-| `src/lib/content/items.ts`          | `ChalkSpec` (`chalk: { marks }` on an item)                         |
-| `src/lib/shared/items/inventory.ts` | `wearChalk`: a mark drawn wears the stick in the hand               |
-| `src/lib/shared/items/pickup.ts`    | `lookedAtMark` (which mark interact erases), `markInSight`          |
-| `src/lib/shared/items/types.ts`     | `MarkSnapshot`, the `mark` and `rub` events                         |
-| `server/marks.ts`                   | `Marks`: the expedition's marks; `check` validates a new one        |
-| `server/session.ts`                 | `mark()` (drawing), `stepMarks()` (erasing)                         |
-| `src/lib/game/items/Marks.ts`       | Decals on the stone, the chalk textures, the nearest mark           |
-| `src/lib/ui/MarkWheel.svelte`       | The chalk wheel                                                     |
-| `src/lib/ui/MarkLabel.svelte`       | Who drew the mark you are close to                                  |
+| File                                 | What                                                                |
+| ------------------------------------ | ------------------------------------------------------------------- |
+| `src/lib/content/marks.ts`           | `MARK_SYMBOLS`, `DEFAULT_MARK_WHEEL`, `markWheel()`, `MARKS` tuning |
+| `src/lib/content/items.ts`           | `ChalkSpec` (`chalk: { marks }` on an item)                         |
+| `src/lib/shared/items/inventory.ts`  | `wearChalk`: a mark drawn wears the stick in the hand               |
+| `src/lib/shared/items/pickup.ts`     | `lookedAtMark` (which mark interact erases), `markInSight`          |
+| `src/lib/shared/items/types.ts`      | `MarkSnapshot`, the `mark` and `rub` events                         |
+| `server/marks.ts`                    | `Marks`: the expedition's marks; `check` validates a new one        |
+| `server/session.ts`                  | `mark()` (drawing), `stepMarks()` (erasing)                         |
+| `src/lib/game/items/Marks.ts`        | Decals on the stone, the chalk textures, the nearest mark           |
+| `src/lib/ui/MarkWheel.svelte`        | The chalk wheel                                                     |
+| `src/lib/ui/MarkGlyph.svelte`        | One symbol drawn from its strokes (the wheel and the dialog)        |
+| `src/lib/ui/ChalkWheelDialog.svelte` | Choosing your eight, from the Loadout page                          |
+| `src/routes/api/explorer/marks`      | Saving the wheel (`setMarkWheel` in `store/explorers.ts`)           |
+| `src/lib/ui/MarkLabel.svelte`        | Who drew the mark you are close to                                  |
 
 ## Symbols
 
@@ -30,7 +30,7 @@ The wheel holds eight (`MARK_WHEEL_SIZE`), top first and clockwise. A new explor
 
 1. **Loadout page:** the Chalk wheel button in the loadout panel opens `ChalkWheelDialog`. Pick a place, then a symbol; one already elsewhere on the wheel swaps places. Reset to default puts back `DEFAULT_MARK_WHEEL`. Nothing is kept until Save. It is read-only while underground or ready, like the loadout.
 2. **Saving:** `POST /api/explorer/marks` with `{ wheel }`. `cleanMarkWheel` (content, shared by everyone) accepts only exactly eight known, distinct ids. `setMarkWheel` stores it as `ExplorerDoc.markWheel`, refused while underground or ready, so the wheel that goes down is the one they had when they readied. `ExplorerView.markWheel` is the wheel as it applies (`markWheel(saved)`: the saved one, or the default if none was saved or it no longer checks out).
-3. **Descent:** `Parties.begin` reads the wheels with the loadouts (`markWheels` in `server/belongings.ts`) and passes each to `Session.addPlayer`. The player keeps it (`Player.markWheel`); `welcome` carries it to the client (on a reconnect too), and the play page draws the chalk wheel from it. `Marks.check` refuses any symbol that isn.t on the drawer.s wheel.
+3. **Descent:** `Parties.begin` reads the wheels with the loadouts (`markWheels` in `server/belongings.ts`) and passes each to `Session.addPlayer`. The player keeps it (`Player.markWheel`); `welcome` carries it to the client (on a reconnect too), and the play page draws the chalk wheel from it. `Marks.check` refuses any symbol that isn't on the drawer's wheel.
 
 To add a symbol: add it to `MARK_SYMBOLS` (id, name, strokes); it shows in the dialog for everyone at once. To change what new explorers start with, swap it into `DEFAULT_MARK_WHEEL` (keep eight). Removing a symbol is safe: a saved wheel that names it no longer checks out, so that explorer is back on the default until they choose again.
 
