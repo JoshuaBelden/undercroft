@@ -448,6 +448,14 @@ export const SOUNDS = {
 	'ui.focus': { synth: { kind: 'click' }, category: 'sfx', volume: 0.2, rate: 1.8 },
 	/** The controller's right stick stepping a value in a menu (the store's quantity): a lower tick. */
 	'ui.step': { synth: { kind: 'click' }, category: 'sfx', volume: 0.2, rate: 1.4 },
+	/** Hiding or showing the rite and party panel underground (docs/dev/rite.md): a quiet tick. */
+	'ui.toggle': {
+		file: 'ui.click',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 1.3
+	},
 	// Stingers on the music bus (dry: no muffling or reverb from where you stand).
 	'expedition.intro': { file: 'expedition.intro', category: 'music', volume: 0.8 },
 	'expedition.outro': { file: 'expedition.outro', category: 'music', volume: 0.5 },

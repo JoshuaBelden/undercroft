@@ -110,6 +110,15 @@ export function menuTakes(code: string): boolean {
 }
 
 /**
+ * Move the focus to `control` as the D-pad does: lit, scrolled into view, with the menu tick. For
+ * a screen that moves it on by itself (a crate, once X has sent an item away).
+ */
+export function moveFocus(control: HTMLElement): void {
+	focus(control);
+	for (const listener of moveListeners) listener('move');
+}
+
+/**
  * Called each time the controller moves the focus or switches tabs (`move`), or steps a value with
  * the right stick (`step`): the menu ticks.
  */
@@ -203,9 +212,7 @@ function move(menu: Menu, direction: Direction): void {
 			bestDistance = distance;
 		}
 	}
-	if (!best) return;
-	focus(best);
-	for (const listener of moveListeners) listener('move');
+	if (best) moveFocus(best);
 }
 
 /** Left and right on a slider or stepper change its value. True if `control` is one. */
