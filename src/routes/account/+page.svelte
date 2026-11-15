@@ -35,7 +35,12 @@
 
 <div class="page backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
 	<!-- A new gamer tag is told to the game server, so the party sees it. -->
-	<Account onclose={close} onprofile={() => send({ type: 'profile' })} discord={data.discord} />
+	<Account
+		onclose={close}
+		onprofile={() => send({ type: 'profile' })}
+		discord={data.discord}
+		steam={data.steam}
+	/>
 </div>
 
 <style>

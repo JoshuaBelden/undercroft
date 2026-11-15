@@ -1,0 +1,11 @@
+"lang"
+{
+	"Language"	"english"
+	"Tokens"
+	{
+		"#Status_Hub"	"On the surface"
+		"#Status_Party"	"On the surface, in a party of %size%"
+		"#Status_Solo"	"In the undercroft, alone"
+		"#Status_Coop"	"In the undercroft, %size% explorers"
+	}
+}

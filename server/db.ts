@@ -1,4 +1,5 @@
 import { MongoClient, type Db } from 'mongodb';
+import { localHost } from '../src/lib/server/local.ts';
 import { ensureIndexes } from '../src/lib/server/store/accounts.ts';
 import { config } from './config.ts';
 import { log } from './log.ts';
@@ -11,6 +12,14 @@ let db: Db | null = null;
  * nobody can connect.
  */
 export async function connectDb(): Promise<Db | null> {
+	// The desktop app: the player's local save (docs/dev/hosting.md), never MongoDB.
+	const local = localHost();
+	if (local) {
+		await ensureIndexes(local.db);
+		db = local.db;
+		log.info('Local save connected');
+		return db;
+	}
 	try {
 		client = new MongoClient(config.mongoUri, { serverSelectionTimeoutMS: 3000 });
 		await client.connect();
@@ -35,4 +44,5 @@ export function getDb(): Db | null {
 
 export async function closeDb(): Promise<void> {
 	await client?.close();
+	db = null;
 }

@@ -27,9 +27,15 @@ import { ensureRunIndexes } from './runs.ts';
 
 export interface AccountDoc {
 	_id: string;
-	/** Lower-cased; unique. */
-	email: string;
-	/** `scrypt$<salt>$<hash>`, both hex. Missing on an account made with Discord until one is set. */
+	/**
+	 * Lower-cased; unique. Missing on an account made with Steam until they add one (Steam doesn't
+	 * share it); signing in with a password needs one.
+	 */
+	email?: string;
+	/**
+	 * `scrypt$<salt>$<hash>`, both hex. Missing on an account made with Discord or Steam until one
+	 * is set.
+	 */
 	password?: string;
 	/** The name other players see. */
 	gamerTag: string;
@@ -37,6 +43,8 @@ export interface AccountDoc {
 	tagKey: string;
 	/** The Discord account it signs in with, if linked. `discord.id` is unique. */
 	discord?: DiscordLink;
+	/** The Steam account it signs in with, if linked (docs/dev/desktop.md#steam). `steam.id` is unique. */
+	steam?: SteamLink;
 	/** The version of the avatar they uploaded, if any (the picture is in `avatars`: avatars.ts). */
 	avatar?: number;
 	/** Two-step sign-in, when it is on. */
@@ -58,6 +66,14 @@ export interface DiscordLink {
 	username: string;
 	/** Their Discord avatar's hash (null: Discord's default picture). Missing on older links. */
 	avatar?: string | null;
+}
+
+/** A linked Steam account. */
+export interface SteamLink {
+	/** 64-bit SteamID, as a decimal string. */
+	id: string;
+	/** Their Steam name the last time they signed in with it. */
+	persona: string;
 }
 
 export interface SuspensionDoc {
@@ -134,7 +150,7 @@ interface ProgressDoc {
 }
 
 export type AccountError =
-	'email' | 'password' | 'tag' | 'emailTaken' | 'tagTaken' | 'discordTaken';
+	'email' | 'password' | 'tag' | 'emailTaken' | 'tagTaken' | 'discordTaken' | 'steamTaken';
 
 export const ACCOUNT_ERRORS: Record<AccountError, string> = {
 	email: 'Enter a valid email address',
@@ -142,7 +158,8 @@ export const ACCOUNT_ERRORS: Record<AccountError, string> = {
 	tag: `Gamer tags are ${ACCOUNT.tagMin} to ${ACCOUNT.tagMax} letters, numbers, spaces, - or _`,
 	emailTaken: 'That email already has an account',
 	tagTaken: 'That gamer tag is taken',
-	discordTaken: 'That Discord account is already linked to another Undercroft account'
+	discordTaken: 'That Discord account is already linked to another Undercroft account',
+	steamTaken: 'That Steam account is already linked to another Undercroft account'
 };
 
 /** The stash and loadout are slots. Explorers from before that are converted when next read. */
@@ -155,9 +172,10 @@ const tickets = (db: Db): Collection<SessionDoc> => db.collection<SessionDoc>('t
 
 /** Create the indexes these collections rely on. Safe to call on every start. */
 export async function ensureIndexes(db: Db): Promise<void> {
-	await accounts(db).createIndex({ email: 1 }, { unique: true });
+	await uniqueEmailIndex(db);
 	await accounts(db).createIndex({ tagKey: 1 }, { unique: true });
 	await accounts(db).createIndex({ 'discord.id': 1 }, { unique: true, sparse: true });
+	await accounts(db).createIndex({ 'steam.id': 1 }, { unique: true, sparse: true });
 	await sessions(db).createIndex({ account: 1 });
 	await explorers(db).createIndex({ account: 1 });
 	// MongoDB removes these itself once they expire.
@@ -172,32 +190,56 @@ export async function ensureIndexes(db: Db): Promise<void> {
 }
 
 /**
- * A new account. It has a password, or a linked Discord account (whose email it takes), or both.
+ * Emails are unique among the accounts that have one (an account made with Steam may not). Before
+ * that, every account had one and the index was plain `unique`: that index is replaced, once.
+ */
+async function uniqueEmailIndex(db: Db): Promise<void> {
+	const options = { unique: true, partialFilterExpression: { email: { $type: 'string' } } };
+	try {
+		await accounts(db).createIndex({ email: 1 }, options);
+	} catch (error) {
+		// 85 IndexOptionsConflict, 86 IndexKeySpecsConflict: the old index, under the same name.
+		const code = (error as { code?: unknown }).code;
+		if (code !== 85 && code !== 86) throw error;
+		await accounts(db).dropIndex('email_1');
+		await accounts(db).createIndex({ email: 1 }, options);
+	}
+}
+
+/**
+ * A new account. It has a password and an email, or a linked Discord account (whose email it
+ * takes), or a linked Steam account (with no email until they add one), or several of those.
  */
 export async function createAccount(
 	db: Db,
 	input: {
-		email: unknown;
+		email?: unknown;
 		password?: unknown;
 		gamerTag: unknown;
 		discord?: DiscordLink;
+		steam?: SteamLink;
 	}
 ): Promise<{ account: AccountDoc } | { error: AccountError }> {
-	const email = cleanEmail(input.email);
+	// With Steam, the email may be left out; one that is given must still be valid.
+	const noEmail = input.email === undefined && input.steam !== undefined;
+	const email = noEmail ? null : cleanEmail(input.email);
 	const gamerTag = cleanTag(input.gamerTag);
-	if (!email) return { error: 'email' };
-	if (!input.discord && !validPassword(input.password)) return { error: 'password' };
+	if (!noEmail && !email) return { error: 'email' };
+	if (!input.discord && !input.steam && !validPassword(input.password)) {
+		return { error: 'password' };
+	}
 	if (input.password !== undefined && !validPassword(input.password)) return { error: 'password' };
 	if (!gamerTag) return { error: 'tag' };
 	const account: AccountDoc = {
 		_id: randomUUID(),
-		email,
+		...(email ? { email } : {}),
 		gamerTag,
 		tagKey: gamerTag.toLowerCase(),
 		createdAt: new Date()
 	};
 	if (typeof input.password === 'string') account.password = await hashPassword(input.password);
 	if (input.discord) account.discord = input.discord;
+	if (input.steam) account.steam = input.steam;
 	try {
 		await accounts(db).insertOne(account);
 	} catch (error) {
@@ -207,6 +249,39 @@ export async function createAccount(
 	}
 	await explorerFor(db, account._id);
 	return { account };
+}
+
+/**
+ * The desktop app's own account, made the first time it is asked for (docs/dev/hosting.md): the
+ * one found by the player's SteamID, or with no Steam a single account with a fixed id. It signs
+ * in with nothing: the desktop app's window is the only way to reach its local site.
+ */
+export async function localAccount(
+	db: Db,
+	player: { steamId: string | null; persona: string },
+	fixedId = 'local'
+): Promise<AccountDoc> {
+	const filter = player.steamId ? { 'steam.id': player.steamId } : { _id: fixedId };
+	const existing = await accounts(db).findOne(filter);
+	if (existing) return existing;
+	const gamerTag = cleanTag(player.persona) ?? 'Explorer';
+	const account: AccountDoc = {
+		_id: player.steamId ? randomUUID() : fixedId,
+		gamerTag,
+		tagKey: gamerTag.toLowerCase(),
+		createdAt: new Date()
+	};
+	if (player.steamId) account.steam = { id: player.steamId, persona: player.persona };
+	try {
+		await accounts(db).insertOne(account);
+	} catch (error) {
+		// Two requests at once, both making it: the other one won.
+		const made = await accounts(db).findOne(filter);
+		if (made) return made;
+		throw error;
+	}
+	await explorerFor(db, account._id);
+	return account;
 }
 
 /** The account for this email and password, or null. */
@@ -227,7 +302,37 @@ export function validPassword(password: unknown): password is string {
 	return typeof password === 'string' && password.length >= ACCOUNT.passwordMin;
 }
 
-/** Set the account's password (it may not have had one: made with Discord). */
+/**
+ * Add an email to an account that has none (made with Steam), so it can have a password too.
+ * An account's email isn't changed this way once it has one.
+ */
+export async function addEmail(
+	db: Db,
+	accountId: string,
+	email: unknown
+): Promise<AccountError | 'hasEmail' | null> {
+	const cleaned = cleanEmail(email);
+	if (!cleaned) return 'email';
+	try {
+		const result = await accounts(db).updateOne(
+			{ _id: accountId, email: { $exists: false } },
+			{ $set: { email: cleaned } }
+		);
+		return result.matchedCount === 1 ? null : 'hasEmail';
+	} catch (error) {
+		const taken = duplicate(error);
+		if (taken) return taken;
+		throw error;
+	}
+}
+
+/**
+ * What limits on wrong passwords count against for this account: its email, as on the sign-in
+ * page, or its id when it has no email.
+ */
+export const throttleKey = (account: AccountDoc): string => account.email ?? account._id;
+
+/** Set the account's password (it may not have had one: made with Discord or Steam). */
 export async function setAccountPassword(
 	db: Db,
 	accountId: string,
@@ -452,13 +557,14 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 	};
 	return {
 		id: account._id,
-		email: account.email,
+		email: account.email ?? null,
 		gamerTag: account.gamerTag,
 		avatar: accountAvatar(account),
 		avatarUploaded: account.avatar !== undefined,
 		discordAvatar: !!account.discord?.avatar,
 		hasPassword: account.password !== undefined,
 		discord: account.discord?.username ?? null,
+		steam: account.steam?.persona ?? null,
 		mfa: account.totp !== undefined,
 		recoveryCodesLeft: account.totp?.recovery.length ?? 0,
 		explorer: view
@@ -492,5 +598,6 @@ function duplicate(error: unknown): AccountError | null {
 	const message = String((error as { message?: unknown }).message);
 	if (message.includes('tagKey')) return 'tagTaken';
 	if (message.includes('discord')) return 'discordTaken';
+	if (message.includes('steam')) return 'steamTaken';
 	return 'emailTaken';
 }

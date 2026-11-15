@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { signOut } from '#lib/account/account.svelte.ts';
+	import { isDesktop, quitApp } from '#lib/desktop.ts';
 	import { openBugReport } from '#lib/game/crash.svelte.ts';
 	import { menu as padMenu } from '#lib/game/input/menus.ts';
 	import Avatar from '#lib/ui/Avatar.svelte';
 
 	/**
 	 * The avatar and gamer tag at the top right of the dashboard, as a menu: the Account screen, ideas and
-	 * feedback, reporting a bug, and signing out. Closes on Escape, on a click anywhere else, and once something is chosen.
+	 * feedback, reporting a bug, signing out, and (in the desktop app) quitting the game. Closes on Escape, on a click anywhere else, and once something is chosen.
 	 */
 	interface Props {
 		gamerTag: string;
@@ -19,6 +21,13 @@
 	let { gamerTag, avatar }: Props = $props();
 
 	let open = $state(false);
+	/** The desktop app has a window to close; a browser tab doesn't need a Quit. */
+	const desktop = isDesktop();
+	/**
+	 * The desktop app's own site (docs/dev/hosting.md): no signing out, and no bug reports or ideas,
+	 * which would only reach the hosted site's servers.
+	 */
+	const local = $derived(page.data.local === true);
 	let root = $state<HTMLElement>();
 	let button = $state<HTMLButtonElement>();
 	let menu = $state<HTMLElement>();
@@ -100,29 +109,34 @@
 			{@attach padMenu({ back: () => close(true) })}
 		>
 			<a role="menuitem" href={resolve('/account')} onclick={() => close(false)}>Account</a>
-			<a role="menuitem" href={resolve('/(hub)/feedback')} onclick={() => close(false)}>
-				Ideas and feedback
-			</a>
-			<button
-				type="button"
-				role="menuitem"
-				onclick={() => {
-					close(false);
-					openBugReport();
-				}}
-			>
-				Report a bug
-			</button>
-			<button
-				type="button"
-				role="menuitem"
-				onclick={() => {
-					close(false);
-					void signOut();
-				}}
-			>
-				Sign out
-			</button>
+			{#if !local}
+				<a role="menuitem" href={resolve('/(hub)/feedback')} onclick={() => close(false)}>
+					Ideas and feedback
+				</a>
+				<button
+					type="button"
+					role="menuitem"
+					onclick={() => {
+						close(false);
+						openBugReport();
+					}}
+				>
+					Report a bug
+				</button>
+				<button
+					type="button"
+					role="menuitem"
+					onclick={() => {
+						close(false);
+						void signOut();
+					}}
+				>
+					Sign out
+				</button>
+			{/if}
+			{#if desktop}
+				<button type="button" role="menuitem" onclick={quitApp}>Quit game</button>
+			{/if}
 		</div>
 	{/if}
 </div>

@@ -8,7 +8,7 @@ import type { PageServerLoad } from './$types';
 /** Signing up with Discord: only while the sign-up is waiting. The tag starts as their Discord name. */
 export const load: PageServerLoad = async ({ cookies, url }) => {
 	const signup = await getSignup(await database(), cookies.get(SIGNUP_COOKIE));
-	if (!signup) redirect(303, '/auth/sign-in');
+	if (!signup?.discord) redirect(303, '/auth/sign-in');
 	const suggested = cleanTag(url.searchParams.get('suggest')) ?? cleanTag(signup.discord.username);
-	return { email: signup.email, suggested: suggested ?? '' };
+	return { email: signup.email ?? '', suggested: suggested ?? '' };
 };

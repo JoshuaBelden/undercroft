@@ -21,7 +21,7 @@
 		name="q"
 		type="search"
 		value={data.query}
-		placeholder="Email, gamer tag or Discord name"
+		placeholder="Email, gamer tag, Discord or Steam name"
 		aria-label="Search members"
 		size="36"
 	/>
@@ -39,6 +39,7 @@
 					<th>Gamer tag</th>
 					<th>Email</th>
 					<th>Discord</th>
+					<th>Steam</th>
 					<th>Joined</th>
 					<th>Last seen</th>
 					<th>Status</th>
@@ -48,8 +49,9 @@
 				{#each data.members as member (member.id)}
 					<tr>
 						<td><a href={resolve('/members/[id]', { id: member.id })}>{member.gamerTag}</a></td>
-						<td>{member.email}</td>
+						<td>{member.email ?? ''}</td>
 						<td>{member.discord ?? ''}</td>
+						<td>{member.steam ?? ''}</td>
 						<td>{formatTime(member.createdAt)}</td>
 						<td>{ago(member.lastSeen)}</td>
 						<td>

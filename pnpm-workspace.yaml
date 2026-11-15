@@ -1,7 +1,13 @@
-# The game (this folder) and the admin app (admin/, docs/dev/admin.md).
+# The game (this folder), the admin app (admin/, docs/dev/admin.md) and the desktop app
+# (desktop/, docs/dev/desktop.md).
 packages:
   - admin
+  - desktop
 engineStrict: true
 onlyBuiltDependencies:
+  - electron
   - esbuild
   - ffmpeg-static
+# Only for electron-builder's Squirrel target, which desktop/ does not use (it builds NSIS).
+ignoredBuiltDependencies:
+  - electron-winstaller

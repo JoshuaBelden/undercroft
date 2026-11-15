@@ -23,15 +23,20 @@ MongoDB is required: accounts, sessions and everything a player keeps live there
 
 To play co-op on one machine, sign in to a second account in another browser profile or a private window. See [accounts.md](accounts.md).
 
+The desktop app (Electron, with Steam) opens the same client in its own window: `pnpm desktop:dev`, with `pnpm dev` and `pnpm dev:server` running. See [desktop.md](desktop.md).
+
 ## Environment variables
 
-| Variable                 | Used by | Default                                 |
-| ------------------------ | ------- | --------------------------------------- |
-| `GAME_SERVER_PORT`       | server  | `8787`                                  |
-| `MONGODB_URI`            | both    | `mongodb://localhost:27017`             |
-| `MONGODB_DB`             | both    | `undercroft`                            |
-| `PUBLIC_GAME_SERVER_URL` | client  | `ws://localhost:8787`                   |
-| `PUBLIC_DEV_MODE`        | client  | `false` (dev server is always dev mode) |
+| Variable                 | Used by | Default                                                           |
+| ------------------------ | ------- | ----------------------------------------------------------------- |
+| `GAME_SERVER_PORT`       | server  | `8787`                                                            |
+| `MONGODB_URI`            | both    | `mongodb://localhost:27017`                                       |
+| `MONGODB_DB`             | both    | `undercroft`                                                      |
+| `PUBLIC_GAME_SERVER_URL` | client  | `ws://localhost:8787`                                             |
+| `PUBLIC_DEV_MODE`        | client  | `false` (dev server is always dev mode)                           |
+| `STEAM_WEB_API_KEY`      | site    | empty: Steam sign-in off ([desktop.md](desktop.md#steam-sign-in)) |
+| `STEAM_APP_ID`           | site    | `480` (Valve's test app)                                          |
+| `STEAM_DEV_TRUST`        | site    | `false`; local Steam testing, only with dev mode                  |
 
 The SvelteKit app's variables are declared in `src/env.ts`: public ones are imported from `$app/env/public`, server-only ones from `$app/env/private`. The game server reads its variables in `server/config.ts`. The two MongoDB variables are read by both and must match.
 

@@ -9,6 +9,8 @@ node_modules
 /build
 /admin/.svelte-kit
 /admin/build
+/desktop/dist
+/desktop/release
 /coverage
 
 # OS

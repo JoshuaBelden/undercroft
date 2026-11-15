@@ -15,16 +15,17 @@ import type {
 } from './items/types.ts';
 import type { MapLayout, Vec3 } from './map/types.ts';
 import type { PartyState } from './party/types.ts';
-import type { InputFrame, ItemStack, PlayerSnapshot } from './player/types.ts';
+import type { InputFrame, Inventory, ItemStack, PlayerSnapshot } from './player/types.ts';
 import type { Person, SocialAction, SocialState } from './social/types.ts';
 
 export type ClientMessage =
 	/**
 	 * First message. `ticket` says who this is (from the site's `/api/ticket`); without a valid one
 	 * the connection is rejected. You get the party you were in if your place is still held,
-	 * otherwise one of your own.
+	 * otherwise one of your own. `name` is your gamer tag: only used when you join someone's
+	 * desktop game as a co-op guest, whose server has no account for you (docs/dev/hosting.md).
 	 */
-	| { type: 'hello'; protocol: number; ticket: string }
+	| { type: 'hello'; protocol: number; ticket: string; name?: string }
 	| { type: 'ping'; clientTime: number }
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
 	| { type: 'input'; frames: InputFrame[] }
@@ -59,7 +60,13 @@ export type ClientMessage =
 	 */
 	| { type: 'mark'; symbol: string; position: Vec3; normal: Vec3 }
 	/** Forget everything you know of an Affliction: no hints, unresolved. Not while underground. */
-	| { type: 'resetAffliction'; id: string };
+	| { type: 'resetAffliction'; id: string }
+	/**
+	 * A co-op guest's answer to the host's `vault` `take` (docs/dev/hosting.md#the-vault): what
+	 * they take down from their own save, what they own (for the rite items) and their chalk
+	 * wheel. The host checks it all.
+	 */
+	| { type: 'vault'; id: number; kit: unknown; owned: unknown; markWheel: unknown };
 
 export type AdminCommand =
 	| {
@@ -176,7 +183,21 @@ export type ServerMessage =
 	 * Something broke on the game server while handling you or your expedition. `id` is the error
 	 * recorded (null without a database); the client asks whether to report it.
 	 */
-	| { type: 'serverError'; id: string | null; message: string };
+	| { type: 'serverError'; id: string | null; message: string }
+	/**
+	 * You earned these achievements (src/lib/content/achievements.ts). The desktop app unlocks
+	 * them on Steam; a browser ignores it. Sent each time, even for one earned before.
+	 */
+	| { type: 'achievement'; ids: string[] }
+	/**
+	 * Only to a co-op guest on someone's desktop game (docs/dev/hosting.md#the-vault): their stash
+	 * and loadout are in their own save, so the host asks for what they take down (`take`, answered
+	 * with the client's `vault`), keeps their hub locked while ready (`lock`) and hands back what
+	 * they carried out (`return`, null if it was lost).
+	 */
+	| { type: 'vault'; id: number; op: 'take'; session: string }
+	| { type: 'vault'; id: number; op: 'lock'; ready: boolean }
+	| { type: 'vault'; id: number; op: 'return'; session: string; carried: Inventory | null };
 
 /** How one explorer's expedition went: sent with every way out of it, for the results screen. */
 export interface ExpeditionSummary {
@@ -220,7 +241,8 @@ const CLIENT_TYPES = new Set<string>([
 	'inventory',
 	'closeCrate',
 	'mark',
-	'resetAffliction'
+	'resetAffliction',
+	'vault'
 ]);
 const SERVER_TYPES = new Set<string>([
 	'party',
@@ -240,7 +262,9 @@ const SERVER_TYPES = new Set<string>([
 	'spectateEnd',
 	'banished',
 	'afflictionReset',
-	'serverError'
+	'serverError',
+	'achievement',
+	'vault'
 ]);
 
 function decode(raw: string, allowed: Set<string>): unknown {

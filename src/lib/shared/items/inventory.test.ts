@@ -10,6 +10,7 @@ import {
 	canTake,
 	carriedCount,
 	carriedWeight,
+	sanitizeInventory,
 	cloneInventory,
 	emptyInventory,
 	emptySlots,
@@ -257,5 +258,50 @@ describe('untrusted requests', () => {
 		expect(sanitizeAction({ kind: 'move', from })).toBeNull();
 		expect(sanitizeAction({ kind: 'explode', from })).toBeNull();
 		expect(sanitizeAction({ kind: 'quick', from: { area: 'stash', index: 0 } })).toBeNull();
+	});
+});
+
+describe('an inventory from someone else (a co-op guest)', () => {
+	it('keeps a well-formed one as it is', () => {
+		const inv = emptyInventory();
+		inv.equipment.primary = newStack('knife');
+		inv.equipment.defense = newStack('coat');
+		inv.backpack[3] = newStack('bandage', 2);
+		inv.selected = HAND.secondary;
+		expect(sanitizeInventory(JSON.parse(JSON.stringify(inv)))).toEqual(inv);
+	});
+
+	it('refuses the wrong shape', () => {
+		for (const bad of [
+			null,
+			'kit',
+			{},
+			{ ...emptyInventory(), pack: 'bottomless' },
+			{ ...emptyInventory(), backpack: 'x' }
+		]) {
+			expect(sanitizeInventory(bad)).toBeNull();
+		}
+	});
+
+	it('leaves out what is unknown, too many, or in a slot that does not take it', () => {
+		const raw = JSON.parse(JSON.stringify(emptyInventory()));
+		raw.equipment.primary = { item: 'bandage', count: 1 };
+		raw.equipment.secondary = { item: 'knife', count: 5 };
+		raw.backpack[0] = { item: 'dragon', count: 1 };
+		raw.backpack[1] = { item: 'bandage', count: 1, uses: -3 };
+		raw.backpack.push(
+			{ item: 'knife', count: 1 },
+			{ item: 'knife', count: 1 },
+			...Array(40).fill(null)
+		);
+		raw.quick[0] = { item: 'knife', count: 1 };
+		raw.selected = 99;
+		const inv = sanitizeInventory(raw)!;
+		expect(inv.equipment).toEqual({ primary: null, secondary: null, defense: null });
+		expect(inv.backpack).toHaveLength(emptyInventory().backpack.length);
+		expect(inv.backpack[0]).toBeNull();
+		expect(inv.backpack[1]).toEqual({ item: 'bandage', count: 1 });
+		expect(inv.quick[0]).toBeNull();
+		expect(inv.selected).toBe(HAND.primary);
 	});
 });

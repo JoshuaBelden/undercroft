@@ -48,7 +48,10 @@ Fixtures (only test files import them):
 - **Parties and friends.** `parties.test.ts` (readying, the countdown, descending together, dropping and coming back, kicking), `social.test.ts` (requests, invites, presence), `connection.test.ts` (hello, and every message routed).
 - **Sanitizers.** Everything that reads untrusted network input (`sanitizeFrame`, `sanitizeAction`, `sanitizeRef`, admin commands, marks) rejects or clamps junk.
 
-Not unit tested: rendering (Three.js), audio, Svelte components, the site's MongoDB stores (`src/lib/server/store/`) and the server's process wiring. Those are play-tested.
+- **The store.** The account and stash code (`src/lib/server/store/`) runs on LocalDb (`src/lib/server/localdb/`), the in-memory MongoDB-compatible store the desktop app saves in ([hosting.md](hosting.md#localdb)): `new LocalDb().asDb()` and `ensureIndexes`, then the real store calls (`accounts.test.ts`, `explorers.test.ts`). LocalDb throws on anything it doesn't implement, so a store change that needs a new operator shows up here. Add the operator to LocalDb with a test in `LocalDb.test.ts`.
+- **Co-op guests and the tunnel.** `server/guests.test.ts` (who a guest is, the host's party, the vault and its timeout); `desktop/src/tunnel.test.ts` and `frames.test.ts` (the tunnel end to end over in-memory transports, and its compression).
+
+Not unit tested: rendering (Three.js), audio, Svelte components, the stores' aggregations (only the admin app's stats use them) and the process wiring (the server's, the desktop app's). Those are play-tested.
 
 ## Writing one
 

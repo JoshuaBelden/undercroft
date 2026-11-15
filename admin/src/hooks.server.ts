@@ -13,7 +13,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const token = event.cookies.get(ADMIN_COOKIE);
 	const account = token ? await adminSessionAccount(await database(), token) : null;
 	event.locals.admin = account
-		? { id: account._id, email: account.email, gamerTag: account.gamerTag }
+		? { id: account._id, email: account.email ?? '', gamerTag: account.gamerTag }
 		: null;
 	if (!account && event.url.pathname !== '/sign-in') redirect(303, '/sign-in');
 	const response = await resolve(event);

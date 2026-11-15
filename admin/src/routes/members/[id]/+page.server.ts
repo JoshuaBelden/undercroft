@@ -50,6 +50,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		signIn: {
 			password: account.password !== undefined,
 			discord: account.discord?.username ?? null,
+			steam: account.steam ? { id: account.steam.id, persona: account.steam.persona } : null,
 			totp: account.totp !== undefined,
 			sessions: await sessionCount(db, account._id)
 		},
@@ -145,11 +146,14 @@ export const actions: Actions = {
 	sendReset: async ({ params, locals }) => {
 		const admin = requireAdmin(locals);
 		const { db, account } = await target(params.id);
-		const reset = await requestReset(db, account.email);
+		const email = account.email;
+		// An account made with Steam may have no email to send it to.
+		if (!email) return fail(400, { error: 'This account has no email (it signs in with Steam)' });
+		const reset = await requestReset(db, email);
 		if (!reset) return fail(400, { error: 'No account for that email' });
 		try {
 			await sendMail({
-				to: account.email,
+				to: email,
 				...resetMail(`${GAME_ORIGIN}/auth/reset?token=${reset.token}`)
 			});
 		} catch (failure) {
@@ -157,7 +161,7 @@ export const actions: Actions = {
 			return fail(502, { error: 'The email could not be sent' });
 		}
 		await audit(db, admin, 'sendReset', account._id);
-		return { notice: `Reset link sent to ${account.email}` };
+		return { notice: `Reset link sent to ${email}` };
 	},
 
 	disableTotp: async ({ params, locals }) => {

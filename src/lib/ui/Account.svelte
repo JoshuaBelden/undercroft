@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { ACCOUNT, AVATAR, DISCORD_RESULTS } from '#lib/content/account.ts';
 	import {
+		addEmail,
 		ApiError,
 		changeGamerTag,
 		changePassword,
@@ -15,9 +17,12 @@
 		signOut,
 		signOutElsewhere,
 		startTwoStep,
+		linkSteam,
 		unlinkDiscord,
+		unlinkSteam,
 		uploadAvatar
 	} from '#lib/account/account.svelte.ts';
+	import { steamHere, steamProof } from '#lib/account/steam.ts';
 	import Avatar from './Avatar.svelte';
 	import AvatarEditor from './AvatarEditor.svelte';
 	import TabScreen from './TabScreen.svelte';
@@ -32,14 +37,29 @@
 		onprofile: () => void;
 		/** Offer linking Discord (the Discord application is configured). */
 		discord: boolean;
+		/** Steam sign-in is set up: offer linking Steam when this is the desktop app with Steam. */
+		steam: boolean;
 	}
 
-	let { onclose, onprofile, discord }: Props = $props();
+	let { onclose, onprofile, discord, steam }: Props = $props();
+
+	/** The desktop app with Steam running: the Steam name it runs under (for "Link Steam"). */
+	let steamName = $state<string | null>(null);
+	onMount(() => {
+		if (!steam) return;
+		void steamHere().then((status) => (steamName = status ? (status.persona ?? '') : null));
+	});
 
 	/** Back from linking Discord: what came of it. */
 	const notice = DISCORD_RESULTS[page.url.searchParams.get('discord') ?? ''];
 
 	const GROUPS = ['Profile', 'Sign-in', 'Security'] as const;
+	/**
+	 * The desktop app's own site (docs/dev/hosting.md): the account is the player's Steam account (or
+	 * the PC's), with nothing to sign in with, so only the profile shows.
+	 */
+	const local = page.data.local === true;
+	const groups = local ? (['Profile'] as const) : GROUPS;
 	// Back from Discord: the group that has it.
 	let group = $state<(typeof GROUPS)[number]>(notice ? 'Sign-in' : 'Profile');
 
@@ -119,6 +139,22 @@
 					: 'Upload a picture for other players to see beside your gamer tag.'
 	);
 
+	/** An account made with Steam has no email until it adds one. */
+	let newEmail = $state('');
+	let emailMessage = $state('');
+
+	async function saveEmail(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		emailMessage = '';
+		try {
+			await addEmail(newEmail);
+			newEmail = '';
+			emailMessage = 'Saved. You can set a password on the Sign-in tab now';
+		} catch (caught) {
+			emailMessage = message(caught);
+		}
+	}
+
 	/** Deleting the account: the confirmation form is open. */
 	let deleting = $state(false);
 	let confirmTag = $state('');
@@ -171,6 +207,30 @@
 			discordMessage = 'Discord is unlinked';
 		} catch (caught) {
 			discordMessage = message(caught);
+		}
+	}
+
+	let steamMessage = $state('');
+
+	async function linkThisSteam(): Promise<void> {
+		steamMessage = '';
+		try {
+			const proof = await steamProof();
+			if (!proof) throw new ApiError("Steam didn't answer. Make sure it is running", 0);
+			await linkSteam(proof);
+			steamMessage = 'Steam is linked. You can sign in with it now';
+		} catch (caught) {
+			steamMessage = message(caught);
+		}
+	}
+
+	async function unlinkThisSteam(): Promise<void> {
+		steamMessage = '';
+		try {
+			await unlinkSteam();
+			steamMessage = 'Steam is unlinked';
+		} catch (caught) {
+			steamMessage = message(caught);
 		}
 	}
 
@@ -238,7 +298,7 @@
 	}
 </script>
 
-<TabScreen label="Account" groups={GROUPS} bind:group {onclose}>
+<TabScreen label="Account" {groups} bind:group {onclose}>
 	{#if !account}
 		<p class="hint">Loading...</p>
 	{:else if group === 'Profile'}
@@ -285,106 +345,153 @@
 			{/if}
 			<p class="hint" role="status">{tagMessage || 'The name other players see.'}</p>
 		</form>
-		<div class="setting">
-			<div class="pill">
-				<span class="name">Email</span>
-				<span class="value email">{account.email}</span>
-			</div>
-			<p class="hint">Where password-reset links are sent.</p>
-		</div>
-		<div class="setting">
-			<button type="button" class="pill" onclick={() => void signOut()}>
-				<span class="name">Sign out</span>
-			</button>
-		</div>
-		{#if deleting}
-			<form class="stack" onsubmit={removeAccount}>
-				<p class="hint">
-					This deletes your account for good: your explorer, everything in your stash, your coins
-					and your friends list. It can't be undone. Bug reports, ideas and feedback you sent stay,
-					without your name.
-				</p>
-				<label class="pill">
-					<span class="name">Type your gamer tag</span>
-					<input type="text" autocomplete="off" required bind:value={confirmTag} />
-				</label>
-				{#if account.hasPassword}
-					<label class="pill">
-						<span class="name">Password</span>
-						<input
-							type="password"
-							autocomplete="current-password"
-							required
-							bind:value={confirmPassword}
-						/>
-					</label>
-				{/if}
-				{#if account.mfa}
-					<label class="pill">
-						<span class="name">Two-step code</span>
-						<input type="text" autocomplete="one-time-code" required bind:value={confirmCode} />
-					</label>
-				{/if}
+		<!-- The desktop app's account has no email, no signing out and nothing to delete here. -->
+		{#if !local}
+			{#if account.email}
 				<div class="setting">
-					<button type="submit" class="pill danger">
-						<span class="name">Delete my account</span>
-					</button>
-					<button type="button" class="pill" onclick={cancelDelete}>
-						<span class="name">Cancel</span>
-					</button>
+					<div class="pill">
+						<span class="name">Email</span>
+						<span class="value email">{account.email}</span>
+					</div>
+					<p class="hint">Where password-reset links are sent.</p>
 				</div>
-				{#if deleteMessage}
-					<p class="hint error" role="alert">{deleteMessage}</p>
-				{/if}
-			</form>
-		{:else}
+			{:else}
+				<form class="setting" onsubmit={saveEmail}>
+					<label class="pill">
+						<span class="name">Email</span>
+						<input type="email" autocomplete="email" required bind:value={newEmail} />
+					</label>
+					{#if newEmail}
+						<button type="submit">Save</button>
+					{/if}
+					<p class="hint" role="status">
+						{emailMessage ||
+							'You sign in with Steam. Add an email to sign in with a password too, anywhere.'}
+					</p>
+				</form>
+			{/if}
 			<div class="setting">
-				<button type="button" class="pill" onclick={() => (deleting = true)}>
-					<span class="name">Delete account</span>
+				<button type="button" class="pill" onclick={() => void signOut()}>
+					<span class="name">Sign out</span>
 				</button>
-				<p class="hint">Remove your account and everything on it, for good.</p>
 			</div>
+			{#if deleting}
+				<form class="stack" onsubmit={removeAccount}>
+					<p class="hint">
+						This deletes your account for good: your explorer, everything in your stash, your coins
+						and your friends list. It can't be undone. Bug reports, ideas and feedback you sent
+						stay, without your name.
+					</p>
+					<label class="pill">
+						<span class="name">Type your gamer tag</span>
+						<input type="text" autocomplete="off" required bind:value={confirmTag} />
+					</label>
+					{#if account.hasPassword}
+						<label class="pill">
+							<span class="name">Password</span>
+							<input
+								type="password"
+								autocomplete="current-password"
+								required
+								bind:value={confirmPassword}
+							/>
+						</label>
+					{/if}
+					{#if account.mfa}
+						<label class="pill">
+							<span class="name">Two-step code</span>
+							<input type="text" autocomplete="one-time-code" required bind:value={confirmCode} />
+						</label>
+					{/if}
+					<div class="setting">
+						<button type="submit" class="pill danger">
+							<span class="name">Delete my account</span>
+						</button>
+						<button type="button" class="pill" onclick={cancelDelete}>
+							<span class="name">Cancel</span>
+						</button>
+					</div>
+					{#if deleteMessage}
+						<p class="hint error" role="alert">{deleteMessage}</p>
+					{/if}
+				</form>
+			{:else}
+				<div class="setting">
+					<button type="button" class="pill" onclick={() => (deleting = true)}>
+						<span class="name">Delete account</span>
+					</button>
+					<p class="hint">Remove your account and everything on it, for good.</p>
+				</div>
+			{/if}
 		{/if}
 	{:else if group === 'Sign-in'}
-		<form class="stack" onsubmit={savePassword}>
-			{#if account.hasPassword}
+		{#if !account.email}
+			<p class="hint">
+				Add an email on the Profile tab first: a password is for signing in with your email.
+			</p>
+		{:else}
+			<form class="stack" onsubmit={savePassword}>
+				{#if account.hasPassword}
+					<label class="pill">
+						<span class="name">Current password</span>
+						<input type="password" autocomplete="current-password" required bind:value={current} />
+					</label>
+				{/if}
 				<label class="pill">
-					<span class="name">Current password</span>
-					<input type="password" autocomplete="current-password" required bind:value={current} />
+					<span class="name">{account.hasPassword ? 'New password' : 'Password'}</span>
+					<input
+						type="password"
+						autocomplete="new-password"
+						minlength={ACCOUNT.passwordMin}
+						required
+						bind:value={password}
+					/>
 				</label>
-			{/if}
-			<label class="pill">
-				<span class="name">{account.hasPassword ? 'New password' : 'Password'}</span>
-				<input
-					type="password"
-					autocomplete="new-password"
-					minlength={ACCOUNT.passwordMin}
-					required
-					bind:value={password}
-				/>
-			</label>
-			<label class="pill">
-				<span class="name">Again</span>
-				<input
-					type="password"
-					autocomplete="new-password"
-					minlength={ACCOUNT.passwordMin}
-					required
-					bind:value={again}
-				/>
-			</label>
+				<label class="pill">
+					<span class="name">Again</span>
+					<input
+						type="password"
+						autocomplete="new-password"
+						minlength={ACCOUNT.passwordMin}
+						required
+						bind:value={again}
+					/>
+				</label>
+				<div class="setting">
+					<button type="submit" class="pill">
+						<span class="name">{account.hasPassword ? 'Change password' : 'Set a password'}</span>
+					</button>
+					<p class="hint" role="status">
+						{passwordMessage ||
+							(account.hasPassword
+								? `At least ${ACCOUNT.passwordMin} characters.`
+								: `You sign in with ${account.discord ? 'Discord' : 'Steam'}. A password lets you sign in with your email too.`)}
+					</p>
+				</div>
+			</form>
+		{/if}
+
+		{#if account.steam || steamName !== null}
 			<div class="setting">
-				<button type="submit" class="pill">
-					<span class="name">{account.hasPassword ? 'Change password' : 'Set a password'}</span>
-				</button>
+				{#if account.steam}
+					<button type="button" class="pill" onclick={() => void unlinkThisSteam()}>
+						<span class="name">Unlink Steam</span>
+						<span class="value">{account.steam}</span>
+					</button>
+				{:else}
+					<button type="button" class="pill" onclick={() => void linkThisSteam()}>
+						<span class="name">Link Steam</span>
+						{#if steamName}<span class="value">{steamName}</span>{/if}
+					</button>
+				{/if}
 				<p class="hint" role="status">
-					{passwordMessage ||
-						(account.hasPassword
-							? `At least ${ACCOUNT.passwordMin} characters.`
-							: 'You sign in with Discord. A password lets you sign in with your email too.')}
+					{steamMessage ||
+						(account.steam
+							? 'You can sign in with Steam in the desktop app.'
+							: 'Sign in with your Steam account in the desktop app.')}
 				</p>
 			</div>
-		</form>
+		{/if}
 
 		{#if discord || account.discord}
 			<div class="setting">

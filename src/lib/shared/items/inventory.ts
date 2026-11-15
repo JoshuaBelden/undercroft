@@ -543,6 +543,59 @@ export function sanitizeAction(raw: unknown, stash = false): InventoryAction | n
 	}
 }
 
+/** Check an untrusted stack: a known item, a count it allows, sensible wear and rounds. */
+export function sanitizeStack(raw: unknown): ItemStack | null {
+	if (typeof raw !== 'object' || raw === null) return null;
+	const s = raw as Record<string, unknown>;
+	if (typeof s.item !== 'string' || !Object.hasOwn(ITEMS, s.item)) return null;
+	const def = ITEMS[s.item];
+	const whole = (value: unknown): value is number =>
+		typeof value === 'number' && Number.isInteger(value) && value >= 0;
+	if (!whole(s.count) || s.count < 1 || s.count > def.maxStack) return null;
+	const stack: ItemStack = { item: s.item, count: s.count };
+	if (whole(s.loaded)) stack.loaded = Math.min(s.loaded, def.firearm?.magazine ?? 0);
+	if (whole(s.uses)) stack.uses = s.uses;
+	if (whole(s.worn)) stack.worn = s.worn;
+	return stack;
+}
+
+/**
+ * Check an untrusted inventory (a co-op guest's kit, from their own save: docs/dev/hosting.md).
+ * Null if its shape is wrong. A stack in a slot that doesn't take it, or that is broken, is left
+ * out; the rest is kept.
+ */
+export function sanitizeInventory(raw: unknown): Inventory | null {
+	if (typeof raw !== 'object' || raw === null) return null;
+	const r = raw as Record<string, unknown>;
+	if (typeof r.pack !== 'string' || !Object.hasOwn(BACKPACKS, r.pack)) return null;
+	const equipment = r.equipment as Record<string, unknown> | undefined;
+	if (typeof equipment !== 'object' || equipment === null) return null;
+	if (!Array.isArray(r.backpack) || !Array.isArray(r.quick)) return null;
+	const inv = emptyInventory();
+	inv.pack = r.pack;
+	inv.backpack = emptySlots(BACKPACKS[r.pack].slots);
+	const place = (ref: SlotRef, value: unknown): void => {
+		const stack = value === null ? null : sanitizeStack(value);
+		if (stack && accepts(ref, stack.item)) setSlot({ inventory: inv }, ref, stack);
+	};
+	for (const slot of EQUIPMENT) place({ area: 'equipment', slot }, equipment[slot] ?? null);
+	r.backpack
+		.slice(0, inv.backpack.length)
+		.forEach((value, index) => place({ area: 'backpack', index }, value));
+	r.quick
+		.slice(0, inv.quick.length)
+		.forEach((value, index) => place({ area: 'quick', index }, value));
+	const selected = r.selected;
+	inv.selected =
+		typeof selected === 'number' &&
+		Number.isInteger(selected) &&
+		selected >= 0 &&
+		selected < HAND.quick + inv.quick.length
+			? selected
+			: HAND.primary;
+	return inv;
+}
+
 /** Check an untrusted slot reference. */
 export function sanitizeRef(raw: unknown, stash = false): SlotRef | null {
 	if (typeof raw !== 'object' || raw === null) return null;

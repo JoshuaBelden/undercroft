@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { WebSocket } from 'ws';
+import { achievementsForRite, achievementsForRun } from '../src/lib/content/achievements.ts';
 import { CREATURES } from '../src/lib/content/creatures.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { SANITY } from '../src/lib/content/player/sanity.ts';
@@ -876,6 +877,8 @@ export class Session {
 		if (this.logged.has(player.id)) return;
 		this.logged.add(player.id);
 		const summary = this.summary(player);
+		const earned = achievementsForRun(outcome, this.joined);
+		if (earned.length > 0) this.send(player, { type: 'achievement', ids: earned });
 		logRun({
 			explorer: player.owner,
 			session: this.id,
@@ -1094,7 +1097,18 @@ export class Session {
 			this.events.push({ kind: 'rite', player: player.id, position: [...s.position] });
 			if (stage !== 0) this.events.push({ kind: 'omen', stage: 0 });
 			this.hooks.onResolved?.();
+			this.awardRite();
 			log.info(`${player.name} performed the rite in ${this.id.slice(0, 8)}`);
+		}
+	}
+
+	/** The rite was performed: everyone still down here (not dead or out) was part of it. */
+	private awardRite(): void {
+		const earned = achievementsForRite();
+		if (earned.length === 0) return;
+		for (const player of this.players.values()) {
+			if (player.state.dead || player.state.extracted) continue;
+			this.send(player, { type: 'achievement', ids: earned });
 		}
 	}
 

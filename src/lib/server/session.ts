@@ -1,7 +1,15 @@
 import { error, type Cookies } from '@sveltejs/kit';
 import type { Db } from 'mongodb';
-import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } from '$app/env/private';
+import {
+	DISCORD_CLIENT_ID,
+	DISCORD_CLIENT_SECRET,
+	STEAM_APP_ID,
+	STEAM_DEV_TRUST,
+	STEAM_WEB_API_KEY
+} from '$app/env/private';
 import { ACCOUNT } from '#lib/content/account.ts';
+import { devMode } from '#lib/dev.ts';
+import { steamEnabled, type SteamConfig } from '#lib/server/steam.ts';
 import {
 	activeSuspension,
 	createSession,
@@ -14,7 +22,7 @@ import { startChallenge } from '#lib/server/store/auth.ts';
 export const SESSION_COOKIE = 'undercroft.session';
 /** A sign-in waiting for its two-step code (see `signIn`). */
 export const CHALLENGE_COOKIE = 'undercroft.challenge';
-/** A Discord sign-up waiting for its gamer tag. */
+/** A Discord or Steam sign-up waiting for its gamer tag. */
 export const SIGNUP_COOKIE = 'undercroft.signup';
 /** The Discord round trip: the `state` we sent, and whether it is linking a signed-in account. */
 export const OAUTH_COOKIE = 'undercroft.oauth';
@@ -28,6 +36,17 @@ export const isOpen = (path: string): boolean =>
 
 /** "Sign in with Discord" is offered only when the Discord application is configured. */
 export const discordEnabled = (): boolean => Boolean(DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET);
+
+/** Steam sign-in's settings, from the environment (docs/dev/desktop.md#steam-sign-in). */
+export const steamConfig = (): SteamConfig => ({
+	key: STEAM_WEB_API_KEY,
+	appId: STEAM_APP_ID,
+	devTrust: STEAM_DEV_TRUST,
+	devMode
+});
+
+/** "Continue with Steam" is offered (in the desktop app) only when it can work. */
+export const steamSignInEnabled = (): boolean => steamEnabled(steamConfig());
 
 /** Sign this browser in: script can't read the cookie, and other sites can't send it for us. */
 export function setSessionCookie(cookies: Cookies, token: string, secure: boolean): void {

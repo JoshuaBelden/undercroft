@@ -36,6 +36,20 @@ export const variables = defineEnvVars({
 		description: 'Discord application client secret.',
 		schema: (value) => value ?? ''
 	},
+	STEAM_WEB_API_KEY: {
+		description:
+			'Steamworks publisher Web API key, for "Continue with Steam" in the desktop app. Empty: off.',
+		schema: (value) => value ?? ''
+	},
+	STEAM_APP_ID: {
+		description: "The game's Steam app id (480 is Valve's test app, until it has its own).",
+		schema: (value) => Number(value) || 480
+	},
+	STEAM_DEV_TRUST: {
+		description:
+			'Local testing without a publisher key: believe the SteamID the desktop app reports. Only with PUBLIC_DEV_MODE.',
+		schema: (value) => value === 'true'
+	},
 	GITHUB_TOKEN: {
 		description:
 			'Fine-grained GitHub token with Issues read/write on GITHUB_REPO, to file bug reports. Empty: reports are only kept.',

@@ -37,6 +37,9 @@ pnpm dev                # SvelteKit client
 pnpm dev:server         # game server (watch mode)
 pnpm dev:seed [email]   # dev: fill explorers' stashes with items to test with
 pnpm dev:admin          # admin app (admin/, port 5174; docs/dev/admin.md)
+pnpm desktop:dev        # desktop app: local site + game server + save, Steam co-op (docs/dev/hosting.md)
+pnpm desktop:build      # desktop app: desktop/release/win-unpacked + installer
+pnpm steam:upload       # SteamPipe build script; uploads only with --upload (docs/dev/desktop.md)
 pnpm admin:grant <email> # make an account an admin (--remove to undo)
 pnpm build              # production build (adapter-node)
 pnpm check              # svelte-check + TypeScript
@@ -93,6 +96,7 @@ src/
   routes/       # SvelteKit pages and API routes
 server/         # authoritative game server
 admin/          # admin app (separate SvelteKit app, shares src/lib/server/store)
+desktop/        # desktop app (Electron + steamworks.js): the client in a window, with Steam
 scripts/        # one-off tooling (asset generation)
 static/assets/  # .glb models, textures, audio (optimized, committed)
 art/            # raw art: .blend, 4K textures, raw exports (gitignored)

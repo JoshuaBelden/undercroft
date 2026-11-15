@@ -4,7 +4,8 @@ import type { Inventory } from '../player/types.ts';
 /** An account as its own browser sees it (`GET /api/account`). See docs/dev/accounts.md. */
 export interface AccountView {
 	id: string;
-	email: string;
+	/** Null for an account made with Steam, until they add one. */
+	email: string | null;
 	/** The name other players see. */
 	gamerTag: string;
 	/** The avatar shown for them (their upload, else their Discord avatar), or null for none. */
@@ -13,10 +14,12 @@ export interface AccountView {
 	avatarUploaded: boolean;
 	/** Their linked Discord account has an avatar: it shows when they have no upload. */
 	discordAvatar: boolean;
-	/** Has a password (an account made with Discord may not, until one is set). */
+	/** Has a password (an account made with Discord or Steam may not, until one is set). */
 	hasPassword: boolean;
 	/** The linked Discord account's username, or null. */
 	discord: string | null;
+	/** The linked Steam account's name, or null. */
+	steam: string | null;
 	/** Two-step sign-in is on. */
 	mfa: boolean;
 	/** Recovery codes not used yet (0 when two-step sign-in is off). */

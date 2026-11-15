@@ -7,27 +7,32 @@ import {
 	checkPassword,
 	deleteSessionsFor,
 	getAccount,
-	setAccountPassword
+	setAccountPassword,
+	throttleKey
 } from '#lib/server/store/accounts.ts';
 import { throttle, throttled } from '#lib/server/store/auth.ts';
 import type { RequestHandler } from './$types';
 
 /**
- * Change the password, or set one for an account made with Discord. Body: `{ current, password }`
- * (`current` only when it has one). Every other browser is signed out.
+ * Change the password, or set one for an account made with Discord or Steam. Body: `{ current,
+ * password }` (`current` only when it has one). Every other browser is signed out. An account
+ * with no email (made with Steam) adds one first: a password is for signing in with an email.
  */
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 	const db = await database();
 	const account = await requireAccount(db, locals);
+	if (!account.email) {
+		return json({ error: 'Add an email first, to sign in with it' }, { status: 400 });
+	}
 	if (account.password) {
-		if (await throttled(db, 'signIn', account.email)) {
+		if (await throttled(db, 'signIn', throttleKey(account))) {
 			return json({ error: 'Too many tries. Wait a few minutes' }, { status: 429 });
 		}
 		const right =
 			typeof body.current === 'string' && (await checkPassword(body.current, account.password));
 		if (!right) {
-			await throttle(db, 'signIn', account.email);
+			await throttle(db, 'signIn', throttleKey(account));
 			return json({ error: 'Your current password is not right' }, { status: 400 });
 		}
 	}

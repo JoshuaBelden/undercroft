@@ -25,6 +25,9 @@ services:
       MAIL_FROM: ${MAIL_FROM:-Undercroft <noreply@${DOMAIN}>}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      # "Continue with Steam" in the desktop app (docs/dev/desktop.md#steam-sign-in). Empty: off.
+      STEAM_WEB_API_KEY: ${STEAM_WEB_API_KEY:-}
+      STEAM_APP_ID: ${STEAM_APP_ID:-480}
       # Bug reports filed on GitHub (docs/dev/reports.md). Empty: reports are only kept.
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       GITHUB_REPO: ${GITHUB_REPO:-JoshuaBelden/undercroft}

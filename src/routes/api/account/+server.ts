@@ -6,7 +6,8 @@ import {
 	accountView,
 	checkPassword,
 	getAccount,
-	setGamerTag
+	setGamerTag,
+	throttleKey
 } from '#lib/server/store/accounts.ts';
 import { audit } from '#lib/server/store/admin.ts';
 import { checkSecondFactor, throttle, throttled } from '#lib/server/store/auth.ts';
@@ -44,13 +45,13 @@ export const DELETE: RequestHandler = async ({ request, locals, cookies }) => {
 		return json({ error: 'Type your gamer tag to delete your account' }, { status: 400 });
 	}
 	if (account.password) {
-		if (await throttled(db, 'signIn', account.email)) {
+		if (await throttled(db, 'signIn', throttleKey(account))) {
 			return json({ error: 'Too many tries. Wait a few minutes' }, { status: 429 });
 		}
 		const right =
 			typeof body.password === 'string' && (await checkPassword(body.password, account.password));
 		if (!right) {
-			await throttle(db, 'signIn', account.email);
+			await throttle(db, 'signIn', throttleKey(account));
 			return json({ error: 'Your password is not right' }, { status: 400 });
 		}
 	}

@@ -10,6 +10,7 @@ import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import type { FriendStatus } from '../src/lib/shared/social/types.ts';
 import type { Identity, Profile } from './accounts.ts';
 import { giveBack, lockKit, markWheels, owned, takeKit } from './belongings.ts';
+import { forgetGuest } from './guests.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
 import { Session } from './session.ts';
@@ -37,6 +38,11 @@ export interface Member {
 	party: Party;
 	/** Their player id in the party's expedition; null on the surface. */
 	playerId: string | null;
+	/**
+	 * A co-op guest on this desktop game (docs/dev/hosting.md): they are only here to be in the
+	 * host's party, so leaving it (or being put out of it) sends them home, not to a party here.
+	 */
+	remote: boolean;
 }
 
 interface Party {
@@ -113,7 +119,8 @@ export class Parties {
 			connected: true,
 			dropTimer: null,
 			party: this.create(),
-			playerId: null
+			playerId: null,
+			remote: identity.remote === true
 		};
 		this.add(member.party, member);
 		return member;
@@ -150,8 +157,23 @@ export class Parties {
 		return null;
 	}
 
+	/**
+	 * A co-op guest arrived (or came back): into the party of this desktop game's own player, the
+	 * host. Returns why not, if they can't (the host isn't here, or is underground).
+	 */
+	joinHost(guest: Member): string | null {
+		const host = [...this.byAccount.values()].find((member) => !member.remote && member.connected);
+		if (!host) return "The host isn't in the game right now";
+		if (host.party === guest.party) return null;
+		return this.join(guest, host);
+	}
+
 	/** Leave the current party for a new one of your own. */
 	leave(member: Member): void {
+		if (member.remote && !this.expedition(member)) {
+			this.sendHome(member, 'You left the party');
+			return;
+		}
 		if (member.party.members.length === 1 || this.expedition(member)) return;
 		this.remove(member, true);
 		this.add(this.create(), member);
@@ -167,6 +189,11 @@ export class Parties {
 		else if (party.session) problem = "You can't remove anyone during an expedition";
 		if (problem !== null || !target) {
 			this.send(member, { type: 'partyError', reason: problem ?? 'They are not in your party' });
+			return;
+		}
+		if (target.remote) {
+			this.sendHome(target, `${member.name} removed you from the party`);
+			log.info(`Party ${tag(party)}: ${member.name} removed ${target.name}`);
 			return;
 		}
 		this.remove(target, true);
@@ -378,9 +405,15 @@ export class Parties {
 		return { online, parties: this.parties.size, expeditions, underground };
 	}
 
-	/** Every account with a member here, connected or with their place held. */
+	/**
+	 * Every account with a member here, connected or with their place held: the ones this server's
+	 * database knows. Co-op guests on a desktop game aren't in it (docs/dev/hosting.md), so they
+	 * are left out: to the suspension check they would look deleted.
+	 */
 	accounts(): string[] {
-		return [...this.byAccount.keys()];
+		return [...this.byAccount.values()]
+			.filter((member) => !member.remote)
+			.map((member) => member.account);
 	}
 
 	/**
@@ -396,6 +429,16 @@ export class Parties {
 		}
 		member.connected = false;
 		log.info(`Party ${tag(member.party)}: ${member.name} was sent away (${reason}); removed`);
+		this.remove(member);
+	}
+
+	/** A co-op guest goes back to their own game: told why, disconnected, gone from here. */
+	private sendHome(member: Member, reason: string): void {
+		if (member.socket.readyState === member.socket.OPEN) {
+			member.socket.send(encode({ type: 'reject', reason }));
+			member.socket.close();
+		}
+		member.connected = false;
 		this.remove(member);
 	}
 
@@ -499,6 +542,7 @@ export class Parties {
 			this.changed(party);
 		}
 		if (!moving) this.onPresence([member.account]);
+		if (!moving && member.remote) forgetGuest(member.explorer);
 	}
 
 	/**

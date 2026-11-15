@@ -31,7 +31,7 @@
 		<h2>Profile</h2>
 		<dl>
 			<dt>Email</dt>
-			<dd>{member.email}</dd>
+			<dd>{member.email ?? 'None (signs in with Steam)'}</dd>
 			<dt>Joined</dt>
 			<dd>{formatTime(member.createdAt) || 'unknown'}</dd>
 			<dt>Last seen</dt>
@@ -79,17 +79,30 @@
 			<dd>{data.signIn.password ? 'Set' : 'None'}</dd>
 			<dt>Discord</dt>
 			<dd>{data.signIn.discord ?? 'Not linked'}</dd>
+			<dt>Steam</dt>
+			<dd>
+				{#if data.signIn.steam}
+					{data.signIn.steam.persona}
+					<a href="https://steamcommunity.com/profiles/{data.signIn.steam.id}" rel="external">
+						<code>{data.signIn.steam.id}</code>
+					</a>
+				{:else}
+					Not linked
+				{/if}
+			</dd>
 			<dt>Two-step</dt>
 			<dd>{data.signIn.totp ? 'On' : 'Off'}</dd>
 			<dt>Browsers</dt>
 			<dd>{data.signIn.sessions} signed in</dd>
 		</dl>
 		<div class="actions">
-			<Action
-				action="sendReset"
-				label="Email a password reset"
-				confirm="Email {member.email} a password reset link?"
-			/>
+			{#if member.email}
+				<Action
+					action="sendReset"
+					label="Email a password reset"
+					confirm="Email {member.email} a password reset link?"
+				/>
+			{/if}
 			<Action
 				action="signOut"
 				label="Sign out everywhere"
