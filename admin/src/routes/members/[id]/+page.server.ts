@@ -14,6 +14,9 @@ import {
 	disableTotp,
 	getAccount,
 	liftSuspension,
+	markWheel,
+	MARK_SYMBOLS,
+	resetMarkWheel,
 	listFeedback,
 	listIdeas,
 	listReports,
@@ -58,7 +61,9 @@ export const load: PageServerLoad = async ({ params }) => {
 			money: explorer.money,
 			stashed: explorer.stash.filter(Boolean).length,
 			stashSlots: explorer.stash.length,
-			underground: explorer.underground !== null
+			underground: explorer.underground !== null,
+			markWheel: markWheel(explorer.markWheel).map((id) => MARK_SYMBOLS[id]?.name ?? id),
+			customWheel: explorer.markWheel !== undefined
 		})),
 		ledger: ledger.map((line) => ({ ...line, _id: String(line._id) })),
 		runs: await runsOf(
@@ -126,6 +131,15 @@ export const actions: Actions = {
 		await deleteSessionsFor(db, account._id);
 		await audit(db, admin, 'signOutEverywhere', account._id);
 		return { notice: 'Signed out of every browser' };
+	},
+
+	resetMarkWheel: async ({ params, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) await resetMarkWheel(db, explorer._id);
+		await audit(db, admin, 'resetMarkWheel', account._id);
+		return { notice: 'Chalk wheel back to the default (from their next descent)' };
 	},
 
 	sendReset: async ({ params, locals }) => {

@@ -34,6 +34,8 @@ export interface ExplorerView {
 	loadout: Inventory;
 	/** In an expedition right now: nothing can be changed from the surface. */
 	underground: boolean;
+	/** The eight chalk symbols on their wheel, top first and clockwise. */
+	markWheel: string[];
 	/** Rite progress per Affliction (only those with any). */
 	afflictions: { id: string; clues: number; resolved: boolean }[];
 }

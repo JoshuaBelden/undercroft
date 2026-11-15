@@ -3,6 +3,7 @@ import type { Collection, Db } from 'mongodb';
 import { ACCOUNT, cleanEmail, cleanTag } from '../../content/account.ts';
 import type { AccountView, ExplorerView } from '../../shared/account/types.ts';
 import { SLOTS } from '../../content/items.ts';
+import { markWheel } from '../../content/marks.ts';
 import {
 	addToSlots,
 	emptyInventory,
@@ -112,6 +113,8 @@ export interface ExplorerDoc {
 	 * they confirmed is what goes down. Set and cleared by the game server.
 	 */
 	ready?: boolean;
+	/** The eight chalk symbols they chose for their wheel; unset until they choose (the default). */
+	markWheel?: string[];
 	createdAt: Date;
 }
 
@@ -440,6 +443,7 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 		stash: explorer.stash,
 		loadout: explorer.loadout,
 		underground: explorer.underground !== null,
+		markWheel: [...markWheel(explorer.markWheel)],
 		afflictions: progress.map((doc) => ({
 			id: doc.affliction,
 			clues: doc.clues ?? 0,

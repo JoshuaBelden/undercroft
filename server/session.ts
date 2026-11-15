@@ -24,7 +24,7 @@ import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
 import { CORPSES, CRATES } from '../src/lib/content/loot.ts';
-import { MARKS } from '../src/lib/content/marks.ts';
+import { DEFAULT_MARK_WHEEL, MARKS } from '../src/lib/content/marks.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import {
 	addItem,
@@ -109,6 +109,8 @@ interface Player {
 	lastInput: InputFrame | null;
 	/** The loot crate they have open (its id). */
 	crate: string | null;
+	/** The chalk symbols on their wheel: the only ones they may draw. */
+	markWheel: readonly string[];
 }
 
 const DT = 1 / SIM_RATE;
@@ -312,8 +314,14 @@ export class Session {
 		return this.players.has(playerId);
 	}
 
-	/** `inventory` is what they bring down: their loadout. */
-	addPlayer(socket: WebSocket, name: string, owner: string, inventory: Inventory): Player {
+	/** `inventory` is what they bring down: their loadout. `markWheel`: their chalk symbols. */
+	addPlayer(
+		socket: WebSocket,
+		name: string,
+		owner: string,
+		inventory: Inventory,
+		markWheel: readonly string[] = DEFAULT_MARK_WHEEL
+	): Player {
 		const player: Player = {
 			id: randomUUID(),
 			owner,
@@ -328,7 +336,8 @@ export class Session {
 			deepestLevel: 0,
 			stats: { kills: 0, crates: 0, clues: 0 },
 			lastInput: null,
-			crate: null
+			crate: null,
+			markWheel
 		};
 		this.players.set(player.id, player);
 		this.itemsSent = null;
@@ -341,7 +350,8 @@ export class Session {
 			sessionId: this.id,
 			tickRate: TICK_RATE,
 			layout: this.layout,
-			resumed: false
+			resumed: false,
+			markWheel: [...player.markWheel]
 		});
 		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
 		log.info(`Player ${name} joined session ${this.id.slice(0, 8)}`);
@@ -371,7 +381,8 @@ export class Session {
 			sessionId: this.id,
 			tickRate: TICK_RATE,
 			layout: this.layout,
-			resumed: true
+			resumed: true,
+			markWheel: [...player.markWheel]
 		});
 		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
 		log.info(`Player ${player.name} reconnected to session ${this.id.slice(0, 8)}`);
@@ -503,7 +514,15 @@ export class Session {
 		const { origin, direction } = aimRay(s, eyeHeight(s));
 		const flat = Math.hypot(direction[0], direction[2]) || 1;
 		const facing: Vec3 = [direction[0] / flat, 0, direction[2] / flat];
-		const mark = this.marks.check(this.world, origin, facing, symbol, position, normal);
+		const mark = this.marks.check(
+			this.world,
+			origin,
+			facing,
+			player.markWheel,
+			symbol,
+			position,
+			normal
+		);
 		if (!mark) return;
 		const added = this.marks.add({ ...mark, by: player.id, name: player.name });
 		const inHand = held(s.inventory);

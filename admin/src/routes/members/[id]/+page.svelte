@@ -195,6 +195,18 @@
 			{explorer.money} money · {explorer.stashed} of {explorer.stashSlots} stash slots used
 			{#if explorer.underground}· <span class="badge info">Underground</span>{/if}
 		</p>
+		<p>
+			Chalk wheel{explorer.customWheel ? '' : ' (default)'}: {explorer.markWheel.join(' · ')}
+		</p>
+		{#if explorer.customWheel}
+			<div class="actions">
+				<Action
+					action="resetMarkWheel"
+					label="Reset chalk wheel"
+					confirm="Put {member.gamerTag}'s chalk wheel back to the default eight symbols?"
+				/>
+			</div>
+		{/if}
 	{:else}
 		<p class="muted">No explorer yet.</p>
 	{/each}

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { MARKS, MARK_SYMBOLS, markWheel } from '../src/lib/content/marks.ts';
+import { MARKS, MARK_SYMBOLS } from '../src/lib/content/marks.ts';
 import { segmentHit, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
 import type { MarkSnapshot } from '../src/lib/shared/items/types.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
@@ -22,20 +22,20 @@ export class Marks {
 
 	/**
 	 * Check a request to draw `symbol` at `position` (on the stone, `normal` out of it) from `eye`,
-	 * looking `facing` (horizontal). Returns the mark, or null if it can't be drawn there: a symbol
-	 * not on the wheel, too far, no stone there, something in the way, facing away, or too near
-	 * another mark.
+	 * looking `facing` (horizontal), by a player with `wheel`. Returns the mark, or null if it can't
+	 * be drawn there: a symbol not on their wheel, too far, no stone there, something in the way,
+	 * facing away, or too near another mark.
 	 */
 	check(
 		world: CollisionWorld,
 		eye: Vec3,
 		facing: Vec3,
+		wheel: readonly string[],
 		symbol: unknown,
 		position: unknown,
 		normal: unknown
 	): Omit<MarkSnapshot, 'id' | 'by' | 'name'> | null {
-		if (typeof symbol !== 'string' || !MARK_SYMBOLS[symbol] || !markWheel().includes(symbol))
-			return null;
+		if (typeof symbol !== 'string' || !MARK_SYMBOLS[symbol] || !wheel.includes(symbol)) return null;
 		if (!isVec3(position) || !isVec3(normal)) return null;
 		const length = Math.hypot(normal[0], normal[1], normal[2]);
 		if (length < 0.5) return null;

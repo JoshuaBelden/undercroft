@@ -97,9 +97,10 @@ export class Diver {
 	constructor(
 		readonly session: Session,
 		name = 'Diver',
-		inventory: Inventory = emptyInventory()
+		inventory: Inventory = emptyInventory(),
+		markWheel?: readonly string[]
 	) {
-		this.id = session.addPlayer(this.socket.ws, name, `explorer-${name}`, inventory).id;
+		this.id = session.addPlayer(this.socket.ws, name, `explorer-${name}`, inventory, markWheel).id;
 	}
 
 	/** Their authoritative state (live: changes as the session runs). */

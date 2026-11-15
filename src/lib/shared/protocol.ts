@@ -120,6 +120,8 @@ export type ServerMessage =
 			layout: MapLayout;
 			/** Back in an expedition already underway (a reconnect), not just arriving. */
 			resumed: boolean;
+			/** The chalk symbols on their wheel: the only ones the server lets them draw. */
+			markWheel: string[];
 	  }
 	| { type: 'reject'; reason: string }
 	| { type: 'pong'; clientTime: number; serverTime: number }

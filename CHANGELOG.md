@@ -3,8 +3,10 @@
 What changed in each version of Undercroft, newest first. Players see these in game on the About page. Write them for players: what you'll notice, not how it was built. `pnpm release` turns the Unreleased section into the next version (see [docs/dev/releasing.md](docs/dev/releasing.md)).
 
 ## Unreleased
+
 - The game's fonts now come from the game itself rather than Google, so pages load without a stop at another site and nothing about you is sent there.
 - Avatars: upload a picture on the Account screen and frame it in the circle. It shows beside your gamer tag and on your pane on the Expedition screen, for your whole party. Signed in with Discord? Your Discord avatar is used until you upload your own.
+- Choose the eight chalk marks on your wheel: press Chalk wheel on the Loadout page. Thirteen new marks to pick from, all free: Loot, Trap, Water, Way out, Stairs, Wait here, Meet here, Creature, Safe, Locked, Crate, Help and Someone fell.
 
 ## 0.2.0 - 2026-11-13
 

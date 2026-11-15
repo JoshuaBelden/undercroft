@@ -2,6 +2,7 @@ import {
 	clearUnderground,
 	itemsOwned,
 	markReady,
+	markWheelsOf,
 	returnFromExpedition,
 	takeLoadout
 } from '../src/lib/server/store/explorers.ts';
@@ -36,6 +37,21 @@ export async function owned(explorers: string[]): Promise<Set<string>> {
 	} catch (error) {
 		log.warn(`Could not read what explorers own: ${(error as Error).message}`);
 		return new Set();
+	}
+}
+
+/**
+ * The chalk wheel each of these explorers saved (those who never chose one aren't in it, and
+ * `markWheel` gives them the default). Read at descent, like the loadout.
+ */
+export async function markWheels(explorers: string[]): Promise<Map<string, string[]>> {
+	const db = getDb();
+	if (!db || explorers.length === 0) return new Map();
+	try {
+		return await markWheelsOf(db, explorers);
+	} catch (error) {
+		log.warn(`Could not read chalk wheels: ${(error as Error).message}`);
+		return new Map();
 	}
 }
 

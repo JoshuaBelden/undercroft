@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MARK_SYMBOLS } from '#lib/content/marks.ts';
+	import MarkGlyph from './MarkGlyph.svelte';
 
 	/**
 	 * The chalk wheel: the symbols on the player's wheel around a circle, shown while attack is
@@ -24,14 +25,9 @@
 	const places = $derived(
 		symbols.map((id, index) => {
 			const angle = (index / symbols.length) * Math.PI * 2;
-			const def = MARK_SYMBOLS[id];
 			return {
 				id,
 				index,
-				// The strokes as SVG polylines, in a 100 x 100 box.
-				lines: (def?.strokes ?? []).map((stroke) =>
-					stroke.map(([x, y]) => `${(x * 100).toFixed(1)},${(y * 100).toFixed(1)}`).join(' ')
-				),
 				x: Math.sin(angle) * RADIUS,
 				y: -Math.cos(angle) * RADIUS
 			};
@@ -48,11 +44,7 @@
 			class:chosen={place.index === chosen}
 			style:translate="{place.x}px {place.y}px"
 		>
-			<svg viewBox="0 0 100 100" aria-hidden="true">
-				{#each place.lines as points, i (i)}
-					<polyline {points} />
-				{/each}
-			</svg>
+			<MarkGlyph symbol={place.id} />
 		</div>
 	{/each}
 	<div class="dot" style:translate="{pointer.x * REACH}px {pointer.y * REACH}px"></div>
@@ -104,20 +96,6 @@
 		border-color: var(--text);
 		background: rgb(0 129 157 / 0.45);
 		scale: 1.1;
-	}
-
-	svg {
-		width: 100%;
-		height: 100%;
-		overflow: visible;
-	}
-
-	polyline {
-		fill: none;
-		stroke: #e9e4d8;
-		stroke-width: 7;
-		stroke-linecap: round;
-		stroke-linejoin: round;
 	}
 
 	.dot {

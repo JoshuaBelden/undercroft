@@ -30,7 +30,8 @@ export const AUDIT_ACTIONS = {
 	declineIdea: 'Declined an idea',
 	updateIdea: 'Changed an idea',
 	mergeIdea: 'Merged an idea',
-	archiveFeedback: 'Archived feedback'
+	archiveFeedback: 'Archived feedback',
+	resetMarkWheel: 'Reset the chalk wheel'
 } satisfies Record<string, string>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
