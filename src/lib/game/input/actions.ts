@@ -96,7 +96,7 @@ export const PAD_DEFAULTS: Record<Action, readonly string[]> = {
 	inventory: ['PadView'],
 	toggleSettings: ['PadMenu'],
 	toggleHelp: ['PadRight'],
-	toggleSocial: [],
+	toggleSocial: ['PadR3'],
 	toggleFullscreen: [],
 	toggleView: ['PadLeft'],
 	toggleRitePanel: ['PadR3'],

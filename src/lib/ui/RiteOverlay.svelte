@@ -50,7 +50,8 @@
 	<h2>
 		<span class="pill">{affliction || 'The rite'}</span>
 		{#if rite.resolved}<span class="done">Resolved</span>{/if}
-		{#if !open && toggleKey}<span class="show"><KeyCap code={toggleKey} /></span>{/if}
+		{#if !open && toggleKey}<span class="show"><KeyCap code={toggleKey} tint="control" /></span
+			>{/if}
 	</h2>
 
 	{#if open}
@@ -88,6 +89,7 @@
 						<span class="who"
 							>One of you carries it all here and holds {#if interactKey}<KeyCap
 									code={interactKey}
+									tint="control"
 								/>{:else}interact{/if}</span
 						>
 					</span>

@@ -4,6 +4,7 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- Controller shortcuts on the dashboard, with their buttons shown on screen: hold X to launch an expedition and again to confirm your loadout, hold Y to open the store or to purchase, View for your Loadout, a click of the right stick for Social, and LB/RB for the tabs. The button fills from left to right while you hold it.
 - Looting with a controller: once X has sent an item from a crate or corpse to your pack, you move on to the next one, so pressing X again and again empties it.
 - Hide the rite and your party's health down the left of the screen with H, or by clicking the right stick, and bring them back the same way. Only the Affliction's name stays. Handy on a tablet; it's also under Settings > Interface.
 - The game's fonts now come from the game itself rather than Google, so pages load without a stop at another site and nothing about you is sent there.

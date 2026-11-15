@@ -1,6 +1,8 @@
 import type { Attachment } from 'svelte/attachments';
 import { device } from './device.svelte.ts';
 import { pads, type Stick } from './gamepad.ts';
+import { Hold } from './hold.ts';
+import { hints } from './hints.svelte.ts';
 import { REPEAT_DELAY, REPEAT_EVERY, Repeat, stickStep } from './repeat.ts';
 
 /**
@@ -21,6 +23,9 @@ import { REPEAT_DELAY, REPEAT_EVERY, Repeat, stickStep } from './repeat.ts';
  * - `data-pad-stick-stepper`: the same, but the right stick's left and right press its buttons,
  *   wherever the focus is in the menu, and it is no stop at all (the store's quantity, so the
  *   focus moves straight past it to Purchase).
+ * - `data-pad-hold="x"` (or `"y"`): holding that button presses this control, from anywhere in
+ *   the menu, while it is enabled (Launch, Confirm loadout, the store, Purchase). A quick press of
+ *   it still goes to the focused control, on release instead of on press.
  * - A `padpress` event (a `CustomEvent<PadButton>`) reaches the focused control first; calling
  *   `preventDefault()` on it means it was handled (item slots carry things this way).
  */
@@ -60,6 +65,8 @@ const DIRECTIONS: Record<string, Direction> = {
 	PadStickRight: 'right'
 };
 const FACES: Record<string, PadButton> = { PadA: 'a', PadB: 'b', PadX: 'x', PadY: 'y' };
+/** The face buttons a control can be held for (`data-pad-hold`). */
+const HOLDS: ReadonlySet<PadButton> = new Set(['x', 'y']);
 /** Every button a menu takes from the game while it is open. */
 const TAKEN = new Set([...Object.keys(DIRECTIONS), ...Object.keys(FACES), 'PadLB', 'PadRB']);
 const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]';
@@ -70,10 +77,13 @@ const menus: Menu[] = [];
 /** The control used last in each menu with a `key`, by its place among the menu's controls. */
 const remembered = new Map<string, number>();
 const moveListeners = new Set<(tick: MenuTick) => void>();
+const holdListeners = new Set<() => void>();
 /** The direction held, by which button, and when it next repeats. */
 let held: { code: string; direction: Direction; at: number } | null = null;
 /** The right stick held left or right on a `data-pad-stick-stepper`. */
 const stickHeld = new Repeat();
+/** A face button held down for a control's `data-pad-hold`, from its press until it is let go. */
+let holding: { code: string; button: PadButton; control: HTMLElement; hold: Hold } | null = null;
 /** The right stick's scroll not yet a whole pixel. */
 const carry = { x: 0, y: 0 };
 let frame = 0;
@@ -127,10 +137,29 @@ export function onMenuMove(listener: (tick: MenuTick) => void): () => void {
 	return () => moveListeners.delete(listener);
 }
 
+/** Called each time a menu button held for a control (`data-pad-hold`) completes and presses it. */
+export function onMenuHold(listener: () => void): () => void {
+	holdListeners.add(listener);
+	return () => holdListeners.delete(listener);
+}
+
+/** Whether this controller button belongs to the menus while one is open (A, B, X, Y, LB, RB...). */
+export function isMenuButton(code: string): boolean {
+	return TAKEN.has(code);
+}
+
+/** The root of the innermost menu `element` is in, if any: its menu buttons work while it is on top. */
+export function menuOf(element: Element): HTMLElement | null {
+	return owner(element)?.root ?? null;
+}
+
 function start(): void {
 	unsubscribe = pads.onPress(press);
 	lastFrame = performance.now();
 	frame = requestAnimationFrame(loop);
+	// At once, not next frame: a menu attached again (the dashboard's, on each page) doesn't
+	// blink its button icons.
+	hints.top = top()?.root ?? null;
 }
 
 function stop(): void {
@@ -139,16 +168,23 @@ function stop(): void {
 	cancelAnimationFrame(frame);
 	held = null;
 	stickHeld.reset();
+	holding = null;
+	hints.top = null;
+	showHold(null, 0);
 }
 
 /**
  * Every frame while the controller is in use: keep the focus in the menu on top (it opened, or
- * what had the focus went away), repeat a held direction, and step or scroll with the right stick.
+ * what had the focus went away), repeat a held direction, fill a hold, and step or scroll with the
+ * right stick.
  */
 function loop(now: number): void {
 	const seconds = Math.min(0.1, (now - lastFrame) / 1000);
 	lastFrame = now;
 	const menu = top();
+	const root = menu?.root ?? null;
+	if (hints.top !== root) hints.top = root;
+	if (holding) holdFrame(menu, now);
 	if (menu && device.kind === 'pad') {
 		if (!focused(menu)) focusStart(menu);
 		if (held && !pads.isDown(held.code)) held = null;
@@ -177,6 +213,19 @@ function press(code: string): void {
 	}
 	const button = FACES[code];
 	if (!button) return;
+	// A control here is held for this button: wait for the release to tell a hold from a quick
+	// press. Only from a fresh press, and one hold at a time.
+	const control = HOLDS.has(button) && !holding ? holdable(menu, button) : null;
+	if (control) {
+		holding = { code, button, control, hold: new Hold(performance.now()) };
+		showHold(control, 0);
+		return;
+	}
+	face(menu, button);
+}
+
+/** A face button on the focused control: `padpress` first, then A presses it and B backs out. */
+function face(menu: Menu, button: PadButton): void {
 	const target = focused(menu);
 	// Nothing focused yet: the first press only puts the focus in the menu. B still backs out.
 	if (!target && button !== 'b') {
@@ -191,6 +240,40 @@ function press(code: string): void {
 	if (target && !target.dispatchEvent(event)) return;
 	if (button === 'a' && target) activate(target);
 	if (button === 'b') menu.back?.();
+}
+
+/**
+ * Each frame of a hold: fill it, press its control when it completes (with a tick), and when the
+ * button is let go early, do what a quick press does. If its control goes away, is disabled or a
+ * menu opens over it, the hold empties and the press does nothing.
+ */
+function holdFrame(menu: Menu | null, now: number): void {
+	if (!holding) return;
+	const { code, button, control, hold } = holding;
+	if (!pads.isDown(code)) {
+		holding = null;
+		showHold(null, 0);
+		// Not when the window lost the focus: the controller just stopped reporting.
+		if (hold.release() && menu && document.hasFocus()) face(menu, button);
+		return;
+	}
+	if (!hold.done && (!menu || holdable(menu, button) !== control)) hold.cancel();
+	if (hold.update(now)) {
+		activate(control);
+		for (const listener of holdListeners) listener();
+	}
+	showHold(control, hold.progress(now));
+}
+
+/** The control in the menu held for `button` (`data-pad-hold`), if there is one and it is enabled. */
+function holdable(menu: Menu, button: PadButton): HTMLElement | null {
+	return controls(menu).find((control) => control.dataset.padHold === button) ?? null;
+}
+
+/** The slide across the held-for control's background (ButtonHint.svelte). */
+function showHold(control: HTMLElement | null, progress: number): void {
+	if (hints.target !== control) hints.target = control;
+	if (hints.progress !== progress) hints.progress = progress;
 }
 
 function move(menu: Menu, direction: Direction): void {

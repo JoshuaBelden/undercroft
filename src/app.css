@@ -125,6 +125,16 @@ input[type='range'] {
 }
 
 /*
+ * A control a controller button is held for (data-pad-hold, src/lib/game/input/menus.ts): the
+ * hold's slide (ButtonHint.svelte) fills its background, clipped to its shape, under its label.
+ */
+[data-pad-hold] {
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
+}
+
+/*
  * The centred column most dashboard pages sit in. The dashboard gives each page the whole window
  * under its bar (src/routes/(hub)/+layout.svelte); a page that wants the column wraps itself in
  * this, and a full-width page (Afflictions) does not.

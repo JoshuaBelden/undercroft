@@ -7,6 +7,7 @@
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { connection, me, send } from '#lib/game/net/connection.svelte.ts';
 	import { settings } from '#lib/settings/settings.svelte.ts';
+	import ButtonHint from '#lib/ui/ButtonHint.svelte';
 	import { launch } from '#lib/ui/launch.svelte.ts';
 	import Outfit from '#lib/ui/Outfit.svelte';
 
@@ -67,8 +68,18 @@
 		<div class="confirm" role="group" aria-label="Confirm your loadout">
 			<p>This is what you take down. Change anything you like, then confirm.</p>
 			<button type="button" class="back" onclick={back}>Back</button>
-			<button type="button" class="go" disabled={busy} onclick={() => void confirm()}>
+			<!-- Held X confirms from anywhere on the page; a quick X still sends an item. -->
+			<button
+				type="button"
+				class="go"
+				disabled={busy}
+				data-pad-hold="x"
+				onclick={() => void confirm()}
+			>
 				Confirm loadout
+				{#if !busy}
+					<ButtonHint code="PadX" hold />
+				{/if}
 			</button>
 		</div>
 	{/if}
@@ -124,8 +135,13 @@
 		background: rgb(255 255 255 / 0.1);
 	}
 
-	/* The same dark yellow as the Launch button it follows. */
+	/* The same dark yellow as the Launch button it follows; its controller button too. */
 	.go {
+		--hint-cap: var(--panel);
+		--hint-label: var(--launch);
+		display: flex;
+		align-items: center;
+		gap: 10px;
 		border-color: var(--launch);
 		background: var(--launch);
 		color: #14110f;
@@ -134,6 +150,7 @@
 
 	.go:hover:not(:disabled),
 	.go:focus-visible {
+		--hint-label: var(--launch-bright);
 		border-color: var(--launch-bright);
 		background: var(--launch-bright);
 	}
