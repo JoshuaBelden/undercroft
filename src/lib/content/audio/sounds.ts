@@ -514,6 +514,12 @@ export const SOUNDS = {
 		volume: 1,
 		caption: 'a vast breath through the stone'
 	},
+	// Your head under the water: a dull, close pressure under the muffled world (looped).
+	'underwater.drone': {
+		synth: { kind: 'drone', pitch: 52 },
+		category: 'ambience',
+		volume: 0.35
+	},
 	'manifest.presence': {
 		synth: { kind: 'drone', pitch: 33 },
 		category: 'sfx',

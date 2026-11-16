@@ -20,6 +20,8 @@
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { Crates } from '#lib/game/items/Crates.ts';
 	import { Doors } from '#lib/game/map/Doors.ts';
+	import { Underwater } from '#lib/game/Underwater.ts';
+	import UnderwaterOverlay from '#lib/ui/UnderwaterOverlay.svelte';
 	import { DOORS } from '#lib/content/doors.ts';
 	import { lookedAtDoor } from '#lib/shared/map/doors.ts';
 	import { Marks } from '#lib/game/items/Marks.ts';
@@ -141,6 +143,8 @@
 	let mapCounts = $state<MapDebugCounts | null>(null);
 	let markers = $state(false);
 	let spawned = $state(false);
+	/** How far under the water the view is, 0..1 (the overlay follows the fog). */
+	let underwater = $state(0);
 	let hud = $state({
 		battery: 1,
 		volts: DEFAULT_HEADLAMP.volts,
@@ -494,6 +498,10 @@
 		engine.scene.add(crates.root);
 		const doors = new Doors();
 		engine.scene.add(doors.root);
+		const water = new Underwater(engine.scene);
+		/** The low drone heard with your head under, started on first use. */
+		let waterDrone: { setVolume(v: number): void; stop(): void } | null = null;
+		let waterDroneStarting = false;
 		const marks = new Marks(map.root);
 		engine.scene.add(marks.root);
 		const chalkRay = new THREE.Raycaster();
@@ -612,6 +620,8 @@
 			leavingCrate = false;
 			crates.clear();
 			doors.clear();
+			water.reset();
+			underwater = 0;
 			marks.clear();
 			markLabel = null;
 			chalkWheel = null;
@@ -1477,6 +1487,15 @@
 			engine.camera.getWorldDirection(lookDir);
 			audio.setListener([cam.x, cam.y, cam.z], [lookDir.x, lookDir.y, lookDir.z]);
 			ambience.update(delta, [cam.x, cam.y, cam.z], state);
+			underwater = water.update(
+				!mapView && Underwater.below(player.collision, [cam.x, cam.y, cam.z]),
+				delta
+			);
+			if (underwater > 0 && audio.unlocked && !waterDrone && !waterDroneStarting) {
+				waterDroneStarting = true;
+				void sounds.loop('underwater.drone').then((handle) => (waterDrone = handle));
+			}
+			waterDrone?.setVolume(underwater);
 			manifestation.update(delta, [cam.x, cam.y, cam.z]);
 			creatures.listen(delta, [cam.x, cam.y, cam.z]);
 			captions.update();
@@ -1604,6 +1623,7 @@
 			canvas.removeEventListener('click', requestLock);
 			document.exitPointerLock();
 			heartbeat?.stop();
+			waterDrone?.stop();
 			creatures.dispose();
 			viewModel.dispose();
 			manifestation.dispose();
@@ -1648,6 +1668,10 @@
 
 {#if settings.accessibility.captions && spawned && !mapView && !result}
 	<Captions captions={captions.list} size={settings.accessibility.captionSize} />
+{/if}
+
+{#if underwater > 0 && !mapView && !result}
+	<UnderwaterOverlay amount={underwater} calm={settings.accessibility.reduceFlashing} />
 {/if}
 
 {#if downed && spawned && !mapView && !result}

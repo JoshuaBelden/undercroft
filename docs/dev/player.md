@@ -68,6 +68,15 @@ Water comes from `vol-water-*` volumes in the pieces (the manifest's `volumes`).
 - **Breath:** while the eye is underwater (`state.underwater`), stamina drains at `swim.breathDrain` and doesn't regenerate. At zero you're `exhausted`, and buoyancy always wins, so you're forced up. Drowning damage comes with sanity in Phase 2.
 - **Wading** (shallower water) slows movement by `wadeSpeed` and switches footsteps to splashes.
 
+### Underwater
+
+With the camera under a water surface (`Underwater.below`: the camera, not the body, so it works over the shoulder and in the free camera too), the view goes murky:
+
+- **Fog:** `Underwater` (`src/lib/game/Underwater.ts`) puts a dense, dark green `FogExp2` on the scene, fading in and out over 0.2 s. Things a few metres off are half hidden and nothing past about 9 m shows. Every map material takes fog by default, so a new one needs nothing.
+- **Overlay:** `UnderwaterOverlay.svelte`: a tint darkening to the edges, a slight blur, and a slow drift of light. The drift stops with **Reduce flashing** (Settings > Accessibility) or the system's reduced motion.
+- **Sound:** the world is muffled and dry (`Ambience`, as before), under a low `underwater.drone` loop on the ambience bus that follows the fade.
+- Off in the map debug view, which is fully lit.
+
 ## Mantling
 
 `findMantle` (`collision.ts`) looks for a ledge `reach` ahead along the yaw. All of these must hold:

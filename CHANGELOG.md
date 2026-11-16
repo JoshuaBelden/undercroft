@@ -4,6 +4,13 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- The catacombs now go down in three levels, one under the other, each a maze of its own. The far end of the first and second levels has a way out and a great barred double door: hold Interact to open it, and a long stair takes you down to the next level. It's the only way down, and once it's open, whatever is down there can come up.
+- Bigger rooms: a pillared charnel vault and long burial galleries lined with niches.
+- No more passages that just leave a room and wander straight back into it.
+- The good loot is deeper: crates on the first two levels hold everyday things, and anything rare or precious is on the third, where the rite is done.
+- Squeezes are much longer, and there's no room to fight in one.
+- Under the water, everything goes dark, murky and close.
+- The results screen's deepest level now counts the three levels of the catacombs.
 - Controller shortcuts on the dashboard, with their buttons shown on screen: hold X to launch an expedition and again to confirm your loadout, hold Y to open the store or to purchase, View for your Loadout, a click of the right stick for Social, and LB/RB for the tabs. The button fills from left to right while you hold it.
 - Looting with a controller: once X has sent an item from a crate or corpse to your pack, you move on to the next one, so pressing X again and again empties it.
 - Hide the rite and your party's health down the left of the screen with H, or by clicking the right stick, and bring them back the same way. Only the Affliction's name stays. Handy on a tablet; it's also under Settings > Interface.
