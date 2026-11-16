@@ -88,6 +88,11 @@ export type AdminCommand =
 	| { kind: 'setDeadline'; seconds: number }
 	/** Teleport to a start or major room by piece name. */
 	| { kind: 'teleport'; room: string }
+	/**
+	 * Move your body to the free camera: `position` is the camera. The eyes go there and the body
+	 * falls to the floor below (with noclip on, it stays). Nothing happens over no floor at all.
+	 */
+	| { kind: 'teleportTo'; position: Vec3 }
 	/** Shut every loot crate and fill them again, hidden. */
 	| { kind: 'resetCrates' }
 	/** Rub out every chalk mark. */

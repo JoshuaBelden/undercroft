@@ -38,6 +38,8 @@
 	import { device, promptCode } from '#lib/game/input/device.svelte.ts';
 	import { rumble } from '#lib/game/input/gamepad.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
+	import { MapDebugGrid } from '#lib/game/map/MapDebugGrid.ts';
+	import { mapDebugGrid, type MapDebugCounts } from '#lib/shared/map/debug.ts';
 	import { connection, gameClient, me, start, subscribe } from '#lib/game/net/connection.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
 	import { PlayerBody } from '#lib/game/player/PlayerBody.ts';
@@ -91,6 +93,10 @@
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import type { PartyMember } from '#lib/ui/PartyHealth.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
+	import MapDebugPanel from '#lib/ui/MapDebugPanel.svelte';
+
+	/** The dev free camera: metres a second, the sprint multiple, mouse and stick turn rates. */
+	const FREECAM = { speed: 8, fast: 4, mouse: 0.0022, stickTurn: 2.5, maxPitch: 1.55 };
 
 	let canvas: HTMLCanvasElement;
 	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'crate';
@@ -124,6 +130,12 @@
 	let rtt = $state(0);
 	let locked = $state(false);
 	let mapView = $state(false);
+	/** Dev: the map view flown through with the move keys and mouse, instead of orbited. */
+	let freecam = $state(false);
+	/** Dev: the cell and entrance grid drawn over the map view. */
+	let gridView = $state(true);
+	/** Dev: what the map is made of, for the map view's side panel. */
+	let mapCounts = $state<MapDebugCounts | null>(null);
 	let markers = $state(false);
 	let spawned = $state(false);
 	let hud = $state({
@@ -203,6 +215,16 @@
 	let setMapView = (enabled: boolean): void => {
 		mapView = enabled;
 	};
+	let setFreecam = (enabled: boolean): void => {
+		freecam = enabled;
+	};
+	let setGridView = (enabled: boolean): void => {
+		gridView = enabled;
+	};
+	/** Dev, in the free camera: your body to where the camera is, and back into it. */
+	let bodyToCamera = (): void => {};
+	/** Dev, in the free camera: the camera back to where your body is, still flying. */
+	let cameraToBody = (): void => {};
 	let setMarkers = (enabled: boolean): void => {
 		markers = enabled;
 	};
@@ -257,7 +279,7 @@
 	function closeAdmin(): void {
 		if (panel !== 'admin') return;
 		panel = null;
-		if (expedition && !mapView) capture();
+		if (expedition && (!mapView || freecam)) capture();
 	}
 
 	function toggle(name: PanelName): void {
@@ -298,6 +320,8 @@
 		const orbit = new OrbitControls(engine.camera, canvas);
 		orbit.enableDamping = true;
 		orbit.enabled = false;
+		const debugGrid = new MapDebugGrid();
+		engine.scene.add(debugGrid.root);
 
 		// The player's head: where their eyes are and which way they look. It is the camera,
 		// except over the shoulder, where the camera hangs back and the lamp stays on the head.
@@ -548,6 +572,9 @@
 				})
 				.catch((error) => console.error('Map load failed', error));
 			crates.build(layout.crates);
+			const grid = mapDebugGrid(layout, PIECES, MAP_KIT);
+			debugGrid.build(grid);
+			mapCounts = grid.counts;
 			const world = buildCollisionWorld(layout, PIECES);
 			player.setWorld(world);
 			ambience.setMap(layout, world);
@@ -568,6 +595,7 @@
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
+			if (freecam) setFreecam(false);
 			loadId++;
 			loading = null;
 			if (panel === 'inventory' || panel === 'crate') panel = null;
@@ -1223,8 +1251,10 @@
 
 		setMapView = (enabled) => {
 			mapView = enabled;
+			freecam = false;
 			orbit.enabled = enabled;
 			debugLight.visible = enabled;
+			debugGrid.setVisible(enabled && gridView);
 			if (enabled) {
 				document.exitPointerLock();
 				const eye = player.eyePosition();
@@ -1234,6 +1264,81 @@
 				}
 			}
 		};
+
+		/** The free camera's own look, apart from the player's. */
+		const fly = { yaw: 0, pitch: 0 };
+		const flyMove = new THREE.Vector3();
+		/**
+		 * Dev: the map view flown from where you stand, with the move keys (climb and swim down for
+		 * up and down, sprint for faster) and the mouse or sticks. The player stays where they were.
+		 */
+		setFreecam = (enabled) => {
+			if (enabled && !devMode) return;
+			setMapView(enabled);
+			freecam = enabled;
+			orbit.enabled = false;
+			if (!enabled) {
+				if (expedition && !panel) capture();
+				return;
+			}
+			const eye = player.eyePosition();
+			const look = player.look();
+			if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
+			fly.yaw = look.yaw;
+			fly.pitch = look.pitch;
+			capture();
+		};
+
+		bodyToCamera = () => {
+			if (!freecam) return;
+			const { x, y, z } = engine.camera.position;
+			sendAdmin({ kind: 'teleportTo', position: [x, y, z] });
+			player.face(fly.yaw, fly.pitch);
+			setFreecam(false);
+		};
+
+		cameraToBody = () => {
+			if (!freecam) return;
+			const eye = player.eyePosition();
+			const look = player.look();
+			if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
+			fly.yaw = look.yaw;
+			fly.pitch = look.pitch;
+		};
+
+		setGridView = (enabled) => {
+			gridView = enabled;
+			debugGrid.setVisible(mapView && enabled);
+		};
+
+		function flyFreecam(delta: number): void {
+			const [dx, dy] = input.consumeLook();
+			if (panel) return;
+			const look = input.lookStick();
+			const mouse = FREECAM.mouse * settings.controls.mouseSensitivity;
+			fly.yaw -= dx * mouse + look.x * FREECAM.stickTurn * delta;
+			fly.pitch -=
+				(dy * mouse + look.y * FREECAM.stickTurn * delta) * (settings.controls.invertY ? -1 : 1);
+			fly.pitch = Math.max(-FREECAM.maxPitch, Math.min(FREECAM.maxPitch, fly.pitch));
+			engine.camera.rotation.set(fly.pitch, fly.yaw, 0);
+			const keys = (pos: Action, neg: Action) =>
+				(input.isDown(pos) ? 1 : 0) - (input.isDown(neg) ? 1 : 0);
+			const stick = input.moveStick();
+			const pushed = Math.hypot(stick.x, stick.y) > 0;
+			flyMove.set(
+				pushed ? stick.x : keys('moveRight', 'moveLeft'),
+				keys('climb', 'swimDown'),
+				pushed ? stick.y : -keys('moveForward', 'moveBack')
+			);
+			if (flyMove.lengthSq() === 0) return;
+			const speed = FREECAM.speed * (input.isDown('sprint') ? FREECAM.fast : 1);
+			// Up and down stay straight up and down; the rest follows where you look.
+			const vertical = flyMove.y;
+			flyMove.y = 0;
+			flyMove.applyQuaternion(engine.camera.quaternion);
+			flyMove.y += vertical;
+			engine.camera.position.addScaledVector(flyMove, speed * delta);
+		}
 
 		// Usually the expedition began while the dashboard was showing: its `welcome` is waiting.
 		start();
@@ -1251,7 +1356,7 @@
 		document.addEventListener('pointerlockchange', onLockChange);
 		const requestLock = () => {
 			void audio.unlock();
-			if (!panel && !mapView && !spectating && !extracting && !loading) {
+			if (!panel && (!mapView || freecam) && !spectating && !extracting && !loading) {
 				void canvas.requestPointerLock();
 			}
 		};
@@ -1260,6 +1365,8 @@
 		engine.onUpdate((delta) => {
 			// A controller can't capture the pointer (browsers don't count it as a gesture): while it
 			// is the device in use, the game plays without.
+			// Before the player reads the mouse: in the free camera, the mouse is the camera's.
+			if (freecam) flyFreecam(delta);
 			const active = (locked || device.kind === 'pad') && !panel && !mapView && !extracting;
 			updateWheel(player.state, active);
 			updateChalkWheel(player.state, active);
@@ -1278,7 +1385,7 @@
 			const shoulder = settings.graphics.view === 'shoulder' && !mapView && !spectating && upright;
 			let outside = mapView;
 			if (mapView) {
-				orbit.update();
+				if (!freecam) orbit.update();
 			} else if (spectating) {
 				const view = watchedView();
 				if (view) {
@@ -1441,6 +1548,25 @@
 				case 'toggleAdmin':
 					if (devMode) toggle('admin');
 					break;
+				// In the free camera: interact moves your body here, reload brings the camera back to it.
+				case 'interact':
+					if (freecam && !panel) {
+						bodyToCamera();
+						sounds.play('ui.toggle');
+					}
+					break;
+				case 'reload':
+					if (freecam && !panel) {
+						cameraToBody();
+						sounds.play('ui.toggle');
+					}
+					break;
+				case 'toggleFreecam':
+					if (devMode && expedition) {
+						setFreecam(!freecam);
+						sounds.play('ui.toggle');
+					}
+					break;
 			}
 		});
 
@@ -1466,6 +1592,7 @@
 			body.dispose();
 			remote.dispose();
 			orbit.dispose();
+			debugGrid.dispose();
 			input.dispose();
 			unsubscribeNet();
 			engine.dispose();
@@ -1573,6 +1700,10 @@
 	{status}{statusDetail ? `: ${statusDetail}` : ''}
 </div>
 
+{#if devMode && mapView && mapCounts}
+	<MapDebugPanel counts={mapCounts} {seed} {freecam} />
+{/if}
+
 {#if settings.interface.showStats}
 	<StatsOverlay {stats} {rtt} />
 {/if}
@@ -1621,11 +1752,27 @@
 		{rooms}
 		{flags}
 		{mapView}
+		{freecam}
+		{gridView}
 		{markers}
 		{meter}
 		{omen}
 		onadmin={(command) => sendAdmin(command)}
 		onmapview={(enabled) => setMapView(enabled)}
+		onfreecam={(enabled) => {
+			panel = null;
+			setFreecam(enabled);
+		}}
+		ongridview={(enabled) => setGridView(enabled)}
+		onbodytocamera={() => {
+			panel = null;
+			bodyToCamera();
+		}}
+		oncameratobody={() => {
+			panel = null;
+			cameraToBody();
+			capture();
+		}}
 		onmarkers={(enabled) => setMarkers(enabled)}
 	/>
 {/if}

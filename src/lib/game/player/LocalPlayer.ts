@@ -355,6 +355,12 @@ export class LocalPlayer {
 		return feet && [feet[0], feet[1] + this.eye, feet[2]];
 	}
 
+	/** Turn to face this way (dev: arriving where the free camera was, looking where it looked). */
+	face(yaw: number, pitch: number): void {
+		this.yaw = yaw;
+		this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch));
+	}
+
 	/** A shot's recoil: throw the view up by `pitch` and aside by `yaw` (radians). */
 	kick(pitch: number, yaw: number): void {
 		this.kickLeft.pitch += pitch;
