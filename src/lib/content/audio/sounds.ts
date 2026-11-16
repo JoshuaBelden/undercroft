@@ -161,7 +161,7 @@ export const SOUNDS = {
 		variation: 0.06
 	},
 	'squeeze.grunt': {
-		file: 'exertion',
+		file: 'squeeze.grunt',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.45,

@@ -37,7 +37,9 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'breath.slow', file: 'breathing_slow.wav', keepSilence: true },
 	{ id: 'breath.fast', file: 'breathing_fast.wav', keepSilence: true },
 	{ id: 'gasp', file: 'gasp.wav' },
-	// Effort grunts for climbing and pushing through squeezes.
+	// Pushing through a squeeze.
+	{ id: 'squeeze.grunt', file: 'sfx_grunt.mp3' },
+	// Effort grunts for climbing.
 	{ id: 'exertion', file: 'exertion.mp3', slice: { minGap: 0.6, maxLength: 1.0, threshold: 0.3 } },
 	{ id: 'headlamp.on', file: 'flashlight_on.wav' },
 	{ id: 'headlamp.off', file: 'flashlight_off.wav' },
