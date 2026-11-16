@@ -270,9 +270,11 @@ export function stepPlayer(
 	updateExtraction(s, input, world, moving, dt);
 	updateBandage(s, input, moving);
 	updateCharge(s, input, moving);
+	// No room to swing, aim or throw while pushing through a squeeze.
 	const able =
 		!s.swimming &&
 		!s.mantle &&
+		!s.squeezing &&
 		s.stance !== 'crawl' &&
 		s.bandaging === 0 &&
 		s.charging === 0 &&

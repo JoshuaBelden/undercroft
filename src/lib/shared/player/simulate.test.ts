@@ -19,7 +19,8 @@ import {
 	sanitizeFrame,
 	stepPlayer
 } from './simulate.ts';
-import { HAND, type InputFrame, type PlayerState } from './types.ts';
+import { HAND, type InputFrame, type PlayerState, type SimEvent } from './types.ts';
+import { DEFAULT_HEADLAMP } from '../../content/items/headlamps.ts';
 
 const DT = 1 / SIM_RATE;
 const flat = worldOf([FLOOR]);
@@ -263,6 +264,23 @@ describe('water', () => {
 		run(s, { moveZ: 1, sprint: true }, seconds(1), squeeze);
 		expect(s.squeezing).toBe(true);
 		expect(s.stamina).toBe(MOVEMENT.stamina.max);
+	});
+
+	it('there is no room to fight in a squeeze', () => {
+		const squeeze = worldOf([FLOOR], [volume('squeeze', [0, 1, 0], [20, 2, 20])]);
+		const swings = (world: typeof flat) => {
+			const inv = emptyInventory();
+			inv.equipment.primary = newStack('knife');
+			const s = createPlayerState([0, 0, 0], 0, inv);
+			const events: SimEvent[] = [];
+			for (let i = 0; i < seconds(2); i++) {
+				const frame = { ...idleFrame(i, s), attack: i % 20 < 10, seq: i };
+				stepPlayer(s, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, events);
+			}
+			return events.filter((e) => e.kind === 'swing').length;
+		};
+		expect(swings(flat)).toBeGreaterThan(0);
+		expect(swings(squeeze)).toBe(0);
 	});
 });
 
