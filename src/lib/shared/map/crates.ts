@@ -37,7 +37,8 @@ export function placeCrates(
 			crates.push({
 				id: `c${crates.length + 1}`,
 				position: position.map(round) as Vec3,
-				yaw: round(marker.yaw + (placement.rotation * Math.PI) / 2)
+				yaw: round(marker.yaw + (placement.rotation * Math.PI) / 2),
+				tier: placement.tier
 			});
 		}
 	}

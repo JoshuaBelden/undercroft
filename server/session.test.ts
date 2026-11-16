@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { DOORS } from '../src/lib/content/doors.ts';
+import { ITEMS, rarityOf } from '../src/lib/content/items.ts';
 import { CRATES } from '../src/lib/content/loot.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { DEFAULT_MARK_WHEEL } from '../src/lib/content/marks.ts';
@@ -361,6 +362,25 @@ describe('crates', () => {
 		diver.put(spawnPoint(session.layout, PIECES).position);
 		diver.hold({}, 0.2);
 		expect(diver.player.crate).toBeNull();
+	});
+
+	it('keeps rare and better for the crates on the third level', () => {
+		const session = open(SEED);
+		const tierOf = new Map(session.layout.crates.map((c) => [c.id, c.tier]));
+		const found = { upper: new Set<string>(), deepest: new Set<string>() };
+		for (let fill = 0; fill < 10; fill++) {
+			for (const { crate } of session['crates'].list()) {
+				for (const stack of crate.slots) {
+					const kind = stack && ITEMS[stack.item]?.kind;
+					// Hints and the rite's own items are put in on top of the roll, anywhere.
+					if (!stack || kind === 'clue' || kind === 'rite') continue;
+					found[tierOf.get(crate.id) === 2 ? 'deepest' : 'upper'].add(rarityOf(stack.item));
+				}
+			}
+			session['crates'].fill();
+		}
+		expect([...found.upper].every((r) => r === 'common' || r === 'uncommon')).toBe(true);
+		expect(found.deepest.has('rare')).toBe(true);
 	});
 
 	it('admin reset fills every crate again, shut', () => {

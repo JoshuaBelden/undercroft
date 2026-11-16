@@ -1,5 +1,5 @@
 import { ITEMS } from '../src/lib/content/items.ts';
-import { CRATES } from '../src/lib/content/loot.ts';
+import { CRATES, LEVEL_LOOT } from '../src/lib/content/loot.ts';
 import type { Slots } from '../src/lib/shared/items/inventory.ts';
 import { rollCrate } from '../src/lib/shared/items/loot.ts';
 import { lookedAtCrate } from '../src/lib/shared/items/pickup.ts';
@@ -34,8 +34,10 @@ export interface Crate {
 
 export class Crates {
 	private crates = new Map<string, Crate>();
-	/** How deep each crate is: 0 at the start, 1 at the farthest point of the map. */
+	/** How deep each crate is in its level: 0 nearest where the level begins, 1 farthest. */
 	private depth = new Map<string, number>();
+	/** The level of the map each crate is on. */
+	private tier = new Map<string, number>();
 	/** How far each crate is from the start along the floor (m). */
 	private fromStart = new Map<string, number>();
 	/** Counts fills, so refilling (admin) gives something new. */
@@ -49,10 +51,20 @@ export class Crates {
 		private seed: number
 	) {
 		const distance = gridDistances(nav, [nearestPoint(nav, start)], true);
-		const far = distance.reduce((most, d) => Math.max(most, d ?? 0), 0);
-		for (const { id, position, kind } of placements) {
-			const d = distance[nearestPoint(nav, position)];
-			this.depth.set(id, far > 0 && d !== undefined ? d / far : 0);
+		const along = new Map(placements.map((c) => [c.id, distance[nearestPoint(nav, c.position)]]));
+		// Depth within each level: from its nearest crate (by the floor, from the start) to its farthest.
+		const span = new Map<number, [number, number]>();
+		for (const { id, tier } of placements) {
+			const d = along.get(id);
+			if (d === undefined) continue;
+			const [lo, hi] = span.get(tier) ?? [Infinity, -Infinity];
+			span.set(tier, [Math.min(lo, d), Math.max(hi, d)]);
+		}
+		for (const { id, position, kind, tier } of placements) {
+			const d = along.get(id);
+			const [lo, hi] = span.get(tier) ?? [0, 0];
+			this.depth.set(id, d !== undefined && hi > lo ? (d - lo) / (hi - lo) : 0);
+			this.tier.set(id, tier);
 			this.fromStart.set(id, d ?? Infinity);
 			this.crates.set(id, {
 				id,
@@ -76,7 +88,8 @@ export class Crates {
 		const rng = new Rng(this.seed ^ 0x10075 ^ Math.imul(this.fills++, 0x9e3779b9));
 		for (const crate of this.crates.values()) {
 			const kept = crate.slots.filter((stack) => stack !== null && placed(stack.item));
-			crate.slots = rollCrate(this.depth.get(crate.id) ?? 0, rng);
+			const level = LEVEL_LOOT[Math.min(this.tier.get(crate.id) ?? 0, LEVEL_LOOT.length - 1)];
+			crate.slots = rollCrate(this.depth.get(crate.id) ?? 0, rng, level.rarities);
 			crate.hidden = new Set(crate.slots.flatMap((stack, index) => (stack ? [index] : [])));
 			crate.user = null;
 			crate.opened = false;

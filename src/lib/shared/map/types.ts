@@ -140,6 +140,8 @@ export interface CratePlacement {
 	yaw: number;
 	/** A corpse, searched like a crate (see CORPSES); absent for a crate. Corpses are not solid. */
 	kind?: 'corpse';
+	/** The level of the map it is on (its piece's tier): what it can hold depends on it. */
+	tier: number;
 }
 
 /** A door between levels (see DOORS). Solid until opened. */
