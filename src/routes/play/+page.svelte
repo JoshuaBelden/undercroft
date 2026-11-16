@@ -159,10 +159,6 @@
 	let omen = $state(0);
 	/** Seconds left before anyone still underground is lost. */
 	let deadline = $state<number | null>(null);
-	/** The rite was performed: the Affliction is calmed (no arrival bar). */
-	let calmed = $state(false);
-	/** It has manifested: the arrival bar has nothing left to count. */
-	let manifested = $state(false);
 	/** Set while downed: bleed-out time left (0..1), what happens next, and the hold to surrender. */
 	let downed = $state<{ remaining: number; message: string; surrender: number } | null>(null);
 	/** Set when this player has left the expedition (climbed out or died); shows the results. */
@@ -170,7 +166,7 @@
 		summary: ExpeditionSummary;
 		/** The Affliction's name, as it was underground. */
 		affliction: string;
-		outcome: 'extracted' | 'died' | 'lost' | 'abandoned' | 'banished' | 'resolved';
+		outcome: 'extracted' | 'died' | 'lost' | 'abandoned' | 'resolved';
 		/** Set after spectating: how many of the others got out. */
 		escaped: number | null;
 		/** What was carried out and kept; null when it was lost. */
@@ -189,7 +185,7 @@
 	let spectateStop = (): void => {};
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
 	let banner = $state<{ title: string; subtitle?: string; key: number } | null>(null);
-	/** Down in the catacombs (between `welcome` and extracting, dying or being banished out). */
+	/** Down in the catacombs (between `welcome` and extracting, dying or abandoning). */
 	let expedition = $state(false);
 	/** The run's assets are still loading (see src/lib/game/preload.ts): the loading bar shows. */
 	let loading = $state<LoadProgress | null>(null);
@@ -339,7 +335,6 @@
 					case 'extracted':
 					case 'died':
 					case 'abandoned':
-					case 'banished':
 						result = {
 							summary: {
 								seconds: message.seconds,
@@ -349,7 +344,7 @@
 								clues: message.clues
 							},
 							affliction: afflictionName,
-							// Out alive after performing the rite; or lost when time ran out.
+							// Out alive after banishing what the rite summoned; or lost when time ran out.
 							outcome:
 								message.type === 'extracted' && rite?.resolved
 									? 'resolved'
@@ -439,8 +434,6 @@
 						omen = message.affliction.omen;
 						meter = message.affliction.meter;
 						deadline = message.affliction.deadline;
-						calmed = message.affliction.calmed;
-						manifested = message.affliction.manifestation !== null;
 						ambience.setOmen(
 							AFFLICTIONS[message.affliction.id]?.stages[omen - 1]?.ambience ?? null
 						);
@@ -579,8 +572,6 @@
 			chalkWheel = null;
 			rite = null;
 			deadline = null;
-			calmed = false;
-			manifested = false;
 			performing = false;
 			spectating = null;
 			watchId = null;
@@ -878,12 +869,26 @@
 					break;
 				}
 				case 'rite':
-					sounds.play('rite.resolve');
+					sounds.play('rite.perform');
 					banner = {
 						title: 'The rite is done',
+						subtitle: `Something answers it. Banish ${afflictionName || 'the Affliction'}.`,
+						key: (banner?.key ?? 0) + 1
+					};
+					break;
+				case 'resolved':
+					sounds.play('rite.resolve');
+					banner = {
+						title: 'Banished',
 						subtitle: `${afflictionName || 'The Affliction'} is resolved. Now get out.`,
 						key: (banner?.key ?? 0) + 1
 					};
+					break;
+				case 'strobe':
+					// The lamp's own click already plays; a flash that stunned something cracks too.
+					if (event.stunned <= 0) break;
+					if (event.player === self) sounds.play('strobe.flash');
+					else sounds.playAt('strobe.flash', event.position, 1, 4);
 					break;
 				case 'deadline':
 					banner = { title: 'Lost in the dark', key: (banner?.key ?? 0) + 1 };
@@ -1090,7 +1095,7 @@
 			}
 			if (
 				rite &&
-				!rite.resolved &&
+				!rite.performed &&
 				inRiteRoom(state.position) &&
 				carriesAll(state.inventory, rite.requirements)
 			) {
@@ -1515,7 +1520,7 @@
 		toggleKey={promptCode('toggleRitePanel')}
 	/>
 	{#if deadline !== null}
-		<ExpeditionClock seconds={deadline} arrival={calmed || manifested ? null : (meter ?? 0)} />
+		<ExpeditionClock seconds={deadline} />
 	{/if}
 {/if}
 

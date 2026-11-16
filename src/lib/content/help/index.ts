@@ -190,7 +190,7 @@ Things of a kind share a slot, up to a few of each. Drop one stack on another to
 
 Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
 
-What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the Gloaming comes.
+What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the omens close in.
 
 What you take down and don't bring back is gone. If you die, everything you carried stays where you fell, and so does anything you left lying down there.
 
@@ -200,7 +200,7 @@ Press {action:toggleFullscreen} on any screen, or choose Display under Graphics 
 		id: 'the-shop',
 		title: 'The store',
 		category: 'The surface',
-		body: `Click your money, at the top right of the dashboard, to open the store. It is closed to you once you are ready to descend. The round buttons beside it show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. Click something to see what it is and what it costs, choose how many, and press Purchase.
+		body: `Click your money, at the top right of the dashboard, to open the store. It is closed to you once you are ready to descend. The round buttons beside it show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. Hold the cursor over something to see what it is and what it does. Click it to see what it costs, choose how many, and press Purchase.
 
 What you buy goes to your stash, which only has so many slots: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
 
@@ -372,13 +372,15 @@ These are warnings. When they come thick and close together, it is time to think
 		id: 'the-gloaming',
 		title: 'The Gloaming',
 		category: 'The Gloaming',
-		body: `Stay too long and the Gloaming comes for you itself. The thin red bar under the time at the top of your view fills as it draws near; killing and carrying loot fill it faster. You'll know when it arrives: something vast breathes out through the stone, and then it is walking toward you.
+		body: `Perform the rite and the Gloaming answers it. Something vast breathes out through the stone, and it is there in the room with you, in the corner you were told not to look at. The rite alone doesn't end it: you have to banish what it brings.
 
-Near it, the mind goes. Its touch is worse. It is slower while a lamp is on it, and quick when none is.
+It comes at whoever is nearest, slower while a lamp is on it and quick when none is. When it reaches you it rears back to strike. That is your moment to get out of reach. A blow that lands is hard: what you wear takes some of it, and two will put you down. It hits harder the more of you there are.
 
-Light is how you fight it. Hold your lamp on it and keep it there. Only while the light holds does steel or shot bite. Two lamps are better than one.
+Light is how you fight it. Hold your lamp on it and keep it there: it begins to burn, and when it flares and hisses, steel and shot bite. Only while the light holds. Two lamps are better than one.
 
-Drive it off and you'll all be carried out. It isn't over, though. Only the rite ends the Gloaming.
+Turn your lamp off and back on ({action:headlamp}) with it in the beam, and the flash stuns it: it stands frozen for a moment, and a strike it was winding up is lost. It won't fall for that again for a while.
+
+Banish it and the Gloaming is resolved: the omens lift and the dark lets go. The other things down here don't, and you still have to get out before time runs out.
 
 Long ago, the keepers of the dead held back the dusk each evening with a rite. The last keeper died with it unspoken, and the robbers who broke into his grave brought down what he had kept shut away.`
 	},
@@ -398,7 +400,7 @@ For the Gloaming, the rite needs five candles, a stick of chalk and the Pendant.
 
 One person has to carry everything the rite needs. If it's spread between you, drop things for that person to pick up. If they die, what they carried lies where they fell.
 
-That person goes to the place and holds {action:interact}. Nothing has to be set down, and nothing has to be fought. When it's done the Affliction is resolved: the omens lift and it won't come for you. You still have to get out before time runs out.`
+That person goes to the place and holds {action:interact}. Nothing has to be set down. When it's done, the Affliction comes: banish it there and it is resolved. Be ready before you begin.`
 	},
 	{
 		id: 'account',

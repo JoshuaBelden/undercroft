@@ -310,8 +310,9 @@
 				</label>
 				<button type="submit">Set</button>
 			</form>
-			{@render action('Force manifestation', () => onadmin({ kind: 'manifest' }))}
-			{@render action('Banish', () => onadmin({ kind: 'banish' }))}
+			{@render action('Summon manifestation', () => onadmin({ kind: 'manifest' }))}
+			{@render action('Stun it', () => onadmin({ kind: 'stun' }))}
+			{@render action('Banish (resolves it)', () => onadmin({ kind: 'banish' }))}
 		{:else if group === 'Rite'}
 			{@render action('Reveal all clues', () => onadmin({ kind: 'revealClues' }))}
 			{@render action('Reset rite progress', () => onadmin({ kind: 'resetRite' }))}

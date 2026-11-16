@@ -61,14 +61,14 @@
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
 	const bars = $derived(Math.ceil(battery * 4));
 	const STANCE_LABELS: Record<string, string> = { crouch: 'Crouching', crawl: 'Crawling' };
-	// The edges darken as sanity falls, and pulse with the heartbeat when it's low.
+	// The edges darken as sanity falls, and with the omens' gloom.
 	const vignette = $derived(Math.min(0.92, Math.max(0, (1 - sanity) * 1.15, gloom * 0.75)));
 	const posture = $derived(
 		[STANCE_LABELS[stance], creep ? 'Creeping' : null].filter(Boolean).join(' · ')
 	);
 </script>
 
-<div class="vignette" class:pulse={sanity < 0.4} style:opacity={vignette} aria-hidden="true"></div>
+<div class="vignette" style:opacity={vignette} aria-hidden="true"></div>
 
 {#if hurt > 0}
 	{#key hurt}
@@ -131,20 +131,6 @@
 		transition: opacity 0.6s ease-out;
 	}
 
-	.vignette.pulse {
-		animation: pulse 0.85s ease-in-out infinite;
-	}
-
-	@keyframes pulse {
-		0%,
-		100% {
-			filter: brightness(1);
-		}
-		18% {
-			filter: brightness(0.55);
-		}
-	}
-
 	.hurt {
 		position: fixed;
 		inset: 0;
@@ -176,12 +162,6 @@
 		}
 		to {
 			opacity: 0;
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.vignette.pulse {
-			animation: none;
 		}
 	}
 

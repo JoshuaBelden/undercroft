@@ -61,7 +61,7 @@ describe('RiteDirector', () => {
 		expect(rite.canPerform(createPlayerState(room.position, 0))).toBe(false);
 		rite.take(holder);
 		expect(holder.inventory.backpack.every((s) => s === null)).toBe(true);
-		rite.resolved = true;
+		rite.performed = true;
 		expect(rite.canPerform(holder)).toBe(false);
 	});
 });

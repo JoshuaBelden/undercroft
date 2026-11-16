@@ -76,7 +76,7 @@ A suspension with an end date lifts itself when it passes; the field stays on th
 
 The game server writes:
 
-- **`runs`**: one document per player per expedition, when they leave it (`Session.logRun`, once per player): the outcome (`extracted`, `banished`, `died`, `lost`: time ran out, `abandoned`, `left`: left the party or dropped for good), seconds, deepest level, kills, crates, clues, what they carried out is worth at the store (`carriedValue`, from `sellPrice`), party size, seed, version, the Affliction, and how long it took to manifest.
+- **`runs`**: one document per player per expedition, when they leave it (`Session.logRun`, once per player): the outcome (`extracted`, `banished` (no longer written: banishing used to carry everyone out), `died`, `lost`: time ran out, `abandoned`, `left`: left the party or dropped for good), seconds, deepest level, kills, crates, clues, what they carried out is worth at the store (`carriedValue`, from `sellPrice`), party size, seed, version, the Affliction, and how long it took to manifest.
 - **`serverStatus`**: one document, every 15 seconds (`server/stats.ts`): players online and underground, parties, expeditions, version, when it started, memory. The dashboard calls the game server down when it hasn't written for a minute.
 
 The site keeps `accounts.lastSeen` (set when a game ticket is issued) for daily and weekly active members.

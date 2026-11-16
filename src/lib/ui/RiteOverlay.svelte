@@ -8,8 +8,8 @@
 	/**
 	 * What is known about the rite, always at the middle of the left edge while underground: the
 	 * Affliction's name, the hints found so far, then a line down the left joining each thing the
-	 * rite needs and the room. Hidden (`open` false), only the name stays, with the binding that
-	 * brings the rest back.
+	 * rite needs and the room. Once performed, one last step: banish what it summoned. Hidden
+	 * (`open` false), only the name stays, with the binding that brings the rest back.
 	 * It takes no clicks and never lets go of the mouse. See docs/dev/rite.md.
 	 */
 	interface Props {
@@ -46,7 +46,7 @@
 	}
 </script>
 
-<aside class="rite" class:resolved={rite.resolved} class:closed={!open} aria-label="The rite">
+<aside class="rite" class:performed={rite.performed} class:closed={!open} aria-label="The rite">
 	<h2>
 		<span class="pill">{affliction || 'The rite'}</span>
 		{#if rite.resolved}<span class="done">Resolved</span>{/if}
@@ -97,6 +97,18 @@
 					<span class="mark">Location: Unknown</span>
 				{/if}
 			</li>
+			{#if rite.performed}
+				<li class="banish" class:after={rite.resolved}>
+					<span class="text">
+						<span class="name">{rite.resolved ? 'Banished' : 'Banish it'}</span>
+						<span class="who"
+							>{rite.resolved
+								? 'Now get out.'
+								: 'Hold your light on it to wound it. Flick your lamp off and on to stun it.'}</span
+						>
+					</span>
+				</li>
+			{/if}
 		</ol>
 	{/if}
 </aside>
@@ -151,9 +163,14 @@
 		color: var(--accent);
 	}
 
-	/* Done: what it needed is behind them. */
-	.rite.resolved .hints {
+	/* Performed: what it needed is behind them; only the banishing is left (and then that too). */
+	.rite.performed .hints li:not(.banish),
+	.rite.performed .hints li.after {
 		opacity: 0.5;
+	}
+
+	li.banish:not(.after) .name {
+		color: var(--accent);
 	}
 
 	/* The hints, in their own words. */

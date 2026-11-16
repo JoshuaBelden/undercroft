@@ -518,20 +518,74 @@ describe('getting out', () => {
 		expect(died.lost).toBe(true);
 	});
 
-	it('banishing the manifestation sends everyone home', () => {
-		const session = open(SEED);
+	it('banishing what was summoned resolves it, and nobody is carried out', () => {
+		const resolved = vi.fn();
+		const session = open(SEED, { onResolved: resolved });
 		const a = new Diver(session, 'A');
 		const b = new Diver(session, 'B');
 		session.admin(a.id, { kind: 'manifest' });
 		wait(0.2);
-		expect(a.socket.last('tick')!.affliction.manifestation).not.toBeNull();
+		const manifestation = a.socket.last('tick')!.affliction.manifestation!;
+		expect(manifestation).not.toBeNull();
+		// Summoned into the rite's room.
+		expect(session['rite'].inRoom(manifestation.position)).toBe(true);
 		const events = a.socket.all('tick').flatMap((t) => t.events);
 		expect(events.some((e) => e.kind === 'manifest')).toBe(true);
 		session.admin(a.id, { kind: 'banish' });
 		wait(0.2);
-		expect(a.socket.last('banished')).toBeDefined();
-		expect(b.socket.last('banished')).toBeDefined();
-		expect(session.ended).toBe(true);
+		expect(resolved).toHaveBeenCalledOnce();
+		expect(a.socket.all('tick').some((t) => t.events.some((e) => e.kind === 'resolved'))).toBe(
+			true
+		);
+		expect(a.socket.last('tick')!.affliction.rite.resolved).toBe(true);
+		expect(a.socket.last('tick')!.affliction.calmed).toBe(true);
+		expect(a.inside && b.inside).toBe(true);
+		expect(session.ended).toBe(false);
+	});
+});
+
+describe('the manifestation', () => {
+	/** Summon it and set it hunting right beside the diver, who stands in the start room. */
+	function face(session: Session, diver: Diver) {
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		session.admin(diver.id, { kind: 'manifest' });
+		const m = session['affliction']['manifestation']!;
+		m.state = 'hunting';
+		m.position = [diver.state.position[0] + 0.5, diver.state.position[1], diver.state.position[2]];
+		return m;
+	}
+
+	it('a landed blow goes through what is worn first, and nothing else wears sanity down', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		diver.state.inventory.equipment.defense = newStack('coat');
+		const m = face(session, diver);
+		const blow = AFFLICTIONS.gloaming.manifestation.strikeDamage[0];
+		// The first blow is all taken by the coat, which is torn apart.
+		diver.hold({}, AFFLICTIONS.gloaming.manifestation.strikeAt + 0.2);
+		expect(m.strikes).toBe(1);
+		expect(diver.state.sanity).toBe(SANITY.max);
+		expect(diver.state.inventory.equipment.defense).toBeNull();
+		const events = diver.socket.all('tick').flatMap((t) => t.events);
+		expect(events.some((e) => e.kind === 'break' && e.item === 'coat')).toBe(true);
+		// The next lands in full, and only that.
+		while (m.strikes < 2) diver.hold({}, 0.05);
+		diver.hold({}, AFFLICTIONS.gloaming.manifestation.strikeAt + 0.1);
+		expect(diver.state.sanity).toBe(SANITY.max - blow);
+	});
+
+	it('flicking the lamp off and on in its face stuns it', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		const m = face(session, diver);
+		m.position = [diver.state.position[0], diver.state.position[1], diver.state.position[2] - 2];
+		const look = diver.lookAt([m.position[0], m.position[1] + 1.1, m.position[2]]);
+		diver.hold({ ...look, headlamp: 0 }, 0.1);
+		expect(m.statuses).toEqual({});
+		diver.hold({ ...look, headlamp: 2 }, 0.1);
+		const events = diver.socket.all('tick').flatMap((t) => t.events);
+		expect(events.some((e) => e.kind === 'strobe' && e.stunned === 1)).toBe(true);
+		expect(diver.socket.last('tick')!.affliction.manifestation!.stunned).toBe(true);
 	});
 });
 
@@ -547,11 +601,23 @@ describe('the rite', () => {
 		diver.hold({}, 0.5);
 		expect(session['rite'].canPerform(diver.state)).toBe(true);
 		diver.hold({ interact: true }, RITE.seconds + 0.5);
+		// Performed: it summons the manifestation in the room, but nothing is resolved yet.
+		const tick = diver.socket.last('tick')!;
+		expect(tick.affliction.rite.performed).toBe(true);
+		expect(tick.affliction.rite.resolved).toBe(false);
+		expect(tick.affliction.calmed).toBe(false);
+		expect(resolved).not.toHaveBeenCalled();
+		expect(session['rite'].inRoom(tick.affliction.manifestation!.position)).toBe(true);
+		expect(session['rite'].canPerform(diver.state)).toBe(false);
+		// The rite used them up.
+		expect(diver.state.inventory.backpack.every((s) => s === null)).toBe(true);
+		// Banishing what it summoned resolves it.
+		session.admin(diver.id, { kind: 'banish' });
+		diver.hold({}, 0.1);
 		expect(resolved).toHaveBeenCalledOnce();
 		expect(diver.socket.last('tick')!.affliction.rite.resolved).toBe(true);
 		expect(diver.socket.last('tick')!.affliction.calmed).toBe(true);
-		// The rite used them up.
-		expect(diver.state.inventory.backpack.every((s) => s === null)).toBe(true);
+		expect(diver.inside).toBe(true);
 	});
 
 	it('reading the last hint clears the copies left in the map', () => {
