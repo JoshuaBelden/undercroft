@@ -11,7 +11,7 @@ const FADE = 0.2;
 
 /**
  * How it looks with your eyes under the water: thick, dark fog closes in round the camera (the
- * screen overlay, UnderwaterOverlay.svelte, adds the tint and the wobble, and the audio is
+ * screen overlay, UnderwaterOverlay.svelte, adds the tint, and the audio is
  * already muffled). Decided by where the camera is, not the body, so it also follows the
  * over-the-shoulder view and the free camera. See docs/dev/player.md#underwater.
  */

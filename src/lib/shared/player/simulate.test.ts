@@ -4,7 +4,8 @@ import { FLOOR, box, realMap, realWorld, volume, worldOf } from '../testing/maps
 import { MOVEMENT } from '../../content/player/movement.ts';
 import { SANITY } from '../../content/player/sanity.ts';
 import { addItem, emptyInventory, newStack } from '../items/inventory.ts';
-import { findFreeSpot } from '../map/collision.ts';
+import { findFreeSpot, type CollisionWorld } from '../map/collision.ts';
+import type { Vec3 } from '../map/types.ts';
 import { PIECES } from '../map/pieces.generated.ts';
 import { spawnPoint } from '../map/points.ts';
 import {
@@ -30,6 +31,23 @@ function run(s: PlayerState, input: Partial<InputFrame>, frames: number, world =
 	for (let i = 0; i < frames; i++)
 		stepPlayer(s, { ...idleFrame(i, s), ...input, seq: i }, world, DT);
 	return s;
+}
+
+/** Swings, shots and throws from two seconds of clicking attack with a knife, then a revolver. */
+function attacks(world: CollisionWorld, at: Vec3, input: Partial<InputFrame> = {}): number {
+	let count = 0;
+	for (const item of ['knife', 'revolver']) {
+		const inv = emptyInventory();
+		inv.equipment.primary = { ...newStack(item), loaded: 6 };
+		const s = createPlayerState(at, 0, inv);
+		const events: SimEvent[] = [];
+		for (let i = 0; i < seconds(2); i++) {
+			const frame = { ...idleFrame(i, s), ...input, attack: i % 20 < 10, seq: i };
+			stepPlayer(s, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, events);
+		}
+		count += events.filter((e) => ['swing', 'shot', 'throw'].includes(e.kind)).length;
+	}
+	return count;
 }
 
 describe('sanitizeFrame', () => {
@@ -231,6 +249,48 @@ describe('water', () => {
 		expect(bodyHeight(s)).toBe(MOVEMENT.swim.height);
 	});
 
+	it("can't fight in the water", () => {
+		expect(attacks(pool, [0, -1.5, 0])).toBe(0);
+	});
+
+	it('once under, stays at the depth it swims to; swimming up floats again at the surface', () => {
+		const s = run(createPlayerState([0, -1.5, 0], 0), {}, seconds(2), pool);
+		run(s, { swimDown: true }, seconds(0.6), pool);
+		expect(s.underwater).toBe(true);
+		// Let the dive's momentum die away, then nothing lifts it.
+		run(s, {}, seconds(1), pool);
+		const depth = s.position[1];
+		run(s, {}, seconds(2), pool);
+		expect(s.underwater).toBe(true);
+		expect(Math.abs(s.position[1] - depth)).toBeLessThan(0.05);
+		run(s, { climb: true }, seconds(2), pool);
+		expect(s.underwater).toBe(false);
+		run(s, {}, seconds(2), pool);
+		expect(s.underwater).toBe(false);
+	});
+
+	it('out of breath forces you up', () => {
+		const s = run(createPlayerState([0, -1.5, 0], 0), {}, seconds(2), pool);
+		run(s, { swimDown: true }, seconds(0.6), pool);
+		s.stamina = 0;
+		s.exhausted = true;
+		run(s, {}, seconds(2), pool);
+		expect(s.underwater).toBe(false);
+	});
+
+	it("can't swim hard under the water", () => {
+		const under = (sprint: boolean) => {
+			const s = run(createPlayerState([0, -1.5, 0], 0), {}, seconds(2), pool);
+			run(s, { swimDown: true }, seconds(0.6), pool);
+			s.velocity = [0, 0, 0];
+			const z = s.position[2];
+			run(s, { moveZ: 0.5, sprint }, seconds(0.5), pool);
+			expect(s.underwater).toBe(true);
+			return Math.abs(s.position[2] - z);
+		};
+		expect(under(true)).toBeCloseTo(under(false), 5);
+	});
+
 	it('diving holds the breath until it runs out', () => {
 		const s = run(createPlayerState([0, -1.5, 0], 0), {}, seconds(2), pool);
 		run(s, { swimDown: true }, seconds(1), pool);
@@ -266,21 +326,11 @@ describe('water', () => {
 		expect(s.stamina).toBe(MOVEMENT.stamina.max);
 	});
 
-	it('there is no room to fight in a squeeze', () => {
+	it('there is no room to fight in a squeeze, or crawling', () => {
 		const squeeze = worldOf([FLOOR], [volume('squeeze', [0, 1, 0], [20, 2, 20])]);
-		const swings = (world: typeof flat) => {
-			const inv = emptyInventory();
-			inv.equipment.primary = newStack('knife');
-			const s = createPlayerState([0, 0, 0], 0, inv);
-			const events: SimEvent[] = [];
-			for (let i = 0; i < seconds(2); i++) {
-				const frame = { ...idleFrame(i, s), attack: i % 20 < 10, seq: i };
-				stepPlayer(s, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, events);
-			}
-			return events.filter((e) => e.kind === 'swing').length;
-		};
-		expect(swings(flat)).toBeGreaterThan(0);
-		expect(swings(squeeze)).toBe(0);
+		expect(attacks(flat, [0, 0, 0])).toBeGreaterThan(0);
+		expect(attacks(squeeze, [0, 0, 0])).toBe(0);
+		expect(attacks(flat, [0, 0, 0], { stance: 'crawl' })).toBe(0);
 	});
 });
 

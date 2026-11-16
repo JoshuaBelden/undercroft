@@ -65,6 +65,7 @@ export function createPlayerState(
 		swimming: false,
 		wading: false,
 		underwater: false,
+		submerged: false,
 		sneaking: false,
 		squeezing: false,
 		mantle: null,
@@ -222,6 +223,8 @@ export function stepPlayer(
 		moving &&
 		input.moveZ > 0 &&
 		(s.stance === 'stand' || s.swimming) &&
+		// Swimming hard is for the surface: under the water you can't.
+		!s.underwater &&
 		!s.exhausted &&
 		!s.weapon.aiming;
 
@@ -417,6 +420,7 @@ function updateWater(
 	const swimming = s.swimming
 		? surface !== null && !(s.grounded && depth < t.swim.depth - 0.25)
 		: depth > t.swim.depth;
+	if (!swimming) s.submerged = false;
 	if (s.swimming && !swimming) {
 		// Climbing out onto steps: take the tallest stance that fits.
 		const order: Stance[] = ['stand', 'crouch', 'crawl'];
@@ -456,11 +460,15 @@ function swim(
 	s.velocity[0] += (dx * speed - s.velocity[0]) * accel;
 	s.velocity[2] += (dz * speed - s.velocity[2]) * accel;
 
-	// Float with the eye just above the surface unless diving. Out of breath always floats up.
+	// At the surface you float with the eye just above it. Once you dive you stay under, at the
+	// depth you swim to, until you come back up to the surface. Out of breath forces you up.
 	const floatFeet = surface + sw.floatEye - sw.eye;
 	const outOfBreath = s.exhausted || s.stamina <= 0;
 	const diving = !outOfBreath && (input.swimDown || (input.moveZ > 0 && s.pitch < -0.35));
-	if (diving) {
+	if (diving) s.submerged = true;
+	if (outOfBreath || s.position[1] >= floatFeet - 0.05) s.submerged = s.submerged && diving;
+	if (s.submerged) {
+		// No buoyancy: up, down or holding still is all your own doing.
 		s.velocity[1] += (dy * speed - s.velocity[1]) * accel;
 	} else {
 		const target = (floatFeet - s.position[1]) * sw.buoyancy;
@@ -533,6 +541,7 @@ function advanceMantle(s: PlayerState, dt: number): void {
 		s.swimming = false;
 		s.wading = false;
 		s.underwater = false;
+		s.submerged = false;
 		s.grounded = true;
 		s.mantle = null;
 	}

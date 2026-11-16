@@ -421,11 +421,10 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'door.open': {
-		file: 'ambience.creak',
+		file: 'door.open',
 		synth: { kind: 'groan' },
 		category: 'sfx',
 		volume: 1,
-		rate: 0.7,
 		variation: 0.05,
 		caption: 'a great door groans open',
 		captionOthers: true

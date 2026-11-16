@@ -126,9 +126,9 @@ In the water, swim up to an edge and hold {action:climb} to pull yourself out.`
 		id: 'swimming',
 		title: 'Swimming',
 		category: 'Moving',
-		body: `In deep water you swim where you look. You float with your head just above the surface. Hold {action:climb} to swim up and {action:swimDown} to dive; looking down while swimming forward also takes you under.
+		body: `In deep water you swim where you look. At the surface you float with your head just above it. Hold {action:climb} to swim up and {action:swimDown} to dive; looking down while swimming forward also takes you under. Once you're under, you stay at the depth you swim to until you swim back up. You can only swim hard ({action:sprint}) at the surface, and there's no fighting in the water.
 
-Underwater, your stamina is your breath: it drains and won't come back until you surface. When it runs out you're forced up for air, and you can't dive again until you've recovered.
+Underwater, your stamina is your breath: it drains and won't come back until you surface. When it runs out you're forced up for air, and you can't dive again until you've recovered. Keep an eye on it: nothing else brings you up.
 
 Under the surface everything goes murky and close, and sounds are muffled.
 

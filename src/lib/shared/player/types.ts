@@ -63,6 +63,11 @@ export interface PlayerState {
 	wading: boolean;
 	/** Eye below the water surface: breath (stamina) drains. */
 	underwater: boolean;
+	/**
+	 * Dived under: no floating back up. You stay at the depth you are until you swim up to the
+	 * surface (or run out of breath, which forces you up).
+	 */
+	submerged: boolean;
 	/** Moving slowly and silently (no footsteps; creatures hear less). */
 	sneaking: boolean;
 	/** Inside a squeeze volume: slowed, no sprinting, grunting through. */

@@ -1671,7 +1671,7 @@
 {/if}
 
 {#if underwater > 0 && !mapView && !result}
-	<UnderwaterOverlay amount={underwater} calm={settings.accessibility.reduceFlashing} />
+	<UnderwaterOverlay amount={underwater} />
 {/if}
 
 {#if downed && spawned && !mapView && !result}

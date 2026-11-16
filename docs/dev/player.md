@@ -61,11 +61,14 @@ Water comes from `vol-water-*` volumes in the pieces (the manifest's `volumes`).
   - the capsule is short (`swim.height`) and there is no gravity;
   - movement follows the look direction, including pitch;
   - `climb` swims up and `swimDown` swims down;
-  - buoyancy floats you with the eye `swim.floatEye` above the surface unless you're diving (`swimDown`, or moving forward while looking down);
+  - at the surface, buoyancy floats you with the eye `swim.floatEye` above it unless you're diving (`swimDown`, or moving forward while looking down);
+  - once you dive you're `submerged`: no buoyancy, so you stay at the depth you swim to (up, down and holding still are all your own doing) until you swim back up to the surface, where floating takes over again;
+  - sprinting (swimming hard) works at the surface only, not with the eye underwater;
+  - no weapons: you can't swing, fire, aim or throw;
   - you can't swim up out of the water;
   - at the surface, holding `climb` (Space) at an edge mantles out (up to `mantle.maxFromWater` above the surface). Never automatic;
   - swimmers also step up onto low ledges, so swimming into submerged steps walks you out.
-- **Breath:** while the eye is underwater (`state.underwater`), stamina drains at `swim.breathDrain` and doesn't regenerate. At zero you're `exhausted`, and buoyancy always wins, so you're forced up. Drowning damage comes with sanity in Phase 2.
+- **Breath:** while the eye is underwater (`state.underwater`), stamina drains at `swim.breathDrain` and doesn't regenerate. At zero you're `exhausted`, which ends `submerged` and floats you up: the one time you surface on your own. Drowning damage comes with sanity in Phase 2.
 - **Wading** (shallower water) slows movement by `wadeSpeed` and switches footsteps to splashes.
 
 ### Underwater
@@ -73,7 +76,7 @@ Water comes from `vol-water-*` volumes in the pieces (the manifest's `volumes`).
 With the camera under a water surface (`Underwater.below`: the camera, not the body, so it works over the shoulder and in the free camera too), the view goes murky:
 
 - **Fog:** `Underwater` (`src/lib/game/Underwater.ts`) puts a dense, dark green `FogExp2` on the scene, fading in and out over 0.2 s. Things a few metres off are half hidden and nothing past about 9 m shows. Every map material takes fog by default, so a new one needs nothing.
-- **Overlay:** `UnderwaterOverlay.svelte`: a tint darkening to the edges, a slight blur, and a slow drift of light. The drift stops with **Reduce flashing** (Settings > Accessibility) or the system's reduced motion.
+- **Overlay:** `UnderwaterOverlay.svelte`: a murky green tint, darker toward the edges. Nothing moves in it.
 - **Sound:** the world is muffled and dry (`Ambience`, as before), under a low `underwater.drone` loop on the ambience bus that follows the fade.
 - Off in the map debug view, which is fully lit.
 

@@ -8,8 +8,8 @@ What changed in each version of Undercroft, newest first. Players see these in g
 - Bigger rooms: a pillared charnel vault and long burial galleries lined with niches.
 - No more passages that just leave a room and wander straight back into it.
 - The good loot is deeper: crates on the first two levels hold everyday things, and anything rare or precious is on the third, where the rite is done.
-- Squeezes are much longer, and there's no room to fight in one.
-- Under the water, everything goes dark, murky and close.
+- Squeezes are much longer, and there's no room to fight in one (nor while crawling).
+- Under the water, the view turns murky green. Once you dive you stay down at the depth you swim to, with no floating back up, until you swim to the surface or run out of breath. You can't swim hard under the water, or fight in it.
 - The results screen's deepest level now counts the three levels of the catacombs.
 - Controller shortcuts on the dashboard, with their buttons shown on screen: hold X to launch an expedition and again to confirm your loadout, hold Y to open the store or to purchase, View for your Loadout, a click of the right stick for Social, and LB/RB for the tabs. The button fills from left to right while you hold it.
 - Looting with a controller: once X has sent an item from a crate or corpse to your pack, you move on to the next one, so pressing X again and again empties it.
