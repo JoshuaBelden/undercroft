@@ -41,6 +41,7 @@ export function worldOf(colliders: ColliderBox[], volumes: VolumeBox[] = []): Co
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders,
 		volumes,
@@ -49,7 +50,7 @@ export function worldOf(colliders: ColliderBox[], volumes: VolumeBox[] = []): Co
 	const layout: MapLayout = {
 		seed: 0,
 		affliction: null,
-		placements: [{ piece: 'test', position: [0, 0, 0], rotation: 0 }],
+		placements: [{ piece: 'test', position: [0, 0, 0], rotation: 0, tier: 0 }],
 		crates: []
 	};
 	return buildCollisionWorld(layout, { test: piece });

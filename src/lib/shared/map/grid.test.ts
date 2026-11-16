@@ -51,9 +51,9 @@ describe('grid', () => {
 	});
 
 	it('toWorld rotates then translates', () => {
-		expect(toWorld({ piece: 'x', position: [10, 4, 20], rotation: 1 }, [1, 2, 0])).toEqual([
-			10, 6, 19
-		]);
+		expect(toWorld({ piece: 'x', position: [10, 4, 20], rotation: 1, tier: 0 }, [1, 2, 0])).toEqual(
+			[10, 6, 19]
+		);
 	});
 
 	describe('a 2 x 1 two-level piece', () => {
@@ -64,13 +64,13 @@ describe('grid', () => {
 		} as unknown as PieceDef;
 
 		it('occupies every footprint cell on every level', () => {
-			const cells = occupiedCells(piece, { piece: 'x', position: [0, 0, 0], rotation: 0 });
+			const cells = occupiedCells(piece, { piece: 'x', position: [0, 0, 0], rotation: 0, tier: 0 });
 			expect(cells).toHaveLength(4);
 			expect(new Set(cells.map((c) => c.join(','))).size).toBe(4);
 		});
 
 		it('turned a quarter, lies along z instead of x', () => {
-			const cells = occupiedCells(piece, { piece: 'x', position: [0, 0, 0], rotation: 1 });
+			const cells = occupiedCells(piece, { piece: 'x', position: [0, 0, 0], rotation: 1, tier: 0 });
 			expect(new Set(cells.map(([x]) => x)).size).toBe(1);
 			expect(new Set(cells.map(([, z]) => z)).size).toBe(2);
 		});
@@ -78,7 +78,7 @@ describe('grid', () => {
 		it('resolves its socket into world terms', () => {
 			const socket = worldSocket(
 				piece,
-				{ piece: 'x', position: [0, 4, 0], rotation: 1 },
+				{ piece: 'x', position: [0, 4, 0], rotation: 1, tier: 0 },
 				piece.sockets[0]
 			);
 			expect(socket.edge).toBe('n');

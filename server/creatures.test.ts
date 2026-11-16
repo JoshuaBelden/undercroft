@@ -101,7 +101,8 @@ describe('CreatureDirector', () => {
 	it('loses a player who gets away, and goes back to patrolling', () => {
 		const { creatures, player } = faceOff();
 		run(creatures, 0.5, [player]);
-		expect(mode(creatures)).toBe('agro');
+		// Hunting them: chasing, or already striking if it spawned close enough.
+		expect(['agro', 'attack']).toContain(mode(creatures));
 		// They vanish from where it can sense them.
 		run(creatures, WITCH.perception.evadeTime + 1, []);
 		expect(mode(creatures)).toBe('patrol');

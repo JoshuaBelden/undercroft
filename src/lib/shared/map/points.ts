@@ -17,7 +17,7 @@ export function spawnPoint(
 
 /**
  * Floor-level centre of each start, major and extraction room, for admin teleports. A piece used
- * more than once (extraction rooms) is numbered from the second on: `extraction-shaft-2`.
+ * more than once (extraction rooms) is numbered from the second on: `extraction-gate-2`.
  */
 export function roomPoints(
 	layout: MapLayout,

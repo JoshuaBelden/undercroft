@@ -13,7 +13,10 @@ export type Edge = 'n' | 'e' | 's' | 'w';
 
 /** A standard opening on a piece's footprint boundary. */
 export interface PieceSocket {
-	/** Opening type (`hall` now; `crawl`, `squeeze`, `canal` later). Only equal types connect. */
+	/**
+	 * Opening type. Only equal types connect. `hall` is the standard 2 m arch; `gate` is the 3.2 m
+	 * double-door opening between an extraction room and the long stair down to the next level.
+	 */
 	type: string;
 	/** Footprint cell the opening belongs to, [x, z] from the piece's north-west cell. */
 	cell: [number, number];
@@ -60,6 +63,11 @@ export interface PieceDef {
 	rites: Vec3[];
 	/** Where a loot crate may stand (crate-* markers). The server fills only some of them. */
 	crates: CrateMarker[];
+	/**
+	 * Doors (door-* markers): floor centre of the doorway. At yaw 0 the room side is north (-Z);
+	 * the leaves swing away from it. Every one is a door between levels (see DOORS).
+	 */
+	doors: CrateMarker[];
 	/** Collapsed walls (rubble-* markers): the only places bricks lie, a few at each. */
 	rubble: Vec3[];
 	colliders: ColliderBox[];
@@ -71,10 +79,10 @@ export interface PieceDef {
 /**
  * start: the expedition start room. major: one of the static major rooms, all placed on the
  * main route. extraction: a room with a way up to the surface, placed on the main route
- * (`GenerateOptions.extractions` of them). connector: passages and minor rooms. end: dead ends
- * that close branches. cap: seals an unused opening without occupying a cell.
+ * at the end of every level but the deepest. connector: passages and minor rooms. descent: the long
+ * stair from an extraction room's `gate` down to the next level. end: dead ends that close branches. cap: seals an unused opening without occupying a cell.
  */
-export type PieceRole = 'start' | 'major' | 'extraction' | 'connector' | 'end' | 'cap';
+export type PieceRole = 'start' | 'major' | 'extraction' | 'connector' | 'descent' | 'end' | 'cap';
 
 /** Gameplay data for a piece (hand-authored, in `src/lib/content/map/kit.ts`). */
 export interface KitEntry {
@@ -116,6 +124,11 @@ export interface Placement {
 	position: Vec3;
 	/** Quarter turns around +Y (counter-clockwise seen from above), 0-3. */
 	rotation: number;
+	/**
+	 * Level of the map it belongs to: 0 at the top, down to the deepest (see GenerateOptions.tiers).
+	 * Players see it counted from 1. The long stair belongs to the level it leads down to.
+	 */
+	tier: number;
 }
 
 /** A loot crate standing in the map. */

@@ -36,6 +36,7 @@ function kindOf(
 ): 'start' | 'major' | 'extraction' | 'minor' | 'tunnel' | 'end' | 'cap' {
 	if (!entry) return 'tunnel';
 	if (entry.role === 'connector') return entry.room ? 'minor' : 'tunnel';
+	if (entry.role === 'descent') return 'tunnel';
 	return entry.role;
 }
 
@@ -65,6 +66,39 @@ interface EdgeEntry {
 function edgeKey(cell: [number, number], level: number, edge: Edge): string {
 	const [dx, dz] = EDGE_DIR[edge];
 	return `${cell[0] * 2 + dx},${cell[1] * 2 + dz},${level}`;
+}
+
+/**
+ * Which placed pieces open into which: for each placement (by index in `layout.placements`), the
+ * pieces across its connected entrances. Caps link to nothing. Used to check a layout's shape
+ * (levels meet only on the long stair, no roundabouts) and by the debug view.
+ */
+export function pieceLinks(layout: MapLayout, pieces: Record<string, PieceDef>): Set<number>[] {
+	const links = layout.placements.map(() => new Set<number>());
+	const at = new Map<string, number[]>();
+	layout.placements.forEach((placement, index) => {
+		const piece = pieces[placement.piece];
+		if (!piece || (piece.footprint[0] === 0 && piece.footprint[1] === 0)) return;
+		for (const socket of piece.sockets) {
+			const world = worldSocket(piece, placement, socket);
+			const key = `${edgeKey(world.cell, world.level, world.edge)},${world.type}`;
+			at.set(key, [...(at.get(key) ?? []), index]);
+		}
+	});
+	const capped = new Set(
+		layout.placements
+			.filter((p) => pieces[p.piece]?.footprint[0] === 0 && pieces[p.piece]?.footprint[1] === 0)
+			.map((p) => {
+				const [x, , z] = p.position;
+				return `${Math.round((x * 2) / CELL)},${Math.round((z * 2) / CELL)},${placementLevel(p)}`;
+			})
+	);
+	for (const [key, owners] of at) {
+		if (owners.length !== 2 || capped.has(key.slice(0, key.lastIndexOf(',')))) continue;
+		links[owners[0]].add(owners[1]);
+		links[owners[1]].add(owners[0]);
+	}
+	return links;
 }
 
 export function mapDebugGrid(
