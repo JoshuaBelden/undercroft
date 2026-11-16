@@ -38,7 +38,7 @@ describe('CreatureDirector', () => {
 		creatures.populate(map.start);
 		expect(creatures.count).toBeGreaterThanOrEqual(WITCH.spawn.count[0]);
 		expect(creatures.count).toBeLessThanOrEqual(WITCH.spawn.count[1]);
-		const distance = gridDistances(map.nav, [nearestPoint(map.nav, map.start)]);
+		const distance = gridDistances(map.nav, [nearestPoint(map.nav, map.start)], true);
 		for (const { position } of creatures.bodies()) {
 			expect(distance[nearestPoint(map.nav, position)]).toBeGreaterThanOrEqual(
 				WITCH.spawn.minDistance - 1

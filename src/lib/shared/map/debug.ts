@@ -24,8 +24,10 @@ export interface MapDebugCounts {
 	caps: number;
 	entrances: { connected: number; blocked: number };
 	cells: number;
-	/** Levels from the top of the map to the bottom. */
+	/** Grid floors from the top of the map to the bottom. */
 	levels: number;
+	/** Per level of the map (tier), from the top: pieces (caps not counted) and rooms on it. */
+	tiers: { pieces: number; rooms: number }[];
 	/** How many of each room and tunnel piece, most first. */
 	pieces: { piece: string; count: number; room: boolean }[];
 }
@@ -112,6 +114,7 @@ export function mapDebugGrid(
 	const caps: string[] = [];
 	const kinds = { start: 0, major: 0, extraction: 0, minor: 0, tunnel: 0, end: 0, cap: 0 };
 	const perPiece = new Map<string, { piece: string; count: number; room: boolean }>();
+	const tiers: { pieces: number; rooms: number }[] = [];
 	for (const placement of layout.placements) {
 		const piece = pieces[placement.piece];
 		if (!piece) continue;
@@ -119,6 +122,11 @@ export function mapDebugGrid(
 		const kind = kindOf(kit[placement.piece]);
 		kinds[kind]++;
 		const room = kind !== 'tunnel' && kind !== 'end' && kind !== 'cap';
+		if (kind !== 'cap') {
+			while (tiers.length <= placement.tier) tiers.push({ pieces: 0, rooms: 0 });
+			tiers[placement.tier].pieces++;
+			if (room) tiers[placement.tier].rooms++;
+		}
 		if (room || kind === 'tunnel') {
 			const tally = perPiece.get(placement.piece) ?? { piece: placement.piece, count: 0, room };
 			tally.count++;
@@ -178,6 +186,7 @@ export function mapDebugGrid(
 			entrances: { connected, blocked: entrances.length - connected },
 			cells: cells.size,
 			levels: levels.length ? Math.max(...levels) - Math.min(...levels) + 1 : 0,
+			tiers,
 			pieces: [...perPiece.values()].sort(
 				(a, b) => b.count - a.count || a.piece.localeCompare(b.piece)
 			)

@@ -51,7 +51,8 @@ export function worldOf(colliders: ColliderBox[], volumes: VolumeBox[] = []): Co
 		seed: 0,
 		affliction: null,
 		placements: [{ piece: 'test', position: [0, 0, 0], rotation: 0, tier: 0 }],
-		crates: []
+		crates: [],
+		doors: []
 	};
 	return buildCollisionWorld(layout, { test: piece });
 }

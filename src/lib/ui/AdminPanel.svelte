@@ -298,6 +298,11 @@
 				onstep={() => ongridview(!gridView)}
 				hint="In map view: cell outlines, rooms in yellow; entrances green when connected, red when blocked (cap or dead end)."
 			/>
+			{@render action(
+				'Open the doors',
+				() => onadmin({ kind: 'openDoors' }),
+				'Every door between levels, for everyone, as if held open.'
+			)}
 		{:else if group === 'Player'}
 			{#each toggles as toggle (toggle.kind)}
 				<StepperField

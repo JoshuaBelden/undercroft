@@ -10,7 +10,8 @@ const hallLayout = (placements: MapLayout['placements']): MapLayout => ({
 	seed: 0,
 	affliction: null,
 	placements,
-	crates: []
+	crates: [],
+	doors: []
 });
 
 describe('mapDebugGrid', () => {
@@ -51,6 +52,8 @@ describe('mapDebugGrid', () => {
 		expect(counts.rooms.total).toBe(
 			counts.rooms.start + counts.rooms.major + counts.rooms.extraction + counts.rooms.minor
 		);
+		expect(counts.tiers).toHaveLength(3);
+		expect(counts.tiers.reduce((sum, t) => sum + t.rooms, 0)).toBe(counts.rooms.total);
 		expect(counts.rooms.total + counts.tunnels + counts.deadEnds + counts.caps).toBe(
 			layout.placements.length
 		);

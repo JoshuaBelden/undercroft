@@ -1,4 +1,5 @@
 import { Rng } from '../rng.ts';
+import { placeDoors } from './doors.ts';
 import {
 	CELL,
 	EDGE_DIR,
@@ -532,12 +533,15 @@ export function generateLayout(
 	for (let attempt = 0; attempt < opts.attempts; attempt++) {
 		const rng = new Rng((seed + Math.imul(attempt, 0x9e3779b9)) >>> 0);
 		try {
-			return {
+			const layout: MapLayout = {
 				seed,
 				affliction: opts.affliction,
 				placements: tryGenerate(rng, pieces, own, opts),
-				crates: []
+				crates: [],
+				doors: []
 			};
+			layout.doors = placeDoors(layout, pieces);
+			return layout;
 		} catch (error) {
 			if (!(error instanceof GenerationFailed)) throw error;
 		}

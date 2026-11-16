@@ -411,6 +411,25 @@ export const SOUNDS = {
 		caption: 'a lid creaks open',
 		captionOthers: true
 	},
+	// A door between levels: the bar thrown off, then the leaves dragging open on old hinges.
+	'door.unbar': {
+		synth: { kind: 'thud', cutoff: 700 },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.05,
+		caption: 'a heavy bar drops',
+		captionOthers: true
+	},
+	'door.open': {
+		file: 'ambience.creak',
+		synth: { kind: 'groan' },
+		category: 'sfx',
+		volume: 1,
+		rate: 0.7,
+		variation: 0.05,
+		caption: 'a great door groans open',
+		captionOthers: true
+	},
 	// Turning over a corpse to search it, the first time.
 	'corpse.search': {
 		file: 'corpse.search',

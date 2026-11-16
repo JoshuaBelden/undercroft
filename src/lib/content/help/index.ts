@@ -104,7 +104,7 @@ Tap {action:stance} to change stance: walking, crouching, crawling, then back to
 
 Press {action:toggleView} to step back and see yourself from over your shoulder, and again to look through your own eyes. Crouched, crawling or swimming, you always see through your own eyes.
 
-Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk: you have to work your way through slowly, and you can't run. You can't stand up while something is overhead; you'll rise as soon as there is room.`
+Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk, and long: you have to work your way through slowly, you can't run, and there's no room to fight. Make sure nothing is following you in. You can't stand up while something is overhead; you'll rise as soon as there is room.`
 	},
 	{
 		id: 'stamina',
@@ -130,6 +130,8 @@ In the water, swim up to an edge and hold {action:climb} to pull yourself out.`
 
 Underwater, your stamina is your breath: it drains and won't come back until you surface. When it runs out you're forced up for air, and you can't dive again until you've recovered.
 
+Under the surface everything goes murky and close, and sounds are muffled.
+
 Look for steps or a low edge to get out. Every pool has a way out.`
 	},
 	{
@@ -144,7 +146,7 @@ Flooded passages dip under the water: the ceiling comes down to meet it, and the
 		id: 'extraction',
 		title: 'Getting out',
 		category: 'Expeditions',
-		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. Further in are two shafts, each with a ladder going up into the dark, the second deeper than the first. The last is a ladder in the deepest room of all.
+		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. At the end of the first and second levels is a shaft with a ladder going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
 
 The deeper ways out save you the long walk back with your haul. Remember where you saw them.
 
@@ -155,6 +157,18 @@ Don't stay too long. The time at the top of your view is how long you have left.
 Once you're out, your expedition is over. The results show how it went (time underground, how deep you got, creatures killed, crates opened, hints found) and what you brought out; Continue takes you to your loadout to put the haul away. In a group, the others can stay down; the expedition ends when everyone is out.
 
 You can also give up from anywhere: open the settings ({action:toggleSettings}) and choose Abandon expedition. You go back to the surface, but everything you carried stays where you stood.`
+	},
+	{
+		id: 'levels',
+		title: 'Levels and doors',
+		category: 'Expeditions',
+		body: `The catacombs go down in three levels, one under the other. Each is a maze of its own: passages, junctions, burial rooms and dead ends.
+
+At the far end of the first and second levels is a room with a shaft up to the surface, and a great double door. Behind the door a long stair leads down to the next level. It is the only way down.
+
+The doors are barred. Hold {action:interact} on one to throw off the bar and push it open. It stays open for good, for everyone, and the sound carries: whatever is down there, or behind you, will hear it, and once it's open they can come through too.
+
+The deeper you go, the better the finds. The first two levels hold everyday things; anything rare or precious lies on the third, where the rite is done.`
 	},
 	{
 		id: 'parties',

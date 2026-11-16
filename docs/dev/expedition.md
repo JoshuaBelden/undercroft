@@ -125,7 +125,7 @@ Every way out but the start door is marked by the same model: a timber ladder (a
 
 **Outcome:** the results screen's title comes from the message, except that `extracted` after the rite was performed (the last tick's `rite.resolved`) shows "The rite is done", and `died` with `lost` shows "Lost in the dark".
 
-**Results:** `ExpeditionSummary` (`src/lib/shared/protocol.ts`), built by `Session.summary`: time underground, deepest level reached (shown counting the start as level 1), and the player's `kills`, `crates` (first to open) and `clues`. The session counts those from the tick's events (`Session.tally`): `creatureDie.by`, `crateOpen.player`, `clue.player`. The client adds the Affliction's name and lists what was brought out with what it would sell for. To add a stat, add it to `ExpeditionSummary` and `Player.stats`, count it in `tally`, and show it in `ExpeditionResult`.
+**Results:** `ExpeditionSummary` (`src/lib/shared/protocol.ts`), built by `Session.summary`: time underground, deepest level of the map reached (`tierAt`, 0 for the first; shown counting from 1), and the player's `kills`, `crates` (first to open) and `clues`. The session counts those from the tick's events (`Session.tally`): `creatureDie.by`, `crateOpen.player`, `clue.player`. The client adds the Affliction's name and lists what was brought out with what it would sell for. To add a stat, add it to `ExpeditionSummary` and `Player.stats`, count it in `tally`, and show it in `ExpeditionResult`.
 
 **Continue** always goes to the Loadout page (`surface`), to put the haul away or kit out again.
 

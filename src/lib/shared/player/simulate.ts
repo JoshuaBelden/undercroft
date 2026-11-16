@@ -82,7 +82,8 @@ export function createPlayerState(
 		reviving: 0,
 		performing: 0,
 		opening: 0,
-		erasing: 0
+		erasing: 0,
+		unbarring: 0
 	};
 }
 

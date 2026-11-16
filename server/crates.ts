@@ -48,7 +48,7 @@ export class Crates {
 		start: Vec3,
 		private seed: number
 	) {
-		const distance = gridDistances(nav, [nearestPoint(nav, start)]);
+		const distance = gridDistances(nav, [nearestPoint(nav, start)], true);
 		const far = distance.reduce((most, d) => Math.max(most, d ?? 0), 0);
 		for (const { id, position, kind } of placements) {
 			const d = distance[nearestPoint(nav, position)];

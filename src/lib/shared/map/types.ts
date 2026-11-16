@@ -142,6 +142,17 @@ export interface CratePlacement {
 	kind?: 'corpse';
 }
 
+/** A door between levels (see DOORS). Solid until opened. */
+export interface DoorPlacement {
+	id: string;
+	/** Floor centre of the doorway, world space. */
+	position: Vec3;
+	/** Turn about +Y (radians). At 0 the room side is north (-Z) and the leaves swing south. */
+	yaw: number;
+	/** The level of the map it leads down to. */
+	tier: number;
+}
+
 export interface MapLayout {
 	seed: number;
 	/** The Affliction this map was generated for (its own pieces are in it); null for none. */
@@ -149,4 +160,6 @@ export interface MapLayout {
 	placements: Placement[];
 	/** Loot crates (see docs/dev/items.md). Solid: they are part of the collision world. */
 	crates: CratePlacement[];
+	/** Doors between levels (see docs/dev/map-generation.md#doors). Solid while shut. */
+	doors: DoorPlacement[];
 }

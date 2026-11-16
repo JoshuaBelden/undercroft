@@ -19,6 +19,9 @@
 	import { Effects } from '#lib/game/items/Effects.ts';
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { Crates } from '#lib/game/items/Crates.ts';
+	import { Doors } from '#lib/game/map/Doors.ts';
+	import { DOORS } from '#lib/content/doors.ts';
+	import { lookedAtDoor } from '#lib/shared/map/doors.ts';
 	import { Marks } from '#lib/game/items/Marks.ts';
 	import { DEFAULT_MARK_WHEEL, MARKS } from '#lib/content/marks.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
@@ -451,6 +454,7 @@
 						creatures.apply(message.creatures);
 						worldItems.apply(message.items, message.projectiles);
 						crates.apply(message.crates);
+						doors.apply(message.doors);
 						for (const event of message.events) onGameEvent(event);
 						manifestation.apply(
 							message.affliction.manifestation,
@@ -488,6 +492,8 @@
 		engine.scene.add(worldItems.root);
 		const crates = new Crates();
 		engine.scene.add(crates.root);
+		const doors = new Doors();
+		engine.scene.add(doors.root);
 		const marks = new Marks(map.root);
 		engine.scene.add(marks.root);
 		const chalkRay = new THREE.Raycaster();
@@ -501,6 +507,8 @@
 		let pickupTarget: { id: string; item: string } | null = null;
 		/** The loot crate the player would open, if any (a floor item comes first). */
 		let crateTarget: string | null = null;
+		/** The shut door between levels interact would open, if any (floor items and crates first). */
+		let doorTarget: string | null = null;
 		/** Your own chalk mark that interact would erase, if any (floor items and crates first). */
 		let markTarget: string | null = null;
 		setMarkers = (enabled) => {
@@ -576,6 +584,7 @@
 			debugGrid.build(grid);
 			mapCounts = grid.counts;
 			const world = buildCollisionWorld(layout, PIECES);
+			doors.build(layout.doors, world);
 			player.setWorld(world);
 			ambience.setMap(layout, world);
 		}
@@ -602,6 +611,7 @@
 			crate = null;
 			leavingCrate = false;
 			crates.clear();
+			doors.clear();
 			marks.clear();
 			markLabel = null;
 			chalkWheel = null;
@@ -888,6 +898,11 @@
 						sounds.playAt('corpse.search', event.position, 1, 3);
 					else sounds.playAt('crate.open', event.position, 1, 4);
 					break;
+				case 'doorOpen':
+					// Heard far down the stair and back across the level.
+					sounds.playAt('door.unbar', event.position, 1, 6);
+					sounds.playAt('door.open', event.position, 1, 10);
+					break;
 				case 'rummage':
 					// Your own hands are right there; someone else's are heard from where they are.
 					if (event.player === self) sounds.play('inventory.rummage');
@@ -1050,6 +1065,7 @@
 			const world = player.collision;
 			pickupTarget = null;
 			crateTarget = null;
+			doorTarget = null;
 			markTarget = null;
 			if (world && !state.downed && !state.swimming) {
 				const { origin, direction } = aimRay(state, eyeHeight(state));
@@ -1057,6 +1073,12 @@
 				if (item) pickupTarget = { id: item.id, item: item.item };
 				else crateTarget = lookedAtCrate(world, origin, direction, crates.placements)?.id ?? null;
 				if (!pickupTarget && !crateTarget) {
+					const door = lookedAtDoor(world, origin, direction, doors.placements, (id) =>
+						doors.isOpen(id)
+					);
+					doorTarget = door?.id ?? null;
+				}
+				if (!pickupTarget && !crateTarget && !doorTarget) {
 					const self = client.playerId;
 					const mine = lookedAtMark(world, origin, direction, marks.list, (m) => m.by === self);
 					markTarget = mine?.id ?? null;
@@ -1141,6 +1163,9 @@
 				if (fit === 'heavy') return { prompt: name + ': too heavy to carry', progress: 0 };
 				if (fit === 'full') return { prompt: name + ': no room for it', progress: 0 };
 				return keyPrompt('interact', `to pick up ${name}`);
+			}
+			if (doorTarget) {
+				return keyPrompt('interact', 'to open the door', state.unbarring / DOORS.openSeconds);
 			}
 			if (markTarget && settings.interface.itemPrompts) {
 				return keyPrompt('interact', 'to erase your mark', state.erasing / MARKS.eraseSeconds);
@@ -1377,6 +1402,7 @@
 			creatures.update(delta, player.collision, lamps);
 			worldItems.update(delta);
 			crates.update(delta);
+			doors.update(delta);
 			marks.update(delta);
 			effects.update(delta, engine.camera);
 			// Only on your feet: crouched, crawling or swimming, the body fills the view from
@@ -1583,6 +1609,7 @@
 			manifestation.dispose();
 			worldItems.dispose();
 			crates.dispose();
+			doors.dispose();
 			marks.dispose();
 			effects.dispose();
 			playerAudio.dispose();

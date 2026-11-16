@@ -101,6 +101,8 @@ export interface PlayerState {
 	opening: number;
 	/** Seconds spent holding interact to erase your own chalk mark (server-driven). */
 	erasing: number;
+	/** Seconds spent holding interact to open a door between levels (server-driven). */
+	unbarring: number;
 }
 
 /** What one slot holds. */

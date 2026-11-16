@@ -60,13 +60,14 @@ const characters = (urls: string[]): Task[] =>
 const models = (urls: string[]): Task[] =>
 	[...new Set(urls)].map((url) => ({ bytes: modelBytes(url), load: () => warmModel(url) }));
 
-/** Models every run uses, whatever the map: the explorer, creatures, items, crates. */
+/** Models every run uses, whatever the map: the explorer, creatures, items, crates, doors. */
 function sharedModels(): Task[] {
 	return [
 		...characters([PLAYER_MODEL.model, ...Object.values(CREATURES).map((c) => c.model)]),
 		...models([
 			modelUrl('shared/props/crate.glb'),
 			modelUrl('shared/props/corpse.glb'),
+			modelUrl('shared/props/door-double.glb'),
 			...Object.values(ITEMS).flatMap((item) => (item.model ? [item.model] : []))
 		])
 	];

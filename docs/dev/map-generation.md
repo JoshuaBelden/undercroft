@@ -57,6 +57,25 @@ A map is three **levels** stacked one under the other (`GenerateOptions.tiers`).
 
 Any entry can also set `affliction` (a key into `AFFLICTIONS`): the piece is then only generated in maps for that Affliction, and its built files live in `static/assets/afflictions/<id>/`, so other runs never download it. The Gloaming Chapel belongs to the Gloaming. The server passes the chosen Affliction as `GenerateOptions.affliction`, and the layout records it (`MapLayout.affliction`) so the client preloads the right Affliction's models.
 
+## Doors
+
+A double door stands at the top of every long stair, just behind the extraction room's gate. It starts shut and barred: holding interact on it for `DOORS.openSeconds` opens it for everyone, for good. Shut, it keeps players out and creatures in; the sound of it opening carries `DOORS.noise` metres.
+
+| What                                                  | Where                                                                     |
+| ----------------------------------------------------- | ------------------------------------------------------------------------- |
+| Tuning (size, hold time, reach, noise, swing)         | `DOORS` in `src/lib/content/doors.ts`                                     |
+| Where they stand (`door-*` markers -> `layout.doors`) | `placeDoors` in `src/lib/shared/map/doors.ts`, called by `generateLayout` |
+| Which door you're looking at (client and server)      | `lookedAtDoor` in `doors.ts`                                              |
+| Which level of the map a place is on                  | `tierCells` / `tierAt` in `doors.ts`                                      |
+| Server state and the hold to open                     | `server/doors.ts`, `Session.stepDoors`                                    |
+| Model and swing                                       | `src/lib/game/map/Doors.ts` (`prop-door-double`, see asset-pipeline.md)   |
+
+- **Collision:** `buildCollisionWorld` adds a box per door, tagged with its id. `openDoor(world, id)` adds the id to `world.openDoors`, and `boxesNear` (which every collision query goes through) leaves those boxes out. The server opens it in its world; the client opens it in the player's world as soon as a tick lists it, so prediction agrees.
+- **Nav:** `buildNav` builds the grid with every door open, so the levels below are in it, then tags the points in each doorway (`NavPoint.door`). `NavGrid.closed` holds the doors still shut: `findPath` and `gridDistances` don't step onto their doorways, so creatures can't path through. `Doors.open` takes the id out. Laying out the map (creatures, loot, the rite's items) measures through the doors (`gridDistances(..., true)`).
+- **Protocol:** each `tick` lists the open doors (`doors`), which also covers a reconnect. Opening one is a `doorOpen` event (the bar dropping and the hinges groaning: `door.unbar`, `door.open`).
+- **Prompt:** looking at a shut door in reach shows "[E] to open the door", filling as `PlayerState.unbarring` grows. A floor item or a crate in the way comes first.
+- **Admin:** the F10 Map group has **Open the doors** (`openDoors`), and the teleport list has `level-2-door` and `level-3-door`, on the room side of each door.
+
 ## Algorithm
 
 `generateLayout(seed, PIECES, MAP_KIT, { affliction })` (pieces owned by any other Affliction are dropped from the kit first):
@@ -98,6 +117,6 @@ The map debug view is fully lit and draws a grid over the map (Map group, **Grid
 | Green panel       | An entrance (socket) with a piece on both sides: a way through.                                     |
 | Red panel         | A blocked entrance: sealed by a cap, closed by a dead end, or open with nothing across it.          |
 
-Down the left, a panel counts what the map is made of: rooms (start, major, extraction, minor), tunnels (every other connector), dead ends, caps, connected and blocked entrances, cells and levels, then how many of each room and tunnel piece. A new connector that is a room, not a passage, sets `room: true` in `MAP_KIT` to be counted and highlighted as one.
+Down the left, a panel counts what the map is made of: rooms (start, major, extraction, minor), tunnels (every other connector), dead ends, caps, connected and blocked entrances, cells and grid floors, then the pieces and rooms on each level of the map, then how many of each room and tunnel piece. A new connector that is a room, not a passage, sets `room: true` in `MAP_KIT` to be counted and highlighted as one.
 
 `mapDebugGrid(layout, PIECES, MAP_KIT)` (`src/lib/shared/map/debug.ts`, tested) works this out from the layout; `MapDebugGrid` (`src/lib/game/map/MapDebugGrid.ts`) draws it. A red panel with no cap or dead end behind it is a generator bug: the generator seals every opening.
