@@ -33,14 +33,14 @@ A socket is an opening of a given type on a cell edge. Two sockets connect when 
 
 `MAP_KIT` (`src/lib/content/map/kit.ts`) gives each piece a role and options:
 
-| Role         | Meaning                                                                                                                                                                       |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `start`      | Expedition start room. `exit` names the piece always attached to its opening (`hall-stairs-down`).                                                                            |
-| `major`      | Static major room. Every major room is placed on the main route. `final: true` marks the one that goes last and deepest (Gloaming Chapel).                                    |
-| `extraction` | A room with a way out (`extraction-shaft`). `GenerateOptions.extractions` of them go on the main route, spaced evenly between the major rooms, picked by `weight`.            |
-| `connector`  | Passages and minor rooms. `weight` is the relative pick chance. `descends: true` pieces change level and are only attached by their highest socket, so they always lead down. |
-| `end`        | Dead ends that can close an opening instead of a cap.                                                                                                                         |
-| `cap`        | Seals an unused opening without occupying a cell. `seals` names the socket type.                                                                                              |
+| Role         | Meaning                                                                                                                                                                                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `start`      | Expedition start room. `exit` names the piece always attached to its opening (`hall-stairs-down`).                                                                                                                                                                     |
+| `major`      | Static major room. Every major room is placed on the main route. `final: true` marks the one that goes last and deepest (Gloaming Chapel).                                                                                                                             |
+| `extraction` | A room with a way out (`extraction-shaft`). `GenerateOptions.extractions` of them go on the main route, spaced evenly between the major rooms, picked by `weight`.                                                                                                     |
+| `connector`  | Passages and minor rooms. `weight` is the relative pick chance. `descends: true` pieces change level and are only attached by their highest socket, so they always lead down. `needsRope: true` (with `descends`) is a rope drop: never on the main route, see step 4. |
+| `end`        | Dead ends that can close an opening instead of a cap.                                                                                                                                                                                                                  |
+| `cap`        | Seals an unused opening without occupying a cell. `seals` names the socket type.                                                                                                                                                                                       |
 
 Any entry can also set `affliction` (a key into `AFFLICTIONS`): the piece is then only generated in maps for that Affliction, and its built files live in `static/assets/afflictions/<id>/`, so other runs never download it. The Gloaming Chapel belongs to the Gloaming. The server passes the chosen Affliction as `GenerateOptions.affliction`, and the layout records it (`MapLayout.affliction`) so the client preloads the right Affliction's models.
 
@@ -51,9 +51,10 @@ Any entry can also set `affliction` (a key into `AFFLICTIONS`): the piece is the
 1. **Start:** place the start room with a random rotation, its first cell on world cell `[0, 0]`, then attach its `exit` piece (stairs down).
 2. **Main route:** visit every major room in random order, with the `final` room last, and the extraction rooms spaced evenly between them (with three major rooms and two extraction rooms: major, extraction, major, extraction, major, final). Before each room, attach a corridor of `corridor` (4–7) non-descending connectors. Pieces are tried in weighted random order, each matching socket and rotation is tried, and placements that overlap an occupied cell on any level are rejected. Each step grows from any open socket of the piece before (trying the others when nothing fits); a room that does not fit stretches its corridor by up to `stretch` more pieces. Before the final room, one corridor piece is forced to be a descending piece. Because descending pieces only go down, the final room is always strictly deeper than every other room.
 3. **Branches:** each still-open socket has a chance (`branchChance`) to grow a 2–5 piece side passage, in `branchPasses` passes, so tees and crosses on a branch can branch again. Branches never descend.
-4. **Loops:** for up to `loops` (8) open sockets, find the nearest open socket on the same level that a breadth-first search can reach through free cells (at most `loopMaxCells`). The path becomes straight and corner halls, joining the two sockets.
-5. **Seal:** open sockets facing each other are joined. Each remaining one gets a dead end (`deadEndChance`, 0.55, if it fits) or a cap. Dead ends are the collapsed walls where bricks lie, so most maps have around 8 (none in about 1 map in 500).
-6. If any step fails, retry with a new RNG stream derived from the seed (up to `attempts`).
+4. **Rope drops:** `ropeDrops` (1) `needsRope` connectors (`drop-hall`, `pit`: 12 m down) are hung off an opening still free, each with `dropBranch` (1–3) connectors on from its foot. They are never on the main route, so a party without rope is never stuck, and the nav grid (which can't step down 12 m) leaves everything below them out. This pass uses its own RNG stream (`dropRng`, swapped into `LayoutState.rng` for it), so the rest of the map came out as it did before drops existed. See [rope.md](rope.md#rope-drops).
+5. **Loops:** for up to `loops` (8) open sockets, find the nearest open socket on the same level that a breadth-first search can reach through free cells (at most `loopMaxCells`). The path becomes straight and corner halls, joining the two sockets.
+6. **Seal:** open sockets facing each other are joined. Each remaining one gets a dead end (`deadEndChance`, 0.55, if it fits) or a cap. Dead ends are the collapsed walls where bricks lie, so most maps have around 8 (none in about 1 map in 500).
+7. If any step fails, retry with a new RNG stream derived from the seed (up to `attempts`).
 
 Tunables are `GenerateOptions` in `generate.ts`. Maps come out at roughly 90–230 pieces (median about 160), about half of them straight and corner halls, with a tee or cross every few pieces. Crawls, squeezes and water passages are rare (low `weight` in `MAP_KIT`). About three in four attempts box themselves in on the main route and are retried; no seed has needed more than the 64 attempts.
 
@@ -67,13 +68,13 @@ After that the server chooses which of the pieces' crate markers have a loot cra
 
 1. Build it in Blender following the kit conventions and export it to `art/export/`.
 2. Run `pnpm asset:build`.
-3. Add it to `MAP_KIT` with a role (and a weight for connectors). Caps must have a single socket of the type they seal. Pieces that change level need `descends: true`.
+3. Add it to `MAP_KIT` with a role (and a weight for connectors). Caps must have a single socket of the type they seal. Pieces that change level need `descends: true`; a drop that takes a rope also `needsRope: true` and an `anchor-<n>` at its top.
 
 ## Debug grid
 
 In dev mode, the admin panel (F10) Map group shows the current seed, regenerates the map from a seed you type (or a random one), and turns on the map debug view. F9 (`toggleFreecam`, remappable, no controller button) flies the same view freely from where you stand: move keys to fly, Space and X for up and down, sprint for four times the speed. F9 again puts you back in your body, which never moved. While flying, interact (E) moves your body to the camera and puts you in it, looking the same way: the eyes go where the camera was and you fall to the floor below (with noclip on, you stay there). It's the `teleportTo` admin command; the server does nothing over no floor at all (`dropSpot` in `src/lib/shared/map/points.ts`). Reload (R) brings the camera back to your body and keeps flying. The admin panel's Map group has both as buttons while the free camera is on, and the side panel shows the keys as they are bound.
 
-The map debug view is fully lit and draws a grid over the map (Map group, **Grid**, on by default), through walls:
+The map debug view is fully lit and draws a grid over the map (Map group, **Grid**, off by default), through walls:
 
 | Drawn             | Means                                                                                               |
 | ----------------- | --------------------------------------------------------------------------------------------------- |

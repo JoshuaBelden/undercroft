@@ -45,5 +45,11 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	// A stick lying along X. About 8 cm long; pinched a little behind the middle.
 	chalk: { forward: '-x', up: '+y', length: 0.08, grip: [0.35, 0.5] },
 	// A fat dry cell lying along Z, its + terminal toward +Z. About 9 cm long; held round its middle.
-	battery: { forward: '+z', up: '+y', length: 0.09, grip: [0.5, 0.5] }
+	battery: { forward: '+z', up: '+y', length: 0.09, grip: [0.5, 0.5] },
+	// A bound pack of rope, longest along X. About 45 cm across; held round its middle.
+	rope_pack: { forward: '-x', up: '+y', length: 0.45, grip: [0.5, 0.5] },
+	// A loose heap of rope lying flat. About 50 cm across; held from the middle.
+	rope_bundle: { forward: '-z', up: '+y', length: 0.5, grip: [0.5, 0.5] },
+	// A medical case standing on its edge, longest along X. About 28 cm wide; held by its top.
+	medkit: { forward: '-x', up: '+y', length: 0.28, grip: [0.5, 0.85] }
 };

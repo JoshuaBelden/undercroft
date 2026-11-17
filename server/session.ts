@@ -3,7 +3,8 @@ import type { WebSocket } from 'ws';
 import { CREATURES } from '../src/lib/content/creatures.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { SANITY } from '../src/lib/content/player/sanity.ts';
-import { MOVEMENT } from '../src/lib/content/player/movement.ts';
+import { FALL, MOVEMENT } from '../src/lib/content/player/movement.ts';
+import { type ClimberSpot } from '../src/lib/shared/player/climb.ts';
 import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import {
 	buildCollisionWorld,
@@ -31,11 +32,15 @@ import {
 	allStacks,
 	applyAction,
 	absorbBlow,
+	getSlot,
+	handRef,
 	held,
 	newStack,
 	quickWith,
+	removeItem,
 	sanitizeAction,
 	spendQuick,
+	takeStack,
 	wearChalk
 } from '../src/lib/shared/items/inventory.ts';
 import { CRATE_REACH, lookedAtMark } from '../src/lib/shared/items/pickup.ts';
@@ -64,6 +69,7 @@ import type {
 	PlayerState,
 	SimEvent
 } from '../src/lib/shared/player/types.ts';
+import { HAND } from '../src/lib/shared/player/types.ts';
 import {
 	encode,
 	type AdminCommand,
@@ -82,6 +88,15 @@ import { Crates, type Crate } from './crates.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
 import { Marks } from './marks.ts';
+import { Ropes } from './ropes.ts';
+import { ROPE } from '../src/lib/content/rope.ts';
+import {
+	applyTied,
+	laidLength,
+	ropeLength,
+	ropeAction,
+	ropeInHand
+} from '../src/lib/shared/items/rope.ts';
 import { log } from './log.ts';
 
 interface Player {
@@ -171,6 +186,11 @@ export class Session {
 	private rite!: RiteDirector;
 	/** Chalk marks on the walls. */
 	private marks = new Marks();
+	private ropes = new Ropes();
+	/** What each player's interact hold is on (`roping`): changing target starts it over. */
+	private ropeTargets = new Map<string, string>();
+	/** The hand slot (`Inventory.selected`) each player is laying rope from. */
+	private layingFrom = new Map<string, number>();
 	/** Items not put in this map: quest items someone in the party already owns. */
 	private withheld = new Set<string>();
 	/** When the first player arrived (ms): the deadline counts from here. */
@@ -355,6 +375,7 @@ export class Session {
 			markWheel: [...player.markWheel]
 		});
 		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
+		this.send(player, { type: 'ropes', ...this.ropes.snapshot() });
 		log.info(`Player ${name} joined session ${this.id.slice(0, 8)}`);
 		if (!this.timer) this.start();
 		return player;
@@ -386,6 +407,7 @@ export class Session {
 			markWheel: [...player.markWheel]
 		});
 		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
+		this.send(player, { type: 'ropes', ...this.ropes.snapshot() });
 		log.info(`Player ${player.name} reconnected to session ${this.id.slice(0, 8)}`);
 		return true;
 	}
@@ -404,6 +426,8 @@ export class Session {
 		const player = this.players.get(playerId);
 		if (!player) return;
 		this.shutCrate(player);
+		this.ropes.stop(player.id);
+		this.layingFrom.delete(player.id);
 		// Not extracted, dead or abandoned: they left the party or dropped for good.
 		this.logRun(player, carried ? 'extracted' : 'left', carried);
 		this.players.delete(playerId);
@@ -543,6 +567,7 @@ export class Session {
 			!s.extracted &&
 			!s.swimming &&
 			!s.mantle &&
+			!s.climbing &&
 			s.bandaging === 0 &&
 			s.charging === 0 &&
 			s.reviving === 0 &&
@@ -645,6 +670,13 @@ export class Session {
 					this.clockShift += this.deadline - Math.max(0, command.seconds);
 				}
 				break;
+			case 'clearConditions':
+				player.state.conditions = [];
+				break;
+			case 'clearRopes':
+				this.ropes.clear();
+				this.ropesChanged();
+				break;
 			case 'clearMarks':
 				this.marks.clear();
 				this.broadcast({ type: 'marks', marks: [] });
@@ -697,8 +729,10 @@ export class Session {
 			player.queue = [];
 		}
 		this.marks.clear();
+		this.ropes.clear();
 		this.broadcast({ type: 'map', layout: this.layout });
 		this.broadcast({ type: 'marks', marks: [] });
+		this.broadcast({ type: 'ropes', laid: [], tied: [] });
 		log.info(`Session ${this.id.slice(0, 8)} regenerated with seed ${seed}`);
 	}
 
@@ -763,10 +797,15 @@ export class Session {
 			while (player.processed < due && player.queue.length > 0 && !player.state.extracted) {
 				const frame = player.queue.shift() as InputFrame;
 				const pressedInteract = frame.interact && !player.lastInput?.interact;
+				const pressedAttack = frame.attack && !player.lastInput?.attack;
 				const events: SimEvent[] = [];
-				stepPlayer(player.state, frame, this.world, DT, MOVEMENT, DEFAULT_HEADLAMP, events);
+				const others = this.climbersBesides(player);
+				stepPlayer(player.state, frame, this.world, DT, MOVEMENT, DEFAULT_HEADLAMP, events, others);
 				resolve(this.combat(), player, events);
-				if (pressedInteract) this.pickUp(player);
+				this.moved(player, events);
+				// A press that took hold of a rope did only that.
+				if (pressedInteract && !player.state.climbing) this.pickUp(player);
+				if (pressedAttack) this.startLaying(player);
 				player.lastInput = frame;
 				player.ack = frame.seq;
 				player.processed++;
@@ -783,6 +822,7 @@ export class Session {
 		this.stepDeadline();
 		this.stepCrates();
 		this.stepMarks();
+		this.stepRopes();
 		this.tally();
 		// Anyone still alive down here after this tick? The dead can watch them.
 		const alive = [...this.players.values()].some((p) => !p.state.dead && !p.state.extracted);
@@ -1211,6 +1251,206 @@ export class Session {
 		}
 	}
 
+	/**
+	 * Pressing attack with rope in the hand starts paying it out along the floor where you stand;
+	 * it lays while attack is held (docs/dev/rope.md). Which slot it came from is kept, so letting
+	 * go uses up that one.
+	 */
+	private startLaying(player: Player): void {
+		const s = player.state;
+		if (this.ropes.layingBy(player.id)) return;
+		const stack = ropeInHand(s);
+		if (!stack || !this.canUseHands(player) || !s.grounded) return;
+		this.ropes.start(player.id, player.name, stack.item, [...s.position]);
+		this.layingFrom.set(player.id, s.inventory.selected);
+		this.ropesChanged();
+	}
+
+	/**
+	 * Stop laying: the rope stays where it lies, and the pack or bundle it came from is used up,
+	 * however much of it went down. Let go before any was laid, and it is kept.
+	 */
+	private stopLaying(player: Player): void {
+		const slot = this.layingFrom.get(player.id);
+		this.layingFrom.delete(player.id);
+		const rope = this.ropes.stop(player.id);
+		if (rope && slot !== undefined) this.useUpRope(player, slot, rope.item);
+		this.ropesChanged();
+	}
+
+	/**
+	 * Ropes each tick: pay out the ones being laid as their layers walk, and count interact held
+	 * to tie a rope at an anchor, untie one, or gather up a laid rope.
+	 */
+	private stepRopes(): void {
+		for (const player of this.players.values()) {
+			this.stepLaying(player);
+			this.stepRoping(player);
+		}
+		const grown = this.ropes.takeGrowth();
+		if (grown.length) this.broadcast({ type: 'ropeGrow', ropes: grown });
+	}
+
+	private stepLaying(player: Player): void {
+		const rope = this.ropes.layingBy(player.id);
+		if (!rope) return;
+		const s = player.state;
+		const stack = ropeInHand(s);
+		// Letting go of attack stops it, and so does anything that takes the hands or the rope
+		// out of them.
+		const still =
+			player.lastInput?.attack === true &&
+			stack?.item === rope.item &&
+			s.inventory.selected === this.layingFrom.get(player.id) &&
+			this.canUseHands(player);
+		if (!still || !stack) {
+			this.stopLaying(player);
+			return;
+		}
+		if (!s.grounded) return;
+		const before = rope.points.length;
+		const left = ropeLength(stack) - laidLength(rope);
+		this.ropes.extend(this.world, rope, s.position, left);
+		// A rustle every couple of metres laid.
+		const every = Math.round(2 / ROPE.spacing);
+		if (Math.floor(rope.points.length / every) > Math.floor(before / every)) {
+			this.events.push({ kind: 'ropeLay', player: player.id, position: [...s.position] });
+		}
+		// All of it paid out.
+		if (ropeLength(stack) - laidLength(rope) < ROPE.spacing) this.stopLaying(player);
+	}
+
+	private stepRoping(player: Player): void {
+		const s = player.state;
+		const busy =
+			!this.canUseHands(player) ||
+			!player.lastInput?.interact ||
+			s.opening > 0 ||
+			s.erasing > 0 ||
+			s.performing > 0 ||
+			s.extracting > 0 ||
+			!s.grounded;
+		const action = busy
+			? null
+			: ropeAction(this.world, this.ropes.laidList(), this.ropes.tiedList(), s);
+		const target =
+			action?.kind === 'gather'
+				? action.rope.id
+				: action && action.kind !== 'short'
+					? `${action.kind}:${action.anchor.id}`
+					: null;
+		// Nobody unties a rope out from under someone climbing it.
+		const occupied =
+			action?.kind === 'untie' &&
+			[...this.players.values()].some((p) => p.state.climbing?.rope === `tied-${action.anchor.id}`);
+		if (!action || !target || occupied) {
+			s.roping = 0;
+			this.ropeTargets.delete(player.id);
+			return;
+		}
+		if (this.ropeTargets.get(player.id) !== target) {
+			// Something new to tie, untie or gather: start over.
+			s.roping = 0;
+			this.ropeTargets.set(player.id, target);
+		}
+		s.roping += TICK_DT;
+		const seconds = action.kind === 'gather' ? ROPE.pickupSeconds : ROPE.tieSeconds;
+		if (s.roping < seconds) return;
+		s.roping = 0;
+		this.ropeTargets.delete(player.id);
+		const position: Vec3 = [...s.position];
+		if (action.kind === 'tie') {
+			const stack = ropeInHand(s);
+			if (!stack) return;
+			// Tied off, the whole pack or bundle is used, however long the drop.
+			this.useUpRope(player, s.inventory.selected, stack.item);
+			this.ropes.tie({
+				anchor: action.anchor.id,
+				by: player.id,
+				name: player.name,
+				item: stack.item
+			});
+			this.events.push({ kind: 'ropeTie', player: player.id, position });
+			this.creatures.hear(position, ROPE.noise, player);
+		} else if (action.kind === 'untie') {
+			const tied = this.ropes.untie(action.anchor.id);
+			if (tied) this.giveRope(player, tied.item);
+			this.events.push({ kind: 'ropeUntie', player: player.id, position });
+			this.creatures.hear(position, ROPE.noise, player);
+		} else if (action.kind === 'gather') {
+			const rope = this.ropes.removeLaid(action.rope.id);
+			if (rope) this.giveRope(player, rope.item);
+			this.events.push({ kind: 'ropeGather', player: player.id, position });
+		}
+		this.ropesChanged();
+	}
+
+	/**
+	 * A rope pack or bundle used up (laid or tied): the one in hand slot `slot` if it is still
+	 * there, else one like it from anywhere they carry it. An emptied hand goes back to a weapon.
+	 */
+	private useUpRope(player: Player, slot: number, item: string): void {
+		const inv = player.state.inventory;
+		const ref = handRef(inv, slot);
+		const stack = ref ? getSlot({ inventory: inv }, ref) : null;
+		if (ref && stack?.item === item) {
+			takeStack({ inventory: inv }, ref, 1);
+			if (inv.selected === slot) {
+				inv.selected = HAND.primary;
+				reequip(player.state.weapon);
+			}
+			return;
+		}
+		const hand = inv.selected;
+		removeItem(inv, item, 1);
+		if (inv.selected !== hand) reequip(player.state.weapon);
+	}
+
+	/** Rope taken back (gathered up, untied): the pack or bundle it was, in the pack or at their feet. */
+	private giveRope(player: Player, item: string): void {
+		const stack = newStack(item);
+		if (addItem(player.state.inventory, stack) > 0) {
+			this.items.place(stack, [...player.state.position]);
+		}
+	}
+
+	/** Ropes changed: the tied ones are climbable (or not) from now, and everyone is told. */
+	private ropesChanged(): void {
+		applyTied(this.world, this.ropes.tiedList());
+		this.broadcast({ type: 'ropes', ...this.ropes.snapshot() });
+	}
+
+	/** Everyone but `player` on a rope: where their feet are (nobody climbs past anyone). */
+	private climbersBesides(player: Player): ClimberSpot[] {
+		const spots: ClimberSpot[] = [];
+		for (const other of this.players.values()) {
+			const climb = other.state.climbing;
+			if (other !== player && climb) spots.push({ rope: climb.rope, y: other.state.position[1] });
+		}
+		return spots;
+	}
+
+	/** What a player's own movement did this step: falls that hurt, ropes grabbed and let go. */
+	private moved(player: Player, events: SimEvent[]): void {
+		const position: Vec3 = [...player.state.position];
+		for (const event of events) {
+			if (event.kind === 'land') {
+				this.hurt(player, (event.speed - FALL.safeSpeed) * FALL.damagePerSpeed);
+				this.events.push({
+					kind: 'fall',
+					player: player.id,
+					position,
+					hard: event.speed >= FALL.hardSpeed
+				});
+				this.creatures.hear(position, FALL.noise, player);
+			} else if (event.kind === 'grab') {
+				this.events.push({ kind: 'ropeGrab', player: player.id, position });
+			} else if (event.kind === 'letgo') {
+				this.events.push({ kind: 'ropeLetGo', player: player.id, position });
+			}
+		}
+	}
+
 	private hurt(player: Player, amount: number): void {
 		const s = player.state;
 		if (s.flags.godMode || s.downed || s.dead) return;
@@ -1226,12 +1466,14 @@ export class Session {
 		// Whatever is held as they fall (climb, mid-scramble) must be let go before it surrenders.
 		s.surrendering = -1;
 		s.mantle = null;
+		s.climbing = null;
 		s.extracting = 0;
 		s.bandaging = 0;
 		s.charging = 0;
 		s.reviving = 0;
 		s.opening = 0;
 		s.erasing = 0;
+		s.roping = 0;
 		this.shutCrate(player);
 		log.info(`Player ${player.name} is down`);
 	}

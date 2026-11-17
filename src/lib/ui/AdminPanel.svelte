@@ -315,6 +315,7 @@
 				</label>
 				<button type="submit">Set</button>
 			</form>
+			{@render action('Clear conditions', () => onadmin({ kind: 'clearConditions' }))}
 			<p class="hint">Teleport to a room:</p>
 			{#each rooms as room (room)}
 				{@render action(room, () => onadmin({ kind: 'teleport', room }))}

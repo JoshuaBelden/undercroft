@@ -39,6 +39,17 @@
 	import { rumble } from '#lib/game/input/gamepad.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
 	import { MapDebugGrid } from '#lib/game/map/MapDebugGrid.ts';
+	import { HangingRopes, type RopeClimber } from '#lib/game/map/HangingRopes.ts';
+	import { RopeCreaks } from '#lib/game/player/RopeCreaks.ts';
+	import { LaidRopes } from '#lib/game/items/LaidRopes.ts';
+	import { ROPE } from '#lib/content/rope.ts';
+	import {
+		applyTied,
+		laidLength,
+		ropeAction,
+		ropeInHand,
+		ropeLength
+	} from '#lib/shared/items/rope.ts';
 	import { mapDebugGrid, type MapDebugCounts } from '#lib/shared/map/debug.ts';
 	import { connection, gameClient, me, start, subscribe } from '#lib/game/net/connection.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
@@ -55,6 +66,8 @@
 	import { roomPoints } from '#lib/shared/map/points.ts';
 	import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
 	import { nearExtract } from '#lib/shared/player/simulate.ts';
+	import { ropeById, ropeToGrab } from '#lib/shared/player/climb.ts';
+	import { CONDITIONS, isConditionId } from '#lib/content/player/conditions.ts';
 	import { EXPEDITION } from '#lib/content/expedition.ts';
 	import { bindingLabel, type Action } from '#lib/game/input/actions.ts';
 	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
@@ -133,7 +146,7 @@
 	/** Dev: the map view flown through with the move keys and mouse, instead of orbited. */
 	let freecam = $state(false);
 	/** Dev: the cell and entrance grid drawn over the map view. */
-	let gridView = $state(true);
+	let gridView = $state(false);
 	/** Dev: what the map is made of, for the map view's side panel. */
 	let mapCounts = $state<MapDebugCounts | null>(null);
 	let markers = $state(false);
@@ -153,7 +166,8 @@
 		ammo: null as { loaded: number; spare: number } | null,
 		aiming: false,
 		gloom: 0,
-		party: [] as PartyMember[]
+		party: [] as PartyMember[],
+		conditions: [] as { id: string; name: string; description: string; left: number; of: number }[]
 	});
 	/** The quick-use wheel while its key is held: the slots, the pointer and the slot it is on. */
 	let wheel = $state<{
@@ -403,6 +417,15 @@
 					case 'marks':
 						if (expedition || spectating) marks.apply(message.marks);
 						break;
+					case 'ropes':
+						// connection.ropes has it already (connection.svelte.ts).
+						if (expedition || spectating) showRopes();
+						break;
+					case 'ropeGrow':
+						if (expedition || spectating) {
+							for (const grown of message.ropes) laidRopes.grow(grown.id, grown.points);
+						}
+						break;
 					case 'crate':
 						if (message.id === null) {
 							// The server shut it (walked away, went down), or agreed that we did.
@@ -494,6 +517,20 @@
 		chalkRay.far = MARKS.reach;
 		const effects = new Effects();
 		engine.scene.add(effects.root);
+		const ropes = new HangingRopes();
+		engine.scene.add(ropes.root);
+		const creaks = new RopeCreaks(sounds);
+		const laidRopes = new LaidRopes();
+		engine.scene.add(laidRopes.root);
+		/** Ropes changed: draw the laid ones, and the tied ones are climbable (and drawn) from now. */
+		function showRopes(): void {
+			laidRopes.apply(connection.ropes.laid);
+			const world = player.collision;
+			if (world) {
+				applyTied(world, connection.ropes.tied);
+				ropes.sync(world);
+			}
+		}
 		const muzzle = new THREE.Vector3();
 		/** The held item's action last frame (to start reload and swing sounds). */
 		let lastAction = 'none';
@@ -577,6 +614,7 @@
 			mapCounts = grid.counts;
 			const world = buildCollisionWorld(layout, PIECES);
 			player.setWorld(world);
+			ropes.sync(world);
 			ambience.setMap(layout, world);
 		}
 
@@ -592,6 +630,29 @@
 		/** Whether the rite was being performed last frame (to ring its bell once). */
 		let performing = false;
 
+		/**
+		 * Ropes: who is on one. The hanging ropes sway and pull taut under them (as drawn), and
+		 * prediction stops short of the others (as the server last said) so nobody climbs past.
+		 */
+		function updateRopes(delta: number): void {
+			const climbers: RopeClimber[] = [];
+			const self = player.state;
+			const feet = player.feetPosition();
+			if (self?.climbing && feet) climbers.push({ rope: self.climbing.rope, feet });
+			for (const other of remote.states()) {
+				if (other.climbing) climbers.push({ rope: other.climbing.rope, feet: other.position });
+			}
+			ropes.update(delta, climbers);
+			player.setClimbers(
+				remote
+					.players()
+					.flatMap(({ state }) =>
+						state.climbing ? [{ rope: state.climbing.rope, y: state.position[1] }] : []
+					)
+			);
+			creaks.update(remote.players());
+		}
+
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
@@ -603,6 +664,9 @@
 			leavingCrate = false;
 			crates.clear();
 			marks.clear();
+			ropes.clear();
+			creaks.clear();
+			laidRopes.clear();
 			markLabel = null;
 			chalkWheel = null;
 			rite = null;
@@ -880,6 +944,34 @@
 				case 'mark':
 					sounds.playAt('chalk.draw', event.position, 1, 2);
 					break;
+				case 'fall':
+					sounds.playAt(event.hard ? 'fall.land.hard' : 'fall.land', event.position, 1, 2);
+					if (event.player === client.playerId) sounds.play('condition.hobble');
+					break;
+				case 'ropeGrab':
+					sounds.playAt(
+						'rope.grab',
+						[event.position[0], event.position[1] + 1.4, event.position[2]],
+						1,
+						2
+					);
+					break;
+				case 'ropeTie':
+				case 'ropeUntie':
+				case 'ropeGather':
+					sounds.playAt('rope.tie', event.position, 1, 2);
+					break;
+				case 'ropeLay':
+					sounds.playAt('rope.payout', event.position, 1, 2);
+					break;
+				case 'ropeLetGo':
+					sounds.playAt(
+						'rope.letgo',
+						[event.position[0], event.position[1] + 1.4, event.position[2]],
+						1,
+						2
+					);
+					break;
 				case 'rub':
 					sounds.playAt('chalk.rub', event.position, 1, 2);
 					break;
@@ -1102,6 +1194,8 @@
 				// The only thing a downed player can still do: climb out.
 				return extractPrompt(state) ?? { prompt: null, progress: 0 };
 			}
+			const rope = ropePrompt(state);
+			if (rope) return rope;
 			const heal = healing(state);
 			if (heal && state.bandaging > 0) {
 				return { prompt: 'Bandaging...', progress: state.bandaging / heal.seconds };
@@ -1153,7 +1247,52 @@
 			) {
 				return keyPrompt('attack', 'to draw a mark');
 			}
-			return { prompt: null, progress: 0 };
+			return gearRopePrompt(state) ?? { prompt: null, progress: 0 };
+		}
+
+		/**
+		 * Rope as gear (docs/dev/rope.md): tying it at an anchor, untying it, gathering a laid one
+		 * up (interact, held), and paying it out with it in the hand (attack).
+		 */
+		function gearRopePrompt(
+			state: PlayerState
+		): { prompt: string; promptKey?: string; progress: number } | null {
+			const world = player.collision;
+			if (!world || state.swimming || state.climbing) return null;
+			const { laid, tied } = connection.ropes;
+			const action = ropeAction(world, laid, tied, state);
+			const tieProgress = state.roping / ROPE.tieSeconds;
+			if (action?.kind === 'untie') {
+				const climbing = [self(), ...remote.players()].some(
+					(p) => p?.state.climbing?.rope === `tied-${action.anchor.id}`
+				);
+				if (climbing) return { prompt: 'Someone is on the rope', progress: 0 };
+				return keyPrompt('interact', 'to untie the rope', tieProgress);
+			}
+			if (action?.kind === 'tie') {
+				return keyPrompt('interact', 'to tie the rope', tieProgress);
+			}
+			if (action?.kind === 'short') {
+				return { prompt: `Not enough rope: this drop needs ${action.need} m`, progress: 0 };
+			}
+			const rope = ropeInHand(state);
+			// Laying: held, the pill filling as the rope runs out.
+			const laying = laid.find((r) => r.laying && r.by === client.playerId);
+			if (laying && rope) {
+				return keyPrompt('attack', 'to keep laying rope', laidLength(laying) / ropeLength(rope));
+			}
+			if (action?.kind === 'gather' && settings.interface.itemPrompts) {
+				return keyPrompt('interact', 'to gather up the rope', state.roping / ROPE.pickupSeconds);
+			}
+			if (rope && settings.interface.itemPrompts) {
+				return keyPrompt('attack', 'to lay rope behind you');
+			}
+			return null;
+		}
+
+		/** This player as `remote.players()` lists the others, or null before the first snapshot. */
+		function self(): { id: string; state: PlayerState } | null {
+			return player.state ? { id: client.playerId ?? '', state: player.state } : null;
 		}
 
 		function downedMessage(state: PlayerState): string {
@@ -1225,6 +1364,36 @@
 					sounds.playAt('whisper', [x + Math.sin(angle) * 1.5, y + 1.5, z + Math.cos(angle) * 1.5]);
 				}
 			}
+		}
+
+		/** On a rope: how to get out up it, or how to let go. Beside one: how to take hold. */
+		function ropePrompt(
+			state: PlayerState
+		): { prompt: string; promptKey?: string; progress: number } | null {
+			const world = player.collision;
+			if (!world || state.swimming) return null;
+			if (state.climbing) {
+				const rope = ropeById(world, state.climbing.rope);
+				if (rope?.exitY !== undefined) {
+					const progress = (state.position[1] - rope.bottom) / (rope.exitY - rope.bottom);
+					return keyPrompt('moveForward', 'to climb out', Math.max(0, progress));
+				}
+				return keyPrompt('stance', 'to drop');
+			}
+			const others = remote
+				.players()
+				.flatMap(({ state: o }) =>
+					o.climbing ? [{ rope: o.climbing.rope, y: o.position[1] }] : []
+				);
+			const grab = ropeToGrab(world, state, others);
+			if (!grab) return null;
+			const label =
+				grab.rope.exitY !== undefined
+					? 'to climb out'
+					: grab.rope.landing && grab.y > grab.rope.bottom + 1
+						? 'to climb down the rope'
+						: 'to climb the rope';
+			return keyPrompt('interact', label);
 		}
 
 		function extractPrompt(
@@ -1350,6 +1519,7 @@
 			expedition = true;
 			loadMap(layout, !connection.welcome.resumed);
 			marks.apply(connection.marks);
+			showRopes();
 		}
 
 		const onLockChange = () => (locked = document.pointerLockElement === canvas);
@@ -1379,6 +1549,7 @@
 			crates.update(delta);
 			marks.update(delta);
 			effects.update(delta, engine.camera);
+			updateRopes(delta);
 			// Only on your feet: crouched, crawling or swimming, the body fills the view from
 			// behind, so those are always first person.
 			const upright = player.state?.stance === 'stand' && !player.state.swimming;
@@ -1473,7 +1644,20 @@
 					hurt: hud.hurt,
 					...itemHud(state),
 					gloom: state.gloom,
-					party: party(state)
+					party: party(state),
+					conditions: state.conditions.flatMap((c) => {
+						if (!isConditionId(c.id)) return [];
+						const def = CONDITIONS[c.id];
+						return [
+							{
+								id: c.id,
+								name: def.name,
+								description: def.description,
+								left: c.remaining,
+								of: def.seconds
+							}
+						];
+					})
 				};
 				if (state.downed && !downed) rumble('downed');
 				downed = state.downed
@@ -1584,6 +1768,8 @@
 			worldItems.dispose();
 			crates.dispose();
 			marks.dispose();
+			ropes.dispose();
+			laidRopes.dispose();
 			effects.dispose();
 			playerAudio.dispose();
 			ambience.dispose();

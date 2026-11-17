@@ -15,15 +15,24 @@ export const ACTIONS = {
 	// Not Ctrl: Ctrl+W closes the browser tab and pages cannot block it.
 	// Tap: walk / crouch / crawl. Hold: creep while held (slow, silent walk). Sprint cancels both.
 	stance: {
-		label: 'Stance (tap: walk/crouch/crawl, hold: creep)',
+		label: 'Stance (tap: walk/crouch/crawl, hold: creep) / let go of a rope',
 		category: 'Movement',
 		defaults: ['KeyC']
 	},
 	// Held while downed, it surrenders.
 	climb: { label: 'Climb / swim up / surrender', category: 'Movement', defaults: ['Space'] },
 	swimDown: { label: 'Swim down', category: 'Movement', defaults: ['KeyX'] },
-	interact: { label: 'Interact / revive (hold)', category: 'Actions', defaults: ['KeyE'] },
-	headlamp: { label: 'Headlamp mode', category: 'Light', defaults: ['KeyF'] },
+	interact: {
+		label: 'Interact / grab a rope / revive (hold)',
+		category: 'Actions',
+		defaults: ['KeyE']
+	},
+	// Tap: off, or back on at the last brightness. Hold 1 s: low / bright.
+	headlamp: {
+		label: 'Headlamp (tap: on/off, hold: low/bright)',
+		category: 'Light',
+		defaults: ['KeyF']
+	},
 	attack: { label: 'Attack / fire / use (hold)', category: 'Items', defaults: ['Mouse0'] },
 	aim: { label: 'Aim (hold) / throw', category: 'Items', defaults: ['Mouse2'] },
 	reload: { label: 'Reload', category: 'Items', defaults: ['KeyR'] },

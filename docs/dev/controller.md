@@ -77,17 +77,17 @@ These are the 17 standard buttons less the guide button, which the system keeps.
 
 Controller bindings are their own settings group, `settings.padBindings` (action -> codes), not part of `settings.bindings`. The defaults are `PAD_DEFAULTS`, below `ACTIONS` in `actions.ts`. The layout is fixed until the keybinding screen (post beta) can change it; the Controls tab lists it. Since players can't change it yet, a saved layout is only an older one: loading settings always takes `PAD_DEFAULTS` (`load` in `settings.svelte.ts`), so a new button for an existing action (R3 for Social) reaches everyone. When the keybinding screen arrives, load the saved one again, with a way to bring new defaults to players who never changed theirs.
 
-| Button     | Action                                  | Button      | Action                        |
-| ---------- | --------------------------------------- | ----------- | ----------------------------- |
-| Left stick | Move (a light push creeps)              | Right stick | Look; points at an open wheel |
-| L3         | Sprint (toggle, or hold: a setting)     | R3          | Rite and party panel; Social  |
-| A          | Climb / swim up / surrender (hold)      | RT          | Attack / fire / use           |
-| B          | Stance (tap / hold to creep); swim down | LT          | Aim (hold) / throw            |
-| X          | Interact / revive (hold)                | LB          | Quick-use wheel (hold)        |
-| Y          | Other weapon                            | RB          | Reload                        |
-| D-pad up   | Headlamp mode                           | D-pad down  | Drop held item                |
-| D-pad left | Camera: first person / shoulder         | D-pad right | Help                          |
-| View       | Pack                                    | Menu        | Settings                      |
+| Button     | Action                                                    | Button      | Action                        |
+| ---------- | --------------------------------------------------------- | ----------- | ----------------------------- |
+| Left stick | Move (a light push creeps)                                | Right stick | Look; points at an open wheel |
+| L3         | Sprint (toggle, or hold: a setting)                       | R3          | Rite and party panel; Social  |
+| A          | Climb / swim up / surrender (hold)                        | RT          | Attack / fire / use           |
+| B          | Stance (tap / hold to creep); swim down; let go of a rope | LT          | Aim (hold) / throw            |
+| X          | Interact / grab a rope / revive (hold)                    | LB          | Quick-use wheel (hold)        |
+| Y          | Other weapon                                              | RB          | Reload                        |
+| D-pad up   | Headlamp (tap: on/off, hold 1 s: low/bright)              | D-pad down  | Drop held item                |
+| D-pad left | Camera: first person / shoulder                           | D-pad right | Help                          |
+| View       | Pack                                                      | Menu        | Settings                      |
 
 R3 is the rite and party panel underground (hide or show it, see [rite.md](rite.md#hiding-the-panel)) and Social on the dashboard (see the dashboard's shortcuts below). The two never listen at once, so they share the button.
 
@@ -100,6 +100,7 @@ No controller button: choosing primary or secondary directly (Y swaps the two), 
 - **Sprint** on L3 is a toggle by default (`settings.controller.sprint`): a click starts it, and stopping, slowing below `SPRINT_PUSH`, aiming or creeping ends it. Set to Hold, it is held like the sprint key. Holding a stick click down while pushing that stick is uncomfortable, hence the toggle. The keyboard has its own (Accessibility > Sprint, off by default): `LocalPlayer.sprintBy` remembers which device switched sprint on, so each follows its own setting and the controller's also ends on slowing or aiming.
 - **B in water** is swim down: stance is bound to it too, but a stance press is ignored while swimming (for every device), so nobody climbs out of the water crouched. Swimming where you look (push forward looking up or down) works with the stick as it does with keys.
 - **Climbing stays on A.** The simulation never climbs on its own (`simulate.ts`, "Never automatic"): a haul costs stamina and can be heard.
+- **Ropes:** X (interact) takes hold of a rope you are looking at (a fresh press). On it the stick climbs up and down, L3 (sprint) climbs faster or slides, and B (stance) lets go: a stance press on a rope only lets go, it never changes stance. See [rope.md](rope.md).
 - **Looking.** The right stick, after its dead zone, goes through a curve (finer near the centre, faster toward the edge) to at most `PAD_TURN` (about 180 degrees a second) times `settings.controller.lookSensitivity`. Aiming slows it by the same zoom as the mouse (`lookScale`). No turn boost at the edge and no aim assist; both are tuning for the balance pass if wanted.
 - **Wheels.** While the quick-use or chalk wheel is open, the right stick points at it directly. Letting the stick go back to the centre keeps the last choice, so letting go of the stick before LB doesn't lose it.
 

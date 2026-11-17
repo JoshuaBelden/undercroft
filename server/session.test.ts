@@ -510,6 +510,41 @@ describe('getting out', () => {
 		expect(session.ended).toBe(true);
 	});
 
+	it('climbing an extraction rope a few metres gets you out', () => {
+		const session = open(SEED);
+		const diver = new Diver(session, 'A', kit(['coins', 3]));
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const rope = session['world'].ropes.find((r) => r.exitY !== undefined)!;
+		expect(rope).toBeDefined();
+		// Beside it, looking at it (it is to the west).
+		diver.put([rope.top[0] + 0.4, rope.bottom + 0.05, rope.top[2]], Math.PI / 2);
+		diver.hold({}, 0.3);
+		diver.hold({ interact: true }, 0.05);
+		expect(diver.state.climbing?.rope).toBe(rope.id);
+		diver.hold({ moveZ: 1 }, 14);
+		expect(diver.socket.last('extracted')!.carried).toEqual([{ item: 'coins', count: 3 }]);
+	});
+
+	it('a long fall hurts, hobbles and is heard', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const start = diver.state.position;
+		diver.hold({}, 0.5);
+		const floor = diver.state.position[1];
+		// Already falling fast (as from a long drop), just above the floor.
+		diver.put([start[0], floor + 0.5, start[2]]);
+		diver.state.grounded = false;
+		diver.state.velocity = [0, -15, 0];
+		diver.hold({}, 1.5);
+		expect(diver.state.sanity).toBeLessThan(SANITY.max - 20);
+		expect(diver.state.conditions.map((c) => c.id)).toEqual(['hobble']);
+		const ticks = diver.socket.all('tick');
+		expect(ticks.some((t) => t.events.some((e) => e.kind === 'fall'))).toBe(true);
+		session.admin(diver.id, { kind: 'clearConditions' });
+		expect(diver.state.conditions).toEqual([]);
+	});
+
 	it('when time runs out, everyone still down is lost', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);

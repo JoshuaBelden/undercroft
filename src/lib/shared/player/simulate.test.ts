@@ -309,6 +309,19 @@ describe('the headlamp and what is in the hand', () => {
 		expect(s.inventory.quick[0]?.count ?? 0).toBeLessThan(2);
 	});
 
+	it('a medkit fills sanity all the way back up', () => {
+		const inv = emptyInventory();
+		addItem(inv, newStack('medkit'));
+		const s = run(createPlayerState([0, 0, 0], 0, inv), { select: HAND.quick }, seconds(1));
+		s.sanity = 5;
+		run(s, { select: HAND.quick, attack: true }, seconds(4));
+		// Not yet: it takes longer than a bandage.
+		expect(s.sanity).toBe(5);
+		run(s, { select: HAND.quick, attack: true }, seconds(2));
+		expect(s.sanity).toBe(SANITY.max);
+		expect(s.inventory.quick[0]).toBeNull();
+	});
+
 	it('holding attack with a battery charges the lamp', () => {
 		const inv = emptyInventory();
 		addItem(inv, newStack('battery'));

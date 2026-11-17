@@ -97,17 +97,18 @@ Only the dead spectate. Players who left alive see the leaving fade, then the re
 
 ## Extraction
 
-**Where:** extraction points are `extract-*` markers in a piece (Blender) and come through the manifest's `extracts`. `buildCollisionWorld` puts them all into `world.extracts` in world space. Every map has four:
+**Where:** a way out is a door, an `extract-*` marker (the manifest's `extracts`, into `world.extracts`), or a rope, a `rope-*` marker with an `exit` (the manifest's `ropes`, into `world.ropes` with an `exitY`). `buildCollisionWorld` puts both into world space. Every map has four:
 
 1. the start room (`stairwell`), at its sealed surface door;
 2. and 3. the two extraction rooms (`extraction-shaft`, role `extraction`) that the generator spaces evenly along the main route, about a third and two thirds of the way to the final room (see [map-generation.md](map-generation.md#algorithm));
 3. the final room (`gloaming-chapel`), at the foot of a ladder on its dais.
 
-Every way out but the start door is marked by the same model: a timber ladder (and a rope) going up into the dark (`extraction_ladder` and `hanging_rope` in `scripts/blender/kit.py`). In the shaft room it climbs a round shaft through the ceiling; in the chapel, a hatch where the wall meets the vault.
+The extraction rooms' way out is a rope going up into the dark (`rope_anchor` in `scripts/blender/kit.py`), hanging down a round shaft through the ceiling (their ladders were taken out: `remove_extraction_ladders`). It is a `rope-0` marker with an `exit`: climb 5.4 m up it, most of the way up the shaft, and you are out (see [rope.md](rope.md)). The start door and the chapel are `extract-0` markers, the hold below: the chapel's at the foot of a timber ladder (`extraction_ladder`) up to a hatch where the wall meets the vault.
 
 **How:** it runs in the shared simulation, so the client predicts the progress bar and the server decides.
 
-- Holding `interact` (E) while standing still, grounded and not swimming, within `extractRadius` (horizontal) and `extractHeight` of a point, adds to `state.extracting`.
+- **Up a rope:** take hold with `climb` and climb. When the feet reach the rope's `exitY`, `state.extracted` is set (`stepClimb`). The prompt says "[W] to climb out", its pill filling with how far up you are. A downed player can't climb, so they can only crawl out at the start door.
+- **At the door:** holding `interact` (E) while standing still, grounded and not swimming, within `extractRadius` (horizontal) and `extractHeight` of a point, adds to `state.extracting`.
 - Moving, letting go or mantling resets it to 0.
 - At `extractSeconds` (3 s), `state.extracted` is set. The server stops simulating that player and finishes the extraction.
 
@@ -115,7 +116,7 @@ Every way out but the start door is marked by the same model: a timber ladder (a
 
 **Keyboard shortcuts on screen:** draw a key with `KeyCap` (`src/lib/ui/KeyCap.svelte`): a white rounded cap with the label in bold black, `small` (14 px, beside HUD bars) or `large` (in a prompt). Always pass the player's current binding through `bindingLabel` (`src/lib/game/input/actions.ts`), never a hard-coded letter, so it follows remapping; show nothing when the action is unbound. The headlamp key sits to the left of the battery cells (`Hud`'s `lampKey`).
 
-**Adding an extraction point:** put an `extract-<n>` empty in a piece at the foot of a ladder (`kit.extraction_ladder`), export, then run `pnpm asset:build`. To add another kind of extraction room, build it with an `extract-0` and give it `role: 'extraction'` in `MAP_KIT`; `GenerateOptions.extractions` sets how many go on the route, picked by `weight`.
+**Adding an extraction point:** put a `rope-<n>` empty (`kit.rope_anchor`, with `exit`) in a piece where a rope goes up out of it, or an `extract-<n>` empty for a door you hold interact at. Export, then run `pnpm asset:build`. To add another kind of extraction room, build it with a way out (a rope or a door) and give it `role: 'extraction'` in `MAP_KIT`; `GenerateOptions.extractions` sets how many go on the route, picked by `weight`.
 
 ## Leaving and results
 

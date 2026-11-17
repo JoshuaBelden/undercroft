@@ -22,7 +22,7 @@ export const PLAYER_MODEL: PlayerModelDef = {
 	model: modelUrl('shared/player/explorer.glb'),
 	yawOffset: Math.PI,
 	lampForward: 0.45,
-	// The model has no idle, jump, climb or gun clip. Also in the file and unused:
+	// The model has no idle, jump, ledge-climb or gun clip. Also in the file and unused:
 	// 'Gun_Hold_Left_Turn', 'Left_Jab_from_Guard' and 'Cautious_Crouch_Walk_Right_inplace'.
 	animations: {
 		// No idle clip yet: the walk's first frame (feet passing, nearly upright), held.
@@ -32,6 +32,11 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		crouch: { clip: 'Cautious_Crouch_Walk_Forward' },
 		// The clip stops to look back after two seconds; loop only the crawl before it.
 		crawl: { clip: 'Crawl_and_Look_Back', end: 2.1 },
+		// On a rope: hanging still, and climbing (played backwards to climb down).
+		rope_idle: { clip: 'Rope_Hang_Idle' },
+		rope_climb: { clip: 'Climb_Up_Rope' },
+		// Letting go of a rope, falling, and the landing that hurts.
+		fall: { clip: 'Climb_Attempt_and_Fall_5' },
 		// Stretched to the held weapon's swing.
 		melee_attack: { clip: 'Heavy_Hammer_Swing' },
 		// Nothing plays these two yet.

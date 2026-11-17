@@ -9,8 +9,10 @@ import type {
 	CratesSnapshot,
 	GameEvent,
 	InventoryAction,
+	LaidRopeSnapshot,
 	MarkSnapshot,
 	ProjectileSnapshot,
+	TiedRopeSnapshot,
 	WorldItemSnapshot
 } from './items/types.ts';
 import type { MapLayout, Vec3 } from './map/types.ts';
@@ -80,6 +82,8 @@ export type AdminCommand =
 	| { kind: 'spawnCreature' }
 	| { kind: 'clearCreatures' }
 	| { kind: 'setSanity'; value: number }
+	/** Take every condition off you (a hobble). */
+	| { kind: 'clearConditions' }
 	/** Reveal everything the clues would. */
 	| { kind: 'revealClues' }
 	/** Forget the rite's clues, for this expedition and for everyone in it afterwards. */
@@ -97,6 +101,8 @@ export type AdminCommand =
 	| { kind: 'resetCrates' }
 	/** Rub out every chalk mark. */
 	| { kind: 'clearMarks' }
+	/** Take up every rope, laid and tied (anyone on one falls). */
+	| { kind: 'clearRopes' }
 	/** New map; omit the seed for a random one. */
 	| { kind: 'regenerate'; seed?: number }
 	/** Throw an error on the game server, to try the crash prompt (docs/dev/reports.md). */
@@ -156,6 +162,13 @@ export type ServerMessage =
 	 * a player arriving or coming back.
 	 */
 	| { type: 'marks'; marks: MarkSnapshot[] }
+	/**
+	 * Every rope: laid along the floor, and tied at anchors. Sent like `marks`, whenever one is
+	 * started, stopped, gathered up, tied or untied (see docs/dev/rope.md).
+	 */
+	| { type: 'ropes'; laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[] }
+	/** Points added to ropes being laid since the last tick. */
+	| { type: 'ropeGrow'; ropes: { id: string; points: Vec3[] }[] }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }
 	/**
@@ -238,6 +251,8 @@ const SERVER_TYPES = new Set<string>([
 	'tick',
 	'crate',
 	'marks',
+	'ropes',
+	'ropeGrow',
 	'map',
 	'extracted',
 	'died',

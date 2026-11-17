@@ -40,7 +40,9 @@ Attack clips are stretched on the client to `attack.duration`, so the strike lin
 
 Every rigged model names its clips differently, so each one (every `CreatureDef`, and the explorer in [player.md](player.md#player-model)) maps them onto one standard set of slots (`ANIM_SLOTS` in `src/lib/content/animations.ts`):
 
-`idle`, `walking`, `running`, `jumping`, `melee_attack`, `weapon_attack`, `spell_attack`, `dodge`, `climb`, `crouch`, `crawl`, `take_damage`, `die`.
+`idle`, `walking`, `running`, `jumping`, `melee_attack`, `weapon_attack`, `spell_attack`, `dodge`, `climb`, `rope_idle`, `rope_climb`, `fall`, `crouch`, `crawl`, `take_damage`, `die`.
+
+`rope_idle`, `rope_climb` and `fall` are the explorer's (hanging on a rope, climbing it, falling; see [rope.md](rope.md#body-animation)); no creature uses them yet.
 
 `animations` holds one entry per slot the model has a clip for: `{ clip, speed?, start?, end? }`. `clip` is the name in the file and `speed` the playback rate (default 1; 0 holds the first frame as a pose). `start` and `end` (seconds into the clip) use only part of it, to skip a lead-in or cut a tail off. Two slots can share a clip. Slots the model has nothing for are left out.
 
@@ -59,7 +61,7 @@ The server only ever sends a slot name (`CreatureSnapshot.anim`), picked in `Cre
 | Investigating                     | `gait.stalk`                 |
 | Chasing                           | `gait.burst` or `gait.stalk` |
 
-On the client an `Animator` (one per model copy) plays the slot's clip, crossfading from the last. If the model has none, `resolveAnim` takes the first mapped slot from `ANIM_FALLBACKS` (`crawl` → `crouch` → `walking`, any attack → another attack, and so on). If nothing fits, the state is skipped and whatever was playing carries on. `LOOPING_ANIMS` lists the slots that repeat (`idle`, `walking`, `running`, `climb`, `crouch`, `crawl`); the rest play once and hold their last frame.
+On the client an `Animator` (one per model copy) plays the slot's clip, crossfading from the last. If the model has none, `resolveAnim` takes the first mapped slot from `ANIM_FALLBACKS` (`crawl` → `crouch` → `walking`, any attack → another attack, and so on). If nothing fits, the state is skipped and whatever was playing carries on. `LOOPING_ANIMS` lists the slots that repeat (`idle`, `walking`, `running`, `climb`, `rope_idle`, `rope_climb`, `crouch`, `crawl`); the rest play once and hold their last frame.
 
 The witch's map:
 

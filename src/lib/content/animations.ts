@@ -15,6 +15,9 @@ export const ANIM_SLOTS = [
 	'spell_attack',
 	'dodge',
 	'climb',
+	'rope_idle',
+	'rope_climb',
+	'fall',
 	'crouch',
 	'crawl',
 	'take_damage',
@@ -43,6 +46,8 @@ export const LOOPING_ANIMS: ReadonlySet<AnimSlot> = new Set([
 	'walking',
 	'running',
 	'climb',
+	'rope_idle',
+	'rope_climb',
 	'crouch',
 	'crawl'
 ]);
@@ -61,6 +66,9 @@ export const ANIM_FALLBACKS: Record<AnimSlot, AnimSlot[]> = {
 	spell_attack: ['melee_attack', 'weapon_attack'],
 	dodge: [],
 	climb: ['walking'],
+	rope_idle: ['climb', 'idle'],
+	rope_climb: ['climb', 'walking'],
+	fall: ['take_damage'],
 	crouch: ['walking'],
 	crawl: ['crouch', 'walking'],
 	take_damage: [],

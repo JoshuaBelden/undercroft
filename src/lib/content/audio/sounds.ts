@@ -441,6 +441,78 @@ export const SOUNDS = {
 		caption: 'chalk is rubbed away',
 		captionOthers: true
 	},
+	// Ropes and falls (docs/dev/rope.md).
+	/** A rope taking weight: every half metre someone climbs, and as they take hold. */
+	'rope.tension': {
+		file: 'rope.tension',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.55,
+		variation: 0.12,
+		caption: 'a rope creaks',
+		captionOthers: true
+	},
+	'rope.grab': {
+		file: 'rope.tension',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.25,
+		variation: 0.1
+	},
+	/** Letting go of a rope, or slipping off it. */
+	'rope.letgo': {
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.1,
+		caption: 'someone lets go of the rope',
+		captionOthers: true
+	},
+	/** Knotting a rope to an anchor, untying it, gathering it up. */
+	'rope.tie': {
+		file: 'rope.tie',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.06,
+		caption: 'rope is knotted',
+		captionOthers: true
+	},
+	/** Paying rope out along the floor (every couple of metres laid). */
+	'rope.payout': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.25,
+		rate: 0.8,
+		variation: 0.15
+	},
+	/** Landing from a fall that hurt; `hard` from high up. */
+	'fall.land': {
+		synth: { kind: 'thud', cutoff: 320 },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.08,
+		caption: 'someone falls heavily',
+		captionOthers: true
+	},
+	'fall.land.hard': {
+		synth: { kind: 'thud', cutoff: 180 },
+		category: 'sfx',
+		volume: 1,
+		variation: 0.05,
+		caption: 'a body hits the stone',
+		captionOthers: true
+	},
+	/** A hobbling fall: the grunt of it. */
+	'condition.hobble': {
+		file: 'exertion',
+		synth: { kind: 'hurt' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.85,
+		variation: 0.06
+	},
 	// The surface.
 	/** Moving between pages (the tabs, the store, social, settings). */
 	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.8 },

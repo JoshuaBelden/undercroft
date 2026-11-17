@@ -1,7 +1,7 @@
 import { EXPEDITION } from '../../content/expedition.ts';
 import { SANITY } from '../../content/player/sanity.ts';
 import { DEFAULT_HEADLAMP, type HeadlampModel } from '../../content/items/headlamps.ts';
-import { MOVEMENT, type MovementTuning } from '../../content/player/movement.ts';
+import { FALL, MOVEMENT, type MovementTuning } from '../../content/player/movement.ts';
 import {
 	boxesNear,
 	capsuleFits,
@@ -22,6 +22,8 @@ import {
 } from '../items/inventory.ts';
 import { idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
+import { grabRope, letGo, ropeToGrab, stepClimb, type ClimberSpot } from './climb.ts';
+import { applyCondition, conditionSpeedCap, stepConditions } from './conditions.ts';
 import type { InputFrame, Inventory, PlayerState, SimEvent, Stance } from './types.ts';
 
 /**
@@ -68,6 +70,9 @@ export function createPlayerState(
 		sneaking: false,
 		squeezing: false,
 		mantle: null,
+		climbing: null,
+		conditions: [],
+		interactKey: false,
 		extracting: 0,
 		extracted: false,
 		sanity: SANITY.max,
@@ -82,7 +87,8 @@ export function createPlayerState(
 		reviving: 0,
 		performing: 0,
 		opening: 0,
-		erasing: 0
+		erasing: 0,
+		roping: 0
 	};
 }
 
@@ -93,6 +99,8 @@ export function clonePlayerState(s: PlayerState): PlayerState {
 		velocity: [...s.velocity],
 		flags: { ...s.flags },
 		mantle: s.mantle ? { ...s.mantle, from: [...s.mantle.from], to: [...s.mantle.to] } : null,
+		climbing: s.climbing ? { ...s.climbing, side: [...s.climbing.side] } : null,
+		conditions: s.conditions.map((c) => ({ ...c })),
 		inventory: cloneInventory(s.inventory),
 		weapon: { ...s.weapon, prev: { ...s.weapon.prev } }
 	};
@@ -110,6 +118,7 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		sneak: false,
 		climb: false,
 		swimDown: false,
+		letGo: false,
 		interact: false,
 		attack: false,
 		aim: false,
@@ -150,6 +159,7 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		sneak: f.sneak === true,
 		climb: f.climb === true,
 		swimDown: f.swimDown === true,
+		letGo: f.letGo === true,
 		interact: f.interact === true,
 		attack: f.attack === true,
 		aim: f.aim === true,
@@ -170,7 +180,9 @@ export function stepPlayer(
 	t: MovementTuning = MOVEMENT,
 	lamp: HeadlampModel = DEFAULT_HEADLAMP,
 	/** Collects what happened this step (shots, swings...); the server resolves them. */
-	events?: SimEvent[]
+	events?: SimEvent[],
+	/** Everyone else on a rope this step (nobody climbs past them). */
+	others: readonly ClimberSpot[] = []
 ): PlayerState {
 	s.yaw = input.yaw;
 	s.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, input.pitch));
@@ -178,11 +190,28 @@ export function stepPlayer(
 	s.sneaking = input.sneak && !s.swimming;
 
 	if (s.dead) return s;
+	stepConditions(s, dt);
+	// Grabbing a rope takes a fresh press, so a held key doesn't grab again on stepping off.
+	const interactPress = input.interact && !s.interactKey;
+	s.interactKey = input.interact;
 	if (s.downed) {
 		stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
 		stepDowned(s, input, world, dt, t);
 		updateBattery(s, dt, lamp);
 		return s;
+	}
+
+	if (s.climbing) {
+		if (s.flags.noclip) letGo(s, events);
+		else {
+			stepClimb(s, input, world, dt, t, others, events);
+			stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
+			s.bandaging = 0;
+			s.charging = 0;
+			updateStamina(s, false, false, dt, t);
+			updateBattery(s, dt, lamp);
+			return s;
+		}
 	}
 
 	if (s.mantle) {
@@ -214,7 +243,9 @@ export function stepPlayer(
 		!s.swimming &&
 		!s.flags.noclip &&
 		volumesAt(world, [p[0], p[1] + 0.9, p[2]]).some((v) => v.kind === 'squeeze');
+	const slowed = conditionSpeedCap(s, t);
 	const sprinting =
+		slowed === null &&
 		!s.squeezing &&
 		input.sprint &&
 		!input.sneak &&
@@ -243,6 +274,7 @@ export function stepPlayer(
 		if (input.sneak) speed = Math.min(speed, t.sneakSpeed);
 		if (s.squeezing) speed = Math.min(speed, t.squeezeSpeed);
 		if (s.wading) speed *= t.wadeSpeed;
+		if (slowed !== null) speed = Math.min(speed, slowed);
 		// A heavy load slows you (see CARRY).
 		speed *= speedFactor(s.inventory);
 		const accel = Math.min(1, (s.grounded ? t.acceleration : t.airAcceleration) * dt);
@@ -257,9 +289,13 @@ export function stepPlayer(
 			}
 		}
 		s.velocity[1] = s.grounded ? STICK_SPEED : s.velocity[1] - t.gravity * dt;
+		const fallSpeed = s.grounded ? 0 : -s.velocity[1];
 		for (let i = 0; i < 3; i++) s.position[i] += s.velocity[i] * dt;
 		resolveCollisions(s, world, t);
-		if (input.climb && (s.grounded || s.wading)) {
+		if (s.grounded) landed(s, fallSpeed, events);
+		const grab = interactPress && (s.grounded || s.wading) ? ropeToGrab(world, s, others) : null;
+		if (grab) grabRope(s, grab, events);
+		if (!grab && input.climb && (s.grounded || s.wading)) {
 			const y = s.position[1];
 			tryMantle(s, world, t, y + t.stepHeight, y + t.mantle.maxHeight);
 		}
@@ -294,6 +330,16 @@ export function stepPlayer(
 	updateStamina(s, sprinting, s.underwater, dt, t);
 	updateBattery(s, dt, lamp);
 	return s;
+}
+
+/**
+ * Hit the floor at `speed` (m/s, downward). Over FALL.safeSpeed it hurts: the event tells the
+ * server how much, and the player is hobbled at once (predicted, so the slow-down is instant).
+ */
+function landed(s: PlayerState, speed: number, events?: SimEvent[]): void {
+	if (speed <= FALL.safeSpeed || s.flags.godMode) return;
+	events?.push({ kind: 'land', speed });
+	applyCondition(s, 'hobble');
 }
 
 /**

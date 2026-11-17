@@ -1,4 +1,5 @@
 import {
+	Cache,
 	Material,
 	Mesh,
 	SkinnedMesh,
@@ -15,11 +16,17 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
  * Loads glTF models exported from Blender (see docs/dev/asset-pipeline.md).
  * Each file loads once; callers receive a fresh clone they own.
  *
- * Map pieces reference shared, content-hashed texture files. The browser fetches each file
- * once, and `shareTextures` makes every model that uses the same file share one GPU texture.
+ * Map pieces reference shared, content-hashed texture files. Three's `Cache` is on, so each file is
+ * fetched and decoded once (`ImageBitmapLoader` hands every later piece the same image), and
+ * `shareTextures` makes every model that uses the same file share one GPU texture. Without the
+ * cache, every piece decoded its own copy of every texture: hundreds of 1024 px images at once
+ * while the hub prefetches, and some decodes fail ("Couldn't load texture").
  *
  * Built meshes are meshopt-compressed (EXT_meshopt_compression), decoded here.
  */
+
+// Each URL (texture, .gltf, .bin) is loaded once. Files are content-hashed, so a cached one is never stale.
+Cache.enabled = true;
 
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const cache = new Map<string, Promise<Object3D>>();

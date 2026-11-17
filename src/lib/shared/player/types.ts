@@ -31,6 +31,20 @@ export interface Mantle {
 	stance: Stance;
 }
 
+/** Holding on to a rope (see docs/dev/rope.md). The feet are `position`, beside the rope. */
+export interface Climb {
+	/** `RopeLine.id` in the collision world. */
+	rope: string;
+	/** Unit [x, z] from the rope to the climber: which side of it they hang on. */
+	side: [number, number];
+}
+
+/** A condition on the player (key into CONDITIONS) and the seconds it has left. */
+export interface ActiveCondition {
+	id: string;
+	remaining: number;
+}
+
 export interface PlayerState {
 	position: Vec3;
 	velocity: Vec3;
@@ -68,6 +82,12 @@ export interface PlayerState {
 	/** Inside a squeeze volume: slowed, no sprinting, grunting through. */
 	squeezing: boolean;
 	mantle: Mantle | null;
+	/** On a rope, or null. */
+	climbing: Climb | null;
+	/** Interact was held last step: grabbing a rope takes a fresh press. */
+	interactKey: boolean;
+	/** Hobbled and the like (CONDITIONS), each with the seconds it has left. */
+	conditions: ActiveCondition[];
 	/** Seconds spent holding interact at an extraction point (resets if interrupted). */
 	extracting: number;
 	/** Climbed out: the server removes the player from the expedition. */
@@ -101,6 +121,8 @@ export interface PlayerState {
 	opening: number;
 	/** Seconds spent holding interact to erase your own chalk mark (server-driven). */
 	erasing: number;
+	/** Seconds spent holding interact to tie, untie or gather up a rope (server-driven). */
+	roping: number;
 }
 
 /** What one slot holds. */
@@ -161,6 +183,11 @@ export type SimEvent =
 	| { kind: 'throw'; item: string; origin: Vec3; direction: Vec3; stack: ItemStack }
 	| { kind: 'drop'; origin: Vec3; direction: Vec3; stack: ItemStack }
 	| { kind: 'reloaded'; item: string }
+	/** Hit the floor faster than FALL.safeSpeed (m/s): the server takes sanity for it. */
+	| { kind: 'land'; speed: number }
+	| { kind: 'grab'; rope: string }
+	/** Let go of a rope or slipped off it (out of stamina). Not stepping off at either end. */
+	| { kind: 'letgo'; rope: string }
 	| { kind: 'empty'; item: string };
 
 /** One fixed simulation step of player input (1 / SIM_RATE seconds). */
@@ -178,7 +205,9 @@ export interface InputFrame {
 	/** Climb a ledge on land; swim up in water; surrender while downed (held). */
 	climb: boolean;
 	swimDown: boolean;
-	/** Interact (held): extraction, reviving a teammate; doors, items and more later. */
+	/** Let go of the rope you are on (stance, pressed while climbing). */
+	letGo: boolean;
+	/** Interact (held): extraction, reviving a teammate, taking hold of a rope (pressed). */
 	interact: boolean;
 	/** Swing, fire or apply what is in the hand (held; firearms fire once per press). */
 	attack: boolean;

@@ -57,10 +57,11 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 		body: `These are your keys now. The full list is under Controls in the settings ({action:toggleSettings}).
 
 - {action:moveForward} {action:moveLeft} {action:moveBack} {action:moveRight} move, {action:sprint} run
-- {action:stance} tap to crouch or crawl, hold to creep
+- {action:stance} tap to crouch or crawl, hold to creep, let go of a rope
 - {action:climb} climb up a ledge, swim up
-- {action:headlamp} headlamp off, low, bright
-- {action:interact} pick up, search, open, climb out, revive
+- {action:swimDown} swim down
+- {action:headlamp} tap: headlamp off or on, hold: low or bright
+- {action:interact} pick up, search, open, take hold of a rope, climb out, revive
 - {action:attack} swing, fire, use what is in your hand
 - {action:aim} aim a gun, throw
 - {action:reload} reload
@@ -80,9 +81,9 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 
 Move with the left stick: push it gently to creep, a slow walk that makes no footstep sound. Look with the right stick. Click {pad:sprint} to run until you stop, slow down, aim or creep.
 
-{pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, and swims down in water. {pad:interact} interacts and revives. {pad:attack} attacks, fires or uses what is in your hand, {pad:aim} aims or throws, and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
+{pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, swims down in water and lets go of a rope. {pad:interact} interacts, takes hold of a rope and revives. {pad:attack} attacks, fires or uses what is in your hand, {pad:aim} aims or throws, and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
 
-{pad:headlamp} switches the headlamp, {pad:drop} drops what you hold, {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. Click {pad:toggleRitePanel} to hide the rite and your party's health down the left, and again to bring them back. {pad:inventory} opens your pack and {pad:toggleSettings} the settings.
+{pad:headlamp} switches the headlamp off and on (hold it to change between low and bright), {pad:drop} drops what you hold, {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. Click {pad:toggleRitePanel} to hide the rite and your party's health down the left, and again to bring them back. {pad:inventory} opens your pack and {pad:toggleSettings} the settings.
 
 In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. In the store, push the right stick left or right to choose how many. While a menu is open, the D-pad and face buttons work the menu, not the game.
 
@@ -120,7 +121,21 @@ Run it all the way down and you're spent: you can't sprint, climb or dive again 
 		category: 'Moving',
 		body: `Walk up to a ledge or a low wall and hold {action:climb} to pull yourself up onto it, if there's room on top. Climbing costs a little stamina, and you can't do it while you're spent.
 
-In the water, swim up to an edge and hold {action:climb} to pull yourself out.`
+In the water, swim up to an edge and hold {action:climb} to pull yourself out.
+
+Ropes hang in the ways out, and wherever someone has tied one. Stand beside a rope, look at it and press {action:interact} to take hold of it, then {action:moveForward} to climb up and {action:moveBack} to climb down. Hold {action:sprint} to haul yourself up faster (it tires you quicker) or to slide down. At the bottom you step off; at the top you haul yourself over onto the ledge. A rope can't hold two people at the same height: whoever is on it first is in your way, above or below, until they move.
+
+Climbing wears you out, faster going up than down, and even hanging still tires you a little: you get no breath back until you are off the rope. Run out of stamina and your grip goes. Press {action:stance} to drop off the rope on purpose: a long drop hurts (see Falls).`
+	},
+	{
+		id: 'falls',
+		title: 'Falls and conditions',
+		category: 'Moving',
+		body: `A short drop does nothing. From much higher than your own height you land hard: it costs you sanity, and from high enough it can put you on the floor for someone to revive.
+
+A fall that hurts leaves you hobbled for 20 seconds: you can go no faster than a crawl, and you can't run. Anything wrong with you like this shows beside your health, at the bottom left, with the seconds until it wears off.
+
+Creatures hear a body hit the stone.`
 	},
 	{
 		id: 'swimming',
@@ -144,11 +159,11 @@ Flooded passages dip under the water: the ceiling comes down to meet it, and the
 		id: 'extraction',
 		title: 'Getting out',
 		category: 'Expeditions',
-		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. Further in are two shafts, each with a ladder going up into the dark, the second deeper than the first. The last is a ladder in the deepest room of all.
+		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. Further in are two shafts, each with a rope going up into the dark, the second deeper than the first. The last is a ladder in the deepest room of all.
 
 The deeper ways out save you the long walk back with your haul. Remember where you saw them.
 
-Stand at the foot of the ladder (or at the door) and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
+At a rope, look at it and press {action:interact} to take hold of it, then {action:moveForward} to climb: a few metres up, you are out. At the door, or at the foot of the ladder, hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
 
 Don't stay too long. The time at the top of your view is how long you have left. When it runs out, anyone still down here is lost in the dark: it is as if they had died, and what they carried stays below.
 
@@ -228,7 +243,7 @@ To see how smoothly the game is running, press {action:toggleStats}: the frame r
 		id: 'headlamp',
 		title: 'Headlamp',
 		category: 'Surviving',
-		body: `Press {action:headlamp} to switch your headlamp between off, low and bright.
+		body: `Tap {action:headlamp} to switch your headlamp off, and again to bring it back on as it was. Hold {action:headlamp} for a second to change between low and bright.
 
 Bright reaches much further but drains the battery about three times as fast. The cells in the bottom-left corner show the charge left, with its voltage beside them: 24V is full, and at 0V the lamp dies.
 
@@ -244,7 +259,7 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 
 It wears down when you're in the dark with your lamp off and no one else's light on you, and when you look at something you shouldn't. Being struck takes a great deal of it at once.
 
-A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel.
+A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel. A medkit works the same way, takes a little longer, and gives it all back: they are rare below, and dear in the store.
 
 When your sanity runs out you go down. You can only look around and drag yourself slowly across the floor, and you don't have long. If you can reach a way out, you can still climb out: hold {action:interact} there.
 
@@ -347,6 +362,16 @@ You choose the eight marks on your wheel. On the surface, open the Loadout page 
 Marks are only chalk. In the dark you won't see them; a lamp on the wall brings them out. Come close to one and you can see who drew it.
 
 You can rub out your own marks: look at one and hold {action:interact}. Other people's marks are theirs to keep.`
+	},
+	{
+		id: 'rope',
+		title: 'Rope',
+		category: 'Gear and loot',
+		body: `Rope packs, a hundred metres of rope each, are sold in the store. Down below you may find a bundle of old rope, but not often. Keep rope in a quick-use slot and take it from the wheel.
+
+Lay it behind you to find your way back: with rope in your hand, hold {action:attack} and walk. It pays out along the floor wherever you go, as far as the rope reaches. Let go of {action:attack}, or put the rope away, and it stops where it lies. Once laid, the pack or bundle is spent, however little of it you used, so lay it where it counts. Like chalk, it only shows where a lamp falls on it. Anyone can gather up a laid rope: stand on it and hold {action:interact}, and you get the pack or bundle back.
+
+Some places drop away into the dark, too far to climb down and too far to jump. At the top there is a post to tie a rope to. With a rope long enough for the drop in your hand, stand at the post and hold {action:interact} to tie it off and let it down. It takes the whole pack or bundle. Then anyone can climb it, down and back up (see Climbing): look out over the edge and press {action:interact} to go over. The rope can only be untied at the post, by holding {action:interact} there with your back to the drop, and not while someone is on it: you get the rope back. Leave it, and it is there for the way back.`
 	},
 	{
 		id: 'captions',

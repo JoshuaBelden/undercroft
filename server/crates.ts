@@ -91,9 +91,12 @@ export class Crates {
 	 * Returns false if the map has no crate to put it in.
 	 */
 	stow(stack: ItemStack, rng: Rng, nearStart = false): boolean {
-		const all = [...this.crates.values()];
-		if (all.length === 0) return false;
 		const distance = (crate: Crate): number => this.fromStart.get(crate.id) ?? Infinity;
+		// Only crates you can walk to: never below a drop you need rope for (docs/dev/rope.md).
+		const every = [...this.crates.values()];
+		const walkable = every.filter((crate) => Number.isFinite(distance(crate)));
+		const all = walkable.length ? walkable : every;
+		if (all.length === 0) return false;
 		const crate = nearStart
 			? all.reduce((best, c) => (distance(c) < distance(best) ? c : best))
 			: rng.pick(all);

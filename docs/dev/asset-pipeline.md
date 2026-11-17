@@ -100,7 +100,9 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 - **Room walls** sit 0.25 m inside the footprint. Each opening gets a short throat out to the boundary.
 - **Markers** (empties, kebab-case prefixes):
   - `socket-<type>-<n>`: an opening, at floor level, on the footprint boundary, centred on a cell edge. The edge and cell are derived from the position.
-  - `spawn-<n>`: player start. `extract-<n>`: extraction point, at the foot of a ladder made with `extraction_ladder` (see `build_extraction_shaft`, and `add_chapel_extraction`, which added one to the hand-edited chapel without rebuilding it). `rite-<n>`: where the rite is initiated.
+  - `spawn-<n>`: player start. `extract-<n>`: where you hold interact to get out: the stairwell's door, the foot of the chapel's ladder. `rite-<n>`: where the rite is initiated.
+  - `rope-<n>`: the top of a rope players climb, hanging straight down. Custom properties: `length` (m it hangs) and, on a way out, `exit` (how far up it you get out). Use `kit.rope_anchor`; the extraction shaft has one (`ropes_for_extractions` put it in the hand-edited .blend). See [rope.md](rope.md).
+  - `anchor-<n>`: where a rope can be tied at the top of a drop. On the ledge floor at the edge, turned about Z only, with its local +Y out over the drop. `kit.rope_post` adds one with its post beside it.
   - `rubble-<n>`: a collapsed wall, on the floor at the foot of the fall. Bricks lie only by these, 1 to 3 at each (see [items.md](items.md)).
   - `creature-<n>`: where a creature may start, on the floor with standing room (it snaps to the nav grid within 2 m). Markers too close to the start are skipped; with too few, creatures start in dead-end corners instead (see [creatures.md](creatures.md#spawning)).
   - `crate-<n>`: where a loot crate may stand (the game fills only some). On the floor at the crate's centre, turned about Z only, with its local +Y pointing at the wall behind the crate. Leave 1.2 m of clear floor in front. `props.crate_marker(piece, x, y, wall)` adds one pushed back against the `'n'`, `'s'`, `'e'` or `'w'` wall near a point, and reports anything in its way.

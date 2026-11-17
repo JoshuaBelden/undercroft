@@ -4,6 +4,12 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- The headlamp key: tap F (D-pad up) to switch it off, and again to bring it back as it was; hold it for a second to change between low and bright.
+- Ropes: the two shafts out of the catacombs are now ropes you climb. Look at one and press E (X on a controller) to take hold, climb with forward and back, and a few metres up you are out. Hold Shift to climb faster or slide down. Ropes take two at once, but nobody can climb past someone else on the same rope. Let go with C (B).
+- Falls hurt. Drop from high up and you lose sanity and are hobbled for 20 seconds, no faster than a crawl. Anything wrong with you like this shows beside your health with the seconds left.
+- Rope packs, a hundred metres of rope for 50 in the store, and the odd rope bundle in a crate below. With rope in hand, hold the attack button and walk to lay it behind you and find your way back; let go and it stops. Laying or tying a rope uses the whole of it, but hold E on it to gather it up and you get it back.
+- New rooms that drop away 12 metres: The Drop and The Pit. Tie a rope at the post at the top (hold E) and the whole party can climb down to the crates at the bottom, and back up. Only whoever stands at the post can untie it, and never while someone is on it.
+- Medkits: rare, 50 in the store, and they give back all your sanity at once.
 - Controller shortcuts on the dashboard, with their buttons shown on screen: hold X to launch an expedition and again to confirm your loadout, hold Y to open the store or to purchase, View for your Loadout, a click of the right stick for Social, and LB/RB for the tabs. The button fills from left to right while you hold it.
 - Looting with a controller: once X has sent an item from a crate or corpse to your pack, you move on to the next one, so pressing X again and again empties it.
 - Hide the rite and your party's health down the left of the screen with H, or by clicking the right stick, and bring them back the same way. Only the Affliction's name stays. Handy on a tablet; it's also under Settings > Interface.
