@@ -64,6 +64,7 @@ pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 - **Zero errors, zero warnings.** Every change must leave `pnpm check`, `pnpm lint` and `pnpm test` clean. This includes Svelte compiler warnings (a11y, unused props, reactivity), TypeScript errors, and lint warnings.
 - **Fix warnings, don't suppress them.** Ignore comments only when truly unavoidable, with a one-line reason next to them.
 - Run `pnpm check`, `pnpm lint` and `pnpm test` before considering any task complete. A change to shared or server logic comes with tests for it.
+- **Branches**: never commit to `main`. Each issue gets its own branch named `<issue-id>-<feature-name>` in kebab-case (`4-credits-cleanup`, `51-map-sketching`), and lands through a pull request to `main` whose description closes the issue (`Closes #4`).
 
 ## Architecture rules
 
@@ -114,4 +115,4 @@ When a feature lands, update in the same change:
 - Player help content, if the feature is player-facing
 - The GitHub issue: reference it in the commit (`Closes #12`) so it closes when pushed
 - No changelog file: release notes are written for each release from the commits since the last (the `release-notes` skill), so give each commit a subject that says what changed
-- `src/lib/content/credits.ts`: a credit for any new third-party asset, tool or source
+- `src/lib/content/credits.ts`: a credit for any new third-party asset or source
