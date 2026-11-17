@@ -94,6 +94,11 @@ export interface KitEntry {
 	 * already. Only the map debug view uses it (docs/dev/map-generation.md#debug-grid).
 	 */
 	room?: boolean;
+	/**
+	 * What the explorer's map draws on the piece's cells (docs/dev/map.md). Descents and
+	 * extraction rooms get theirs from `descends` and the role.
+	 */
+	sketch?: SketchSymbol;
 	/** Name shown in the room banner when a player first enters it. */
 	title?: string;
 	/** How the space sounds (reverb, damping); default 'tunnel'. See src/lib/content/audio/ambience.ts. */
@@ -106,6 +111,9 @@ export interface KitEntry {
 }
 
 export type Acoustics = 'tight' | 'tunnel' | 'hall' | 'vast';
+
+/** A passage the explorer's map marks with a symbol: wet, low or tight. */
+export type SketchSymbol = 'water' | 'crawl' | 'squeeze';
 
 export type MapKit = Record<string, KitEntry>;
 

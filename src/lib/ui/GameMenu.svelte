@@ -8,6 +8,7 @@
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
 	import type { InventoryAction } from '#lib/shared/items/types.ts';
+	import { carriesSurvey } from '#lib/shared/map/survey.ts';
 	import type { Inventory } from '#lib/shared/player/types.ts';
 	import ButtonHint from './ButtonHint.svelte';
 	import Dialog from './Dialog.svelte';
@@ -18,7 +19,8 @@
 	 * The in-game menu underground, opened by the `inventory` action: the Pack tab (PackPanel) and
 	 * the Rite tab (RitePanel, and Abandon expedition). Tabs are switched by clicking them or with
 	 * LB/RB. Nothing pauses while it is open. The tabs share one place, so the menu keeps its size
-	 * from one to the other. See docs/dev/items.md#the-in-game-menu.
+	 * from one to the other. With a notebook in the pack, Map opens the map (the controller's way
+	 * there: docs/dev/map.md). See docs/dev/items.md#the-in-game-menu.
 	 */
 	interface Props {
 		/** The tab showing. */
@@ -35,6 +37,8 @@
 		onaction: (action: InventoryAction) => void;
 		/** Abandon the expedition (asked to confirm first). */
 		onabandon: () => void;
+		/** Open the map (offered only while a notebook is in the pack). */
+		onmap?: () => void;
 		onclose: () => void;
 	}
 
@@ -47,8 +51,11 @@
 		interactKey,
 		onaction,
 		onabandon,
+		onmap,
 		onclose
 	}: Props = $props();
+
+	const mapping = $derived(!!onmap && carriesSurvey(inventory));
 
 	const tabs = $derived(MENU_TABS.filter((name) => name === 'Pack' || !!rite));
 	const current = $derived(tabs.includes(tab) ? tab : (tabs[0] ?? tab));
@@ -95,7 +102,12 @@
 				{/each}
 				{#if tabs.length > 1}<ButtonHint code="PadRB" />{/if}
 			</nav>
-			<button type="button" onclick={onclose}>Close</button>
+			<div class="bar">
+				{#if mapping}
+					<button type="button" onclick={() => onmap?.()}>Map</button>
+				{/if}
+				<button type="button" onclick={onclose}>Close</button>
+			</div>
 		</header>
 
 		<div class="panes" bind:this={panes}>
@@ -163,6 +175,11 @@
 		align-items: center;
 		gap: 20px;
 		margin-bottom: 14px;
+	}
+
+	.bar {
+		display: flex;
+		gap: 8px;
 	}
 
 	/* The tabs, as the dashboard's and the settings' (TabScreen). */

@@ -67,6 +67,7 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 - {action:primaryWeapon} {action:secondaryWeapon} take a weapon in hand
 - {action:quickUse} the quick-use wheel
 - {action:inventory} your pack and the rite
+- {action:map} your map, if you carry a notebook
 - {action:drop} drop what is in your hand
 - {action:toggleView} over the shoulder or through your eyes
 - {action:toggleRitePanel} hide or show the rite
@@ -87,6 +88,8 @@ Move with the left stick: push it gently to creep, a slow walk that makes no foo
 In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. In the store, push the right stick left or right to choose how many. While a menu is open, the D-pad and face buttons work the menu, not the game.
 
 In your pack, a crate or the Loadout page, {button:PadA} picks an item up and the slots that would take it light up; {button:PadA} on one puts it down, and {button:PadB} puts it back. {button:PadX} sends an item straight where it belongs, and {button:PadY} opens its menu. In a crate or a corpse, once {button:PadX} has sent an item to your pack you move on to the next one, so you can empty it by pressing {button:PadX} again and again. On the Loadout page {button:PadX} and {button:PadY} act when you let go, so that holding them can do something else (below). Typing, such as a friend's gamer tag, still needs a keyboard.
+
+With a notebook in your pack, your pack has a Map button. On the map, hold {button:PadX} to sketch and {button:PadY} to show your map to a teammate. {button:PadLB} and {button:PadRB} change level, {pad:mapZoomIn} and {pad:mapZoomOut} zoom, and the right stick moves the page. {button:PadB} puts it away.
 
 On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
 
@@ -347,6 +350,20 @@ You choose the eight marks on your wheel. On the surface, open the Loadout page 
 Marks are only chalk. In the dark you won't see them; a lamp on the wall brings them out. Come close to one and you can see who drew it.
 
 You can rub out your own marks: look at one and hold {action:interact}. Other people's marks are theirs to keep.`
+	},
+	{
+		id: 'map',
+		title: 'The map',
+		category: 'Gear and loot',
+		body: `Nobody knows the way down here, and nobody gives you a map. You draw your own, in a surveyor's notebook from the store. It goes in your pack like anything else, and it is lost with everything else if you die.
+
+With a notebook in your pack, press {action:map} to open your map (on a controller, open your pack and choose Map). It starts blank. The catacombs don't wait while you look at it.
+
+To draw, stand still with the map open and hold Sketch ({action:sketchMap}). After a moment what you can see from where you stand goes down on the page, a dozen paces at most. Only what you can see: a corner, a pillar or the far end of a big room stay blank until you go and look. Ways on that you haven't drawn yet trail off at the edge of the page. The pencil can be heard.
+
+Your map is yours alone: what your friends draw goes in their notebooks, not yours. When you meet up again, stand close and hold Show ({action:showMap}): you each see the other's map and copy it into your own. They need a notebook of their own.
+
+The map shows passages and rooms, the names of the rooms you have drawn, stairs and where they lead, the ways out, water, crawls and squeezes, and the chalk marks in places you have drawn. It shows you as a red arrow. It shows one level at a time: change level with {action:mapLevelUp} and {action:mapLevelDown}. Zoom with the mouse wheel or {action:mapZoomIn} and {action:mapZoomOut}, and drag the page to look around. Find me brings it back to where you are.`
 	},
 	{
 		id: 'captions',
