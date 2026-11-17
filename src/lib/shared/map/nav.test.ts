@@ -72,7 +72,10 @@ describe('nav grid on real maps', () => {
 				openDoor(world, door.id);
 				nav.closed.delete(door.id);
 			}
-			expect(world.extracts.length).toBe(4);
+			// Four ways out: the stairwell's door and the chapel's ladder (held interact), and a rope up
+			// the shaft at the end of each of the first two levels.
+			expect(world.extracts.length).toBe(2);
+			expect(world.ropes.filter((r) => r.exitY !== undefined)).toHaveLength(2);
 			const feet = world.ropes.map((r): Vec3 => [r.top[0], r.bottom, r.top[2]]);
 			for (const extract of [...world.extracts, ...feet]) {
 				const goal = nearestPoint(nav, extract, 4);

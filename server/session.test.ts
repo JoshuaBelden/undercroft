@@ -10,7 +10,6 @@ import { addItem, emptyInventory, newStack } from '../src/lib/shared/items/inven
 import { segmentHit } from '../src/lib/shared/map/collision.ts';
 import { crateCentre } from '../src/lib/shared/map/crates.ts';
 import { doorBox } from '../src/lib/shared/map/doors.ts';
-import { toWorld } from '../src/lib/shared/map/grid.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
@@ -616,17 +615,9 @@ describe('getting out', () => {
 		const session = open(SEED);
 		const diver = new Diver(session, 'A', kit(['coins', 3]));
 		session.admin(diver.id, { kind: 'clearCreatures' });
-		// No piece has an extraction rope at the moment (the extraction rooms have ladders), so hang
-		// one in an extraction room's shaft, as the retired extraction-shaft had: 7.4 m, out at 5.4.
-		const gate = session.layout.placements.find((p) => MAP_KIT[p.piece]?.role === 'extraction')!;
-		const foot = toWorld(gate, PIECES[gate.piece].extracts[0]);
-		const rope = {
-			id: 'map-test',
-			top: [foot[0], foot[1] + 7.4, foot[2]] as Vec3,
-			bottom: foot[1],
-			exitY: foot[1] + 5.4
-		};
-		session['world'].ropes.push(rope);
+		// The rope up the shaft of the extraction room at the end of the first level.
+		const rope = session['world'].ropes.find((r) => r.exitY !== undefined)!;
+		expect(rope).toBeDefined();
 		// Beside it, looking at it (it is to the west).
 		diver.put([rope.top[0] + 0.4, rope.bottom + 0.05, rope.top[2]], Math.PI / 2);
 		diver.hold({}, 0.3);

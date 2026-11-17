@@ -102,7 +102,7 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 - **Markers** (empties, kebab-case prefixes):
   - `socket-<type>-<n>`: an opening, at floor level, on the footprint boundary, centred on a cell edge. The edge and cell are derived from the position.
   - `spawn-<n>`: player start. `extract-<n>`: extraction point, at the foot of a ladder made with `extraction_ladder` (see `build_extraction_shaft`, and `add_chapel_extraction`, which added one to the hand-edited chapel without rebuilding it). `rite-<n>`: where the rite is initiated.
-  - `rope-<n>`: the top of a rope players climb, hanging straight down. Custom properties: `length` (m it hangs) and, on a way out, `exit` (how far up it you get out). Use `kit.rope_anchor`; `ropes_for_extractions` put one in the retired `extraction-shaft` in the hand-edited .blend, and no shipped piece has one now. See [rope.md](rope.md).
+  - `rope-<n>`: the top of a rope players climb, hanging straight down. Custom properties: `length` (m it hangs) and, on a way out, `exit` (how far up it you get out). Use `kit.rope_anchor`; `extraction-gate` has one up its shaft (`ropes_for_extractions` put it in the hand-edited .blend, and `build_extraction_gate` builds it). See [rope.md](rope.md).
   - `anchor-<n>`: where a rope can be tied at the top of a drop. On the ledge floor at the edge, turned about Z only, with its local +Y out over the drop. `kit.rope_post` adds one with its post beside it.
   - `door-<n>`: a door, on the floor in the middle of the doorway, its local +Y pointing to the room side (the leaves swing away from it). The game stands `prop-door-double` there and makes it solid until opened (see [map-generation.md](map-generation.md#doors)). Only `stairs-deep` has one.
   - `rubble-<n>`: a collapsed wall, on the floor at the foot of the fall. Bricks lie only by these, 1 to 3 at each (see [items.md](items.md)).
@@ -121,7 +121,7 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 
 **Level pieces** (`build_extraction_gate` and `build_stairs_deep` in kit.py):
 
-- `extraction-gate` is a 3×2 room with the shaft and ladder in the middle, three hall openings, and the `gate` in its north wall framed in marble.
+- `extraction-gate` is a 3×2 room with the shaft in the middle and a rope up it (`rope-0`, the way out), three hall openings, and the `gate` in its north wall framed in marble.
 - `stairs-deep` is 1×6 cells and 4 levels: the `gate` at the top (level 3) with the door just inside it, the narrowing, then two 30-riser flights with a landing between, down to a hall at level 0.
 
 **Big rooms:** `room-vault` (3×3, four pillars round a bier, an opening on every side) and `room-gallery` (4×2, niches three high down both long walls, two openings at each end). `hall-squeeze-long` is the squeeze stretched to 3 cells, about 9 m of it tight.

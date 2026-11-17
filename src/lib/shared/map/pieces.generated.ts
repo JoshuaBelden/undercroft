@@ -128,8 +128,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'extraction-gate': {
 		name: 'extraction-gate',
-		url: '/assets/shared/map/extraction-gate.ba59ef8f.gltf',
-		bytes: 2034315,
+		url: '/assets/shared/map/extraction-gate.b12fc6cd.gltf',
+		bytes: 2025047,
 		footprint: [3, 2],
 		levels: 2,
 		sockets: [
@@ -144,7 +144,7 @@ export const PIECES: Record<string, PieceDef> = {
 			[4.2, 0, 1.2],
 			[-1.5, 0, 2.6]
 		],
-		extracts: [[0, 0, -0.1]],
+		extracts: [],
 		rites: [],
 		crates: [
 			{ position: [-3.2, 0, -3.41], yaw: 0 },
@@ -157,7 +157,7 @@ export const PIECES: Record<string, PieceDef> = {
 			[5, 0, -3],
 			[-4.8, 0, 3.1]
 		],
-		ropes: [],
+		ropes: [{ top: [-0.3, 7.4, 0.3], length: 7.4, exit: 5.4 }],
 		anchors: [],
 		colliders: [
 			{ center: [3.55, 4, 0], halfExtents: [2.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
@@ -166,7 +166,6 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [-3.55, 4, 0], halfExtents: [2.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 4], rotation: [0, 0, 0, 1] },
 			{ center: [0, 7.7, 0], halfExtents: [1.1, 0.3, 1.1], rotation: [0, 0, 0, 1] },
-			{ center: [0, 3.7, -0.8], halfExtents: [0.3, 3.7, 0.06], rotation: [0, 0, 0, 1] },
 			{ center: [1.25, 5.75, 0], halfExtents: [0.15, 1.95, 1.1], rotation: [0, 0, 0, 1] },
 			{ center: [0, 5.75, -1.25], halfExtents: [1.4, 1.95, 0.15], rotation: [0, 0, 0, 1] },
 			{ center: [0, 5.75, 1.25], halfExtents: [1.4, 1.95, 0.15], rotation: [0, 0, 0, 1] },
@@ -185,7 +184,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [-5.875, 1.9, -1.5], halfExtents: [0.125, 1.9, 2.5], rotation: [0, 0, 0, 1] }
 		],
 		volumes: [],
-		triangles: 1108
+		triangles: 668
 	},
 	'gloaming-chapel': {
 		name: 'gloaming-chapel',

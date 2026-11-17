@@ -5,7 +5,7 @@ What changed in each version of Undercroft, newest first. Players see these in g
 ## Unreleased
 
 - The headlamp key: tap F (D-pad up) to switch it off, and again to bring it back as it was; hold it for a second to change between low and bright.
-- Climbing ropes: look at one and press E (X on a controller) to take hold, and climb with forward and back. Hold Shift to climb faster or slide down. Ropes take two at once, but nobody can climb past someone else on the same rope. Let go with C (B).
+- Ropes: the shafts out at the end of the first and second levels are now ropes you climb. Look at one and press E (X on a controller) to take hold, climb with forward and back, and a few metres up you are out. Hold Shift to climb faster or slide down. Ropes take two at once, but nobody can climb past someone else on the same rope. Let go with C (B).
 - Falls hurt. Drop from high up and you lose sanity and are hobbled for 20 seconds, no faster than a crawl. Anything wrong with you like this shows beside your health with the seconds left.
 - Rope packs, a hundred metres of rope for 50 in the store, and the odd rope bundle in a crate below. With rope in hand, hold the attack button and walk to lay it behind you and find your way back; let go and it stops. Laying or tying a rope uses the whole of it, but hold E on it to gather it up and you get it back.
 - New rooms that drop away 12 metres: The Drop and The Pit. Tie a rope at the post at the top (hold E) and the whole party can climb down to the crates at the bottom, and back up. Only whoever stands at the post can untie it, and never while someone is on it.

@@ -116,7 +116,7 @@ The extraction rooms' way out is a rope going up into the dark (`rope_anchor` in
 
 **Keyboard shortcuts on screen:** draw a key with `KeyCap` (`src/lib/ui/KeyCap.svelte`): a white rounded cap with the label in bold black, `small` (14 px, beside HUD bars) or `large` (in a prompt). Always pass the player's current binding through `bindingLabel` (`src/lib/game/input/actions.ts`), never a hard-coded letter, so it follows remapping; show nothing when the action is unbound. The headlamp key sits to the left of the battery cells (`Hud`'s `lampKey`).
 
-**Adding an extraction point:** put an `extract-<n>` empty in a piece at the foot of a ladder (`kit.extraction_ladder`), or a door you hold interact at. A rope can be a way out too: a `rope-<n>` empty (`kit.rope_anchor`, with `exit`) where a rope goes up out of the piece (see [rope.md](rope.md)); no piece has one at the moment. Export, then run `pnpm asset:build`. To add another kind of extraction room, build it with a way out and a `gate` socket, and give it `role: 'extraction'` in `MAP_KIT`. One ends every level but the deepest, picked by `weight`.
+**Adding an extraction point:** put an `extract-<n>` empty in a piece at the foot of a ladder (`kit.extraction_ladder`), or a door you hold interact at. A rope can be a way out too: a `rope-<n>` empty (`kit.rope_anchor`, with `exit`) where a rope goes up out of the piece, as in `extraction-gate` (see [rope.md](rope.md)). Export, then run `pnpm asset:build`. To add another kind of extraction room, build it with a way out and a `gate` socket, and give it `role: 'extraction'` in `MAP_KIT`. One ends every level but the deepest, picked by `weight`.
 
 ## Leaving and results
 

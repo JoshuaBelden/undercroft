@@ -1722,7 +1722,12 @@ def ropes_for_extractions():
     Does nothing to a room that already has its rope-0. (The chapel keeps its ladder.)"""
     import bmesh
 
-    for name, top, foot, climb in (("extraction-shaft", SHAFT_ROPE, 0.0, SHAFT_CLIMB),):
+    # extraction-gate's shaft is the same shaft as extraction-shaft's (#65).
+    rooms = (
+        ("extraction-shaft", SHAFT_ROPE, 0.0, SHAFT_CLIMB),
+        ("extraction-gate", SHAFT_ROPE, 0.0, SHAFT_CLIMB),
+    )
+    for name, top, foot, climb in rooms:
         coll = bpy.data.collections[name]
         root = bpy.data.objects[name]
         kids = {o.name.split(".")[0]: o for o in root.children}
@@ -1749,6 +1754,7 @@ def ropes_for_extractions():
 # out there now. The Gloaming Chapel keeps its ladder.
 LADDERS = {
     "extraction-shaft": ((-0.30, 0.74, -0.01), (0.30, 0.86, 7.41)),
+    "extraction-gate": ((-0.30, 0.74, -0.01), (0.30, 0.86, 7.41)),
 }
 
 
@@ -2131,8 +2137,9 @@ def _ceiling_with_hole(mb, ix, iy, h, radius, mat, segs=16):
         mb.face([point(a0), point(a1), point(a1, radius), point(a0, radius)], mat, facing=(0, 0, -1))
 
 
-def _shaft_and_ladder(coll, root, name, h, R, top):
-    """The way up: rough shaft walls above the ceiling hole, hatch, collar, ladder and rope."""
+def _shaft_and_rope(coll, root, name, h, R, top):
+    """The way up: rough shaft walls above the ceiling hole, hatch and collar, and rope-0, climbed
+    to get out (the rope is the game's, as in extraction-shaft; no ladder in extraction rooms)."""
     W = "mat-wall-tunnel"
     segs, rings = 16, 6
     tile = tile_of(W)
@@ -2156,22 +2163,20 @@ def _shaft_and_ladder(coll, root, name, h, R, top):
     c = R + 0.16
     for sx, sy, ex, ey in ((-c, R, c, c), (-c, -c, c, -R), (-c, -R, -R, R), (R, -R, c, R)):
         xm.box((sx, sy, h - 0.22), (ex, ey, h), "mat-prop-planks", skip=("+z",))
-    extraction_ladder(xm, 0, R - 0.3, 0, top - 0.3, axis="x")
-    hanging_rope(xm, -0.6, -0.15, top - 0.3, 0)
     xm.finish(coll, root)
+    rope_anchor(coll, root, "rope-0", SHAFT_ROPE, SHAFT_ROPE[2], exit=SHAFT_CLIMB)
     col_box(coll, root, "col-shaft-n", (-R - 0.3, R, h), (R + 0.3, R + 0.3, top))
     col_box(coll, root, "col-shaft-s", (-R - 0.3, -R - 0.3, h), (R + 0.3, -R, top))
     col_box(coll, root, "col-shaft-w", (-R - 0.3, -R, h), (-R, R, top))
     col_box(coll, root, "col-shaft-e", (R, -R, h), (R + 0.3, R, top))
     col_box(coll, root, "col-hatch", (-R, -R, top - 0.3), (R, R, 2 * LEVEL))
-    col_box(coll, root, "col-ladder", (-0.3, R - 0.36, 0), (0.3, R - 0.24, top - 0.3))
 
 
 def build_extraction_gate(force=False):
-    """3x2 cells, 2 levels: the extraction room at the end of a level. A shaft with a ladder rises
-    from the middle (extract-0 at its foot); a wide `gate` opening in the north wall leads to the
-    double door and the long stair down to the next level (stairs-deep). Three hall openings lead
-    back into the level."""
+    """3x2 cells, 2 levels: the extraction room at the end of a level. A shaft rises from the
+    middle, with a rope down it that is climbed to get out (rope-0); a wide `gate` opening in the
+    north wall leads to the double door and the long stair down to the next level (stairs-deep).
+    Three hall openings lead back into the level."""
     name = "extraction-gate"
     coll = piece_collection(name, force)
     root = root_empty(coll, name, 3, 2, levels=2)
@@ -2201,12 +2206,11 @@ def build_extraction_gate(force=False):
     for k, (x, y, s) in enumerate([(5.0, 3.0, 0.35), (-5.1, 2.9, 0.3), (-4.8, -3.1, 0.4), (2.4, -0.9, 0.2), (-2.0, 0.8, 0.18)]):
         rubble(mb, x, y, 0, s, seed=k + 220)
     mb.finish(coll, root)
-    _shaft_and_ladder(coll, root, name, h, R, top)
+    _shaft_and_rope(coll, root, name, h, R, top)
     socket(coll, root, "gate", 0, (0, 4, 0))
     socket(coll, root, "hall", 1, (4, -4, 0))
     socket(coll, root, "hall", 2, (-6, -2, 0))
     socket(coll, root, "hall", 3, (6, 2, 0))
-    marker(coll, root, "extract-0", (0, 0.1, 0), display="SPHERE", size=0.6)
     for k, (x, y) in enumerate([(5.0, 3.0), (-4.8, -3.1)]):
         marker(coll, root, f"rubble-{k}", (x, y, 0), display="SPHERE", size=0.3)
     for k, (x, y) in enumerate([(-4.2, 2.2), (4.2, -1.2), (-1.5, -2.6)]):

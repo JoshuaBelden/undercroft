@@ -164,7 +164,7 @@ Flooded passages dip under the water: the ceiling comes down to meet it, and the
 		id: 'extraction',
 		title: 'Getting out',
 		category: 'Expeditions',
-		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. At the end of the first and second levels is a shaft with a ladder going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
+		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. At the end of the first and second levels is a shaft with a rope going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
 
 The deeper ways out save you the long walk back with your haul. Remember where you saw them.
 
