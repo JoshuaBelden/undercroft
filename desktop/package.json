@@ -11,7 +11,8 @@
 		"check": "tsc -p tsconfig.json",
 		"dev": "node build.mjs && electron . --dev",
 		"start": "node build.mjs && electron .",
-		"dist": "pnpm -C .. build && node build.mjs --package && electron-builder --win --x64"
+		"dist": "pnpm -C .. build && node build.mjs --package && electron-builder --win --x64",
+		"dist:hosted": "node build.mjs --hosted && electron-builder --win nsis --x64 -c.directories.output=release/hosted -c.nsis.artifactName=Undercroft-Setup.exe"
 	},
 	"dependencies": {
 		"sharp": "^0.35.5",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { destination, gameUrl } from './navigation.ts';
+import { destination, gameUrl, hostedSite, protocolTarget } from './navigation.ts';
 
 const GAME = 'https://undercroft.us';
 
@@ -44,5 +44,49 @@ describe('gameUrl', () => {
 		expect(gameUrl(undefined, GAME).origin).toBe(GAME);
 		expect(gameUrl('', GAME).origin).toBe(GAME);
 		expect(gameUrl('nonsense', GAME).origin).toBe(GAME);
+	});
+});
+
+describe('hostedSite', () => {
+	it('runs the game locally unless told otherwise', () => {
+		expect(hostedSite(undefined, GAME, false)).toBeNull();
+		expect(hostedSite('', GAME, false)).toBeNull();
+	});
+
+	it('shows the built-in site in a hosted build', () => {
+		expect(hostedSite(undefined, GAME, true)?.origin).toBe(GAME);
+	});
+
+	it('lets UNDERCROFT_URL win in either build', () => {
+		expect(hostedSite('http://localhost:5173', GAME, false)?.origin).toBe('http://localhost:5173');
+		expect(hostedSite('http://localhost:5173', GAME, true)?.origin).toBe('http://localhost:5173');
+	});
+});
+
+describe('protocolTarget', () => {
+	const game = new URL(GAME);
+	const target = (link: string) => protocolTarget(['Undercroft.exe', link], game)?.href ?? null;
+
+	it('opens the page a link asks for, on the game', () => {
+		expect(target('undercroft://about/changes')).toBe('https://undercroft.us/about/changes');
+		expect(target('undercroft://play/')).toBe('https://undercroft.us/play/');
+		expect(target('undercroft://social?tab=party')).toBe('https://undercroft.us/social?tab=party');
+	});
+
+	it('leaves the window alone for a bare link, or none', () => {
+		expect(target('undercroft://')).toBeNull();
+		expect(target('undercroft:')).toBeNull();
+		expect(protocolTarget(['Undercroft.exe', '--dev'], game)).toBeNull();
+	});
+
+	it('finds the link among other arguments', () => {
+		const argv = ['Undercroft.exe', '--allow-file-access-from-files', 'UNDERCROFT://account'];
+		expect(protocolTarget(argv, game)?.href).toBe('https://undercroft.us/account');
+	});
+
+	it('never leaves the game', () => {
+		expect(target('undercroft:////evil.example/x')).toBe('https://undercroft.us/evil.example/x');
+		expect(target('undercroft:/\\evil.example/x')).toBe('https://undercroft.us/evil.example/x');
+		expect(target('undercroft://@evil.example/x')).not.toMatch(/^https:\/\/evil/);
 	});
 });

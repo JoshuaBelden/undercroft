@@ -15,6 +15,7 @@
 		"dev:admin": "pnpm -C admin dev",
 		"desktop:dev": "pnpm -C desktop dev",
 		"desktop:build": "pnpm -C desktop dist",
+		"desktop:build:hosted": "pnpm -C desktop dist:hosted",
 		"steam:upload": "tsx deploy/steam/upload.ts",
 		"admin:grant": "tsx --env-file-if-exists=.env scripts/admin-grant.ts",
 		"start:server": "tsx --env-file-if-exists=.env server/index.ts",

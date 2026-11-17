@@ -28,11 +28,11 @@ export const SIGNUP_COOKIE = 'undercroft.signup';
 export const OAUTH_COOKIE = 'undercroft.oauth';
 
 /**
- * Paths that work without being signed in: the sign-in pages and their endpoints. Everything else
- * (the release notes and credits too) is behind sign-in.
+ * Paths that work without being signed in: the sign-in pages and their endpoints, and /download (the
+ * desktop app's installer). Everything else (the release notes and credits too) is behind sign-in.
  */
 export const isOpen = (path: string): boolean =>
-	['/auth/', '/api/auth/'].some((open) => path.startsWith(open));
+	path === '/download' || ['/auth/', '/api/auth/'].some((open) => path.startsWith(open));
 
 /** "Sign in with Discord" is offered only when the Discord application is configured. */
 export const discordEnabled = (): boolean => Boolean(DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET);

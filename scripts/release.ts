@@ -8,10 +8,12 @@
  * or write them yourself. The release is refused unless that file is for this version.
  *
  * 1. Ticks the version in package.json and desktop/package.json, and dates release.json.
- * 2. Commits "Release v<version>" (with release.json, if it wasn't committed yet).
- * 3. Makes the annotated tag `v<version>`, holding the notes, and pushes the commit and the tag.
- * 4. Creates the GitHub release from the tag (`gh`).
- * 5. Deploys the tag (`pnpm deploy:release --ref v<version>`).
+ * 2. Builds the beta testers' desktop app (`pnpm desktop:build:hosted`).
+ * 3. Commits "Release v<version>" (with release.json, if it wasn't committed yet).
+ * 4. Makes the annotated tag `v<version>`, holding the notes, and pushes the commit and the tag.
+ * 5. Creates the GitHub release from the tag (`gh`), with the desktop app's installer on it
+ *    (what /download sends you to).
+ * 6. Deploys the tag (`pnpm deploy:release --ref v<version>`).
  *
  * Needs a clean working tree on main (release.json aside) and `gh` signed in. `--dry-run`
  * shows the commits since the last release and whether the notes are ready, and does nothing.
@@ -21,10 +23,13 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { notReady, notesFromCommits, type ReleaseEntry } from '../src/lib/content/release.ts';
+import { DESKTOP_INSTALLER } from '../src/lib/shared/desktop.ts';
 
 const PACKAGE = 'package.json';
 const DESKTOP_PACKAGE = 'desktop/package.json';
 const RELEASE = 'src/lib/content/release.json';
+/** Where `pnpm desktop:build:hosted` writes the installer (desktop/package.json). */
+const INSTALLER = `desktop/release/hosted/${DESKTOP_INSTALLER}`;
 /** The live server (docs/dev/deployment.md#the-live-beta). */
 const LIVE = { host: '64.23.154.42', domain: 'undercroft.us' };
 
@@ -113,6 +118,11 @@ const steps: { name: string; manual: string; run: () => void }[] = [
 		}
 	},
 	{
+		name: 'build the desktop app',
+		manual: 'pnpm desktop:build:hosted',
+		run: () => run('pnpm', ['desktop:build:hosted'])
+	},
+	{
 		name: 'commit',
 		manual: `git add ${PACKAGE} ${DESKTOP_PACKAGE} ${RELEASE} && git commit -m "Release ${tag}"`,
 		run: () => {
@@ -135,6 +145,11 @@ const steps: { name: string; manual: string; run: () => void }[] = [
 		manual: `gh release create ${tag} --title "Undercroft ${next}" --notes-from-tag`,
 		run: () =>
 			run('gh', ['release', 'create', tag, '--title', `Undercroft ${next}`, '--notes-from-tag'])
+	},
+	{
+		name: 'attach the desktop app',
+		manual: `gh release upload ${tag} ${INSTALLER} --clobber`,
+		run: () => run('gh', ['release', 'upload', tag, INSTALLER, '--clobber'])
 	},
 	{
 		name: 'deploy',

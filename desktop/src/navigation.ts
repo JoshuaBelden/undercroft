@@ -32,3 +32,36 @@ export function gameUrl(env: string | undefined, fallback: string): URL {
 		return new URL(fallback);
 	}
 }
+
+/**
+ * The hosted site the window shows, or null to run the game on this PC. `UNDERCROFT_URL` when
+ * the app starts always wins; otherwise a hosted build (`--hosted`, desktop/build.mjs) shows the
+ * site it was built for, and any other build runs its own.
+ */
+export function hostedSite(env: string | undefined, built: string, hosted: boolean): URL | null {
+	if (env) return gameUrl(env, built);
+	return hosted ? gameUrl(undefined, built) : null;
+}
+
+/** The app's link scheme: `undercroft://` opens it (registered by a hosted build). */
+export const PROTOCOL = 'undercroft';
+
+/**
+ * The page an `undercroft://` link in `argv` asks for, on the game's own origin:
+ * `undercroft://about/changes` opens /about/changes. Null when there is no such link, or it only
+ * asks for the app (`undercroft://`), so the window stays where it is. Never another origin.
+ */
+export function protocolTarget(argv: readonly string[], game: URL): URL | null {
+	const arg = argv.find((a) => a.toLowerCase().startsWith(`${PROTOCOL}:`));
+	if (!arg) return null;
+	let link: URL;
+	try {
+		link = new URL(arg);
+	} catch {
+		return null;
+	}
+	const path = `/${link.host}${link.pathname}`.replace(/[/\\]+/g, '/');
+	if (path === '/' && !link.search) return null;
+	const target = new URL(path + link.search, game.origin);
+	return target.origin === game.origin ? target : null;
+}

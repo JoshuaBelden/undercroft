@@ -2,7 +2,7 @@
 
 `desktop/` is Undercroft as a Windows program: an Electron window with Steam behind it through [steamworks.js](https://github.com/ceifa/steamworks.js). It runs the whole game on the player's own PC: the site, the game server and a save, with co-op through Steam lobbies. That is player hosting, covered in [hosting.md](hosting.md). The client, site and game server code are the same as the browser game's. The desktop app adds what a browser can't have: Steam as the account, achievements, rich presence, the Steam overlay, co-op without our servers, and a Quit button.
 
-With `UNDERCROFT_URL` set, the window shows that site instead (undercroft.us, say), as a browser would. That is the only time Steam sign-in on the hosted site ([Steam sign-in](#steam-sign-in)) is used.
+With `UNDERCROFT_URL` set, or in a hosted build ([the beta testers' build](#the-beta-testers-build)), the window shows that site instead (undercroft.us, say), as a browser would. That is the only time Steam sign-in on the hosted site ([Steam sign-in](#steam-sign-in)) is used.
 
 Nothing is published to Steam from here yet. Until the game has its own Steam app, everything runs against Valve's public test app, **480 (Spacewar)**.
 
@@ -45,14 +45,26 @@ pnpm desktop:build      # = pnpm -C desktop dist
 
 This builds the site first (`pnpm build`), then bundles the host process (`dist/host.mjs`) and the site (`dist/site/`, its static files beside it), then packages everything. It writes `desktop/release/win-unpacked/Undercroft.exe` (the folder a Steam depot uploads) and `desktop/release/Undercroft Setup <version>.exe` (an installer, for testers outside Steam). Both are gitignored. Settings are baked in at build time by `desktop/build.mjs`:
 
-| Variable         | Default                 | What                         |
-| ---------------- | ----------------------- | ---------------------------- |
-| `UNDERCROFT_URL` | `https://undercroft.us` | The site the window opens    |
-| `STEAM_APP_ID`   | `480`                   | The Steam app it starts with |
+| Variable         | Default                 | What                          |
+| ---------------- | ----------------------- | ----------------------------- |
+| `UNDERCROFT_URL` | `https://undercroft.us` | The site a hosted build opens |
+| `STEAM_APP_ID`   | `480`                   | The Steam app it starts with  |
 
-Both can also be set when the app runs, which is how `desktop:dev` points at the local client. The version is `desktop/package.json`'s, which `pnpm release` keeps the same as the game's.
+Both can also be set when the app runs. A build only shows a hosted site when it is a hosted build, or when `UNDERCROFT_URL` is set as it starts (which is how `desktop:dev` points at your own client): otherwise it runs the game on this PC, whatever URL was baked in. The version is `desktop/package.json`'s, which `pnpm release` keeps the same as the game's.
 
 The app isn't in an asar archive (`asar: false`). The host process loads ES modules and sharp's native parts, which Node can't read from inside one. To keep the download small, only the English Chromium locale is kept (`electronLanguages`) and steamworks.js's Linux and macOS binaries are left out. Electron itself is most of what is left (about 300 MB installed, 110 MB for the installer). There is no icon or code signing yet: the default Electron icon shows, and Windows SmartScreen warns about an unsigned installer.
+
+### The beta testers' build
+
+```
+pnpm desktop:build:hosted   # = pnpm -C desktop dist:hosted
+```
+
+A hosted build is only the window, pointed at the live site: no host process, no site, no save (`node build.mjs --hosted`, `BUILD_HOSTED`). It plays exactly as a browser does, with the same accounts and game server, so it keeps up to date with the site, and only needs reinstalling when the desktop app itself changes. It writes `desktop/release/hosted/Undercroft-Setup.exe` (and its `win-unpacked/`), without the site build, in under a minute. `UNDERCROFT_URL` at build time picks the site; at run time it still wins.
+
+`pnpm release` builds it after ticking the version and attaches the installer to the GitHub release. **/download** (`src/routes/download/+server.ts`, open without signing in) sends you to `DESKTOP_DOWNLOAD_URL` (`src/lib/shared/desktop.ts`), the installer on the latest release, so the link never changes. The About screen's **Desktop app** tab (`/about/desktop`) links it, and has the help for installing it. To put a new installer on the current release by hand: `pnpm desktop:build:hosted`, then `gh release upload v<version> desktop/release/hosted/Undercroft-Setup.exe --clobber`.
+
+**`undercroft://` links.** A packaged hosted build registers the `undercroft` scheme for the Windows user when it starts (`app.setAsDefaultProtocolClient`), so it works from its first run. `undercroft://` starts the app, or brings it to the front; `undercroft://<path>` also opens that page of the game (`undercroft://about/changes` is /about/changes). `protocolTarget` in `navigation.ts` turns the link into a URL, only ever on the game's own origin, and is unit tested. A link arriving while the app runs comes through `second-instance`. Local builds and `desktop:dev` don't register it. Uninstalling leaves the registration behind (a link then does nothing).
 
 ## How it works
 

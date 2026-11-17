@@ -99,3 +99,11 @@ export const DESKTOP_IPC = {
 	partyJoinable: 'undercroft:party:joinable',
 	partyChanged: 'undercroft:party:changed'
 } as const;
+
+/**
+ * The beta testers' desktop app (a hosted build, `pnpm desktop:build:hosted`): the installer on
+ * the latest GitHub release, where `pnpm release` puts it. /download sends you here. See
+ * docs/dev/desktop.md#the-beta-testers-build.
+ */
+export const DESKTOP_INSTALLER = 'Undercroft-Setup.exe';
+export const DESKTOP_DOWNLOAD_URL = `https://github.com/JoshuaBelden/undercroft/releases/latest/download/${DESKTOP_INSTALLER}`;

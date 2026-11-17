@@ -6,7 +6,7 @@ import { LOCAL_COOKIE } from '../../src/lib/server/local.ts';
 import { DESKTOP_IPC, STEAM_TEST_APP_ID } from '../../src/lib/shared/desktop.ts';
 import { LoopbackParty, SoloParty, SteamParty, type LocalGame, type Party } from './lobby.ts';
 import { startLocalHost, type LocalHostProcess } from './localHost.ts';
-import { destination, gameUrl } from './navigation.ts';
+import { destination, hostedSite, PROTOCOL, protocolTarget } from './navigation.ts';
 import {
 	startSteam,
 	steamAchievement,
@@ -20,20 +20,20 @@ import {
  * Undercroft's desktop app: one window showing the game, with Steam behind it. The game runs on
  * this PC (docs/dev/hosting.md): a host process with the player's save, the game server and the
  * site (desktop/src/localHost.ts), and co-op through Steam lobbies (desktop/src/lobby.ts). With
- * `UNDERCROFT_URL` set, the window shows that site instead, as a browser would (the hosted game).
+ * `UNDERCROFT_URL` set, or in a hosted build (`--hosted`, for beta testers), the window shows the
+ * hosted site instead, as a browser would, and `undercroft://` links open it.
  * See docs/dev/desktop.md.
  */
 
 /** Set at build time (desktop/build.mjs). */
 declare const BUILD_GAME_URL: string;
 declare const BUILD_STEAM_APP_ID: number;
+declare const BUILD_HOSTED: boolean;
 
 /** `pnpm desktop:dev`: devtools, and the dev host (Vite) for the local site. */
 const dev = !app.isPackaged && process.argv.includes('--dev');
-/** `UNDERCROFT_URL`: show that site (the hosted game) instead of running our own. */
-const remote = process.env.UNDERCROFT_URL
-	? gameUrl(process.env.UNDERCROFT_URL, BUILD_GAME_URL)
-	: null;
+/** The hosted game to show (`UNDERCROFT_URL`, or a hosted build's site), or null to run our own. */
+const remote = hostedSite(process.env.UNDERCROFT_URL, BUILD_GAME_URL, BUILD_HOSTED);
 const appId = Number(process.env.STEAM_APP_ID) || BUILD_STEAM_APP_ID || STEAM_TEST_APP_ID;
 
 /** The site the window shows: the local host's (set once it is up), or `remote`. */
@@ -48,6 +48,8 @@ const localGame: LocalGame = { url: '', hostKey: local.hostKey };
 if (startSteam(appId)) app.exit(0);
 // A second copy of the game just brings the first to the front.
 if (!app.requestSingleInstanceLock()) app.exit(0);
+// A hosted build answers `undercroft://` links (for this Windows user, on its first start).
+if (BUILD_HOSTED && app.isPackaged) app.setAsDefaultProtocolClient(PROTOCOL);
 // The game keeps running (and its sounds keep playing) when the window is behind another.
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
@@ -152,7 +154,9 @@ function createWindow(): void {
 		});
 	}
 
-	void win.loadURL(game.href).catch(() => showOffline(win));
+	// Started by an `undercroft://` link: the page it asks for.
+	const start = protocolTarget(process.argv, game) ?? game;
+	void win.loadURL(start.href).catch(() => showOffline(win));
 }
 
 /** F12 opens devtools in `pnpm desktop:dev`; F5 reloads. Never in a packaged build. */
@@ -290,6 +294,9 @@ app.on('second-instance', (_event, argv) => {
 	// Steam starting us again for a join (`+connect_lobby <id>`) while we are running.
 	party?.connect(argv);
 	if (!window) return;
+	// An `undercroft://` link while we are running: the page it asks for, if any.
+	const target = protocolTarget(argv, game);
+	if (target) void window.loadURL(target.href);
 	if (window.isMinimized()) window.restore();
 	window.focus();
 });

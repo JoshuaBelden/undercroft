@@ -3,12 +3,15 @@
 //   node build.mjs             main process and preload script (enough for `pnpm desktop:dev`)
 //   node build.mjs --package   also the host process and the site, for a packaged build: needs the
 //                              site built first (`pnpm build` in the repository root)
+//   node build.mjs --hosted    the beta testers' build: the window opens UNDERCROFT_URL (the live
+//                              site) and answers undercroft:// links; no host process or site
 //
 // Each is one file: a sandboxed preload can't load others, and the main process then needs no
 // TypeScript at run time. Type checking is `pnpm -C desktop check` (tsc), not this.
 //
 // Build-time settings, from the environment:
-//   UNDERCROFT_URL  the hosted site, for when the app is told to show it (default: the live site)
+//   UNDERCROFT_URL  the hosted site, for a hosted build or when the app is told to show it at run
+//                   time (default: the live site)
 //   STEAM_APP_ID    the Steam app (default: 480, Valve's Spacewar test app)
 import { build } from 'esbuild';
 import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -19,11 +22,13 @@ const root = path.resolve(here, '..');
 const pkg = JSON.parse(readFileSync(path.join(here, 'package.json'), 'utf8'));
 const gameUrl = process.env.UNDERCROFT_URL || 'https://undercroft.us';
 const steamAppId = Number(process.env.STEAM_APP_ID) || 480;
-const packaging = process.argv.includes('--package');
+const hosted = process.argv.includes('--hosted');
+const packaging = process.argv.includes('--package') && !hosted;
 
 const define = {
 	BUILD_GAME_URL: JSON.stringify(gameUrl),
 	BUILD_STEAM_APP_ID: String(steamAppId),
+	BUILD_HOSTED: String(hosted),
 	BUILD_VERSION: JSON.stringify(pkg.version)
 };
 
@@ -41,6 +46,12 @@ const main = {
 
 await build({ ...main, entryPoints: ['src/main.ts'], outfile: 'dist/main.js' });
 await build({ ...main, entryPoints: ['src/preload.ts'], outfile: 'dist/preload.js' });
+
+if (hosted) {
+	// Only the window: nothing of an earlier local build's host process or site goes in.
+	rmSync('dist/host.mjs', { force: true });
+	rmSync('dist/site', { recursive: true, force: true });
+}
 
 if (packaging) {
 	const site = path.join(root, 'build');
@@ -92,5 +103,5 @@ if (packaging) {
 }
 
 console.log(
-	`Built desktop ${pkg.version}${packaging ? ' (packaged: host and site)' : ''}: Steam app ${steamAppId}`
+	`Built desktop ${pkg.version}${packaging ? ' (packaged: host and site)' : ''}${hosted ? ` (hosted: ${gameUrl})` : ''}: Steam app ${steamAppId}`
 );

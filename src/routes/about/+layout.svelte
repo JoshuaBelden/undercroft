@@ -11,7 +11,8 @@
 
 	const TABS = [
 		{ path: '/about/changes', label: "What's new" },
-		{ path: '/about/credits', label: 'Credits' }
+		{ path: '/about/credits', label: 'Credits' },
+		{ path: '/about/desktop', label: 'Desktop app' }
 	] as const;
 
 	/** The controller's B: to the dashboard, as Back is. */
