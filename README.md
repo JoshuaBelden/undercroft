@@ -49,13 +49,14 @@ More in [docs/dev/setup.md](docs/dev/setup.md).
 | `pnpm dev:seed [email]` | fill explorers' stashes with items to test with                |
 | `pnpm check`            | Svelte and TypeScript checks (must be clean)                   |
 | `pnpm lint`             | Prettier and ESLint (must be clean); `pnpm format` fixes style |
+| `pnpm asset:export`     | map kit (.blend) → map-piece exports, headless in Blender      |
 | `pnpm asset:build`      | Blender exports → optimized models in `static/assets/`         |
 | `pnpm asset:audio`      | raw sounds → Opus                                              |
 | `pnpm asset:images`     | interface art → WebP                                           |
 | `pnpm release <bump>`   | bump the version, date the release notes, tag                  |
 | `pnpm deploy:release`   | ship the committed build to the server                         |
 
-The asset commands need the raw art in `art/`, which isn't in the repository. You only need them to change art; the built assets are committed.
+The asset commands need the raw art in `art/`: a private repository, [undercroft-art](https://github.com/JoshuaBelden/undercroft-art), in Git LFS. Run `git lfs install` once, then `git clone https://github.com/JoshuaBelden/undercroft-art.git art` inside this checkout (ask for access). You only need it to change art; the built assets are committed. See [docs/dev/asset-pipeline.md](docs/dev/asset-pipeline.md#raw-art).
 
 ## Repository
 

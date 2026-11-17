@@ -26,7 +26,7 @@ Each feature addresses six cross-cutting aspects, so they grow with the game ins
 - **Game server**: separate Node process using WebSockets, server-authoritative simulation (`/server`)
 - **MongoDB** running in **Docker** (`docker compose`)
 - **pnpm** only. Never use npm or yarn.
-- **Assets**: modeled in Blender, exported as glTF to `art/export/`, optimized into `static/assets/` by `pnpm asset:build`
+- **Assets**: modeled in Blender, exported as glTF to `art/export/`, optimized into `static/assets/` by `pnpm asset:build`. Raw art (`art/`) is the private undercroft-art repo in Git LFS (docs/dev/asset-pipeline.md#raw-art)
 
 ## Commands
 
@@ -45,6 +45,7 @@ pnpm test               # unit tests (Vitest; pnpm test:watch to rerun on save)
 pnpm test:coverage      # unit tests with a coverage report (coverage/index.html)
 pnpm format             # Prettier
 pnpm asset:dev          # regenerate the placeholder dev asset
+pnpm asset:export       # art/blender/catacomb-kit.blend -> art/export/<piece>.glb, headless Blender
 pnpm asset:build        # art/export/*.glb -> optimized static/assets/map + piece manifest
 pnpm asset:audio        # art/sfx/*.wav -> Opus in static/assets/shared/audio + sound file list
 pnpm asset:images       # art/images/*.png -> WebP in static/assets/ui/images (interface art)
@@ -95,7 +96,7 @@ server/         # authoritative game server
 admin/          # admin app (separate SvelteKit app, shares src/lib/server/store)
 scripts/        # one-off tooling (asset generation)
 static/assets/  # .glb models, textures, audio (optimized, committed)
-art/            # raw art: .blend, 4K textures, raw exports (gitignored)
+art/            # raw art: .blend, 4K textures, raw exports (its own private repo, undercroft-art, in Git LFS; ignored here)
 docs/
   HANDOFF.md
   LORE.md

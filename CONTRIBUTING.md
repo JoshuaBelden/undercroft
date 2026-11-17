@@ -13,7 +13,7 @@ Thanks for helping. Undercroft is a small project in closed beta, so the best co
 
 You need Node.js 22.9+, pnpm (through `corepack enable`) and Docker. Then follow [docs/dev/setup.md](docs/dev/setup.md). Use pnpm only, never npm or yarn.
 
-The raw art (`art/`: the Blender kit, 4K textures, raw recordings) isn't in the repository. You don't need it: the built, optimized assets are committed under `static/assets/`.
+The raw art (`art/`: the Blender kit, 4K textures, raw recordings) isn't in this repository. You don't need it: the built, optimized assets are committed under `static/assets/`. To work on art, ask for access to the private [undercroft-art](https://github.com/JoshuaBelden/undercroft-art) repository (Git LFS) and clone it into `art/`; see [docs/dev/asset-pipeline.md](docs/dev/asset-pipeline.md#raw-art).
 
 ## How the code is organised
 

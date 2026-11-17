@@ -26,9 +26,9 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Raw art sources (blend files, 4K textures, raw exports). See art/README.md
-/art/*
-!/art/README.md
+# Raw art: its own private repository (undercroft-art, in Git LFS), cloned into art/.
+# See docs/dev/asset-pipeline.md#raw-art
+/art/
 
 # Python bytecode (Blender kit script)
 __pycache__/

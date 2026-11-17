@@ -119,7 +119,7 @@ scripts/
   blender/props.py          builds the loot crate and adds crate markers inside Blender
 deploy/                     production: Caddyfile, provision.ts (DigitalOcean), deploy.ts
 static/assets/              built models, textures, audio, pictures (content-hashed), served at /assets
-art/                        raw art sources (gitignored except README)
+art/                        raw art sources: the private undercroft-art repo (Git LFS), ignored here
 ```
 
 ## Imports
