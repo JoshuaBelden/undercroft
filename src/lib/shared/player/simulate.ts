@@ -82,7 +82,9 @@ export function createPlayerState(
 		reviving: 0,
 		performing: 0,
 		opening: 0,
-		erasing: 0
+		erasing: 0,
+		sketching: 0,
+		sharing: 0
 	};
 }
 
@@ -117,7 +119,8 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		drop: false,
 		select: -1,
 		stance: s.stance,
-		headlamp: s.headlamp
+		headlamp: s.headlamp,
+		survey: null
 	};
 }
 
@@ -157,7 +160,8 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		drop: f.drop === true,
 		select: typeof f.select === 'number' && Number.isInteger(f.select) ? f.select : -1,
 		stance,
-		headlamp: lamp
+		headlamp: lamp,
+		survey: f.survey === 'sketch' || f.survey === 'share' ? f.survey : null
 	};
 }
 

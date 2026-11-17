@@ -23,13 +23,20 @@
 	import { DEFAULT_MARK_WHEEL, MARKS } from '#lib/content/marks.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
-	import { DISTANT_SHOT } from '#lib/content/audio/sounds.ts';
+	import { DISTANT_SHOT, type SoundId } from '#lib/content/audio/sounds.ts';
+	import { SURVEY } from '#lib/content/map/survey.ts';
+	import { carriesSurvey, cellAt, surveyMap, type SurveyMap } from '#lib/shared/map/survey.ts';
 	import { CRATES } from '#lib/content/loot.ts';
 	import { canTake, carriedCount, held, quickWith, shieldOf } from '#lib/shared/items/inventory.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
 	import { lookedAtCrate, lookedAtItem, lookedAtMark } from '#lib/shared/items/pickup.ts';
-	import type { CrateSlot, GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
+	import type {
+		CrateSlot,
+		GameEvent,
+		InventoryAction,
+		MarkSnapshot
+	} from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
 	import { charging, eyeHeight, healing } from '#lib/shared/player/simulate.ts';
 	import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
@@ -63,7 +70,8 @@
 		type Inventory,
 		type ItemStack,
 		type PlayerFlags,
-		type PlayerState
+		type PlayerState,
+		type SurveyHold
 	} from '#lib/shared/player/types.ts';
 	import type {
 		AdminCommand,
@@ -76,6 +84,8 @@
 	import CrateScreen from '#lib/ui/CrateScreen.svelte';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
 	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
+	import MapScreen from '#lib/ui/MapScreen.svelte';
+	import type { SketchContent } from '#lib/ui/mapSketch.ts';
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
@@ -99,7 +109,7 @@
 	const FREECAM = { speed: 8, fast: 4, mouse: 0.0022, stickTurn: 2.5, maxPitch: 1.55 };
 
 	let canvas: HTMLCanvasElement;
-	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'crate';
+	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'crate' | 'map';
 	let panel = $state<PanelName | null>(null);
 	/**
 	 * The loot crate (or corpse) that is open, as the server tells it (see the `crate` message).
@@ -165,6 +175,30 @@
 	let chalkWheel = $state<{ pointer: { x: number; y: number }; chosen: number } | null>(null);
 	/** The chalk symbols on this player's wheel, as the server sent them in `welcome`. */
 	let chalkSymbols = $state<readonly string[]>(DEFAULT_MARK_WHEEL);
+	/** Your map (docs/dev/map.md): what a map can show of this one, and what you have drawn. */
+	let survey = $state.raw<SurveyMap | null>(null);
+	let surveyDrawn = $state.raw<ReadonlySet<string>>(new Set());
+	/** Every chalk mark, as the server last sent them: the map draws them too. */
+	let chalkMarks = $state.raw<MarkSnapshot[]>([]);
+	/** While the map is open: you on it, how far the holds have got, and who you could show it. */
+	let mapState = $state<{
+		self: SketchContent['self'];
+		sketch: number;
+		share: number;
+		partner: string | null;
+	}>({ self: null, sketch: 0, share: 0, partner: null });
+	/** The game's input map, for the map screen's keys and sticks. */
+	let gameInput = $state.raw<InputMap | null>(null);
+	/** Carrying a notebook: there is a map to open. */
+	let hasNotebook = false;
+	/** Until when (ms) the HUD says there is no notebook, after the map key was pressed without one. */
+	let noNotebookUntil = 0;
+	let setSurveyHold = (hold: SurveyHold): void => {
+		void hold;
+	};
+	let playUi = (id: SoundId): void => {
+		void id;
+	};
 	/** Who drew the chalk mark you are close to, and where it is on the screen. */
 	let markLabel = $state<{ name: string; x: number; y: number } | null>(null);
 	let meter = $state<number | null>(null);
@@ -295,12 +329,20 @@
 			return;
 		}
 		const closing = panel === name;
-		// The pack can only be opened while you are down there and not on the floor.
-		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
+		// The pack and the map can only be opened while you are down there and not on the floor.
+		const underground = expedition && spawned && !downed;
+		if ((name === 'inventory' || name === 'map') && !closing && !underground) return;
+		// No notebook, no map: the HUD says so for a moment.
+		if (name === 'map' && !closing && !hasNotebook) {
+			noNotebookUntil = performance.now() + 2500;
+			return;
+		}
+		const wasMap = panel === 'map';
 		panel = closing ? null : name;
+		if (wasMap !== (panel === 'map')) playUi(wasMap ? 'map.close' : 'map.open');
 		if (panel) document.exitPointerLock();
-		// Putting the pack away goes straight back to play.
-		else if (name === 'inventory' && expedition) capture();
+		// Putting the pack or the map away goes straight back to play.
+		else if ((name === 'inventory' || name === 'map') && expedition) capture();
 	}
 
 	onMount(() => {
@@ -401,7 +443,13 @@
 						loadMap(message.layout);
 						break;
 					case 'marks':
-						if (expedition || spectating) marks.apply(message.marks);
+						if (expedition || spectating) {
+							marks.apply(message.marks);
+							chalkMarks = message.marks;
+						}
+						break;
+					case 'survey':
+						surveyDrawn = new Set(message.cells.map(([x, z, level]) => cellKey(x, z, level)));
 						break;
 					case 'crate':
 						if (message.id === null) {
@@ -474,6 +522,11 @@
 		});
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
+		gameInput = input;
+		setSurveyHold = (hold) => {
+			player.survey = hold;
+		};
+		playUi = (id) => sounds.play(id);
 		sounds.oncaption = (cue) => {
 			if (settings.accessibility.captions) captions.push(cue);
 		};
@@ -557,6 +610,9 @@
 				}
 			});
 			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
+			// What was drawn of a map that is gone is no use; the server sends what there is.
+			survey = surveyMap(layout, PIECES, MAP_KIT);
+			surveyDrawn = new Set();
 			const id = ++loadId;
 			loading = { loaded: 0, total: 0 };
 			void Promise.all([
@@ -598,9 +654,12 @@
 			if (freecam) setFreecam(false);
 			loadId++;
 			loading = null;
-			if (panel === 'inventory' || panel === 'crate') panel = null;
+			if (panel === 'inventory' || panel === 'crate' || panel === 'map') panel = null;
 			crate = null;
 			leavingCrate = false;
+			survey = null;
+			surveyDrawn = new Set();
+			chalkMarks = [];
 			crates.clear();
 			marks.clear();
 			markLabel = null;
@@ -880,6 +939,15 @@
 				case 'mark':
 					sounds.playAt('chalk.draw', event.position, 1, 2);
 					break;
+				// Your own pencil and pages are in your hands; someone else's are heard from where they are.
+				case 'sketch':
+					if (event.player === self) sounds.play('map.sketch');
+					else sounds.playAt('map.sketch', event.position, 1, 2);
+					break;
+				case 'showMap':
+					if (event.player === self || event.with === self) sounds.play('map.show');
+					else sounds.playAt('map.show', event.position, 1, 2);
+					break;
 				case 'rub':
 					sounds.playAt('chalk.rub', event.position, 1, 2);
 					break;
@@ -1102,6 +1170,9 @@
 				// The only thing a downed player can still do: climb out.
 				return extractPrompt(state) ?? { prompt: null, progress: 0 };
 			}
+			if (performance.now() < noNotebookUntil) {
+				return { prompt: 'No notebook to draw a map in', progress: 0 };
+			}
 			const heal = healing(state);
 			if (heal && state.bandaging > 0) {
 				return { prompt: 'Bandaging...', progress: state.bandaging / heal.seconds };
@@ -1154,6 +1225,36 @@
 				return keyPrompt('attack', 'to draw a mark');
 			}
 			return { prompt: null, progress: 0 };
+		}
+
+		/** The map screen's view: you on the map, the holds (0..1, 1 once done) and who is close. */
+		function mapScreenView(state: PlayerState): typeof mapState {
+			const feet = player.feetPosition() ?? state.position;
+			const key = survey ? cellAt(survey, feet) : null;
+			const level = key ? survey!.cells.get(key)!.cell[2] : Math.round(feet[1] / LEVEL_HEIGHT);
+			const progress = (seconds: number, of: number) =>
+				seconds < 0 ? 1 : Math.min(1, seconds / of);
+			let partner: string | null = null;
+			let nearest: number = SURVEY.shareRange;
+			for (const other of remote.players()) {
+				const o = other.state;
+				if (o.downed || o.dead) continue;
+				const d = Math.hypot(
+					o.position[0] - state.position[0],
+					o.position[1] - state.position[1],
+					o.position[2] - state.position[2]
+				);
+				if (d <= nearest) {
+					nearest = d;
+					partner = other.name;
+				}
+			}
+			return {
+				self: { x: feet[0], z: feet[2], level, yaw: player.look().yaw },
+				sketch: progress(state.sketching, SURVEY.sketchSeconds),
+				share: progress(state.sharing, SURVEY.shareSeconds),
+				partner
+			};
 		}
 
 		function downedMessage(state: PlayerState): string {
@@ -1485,6 +1586,12 @@
 					: null;
 				if (state.performing > 0 && !performing) sounds.play('rite.begin');
 				performing = state.performing > 0;
+				hasNotebook = carriesSurvey(state.inventory);
+				if (panel === 'map') {
+					// Going down, or the notebook gone from the pack, puts the map away.
+					if (state.downed || !hasNotebook) panel = null;
+					else mapState = mapScreenView(state);
+				}
 				if (panel === 'inventory' || panel === 'crate') {
 					if (state.downed && panel === 'inventory') {
 						panel = null;
@@ -1521,6 +1628,9 @@
 					break;
 				case 'inventory':
 					toggle('inventory');
+					break;
+				case 'map':
+					toggle('map');
 					break;
 				// Walking away from a loot crate puts it away; moving also leaves the admin screen.
 				case 'moveForward':
@@ -1727,7 +1837,22 @@
 	<InventoryScreen
 		{inventory}
 		onaction={(action) => sendInventory(action)}
+		onmap={() => toggle('map')}
 		onclose={() => toggle('inventory')}
+	/>
+{:else if panel === 'map' && survey && gameInput}
+	<MapScreen
+		map={survey}
+		drawn={surveyDrawn}
+		self={mapState.self}
+		marks={chalkMarks}
+		input={gameInput}
+		sketch={mapState.sketch}
+		share={mapState.share}
+		partner={mapState.partner}
+		onhold={(hold) => setSurveyHold(hold)}
+		onpack={() => toggle('inventory')}
+		onclose={() => toggle('map')}
 	/>
 {:else if panel === 'crate' && inventory && crate}
 	<CrateScreen

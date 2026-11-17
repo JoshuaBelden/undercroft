@@ -179,6 +179,11 @@ export interface ItemDef {
 	chalk?: ChalkSpec;
 	/** Worn in the defense slot. */
 	defense?: DefenseSpec;
+	/**
+	 * Carried anywhere, it lets you open your map, sketch into it and show it to a teammate
+	 * (the surveyor's notebook, see docs/dev/map.md).
+	 */
+	survey?: boolean;
 }
 
 /** How many of most things share a slot. Weapons and defense never stack. */
@@ -380,6 +385,21 @@ export const ITEMS: Record<string, ItemDef> = {
 		maxStack: DEFAULT_STACK,
 		weight: 0.01,
 		chalk: { marks: 1 }
+	},
+	// Your map: without one there is none to open (see docs/dev/map.md).
+	notebook: {
+		id: 'notebook',
+		name: "Surveyor's notebook",
+		kind: 'consumable',
+		category: 'other',
+		flavor:
+			'Squared paper and a stub of pencil. What you draw in it is all you will know of the way back.',
+		image: 'notebook',
+		model: modelUrl('shared/items/notebook.glb'),
+		hold: HOLD_RIGHT,
+		maxStack: 1,
+		weight: 0.3,
+		survey: true
 	},
 	// Unlit. The rite takes five; lighting them comes with light sources.
 	candle: {

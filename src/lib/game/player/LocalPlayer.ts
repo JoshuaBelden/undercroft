@@ -17,7 +17,8 @@ import {
 	type PlayerSnapshot,
 	type PlayerState,
 	type SimEvent,
-	type Stance
+	type Stance,
+	type SurveyHold
 } from '#lib/shared/player/types.ts';
 import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
 
@@ -68,6 +69,8 @@ export class LocalPlayer {
 	private kickLeft = { pitch: 0, yaw: 0 };
 	/** Mouse look is scaled by this: the zoom while aiming, so the view moves as it looks. */
 	lookScale = 1;
+	/** What the map screen is holding down (sketch or show), sent in every frame; see docs/dev/map.md. */
+	survey: SurveyHold = null;
 	/** Wanted stance, cycled by the stance key; the simulation rises only when there is room. */
 	private stance: Stance = 'stand';
 	private lamp: HeadlampMode = 1;
@@ -416,7 +419,8 @@ export class LocalPlayer {
 			drop: active && input.isDown('drop'),
 			select: this.takeSelect(),
 			stance: this.stance,
-			headlamp: this.lamp
+			headlamp: this.lamp,
+			survey: this.survey
 		};
 	}
 }

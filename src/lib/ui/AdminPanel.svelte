@@ -292,6 +292,12 @@
 				)}
 				{@render action('Camera back to your body', oncameratobody)}
 			{/if}
+			{@render action(
+				'Reveal whole map',
+				() => onadmin({ kind: 'revealMap' }),
+				'Every cell drawn in your map (docs/dev/map.md).'
+			)}
+			{@render action('Clear map', () => onadmin({ kind: 'clearMap' }), 'Nothing drawn in it.')}
 			<StepperField
 				label="Grid"
 				text={onOff(gridView)}

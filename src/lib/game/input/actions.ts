@@ -35,6 +35,14 @@ export const ACTIONS = {
 	// Hold: the wheel of quick-use items; move the mouse to one and let go to take it in hand.
 	quickUse: { label: 'Quick-use wheel (hold)', category: 'Items', defaults: ['KeyQ'] },
 	inventory: { label: 'Pack / Loadout', category: 'Items', defaults: ['Tab', 'KeyI'] },
+	// Your map underground (docs/dev/map.md). The rest are heard only while it is open.
+	map: { label: 'Map', category: 'Map', defaults: ['KeyM'] },
+	sketchMap: { label: 'Sketch what is around you (hold)', category: 'Map', defaults: ['KeyE'] },
+	showMap: { label: 'Show your map to a teammate (hold)', category: 'Map', defaults: ['KeyR'] },
+	mapZoomIn: { label: 'Zoom in', category: 'Map', defaults: ['Equal', 'NumpadAdd'] },
+	mapZoomOut: { label: 'Zoom out', category: 'Map', defaults: ['Minus', 'NumpadSubtract'] },
+	mapLevelUp: { label: 'Level above', category: 'Map', defaults: ['PageUp'] },
+	mapLevelDown: { label: 'Level below', category: 'Map', defaults: ['PageDown'] },
 	toggleSettings: { label: 'Settings menu', category: 'Interface', defaults: ['Escape'] },
 	toggleHelp: { label: 'Help', category: 'Interface', defaults: ['F1'] },
 	toggleSocial: { label: 'Friends and invites', category: 'Interface', defaults: ['KeyO'] },
@@ -96,6 +104,15 @@ export const PAD_DEFAULTS: Record<Action, readonly string[]> = {
 	prevItem: [],
 	quickUse: ['PadLB'],
 	inventory: ['PadView'],
+	// Every button is taken: on the controller the map opens from the pack screen. On the map
+	// screen X sketches, Y shows and LB/RB change level: menu buttons, fixed like A and B.
+	map: [],
+	sketchMap: [],
+	showMap: [],
+	mapZoomIn: ['PadRT'],
+	mapZoomOut: ['PadLT'],
+	mapLevelUp: [],
+	mapLevelDown: [],
 	toggleSettings: ['PadMenu'],
 	toggleHelp: ['PadRight'],
 	toggleSocial: ['PadR3'],

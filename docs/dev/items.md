@@ -51,6 +51,8 @@ The first defense item, the `coat`, is a stand-in so the slot has something to h
 
 `chalk` (quick-use, with a model) and `candle` (backpack, unlit, a placeholder box) are rite supplies, sold in the store and found in crates. Chalk draws marks on walls (`chalk: { marks }`, see [marks.md](marks.md)). Candles do nothing in the hand yet: lighting them comes with light sources ([#26](https://github.com/JoshuaBelden/undercroft/issues/26)).
 
+The `notebook` (backpack, a placeholder box) has `survey: true`: carried anywhere, it lets you open, draw in and show your map ([map.md](map.md)).
+
 ## Inventory
 
 `PlayerState.inventory` is an `Inventory`. An explorer's loadout on the surface is the same type (see [economy.md](economy.md)). Every place is a slot holding one `ItemStack` (`item`, `count`, `loaded` for guns, `uses` for breakables) or null:

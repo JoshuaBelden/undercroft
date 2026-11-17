@@ -101,6 +101,13 @@ export interface PlayerState {
 	opening: number;
 	/** Seconds spent holding interact to erase your own chalk mark (server-driven). */
 	erasing: number;
+	/**
+	 * Seconds spent sketching into the map (server-driven). -1 once a sketch is done, until the
+	 * hold is let go, so a held button sketches once. See docs/dev/map.md.
+	 */
+	sketching: number;
+	/** Seconds spent showing your map to a teammate (server-driven); -1 after, like `sketching`. */
+	sharing: number;
 }
 
 /** What one slot holds. */
@@ -191,7 +198,12 @@ export interface InputFrame {
 	select: number;
 	stance: Stance;
 	headlamp: HeadlampMode;
+	/** Held on the map screen: sketching what is around you, or showing your map to a teammate. */
+	survey: SurveyHold;
 }
+
+/** What the map screen's hold is doing (docs/dev/map.md). */
+export type SurveyHold = 'sketch' | 'share' | null;
 
 /** A player's authoritative state as broadcast in each server tick. */
 export interface PlayerSnapshot {
