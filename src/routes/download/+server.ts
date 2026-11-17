@@ -7,5 +7,5 @@ import type { RequestHandler } from './$types';
  * (isOpen), so the link can be handed to anyone. See docs/dev/desktop.md#the-beta-testers-build.
  */
 export const GET: RequestHandler = () => {
-	redirect(302, DESKTOP_DOWNLOAD_URL);
+	redirect(302, DESKTOP_DOWNLOAD_URL, { external: true });
 };
