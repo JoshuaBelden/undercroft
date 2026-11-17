@@ -166,6 +166,8 @@ The client only says what to buy or sell. Prices are looked up on the server, an
 
 `Shop` is for buying only. It draws one panel in the same style as the stash, titled STORE: the `ItemFilters` column and a grid of `SHOP` entries, `SLOTS.stashColumns` across. Each entry is a `Slot` in a button, with the lot size as the count and the price as the small print in the corner. A filter shows only the entries of that category (`matchesFilter`).
 
+Hovering or focusing an entry (a controller moving onto it focuses it) shows the same `ItemTooltip` as the Loadout page, beside its slot, with `forSale` set so it shows `itemStats(stack, true)`. The store's slots aren't `ItemSlot`s on an `ItemBoard` (nothing is dragged), so `Shop` tracks the pointed entry itself. The tooltip is hidden for the entry whose details panel is open, and when a filter hides the entry.
+
 Clicking an entry slides a light panel in from the right edge of the window, from the bottom of the dashboard's bar down (the frame measures the bar and sets `--hub-bar` for this) (clicking it again, the close button or Escape takes it away; Escape is caught in the capture phase so the dashboard does not open Settings). It shows the picture, name, category, flavor and `itemStats(stack, true)`: the `forSale` form leaves out what only applies to a stack you own (rounds loaded, how full the stack is, what it sells for). Its footer has the total, what you have, a quantity (in lots, 1 to 99, the server's limit) and Purchase, which sends `buy`, plays `shop.buy` and closes the panel (a refused purchase leaves it open). Purchase is disabled while underground or when the total is more than you have; a refusal from the server (no room in the stash) is shown above it.
 
 ### The ledger

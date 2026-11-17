@@ -54,7 +54,7 @@ Neither the Pendant nor the hint has a model yet. They are drawn as boxes from `
 
 ## What clients know
 
-Each tick's `affliction.rite` is a `RiteSnapshot`: `requirements` with `null` for slots no hint has revealed, `room` (`null` until revealed), `seconds`, `hints` (the texts found so far, in order) and `resolved`. Hidden information is never sent.
+Each tick's `affliction.rite` is a `RiteSnapshot`: `requirements` with `null` for slots no hint has revealed, `room` (`null` until revealed), `seconds`, `hints` (the texts found so far, in order), `performed` and `resolved`. Hidden information is never sent.
 
 The client shows a banner when a hint is found: "A hint: Candle" over the hint's words (`RoomBanner`'s `subtitle`).
 
@@ -103,13 +103,15 @@ There is no holder role. Whoever carries every requirement (in any slot: `carrie
 `PlayerState.performing` counts the seconds (server-driven, like `reviving`) and resets if any of that stops being true. At `seconds`:
 
 - the items are used up;
-- `RiteDirector.resolved` is set and `resolved` is saved for everyone who went down (`SessionHooks.onResolved`), straight away: dying afterwards doesn't undo it;
-- the Affliction is calmed (`AfflictionDirector.calm`, see [affliction.md](affliction.md#calmed-by-the-rite)): no more meter, omens or manifestation;
-- a `rite` game event plays `rite.resolve` and a banner for everyone.
+- `RiteDirector.performed` is set (the snapshot's `performed`): it can't be performed again in this expedition;
+- a `rite` game event plays `rite.perform` and a banner ("Something answers it") for everyone;
+- **it summons the manifestation** into the room (`Session.summon`, see [affliction.md](affliction.md#the-manifestation)). The Affliction is **not** resolved yet.
 
-Nobody is carried out: they still have to extract before the deadline (see [expedition.md](expedition.md#deadline)). Extracting afterwards shows the results screen with the `resolved` outcome.
+**Resolving it:** banishing what the rite summoned resolves the Affliction. Then `RiteDirector.resolved` is set (the snapshot's `resolved`), `resolved` is saved for everyone who went down (`SessionHooks.onResolved`), straight away (dying afterwards doesn't undo it), the Affliction is calmed (no more meter or omens, see [affliction.md](affliction.md#calmed)), and a `resolved` event plays `rite.resolve` and a "Banished" banner. Performing the rite and then dying, or getting out without banishing it, resolves nothing: the next expedition needs the rite again.
 
-The client shows "[E] to perform the rite" under the same conditions, with its progress.
+Nobody is carried out: they still have to extract before the deadline (see [expedition.md](expedition.md#deadline)), past the creatures that are still there. Extracting afterwards shows the results screen with the `resolved` outcome.
+
+The client shows "[E] to perform the rite" under the same conditions, with its progress. Once performed, the rite panel adds a last step under the room: "Banish it" (with how: hold light on it, flick the lamp to stun it), then "Banished" once resolved. The pill says "Resolved" only then.
 
 ## Progress across runs
 
@@ -129,3 +131,4 @@ These need `DEV_MODE`:
 - **Reveal all clues** (`revealClues`);
 - **Reset rite progress** (`resetRite`): forgets the hints in this expedition and in the stored progress of everyone in it. It does not put hint items back in the map.
 - **Give** 5 Candles, Chalk and the Pendant, and **teleport** to `gloaming-chapel`, with the existing commands.
+- **Summon manifestation** and **Banish (resolves it)** in the Affliction group, to try the fight or the resolution without performing it.

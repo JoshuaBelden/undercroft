@@ -1,6 +1,6 @@
 # The Affliction: meter, omens, manifestation, banishing
 
-An Affliction is the force behind an expedition (see `docs/HANDOFF.md`). The rite that resolves it is in [rite.md](rite.md). In code it is the hidden **meter**, the **omen stages** players read it by, and the **manifestation** at 100%. The first Affliction is the Gloaming: its manifestation is a figure that hunts the players.
+An Affliction is the force behind an expedition (see `docs/HANDOFF.md`). The rite that resolves it is in [rite.md](rite.md). In code it is the hidden **meter**, the **omen stages** players read it by, and the **manifestation** the rite summons. Banishing the manifestation resolves the Affliction. The first Affliction is the Gloaming: its manifestation is a figure that hunts the players.
 
 ## Files
 
@@ -10,6 +10,7 @@ An Affliction is the force behind an expedition (see `docs/HANDOFF.md`). The rit
 | `src/lib/shared/affliction/types.ts`       | `AfflictionSnapshot` (in every `tick`)                                   |
 | `src/lib/shared/player/headlamp.ts`        | Gloom: lamp failure in the shared lamp output                            |
 | `server/affliction.ts`                     | `AfflictionDirector`: meter, stages, the manifestation, exposure, banish |
+| `src/lib/content/statuses.ts`              | Statuses and the strobe (see [status.md](status.md))                     |
 | `src/lib/game/affliction/Manifestation.ts` | Client: the figure, presence rumble, hiss, fading away                   |
 | `src/lib/game/audio/Ambience.ts`           | Omen sound layers (`setOmen`)                                            |
 
@@ -21,7 +22,7 @@ An Affliction is the force behind an expedition (see `docs/HANDOFF.md`). The rit
 - each creature killed adds `meter.perKill` (0.04);
 - loot carried adds `meter.perLoot` per second for each unit of value the players carry between them (see [economy.md](economy.md#loot)).
 
-At 1 it manifests and the meter stops. Each tick's snapshot carries `omen` and `meter` (rounded), which clients show as the arrival bar under the expedition clock (see [expedition.md](expedition.md#deadline)), and `calmed`.
+It stops at 1, at the last omen stage. **Nothing manifests when it fills:** only the rite summons the manifestation. Each tick's snapshot carries `omen`, `meter` (rounded; only the admin panel shows it, players never see it) and `calmed`.
 
 ## Omen stages
 
@@ -46,28 +47,39 @@ Because it's in the shared lamp code, it is deterministic: prediction, half-ligh
 
 ## The manifestation
 
-When the meter fills:
+It appears only when the rite is performed (`Session.stepRite` calls `Session.summon`, which calls `AfflictionDirector.summon`). Nobody sees it before that.
 
-1. **Spawn:** a nav point 30 to 60 m along the grid from every player (or as far as the map allows).
-2. **Gathering** (`gatherSeconds`): it stands where it appeared, and clients hear the `manifest.signal`.
-3. **Hunting:** it goes along the nav grid (A\*, re-planned every 0.5 s) toward the nearest player who isn't down, at `speed`, or `unlitSpeed` when no lamp light reaches it. The server simulates it as a point, not a body: no collision, and water, crawls and squeezes don't slow it.
-   - Within `radius`, sanity drains at `drain` per second.
-   - Its core (`core` metres, horizontally) hits for `touchDamage` every `touchInterval`.
-   - Downed players are ignored.
+1. **Summoned:** on the nav point in the rite's room (`RiteDirector.inRoom`) farthest from where the rite was performed: the room's far corner. If the room has no nav point, it appears 30 to 60 m along the grid from every player instead (`manifestFar`, `spawnDistance`). It is summoned once per expedition. A `manifest` event plays `manifest.signal` for everyone.
+2. **Gathering** (`gatherSeconds`, 2 s): it stands where it appeared.
+3. **Hunting:** it goes along the nav grid (A\*, re-planned every 0.5 s) toward the nearest player who isn't down, at `speed`, or `unlitSpeed` when no lamp light reaches it. The server simulates it as a point, not a body: no collision, and water, crawls and squeezes don't slow it. Downed players are ignored.
+
+### Striking
+
+Its only damage is a telegraphed strike. **There is no touch, aura or other ongoing damage**: standing next to it between strikes costs nothing.
+
+- Within `reach` (1.6 m along the floor, on its level) of the player it hunts, it stops and begins a swing. The snapshot's `strikes` counts swings begun, so clients play the wind-up (`melee_attack`, stretched to `body.strikeSeconds`) and `manifest.windup` before the blow.
+- At `strikeAt` (0.8 s) into the swing the blow lands on every able player still within reach (plus 0.4 m of slack). Stepping out of reach before then dodges it.
+- After the swing it stands for `strikeRecover` seconds, then hunts again.
+- **How hard:** `strikeDamage`, by party size: the explorers who went down (`Session.joined`, set on `AfflictionDirector.party`). The Gloaming's is `[40, 50, 60]`: 40 solo, 50 for two, 60 for three or more (the last entry covers any larger party). It doesn't drop as players die or leave.
+- **Armor:** the session puts each blow through `absorbBlow`, like a creature's (see [items.md](items.md)): what is worn takes what it can (a `break` event if it tears), and the rest comes off sanity, once.
 
 ### Exposure and banishing (light and weapons)
 
-- **Exposure:** each tick the lamp light on its core is summed from all players (`illumination`, occlusion included). Light at or above `exposeLight`, held steadily for 0.4 s (a flicker isn't enough), exposes it for `exposeLinger` seconds. Lamps work right up to it, so any lamp held on it at reasonable range does it; several lamps add up.
+- **Exposure:** each tick the lamp light on its core is summed from all players (`illumination`, occlusion included). Light at or above `exposeLight`, held steadily for 0.4 s (a flicker isn't enough), exposes it for `exposeLinger` seconds. The snapshot's `charge` (0..1) is how far that has built up, and is 1 while exposed. Lamps work right up to it; several lamps add up.
 - **Damage:** exposed, weapon hits come off its `health`. Unexposed, they only slow it for `slowSeconds`. It's a combat target with id `manifestation` (`server/combat.ts` `targets()` and `hurt()`), so shots, swings and thrown items all work.
-- **Banish:** at 0 health it's banished. Every player still in the expedition, downed ones included, gets the `banished` message and leaves; the results screen says the dark recedes and the Gloaming is not resolved.
+- **Banished:** at 0 health it fades away (`state: 'banished'`) and `AfflictionDirector.defeated` is set. That **resolves the Affliction**: the director calms itself (below), and in its next `stepAffliction` the session marks the rite `resolved`, raises a `resolved` event (`rite.resolve` and a banner) and calls `SessionHooks.onResolved`. Nobody is carried out: everyone still has to extract past the creatures, before the deadline.
 
-### Calmed by the rite
+### Stunned (the strobe)
 
-Performing the rite calls `AfflictionDirector.calm()`: the meter stops for good, the stage drops to 0 (an `omen` event, so ambience goes back to normal), gloom goes to 0, creature boldness to 1, and a manifestation already out fades away (state `banished`) without setting `banished`, so nobody is carried out. `snapshot().calmed` is then true for the rest of the expedition.
+The Gloaming is vulnerable to the strobe (`vulnerable: ['strobe']`): a headlamp turned on from off, at any level, by a player whose lamp lights its core (`lampIllumination` at least `STROBE.light`). It is `stunned` by its own reaction, `statuses.stunned`: 2 s stunned, then 20 s immune. What stunned does is the boss's own code: it stands where it is, and a swing not yet landed is lost. Weapons and exposure work as usual while it's stunned. The snapshot's `stunned` drives the client. See [status.md](status.md) for the status system.
+
+### Calmed
+
+`AfflictionDirector.calm()` runs when it is banished: the meter stops for good, the stage drops to 0 (the session sends an `omen` event, so ambience goes back to normal), gloom goes to 0, and creature boldness to 1. The creatures stay. `snapshot().calmed` is then true for the rest of the expedition, and nothing more is summoned.
 
 ## Client
 
-`Manifestation` draws the figure at the snapshot position, hisses when light exposes it, and fades it away over 3 s when banished. A presence rumble loop gets louder within 28 m. There is no darkness around it: no cloud, and no effect on lamps.
+`Manifestation` draws the figure at the snapshot position, hisses when light exposes it, shrieks (`manifest.stun`) when a strobe stuns it, and fades it away over 3 s when banished. A presence rumble loop gets louder within 28 m. There is no darkness around it: no cloud, and no effect on lamps.
 
 ### The figure
 
@@ -78,14 +90,16 @@ If the manifestation has a `body` (`ManifestationBody` in `afflictions.ts`), tha
 | Situation                                                     | Slot                                         |
 | ------------------------------------------------------------- | -------------------------------------------- |
 | Banished                                                      | `die`                                        |
-| Its touch just landed (`strikes` rose)                        | `melee_attack`, stretched to `strikeSeconds` |
+| Stunned                                                       | `take_damage`, then held still               |
+| A swing just began (`strikes` rose)                           | `melee_attack`, stretched to `strikeSeconds` |
 | A weapon just hit it (`hit()`)                                | `take_damage` for `flinchSeconds`            |
 | Hunting, faster than halfway between `speed` and `unlitSpeed` | `running`                                    |
 | Hunting, moving                                               | `walking`                                    |
 | Gathering, or standing                                        | `idle`                                       |
 
 - **Heading and speed** come from how it moves between frames; the snapshot has no yaw.
-- **Strikes:** the snapshot's `strikes` counts touches landed. The touch itself is instant on the server, so the swing plays after the damage, not before.
+- **Strikes:** the snapshot's `strikes` counts swings begun, so the wind-up plays (with `manifest.windup`) before the blow lands at `strikeAt`.
+- **Burning:** its materials glow (`emissive`, a warm white) with `charge` as lamp light builds on it, and flare and flicker while it is exposed, so players can see their lamps working.
 - **Fading:** the figure fades in over 3 s when it manifests and fades out when banished.
 
 The Gloaming's body is `gloaming_boss.glb`, scaled 1.3 (about 2.2 m, its hit capsule's height):
@@ -101,7 +115,7 @@ The Gloaming's body is `gloaming_boss.glb`, scaled 1.3 (about 2.2 m, its hit cap
 
 ## Adding an Affliction
 
-1. Add an `AfflictionDef` to `AFFLICTIONS` (meter, stages, manifestation spec).
+1. Add an `AfflictionDef` to `AFFLICTIONS` (meter, stages, manifestation spec, rite).
 2. The meter, stages, gloom and omen sounds work from data.
 3. Give the manifestation a `body`, the figure players see: export it to `art/export/creatures/`, run `pnpm asset:build`, and map its clips.
 4. A manifestation that behaves differently (not a figure that hunts) needs its own behaviour in `AfflictionDirector` and its own client renderer, chosen by the Affliction id. An expedition is against the Affliction its party's host chose on the Expedition page (`PartyState.affliction`, passed to `Session`); every entry in `AFFLICTIONS` appears in the picker.
@@ -112,5 +126,6 @@ These need `DEV_MODE`:
 
 - a meter readout and omen stage;
 - **Set meter %**;
-- **Force manifestation** (sets the meter to 100%);
-- **Banish**.
+- **Summon manifestation** (`manifest`): as the rite does, into the rite's room, from where you stand;
+- **Stun it** (`stun`): immunity still applies;
+- **Banish (resolves it)** (`banish`): as a weapon would, so the Affliction is resolved.

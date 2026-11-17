@@ -1,8 +1,13 @@
-import { CREATURES, type CreatureAnim, type CreatureDef } from '../src/lib/content/creatures.ts';
+import {
+	CREATURES,
+	creatureHealth,
+	type CreatureAnim,
+	type CreatureDef
+} from '../src/lib/content/creatures.ts';
 import { MOVEMENT } from '../src/lib/content/player/movement.ts';
 import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import type { CreatureSnapshot, CreatureState } from '../src/lib/shared/creature/types.ts';
-import { lampIllumination } from '../src/lib/shared/creature/visibility.ts';
+import { bodySamples, lampIllumination } from '../src/lib/shared/creature/visibility.ts';
 import { segmentBlocked, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
 import {
 	findPath,
@@ -15,6 +20,13 @@ import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { createPlayerState, idleFrame, stepPlayer } from '../src/lib/shared/player/simulate.ts';
 import type { PlayerState } from '../src/lib/shared/player/types.ts';
 import { Rng } from '../src/lib/shared/rng.ts';
+import { STROBE } from '../src/lib/content/statuses.ts';
+import {
+	applyStatus,
+	hasStatus,
+	stepStatuses,
+	type Statuses
+} from '../src/lib/shared/status/status.ts';
 
 /**
  * Server-side creature AI. Each creature patrols around its spawn point until it hears someone or
@@ -66,9 +78,15 @@ interface Creature {
 	stuck: number;
 	/** Seconds it has been (nearly) motionless. */
 	still: number;
-	health: number;
+	/**
+	 * Damage taken so far. It dies once that reaches its health for the party's size
+	 * (`creatureHealth`), so it stays right however many arrive after it spawned.
+	 */
+	wounds: number;
 	/** Seconds left reeling from a hard hit (no moving or attacking). */
 	staggered: number;
+	/** Statuses it has (stunned: no moving or attacking), by its own reactions to them. */
+	statuses: Statuses;
 	/** Seconds since it died. */
 	deadTime: number;
 }
@@ -215,6 +233,8 @@ export class CreatureDirector {
 	 * further, and creep for this much less time between bursts.
 	 */
 	boldness = 1;
+	/** Explorers who went down: how much damage kills a creature (`creatureHealth`). */
+	party = 1;
 
 	/**
 	 * Add a creature far (along the grid) from every player, e.g. when an omen stage begins: at a
@@ -250,8 +270,8 @@ export class CreatureDirector {
 	damage(id: string, amount: number, from: Prey | null): boolean {
 		const c = this.creatures.find((x) => x.id === id);
 		if (!c || c.mode === 'dead') return false;
-		c.health -= amount;
-		if (c.health <= 0) {
+		c.wounds += amount;
+		if (c.wounds >= creatureHealth(c.def, this.party)) {
 			this.kill(c);
 			return true;
 		}
@@ -264,6 +284,32 @@ export class CreatureDirector {
 		}
 		if (from && c.mode !== 'attack') this.chase(c, from);
 		return false;
+	}
+
+	/**
+	 * A player turned their lamp on from off (a strobe): every creature vulnerable to it that this
+	 * lamp lights gets what it causes (stunned), by its own reaction, unless it is immune. Returns
+	 * how many did.
+	 */
+	strobe(state: PlayerState): number {
+		let n = 0;
+		for (const c of this.living()) {
+			if (!c.def.vulnerable?.includes('strobe')) continue;
+			const light = Math.max(
+				...bodySamples(c.body.position, c.def.height).map((p) =>
+					lampIllumination(this.world, state, p)
+				)
+			);
+			if (light < STROBE.light) continue;
+			if (applyStatus(c.statuses, STROBE.causes, c.def.statuses ?? {})) n++;
+		}
+		return n;
+	}
+
+	/** Is this creature stunned (tests, admin)? */
+	stunned(id: string): boolean {
+		const c = this.creatures.find((x) => x.id === id);
+		return !!c && hasStatus(c.statuses, 'stunned');
 	}
 
 	/**
@@ -336,7 +382,18 @@ export class CreatureDirector {
 				continue;
 			}
 			c.cooldown = Math.max(0, c.cooldown - TICK_DT);
+			stepStatuses(c.statuses, c.def.statuses ?? {}, TICK_DT);
 			this.perceive(c, targets);
+			if (hasStatus(c.statuses, 'stunned')) {
+				// Stunned: it stands where it is, and an attack not yet landed is lost.
+				if (c.mode === 'attack' && !c.attackHit) {
+					c.mode = 'agro';
+					c.cooldown = c.def.attack.cooldown * 0.5;
+				}
+				this.move(c, null, false);
+				this.animate(c, false);
+				continue;
+			}
 			if (c.staggered > 0) {
 				c.staggered -= TICK_DT;
 				this.move(c, null, false);
@@ -465,8 +522,9 @@ export class CreatureDirector {
 			bestDistance: Infinity,
 			stuck: 0,
 			still: 0,
-			health: def.health,
+			wounds: 0,
 			staggered: 0,
+			statuses: {},
 			deadTime: 0
 		};
 		this.startPatrol(c, c.anchor);
@@ -809,7 +867,7 @@ export class CreatureDirector {
 		c.still = speed < 0.15 ? c.still + TICK_DT : 0;
 		const { gait } = c.def;
 		if (c.mode === 'dead') anim = 'die';
-		else if (c.staggered > 0) anim = 'take_damage';
+		else if (c.staggered > 0 || hasStatus(c.statuses, 'stunned')) anim = 'take_damage';
 		else if (c.mode === 'attack') anim = 'melee_attack';
 		else if (c.body.mantle) anim = 'climb';
 		else if (c.mode === 'alert') anim = gait.alert;

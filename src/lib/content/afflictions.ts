@@ -1,11 +1,13 @@
 /**
- * Affliction definitions (data): how fast the meter fills, what each omen stage does, and how
- * the Affliction manifests. The meter is never shown to players; they read it through omens.
+ * Affliction definitions (data): how fast the meter fills, what each omen stage does, the
+ * manifestation the rite summons, and the rite. The meter is never shown to players; they read
+ * it through omens.
  * See docs/dev/affliction.md.
  */
 
 import type { AnimationMap } from './animations.ts';
 import { modelUrl } from './models.ts';
+import type { StatusReactions, StatusSource } from './statuses.ts';
 
 export interface OmenStage {
 	/** Meter fraction (0..1) at which this stage begins. */
@@ -38,18 +40,30 @@ export interface ManifestationBody {
 export interface ManifestationSpec {
 	/** The figure players see. Without one nothing is drawn (it is only heard). */
 	body?: ManifestationBody;
-	/** Seconds it stands where it appeared before it starts hunting. */
+	/** Seconds it stands where the rite summoned it before it starts hunting. */
 	gatherSeconds: number;
 	/** Hunting speed (m/s) with lamp light on it, and its faster speed with none. */
 	speed: number;
 	unlitSpeed: number;
-	/** Inside this radius (m) sanity drains at `drain` per second. */
-	radius: number;
-	drain: number;
-	/** Its core: touching it hits for `touchDamage` every `touchInterval` seconds. */
-	core: number;
-	touchDamage: number;
-	touchInterval: number;
+	/** Within this distance (m, along the floor) of someone it stops and swings at them. */
+	reach: number;
+	/**
+	 * Sanity a landed strike takes (before what is worn absorbs), by party size: the first entry
+	 * for one explorer, the next for two, and so on; the last covers any larger party. There is no
+	 * other damage: standing next to it between strikes costs nothing.
+	 */
+	strikeDamage: number[];
+	/**
+	 * Seconds into the swing (`body.strikeSeconds` long, or 1.2 s without a body) when the blow
+	 * lands. Only those still within reach then are hit.
+	 */
+	strikeAt: number;
+	/** Seconds it stands after a swing before it moves again. */
+	strikeRecover: number;
+	/** What causes it a status (see content/statuses.ts). */
+	vulnerable: StatusSource[];
+	/** How it takes each status: how long it lasts on it, and how long it is immune after. */
+	statuses: StatusReactions;
 	/** Lamp light on its core (lamp units, summed over players) that exposes it. */
 	exposeLight: number;
 	/** Seconds it stays exposed after the light leaves it. */
@@ -58,7 +72,10 @@ export interface ManifestationSpec {
 	health: number;
 	/** Seconds a hit slows it when it isn't exposed. */
 	slowSeconds: number;
-	/** Spawns at least this far (m, along the grid) from every player. */
+	/**
+	 * The rite summons it in the rite's room. Forced out any other way (an admin), it appears at
+	 * least this far (m, along the grid) from every player.
+	 */
 	spawnDistance: number;
 	/** Hit capsule. */
 	hitRadius: number;
@@ -187,14 +204,17 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 				strikeSeconds: 1.2,
 				flinchSeconds: 0.7
 			},
-			gatherSeconds: 10,
+			gatherSeconds: 2,
 			speed: 1.4,
 			unlitSpeed: 2.4,
-			radius: 3.5,
-			drain: 8,
-			core: 1.2,
-			touchDamage: 40,
-			touchInterval: 1.5,
+			reach: 1.6,
+			// 40 solo, 50 for two, 60 for three or more.
+			strikeDamage: [40, 50, 60],
+			strikeAt: 0.8,
+			strikeRecover: 0.8,
+			// A lamp flicked off and on stuns it for 2 s; then it can't be stunned again for 20 s.
+			vulnerable: ['strobe'],
+			statuses: { stunned: { seconds: 2, immunity: 20 } },
 			exposeLight: 0.12,
 			exposeLinger: 2.5,
 			health: 300,

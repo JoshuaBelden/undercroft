@@ -9,8 +9,9 @@
 	 * What is known about the rite, at the middle of the left edge while underground (the play page
 	 * places it) and on the Rite tab of the in-game menu (GameMenu): the Affliction's name, the
 	 * hints found so far, then a line down the left joining each thing the rite needs and the room.
-	 * Hidden (`open` false), only the name stays, with the binding that brings the rest back.
-	 * Nothing in it can be clicked. See docs/dev/rite.md.
+	 * Once performed, one last step: banish what it summoned. Hidden (`open` false), only the name
+	 * stays, with the binding that brings the rest back. Nothing in it can be clicked. See
+	 * docs/dev/rite.md.
 	 */
 	interface Props {
 		/** The Affliction this rite resolves, e.g. "The Gloaming". */
@@ -46,7 +47,7 @@
 	}
 </script>
 
-<section class="rite" class:resolved={rite.resolved} class:closed={!open} aria-label="The rite">
+<section class="rite" class:performed={rite.performed} class:closed={!open} aria-label="The rite">
 	<h2>
 		<span class="pill">{affliction || 'The rite'}</span>
 		{#if rite.resolved}<span class="done">Resolved</span>{/if}
@@ -97,6 +98,18 @@
 					<span class="mark">Location: Unknown</span>
 				{/if}
 			</li>
+			{#if rite.performed}
+				<li class="banish" class:after={rite.resolved}>
+					<span class="text">
+						<span class="name">{rite.resolved ? 'Banished' : 'Banish it'}</span>
+						<span class="who"
+							>{rite.resolved
+								? 'Now get out.'
+								: 'Hold your light on it to wound it. Flick your lamp off and on to stun it.'}</span
+						>
+					</span>
+				</li>
+			{/if}
 		</ol>
 	{/if}
 </section>
@@ -145,9 +158,14 @@
 		color: var(--accent);
 	}
 
-	/* Done: what it needed is behind them. */
-	.rite.resolved .hints {
+	/* Performed: what it needed is behind them; only the banishing is left (and then that too). */
+	.rite.performed .hints li:not(.banish),
+	.rite.performed .hints li.after {
 		opacity: 0.5;
+	}
+
+	li.banish:not(.after) .name {
+		color: var(--accent);
 	}
 
 	/* The hints, in their own words. */

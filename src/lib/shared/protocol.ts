@@ -73,9 +73,12 @@ export type AdminCommand =
 	| { kind: 'killCreatures' }
 	/** Set the Affliction meter (0..1). */
 	| { kind: 'setMeter'; value: number }
-	/** Fill the meter: it manifests. */
+	/** Summon the manifestation, in the rite's room (as the rite does). */
 	| { kind: 'manifest' }
+	/** Banish it: the Affliction is resolved, as if a weapon had. */
 	| { kind: 'banish' }
+	/** Stun it (immunity still applies). */
+	| { kind: 'stun' }
 	/** Put a creature a few metres in front of you. */
 	| { kind: 'spawnCreature' }
 	| { kind: 'clearCreatures' }
@@ -181,8 +184,6 @@ export type ServerMessage =
 	| ({ type: 'abandoned' } & ExpeditionSummary)
 	/** The expedition you were watching is over; `escaped` players got out alive. */
 	| { type: 'spectateEnd'; escaped: number }
-	/** The manifestation was banished: everyone leaves the expedition. */
-	| ({ type: 'banished'; carried: ItemStack[] } & ExpeditionSummary)
 	/** Your progress on an Affliction was reset (`resetAffliction`): reload the account. */
 	| { type: 'afflictionReset'; id: string }
 	/**
@@ -252,7 +253,6 @@ const SERVER_TYPES = new Set<string>([
 	'died',
 	'abandoned',
 	'spectateEnd',
-	'banished',
 	'afflictionReset',
 	'serverError'
 ]);

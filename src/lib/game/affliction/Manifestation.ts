@@ -24,13 +24,20 @@ const DISSOLVE = 3;
 const APPEAR = 3;
 /** Below this speed (m/s) it stands. */
 const STILL = 0.15;
+/** The colour it burns with as lamp light takes hold of it. */
+const BURN = new THREE.Color(0xffd9a0);
+/** Emissive strength while light builds on it, and while it is exposed (pulsing about this). */
+const BURN_CHARGE = 0.35;
+const BURN_EXPOSED = 0.9;
+/** Seconds into the stun when it stops reeling and stands frozen. */
+const STUN_REEL = 0.35;
 
 /**
- * An Affliction's manifestation: the figure that comes for the players when the meter fills
- * (the manifestation's `body`). It walks where the server moves it, strikes when its touch
- * lands, reels when it's hit, hisses when light exposes it, and falls when banished. A low
- * rumble tells you it's near. The server simulates a point with a hit capsule; the figure is
- * drawn here only. See docs/dev/affliction.md.
+ * An Affliction's manifestation: the figure the rite summons (the manifestation's `body`). It
+ * walks where the server moves it, winds up and strikes, reels when it's hit, burns brighter as
+ * lamp light takes hold of it and hisses when that exposes it, stands frozen when a strobe stuns
+ * it, and falls when banished. A low rumble tells you it's near. The server simulates a point
+ * with a hit capsule; the figure is drawn here only. See docs/dev/affliction.md.
  */
 export class Manifestation {
 	readonly root = new THREE.Group();
@@ -43,6 +50,12 @@ export class Manifestation {
 	private active = false;
 	private state: ManifestationSnapshot['state'] = 'gathering';
 	private exposed = false;
+	/** 0..1, how near lamp light is to exposing it (1 while exposed); smoothed for the burn. */
+	private charge = 0;
+	private burn = 0;
+	private stunned = false;
+	/** Seconds it has been stunned. */
+	private stunTime = 0;
 	private strikes = 0;
 	/** Seconds left of the strike and flinch animations. */
 	private striking = 0;
@@ -82,9 +95,15 @@ export class Manifestation {
 			this.speed = 0;
 			this.striking = 0;
 			this.flinching = 0;
+			this.burn = 0;
+			this.stunned = false;
 			this.strikes = snap.strikes;
 		}
-		if (snap.strikes > this.strikes) this.striking = this.spec?.body?.strikeSeconds ?? 0;
+		if (snap.strikes > this.strikes) {
+			// A swing begins: the wind-up is heard before the blow lands.
+			this.striking = this.spec?.body?.strikeSeconds ?? 0;
+			this.sounds.playAt('manifest.windup', this.corePoint(), 1, 5);
+		}
 		this.strikes = snap.strikes;
 		if (snap.exposed && !this.exposed) {
 			this.sounds.playAt('manifest.hiss', this.corePoint(), 1, 4);
@@ -92,6 +111,13 @@ export class Manifestation {
 		if (snap.state === 'banished' && this.state !== 'banished') {
 			this.sounds.playAt('manifest.banish', this.corePoint(), 1, 8);
 		}
+		if (snap.stunned && !this.stunned) {
+			this.sounds.playAt('manifest.stun', this.corePoint(), 1, 6);
+			this.stunTime = 0;
+			this.striking = 0;
+		}
+		this.stunned = snap.stunned;
+		this.charge = snap.charge;
 		this.exposed = snap.exposed;
 		this.state = snap.state;
 	}
@@ -184,8 +210,13 @@ export class Manifestation {
 		const spec = this.spec;
 		let anim: AnimSlot = 'idle';
 		let rate = 1;
+		if (this.stunned) this.stunTime += delta;
 		if (this.state === 'banished') {
 			anim = 'die';
+		} else if (this.stunned) {
+			// Reels from the flash, then stands frozen in it.
+			anim = 'take_damage';
+			if (this.stunTime > STUN_REEL) rate = 0;
 		} else if (this.striking > 0) {
 			anim = 'melee_attack';
 		} else if (this.flinching > 0) {
@@ -200,6 +231,16 @@ export class Manifestation {
 		figure.animator.setRate(rate);
 		figure.animator.update(delta);
 
+		// It burns as lamp light takes hold of it, and flares, flickering, while exposed.
+		const flicker = 0.8 + 0.2 * Math.sin(this.age * 23) * Math.sin(this.age * 7);
+		const burn =
+			this.state === 'banished'
+				? 0
+				: this.exposed
+					? BURN_EXPOSED * flicker
+					: this.charge * BURN_CHARGE;
+		this.burn += (burn - this.burn) * Math.min(1, delta * 10);
+
 		const opacity = Math.min(1, this.age / APPEAR) * (1 - this.dissolve);
 		const solid = opacity >= 0.99;
 		figure.scene.visible = opacity > 0.01;
@@ -210,6 +251,10 @@ export class Manifestation {
 			}
 			material.opacity = opacity;
 			material.depthWrite = solid;
+			if (material instanceof THREE.MeshStandardMaterial) {
+				material.emissive.copy(BURN);
+				material.emissiveIntensity = this.burn;
+			}
 		}
 	}
 
