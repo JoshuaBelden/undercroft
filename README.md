@@ -56,7 +56,23 @@ More in [docs/dev/setup.md](docs/dev/setup.md).
 | `pnpm release <bump>`   | bump the version, date the release notes, tag                  |
 | `pnpm deploy:release`   | ship the committed build to the server                         |
 
-The asset commands need the raw art in `art/`: a private repository, [undercroft-art](https://github.com/JoshuaBelden/undercroft-art), in Git LFS. Run `git lfs install` once, then `git clone https://github.com/JoshuaBelden/undercroft-art.git art` inside this checkout (ask for access). You only need it to change art; the built assets are committed. See [docs/dev/asset-pipeline.md](docs/dev/asset-pipeline.md#raw-art).
+The asset commands need the raw art (see below).
+
+## Working on art
+
+The built, optimized assets are committed in `static/assets/`, so **working on code needs none of this**. The raw art (the Blender map kit, 4K textures, raw recordings and exports) is a separate private repository, [undercroft-art](https://github.com/JoshuaBelden/undercroft-art), whose large files are in [Git LFS](https://git-lfs.com). To work on art:
+
+1. Install Git LFS once per machine (it comes with Git for Windows; `brew install git-lfs` on macOS, `sudo apt install git-lfs` on Debian or Ubuntu), then run `git lfs install`.
+2. Ask the owner for access to undercroft-art.
+3. Clone it into `art/` inside this checkout (about 2 GB; this repository ignores `art/`):
+
+   ```
+   git clone https://github.com/JoshuaBelden/undercroft-art.git art
+   ```
+
+4. Install [Blender](https://www.blender.org), then run `pnpm asset:export` (writes the map-piece exports, which aren't stored) and `pnpm asset:build`.
+
+Then use git in `art/` as usual: pull it alongside this repository (`git -C art pull`), and commit and push art changes there. Only one person edits a `.blend` at a time, since binary files can't be merged. The LFS quota is shared, so commit finished work rather than every save. The full guide (checking files downloaded, adding a new file type to LFS, locking, fetching only part of it, fixing problems) is in [docs/dev/asset-pipeline.md](docs/dev/asset-pipeline.md#raw-art).
 
 ## Repository
 

@@ -64,15 +64,71 @@ A new model or sound is picked up automatically if it's in the content data (`CR
 
 ## Raw art
 
-The raw art is its own **private** repository, [undercroft-art](https://github.com/JoshuaBelden/undercroft-art), with its binary files in Git LFS. Clone it into `art/`, which this repository ignores:
+The raw art is its own **private** repository, [undercroft-art](https://github.com/JoshuaBelden/undercroft-art), with its binary files in [Git LFS](https://git-lfs.com). It is cloned into `art/`, which this repository ignores.
+
+**You only need it to change art.** The built, optimized assets in `static/assets/` are committed here, so working on code needs no LFS and no `art/`. It is private because the raw sources are all rights reserved (`LICENSE-ASSETS.md`), some downloads (Pixabay sounds) can't be redistributed as they are, and LFS storage and downloads count against the owner's GitHub quota (10 GiB of each a month on the free plan).
+
+### What Git LFS does
+
+Git LFS keeps large files out of the git history. The repository stores a small text _pointer_ for each one (`version https://git-lfs...`, an id and a size), and the file itself lives on GitHub's LFS storage. `git clone`, `pull` and `checkout` download the real files in place of the pointers, and `git push` uploads new ones. Which files go to LFS is set by `art/.gitattributes` (by extension: `.blend`, `.glb`, `.jpg`, `.png`, `.webp`, `.wav`, `.mp3` and a few more). Small text files stay in plain git. Once it is installed you use git as usual; the rest of this section is what's different.
+
+### Getting set up
+
+1. **Install Git LFS**, once per machine. It comes with Git for Windows; on macOS `brew install git-lfs`, on Debian or Ubuntu `sudo apt install git-lfs`. Then turn it on for your user:
+
+   ```
+   git lfs install
+   ```
+
+2. **Get access**: ask the owner to add you to undercroft-art on GitHub.
+3. **Clone it into `art/`** inside your undercroft checkout (about 2 GB):
+
+   ```
+   cd undercroft
+   git clone https://github.com/JoshuaBelden/undercroft-art.git art
+   ```
+
+4. **Write the map-piece exports** (needs Blender, see below), then build:
+
+   ```
+   pnpm asset:export
+   pnpm asset:build
+   ```
+
+Check it worked: `git -C art lfs ls-files` lists every LFS file with `*` when it is downloaded and `-` when only its pointer is there. If you cloned before installing Git LFS, they are all `-`; run `git lfs install`, then `git -C art lfs pull`.
+
+### Day to day
+
+- The two repositories are separate: pull both (`git pull`, then `git -C art pull`), and commit and push art changes inside `art/`.
+- After pulling a change to `catacomb-kit.blend`, run `pnpm asset:export` and `pnpm asset:build`.
+- When an art change goes with a code change (a new piece and its `MAP_KIT` entry, say), push the art first, then commit the code and the rebuilt `static/assets/` here, and name the art commit in the message.
+- **Only one person edits a `.blend` at a time.** Binary files can't be merged: if two people change `catacomb-kit.blend`, one of them has to throw their changes away. Say so before you start, or lock it: `git -C art lfs lock blender/catacomb-kit.blend` (and `git lfs unlock` when you've pushed). `git lfs locks` shows who has what.
+
+### Committing art
+
+- Put files where `art/README.md` says. Most binary types are already tracked; to add a new one (say `.tga`), track it **before** you add the files: `git -C art lfs track "*.tga"`, and commit the changed `.gitattributes` with them.
+- Before pushing, check the new files are in LFS: `git -C art lfs ls-files` should list them. A large file committed by mistake as a plain git file can be moved while it is still unpushed: `git -C art lfs migrate import --include="*.tga"`. Once it is pushed, it stays in the history for good.
+- Commit an export or a `.blend` when it is done, not after every save: every commit of a changed file stores the whole file again.
+- Don't commit the map-piece exports (`art/export/<piece>.glb`) or Blender's backups (`.blend1`); `art/.gitignore` leaves them out.
+
+### Saving the quota
+
+A full clone downloads about 2 GB. If you only need part of it, for example the sounds, clone without the LFS files and fetch just those:
 
 ```
-git lfs install    # once per machine
-git clone https://github.com/JoshuaBelden/undercroft-art.git art
-pnpm asset:export  # write the map-piece exports (needs Blender)
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/JoshuaBelden/undercroft-art.git art
+git -C art config lfs.fetchinclude "sfx/**"
+git -C art lfs pull
 ```
 
-You only need it to change art: the built, optimized assets in `static/assets/` are committed here. It is private because the raw sources are all rights reserved (`LICENSE-ASSETS.md`), some downloads (Pixabay sounds) can't be redistributed as they are, and LFS downloads count against the owner's quota (10 GiB a month on the free plan; a full clone is about 2 GB). Ask for access if you work on art.
+(In PowerShell, set the variable first: `$env:GIT_LFS_SKIP_SMUDGE=1`.) From then on pulls only download what `lfs.fetchinclude` matches; `git -C art config --unset lfs.fetchinclude` and `git -C art lfs pull` get the rest. Note that `pnpm asset:export` needs the `.blend` and all of `textures/`.
+
+### When something's wrong
+
+- **`pnpm asset:export` says files are still Git LFS pointers**: they haven't been downloaded. Run `git -C art lfs pull` (and check `lfs.fetchinclude` if you set it).
+- **A model or texture won't open, or is a few hundred bytes**: same thing, a pointer (`-` in `git -C art lfs ls-files`); `git -C art lfs pull`.
+- **Push rejected, or "LFS: ... over quota"**: the owner's monthly LFS allowance is used up. Wait for it to reset or ask the owner; nothing is lost locally.
+- **`git -C art status` shows files changed that you didn't touch**: usually Git LFS isn't installed for your user. Run `git lfs install`. If they still show, and you are sure you have no changes of your own there, `git -C art checkout -- <path>` puts them back as committed (it throws away changes to those files).
 
 ```
 art/

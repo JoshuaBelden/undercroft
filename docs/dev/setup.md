@@ -5,7 +5,7 @@
 - Node.js 22.9 or newer
 - pnpm 10 (`corepack enable` or `npm i -g pnpm`)
 - Docker Desktop (for MongoDB)
-- Blender (for assets)
+- For working on art only: Blender, Git LFS and access to the private undercroft-art repository, cloned into `art/` (see [asset-pipeline.md](asset-pipeline.md#raw-art)). Code needs none of these: the built assets are committed.
 
 ## First run
 
