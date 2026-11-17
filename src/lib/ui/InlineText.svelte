@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Inline } from '#lib/content/changelog.ts';
+	import type { Inline } from '#lib/content/release.ts';
 
 	/** A run of text with bold, code and links: one line of the release notes. */
 	let { parts }: { parts: Inline[] } = $props();

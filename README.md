@@ -4,7 +4,7 @@ A co-op first-person horror extraction game set in the catacombs, for one to fou
 
 Descend into a catacomb that is different every time, lit only by your headlamp. Loot what you can carry, find what the rite needs to banish the Affliction, and climb back out before it takes you. What you bring out you keep; what you lose down there stays lost.
 
-> **Status: closed beta.** Expect rough edges, balance changes and the occasional wipe. See [CHANGELOG.md](CHANGELOG.md) for what's in each version.
+> **Status: closed beta.** Expect rough edges, balance changes and the occasional wipe. The release notes for each version are on the [GitHub releases](https://github.com/JoshuaBelden/undercroft/releases) page and in game under What's new.
 
 ## Features
 
@@ -42,19 +42,18 @@ More in [docs/dev/setup.md](docs/dev/setup.md).
 
 ## Commands
 
-| Command                 | What                                                           |
-| ----------------------- | -------------------------------------------------------------- |
-| `pnpm dev`              | the client, with hot reload                                    |
-| `pnpm dev:server`       | the game server, restarting on changes                         |
-| `pnpm dev:seed [email]` | fill explorers' stashes with items to test with                |
-| `pnpm check`            | Svelte and TypeScript checks (must be clean)                   |
-| `pnpm lint`             | Prettier and ESLint (must be clean); `pnpm format` fixes style |
-| `pnpm asset:export`     | map kit (.blend) → map-piece exports, headless in Blender      |
-| `pnpm asset:build`      | Blender exports → optimized models in `static/assets/`         |
-| `pnpm asset:audio`      | raw sounds → Opus                                              |
-| `pnpm asset:images`     | interface art → WebP                                           |
-| `pnpm release <bump>`   | bump the version, date the release notes, tag                  |
-| `pnpm deploy:release`   | ship the committed build to the server                         |
+| Command               | What                                                           |
+| --------------------- | -------------------------------------------------------------- |
+| `pnpm dev`            | the client, with hot reload                                    |
+| `pnpm dev:server`     | the game server, restarting on changes                         |
+| `pnpm check`          | Svelte and TypeScript checks (must be clean)                   |
+| `pnpm lint`           | Prettier and ESLint (must be clean); `pnpm format` fixes style |
+| `pnpm asset:export`   | map kit (.blend) → map-piece exports, headless in Blender      |
+| `pnpm asset:build`    | Blender exports → optimized models in `static/assets/`         |
+| `pnpm asset:audio`    | raw sounds → Opus                                              |
+| `pnpm asset:images`   | interface art → WebP                                           |
+| `pnpm release <bump>` | with the notes written: version, tag, GitHub release, deploy   |
+| `pnpm deploy:release` | ship the committed build to the server                         |
 
 The asset commands need the raw art (see below).
 

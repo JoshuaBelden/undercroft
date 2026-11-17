@@ -70,7 +70,7 @@ src/
       credits.ts            the Credits page: AI statement, inspirations, assets, tools
       reports.ts            bug report, idea and feedback rules; idea statuses
       admin.ts              admin app rules; audit log action names
-      changelog.ts          release notes, parsed from CHANGELOG.md
+      release.ts            the current release's notes for What's new, from release.json (written by pnpm release)
     ui/                     Svelte components (Panel, Dialog, Slot, TabScreen, HelpScreen, menus, overlays)
   hooks.server.ts           finds the account for each request; all but sign-in and About is behind it; records server errors
   hooks.client.ts           console capture and the crash prompt for errors nobody caught

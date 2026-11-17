@@ -28,7 +28,7 @@ Read [docs/dev/structure.md](docs/dev/structure.md) first, then the doc for the 
 
 1. `pnpm check`, `pnpm lint` and `pnpm test` must all finish with **zero errors and zero warnings**. Fix a warning rather than silencing it.
 2. Add unit tests for changes to shared or server logic (see [docs/dev/testing.md](docs/dev/testing.md)), and play-test your change: there are no browser tests, so describe what you tried in the pull request.
-3. Update the docs in the same change: the `docs/dev/` page for the system, the in-game help if players will notice, and an entry under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), written for players.
+3. Update the docs in the same change: the `docs/dev/` page for the system, and the in-game help if players will notice. There is no changelog to update: release notes are written from the commits when a release is cut, so give your commits a subject that says what changed ([docs/dev/releasing.md](docs/dev/releasing.md)).
 4. Keep the pull request to one change, with a clear title and a description of what and why.
 
 ## AI-assisted contributions

@@ -35,7 +35,6 @@ pnpm install            # install deps
 docker compose up -d    # start MongoDB
 pnpm dev                # SvelteKit client
 pnpm dev:server         # game server (watch mode)
-pnpm dev:seed [email]   # dev: fill explorers' stashes with items to test with
 pnpm dev:admin          # admin app (admin/, port 5174; docs/dev/admin.md)
 pnpm desktop:dev        # desktop app: local site + game server + save, Steam co-op (docs/dev/hosting.md)
 pnpm desktop:build      # desktop app: desktop/release/win-unpacked + installer
@@ -54,7 +53,7 @@ pnpm asset:audio        # art/sfx/*.wav -> Opus in static/assets/shared/audio + 
 pnpm asset:images       # art/images/*.png -> WebP in static/assets/ui/images (interface art)
 pnpm asset:levels       # how loud every sound plays, for mixing (docs/dev/player.md#mix)
 pnpm deploy:provision   # create the DigitalOcean droplet (needs DIGITALOCEAN_ACCESS_TOKEN)
-pnpm release <bump>     # version + dated release notes + tag (docs/dev/releasing.md)
+pnpm release <bump>     # after /release-notes: version, commit, tag, GitHub release, deploy (docs/dev/releasing.md)
 pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 ```
 
@@ -114,5 +113,5 @@ When a feature lands, update in the same change:
 - `docs/dev/`: how the system works and how to extend it
 - Player help content, if the feature is player-facing
 - The GitHub issue: reference it in the commit (`Closes #12`) so it closes when pushed
-- `CHANGELOG.md`: a line under `## Unreleased`, written for players, if they will notice it
+- No changelog file: release notes are written for each release from the commits since the last (the `release-notes` skill), so give each commit a subject that says what changed
 - `src/lib/content/credits.ts`: a credit for any new third-party asset, tool or source

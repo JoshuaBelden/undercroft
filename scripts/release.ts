@@ -1,33 +1,50 @@
 /**
- * Cuts a release: bumps the version, dates the release notes, commits and tags. See
- * docs/dev/releasing.md.
+ * Cuts a release, from start to the live server. See docs/dev/releasing.md.
  *
- *   pnpm release <patch | minor | major | x.y.z>
+ *   pnpm release <patch | minor | major | x.y.z> [--dry-run] [--host <ip>] [--domain <name>]
  *
- * 1. Needs a clean working tree and something under `## Unreleased` in CHANGELOG.md.
- * 2. Sets `version` in package.json, and in desktop/package.json (the desktop app's installer).
- * 3. Renames the Unreleased section to `## <version> - <date>` and starts a new, empty one.
- * 4. Commits ("Release v<version>") and makes an annotated tag `v<version>` holding the notes.
+ * The notes are written first, for players, into src/lib/content/release.json (the in-game
+ * What's new page): ask Claude for `/release-notes <version>` (.claude/skills/release-notes/),
+ * or write them yourself. The release is refused unless that file is for this version.
  *
- * It doesn't push or deploy: it prints the commands for that.
+ * 1. Ticks the version in package.json and desktop/package.json, and dates release.json.
+ * 2. Commits "Release v<version>" (with release.json, if it wasn't committed yet).
+ * 3. Makes the annotated tag `v<version>`, holding the notes, and pushes the commit and the tag.
+ * 4. Creates the GitHub release from the tag (`gh`).
+ * 5. Deploys the tag (`pnpm deploy:release --ref v<version>`).
+ *
+ * Needs a clean working tree on main (release.json aside) and `gh` signed in. `--dry-run`
+ * shows the commits since the last release and whether the notes are ready, and does nothing.
+ * If a step fails, it stops and prints the commands left to finish.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
+import { notReady, notesFromCommits, type ReleaseEntry } from '../src/lib/content/release.ts';
 
 const PACKAGE = 'package.json';
 const DESKTOP_PACKAGE = 'desktop/package.json';
-const CHANGELOG = 'CHANGELOG.md';
-const UNRELEASED = '## Unreleased';
+const RELEASE = 'src/lib/content/release.json';
+/** The live server (docs/dev/deployment.md#the-live-beta). */
+const LIVE = { host: '64.23.154.42', domain: 'undercroft.us' };
 
-const git = (...args: string[]) => execFileSync('git', args, { encoding: 'utf8' }).trim();
+const { values: args, positionals } = parseArgs({
+	allowPositionals: true,
+	options: {
+		'dry-run': { type: 'boolean', default: false },
+		host: { type: 'string', default: LIVE.host },
+		domain: { type: 'string', default: LIVE.domain }
+	}
+});
+
+const git = (...list: string[]) => execFileSync('git', list, { encoding: 'utf8' }).trim();
 const fail = (message: string): never => {
 	console.error(message);
 	process.exit(1);
 };
 
-const bump = process.argv[2];
-if (!bump) fail('Usage: pnpm release <patch | minor | major | x.y.z>');
-if (git('status', '--porcelain')) fail('Commit or stash your changes first.');
+const bump = positionals[0];
+if (!bump) fail('Usage: pnpm release <patch | minor | major | x.y.z> [--dry-run]');
 
 const pkgText = readFileSync(PACKAGE, 'utf8');
 const current = (JSON.parse(pkgText) as { version: string }).version;
@@ -41,33 +58,105 @@ const next =
 				? `${major}.${minor}.${patch + 1}`
 				: bump;
 if (!/^\d+\.\d+\.\d+$/.test(next)) fail(`Not a version: ${next}`);
-if (git('tag', '--list', `v${next}`)) fail(`v${next} is already tagged.`);
+const tag = `v${next}`;
+if (git('tag', '--list', tag)) fail(`${tag} is already tagged.`);
 
-const log = readFileSync(CHANGELOG, 'utf8');
-const start = log.indexOf(UNRELEASED);
-if (start < 0) fail(`${CHANGELOG} has no "${UNRELEASED}" section.`);
-const bodyStart = start + UNRELEASED.length;
-const end = log.indexOf('\n## ', bodyStart);
-const notes = log.slice(bodyStart, end < 0 ? undefined : end).trim();
-if (!notes) fail(`Nothing under "${UNRELEASED}" in ${CHANGELOG}: write the release notes first.`);
+let since: string | null = null;
+try {
+	since = git('describe', '--tags', '--abbrev=0', '--match', 'v*');
+} catch {
+	// No release yet: every commit.
+}
+const subjects = git('log', '--no-merges', '--format=%s', ...(since ? [`${since}..HEAD`] : []));
+const commits = notesFromCommits(subjects.split('\n'));
+if (!commits) fail(`Nothing has been committed since ${since}.`);
+
+const written = JSON.parse(readFileSync(RELEASE, 'utf8')) as ReleaseEntry;
+const problem = notReady(written, next);
+console.log(`Undercroft ${next} (was ${current}). Commits since ${since ?? 'the start'}:\n`);
+console.log(`${commits}\n`);
+console.log(problem ?? `The notes in ${RELEASE}:\n\n${written.notes}\n`);
+if (args['dry-run']) process.exit(0);
+if (problem) fail(problem);
+const notes = written.notes.trim();
+
+// release.json may be left uncommitted, for the release commit; nothing else may.
+const dirty = git('status', '--porcelain')
+	.split('\n')
+	.filter((line) => line && !line.endsWith(RELEASE));
+if (dirty.length) fail('Commit or stash your changes first (release.json aside).');
+if (git('branch', '--show-current') !== 'main') fail('Release from main.');
+try {
+	execFileSync('gh', ['auth', 'status'], { stdio: 'ignore' });
+} catch {
+	fail('The GitHub CLI (gh) is needed, signed in: gh auth login.');
+}
 
 const date = new Date().toISOString().slice(0, 10);
-writeFileSync(
-	CHANGELOG,
-	`${log.slice(0, start)}${UNRELEASED}\n\n## ${next} - ${date}\n\n${notes}\n${end < 0 ? '' : log.slice(end)}`
-);
-writeFileSync(PACKAGE, pkgText.replace(`"version": "${current}"`, `"version": "${next}"`));
-// The desktop app is released with the game, at the same version.
-const desktopText = readFileSync(DESKTOP_PACKAGE, 'utf8');
-writeFileSync(DESKTOP_PACKAGE, desktopText.replace(/"version": "[^"]+"/, `"version": "${next}"`));
+const release: ReleaseEntry = { version: next, date, notes };
 
-git('add', PACKAGE, DESKTOP_PACKAGE, CHANGELOG);
-git('commit', '-m', `Release v${next}`);
-git('tag', '-a', `v${next}`, '-m', `Undercroft ${next}\n\n${notes}`);
+const run = (command: string, list: string[]) =>
+	// pnpm is a .cmd on Windows, which only runs through a shell.
+	execFileSync(command, list, { stdio: 'inherit', shell: process.platform === 'win32' });
 
-console.log(`Released v${next} (was ${current}).
+/** Every step, in order, with the command that does it by hand if it is left to finish. */
+const steps: { name: string; manual: string; run: () => void }[] = [
+	{
+		name: 'tick the version and date the notes',
+		manual: '',
+		run: () => {
+			writeFileSync(PACKAGE, pkgText.replace(`"version": "${current}"`, `"version": "${next}"`));
+			// The desktop app is released with the game, at the same version.
+			const desktop = readFileSync(DESKTOP_PACKAGE, 'utf8');
+			writeFileSync(DESKTOP_PACKAGE, desktop.replace(/"version": "[^"]+"/, `"version": "${next}"`));
+			writeFileSync(RELEASE, JSON.stringify(release, null, '\t') + '\n');
+		}
+	},
+	{
+		name: 'commit',
+		manual: `git add ${PACKAGE} ${DESKTOP_PACKAGE} ${RELEASE} && git commit -m "Release ${tag}"`,
+		run: () => {
+			git('add', PACKAGE, DESKTOP_PACKAGE, RELEASE);
+			git('commit', '-m', `Release ${tag}`);
+		}
+	},
+	{
+		name: 'tag',
+		manual: `git tag -a ${tag} -m "Undercroft ${next}" (with the notes)`,
+		run: () => git('tag', '-a', tag, '-m', `Undercroft ${next}\n\n${notes}`)
+	},
+	{
+		name: 'push',
+		manual: 'git push origin main --follow-tags',
+		run: () => run('git', ['push', 'origin', 'main', '--follow-tags'])
+	},
+	{
+		name: 'create the GitHub release',
+		manual: `gh release create ${tag} --title "Undercroft ${next}" --notes-from-tag`,
+		run: () =>
+			run('gh', ['release', 'create', tag, '--title', `Undercroft ${next}`, '--notes-from-tag'])
+	},
+	{
+		name: 'deploy',
+		manual: `pnpm deploy:release --host ${args.host} --domain ${args.domain} --ref ${tag}`,
+		run: () =>
+			run('pnpm', ['deploy:release', '--host', args.host, '--domain', args.domain, '--ref', tag])
+	}
+];
 
-Next:
-  git push --follow-tags
-  gh release create v${next} --notes-from-tag     (optional: a GitHub release page)
-  pnpm deploy:release --host 64.23.154.42 --domain undercroft.us --ref v${next}`);
+for (const [i, step] of steps.entries()) {
+	console.log(`\n> ${step.name}`);
+	try {
+		step.run();
+	} catch (error) {
+		console.error(`\nStopped at "${step.name}": ${(error as Error).message}`);
+		const left = steps
+			.slice(i)
+			.map((s) => s.manual)
+			.filter(Boolean);
+		if (left.length) console.error(`To finish, fix that and run:\n  ${left.join('\n  ')}`);
+		process.exit(1);
+	}
+}
+
+console.log(`\nReleased and deployed ${tag}.`);

@@ -1,6 +1,10 @@
 <script lang="ts">
-	import { RELEASES } from '#lib/content/changelog.ts';
+	import { SOURCE_URL } from '#lib/content/credits.ts';
+	import { RELEASE as release } from '#lib/content/release.ts';
 	import InlineText from '#lib/ui/InlineText.svelte';
+
+	/** Every earlier release's notes are on GitHub, with its tag. */
+	const releasesUrl = SOURCE_URL ? `${SOURCE_URL}/releases` : null;
 </script>
 
 <svelte:head>
@@ -9,27 +13,29 @@
 
 <h1>What's new</h1>
 
-{#each RELEASES as release (release.version ?? 'unreleased')}
-	<section class="release">
-		<h2>
-			{release.version ? `Version ${release.version}` : 'In this build'}
-			{#if release.date}<span class="date">{release.date}</span>{/if}
-		</h2>
-		{#each release.blocks as block, i (i)}
-			{#if block.kind === 'heading'}
-				<h3>{block.text}</h3>
-			{:else if block.kind === 'paragraph'}
-				<p><InlineText parts={block.parts} /></p>
-			{:else}
-				<ul>
-					{#each block.items as item, j (j)}
-						<li><InlineText parts={item} /></li>
-					{/each}
-				</ul>
-			{/if}
-		{/each}
-	</section>
-{/each}
+<section class="release">
+	<h2>
+		Version {release.version}
+		<span class="date">{release.date}</span>
+	</h2>
+	{#each release.blocks as block, i (i)}
+		{#if block.kind === 'heading'}
+			<h3>{block.text}</h3>
+		{:else if block.kind === 'paragraph'}
+			<p><InlineText parts={block.parts} /></p>
+		{:else}
+			<ul>
+				{#each block.items as item, j (j)}
+					<li><InlineText parts={item} /></li>
+				{/each}
+			</ul>
+		{/if}
+	{/each}
+</section>
+
+{#if releasesUrl}
+	<p class="older">Earlier versions: <a href={releasesUrl} rel="external">release notes</a></p>
+{/if}
 
 <style>
 	h1 {
@@ -79,5 +85,11 @@
 
 	li + li {
 		margin-top: 4px;
+	}
+
+	.older {
+		color: var(--muted);
+		font-family: var(--font-ui);
+		font-size: 0.9rem;
 	}
 </style>

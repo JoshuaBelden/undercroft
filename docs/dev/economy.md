@@ -185,4 +185,4 @@ Every purchase, sale, grant and reset, and everything thrown away, writes a line
 
 ## Testing
 
-A new explorer has nothing. `pnpm dev:seed` puts some of every item, and some money, in every explorer's stash (`pnpm dev:seed <email>` for one account; `scripts/seed-items.ts` lists what). In dev mode, the admin panel's Account section (F10 on the party screen) grants money and items; underground, Give puts things straight in your hands. Dying needs no salts: set sanity to 0 and wait out the bleed-out.
+A new explorer has nothing. In dev mode, the admin panel's Account section (F10 on the party screen) grants money and items; underground, Give puts things straight in your hands. Dying needs no salts: set sanity to 0 and wait out the bleed-out.
