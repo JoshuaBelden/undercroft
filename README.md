@@ -106,4 +106,4 @@ Bug reports and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.m
 
 ## Credits
 
-Undercroft is made by Joshua Belden, with AI assistance. The statement on how AI is used, the inspirations, and every asset, font and tool are credited on the in-game **Credits** page, from [src/lib/content/credits.ts](src/lib/content/credits.ts).
+Undercroft is made with AI assistance. The statement on how AI is used and every third-party asset and font are credited on the in-game **Credits** page, from [src/lib/content/credits.ts](src/lib/content/credits.ts).

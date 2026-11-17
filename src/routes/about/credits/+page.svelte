@@ -1,12 +1,5 @@
 <script lang="ts">
-	import {
-		AI_STATEMENT,
-		AI_TOOLS,
-		CREATOR,
-		CREDIT_SECTIONS,
-		SOURCE_URL,
-		type Credit
-	} from '#lib/content/credits.ts';
+	import { AI_STATEMENT, CREDIT_SECTIONS, SOURCE_URL, type Credit } from '#lib/content/credits.ts';
 	import { devMode } from '#lib/dev.ts';
 
 	/** Placeholders only show in dev mode, marked, so the owner sees what is left to fill in. */
@@ -36,14 +29,12 @@
 {/snippet}
 
 <h1>Credits</h1>
-<p class="lead">Undercroft is made by <strong>{CREATOR}</strong>.</p>
 
 <section>
 	<h2>On the use of AI</h2>
 	{#each AI_STATEMENT as paragraph, i (i)}
 		<p>{paragraph}</p>
 	{/each}
-	{@render list(shown(AI_TOOLS))}
 </section>
 
 {#each sections as section (section.id)}
@@ -65,12 +56,8 @@
 
 <style>
 	h1 {
-		margin: 0 0 8px;
-		font-size: 2rem;
-	}
-
-	.lead {
 		margin: 0 0 24px;
+		font-size: 2rem;
 	}
 
 	section {
