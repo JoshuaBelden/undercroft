@@ -4,13 +4,14 @@
 	import { page } from '$app/state';
 	import { signOut } from '#lib/account/account.svelte.ts';
 	import { isDesktop, quitApp } from '#lib/desktop.ts';
+	import { openDiagnostics } from '#lib/game/benchmark/state.svelte.ts';
 	import { openBugReport } from '#lib/game/crash.svelte.ts';
 	import { menu as padMenu } from '#lib/game/input/menus.ts';
 	import Avatar from '#lib/ui/Avatar.svelte';
 
 	/**
 	 * The avatar and gamer tag at the top right of the dashboard, as a menu: the Account screen, ideas and
-	 * feedback, reporting a bug, signing out, and (in the desktop app) quitting the game. Closes on Escape, on a click anywhere else, and once something is chosen.
+	 * feedback, reporting a bug, running diagnostics (docs/dev/diagnostics.md), signing out, and (in the desktop app) quitting the game. Closes on Escape, on a click anywhere else, and once something is chosen.
 	 */
 	interface Props {
 		gamerTag: string;
@@ -122,6 +123,16 @@
 					}}
 				>
 					Report a bug
+				</button>
+				<button
+					type="button"
+					role="menuitem"
+					onclick={() => {
+						close(false);
+						openDiagnostics();
+					}}
+				>
+					Run diagnostics
 				</button>
 				<button
 					type="button"

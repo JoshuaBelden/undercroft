@@ -16,6 +16,8 @@ export const REPORT = {
 	stackMax: 6000,
 	/** Labels a filed issue gets on GitHub. */
 	labels: ['bug', 'from-game'],
+	/** Labels a Run Diagnostics report gets instead (docs/dev/diagnostics.md). */
+	diagnosticsLabels: ['diagnostics', 'from-game'],
 	/** Labels a crash filed from the admin app gets. */
 	crashLabels: ['bug', 'crash']
 };

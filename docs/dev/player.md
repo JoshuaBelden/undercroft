@@ -165,7 +165,17 @@ So you see teammates about 100 ms plus latency in the past, and the local player
 
 **Toggle sprint and aim** (accessibility settings) are handled in `LocalPlayer`: a press switches sprint or aim on and the input frames carry it as if held. Sprint ends when you stop moving or press the stance key. The controller has its own sprint setting, a toggle by default (see [controller.md](controller.md#moving-and-looking)); `sprintBy` remembers which device switched it on. Aim only toggles with a firearm in hand (with anything else the aim key throws on every press) and ends when the gun leaves the hand. Aiming sensitivity (`controls.aimSensitivity`) multiplies the look speed while zoomed in.
 
-A lamp redraws its shadow map only while it's lit and its light could reach the view (`Headlamp.update` with the camera's frustum). Otherwise `shadow.autoUpdate` is off, and Three.js keeps the old map without a pass over the scene. Shadows are never turned off with `castShadow`, which would recompile every material, like changing the number of lights.
+A lamp redraws its shadow map only while it's lit and its light could reach the view (`Headlamp.update` with the camera's frustum). Otherwise `shadow.autoUpdate` is off, and Three.js keeps the old map without a pass over the scene. Shadows are never turned off with `castShadow` while playing, because changing how many lights cast shadows recompiles every material, like changing the number of lights. "Nearest" below swaps which lamp casts without changing how many.
+
+### Teammate shadows
+
+Each lamp that casts shadows draws the scene again into its shadow map every frame it's lit and in view. In a party of four that's three extra passes. Run Diagnostics on an iPad measured about 4 ms a frame for them, enough to take Medium from above 60 fps to 56 ([diagnostics.md](diagnostics.md#what-we-learned)). The **Teammate lamp shadows** setting (`graphics.teammateShadows`) picks whose lamps cast shadows besides your own:
+
+- **All** (the default): every teammate's lamp. Their light stops at walls, as it should.
+- **Nearest**: only the nearest teammate with a lit lamp. `RemotePlayers.pickCaster` chooses each frame with `pickShadowCaster` (`src/lib/game/player/shadowCaster.ts`), and another lamp takes over only once it's 1.5 m closer, so two teammates side by side don't swap it every frame. Someone is always the caster while anyone is there, lit or not, so the number of shadow-casting lights never changes and nothing recompiles. An unlit caster costs nothing, since its map isn't redrawn.
+- **Off**: no teammate's lamp casts shadows.
+
+A lamp without shadows **shines through walls**: a teammate in the next passage lights your side of the rock. That's the price, and the setting's hint says so. Low quality has no shadows whatever this says (`setShadows(enabled = false)`). Run Diagnostics always uses All, so its results compare across machines.
 
 A lamp that is off has zero intensity rather than `visible = false`. Changing the number of visible lights makes Three.js recompile every material, which would hitch every time someone toggles a lamp.
 

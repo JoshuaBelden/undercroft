@@ -28,7 +28,7 @@ Flow:
 
 `Engine` owns the renderer, scene, camera and frame loop. Register per-frame work with `engine.onUpdate(fn)`; it returns an unsubscribe function. Call `dispose()` on teardown.
 
-**Graphics settings:** `engine.applyGraphics(settings.graphics)` applies FOV, brightness (tone-mapping exposure), quality (pixel ratio, shadows, shadow map size), the render resolution (`renderScale`, 0.5 to 1, multiplying the quality's pixel ratio) and the frame rate limit (`frameCap`: 30, 60 or 0 for none; the frame loop skips screen refreshes until the next frame is due). Call it again when the settings change.
+**Graphics settings:** `engine.applyGraphics(settings.graphics)` applies FOV, brightness (tone-mapping exposure), quality (pixel ratio, shadows, shadow map size), the render resolution (`renderScale`, 0.5 to 1, multiplying the quality's pixel ratio) and the frame rate limit (`frameCap`: 30, 60 or 0 for none; the frame loop skips screen refreshes until the next frame is due). Call it again when the settings change. Teammate lamp shadows (`teammateShadows`) go to `RemotePlayers.setShadows` instead ([player.md](player.md#teammate-shadows)).
 
 **Light budget:** `LIGHT_BUDGET` caps active dynamic lights (ambient excluded). The stats overlay shows the count and turns red when over budget. Every candle, headlamp, torch and glow stick counts. Short flashes borrow a light that already exists rather than adding one: a gunshot lights the shooter's headlamp (see [items.md](items.md#client)).
 

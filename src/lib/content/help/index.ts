@@ -252,7 +252,7 @@ Sprint and Aim, under Accessibility: press the key once instead of holding it. Y
 
 Mono audio, under Accessibility: both ears hear everything. Turn on Captions too, to see which way a sound came from.
 
-Under Graphics, turn down Camera shake, and if the game stutters, lower the Render resolution or set a Frame rate limit (on a laptop, 60 saves battery). Aiming sensitivity is under Mouse. Under Audio, you can mute the game while another tab or window is in front.
+Under Graphics, turn down Camera shake, and if the game stutters, lower the Render resolution or set a Frame rate limit (on a laptop, 60 saves battery). Playing with others, Teammate lamp shadows on Nearest or Off helps most in a party of four, though a teammate's lamp without shadows shines through walls. Aiming sensitivity is under Mouse. Under Audio, you can mute the game while another tab or window is in front.
 
 To see how smoothly the game is running, press {action:toggleStats}: the frame rate shows in a corner.`
 	},
@@ -503,6 +503,7 @@ Two-step sign-in asks for a code from an authenticator app on your phone (Google
 		body: `Found something broken, or want something added? Click your gamer tag at the top right of the dashboard.
 
 - Report a bug: say what happened and how to make it happen again. It goes on the list of things to fix. You can also report one from the settings screen, down in the catacombs too.
+- Run diagnostics: if the game runs slowly on your computer or tablet, this measures it. It walks through the same stretch of catacombs at each graphics quality (Low, Medium and High, alone and then with a party of four), takes about a minute, and changes none of your settings. Keep the screen in front while it runs; Escape (or B on a controller) stops it. Then you see the frame rates and can send them to us, with a note if you like, so we can make the game run better on machines like yours.
 - Ideas and feedback: the board of ideas other players suggested. Vote for the ones you want most (once each, and you can take a vote back): the ones with the most votes are looked at first. Suggest your own: it shows on the board once the team has read it. Or send feedback only the team reads.
 
 A bug report can carry details about the game and your computer: the version, your browser and graphics card, and, underground, the map, the room and the frame rate. You see all of it before sending, and can leave it out. It never includes your email, gamer tag or password.

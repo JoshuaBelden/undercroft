@@ -311,7 +311,11 @@
 		applyGraphics = () => {
 			engine.applyGraphics(settings.graphics);
 			headlamp.setShadows(settings.graphics.quality !== 'low', engine.shadowMapSize);
-			remote.setShadows(settings.graphics.quality !== 'low', engine.shadowMapSize);
+			remote.setShadows(
+				settings.graphics.quality !== 'low',
+				engine.shadowMapSize,
+				settings.graphics.teammateShadows
+			);
 		};
 		applyGraphics();
 

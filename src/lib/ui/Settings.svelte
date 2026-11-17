@@ -10,13 +10,15 @@
 	import { canRumble, standardPads } from '#lib/game/input/gamepad.ts';
 	import {
 		FRAME_CAPS,
+		TEAMMATE_SHADOWS,
 		resetSettings,
 		saveSettings,
 		settings,
 		type ButtonIcons,
 		type CaptionSize,
 		type GraphicsQuality,
-		type SprintMode
+		type SprintMode,
+		type TeammateShadows
 	} from '#lib/settings/settings.svelte.ts';
 	import Dialog from './Dialog.svelte';
 	import { fullscreen, toggleFullscreen } from './fullscreen.svelte.ts';
@@ -57,6 +59,11 @@
 	const CAPTION_SIZES: readonly CaptionSize[] = ['small', 'medium', 'large'];
 	const SPRINT_MODES: readonly SprintMode[] = ['toggle', 'hold'];
 	const ICON_SETS: readonly ButtonIcons[] = ['auto', 'xbox', 'playstation'];
+	const TEAMMATE_SHADOW_NAMES: Record<TeammateShadows, string> = {
+		all: 'All',
+		nearest: 'Nearest',
+		off: 'Off'
+	};
 	const ICON_NAMES: Record<ButtonIcons, string> = {
 		auto: 'Auto',
 		xbox: 'Xbox',
@@ -197,6 +204,19 @@
 				settings.graphics.quality = stepped(QUALITIES, settings.graphics.quality, by);
 				graphicsChanged();
 			}}
+		/>
+		<StepperField
+			label="Teammate lamp shadows"
+			text={TEAMMATE_SHADOW_NAMES[settings.graphics.teammateShadows]}
+			onstep={(by) => {
+				settings.graphics.teammateShadows = stepped(
+					TEAMMATE_SHADOWS,
+					settings.graphics.teammateShadows,
+					by
+				);
+				graphicsChanged();
+			}}
+			hint="Whose headlamps cast shadows besides yours. Each one draws the catacombs again every frame, so in a party of four Nearest or Off plays much more smoothly, but a lamp without shadows shines through walls. Low quality has no shadows at all."
 		/>
 		<SliderField
 			label="Render resolution"

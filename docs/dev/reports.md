@@ -41,6 +41,8 @@ The form asks for a title, what happened and how to make it happen. Under it, **
 
 Never the email, gamer tag or password.
 
+**Run diagnostics** (in the account menu, under Report a bug) sends through the same endpoint: a `ReportInput` with a `benchmark`, where the description is an optional note. It is filed labelled `diagnostics` instead of `bug`. See [diagnostics.md](diagnostics.md).
+
 `POST /api/report` checks it (`cleanReport`: every field trimmed and capped), counts it against the `report` limit (6 an hour per account), keeps it (`createReport`), then files it (`fileReport`) and answers `{ id, issue }`.
 
 ### Filing on GitHub

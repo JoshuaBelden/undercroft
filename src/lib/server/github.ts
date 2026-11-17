@@ -1,6 +1,7 @@
 import type { Db } from 'mongodb';
 import { GITHUB_REPO, GITHUB_TOKEN } from '$app/env/private';
 import { REPORT } from '../content/reports.ts';
+import { benchmarkMarkdown } from '../shared/diagnostics.ts';
 import {
 	getError,
 	markReportFailed,
@@ -55,12 +56,18 @@ function quote(text: string): string {
 const code = (text: string): string => '```\n' + text.replace(/```/g, "'''") + '\n```';
 
 export function reportIssueBody(report: ReportDoc): string {
-	const parts = [
-		'### What happened',
-		quote(report.description),
-		'### How to make it happen',
-		quote(report.steps)
-	];
+	const parts = report.benchmark
+		? [
+				'### Benchmark',
+				benchmarkMarkdown(report.benchmark),
+				...(report.description ? ['### Note', quote(report.description)] : [])
+			]
+		: [
+				'### What happened',
+				quote(report.description),
+				'### How to make it happen',
+				quote(report.steps)
+			];
 	if (report.crash) {
 		parts.push(
 			`### Error (${report.crash.source})`,
@@ -122,7 +129,7 @@ export async function fileReport(db: Db, report: ReportDoc): Promise<IssueRef | 
 			const created = await github('/issues', {
 				title: report.title,
 				body: reportIssueBody(report),
-				labels: REPORT.labels
+				labels: report.benchmark ? REPORT.diagnosticsLabels : REPORT.labels
 			});
 			issue = { number: created.number, url: created.html_url };
 			if (crash) await setErrorIssue(db, crash._id, issue);
