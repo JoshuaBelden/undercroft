@@ -5,7 +5,7 @@
 	import { page } from '$app/state';
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { money } from '#lib/content/economy.ts';
-	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
+	import { BACKDROP_IMAGE, imageUrl } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { menu } from '#lib/game/input/menus.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
@@ -106,6 +106,10 @@
 	{@attach menu({ back: up, tabs: switchTab, key: page.route.id ?? undefined })}
 >
 	<header bind:clientHeight={bar}>
+		<!-- The game's mark, far left: home, the Expedition page. -->
+		<a class="mark" href={resolve('/(hub)')} title="Undercroft">
+			<img src={imageUrl('icon')} alt="Undercroft" width="36" height="36" />
+		</a>
 		<nav aria-label="Dashboard">
 			<!-- The controller's shortcuts show their buttons while it is in use (ButtonHint). -->
 			<ButtonHint code="PadLB" />
@@ -247,6 +251,22 @@
 		gap: 28px;
 		padding: 0 24px;
 		background: rgb(10 9 8 / 0.78);
+	}
+
+	.mark {
+		display: block;
+		flex: none;
+		border-radius: 50%;
+	}
+
+	.mark img {
+		display: block;
+		object-fit: contain;
+	}
+
+	.mark:hover img,
+	.mark:focus-visible img {
+		filter: brightness(1.2);
 	}
 
 	nav {

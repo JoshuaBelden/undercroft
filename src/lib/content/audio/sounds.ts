@@ -54,9 +54,7 @@ export type SynthSpec =
 	| { kind: 'rustle' }
 	/** Low, beating drone loop (`pitch` Hz). */
 	| { kind: 'drone'; pitch: number }
-	/** A huge, distant exhalation through the stone: something has arrived. */
-	| { kind: 'signal' }
-	/** Hissing recoil (light on the manifestation). */
+	/** Hissing recoil: the stunned manifestation's placeholder, if its recording isn't built. */
 	| { kind: 'hiss' }
 	/** A struck bell at `pitch` Hz ringing out over `length` seconds. */
 	| { kind: 'bell'; pitch: number; length: number };
@@ -220,6 +218,8 @@ export const SOUNDS = {
 		category: 'ambience',
 		volume: 0.5
 	},
+	/** The bed under the dashboard and every page off the expedition (FadingLoop.ts, from the root layout), looped. */
+	'ambience.dashboard': { file: 'ambience.dashboard', category: 'ambience', volume: 0.5 },
 	// Rare unsettling ambient swells, played at random times (not placed in the world).
 	'ambience.creepy': {
 		file: ['ambience.creepy', 'ambience.horror'],
@@ -565,13 +565,21 @@ export const SOUNDS = {
 	},
 	// The surface.
 	/** Moving between pages (the tabs, the store, social, settings). */
-	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.8 },
-	/** The controller moving the focus in a menu (docs/dev/controller.md): quieter and higher. */
-	'ui.focus': { synth: { kind: 'click' }, category: 'sfx', volume: 0.2, rate: 1.8 },
-	/** The controller's right stick stepping a value in a menu (the store's quantity): a lower tick. */
-	'ui.step': { synth: { kind: 'click' }, category: 'sfx', volume: 0.2, rate: 1.4 },
-	/** A controller button held in a menu pressed its control (Launch, the store): a lower tick. */
-	'ui.hold': { synth: { kind: 'click' }, category: 'sfx', volume: 0.35, rate: 1.2 },
+	'ui.nav': { file: 'ui.nav', synth: { kind: 'click' }, category: 'sfx', volume: 0.2 },
+	/** Pressing a button in a menu: a click, a key, or the controller's A. */
+	'ui.button': { file: 'ui.button', synth: { kind: 'click' }, category: 'sfx', volume: 0.25 },
+	/** The controller moving the focus in a menu (docs/dev/controller.md): the move, quieter. */
+	'ui.focus': { file: 'ui.nav', synth: { kind: 'click' }, category: 'sfx', volume: 0.15 },
+	/** The controller's right stick stepping a value in a menu (the store's quantity): lower. */
+	'ui.step': {
+		file: 'ui.nav',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.15,
+		rate: 0.85
+	},
+	/** A controller button held in a menu pressed its control (Launch, the store): a button press. */
+	'ui.hold': { file: 'ui.button', synth: { kind: 'click' }, category: 'sfx', volume: 0.25 },
 	/**
 	 * Hiding or showing the rite panel underground (docs/dev/rite.md), and the admin free camera
 	 * (docs/dev/map-generation.md#debug-grid): a quiet tick.
@@ -586,6 +594,11 @@ export const SOUNDS = {
 	// Stingers on the music bus (dry: no muffling or reverb from where you stand).
 	'expedition.intro': { file: 'expedition.intro', category: 'music', volume: 0.8 },
 	'expedition.outro': { file: 'expedition.outro', category: 'music', volume: 0.5 },
+	/**
+	 * Music while the Gloaming's manifestation is in the world, from the rite to its banishing
+	 * (AfflictionDef.manifestation.music), looped under the fight.
+	 */
+	'music.gloaming.fight': { file: 'music.gloaming.fight', category: 'music', volume: 0.35 },
 	/** Finding something epic, legendary or a quest item (revealed in a crate, or picked up). */
 	'loot.found': { file: 'loot.found', category: 'music', volume: 0.65 },
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
@@ -608,25 +621,19 @@ export const SOUNDS = {
 		volume: 0.6,
 		caption: 'a low bell'
 	},
-	// The rite performed: it summons the manifestation (the signal follows).
+	// The rite performed: it summons the manifestation (the fight music follows).
 	'rite.perform': {
 		synth: { kind: 'bell', pitch: 131, length: 4 },
 		category: 'sfx',
 		volume: 0.8,
 		caption: 'a bell, and something stirs'
 	},
-	// What the rite summoned is banished: the Affliction is resolved.
+	// What the rite summoned is banished: the Affliction is resolved, the fight won (a stinger).
 	'rite.resolve': {
+		file: 'fight.won',
 		synth: { kind: 'bell', pitch: 98, length: 7 },
-		category: 'sfx',
-		volume: 0.9,
-		caption: 'a deep bell tolls'
-	},
-	'manifest.signal': {
-		synth: { kind: 'signal' },
-		category: 'ambience',
-		volume: 1,
-		caption: 'a vast breath through the stone'
+		category: 'music',
+		volume: 0.8
 	},
 	// Your head under the water: a dull, close pressure under the muffled world (looped).
 	'underwater.drone': {
@@ -634,33 +641,20 @@ export const SOUNDS = {
 		category: 'ambience',
 		volume: 0.35
 	},
-	'manifest.presence': {
-		synth: { kind: 'drone', pitch: 33 },
-		category: 'sfx',
-		volume: 0.9,
-		caption: 'deep rumbling'
-	},
-	'manifest.hiss': {
-		synth: { kind: 'hiss' },
-		category: 'sfx',
-		volume: 0.7,
-		variation: 0.1,
-		caption: 'something hisses'
-	},
-	// Its wind-up: heard before the blow lands, so there's a moment to get out of reach.
+	// Its swing, from the wind-up: it builds to the blow, so there's a moment to get out of reach.
 	'manifest.windup': {
+		file: 'manifest.attack',
 		synth: { kind: 'snarl' },
 		category: 'sfx',
-		volume: 1,
-		rate: 0.5,
+		volume: 0.67,
 		caption: 'a rising snarl'
 	},
 	// A strobe caught it: it reels, dazzled.
 	'manifest.stun': {
+		file: 'manifest.stun',
 		synth: { kind: 'hiss' },
 		category: 'sfx',
-		volume: 0.9,
-		rate: 0.6,
+		volume: 0.5,
 		caption: 'it shrieks, dazzled'
 	},
 	// A lamp flicked on in something's face, and it was stunned.
@@ -670,13 +664,6 @@ export const SOUNDS = {
 		volume: 0.45,
 		rate: 1.6,
 		caption: 'a sharp flash'
-	},
-	'manifest.banish': {
-		synth: { kind: 'signal' },
-		category: 'sfx',
-		volume: 1,
-		rate: 1.6,
-		caption: 'a howl, receding'
 	},
 	// Sanity.
 	'player.hurt': { synth: { kind: 'hurt' }, category: 'sfx', volume: 0.8, variation: 0.08 },

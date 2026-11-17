@@ -1,4 +1,4 @@
-import { AUDIO_FILES } from '#lib/content/audio/files.generated.ts';
+import { AUDIO_FILES, AUDIO_LOOP_STARTS } from '#lib/content/audio/files.generated.ts';
 import { SOUNDS, type SoundDef, type SoundId } from '#lib/content/audio/sounds.ts';
 import type { AudioManager, SoundHandle } from './AudioManager.ts';
 import { captionDirection, type CaptionCue } from './captions.svelte.ts';
@@ -44,12 +44,18 @@ export class SoundBank {
 		});
 	}
 
+	/** The built files of a sound, its variants in order (none if it is synthesized). */
+	private urls(id: SoundId): string[] {
+		const def: SoundDef = SOUNDS[id];
+		const ids = def.file === undefined ? [] : Array.isArray(def.file) ? def.file : [def.file];
+		return ids.flatMap((fileId) => AUDIO_FILES[fileId] ?? []);
+	}
+
 	private buffers(id: SoundId): Promise<AudioBuffer[]> {
 		let pending = this.variants.get(id);
 		if (!pending) {
 			const def: SoundDef = SOUNDS[id];
-			const ids = def.file === undefined ? [] : Array.isArray(def.file) ? def.file : [def.file];
-			const urls = ids.flatMap((fileId) => AUDIO_FILES[fileId] ?? []);
+			const urls = this.urls(id);
 			if (urls.length) pending = Promise.all(urls.map((url) => this.audio.load(url)));
 			else if (def.synth)
 				pending = Promise.resolve([synthesize(this.audio.audioContext, def.synth)]);
@@ -90,19 +96,24 @@ export class SoundBank {
 		);
 	}
 
-	/** Start a looping sound (first variant); adjust or stop it through the handle. */
+	/**
+	 * Start a looping sound (first variant); adjust or stop it through the handle. A file built
+	 * to keep its opening (loopFrom) plays from its start once, then loops from where it says.
+	 */
 	async loop(id: SoundId, volume = 0): Promise<SoundHandle> {
 		const def: SoundDef = SOUNDS[id];
 		const [buffer] = await this.buffers(id);
+		const [url] = this.urls(id);
 		const handle = this.audio.playBuffer(buffer, {
 			category: def.category,
 			volume: volume * def.volume,
 			rate: def.rate ?? 1,
-			loop: true
+			loop: true,
+			loopStart: url === undefined ? undefined : AUDIO_LOOP_STARTS[url]
 		});
 		return {
-			setVolume: (value) => {
-				handle.setVolume(value * def.volume);
+			setVolume: (value, seconds) => {
+				handle.setVolume(value * def.volume, seconds);
 				// A loop is captioned for as long as it stays audible.
 				const now = performance.now() / 1000;
 				if (now - (this.loopCaptions.get(id) ?? 0) >= LOOP_CAPTION_INTERVAL) {

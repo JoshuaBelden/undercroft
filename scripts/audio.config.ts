@@ -25,6 +25,13 @@ export interface AudioSource {
 	crop?: { start: number; length: number };
 	/** Make the clip loop seamlessly by crossfading its end into its start (seconds). */
 	loopCrossfade?: number;
+	/**
+	 * With `loopCrossfade`: keep the clip's opening as it is. It plays from its very start the
+	 * first time; its end crossfades into this point (seconds into the clip), and every pass after
+	 * the first loops from there. Music uses it so its opening is heard as written. Without it the
+	 * end is blended into the start itself, which suits beds that have no opening.
+	 */
+	loopFrom?: number;
 	/** Keep the original length instead of trimming silence (loops). */
 	keepSilence?: boolean;
 	/** Output sample rate (default 32000). Long, dark ambience is fine at 22050 and half the size. */
@@ -70,8 +77,11 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'gun.empty', file: 'sfx_gun_empty.mp3', crop: { start: 0.1, length: 0.8 } },
 	{ id: 'revolver.reload', file: 'sfx_revolver_reload.mp3' },
 	{ id: 'shotgun.reload', file: 'sfx_shotgun_reload.mp3' },
-	// Interface: moving between pages on the surface.
+	// Interface: hiding or showing a panel underground.
 	{ id: 'ui.click', file: 'menu_click.wav' },
+	// Menus: moving between pages and the focus moving; pressing a button.
+	{ id: 'ui.nav', file: 'sfx_menu_nav.mp3' },
+	{ id: 'ui.button', file: 'sfx_menu_button_click.mp3' },
 	// Stingers: going down at the start of an expedition, and coming up at the end of it.
 	{ id: 'expedition.intro', file: 'sfx_expedition_intro.mp3', rate: 22050 },
 	{ id: 'expedition.outro', file: 'sfx_extraction_outro.mp3', rate: 22050 },
@@ -80,6 +90,21 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'battery.charged', file: 'sfx_battery_charged.mp3' },
 	// Binding a wound.
 	{ id: 'bandage', file: 'sfx_bandage.mp3' },
+	// The fight with the Gloaming's manifestation, looped: the track up to where it fades out.
+	{
+		id: 'music.gloaming.fight',
+		file: 'music_gloaming_boss_fight_start.mp3',
+		crop: { start: 0, length: 34 },
+		loopCrossfade: 2,
+		loopFrom: 0,
+		keepSilence: true
+	},
+	// The Gloaming's manifestation: its swing (from the wind-up; it peaks as the blow lands) and
+	// its shriek when a strobe stuns it.
+	{ id: 'manifest.attack', file: 'sfx_gloaming_boss_attack.mp3' },
+	{ id: 'manifest.stun', file: 'sfx_gloaming_boss_stun.mp3' },
+	// What the rite summoned is banished: the fight is won.
+	{ id: 'fight.won', file: 'sfx_boss_fight_won.mp3' },
 	// Finding something epic, legendary or a quest item.
 	{ id: 'loot.found', file: 'sfx_happy_cue.mp3' },
 	// Ambience
@@ -108,6 +133,13 @@ export const AUDIO_SOURCES: AudioSource[] = [
 		id: 'ambience.creepy',
 		file: ['creepy_ambience_1.wav', 'creepy_ambience_2.wav'],
 		rate: 22050
+	},
+	// The surface: the bed under the dashboard and every page off the expedition, looped.
+	{
+		id: 'ambience.dashboard',
+		file: 'ambient_dashboard.mp3',
+		loopCrossfade: 2,
+		keepSilence: true
 	},
 	{
 		id: 'ambience.horror',

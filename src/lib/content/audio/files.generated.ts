@@ -53,11 +53,17 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'revolver.reload': ['/assets/shared/audio/revolver.reload.10941be9.webm'],
 	'shotgun.reload': ['/assets/shared/audio/shotgun.reload.ec021c70.webm'],
 	'ui.click': ['/assets/shared/audio/ui.click.7712b9a0.webm'],
+	'ui.nav': ['/assets/shared/audio/ui.nav.09dd6db1.webm'],
+	'ui.button': ['/assets/shared/audio/ui.button.b860873b.webm'],
 	'expedition.intro': ['/assets/shared/audio/expedition.intro.e2162f0f.webm'],
 	'expedition.outro': ['/assets/shared/audio/expedition.outro.0709b1b5.webm'],
 	'battery.low': ['/assets/shared/audio/battery.low.aee34fee.webm'],
 	'battery.charged': ['/assets/shared/audio/battery.charged.89d1f58d.webm'],
 	bandage: ['/assets/shared/audio/bandage.7a756cf3.webm'],
+	'music.gloaming.fight': ['/assets/shared/audio/music.gloaming.fight.d4f9caf8.webm'],
+	'manifest.attack': ['/assets/shared/audio/manifest.attack.5bd8a89f.webm'],
+	'manifest.stun': ['/assets/shared/audio/manifest.stun.e998ceb4.webm'],
+	'fight.won': ['/assets/shared/audio/fight.won.ba6cdb2d.webm'],
 	'loot.found': ['/assets/shared/audio/loot.found.f3e3d2e3.webm'],
 	'ambience.drip': [
 		'/assets/shared/audio/ambience.drip-1.47bde488.webm',
@@ -87,6 +93,7 @@ export const AUDIO_FILES: Record<string, string[]> = {
 		'/assets/shared/audio/ambience.creepy-1.6f7b8ec6.webm',
 		'/assets/shared/audio/ambience.creepy-2.a7277e45.webm'
 	],
+	'ambience.dashboard': ['/assets/shared/audio/ambience.dashboard.ae54e4b6.webm'],
 	'ambience.horror': ['/assets/shared/audio/ambience.horror.6afd4e3a.webm'],
 	'creature.step': [
 		'/assets/shared/audio/creature.step-1.149a8ee0.webm',
@@ -153,11 +160,17 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/revolver.reload.10941be9.webm': 20229,
 	'/assets/shared/audio/shotgun.reload.ec021c70.webm': 8660,
 	'/assets/shared/audio/ui.click.7712b9a0.webm': 912,
+	'/assets/shared/audio/ui.nav.09dd6db1.webm': 7240,
+	'/assets/shared/audio/ui.button.b860873b.webm': 3758,
 	'/assets/shared/audio/expedition.intro.e2162f0f.webm': 26383,
 	'/assets/shared/audio/expedition.outro.0709b1b5.webm': 26120,
 	'/assets/shared/audio/battery.low.aee34fee.webm': 4528,
 	'/assets/shared/audio/battery.charged.89d1f58d.webm': 10168,
 	'/assets/shared/audio/bandage.7a756cf3.webm': 19902,
+	'/assets/shared/audio/music.gloaming.fight.d4f9caf8.webm': 291255,
+	'/assets/shared/audio/manifest.attack.5bd8a89f.webm': 22516,
+	'/assets/shared/audio/manifest.stun.e998ceb4.webm': 18497,
+	'/assets/shared/audio/fight.won.ba6cdb2d.webm': 28637,
 	'/assets/shared/audio/loot.found.f3e3d2e3.webm': 27753,
 	'/assets/shared/audio/ambience.drip-1.47bde488.webm': 4152,
 	'/assets/shared/audio/ambience.drip-2.9cd4ca2b.webm': 4171,
@@ -181,6 +194,7 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/ambience.lap.271ecddf.webm': 72263,
 	'/assets/shared/audio/ambience.creepy-1.6f7b8ec6.webm': 13821,
 	'/assets/shared/audio/ambience.creepy-2.a7277e45.webm': 68410,
+	'/assets/shared/audio/ambience.dashboard.ae54e4b6.webm': 801049,
 	'/assets/shared/audio/ambience.horror.6afd4e3a.webm': 86051,
 	'/assets/shared/audio/creature.step-1.149a8ee0.webm': 3358,
 	'/assets/shared/audio/creature.step-2.f6db748b.webm': 3194,
@@ -200,4 +214,12 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/creature.hurt.7f823348.webm': 13471,
 	'/assets/shared/audio/rope.tension.a37433b9.webm': 9591,
 	'/assets/shared/audio/rope.tie.d484b77c.webm': 20914
+};
+
+/**
+ * Loops that keep their opening (loopFrom in scripts/audio.config.ts): by URL, the second
+ * each pass after the first loops back to. Others loop the whole file.
+ */
+export const AUDIO_LOOP_STARTS: Record<string, number> = {
+	'/assets/shared/audio/music.gloaming.fight.d4f9caf8.webm': 2
 };

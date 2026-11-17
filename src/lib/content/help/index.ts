@@ -432,7 +432,7 @@ These are warnings. When they come thick and close together, it is time to think
 
 It comes at whoever is nearest, slower while a lamp is on it and quick when none is. When it reaches you it rears back to strike. That is your moment to get out of reach. A blow that lands is hard: what you wear takes some of it, and two will put you down. It hits harder the more of you there are.
 
-Light is how you fight it. Hold your lamp on it and keep it there: it begins to burn, and when it flares and hisses, steel and shot bite. Only while the light holds. Two lamps are better than one.
+Light is how you fight it. Hold your lamp on it and keep it there: it begins to burn, and when it flares, steel and shot bite. Only while the light holds. Two lamps are better than one.
 
 Turn your lamp off and back on ({action:headlamp}) with it in the beam, and the flash stuns it: it stands frozen for a moment, and a strike it was winding up is lost. It won't fall for that again for a while.
 

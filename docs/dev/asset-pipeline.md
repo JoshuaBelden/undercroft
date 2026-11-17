@@ -256,7 +256,7 @@ Raw recordings go in `art/sfx/` (in undercroft-art, see [Raw art](#raw-art)), na
 
 1. Reads 16-bit PCM WAV or MP3 (any channel count or sample rate; MP3 is decoded with `mpg123-decoder`, mpg123 compiled to WebAssembly) and mixes to mono.
 2. Low-pass filters and resamples to 32 kHz, or to the entry's `rate` (22050 for long, dark ambience: about half the size).
-3. Optionally `crop`s to a section. Then it trims silence relative to the peak, or slices a recording of several hits into one file per hit (`maxClips` keeps at most that many, spread through the recording). `loopCrossfade` crossfades a clip's end into its start, for seamless loops such as water lapping. An entry can also list several source files, each becoming a variant of the same sound. Slicing uses onset detection (`slice: { minGap, maxLength, threshold }`), for example one footstep per file from a walking recording. Loops can set `keepSilence`.
+3. Optionally `crop`s to a section. Then it trims silence relative to the peak, or slices a recording of several hits into one file per hit (`maxClips` keeps at most that many, spread through the recording). `loopCrossfade` crossfades a clip's end into its start, for seamless loops such as water lapping. That blends the end into the opening, so for music add `loopFrom` (seconds): the clip keeps its opening and plays from its start once, its end crossfades into `loopFrom`, and later passes loop from there. The point each loop returns to is written to `AUDIO_LOOP_STARTS` in the generated file list. An entry can also list several source files, each becoming a variant of the same sound. Slicing uses onset detection (`slice: { minGap, maxLength, threshold }`), for example one footstep per file from a walking recording. Loops can set `keepSilence`.
 4. Normalizes to -1 dBFS, adds short fades, and encodes mono Opus in WebM (48 kbps, 64 kbps for loops) to `static/assets/shared/audio/<id>.<hash>.webm` (or `<id>-<n>.<hash>.webm` for slices). The encoder is the ffmpeg binary from the `ffmpeg-static` dev dependency, so nothing needs installing.
 5. Writes `src/lib/content/audio/files.generated.ts`, mapping each id to its variant URLs (`AUDIO_FILES`) and each file to its size (`AUDIO_BYTES`).
 
@@ -279,3 +279,19 @@ It then writes `src/lib/content/images.generated.ts`, the URL of every picture. 
 `login-bg` is the picture behind sign-in, the dashboard and the party screen. It is applied by the global `.backdrop-art` class in `src/app.css`, which darkens it so text stays readable; the element also sets `style:--backdrop-image={BACKDROP_IMAGE}` (the hashed URL). Adding `use:parallax` (`src/lib/ui/parallax.ts`) to the same element makes the picture drift away from the cursor; it is skipped for people who ask for reduced motion. To change the picture, replace `art/images/login-bg.png` and run `pnpm asset:images`. To put it behind another screen, add the class, `style:--backdrop-image={BACKDROP_IMAGE}` and `use:parallax` to that screen's outer element. The expedition results screen uses it too.
 
 Each pane on the Afflictions page has a picture, named by `AfflictionDef.image` in `src/lib/content/afflictions.ts`: `affliction-gloaming-banner` for the Gloaming, and `affliction-unknown-banner` for the panes of Afflictions nobody has met. A pane is 400px wide; the picture is fitted to that width and aligned to the top, the name sits over its first 250px, and below that it fades out behind the text. So make it portrait, at least 800px wide (for sharp screens), with the subject in the top part. Until a picture exists the pane shows a plain dark fade.
+
+### Logo and site icon
+
+Two pictures carry the game's name and mark. Both are cropped tight to the art, with the black they were drawn on made transparent so they sit on any backdrop:
+
+- `logo` (the word UNDERCROFT, its O a way up a ladder) sits over the form on every signed-out page (`src/lib/ui/AuthPage.svelte`).
+- `icon` (the O on its own) is the mark at the far left of the dashboard bar, a link home (`src/routes/(hub)/+layout.svelte`).
+
+### Site icon
+
+`icon` is also the site icon. `pnpm asset:images` makes two files from it at the site root, linked from `src/app.html`. They aren't hashed, because browsers and iOS ask for them by name:
+
+- `static/favicon.ico`: the browser tab icon, PNG images at 16, 32, 48 and 64 px, transparent around the O.
+- `static/apple-touch-icon.png`: 180 px, the O on black, for Add to Home Screen on an iPhone or iPad. iOS doesn't allow transparency there and rounds the corners itself, so the O keeps a margin. `apple-mobile-web-app-title` names the shortcut.
+
+To change either picture, replace `art/images/icon` or `art/images/logo` (cropped, transparent around the art) and run `pnpm asset:images`. Commit `static/favicon.ico` and `static/apple-touch-icon.png` with the pictures.

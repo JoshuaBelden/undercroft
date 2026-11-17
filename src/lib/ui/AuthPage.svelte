@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
+	import { BACKDROP_IMAGE, imageUrl } from '#lib/content/images.ts';
 	import { parallax } from './parallax.ts';
 
 	/**
 	 * The frame of every signed-out page (sign in, sign up, forgot password, the two-step code):
-	 * one small form on the backdrop. Its fields use plain `label > span + input`, `.primary` for
+	 * the logo over one small form on the backdrop. Its fields use plain `label > span + input`, `.primary` for
 	 * the main button, `.muted` and `.error` for text: styled here.
 	 */
 	interface Props {
@@ -18,6 +18,7 @@
 </script>
 
 <main class="backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
+	<img class="logo" src={imageUrl('logo')} alt="Undercroft" width="915" height="137" />
 	<form {onsubmit}>
 		<h2>{title}</h2>
 		{@render children()}
@@ -31,6 +32,13 @@
 		place-content: center;
 		justify-items: center;
 		padding: 24px;
+	}
+
+	/* As wide as the form, at most; the art is drawn on black, cut out (art/images/logo). */
+	.logo {
+		width: min(440px, calc(100vw - 48px));
+		height: auto;
+		margin-bottom: 28px;
 	}
 
 	form {

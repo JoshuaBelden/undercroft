@@ -6,6 +6,7 @@
  */
 
 import type { AnimationMap } from './animations.ts';
+import type { SoundId } from './audio/sounds.ts';
 import { modelUrl } from './models.ts';
 import type { StatusReactions, StatusSource } from './statuses.ts';
 
@@ -40,6 +41,11 @@ export interface ManifestationBody {
 export interface ManifestationSpec {
 	/** The figure players see. Without one nothing is drawn (it is only heard). */
 	body?: ManifestationBody;
+	/**
+	 * Music for the fight, looped on the music bus from the moment it is summoned until it is
+	 * banished (or the expedition ends). Without one the fight has none.
+	 */
+	music?: SoundId;
 	/** Seconds it stands where the rite summoned it before it starts hunting. */
 	gatherSeconds: number;
 	/** Hunting speed (m/s) with lamp light on it, and its faster speed with none. */
@@ -186,6 +192,7 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			}
 		],
 		manifestation: {
+			music: 'music.gloaming.fight',
 			// The model has no idle, crouch or crawl clip.
 			body: {
 				model: modelUrl('afflictions/gloaming/creatures/gloaming_boss.glb'),

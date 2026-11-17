@@ -3,7 +3,6 @@ import type { AnimSlot } from '#lib/content/animations.ts';
 import type { ManifestationBody, ManifestationSpec } from '#lib/content/afflictions.ts';
 import { Animator } from '#lib/game/Animator.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
-import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 import type { SoundBank } from '#lib/game/audio/SoundBank.ts';
 import type { ManifestationSnapshot } from '#lib/shared/affliction/types.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
@@ -16,8 +15,6 @@ interface Figure {
 	animator: Animator;
 }
 
-/** Metres at which its presence rumble fades out. */
-const HEARD_FROM = 28;
 /** Seconds it takes to fade away when banished. */
 const DISSOLVE = 3;
 /** Seconds it takes to appear when it manifests. */
@@ -35,9 +32,10 @@ const STUN_REEL = 0.35;
 /**
  * An Affliction's manifestation: the figure the rite summons (the manifestation's `body`). It
  * walks where the server moves it, winds up and strikes, reels when it's hit, burns brighter as
- * lamp light takes hold of it and hisses when that exposes it, stands frozen when a strobe stuns
- * it, and falls when banished. A low rumble tells you it's near. The server simulates a point
- * with a hit capsule; the figure is drawn here only. See docs/dev/affliction.md.
+ * lamp light takes hold of it and flares when that exposes it, stands frozen when a strobe stuns
+ * it, and falls when banished. The fight music (play/affliction) says it's here. The server
+ * simulates a point with a hit capsule; the figure is drawn here only. See
+ * docs/dev/affliction.md.
  */
 export class Manifestation {
 	readonly root = new THREE.Group();
@@ -66,8 +64,6 @@ export class Manifestation {
 	private dissolve = 0;
 	/** Smoothed ground speed (m/s), from how it moves between frames. */
 	private speed = 0;
-	private presence: SoundHandle | null = null;
-	private presenceStarting = false;
 
 	constructor(private sounds: SoundBank) {
 		this.root.name = 'manifestation';
@@ -105,12 +101,6 @@ export class Manifestation {
 			this.sounds.playAt('manifest.windup', this.corePoint(), 1, 5);
 		}
 		this.strikes = snap.strikes;
-		if (snap.exposed && !this.exposed) {
-			this.sounds.playAt('manifest.hiss', this.corePoint(), 1, 4);
-		}
-		if (snap.state === 'banished' && this.state !== 'banished') {
-			this.sounds.playAt('manifest.banish', this.corePoint(), 1, 8);
-		}
 		if (snap.stunned && !this.stunned) {
 			this.sounds.playAt('manifest.stun', this.corePoint(), 1, 6);
 			this.stunTime = 0;
@@ -130,26 +120,14 @@ export class Manifestation {
 	clear(): void {
 		this.active = false;
 		this.root.visible = false;
-		this.presence?.setVolume(0);
 	}
 
-	update(delta: number, listener: Vec3): void {
+	update(delta: number): void {
 		if (!this.active) return;
 		this.root.position.lerp(this.target, Math.min(1, delta * 6));
 		if (this.state === 'banished') this.dissolve = Math.min(1, this.dissolve + delta / DISSOLVE);
 		this.updateFigure(delta);
 		if (this.dissolve >= 1) this.clear();
-
-		// Presence rumble, louder the closer it is.
-		if (!this.presence && !this.presenceStarting) {
-			this.presenceStarting = true;
-			void this.sounds.loop('manifest.presence').then((handle) => (this.presence = handle));
-		}
-		const p = this.root.position;
-		const d = Math.hypot(listener[0] - p.x, listener[1] - p.y - 1, listener[2] - p.z);
-		const level = Math.max(0, 1 - d / HEARD_FROM) ** 2 * (1 - this.dissolve);
-		this.presence?.setVolume(level);
-		this.presence?.setRate(this.exposed ? 1.15 : 1);
 	}
 
 	dispose(): void {
@@ -157,8 +135,6 @@ export class Manifestation {
 		this.figure?.animator.dispose();
 		for (const material of this.figure?.materials ?? []) material.dispose();
 		this.figure = null;
-		this.presence?.stop();
-		this.presence = null;
 		this.root.clear();
 	}
 
