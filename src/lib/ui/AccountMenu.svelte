@@ -11,7 +11,7 @@
 
 	/**
 	 * The avatar and gamer tag at the top right of the dashboard, as a menu: the Account screen, ideas and
-	 * feedback, reporting a bug, running diagnostics (docs/dev/diagnostics.md), signing out, and (in the desktop app) quitting the game. Closes on Escape, on a click anywhere else, and once something is chosen.
+	 * feedback, reporting a bug, running diagnostics (docs/dev/diagnostics.md), getting the desktop app (in a browser), signing out, and (in the desktop app) quitting the game. Closes on Escape, on a click anywhere else, and once something is chosen.
 	 */
 	interface Props {
 		gamerTag: string;
@@ -134,6 +134,11 @@
 				>
 					Run diagnostics
 				</button>
+				{#if !desktop}
+					<a role="menuitem" href={resolve('/about/desktop')} onclick={() => close(false)}>
+						Get the desktop app
+					</a>
+				{/if}
 				<button
 					type="button"
 					role="menuitem"

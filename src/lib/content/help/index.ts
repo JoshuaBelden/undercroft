@@ -478,7 +478,7 @@ Two-step sign-in asks for a code from an authenticator app on your phone (Google
 		category: 'The surface',
 		body: `Beta testers can play Undercroft in its own window on Windows. It is the same game as the website, with the same account and everything you keep.
 
-- To get it, open What's new from the dashboard and choose the Desktop app tab, or go to undercroft.us/download.
+- To get it, choose Get the desktop app from the menu under your gamer tag, or go to undercroft.us/download.
 - Windows may say it protected your PC, because the installer isn't signed yet: choose More info, then Run anyway.
 - Once it is installed, the Open the desktop app link on that tab starts it.
 - It shows the game as it is on the website, so it keeps up to date by itself.
