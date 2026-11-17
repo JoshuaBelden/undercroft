@@ -18,6 +18,7 @@ export const IMAGE_URLS: Record<string, string> = {
 	'login-bg': '/assets/ui/images/login-bg.106d305e.webp',
 	medkit: '/assets/ui/images/medkit.7465147b.webp',
 	note: '/assets/ui/images/note.b0c8ab6e.webp',
+	notebook: '/assets/ui/images/notebook.0c2c55be.webp',
 	padded_coat: '/assets/ui/images/padded_coat.b722191e.webp',
 	pendant: '/assets/ui/images/pendant.721c2d0e.webp',
 	reliquary: '/assets/ui/images/reliquary.14bcb730.webp',

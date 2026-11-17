@@ -77,6 +77,11 @@ export interface PlayerState {
 	wading: boolean;
 	/** Eye below the water surface: breath (stamina) drains. */
 	underwater: boolean;
+	/**
+	 * Dived under: no floating back up. You stay at the depth you are until you swim up to the
+	 * surface (or run out of breath, which forces you up).
+	 */
+	submerged: boolean;
 	/** Moving slowly and silently (no footsteps; creatures hear less). */
 	sneaking: boolean;
 	/** Inside a squeeze volume: slowed, no sprinting, grunting through. */
@@ -123,6 +128,15 @@ export interface PlayerState {
 	erasing: number;
 	/** Seconds spent holding interact to tie, untie or gather up a rope (server-driven). */
 	roping: number;
+	/** Seconds spent holding interact to open a door between levels (server-driven). */
+	unbarring: number;
+	/**
+	 * Seconds spent sketching into the map (server-driven). -1 once a sketch is done, until the
+	 * hold is let go, so a held button sketches once. See docs/dev/map.md.
+	 */
+	sketching: number;
+	/** Seconds spent showing your map to a teammate (server-driven); -1 after, like `sketching`. */
+	sharing: number;
 }
 
 /** What one slot holds. */
@@ -220,7 +234,14 @@ export interface InputFrame {
 	select: number;
 	stance: Stance;
 	headlamp: HeadlampMode;
+	/** Held on the map screen: sketching what is around you, or showing your map to a teammate. */
+	survey: SurveyHold;
+	/** The in-game menu is open: both hands are on it (see `handsBusy`). */
+	reading: boolean;
 }
+
+/** What the map screen's hold is doing (docs/dev/map.md). */
+export type SurveyHold = 'sketch' | 'share' | null;
 
 /** A player's authoritative state as broadcast in each server tick. */
 export interface PlayerSnapshot {

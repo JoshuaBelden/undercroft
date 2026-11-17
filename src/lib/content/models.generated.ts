@@ -26,6 +26,7 @@ export const MODELS = {
 	'shared/items/knife.glb': { url: '/assets/shared/items/knife.90908878.glb', bytes: 205208 },
 	'shared/items/medkit.glb': { url: '/assets/shared/items/medkit.922e63e8.glb', bytes: 251004 },
 	'shared/items/note.glb': { url: '/assets/shared/items/note.387d1475.glb', bytes: 209852 },
+	'shared/items/notebook.glb': { url: '/assets/shared/items/notebook.7ae4b2a4.glb', bytes: 358292 },
 	'shared/items/pendant.glb': { url: '/assets/shared/items/pendant.0d5e4bbf.glb', bytes: 247724 },
 	'shared/items/revolver.glb': { url: '/assets/shared/items/revolver.fb05cf75.glb', bytes: 224000 },
 	'shared/items/rope_bundle.glb': {

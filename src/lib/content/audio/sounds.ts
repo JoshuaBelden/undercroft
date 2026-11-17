@@ -161,7 +161,7 @@ export const SOUNDS = {
 		variation: 0.06
 	},
 	'squeeze.grunt': {
-		file: 'exertion',
+		file: 'squeeze.grunt',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.45,
@@ -411,6 +411,24 @@ export const SOUNDS = {
 		caption: 'a lid creaks open',
 		captionOthers: true
 	},
+	// A door between levels: the bar thrown off, then the leaves dragging open on old hinges.
+	'door.unbar': {
+		synth: { kind: 'thud', cutoff: 700 },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.05,
+		caption: 'a heavy bar drops',
+		captionOthers: true
+	},
+	'door.open': {
+		file: 'door.open',
+		synth: { kind: 'groan' },
+		category: 'sfx',
+		volume: 1,
+		variation: 0.05,
+		caption: 'a great door groans open',
+		captionOthers: true
+	},
 	// Turning over a corpse to search it, the first time.
 	'corpse.search': {
 		file: 'corpse.search',
@@ -513,6 +531,38 @@ export const SOUNDS = {
 		rate: 0.85,
 		variation: 0.06
 	},
+	// The map (docs/dev/map.md): the notebook opened and shut, the pencil, and a map shown.
+	'map.open': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.2,
+		variation: 0.1
+	},
+	'map.close': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.3,
+		rate: 0.9,
+		variation: 0.1
+	},
+	'map.sketch': {
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.6,
+		variation: 0.15,
+		caption: 'a pencil scratches',
+		captionOthers: true
+	},
+	'map.show': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.1,
+		caption: 'pages turn',
+		captionOthers: true
+	},
 	// The surface.
 	/** Moving between pages (the tabs, the store, social, settings). */
 	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.8 },
@@ -522,7 +572,10 @@ export const SOUNDS = {
 	'ui.step': { synth: { kind: 'click' }, category: 'sfx', volume: 0.2, rate: 1.4 },
 	/** A controller button held in a menu pressed its control (Launch, the store): a lower tick. */
 	'ui.hold': { synth: { kind: 'click' }, category: 'sfx', volume: 0.35, rate: 1.2 },
-	/** Hiding or showing the rite and party panel underground (docs/dev/rite.md): a quiet tick. */
+	/**
+	 * Hiding or showing the rite panel underground (docs/dev/rite.md), and the admin free camera
+	 * (docs/dev/map-generation.md#debug-grid): a quiet tick.
+	 */
 	'ui.toggle': {
 		file: 'ui.click',
 		synth: { kind: 'click' },
@@ -555,6 +608,14 @@ export const SOUNDS = {
 		volume: 0.6,
 		caption: 'a low bell'
 	},
+	// The rite performed: it summons the manifestation (the signal follows).
+	'rite.perform': {
+		synth: { kind: 'bell', pitch: 131, length: 4 },
+		category: 'sfx',
+		volume: 0.8,
+		caption: 'a bell, and something stirs'
+	},
+	// What the rite summoned is banished: the Affliction is resolved.
 	'rite.resolve': {
 		synth: { kind: 'bell', pitch: 98, length: 7 },
 		category: 'sfx',
@@ -566,6 +627,12 @@ export const SOUNDS = {
 		category: 'ambience',
 		volume: 1,
 		caption: 'a vast breath through the stone'
+	},
+	// Your head under the water: a dull, close pressure under the muffled world (looped).
+	'underwater.drone': {
+		synth: { kind: 'drone', pitch: 52 },
+		category: 'ambience',
+		volume: 0.35
 	},
 	'manifest.presence': {
 		synth: { kind: 'drone', pitch: 33 },
@@ -580,7 +647,30 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'something hisses'
 	},
-	'manifest.touch': { synth: { kind: 'snarl' }, category: 'sfx', volume: 1, rate: 0.5 },
+	// Its wind-up: heard before the blow lands, so there's a moment to get out of reach.
+	'manifest.windup': {
+		synth: { kind: 'snarl' },
+		category: 'sfx',
+		volume: 1,
+		rate: 0.5,
+		caption: 'a rising snarl'
+	},
+	// A strobe caught it: it reels, dazzled.
+	'manifest.stun': {
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.9,
+		rate: 0.6,
+		caption: 'it shrieks, dazzled'
+	},
+	// A lamp flicked on in something's face, and it was stunned.
+	'strobe.flash': {
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 1.6,
+		caption: 'a sharp flash'
+	},
 	'manifest.banish': {
 		synth: { kind: 'signal' },
 		category: 'sfx',

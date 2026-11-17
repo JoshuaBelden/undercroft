@@ -67,6 +67,7 @@ export function createPlayerState(
 		swimming: false,
 		wading: false,
 		underwater: false,
+		submerged: false,
 		sneaking: false,
 		squeezing: false,
 		mantle: null,
@@ -88,7 +89,10 @@ export function createPlayerState(
 		performing: 0,
 		opening: 0,
 		erasing: 0,
-		roping: 0
+		roping: 0,
+		unbarring: 0,
+		sketching: 0,
+		sharing: 0
 	};
 }
 
@@ -126,7 +130,29 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		drop: false,
 		select: -1,
 		stance: s.stance,
-		headlamp: s.headlamp
+		headlamp: s.headlamp,
+		survey: null,
+		reading: false
+	};
+}
+
+/**
+ * While the in-game menu is open (`reading`), both hands are on it: you can still walk, change
+ * stance and switch the headlamp, but not sprint, interact, use, aim, reload, drop or take
+ * something in hand. The server applies it to every frame it receives (`sanitizeFrame`) and the
+ * client to the frames it predicts with, so the two agree. See docs/dev/items.md.
+ */
+export function handsBusy(frame: InputFrame): InputFrame {
+	if (!frame.reading) return frame;
+	return {
+		...frame,
+		sprint: false,
+		interact: false,
+		attack: false,
+		aim: false,
+		reload: false,
+		drop: false,
+		select: -1
 	};
 }
 
@@ -149,7 +175,7 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 	if (typeof f.seq !== 'number' || !Number.isInteger(f.seq)) return null;
 	const stance: Stance = f.stance === 'crouch' || f.stance === 'crawl' ? f.stance : 'stand';
 	const lamp = f.headlamp === 1 || f.headlamp === 2 ? f.headlamp : 0;
-	return {
+	return handsBusy({
 		seq: f.seq,
 		moveX: num(f.moveX, -1, 1),
 		moveZ: num(f.moveZ, -1, 1),
@@ -167,8 +193,10 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		drop: f.drop === true,
 		select: typeof f.select === 'number' && Number.isInteger(f.select) ? f.select : -1,
 		stance,
-		headlamp: lamp
-	};
+		headlamp: lamp,
+		survey: f.survey === 'sketch' || f.survey === 'share' ? f.survey : null,
+		reading: f.reading === true
+	});
 }
 
 /** Advance `s` by one fixed step. Mutates and returns `s`. */
@@ -252,6 +280,8 @@ export function stepPlayer(
 		moving &&
 		input.moveZ > 0 &&
 		(s.stance === 'stand' || s.swimming) &&
+		// Swimming hard is for the surface: under the water you can't.
+		!s.underwater &&
 		!s.exhausted &&
 		!s.weapon.aiming;
 
@@ -305,9 +335,11 @@ export function stepPlayer(
 	updateExtraction(s, input, world, moving, dt);
 	updateBandage(s, input, moving);
 	updateCharge(s, input, moving);
+	// No room to swing, aim or throw while pushing through a squeeze.
 	const able =
 		!s.swimming &&
 		!s.mantle &&
+		!s.squeezing &&
 		s.stance !== 'crawl' &&
 		s.bandaging === 0 &&
 		s.charging === 0 &&
@@ -460,6 +492,7 @@ function updateWater(
 	const swimming = s.swimming
 		? surface !== null && !(s.grounded && depth < t.swim.depth - 0.25)
 		: depth > t.swim.depth;
+	if (!swimming) s.submerged = false;
 	if (s.swimming && !swimming) {
 		// Climbing out onto steps: take the tallest stance that fits.
 		const order: Stance[] = ['stand', 'crouch', 'crawl'];
@@ -499,11 +532,15 @@ function swim(
 	s.velocity[0] += (dx * speed - s.velocity[0]) * accel;
 	s.velocity[2] += (dz * speed - s.velocity[2]) * accel;
 
-	// Float with the eye just above the surface unless diving. Out of breath always floats up.
+	// At the surface you float with the eye just above it. Once you dive you stay under, at the
+	// depth you swim to, until you come back up to the surface. Out of breath forces you up.
 	const floatFeet = surface + sw.floatEye - sw.eye;
 	const outOfBreath = s.exhausted || s.stamina <= 0;
 	const diving = !outOfBreath && (input.swimDown || (input.moveZ > 0 && s.pitch < -0.35));
-	if (diving) {
+	if (diving) s.submerged = true;
+	if (outOfBreath || s.position[1] >= floatFeet - 0.05) s.submerged = s.submerged && diving;
+	if (s.submerged) {
+		// No buoyancy: up, down or holding still is all your own doing.
 		s.velocity[1] += (dy * speed - s.velocity[1]) * accel;
 	} else {
 		const target = (floatFeet - s.position[1]) * sw.buoyancy;
@@ -576,6 +613,7 @@ function advanceMantle(s: PlayerState, dt: number): void {
 		s.swimming = false;
 		s.wading = false;
 		s.underwater = false;
+		s.submerged = false;
 		s.grounded = true;
 		s.mantle = null;
 	}

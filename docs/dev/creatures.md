@@ -32,7 +32,9 @@ Each `CreatureDef` in `CREATURES` holds:
 - `visibleBand`: the half-light band;
 - `breath.range`: how close its breathing is heard;
 - `spawn`: how many per expedition and their minimum distance (along the grid) from the start;
-- `health`, `stagger` (threshold and seconds), `hitRadius` and `corpseTime` (see Damage and death).
+- `health`: damage that kills it, by party size (the first entry for one explorer, the next for two; the last covers any larger party). The witch's is `[150, 180, 210]`. `creatureHealth(def, party)` reads it. A creature counts the damage it has taken (`wounds`), and `CreatureDirector.party` (set by the session each tick from the explorers who went down) decides how much kills it, so one that spawned before the whole party arrived is still as tough as it should be.
+- `stagger` (threshold and seconds), `hitRadius` and `corpseTime` (see Damage and death).
+- `vulnerable` and `statuses` (optional): what can cause it a status (the strobe) and how it takes each, its own seconds and immunity. Stunned, it stands still and an unlanded attack is cancelled. See [status.md](status.md).
 
 Attack clips are stretched on the client to `attack.duration`, so the strike lines up with `windup` on the server.
 

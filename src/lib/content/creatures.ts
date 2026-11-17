@@ -2,6 +2,7 @@ import type { AnimSlot, AnimationMap } from './animations.ts';
 import type { MovementTuning } from './player/movement.ts';
 import { MOVEMENT } from './player/movement.ts';
 import { modelUrl } from './models.ts';
+import type { StatusReactions, StatusSource } from './statuses.ts';
 
 /**
  * Creature definitions. "Creature" is the code/doc name; never name them in game text.
@@ -70,9 +71,20 @@ export interface CreatureDef {
 		/** Seconds without perceiving the one it chases before it gives up and patrols again. */
 		evadeTime: number;
 	};
-	health: number;
+	/**
+	 * Damage it takes to kill, by party size: the first entry for one explorer, the next for two,
+	 * and so on; the last covers any larger party.
+	 */
+	health: number[];
 	/** A hit at least this hard staggers it: an attack not yet landed is cancelled. */
 	stagger: { threshold: number; seconds: number };
+	/**
+	 * What causes it a status (content/statuses.ts), and how it takes each: how long it lasts on
+	 * it and how long it is immune after. Stunned, it stands still and an attack not yet landed is
+	 * cancelled. Left out, nothing does.
+	 */
+	vulnerable?: StatusSource[];
+	statuses?: StatusReactions;
 	/** Body radius for hits (m). */
 	hitRadius: number;
 	/** Seconds a dead creature stays before it's removed. */
@@ -134,7 +146,8 @@ export const CREATURES: Record<string, CreatureDef> = {
 			touch: 2.5,
 			evadeTime: 6
 		},
-		health: 120,
+		// 150 solo, 180 for two, 210 for three or more.
+		health: [150, 180, 210],
 		stagger: { threshold: 20, seconds: 0.5 },
 		hitRadius: 0.35,
 		corpseTime: 4,
@@ -146,3 +159,9 @@ export const CREATURES: Record<string, CreatureDef> = {
 };
 
 export const DEFAULT_CREATURE = CREATURES.witch;
+
+/** How much damage kills this creature, for a party of this size. */
+export function creatureHealth(def: CreatureDef, party: number): number {
+	const table = def.health;
+	return table[Math.max(0, Math.min(table.length, party) - 1)] ?? 0;
+}

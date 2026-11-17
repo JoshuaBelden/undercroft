@@ -37,7 +37,9 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'breath.slow', file: 'breathing_slow.wav', keepSilence: true },
 	{ id: 'breath.fast', file: 'breathing_fast.wav', keepSilence: true },
 	{ id: 'gasp', file: 'gasp.wav' },
-	// Effort grunts for climbing and pushing through squeezes.
+	// Pushing through a squeeze.
+	{ id: 'squeeze.grunt', file: 'sfx_grunt.mp3' },
+	// Effort grunts for climbing.
 	{ id: 'exertion', file: 'exertion.mp3', slice: { minGap: 0.6, maxLength: 1.0, threshold: 0.3 } },
 	{ id: 'headlamp.on', file: 'flashlight_on.wav' },
 	{ id: 'headlamp.off', file: 'flashlight_off.wav' },
@@ -128,6 +130,8 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'creature.breath', file: 'sfx_witch_breathing.mp3', loopCrossfade: 0.5, keepSilence: true },
 	// A crate's lid lifting.
 	{ id: 'crate.open', file: 'drawer_open.wav' },
+	// A door between levels dragging open.
+	{ id: 'door.open', file: 'sfx_door_open.mp3' },
 	// Something taken off the floor into the pack.
 	{ id: 'item.pickup', file: 'zipper_bag.wav' },
 	// Chalk on stone (drawn, and slowed down for rubbing a mark out).

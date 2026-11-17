@@ -51,5 +51,7 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	// A loose heap of rope lying flat. About 50 cm across; held from the middle.
 	rope_bundle: { forward: '-z', up: '+y', length: 0.5, grip: [0.5, 0.5] },
 	// A medical case standing on its edge, longest along X. About 28 cm wide; held by its top.
-	medkit: { forward: '-x', up: '+y', length: 0.28, grip: [0.5, 0.85] }
+	medkit: { forward: '-x', up: '+y', length: 0.28, grip: [0.5, 0.85] },
+	// A field book lying flat on its back cover, longest along X. About 18 cm; held in the middle.
+	notebook: { forward: '-x', up: '+y', length: 0.18, grip: [0.5, 0.5] }
 };

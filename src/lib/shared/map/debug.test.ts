@@ -10,7 +10,8 @@ const hallLayout = (placements: MapLayout['placements']): MapLayout => ({
 	seed: 0,
 	affliction: null,
 	placements,
-	crates: []
+	crates: [],
+	doors: []
 });
 
 describe('mapDebugGrid', () => {
@@ -51,6 +52,8 @@ describe('mapDebugGrid', () => {
 		expect(counts.rooms.total).toBe(
 			counts.rooms.start + counts.rooms.major + counts.rooms.extraction + counts.rooms.minor
 		);
+		expect(counts.tiers).toHaveLength(3);
+		expect(counts.tiers.reduce((sum, t) => sum + t.rooms, 0)).toBe(counts.rooms.total);
 		expect(counts.rooms.total + counts.tunnels + counts.deadEnds + counts.caps).toBe(
 			layout.placements.length
 		);
@@ -79,8 +82,8 @@ describe('mapDebugGrid', () => {
 		if (!straight) throw new Error('No north-south straight hall in the kit');
 		const grid = mapDebugGrid(
 			hallLayout([
-				{ piece: straight.name, position: [0, 0, 0], rotation: 0 },
-				{ piece: straight.name, position: [0, 0, 4], rotation: 0 }
+				{ piece: straight.name, position: [0, 0, 0], rotation: 0, tier: 0 },
+				{ piece: straight.name, position: [0, 0, 4], rotation: 0, tier: 0 }
 			]),
 			PIECES,
 			MAP_KIT
@@ -102,8 +105,8 @@ describe('mapDebugGrid', () => {
 		// The cap on the north edge of cell [0, 0], facing north.
 		const grid = mapDebugGrid(
 			hallLayout([
-				{ piece: straight.name, position: [0, 0, 0], rotation: 0 },
-				{ piece: 'cap-hall', position: [0, 0, -2], rotation: 0 }
+				{ piece: straight.name, position: [0, 0, 0], rotation: 0, tier: 0 },
+				{ piece: 'cap-hall', position: [0, 0, -2], rotation: 0, tier: 0 }
 			]),
 			PIECES,
 			MAP_KIT

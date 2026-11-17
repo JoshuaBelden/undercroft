@@ -47,8 +47,15 @@
 		<dd>{counts.entrances.blocked}</dd>
 		<dt>Cells</dt>
 		<dd>{counts.cells}</dd>
-		<dt>Levels</dt>
+		<dt>Floors</dt>
 		<dd>{counts.levels}</dd>
+	</dl>
+	<h3>Levels</h3>
+	<dl>
+		{#each counts.tiers as tier, index (index)}
+			<dt>Level {index + 1}</dt>
+			<dd>{tier.pieces} pieces, {tier.rooms} rooms</dd>
+		{/each}
 	</dl>
 	<h3>Pieces</h3>
 	<dl>

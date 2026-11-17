@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { realMap, realWorld } from '../testing/maps.ts';
+import { openDoor } from './collision.ts';
+import { tierAt, tierCells } from './doors.ts';
 import { buildNav, findPath, gridDistances, lowerStance, nearestPoint, pathLength } from './nav.ts';
 import { PIECES } from './pieces.generated.ts';
 import { spawnPoint } from './points.ts';
@@ -41,10 +43,22 @@ describe('nav grid on real maps', () => {
 			expect(start).toBeGreaterThanOrEqual(0);
 		});
 
-		it(`seed ${seed}: every point is reachable from the spawn`, () => {
-			const distance = gridDistances(nav, [start]);
+		it(`seed ${seed}: every point is reachable from the spawn, through the doors`, () => {
+			const distance = gridDistances(nav, [start], true);
 			const unreachable = nav.points.filter((_, i) => distance[i] === undefined);
 			expect(unreachable).toHaveLength(0);
+		});
+
+		it(`seed ${seed}: shut doors keep paths on the first level`, () => {
+			expect(nav.closed).toEqual(new Set(map.doors.map((door) => door.id)));
+			const tiers = tierCells(map, PIECES);
+			const distance = gridDistances(nav, [start]);
+			nav.points.forEach((point, i) => {
+				if (distance[i] !== undefined) expect(tierAt(tiers, point.position)).not.toBe(2);
+			});
+			const below = nav.points.findIndex((p) => tierAt(tiers, p.position) === 2);
+			expect(below).toBeGreaterThanOrEqual(0);
+			expect(findPath(nav, start, below, 200000)).toBeNull();
 		});
 
 		it(`seed ${seed}: neighbours are symmetric`, () => {
@@ -53,9 +67,12 @@ describe('nav grid on real maps', () => {
 			});
 		});
 
-		it(`seed ${seed}: a path leads from the spawn to every way out`, () => {
-			expect(world.extracts.length).toBeGreaterThan(0);
-			expect(world.ropes.some((r) => r.exitY !== undefined)).toBe(true);
+		it(`seed ${seed}: with the doors open, a path leads from the spawn to every way out and rope`, () => {
+			for (const door of map.doors) {
+				openDoor(world, door.id);
+				nav.closed.delete(door.id);
+			}
+			expect(world.extracts.length).toBe(4);
 			const feet = world.ropes.map((r): Vec3 => [r.top[0], r.bottom, r.top[2]]);
 			for (const extract of [...world.extracts, ...feet]) {
 				const goal = nearestPoint(nav, extract, 4);
@@ -98,6 +115,6 @@ describe('nav grid on real maps', () => {
 	});
 
 	it('findPath refuses missing endpoints', () => {
-		expect(findPath({ points: [], columns: new Map() }, -1, 0)).toBeNull();
+		expect(findPath({ points: [], columns: new Map(), closed: new Set() }, -1, 0)).toBeNull();
 	});
 });

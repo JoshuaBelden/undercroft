@@ -4,7 +4,8 @@ import { FLOOR, box, realMap, realWorld, volume, worldOf } from '../testing/maps
 import { MOVEMENT } from '../../content/player/movement.ts';
 import { SANITY } from '../../content/player/sanity.ts';
 import { addItem, emptyInventory, newStack } from '../items/inventory.ts';
-import { findFreeSpot } from '../map/collision.ts';
+import { findFreeSpot, type CollisionWorld } from '../map/collision.ts';
+import type { Vec3 } from '../map/types.ts';
 import { PIECES } from '../map/pieces.generated.ts';
 import { spawnPoint } from '../map/points.ts';
 import {
@@ -19,7 +20,8 @@ import {
 	sanitizeFrame,
 	stepPlayer
 } from './simulate.ts';
-import { HAND, type InputFrame, type PlayerState } from './types.ts';
+import { HAND, type InputFrame, type PlayerState, type SimEvent } from './types.ts';
+import { DEFAULT_HEADLAMP } from '../../content/items/headlamps.ts';
 
 const DT = 1 / SIM_RATE;
 const flat = worldOf([FLOOR]);
@@ -29,6 +31,23 @@ function run(s: PlayerState, input: Partial<InputFrame>, frames: number, world =
 	for (let i = 0; i < frames; i++)
 		stepPlayer(s, { ...idleFrame(i, s), ...input, seq: i }, world, DT);
 	return s;
+}
+
+/** Swings, shots and throws from two seconds of clicking attack with a knife, then a revolver. */
+function attacks(world: CollisionWorld, at: Vec3, input: Partial<InputFrame> = {}): number {
+	let count = 0;
+	for (const item of ['knife', 'revolver']) {
+		const inv = emptyInventory();
+		inv.equipment.primary = { ...newStack(item), loaded: 6 };
+		const s = createPlayerState(at, 0, inv);
+		const events: SimEvent[] = [];
+		for (let i = 0; i < seconds(2); i++) {
+			const frame = { ...idleFrame(i, s), ...input, attack: i % 20 < 10, seq: i };
+			stepPlayer(s, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, events);
+		}
+		count += events.filter((e) => ['swing', 'shot', 'throw'].includes(e.kind)).length;
+	}
+	return count;
 }
 
 describe('sanitizeFrame', () => {
@@ -66,6 +85,35 @@ describe('sanitizeFrame', () => {
 		expect(frame.stance).toBe('stand');
 		expect(frame.headlamp).toBe(0);
 		expect(frame.select).toBe(-1);
+	});
+
+	it('takes the hands away while reading, and leaves walking alone', () => {
+		const busy = {
+			seq: 1,
+			moveZ: 1,
+			stance: 'crouch',
+			headlamp: 2,
+			sprint: true,
+			interact: true,
+			attack: true,
+			aim: true,
+			reload: true,
+			drop: true,
+			select: 2
+		};
+		const reading = sanitizeFrame({ ...busy, reading: true })!;
+		expect(reading).toMatchObject({ moveZ: 1, stance: 'crouch', headlamp: 2, reading: true });
+		expect(reading).toMatchObject({
+			sprint: false,
+			interact: false,
+			attack: false,
+			aim: false,
+			reload: false,
+			drop: false,
+			select: -1
+		});
+		const playing = sanitizeFrame(busy)!;
+		expect(playing).toMatchObject({ sprint: true, attack: true, select: 2, reading: false });
 	});
 });
 
@@ -230,6 +278,48 @@ describe('water', () => {
 		expect(bodyHeight(s)).toBe(MOVEMENT.swim.height);
 	});
 
+	it("can't fight in the water", () => {
+		expect(attacks(pool, [0, -1.5, 0])).toBe(0);
+	});
+
+	it('once under, stays at the depth it swims to; swimming up floats again at the surface', () => {
+		const s = run(createPlayerState([0, -1.5, 0], 0), {}, seconds(2), pool);
+		run(s, { swimDown: true }, seconds(0.6), pool);
+		expect(s.underwater).toBe(true);
+		// Let the dive's momentum die away, then nothing lifts it.
+		run(s, {}, seconds(1), pool);
+		const depth = s.position[1];
+		run(s, {}, seconds(2), pool);
+		expect(s.underwater).toBe(true);
+		expect(Math.abs(s.position[1] - depth)).toBeLessThan(0.05);
+		run(s, { climb: true }, seconds(2), pool);
+		expect(s.underwater).toBe(false);
+		run(s, {}, seconds(2), pool);
+		expect(s.underwater).toBe(false);
+	});
+
+	it('out of breath forces you up', () => {
+		const s = run(createPlayerState([0, -1.5, 0], 0), {}, seconds(2), pool);
+		run(s, { swimDown: true }, seconds(0.6), pool);
+		s.stamina = 0;
+		s.exhausted = true;
+		run(s, {}, seconds(2), pool);
+		expect(s.underwater).toBe(false);
+	});
+
+	it("can't swim hard under the water", () => {
+		const under = (sprint: boolean) => {
+			const s = run(createPlayerState([0, -1.5, 0], 0), {}, seconds(2), pool);
+			run(s, { swimDown: true }, seconds(0.6), pool);
+			s.velocity = [0, 0, 0];
+			const z = s.position[2];
+			run(s, { moveZ: 0.5, sprint }, seconds(0.5), pool);
+			expect(s.underwater).toBe(true);
+			return Math.abs(s.position[2] - z);
+		};
+		expect(under(true)).toBeCloseTo(under(false), 5);
+	});
+
 	it('diving holds the breath until it runs out', () => {
 		const s = run(createPlayerState([0, -1.5, 0], 0), {}, seconds(2), pool);
 		run(s, { swimDown: true }, seconds(1), pool);
@@ -263,6 +353,13 @@ describe('water', () => {
 		run(s, { moveZ: 1, sprint: true }, seconds(1), squeeze);
 		expect(s.squeezing).toBe(true);
 		expect(s.stamina).toBe(MOVEMENT.stamina.max);
+	});
+
+	it('there is no room to fight in a squeeze, or crawling', () => {
+		const squeeze = worldOf([FLOOR], [volume('squeeze', [0, 1, 0], [20, 2, 20])]);
+		expect(attacks(flat, [0, 0, 0])).toBeGreaterThan(0);
+		expect(attacks(squeeze, [0, 0, 0])).toBe(0);
+		expect(attacks(flat, [0, 0, 0], { stance: 'crawl' })).toBe(0);
 	});
 });
 

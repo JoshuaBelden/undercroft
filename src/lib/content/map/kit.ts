@@ -24,8 +24,11 @@ export const MAP_KIT: MapKit = {
 		acoustics: 'vast'
 	},
 
-	// A way up to the surface: placed on the main route between the major rooms.
-	'extraction-shaft': { role: 'extraction', title: 'The Shaft', acoustics: 'hall' },
+	// The end of a level: a way up to the surface, and the double door to the long stair down to
+	// the next level (its `gate` socket). Placed last on every level but the deepest.
+	'extraction-gate': { role: 'extraction', title: 'The Shaft', acoustics: 'hall' },
+	// The only way between levels, behind the extraction room's double door.
+	'stairs-deep': { role: 'descent', title: 'The Long Stair', acoustics: 'hall' },
 
 	// Mostly halls, with frequent junctions; crawls and squeezes are rare.
 	'hall-straight': { role: 'connector', weight: 5 },
@@ -35,10 +38,24 @@ export const MAP_KIT: MapKit = {
 	'hall-side-room': { role: 'connector', weight: 1 },
 	'room-small': { role: 'connector', weight: 1, room: true },
 	'room-crypt': { role: 'connector', weight: 0.5, room: true, acoustics: 'hall' },
-	'hall-crawl': { role: 'connector', weight: 0.2, acoustics: 'tight' },
-	'hall-squeeze': { role: 'connector', weight: 0.2, acoustics: 'tight' },
-	'hall-canal': { role: 'connector', weight: 0.4 },
-	'hall-flooded': { role: 'connector', weight: 0.2, acoustics: 'tight' },
+	'room-vault': {
+		role: 'connector',
+		weight: 1,
+		room: true,
+		title: 'Charnel Vault',
+		acoustics: 'vast'
+	},
+	'room-gallery': {
+		role: 'connector',
+		weight: 0.8,
+		room: true,
+		title: 'Burial Gallery',
+		acoustics: 'hall'
+	},
+	'hall-crawl': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'crawl' },
+	'hall-squeeze-long': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'squeeze' },
+	'hall-canal': { role: 'connector', weight: 0.4, sketch: 'water' },
+	'hall-flooded': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'water' },
 	'hall-stairs-down': { role: 'connector', weight: 0.8, descends: true },
 	// Rope drops (docs/dev/rope.md): 12 m down, only with a rope tied at the top. Never on the main
 	// route: the generator hangs `ropeDrops` of them off it, each with a short way on at its foot.

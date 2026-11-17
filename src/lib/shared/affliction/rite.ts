@@ -25,7 +25,12 @@ export function revealed(
 }
 
 /** The rite as clients may see it: hidden slots are null. */
-export function riteSnapshot(spec: RiteSpec, clues: number, resolved = false): RiteSnapshot {
+export function riteSnapshot(
+	spec: RiteSpec,
+	clues: number,
+	performed = false,
+	resolved = false
+): RiteSnapshot {
 	const known = revealed(spec, clues);
 	return {
 		requirements: spec.requirements.map((r, i) =>
@@ -34,6 +39,7 @@ export function riteSnapshot(spec: RiteSpec, clues: number, resolved = false): R
 		room: known.room ? spec.room : null,
 		seconds: spec.seconds,
 		hints: known.hints,
+		performed,
 		resolved
 	};
 }

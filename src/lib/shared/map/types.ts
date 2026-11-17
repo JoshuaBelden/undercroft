@@ -13,7 +13,10 @@ export type Edge = 'n' | 'e' | 's' | 'w';
 
 /** A standard opening on a piece's footprint boundary. */
 export interface PieceSocket {
-	/** Opening type (`hall` now; `crawl`, `squeeze`, `canal` later). Only equal types connect. */
+	/**
+	 * Opening type. Only equal types connect. `hall` is the standard 2 m arch; `gate` is the 3.2 m
+	 * double-door opening between an extraction room and the long stair down to the next level.
+	 */
 	type: string;
 	/** Footprint cell the opening belongs to, [x, z] from the piece's north-west cell. */
 	cell: [number, number];
@@ -80,6 +83,11 @@ export interface PieceDef {
 	rites: Vec3[];
 	/** Where a loot crate may stand (crate-* markers). The server fills only some of them. */
 	crates: CrateMarker[];
+	/**
+	 * Doors (door-* markers): floor centre of the doorway. At yaw 0 the room side is north (-Z);
+	 * the leaves swing away from it. Every one is a door between levels (see DOORS).
+	 */
+	doors: CrateMarker[];
 	/** Collapsed walls (rubble-* markers): the only places bricks lie, a few at each. */
 	rubble: Vec3[];
 	/** Ropes to climb (rope-* markers): the extraction ropes. */
@@ -95,10 +103,10 @@ export interface PieceDef {
 /**
  * start: the expedition start room. major: one of the static major rooms, all placed on the
  * main route. extraction: a room with a way up to the surface, placed on the main route
- * (`GenerateOptions.extractions` of them). connector: passages and minor rooms. end: dead ends
- * that close branches. cap: seals an unused opening without occupying a cell.
+ * at the end of every level but the deepest. connector: passages and minor rooms. descent: the long
+ * stair from an extraction room's `gate` down to the next level. end: dead ends that close branches. cap: seals an unused opening without occupying a cell.
  */
-export type PieceRole = 'start' | 'major' | 'extraction' | 'connector' | 'end' | 'cap';
+export type PieceRole = 'start' | 'major' | 'extraction' | 'connector' | 'descent' | 'end' | 'cap';
 
 /** Gameplay data for a piece (hand-authored, in `src/lib/content/map/kit.ts`). */
 export interface KitEntry {
@@ -123,6 +131,11 @@ export interface KitEntry {
 	 * already. Only the map debug view uses it (docs/dev/map-generation.md#debug-grid).
 	 */
 	room?: boolean;
+	/**
+	 * What the explorer's map draws on the piece's cells (docs/dev/map.md). Stairs (`descends`
+	 * or the `descent` role) and extraction rooms get theirs from those.
+	 */
+	sketch?: SketchSymbol;
 	/** Name shown in the room banner when a player first enters it. */
 	title?: string;
 	/** How the space sounds (reverb, damping); default 'tunnel'. See src/lib/content/audio/ambience.ts. */
@@ -136,6 +149,9 @@ export interface KitEntry {
 
 export type Acoustics = 'tight' | 'tunnel' | 'hall' | 'vast';
 
+/** A passage the explorer's map marks with a symbol: wet, low or tight. */
+export type SketchSymbol = 'water' | 'crawl' | 'squeeze';
+
 export type MapKit = Record<string, KitEntry>;
 
 /** One piece placed in the world. */
@@ -145,6 +161,11 @@ export interface Placement {
 	position: Vec3;
 	/** Quarter turns around +Y (counter-clockwise seen from above), 0-3. */
 	rotation: number;
+	/**
+	 * Level of the map it belongs to: 0 at the top, down to the deepest (see GenerateOptions.tiers).
+	 * Players see it counted from 1. The long stair belongs to the level it leads down to.
+	 */
+	tier: number;
 }
 
 /** A loot crate standing in the map. */
@@ -156,6 +177,19 @@ export interface CratePlacement {
 	yaw: number;
 	/** A corpse, searched like a crate (see CORPSES); absent for a crate. Corpses are not solid. */
 	kind?: 'corpse';
+	/** The level of the map it is on (its piece's tier): what it can hold depends on it. */
+	tier: number;
+}
+
+/** A door between levels (see DOORS). Solid until opened. */
+export interface DoorPlacement {
+	id: string;
+	/** Floor centre of the doorway, world space. */
+	position: Vec3;
+	/** Turn about +Y (radians). At 0 the room side is north (-Z) and the leaves swing south. */
+	yaw: number;
+	/** The level of the map it leads down to. */
+	tier: number;
 }
 
 export interface MapLayout {
@@ -165,4 +199,6 @@ export interface MapLayout {
 	placements: Placement[];
 	/** Loot crates (see docs/dev/items.md). Solid: they are part of the collision world. */
 	crates: CratePlacement[];
+	/** Doors between levels (see docs/dev/map-generation.md#doors). Solid while shut. */
+	doors: DoorPlacement[];
 }

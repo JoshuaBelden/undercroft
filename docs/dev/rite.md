@@ -4,18 +4,18 @@ The rite is how an Affliction is resolved (see `docs/HANDOFF.md`). Players learn
 
 ## Files
 
-| File                                 | What                                                                |
-| ------------------------------------ | ------------------------------------------------------------------- |
-| `src/lib/content/afflictions.ts`     | `RiteSpec` on each Affliction (data): requirements, hints           |
-| `src/lib/content/hints.ts`           | `HINTS`: where hint items may be put (data)                         |
-| `src/lib/content/items.ts`           | Rite items (`kind: 'rite'`) and the hint item (`kind: 'clue'`)      |
-| `src/lib/shared/affliction/rite.ts`  | Shared rules: what hints reveal, the snapshot, "carries it all"     |
-| `src/lib/shared/affliction/types.ts` | `RiteSnapshot` (part of `AfflictionSnapshot`)                       |
-| `server/rite.ts`                     | `RiteDirector` (hints found, the room, who can perform), scatter    |
-| `server/hints.ts`                    | Hint spots: crates, corpses, walls, furniture; spreading the copies |
-| `server/progress.ts`                 | `Progress`: hints found and resolutions, kept across expeditions    |
-| `src/lib/ui/RiteOverlay.svelte`      | The rite overlay; hidden, just the name and the toggle's binding    |
-| `src/lib/ui/AfflictionPane.svelte`   | An Affliction on the Afflictions page                               |
+| File                                 | What                                                                                                           |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `src/lib/content/afflictions.ts`     | `RiteSpec` on each Affliction (data): requirements, hints                                                      |
+| `src/lib/content/hints.ts`           | `HINTS`: where hint items may be put (data)                                                                    |
+| `src/lib/content/items.ts`           | Rite items (`kind: 'rite'`) and the hint item (`kind: 'clue'`)                                                 |
+| `src/lib/shared/affliction/rite.ts`  | Shared rules: what hints reveal, the snapshot, "carries it all"                                                |
+| `src/lib/shared/affliction/types.ts` | `RiteSnapshot` (part of `AfflictionSnapshot`)                                                                  |
+| `server/rite.ts`                     | `RiteDirector` (hints found, the room, who can perform), scatter                                               |
+| `server/hints.ts`                    | Hint spots: crates, corpses, walls, furniture; spreading the copies                                            |
+| `server/progress.ts`                 | `Progress`: hints found and resolutions, kept across expeditions                                               |
+| `src/lib/ui/RitePanel.svelte`        | What is known of the rite: on the HUD (hidden, just the name and the toggle's binding) and the menu's Rite tab |
+| `src/lib/ui/AfflictionPane.svelte`   | An Affliction on the Afflictions page                                                                          |
 
 ## Data
 
@@ -54,7 +54,7 @@ Neither the Pendant nor the hint has a model yet. They are drawn as boxes from `
 
 ## What clients know
 
-Each tick's `affliction.rite` is a `RiteSnapshot`: `requirements` with `null` for slots no hint has revealed, `room` (`null` until revealed), `seconds`, `hints` (the texts found so far, in order) and `resolved`. Hidden information is never sent.
+Each tick's `affliction.rite` is a `RiteSnapshot`: `requirements` with `null` for slots no hint has revealed, `room` (`null` until revealed), `seconds`, `hints` (the texts found so far, in order), `performed` and `resolved`. Hidden information is never sent.
 
 The client shows a banner when a hint is found: "A hint: Candle" over the hint's words (`RoomBanner`'s `subtitle`).
 
@@ -71,15 +71,19 @@ On the Afflictions page each known pane ends with a Join Expedition button (`onj
 
 After the real Afflictions come `UNKNOWN_PANES` (4) panes for ones nobody has met: "Unknown", `UNKNOWN_SLOTS` question-mark slots, and the `affliction-unknown-banner` picture. Lower the number as Afflictions are added to `AFFLICTIONS`; a new one needs only `flavor`, `image` and its picture.
 
-The rite overlay is shown at the middle of the left edge underground, including while spectating. It has no background or border: the Affliction's name in a pill ("Resolved" beside it once it is done), the hints found in italics, then a grey line down the left with a tick to each requirement and, last, the room. A requirement a hint has revealed shows a small [slot](systems.md#slots) with its picture, greyed out unless this player carries some of it (`carriers` marks this player `self`); an unrevealed one shows only the question-mark slot, and an unknown room reads "Location: Unknown". Under each name is who in the party carries it (from the player snapshots). It is an overlay, not a menu: it takes no clicks, the pointer stays locked and play goes on under it. It is hidden while a menu or the results are showing.
+Underground, what is known of the rite (`RitePanel`) is shown at the middle of the left edge, including while spectating: the play page places it (`.rite-hud`). It has no background or border: the Affliction's name in a pill ("Resolved" beside it once it is done), the hints found in italics, then a grey line down the left with a tick to each requirement and, last, the room. A requirement a hint has revealed shows a small [slot](systems.md#slots) with its picture, greyed out unless this player carries some of it (`carriers` marks this player `self`); an unrevealed one shows only the question-mark slot, and an unknown room reads "Location: Unknown". Under each name is who in the party carries it (from the player snapshots, kept up to date every frame). It is an overlay, not a menu: it takes no clicks, the pointer stays locked and play goes on under it. It is hidden while a menu (the in-game menu too) or the results are showing.
+
+### The Rite tab
+
+The same `RitePanel`, all of it whether or not the panel is hidden, is the Rite tab of the in-game menu (`GameMenu`, opened by the `inventory` action; see [items.md](items.md#the-in-game-menu)). Under it is Abandon expedition (see [expedition.md](expedition.md#abandoning)).
 
 ### Hiding the panel
 
-On a tablet the overlay and the party panel below it (`PartyHealth`, see [player.md](player.md)) cover a good part of the screen, so players can hide both together:
+On a tablet or a phone the rite covers a good part of the screen, so players can hide it:
 
-- **The setting** is `settings.interface.ritePanel` (on by default), Settings > Interface > Show rite and party panel. It persists like every setting.
+- **The setting** is `settings.interface.ritePanel` (on by default), Settings > Interface > Show rite panel. It persists like every setting.
 - **The action** `toggleRitePanel` (Interface; `KeyH`, `PadR3` in `PAD_DEFAULTS`) flips that setting and saves it, from the play page's `onPressed` switch, as `toggleView` and `toggleStats` do. It plays `ui.toggle`, a quiet tick (the menu click, quieter and higher). It only does anything underground: the dashboard doesn't handle it.
-- **Hidden,** `RiteOverlay` gets `open={false}` and draws only its header: the Affliction's name in its pill ("Resolved" beside it once done) and a `KeyCap` of `promptCode('toggleRitePanel')`, so it follows remapping and shows the controller button or the key, whichever was used last. `Hud` gets `partyShown={false}` and leaves out `PartyHealth`, and with it the posture and headlamp battery drawn under this player's bars. The vignette, prompts, held item, ammunition and the expedition clock stay.
+- **Hidden,** `RitePanel` gets `open={false}` and draws only its header: the Affliction's name in its pill ("Resolved" beside it once done) and a `KeyCap` of `promptCode('toggleRitePanel')`, so it follows remapping and shows the controller button or the key, whichever was used last. The party's health (`PartyHealth`, see [player.md](player.md)), the vignette, prompts, held item, ammunition and the expedition clock stay.
 
 It isn't hidden automatically by screen size. Anything else added down the left edge underground should follow the same setting.
 
@@ -99,13 +103,15 @@ There is no holder role. Whoever carries every requirement (in any slot: `carrie
 `PlayerState.performing` counts the seconds (server-driven, like `reviving`) and resets if any of that stops being true. At `seconds`:
 
 - the items are used up;
-- `RiteDirector.resolved` is set and `resolved` is saved for everyone who went down (`SessionHooks.onResolved`), straight away: dying afterwards doesn't undo it;
-- the Affliction is calmed (`AfflictionDirector.calm`, see [affliction.md](affliction.md#calmed-by-the-rite)): no more meter, omens or manifestation;
-- a `rite` game event plays `rite.resolve` and a banner for everyone.
+- `RiteDirector.performed` is set (the snapshot's `performed`): it can't be performed again in this expedition;
+- a `rite` game event plays `rite.perform` and a banner ("Something answers it") for everyone;
+- **it summons the manifestation** into the room (`Session.summon`, see [affliction.md](affliction.md#the-manifestation)). The Affliction is **not** resolved yet.
 
-Nobody is carried out: they still have to extract before the deadline (see [expedition.md](expedition.md#deadline)). Extracting afterwards shows the results screen with the `resolved` outcome.
+**Resolving it:** banishing what the rite summoned resolves the Affliction. Then `RiteDirector.resolved` is set (the snapshot's `resolved`), `resolved` is saved for everyone who went down (`SessionHooks.onResolved`), straight away (dying afterwards doesn't undo it), the Affliction is calmed (no more meter or omens, see [affliction.md](affliction.md#calmed)), and a `resolved` event plays `rite.resolve` and a "Banished" banner. Performing the rite and then dying, or getting out without banishing it, resolves nothing: the next expedition needs the rite again.
 
-The client shows "[E] to perform the rite" under the same conditions, with its progress.
+Nobody is carried out: they still have to extract before the deadline (see [expedition.md](expedition.md#deadline)), past the creatures that are still there. Extracting afterwards shows the results screen with the `resolved` outcome.
+
+The client shows "[E] to perform the rite" under the same conditions, with its progress. Once performed, the rite panel adds a last step under the room: "Banish it" (with how: hold light on it, flick the lamp to stun it), then "Banished" once resolved. The pill says "Resolved" only then.
 
 ## Progress across runs
 
@@ -125,3 +131,4 @@ These need `DEV_MODE`:
 - **Reveal all clues** (`revealClues`);
 - **Reset rite progress** (`resetRite`): forgets the hints in this expedition and in the stored progress of everyone in it. It does not put hint items back in the map.
 - **Give** 5 Candles, Chalk and the Pendant, and **teleport** to `gloaming-chapel`, with the existing commands.
+- **Summon manifestation** and **Banish (resolves it)** in the Affliction group, to try the fight or the resolution without performing it.

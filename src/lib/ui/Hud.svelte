@@ -36,8 +36,6 @@
 		party: PartyMember[];
 		/** Conditions on this player (a hobble), with the seconds left: chips under their bars. */
 		conditions?: { id: string; name: string; description: string; left: number; of: number }[];
-		/** Show the party panel (hidden with the rite panel, Settings > Interface). */
-		partyShown?: boolean;
 	}
 
 	let {
@@ -57,21 +55,20 @@
 		aiming,
 		gloom,
 		party,
-		conditions = [],
-		partyShown = true
+		conditions = []
 	}: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
 	const bars = $derived(Math.ceil(battery * 4));
 	const STANCE_LABELS: Record<string, string> = { crouch: 'Crouching', crawl: 'Crawling' };
-	// The edges darken as sanity falls, and pulse with the heartbeat when it's low.
+	// The edges darken as sanity falls, and with the omens' gloom.
 	const vignette = $derived(Math.min(0.92, Math.max(0, (1 - sanity) * 1.15, gloom * 0.75)));
 	const posture = $derived(
 		[STANCE_LABELS[stance], creep ? 'Creeping' : null].filter(Boolean).join(' · ')
 	);
 </script>
 
-<div class="vignette" class:pulse={sanity < 0.4} style:opacity={vignette} aria-hidden="true"></div>
+<div class="vignette" style:opacity={vignette} aria-hidden="true"></div>
 
 {#if hurt > 0}
 	{#key hurt}
@@ -100,36 +97,34 @@
 	</div>
 {/if}
 
-{#if partyShown}
-	<PartyHealth members={party}>
-		{#if conditions.length}
-			<ul class="conditions" aria-label="Conditions">
-				{#each conditions as condition (condition.id)}
-					<li class="condition" title={condition.description}>
-						<span class="name">{condition.name}</span>
-						<span class="left">{Math.ceil(condition.left)}s</span>
-						<span class="drain" style:width="{(condition.left / condition.of) * 100}%"></span>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-		{#if posture}
-			<div class="posture">{posture}</div>
-		{/if}
-		<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
-			<span class="cells">
-				{#each [0, 1, 2, 3] as cell (cell)}
-					<span class="cell" class:on={cell < bars}></span>
-				{/each}
-			</span>
-			<!-- Rounded up: a lamp that still gives any light never reads 0 V. -->
-			<span class="volts">{Math.ceil(volts)}V</span>
-			<span>{LAMP_LABELS[headlamp] ?? ''}</span>
-			<!-- After what it switches, in the HUD's own colours (KeyCap's tint="control"). -->
-			{#if lampKey}<KeyCap code={lampKey} tint="control" />{/if}
-		</div>
-	</PartyHealth>
-{/if}
+<PartyHealth members={party}>
+	{#if conditions.length}
+		<ul class="conditions" aria-label="Conditions">
+			{#each conditions as condition (condition.id)}
+				<li class="condition" title={condition.description}>
+					<span class="name">{condition.name}</span>
+					<span class="left">{Math.ceil(condition.left)}s</span>
+					<span class="drain" style:width="{(condition.left / condition.of) * 100}%"></span>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+	{#if posture}
+		<div class="posture">{posture}</div>
+	{/if}
+	<div class="lamp" class:low={battery < 0.2} aria-label="Headlamp battery">
+		<span class="cells">
+			{#each [0, 1, 2, 3] as cell (cell)}
+				<span class="cell" class:on={cell < bars}></span>
+			{/each}
+		</span>
+		<!-- Rounded up: a lamp that still gives any light never reads 0 V. -->
+		<span class="volts">{Math.ceil(volts)}V</span>
+		<span>{LAMP_LABELS[headlamp] ?? ''}</span>
+		<!-- After what it switches, in the HUD's own colours (KeyCap's tint="control"). -->
+		{#if lampKey}<KeyCap code={lampKey} tint="control" />{/if}
+	</div>
+</PartyHealth>
 
 <style>
 	.vignette {
@@ -143,20 +138,6 @@
 		);
 		pointer-events: none;
 		transition: opacity 0.6s ease-out;
-	}
-
-	.vignette.pulse {
-		animation: pulse 0.85s ease-in-out infinite;
-	}
-
-	@keyframes pulse {
-		0%,
-		100% {
-			filter: brightness(1);
-		}
-		18% {
-			filter: brightness(0.55);
-		}
 	}
 
 	.hurt {
@@ -190,12 +171,6 @@
 		}
 		to {
 			opacity: 0;
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.vignette.pulse {
-			animation: none;
 		}
 	}
 

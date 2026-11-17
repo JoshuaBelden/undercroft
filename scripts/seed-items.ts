@@ -34,6 +34,7 @@ const SEED: { item: string; count: number }[] = [
 	{ item: 'chalk', count: 3 },
 	{ item: 'rope-pack', count: 2 },
 	{ item: 'rope-bundle', count: 1 },
+	{ item: 'notebook', count: 2 },
 	{ item: 'candle', count: 6 },
 	{ item: 'coins', count: 30 },
 	{ item: 'rosary', count: 3 },

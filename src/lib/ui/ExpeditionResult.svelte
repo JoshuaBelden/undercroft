@@ -14,7 +14,7 @@
 		/** The Affliction the expedition went down against (empty if not known). */
 		affliction: string;
 		/** How the expedition ended for this player. */
-		outcome: 'extracted' | 'died' | 'lost' | 'abandoned' | 'banished' | 'resolved';
+		outcome: 'extracted' | 'died' | 'lost' | 'abandoned' | 'resolved';
 		/** After watching the rest of the expedition: how many of the others got out alive. */
 		escaped?: number | null;
 		/** What was carried out (kept); null when it was lost. */
@@ -30,22 +30,19 @@
 		died: "You didn't make it out",
 		lost: 'Lost in the dark',
 		abandoned: 'You abandoned the expedition',
-		banished: 'The dark recedes',
-		resolved: 'The rite is done'
+		resolved: 'The dark recedes'
 	};
 
 	const note = $derived(
-		outcome === 'banished'
-			? `You drove it back, for now. ${affliction || 'The Affliction'} is not resolved.`
-			: outcome === 'resolved'
-				? `${affliction || 'The Affliction'} is resolved, and you made it out. The dark lets go of this place.`
-				: outcome === 'lost'
-					? 'Time ran out with you still underground. What you carried stays down there.'
-					: escaped !== null
-						? escaped === 0
-							? 'No one made it out.'
-							: `${escaped} of the others made it out.`
-						: null
+		outcome === 'resolved'
+			? `${affliction || 'The Affliction'} is resolved, and you made it out. The dark lets go of this place.`
+			: outcome === 'lost'
+				? 'Time ran out with you still underground. What you carried stays down there.'
+				: escaped !== null
+					? escaped === 0
+						? 'No one made it out.'
+						: `${escaped} of the others made it out.`
+					: null
 	);
 
 	const time = $derived(

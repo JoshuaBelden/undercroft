@@ -47,16 +47,29 @@ export const CRATE_LOOT: LootEntry[] = [
  * than the crate has slots, the commonest are left out. Slots are filled commonest first, so the
  * best is revealed last.
  *
- * Tuned for about 20 crates a map: a few rares, an epic in about half of maps, a legendary in about
- * one in five, nearly all of them deep.
+ * "Near the start" and "the far end" are of the crate's own level of the map (LEVEL_LOOT says
+ * which rarities each level has at all).
+ *
+ * Tuned for about 30 crates a map, ten on each level: a few rares, an epic in about half of maps,
+ * a legendary in about one in five, all of them on the third level.
  */
 export const CRATE_RARITY: Record<Rarity, { count: [number, number]; chance: [number, number] }> = {
 	common: { count: [1, 4], chance: [0.25, 0.45] },
 	uncommon: { count: [0, 2], chance: [0.12, 0.25] },
-	rare: { count: [0, 1], chance: [0.04, 0.15] },
-	epic: { count: [0, 1], chance: [0.004, 0.05] },
-	legendary: { count: [0, 1], chance: [0.001, 0.02] }
+	rare: { count: [0, 1], chance: [0.1, 0.28] },
+	epic: { count: [0, 1], chance: [0.02, 0.075] },
+	legendary: { count: [0, 1], chance: [0.006, 0.032] }
 };
+
+/**
+ * Which rarities a crate can hold, by the level of the map it is on (first level first): the
+ * first two have everyday things, and the good stuff is all on the third.
+ */
+export const LEVEL_LOOT: { rarities: Rarity[] }[] = [
+	{ rarities: ['common', 'uncommon'] },
+	{ rarities: ['common', 'uncommon'] },
+	{ rarities: ['common', 'uncommon', 'rare', 'epic', 'legendary'] }
+];
 
 /** Loot crates: where they stand, opening one and going through it. */
 export const CRATES = {
@@ -67,8 +80,8 @@ export const CRATES = {
 	openSeconds: 1,
 	/** Seconds it takes to see what is in a slot. Slots are revealed one at a time. */
 	revealSeconds: 1,
-	/** Chance that a crate marker in a piece has a crate. */
-	fill: 0.35,
+	/** Chance that a crate marker in a piece has a crate (about 140 markers in a map). */
+	fill: 0.22,
 	/** None closer than this to where players start (m, in a straight line). */
 	minDistance: 10,
 	/**

@@ -130,6 +130,8 @@ export type GameEvent =
 	| { kind: 'creatureDie'; id: string; position: Vec3; by: string | null }
 	/** A loot crate was opened for the first time. */
 	| { kind: 'crateOpen'; id: string; player: string; position: Vec3 }
+	/** A door between levels was opened (it stays open). */
+	| { kind: 'doorOpen'; id: string; player: string; position: Vec3 }
 	/** Someone going through a crate started on the next thing in it. */
 	| { kind: 'rummage'; player: string; position: Vec3 }
 	/** A hint was found: what it says, and the requirements (item ids) and room (piece id) it revealed. */
@@ -141,8 +143,12 @@ export type GameEvent =
 			requirements: string[];
 			room: string | null;
 	  }
-	/** The rite was performed: the Affliction is calmed. */
+	/** The rite was performed: it summons the manifestation. */
 	| { kind: 'rite'; player: string; position: Vec3 }
+	/** The manifestation the rite summoned was banished: the Affliction is resolved and calmed. */
+	| { kind: 'resolved'; position: Vec3 }
+	/** A lamp was turned on from off: a flash that stuns what is vulnerable to it, if lit. */
+	| { kind: 'strobe'; player: string; position: Vec3; stunned: number }
 	/** Time ran out: everyone still underground is lost. */
 	| { kind: 'deadline' }
 	/** A chalk mark was drawn, or rubbed out by whoever drew it. */
@@ -158,7 +164,10 @@ export type GameEvent =
 	| { kind: 'ropeUntie'; player: string; position: Vec3 }
 	| { kind: 'ropeGather'; player: string; position: Vec3 }
 	| { kind: 'ropeLay'; player: string; position: Vec3 }
+	/** A player finished sketching into their map, or showing it to a teammate (`with`). */
+	| { kind: 'sketch'; player: string; position: Vec3 }
+	| { kind: 'showMap'; player: string; with: string; position: Vec3 }
 	/** The Affliction reached a new omen stage. */
 	| { kind: 'omen'; stage: number }
-	/** The Affliction manifests (it gathers, then hunts). */
+	/** The rite summoned the manifestation (it gathers, then hunts). */
 	| { kind: 'manifest' };
