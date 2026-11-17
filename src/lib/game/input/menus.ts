@@ -28,6 +28,9 @@ import { REPEAT_DELAY, REPEAT_EVERY, Repeat, stickStep } from './repeat.ts';
  *   it still goes to the focused control, on release instead of on press.
  * - A `padpress` event (a `CustomEvent<PadButton>`) reaches the focused control first; calling
  *   `preventDefault()` on it means it was handled (item slots carry things this way).
+ *
+ * A menu can also take X or Y as held buttons of its own (`holding`): told when one goes down and
+ * when it comes up, for a hold whose length the game counts (the map's sketch, docs/dev/map.md).
  */
 
 /** A face button pressed on the focused control. */
@@ -43,6 +46,11 @@ export interface MenuOptions {
 	tabs?: (by: -1 | 1) => void;
 	/** Remember the control used last under this name, for the next time the menu opens. */
 	key?: string;
+	/**
+	 * X or Y went down (`true`) or came up (`false`) while this menu was on top. A menu with this
+	 * takes them as held buttons: they don't press the focused control.
+	 */
+	holding?: (button: 'x' | 'y', down: boolean) => void;
 }
 
 type Direction = 'up' | 'down' | 'left' | 'right';
@@ -84,6 +92,8 @@ let held: { code: string; direction: Direction; at: number } | null = null;
 const stickHeld = new Repeat();
 /** A face button held down for a control's `data-pad-hold`, from its press until it is let go. */
 let holding: { code: string; button: PadButton; control: HTMLElement; hold: Hold } | null = null;
+/** X or Y down for a menu's own `holding`, until it is let go (or the menu stops being on top). */
+let faceDown: { code: string; button: 'x' | 'y'; menu: Menu } | null = null;
 /** The right stick's scroll not yet a whole pixel. */
 const carry = { x: 0, y: 0 };
 let frame = 0;
@@ -169,8 +179,17 @@ function stop(): void {
 	held = null;
 	stickHeld.reset();
 	holding = null;
+	letGoFace();
 	hints.top = null;
 	showHold(null, 0);
+}
+
+/** The face button held for a menu's own `holding` is up: tell it. */
+function letGoFace(): void {
+	if (!faceDown) return;
+	const { menu, button } = faceDown;
+	faceDown = null;
+	menu.holding?.(button, false);
 }
 
 /**
@@ -185,6 +204,7 @@ function loop(now: number): void {
 	const root = menu?.root ?? null;
 	if (hints.top !== root) hints.top = root;
 	if (holding) holdFrame(menu, now);
+	if (faceDown && (!pads.isDown(faceDown.code) || faceDown.menu !== menu)) letGoFace();
 	if (menu && device.kind === 'pad') {
 		if (!focused(menu)) focusStart(menu);
 		if (held && !pads.isDown(held.code)) held = null;
@@ -213,6 +233,12 @@ function press(code: string): void {
 	}
 	const button = FACES[code];
 	if (!button) return;
+	if ((button === 'x' || button === 'y') && menu.holding) {
+		if (faceDown) return;
+		faceDown = { code, button, menu };
+		menu.holding(button, true);
+		return;
+	}
 	// A control here is held for this button: wait for the release to tell a hold from a quick
 	// press. Only from a fresh press, and one hold at a time.
 	const control = HOLDS.has(button) && !holding ? holdable(menu, button) : null;

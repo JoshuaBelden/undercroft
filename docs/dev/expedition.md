@@ -49,7 +49,7 @@ All checks are on the server (`Parties`); `allReady` is shared so both sides use
 1. Signing in lands on the Expedition page. The site-wide connection (`src/lib/game/net/connection.svelte.ts`, see [systems.md](systems.md#networking)) sends `hello` with its ticket (see [accounts.md](accounts.md)), lands in a party and gets `party`.
 2. Everyone readies up and the countdown runs out (above). `Parties.descend` creates a `Session` against the party's Affliction (new seed, generated layout), takes each member's loadout from their explorer (see [economy.md](economy.md)) and adds them with it. Each gets `welcome` with the layout: that message means "you are underground now", and the client opens `/play`.
 3. Players explore. The session simulates them and broadcasts `tick` snapshots to the players in it.
-4. A player climbs out (see Extraction), dies, abandons (see Abandoning), runs out of time (see Deadline), or the manifestation is banished. Performing the rite (see [rite.md](rite.md)) does not end anything: they still have to climb out. The server sends them `extracted`, `died` (with `lost` when time ran out), `abandoned` or `banished` with their `ExpeditionSummary` (see Results) and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
+4. A player climbs out (see Extraction), dies, abandons (see Abandoning), or runs out of time (see Deadline). Performing the rite and banishing what it summons (see [rite.md](rite.md)) do not end anything: they still have to climb out. The server sends them `extracted`, `died` (with `lost` when time ran out) or `abandoned` with their `ExpeditionSummary` (see Results) and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
 5. What they carried out goes back to their explorer; if they died or abandoned it is lost (see [economy.md](economy.md)). Leaving alive, the client fades out first (see Leaving); the dead see the results after spectating (see Spectating). Continue on the results goes to the Loadout page. While others are still underground their panes say so, and nobody can launch.
 6. When the session's last player is out (or has disconnected), it stops. The party is back on the surface and can launch again.
 
@@ -59,7 +59,7 @@ All checks are on the server (`Parties`); `allReady` is shared so both sides use
 
 An expedition lasts `AfflictionDef.expeditionSeconds` (2400 s, 40 minutes, for the Gloaming), counted from when the first player arrives (`Session.startedAt`). Each tick's `affliction.deadline` is the seconds left. At zero (`Session.stepDeadline`) a `deadline` event is raised and everyone still underground, downed or not, dies: the normal death path drops what they carried where they stand and sends `died` with `lost: true`.
 
-The client shows it at the top centre (`ExpeditionClock.svelte`): the time as m:ss, red from five minutes, and under it a 4 px bar with a red border and a red fill, `affliction.meter` (how near the Affliction is to arriving, see [affliction.md](affliction.md#the-meter)). The bar is gone once it has manifested or the rite has calmed it.
+The client shows it at the top centre (`ExpeditionClock.svelte`): the time as m:ss, red from five minutes. Nothing else: the Affliction's meter is never shown (see [affliction.md](affliction.md#the-meter)).
 
 Admin (`DEV_MODE`): **Time left (s)** in the Affliction group sets the seconds left (`setDeadline`).
 
@@ -83,12 +83,12 @@ A player whose connection drops keeps their place: for `PARTY.reconnectSeconds` 
 A player who dies while others are still alive underground watches through a teammate's eyes until the expedition is over.
 
 - **Server:** `died` carries `spectating`: whether anyone alive is left in the session after that tick. If so the session keeps the dead player's socket in `spectators`: they are out of the simulation (and show as on the surface in the party), but still receive every `tick`.
-- When the session's last player is out, each spectator gets `spectateEnd { escaped }`, the number of players who got out alive (climbed out or carried out by a banishing).
+- When the session's last player is out, each spectator gets `spectateEnd { escaped }`, the number of players who got out alive (climbed out).
 - `stopSpectating` (the Leave button) or disconnecting removes a spectator early.
 
 ## Abandoning
 
-The settings screen underground has an Abandon expedition button (`onabandon` on `Settings`), with a dialog to confirm. The client sends `abandon`; `Session.abandon` drops everything the player carried where they stand (as on death), sends `abandoned` with its summary and removes them. Nothing comes back to the surface with them, and they do not spectate. The others carry on; if they were the last one down, the expedition ends.
+The Rite tab of the in-game menu has an Abandon expedition button (`onabandon` on `GameMenu`, see [items.md](items.md#the-in-game-menu)), with a dialog to confirm. The menu doesn't open while downed or spectating, so neither can abandon: downed, you can surrender; spectating, the spectate bar's Leave goes back to the surface. The client sends `abandon`; `Session.abandon` drops everything the player carried where they stand (as on death), sends `abandoned` with its summary and removes them. Nothing comes back to the surface with them, and they do not spectate. The others carry on; if they were the last one down, the expedition ends.
 
 - **Client:** on `died` with `spectating`, the page keeps the map, creatures, items and other players, drops the local player, and puts the camera at the watched player's interpolated head (`RemotePlayers.view`), hiding that player's body (`setHidden`). `SpectateBar` shows who is being watched, with Next (cycle teammates) and Leave. If the watched player dies or leaves, the view moves to the next one.
 - The results screen is held back until spectating ends, then shows how many of the others made it out.
@@ -111,7 +111,7 @@ Every way out but the start door is marked by the same model: a timber ladder (a
 - Moving, letting go or mantling resets it to 0.
 - At `extractSeconds` (3 s), `state.extracted` is set. The server stops simulating that player and finishes the extraction.
 
-**Client feedback:** near a point the HUD shows "[E] to climb out" (the player's current binding as a keycap) in a `HoldPrompt` pill whose background fills while holding. Use `HoldPrompt` (`src/lib/ui/HoldPrompt.svelte`) for every hold-key prompt so they all look the same. Its `key` shows a keycap (`KeyCap`, large) before the text. Every in-game key prompt is made by `keyPrompt(action, text, progress)` in the play page: the action's first binding as the keycap (`promptKey`), then a short phrase ("to climb out", "to search", "to pick up Bandage"), the same while it is held (the fill shows the progress). With the action unbound it falls back to words ("Interact to climb out"). The downed screen's surrender prompt and the rite overlay's "holds [E]" use the keycap too. Never write a key into prompt text.
+**Client feedback:** near a point the HUD shows "[E] to climb out" (the player's current binding as a keycap) in a `HoldPrompt` pill whose background fills while holding. Use `HoldPrompt` (`src/lib/ui/HoldPrompt.svelte`) for every hold-key prompt so they all look the same. Its `key` shows a keycap (`KeyCap`, large) before the text. Every in-game key prompt is made by `keyPrompt(action, text, progress)` in the play page: the action's first binding as the keycap (`promptKey`), then a short phrase ("to climb out", "to search", "to pick up Bandage"), the same while it is held (the fill shows the progress). With the action unbound it falls back to words ("Interact to climb out"). The downed screen's surrender prompt and the rite's "holds [E]" use the keycap too. Never write a key into prompt text.
 
 **Keyboard shortcuts on screen:** draw a key with `KeyCap` (`src/lib/ui/KeyCap.svelte`): a white rounded cap with the label in bold black, `small` (14 px, beside HUD bars) or `large` (in a prompt). Always pass the player's current binding through `bindingLabel` (`src/lib/game/input/actions.ts`), never a hard-coded letter, so it follows remapping; show nothing when the action is unbound. The headlamp key sits to the left of the battery cells (`Hud`'s `lampKey`).
 
@@ -121,9 +121,9 @@ Every way out but the start door is marked by the same model: a timber ladder (a
 
 **Stingers:** `expedition.intro` plays when a `welcome` arrives with `resumed: false` (a real descent; a reconnect sends `resumed: true` and stays quiet). `expedition.outro` plays when leaving alive. Both are on the music bus, so no muffling or reverb from the room.
 
-**Leaving:** on `extracted`, `abandoned` or `banished` the play page does not drop the world at once. `leave()` closes any menu, stops control (`extracting` blocks input), plays the outro and shows `ExtractFade`: "Extracting" over the world as it fades to black over `EXPEDITION.leaveFadeSeconds`. Then `endExpedition()` puts the expedition away and the results fade in out of the black. Dying skips the fade (the downed screen and spectating already cover it).
+**Leaving:** on `extracted` or `abandoned` the play page does not drop the world at once. `leave()` closes any menu, stops control (`extracting` blocks input), plays the outro and shows `ExtractFade`: "Extracting" over the world as it fades to black over `EXPEDITION.leaveFadeSeconds`. Then `endExpedition()` puts the expedition away and the results fade in out of the black. Dying skips the fade (the downed screen and spectating already cover it).
 
-**Outcome:** the results screen's title comes from the message, except that `extracted` after the rite was performed (the last tick's `rite.resolved`) shows "The rite is done", and `died` with `lost` shows "Lost in the dark".
+**Outcome:** the results screen's title comes from the message, except that `extracted` after the Affliction was resolved (the last tick's `rite.resolved`: the rite performed and what it summoned banished) shows "The dark recedes", and `died` with `lost` shows "Lost in the dark".
 
 **Results:** `ExpeditionSummary` (`src/lib/shared/protocol.ts`), built by `Session.summary`: time underground, deepest level of the map reached (`tierAt`, 0 for the first; shown counting from 1), and the player's `kills`, `crates` (first to open) and `clues`. The session counts those from the tick's events (`Session.tally`): `creatureDie.by`, `crateOpen.player`, `clue.player`. The client adds the Affliction's name and lists what was brought out with what it would sell for. To add a stat, add it to `ExpeditionSummary` and `Player.stats`, count it in `tally`, and show it in `ExpeditionResult`.
 

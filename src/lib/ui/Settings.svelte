@@ -36,11 +36,9 @@
 		onvolume?: (category: AudioCategory, value: number) => void;
 		/** Graphics settings changed; re-apply them to the renderer. */
 		ongraphics?: () => void;
-		/** Underground: offer to abandon the expedition (asked to confirm first). */
-		onabandon?: () => void;
 	}
 
-	let { onclose, dim = false, onvolume, ongraphics, onabandon }: Props = $props();
+	let { onclose, dim = false, onvolume, ongraphics }: Props = $props();
 
 	const GROUPS = [
 		'Audio',
@@ -55,8 +53,6 @@
 
 	/** Asking whether to really reset everything. */
 	let confirmingReset = $state(false);
-	/** Asking whether to really abandon the expedition. */
-	let confirmingAbandon = $state(false);
 	const QUALITIES: readonly GraphicsQuality[] = ['low', 'medium', 'high'];
 	const CAPTION_SIZES: readonly CaptionSize[] = ['small', 'medium', 'large'];
 	const SPRINT_MODES: readonly SprintMode[] = ['toggle', 'hold'];
@@ -126,11 +122,6 @@
 <TabScreen label="Settings" groups={GROUPS} bind:group {onclose} {dim}>
 	{#snippet actions()}
 		<button type="button" class="back" onclick={() => openBugReport()}>Report a bug</button>
-		{#if onabandon}
-			<button type="button" class="back abandon" onclick={() => (confirmingAbandon = true)}>
-				Abandon expedition
-			</button>
-		{/if}
 	{/snippet}
 
 	{#if group === 'Audio'}
@@ -416,13 +407,13 @@
 			hint="Names the thing on the floor you are looking at."
 		/>
 		<StepperField
-			label="Show rite and party panel"
+			label="Show rite panel"
 			text={onOff(settings.interface.ritePanel)}
 			onstep={() => {
 				settings.interface.ritePanel = !settings.interface.ritePanel;
 				saveSettings();
 			}}
-			hint="Underground, what the rite needs and your party's health, down the left. Off, only the Affliction's name stays at the left edge."
+			hint="Underground, what the rite needs, down the left. Off, only the Affliction's name stays at the left edge."
 		/>
 		<StepperField
 			label="Performance stats"
@@ -462,29 +453,3 @@
 		{/snippet}
 	</Dialog>
 {/if}
-
-{#if confirmingAbandon}
-	<Dialog title="Abandon the expedition" onclose={() => (confirmingAbandon = false)}>
-		<p>You go back to the surface now, alone. Anyone with you stays down there.</p>
-		<p>Everything you carry is left where you stand, as if you had died.</p>
-		{#snippet footer()}
-			<button type="button" onclick={() => (confirmingAbandon = false)}>Stay</button>
-			<button
-				type="button"
-				class="primary"
-				onclick={() => {
-					confirmingAbandon = false;
-					onabandon?.();
-				}}
-			>
-				Abandon
-			</button>
-		{/snippet}
-	</Dialog>
-{/if}
-
-<style>
-	.abandon {
-		color: #ff9a70;
-	}
-</style>

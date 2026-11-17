@@ -52,10 +52,10 @@ export const MAP_KIT: MapKit = {
 		title: 'Burial Gallery',
 		acoustics: 'hall'
 	},
-	'hall-crawl': { role: 'connector', weight: 0.2, acoustics: 'tight' },
-	'hall-squeeze-long': { role: 'connector', weight: 0.2, acoustics: 'tight' },
-	'hall-canal': { role: 'connector', weight: 0.4 },
-	'hall-flooded': { role: 'connector', weight: 0.2, acoustics: 'tight' },
+	'hall-crawl': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'crawl' },
+	'hall-squeeze-long': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'squeeze' },
+	'hall-canal': { role: 'connector', weight: 0.4, sketch: 'water' },
+	'hall-flooded': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'water' },
 	'hall-stairs-down': { role: 'connector', weight: 0.8, descends: true },
 
 	'hall-dead-end': { role: 'end' },

@@ -120,14 +120,21 @@ export type GameEvent =
 			requirements: string[];
 			room: string | null;
 	  }
-	/** The rite was performed: the Affliction is calmed. */
+	/** The rite was performed: it summons the manifestation. */
 	| { kind: 'rite'; player: string; position: Vec3 }
+	/** The manifestation the rite summoned was banished: the Affliction is resolved and calmed. */
+	| { kind: 'resolved'; position: Vec3 }
+	/** A lamp was turned on from off: a flash that stuns what is vulnerable to it, if lit. */
+	| { kind: 'strobe'; player: string; position: Vec3; stunned: number }
 	/** Time ran out: everyone still underground is lost. */
 	| { kind: 'deadline' }
 	/** A chalk mark was drawn, or rubbed out by whoever drew it. */
 	| { kind: 'mark'; player: string; position: Vec3 }
 	| { kind: 'rub'; player: string; position: Vec3 }
+	/** A player finished sketching into their map, or showing it to a teammate (`with`). */
+	| { kind: 'sketch'; player: string; position: Vec3 }
+	| { kind: 'showMap'; player: string; with: string; position: Vec3 }
 	/** The Affliction reached a new omen stage. */
 	| { kind: 'omen'; stage: number }
-	/** The Affliction manifests (it gathers, then hunts). */
+	/** The rite summoned the manifestation (it gathers, then hunts). */
 	| { kind: 'manifest' };

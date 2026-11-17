@@ -5,6 +5,7 @@ import {
 	type Bindings
 } from '#lib/game/input/actions.ts';
 import type { AudioCategory } from '#lib/game/audio/AudioManager.ts';
+import { SURVEY } from '#lib/content/map/survey.ts';
 
 /**
  * All player settings live here and persist to localStorage.
@@ -100,10 +101,12 @@ export interface Settings {
 		/** "Press E to pick up ..." prompts for things on the floor. */
 		itemPrompts: boolean;
 		/**
-		 * Underground, the rite down the left and the party's health below it. Off, only the
-		 * Affliction's name stays, in a pill (docs/dev/rite.md).
+		 * Underground, the rite down the left. Off, only the Affliction's name stays, in a pill
+		 * (docs/dev/rite.md). The party's health shows either way.
 		 */
 		ritePanel: boolean;
+		/** The map screen's zoom (pixels per metre) as it was last left (docs/dev/map.md). */
+		mapZoom: number;
 	};
 	controls: ControlSettings;
 	controller: ControllerSettings;
@@ -118,7 +121,13 @@ function defaults(): Settings {
 		sound: { muteInBackground: false },
 		bindings: defaultBindings(),
 		padBindings: defaultPadBindings(),
-		interface: { showStats: false, quickSlots: true, itemPrompts: true, ritePanel: true },
+		interface: {
+			showStats: false,
+			quickSlots: true,
+			itemPrompts: true,
+			ritePanel: true,
+			mapZoom: SURVEY.zoom.initial
+		},
 		controls: { mouseSensitivity: 1, aimSensitivity: 1, invertY: false },
 		controller: {
 			lookSensitivity: 1,

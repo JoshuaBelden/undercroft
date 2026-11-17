@@ -292,6 +292,12 @@
 				)}
 				{@render action('Camera back to your body', oncameratobody)}
 			{/if}
+			{@render action(
+				'Reveal whole map',
+				() => onadmin({ kind: 'revealMap' }),
+				'Every cell drawn in your map (docs/dev/map.md).'
+			)}
+			{@render action('Clear map', () => onadmin({ kind: 'clearMap' }), 'Nothing drawn in it.')}
 			<StepperField
 				label="Grid"
 				text={onOff(gridView)}
@@ -356,8 +362,9 @@
 				</label>
 				<button type="submit">Set</button>
 			</form>
-			{@render action('Force manifestation', () => onadmin({ kind: 'manifest' }))}
-			{@render action('Banish', () => onadmin({ kind: 'banish' }))}
+			{@render action('Summon manifestation', () => onadmin({ kind: 'manifest' }))}
+			{@render action('Stun it', () => onadmin({ kind: 'stun' }))}
+			{@render action('Banish (resolves it)', () => onadmin({ kind: 'banish' }))}
 		{:else if group === 'Rite'}
 			{@render action('Reveal all clues', () => onadmin({ kind: 'revealClues' }))}
 			{@render action('Reset rite progress', () => onadmin({ kind: 'resetRite' }))}

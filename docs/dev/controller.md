@@ -44,7 +44,7 @@ The Gamepad API has no button events: the state has to be read every frame. `gam
 - **Only while the window has focus** (`document.hasFocus()`), as the keyboard already behaves.
 - **Dead zone:** radial, `settings.controller.deadZone` (15% by default). Inside it a stick reads 0; past it, the value is rescaled to start from 0.
 - **Triggers** (LT/RT) are analog: they count as pressed past `TRIGGER_PRESS`.
-- **The left stick also presses the move actions.** A direction counts as pressed while that axis is past `STICK_PRESS`, so everything that reacts to a move key (walking away from a crate closes it, moving leaves the admin screen) also reacts to the stick. Not while a menu is open: there the stick moves the focus, and B closes the crate or the admin screen.
+- **The left stick also presses the move actions.** A direction counts as pressed while that axis is past `STICK_PRESS`, so everything that reacts to a move key (walking away from a crate closes it, moving leaves the admin screen) also reacts to the stick. Not while a menu is open: there the stick moves the focus, and B closes the crate or the admin screen. So in the in-game menu, where the keyboard can still walk, a controller stands still.
 - **Dialogs:** while a modal `<dialog>` is open, controller presses don't reach the `InputMap`. Key presses don't either (`Dialog.svelte` stops them).
 - **Menus:** while a menu is open, the buttons it moves with don't reach the `InputMap` (see [Menus](#menus)).
 
@@ -80,16 +80,16 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | Button     | Action                                  | Button      | Action                        |
 | ---------- | --------------------------------------- | ----------- | ----------------------------- |
 | Left stick | Move (a light push creeps)              | Right stick | Look; points at an open wheel |
-| L3         | Sprint (toggle, or hold: a setting)     | R3          | Rite and party panel; Social  |
+| L3         | Sprint (toggle, or hold: a setting)     | R3          | Rite panel; Social            |
 | A          | Climb / swim up / surrender (hold)      | RT          | Attack / fire / use           |
 | B          | Stance (tap / hold to creep); swim down | LT          | Aim (hold) / throw            |
 | X          | Interact / revive (hold)                | LB          | Quick-use wheel (hold)        |
 | Y          | Other weapon                            | RB          | Reload                        |
 | D-pad up   | Headlamp mode                           | D-pad down  | Drop held item                |
 | D-pad left | Camera: first person / shoulder         | D-pad right | Help                          |
-| View       | Pack                                    | Menu        | Settings                      |
+| View       | Pack and rite (the in-game menu)        | Menu        | Settings                      |
 
-R3 is the rite and party panel underground (hide or show it, see [rite.md](rite.md#hiding-the-panel)) and Social on the dashboard (see the dashboard's shortcuts below). The two never listen at once, so they share the button.
+R3 is the rite panel underground (hide or show it, see [rite.md](rite.md#hiding-the-panel)) and Social on the dashboard (see the dashboard's shortcuts below). The two never listen at once, so they share the button.
 
 No controller button: choosing primary or secondary directly (Y swaps the two), fullscreen (browsers only allow it from a click or a key), performance stats and the admin panel. Their prompts and help show the keyboard key even while the controller is in use.
 
@@ -105,7 +105,7 @@ No controller button: choosing primary or secondary directly (Y swaps the two), 
 
 ## Playing without the mouse captured
 
-Underground, the game normally runs only while the pointer is locked. Browsers don't count a controller press as a user gesture, so a controller can't capture the pointer (or go fullscreen). While the controller is the device in use, the play page runs the game without the lock: "Take Control" isn't shown (A on it just plays), and the cursor is hidden over the game. Using the mouse again goes back to needing a click to capture it. Closing the pack, a crate or the admin screen captures the pointer again only for the mouse (`capture()`).
+Underground, the game normally runs only while the pointer is locked. Browsers don't count a controller press as a user gesture, so a controller can't capture the pointer (or go fullscreen). While the controller is the device in use, the play page runs the game without the lock: "Take Control" isn't shown (A on it just plays), and the cursor is hidden over the game. Using the mouse again goes back to needing a click to capture it. Closing the in-game menu, a crate or the admin screen captures the pointer again only for the mouse (`capture()`).
 
 Sound needs a gesture too, but only once per page load ("sticky" activation); signing in or any click before the descent gives it.
 
@@ -172,6 +172,8 @@ View and R3 go through the `InputMap` (bindings, remappable). The dashboard's in
 - If the control goes away, is disabled or a menu opens over it, the hold empties and letting go does nothing. Nor does the window losing the focus.
 - `Hold` (`hold.ts`) is the timing alone, without the DOM, and is unit tested; `menus.ts` reads the buttons and presses the control.
 
+**Held buttons a screen counts itself.** A hold whose length the game decides (the map's sketch and show, counted by the server: [map.md](map.md)) can't be a `data-pad-hold`, which presses its control once after `HOLD_TIME`. Instead the menu takes `holding(button, down)`: X or Y going down calls it with `true`, and letting go (or the menu no longer being on top, or closing) with `false`. A menu with `holding` takes X and Y as held buttons: they don't press the focused control. One at a time, like the holds above.
+
 **Buttons on screen.** `ButtonHint` shows a shortcut's button (`KeyCap`, in the current icon set) inside the control it presses, after its label, only while the controller is the device in use: keyboard and mouse players see nothing. With `hold` it also draws the slide: absolutely placed in the control, under its label (`[data-pad-hold]` in `src/app.css` makes the control its box and clips it to the control's shape). Each page renders it only where its shortcut works right then (Launch only while it can be pressed, the store not on the Store page or while ready, Social not on the Social page), and a menu button's (LB/RB, a hold) shows only while its menu is the one the controller drives (`hints.top`), so not under an open dialog, Help or the item menu. It is hidden from screen readers (the label says it), and `--hint-gap` sets the space after the label where the control isn't a flex row with a gap.
 
 The icon is drawn in its control's own two colours, swapped, rather than the white keycap and coloured letters of the HUD and Help (`KeyCap`'s `tint="control"`): the control sets `--hint-cap` to its text colour and `--hint-label` to its background. Underground it is used too, with the button after its text: the hold prompts (`HoldPrompt`: extract, open a crate, revive, surrender) in the pill's colours, and the headlamp's key and the rite panel's interact key in the HUD's (the defaults: `--text` for the cap, `--bg` for the letter). Help keeps the white keycaps.
@@ -194,6 +196,7 @@ The icon is drawn in its control's own two colours, swapped, rather than the whi
 | Markup                                      | What                                                                                                                                                            |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `{@attach menu({ back, tabs, key })}`       | A menu. `back` is B, `tabs(by)` is LB (-1) / RB (1), `key` remembers the control used last across openings                                                      |
+| `menu({ holding })`                         | X and Y as held buttons: `holding(button, down)` when one goes down and when it comes up (the map screen)                                                       |
 | `data-pad-stop` with `tabindex="-1"`        | Somewhere the focus can rest that isn't a control, so a grid with gaps still moves as a grid (a crate's sealed slots)                                           |
 | `data-pad-scroll`                           | What the right stick scrolls when nothing around the focus does (a `TabScreen`'s fields, with the focus on its tabs, as in Help)                                |
 | `data-pad-stepper`                          | One stop for a value with buttons either side (and maybe a field between): left and right press its first and last buttons (`StepperField`)                     |
@@ -203,7 +206,7 @@ The icon is drawn in its control's own two colours, swapped, rather than the whi
 
 **Adding a screen:** give its root `{@attach menu({ back: onclose })}`. `Panel`, `Dialog` and `TabScreen` already have it, so screens built from them need nothing more. Buttons and links inside just work.
 
-It covers every dashboard page and the account menu, the settings, account, About and error pages, Help, every dialog (the bug report too), the pack, crates, the settings and admin overlays, the store's item details, the spectate bar, the results screen and the launch countdown. The sign-in pages are left out: they need typing.
+It covers every dashboard page and the account menu, the settings, account, About and error pages, Help, every dialog (the bug report too), the in-game menu (LB/RB switch between Pack and Rite), crates, the settings and admin overlays, the store's item details, the spectate bar, the results screen and the launch countdown. The sign-in pages are left out: they need typing.
 
 ## Testing
 

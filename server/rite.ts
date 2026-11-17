@@ -23,12 +23,15 @@ import { log } from './log.ts';
 
 /**
  * The rite of one expedition: how many hints have been found (what players know), where it is
- * held, whether a player can perform it, and whether it has been. See docs/dev/rite.md.
+ * held, whether a player can perform it, whether it has been (summoning the manifestation), and
+ * whether what it summoned has been banished (resolving it). See docs/dev/rite.md.
  */
 export class RiteDirector {
 	/** Hints found, counting those the party already knew from earlier runs. */
 	clues = 0;
-	/** The rite has been performed in this expedition. */
+	/** The rite has been performed in this expedition: it summoned the manifestation. */
+	performed = false;
+	/** What it summoned has been banished: the Affliction is resolved. */
 	resolved = false;
 	/** Cells of the room the rite is held in. */
 	private cells: Set<string>;
@@ -79,7 +82,12 @@ export class RiteDirector {
 	}
 
 	snapshot(): RiteSnapshot {
-		return riteSnapshot(this.spec, this.clues, this.resolved);
+		return riteSnapshot(this.spec, this.clues, this.performed, this.resolved);
+	}
+
+	/** Cells (cell keys) of the room it is held in. */
+	get roomCells(): ReadonlySet<string> {
+		return this.cells;
 	}
 
 	inRoom(position: Vec3): boolean {
@@ -89,7 +97,7 @@ export class RiteDirector {
 	/** The holder: knows where, is there, and carries everything the rite needs. */
 	canPerform(state: PlayerState): boolean {
 		return (
-			!this.resolved &&
+			!this.performed &&
 			this.roomKnown &&
 			this.inRoom(state.position) &&
 			carriesAll(state.inventory, this.spec.requirements)
@@ -113,7 +121,7 @@ function cellsOf(layout: MapLayout, pieces: Record<string, PieceDef>, id: string
 	return cells;
 }
 
-function cellOf(position: Vec3): string {
+export function cellOf(position: Vec3): string {
 	const [x, z] = worldCell(position[0], position[2]);
 	return cellKey(x, z, Math.floor((position[1] + 0.5) / LEVEL_HEIGHT));
 }

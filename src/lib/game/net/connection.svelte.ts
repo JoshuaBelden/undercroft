@@ -178,7 +178,6 @@ function receive(message: ServerMessage): void {
 		case 'extracted':
 		case 'died':
 		case 'abandoned':
-		case 'banished':
 			connection.welcome = null;
 			break;
 	}

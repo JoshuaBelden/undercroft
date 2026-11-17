@@ -73,9 +73,12 @@ export type AdminCommand =
 	| { kind: 'killCreatures' }
 	/** Set the Affliction meter (0..1). */
 	| { kind: 'setMeter'; value: number }
-	/** Fill the meter: it manifests. */
+	/** Summon the manifestation, in the rite's room (as the rite does). */
 	| { kind: 'manifest' }
+	/** Banish it: the Affliction is resolved, as if a weapon had. */
 	| { kind: 'banish' }
+	/** Stun it (immunity still applies). */
+	| { kind: 'stun' }
 	/** Put a creature a few metres in front of you. */
 	| { kind: 'spawnCreature' }
 	| { kind: 'clearCreatures' }
@@ -99,6 +102,9 @@ export type AdminCommand =
 	| { kind: 'resetCrates' }
 	/** Rub out every chalk mark. */
 	| { kind: 'clearMarks' }
+	/** Your map: every cell drawn in it (`reveal`), or none (`clear`). See docs/dev/map.md. */
+	| { kind: 'revealMap' }
+	| { kind: 'clearMap' }
 	/** New map; omit the seed for a random one. */
 	| { kind: 'regenerate'; seed?: number }
 	/** Throw an error on the game server, to try the crash prompt (docs/dev/reports.md). */
@@ -160,6 +166,11 @@ export type ServerMessage =
 	 * a player arriving or coming back.
 	 */
 	| { type: 'marks'; marks: MarkSnapshot[] }
+	/**
+	 * Your map: every cell you have sketched (or been shown), [x, z, level]. Sent whenever it
+	 * changes, and to a player arriving or coming back. See docs/dev/map.md.
+	 */
+	| { type: 'survey'; cells: [number, number, number][] }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }
 	/**
@@ -177,8 +188,6 @@ export type ServerMessage =
 	| ({ type: 'abandoned' } & ExpeditionSummary)
 	/** The expedition you were watching is over; `escaped` players got out alive. */
 	| { type: 'spectateEnd'; escaped: number }
-	/** The manifestation was banished: everyone leaves the expedition. */
-	| ({ type: 'banished'; carried: ItemStack[] } & ExpeditionSummary)
 	/** Your progress on an Affliction was reset (`resetAffliction`): reload the account. */
 	| { type: 'afflictionReset'; id: string }
 	/**
@@ -242,12 +251,12 @@ const SERVER_TYPES = new Set<string>([
 	'tick',
 	'crate',
 	'marks',
+	'survey',
 	'map',
 	'extracted',
 	'died',
 	'abandoned',
 	'spectateEnd',
-	'banished',
 	'afflictionReset',
 	'serverError'
 ]);

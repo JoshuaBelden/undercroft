@@ -45,5 +45,7 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	// A stick lying along X. About 8 cm long; pinched a little behind the middle.
 	chalk: { forward: '-x', up: '+y', length: 0.08, grip: [0.35, 0.5] },
 	// A fat dry cell lying along Z, its + terminal toward +Z. About 9 cm long; held round its middle.
-	battery: { forward: '+z', up: '+y', length: 0.09, grip: [0.5, 0.5] }
+	battery: { forward: '+z', up: '+y', length: 0.09, grip: [0.5, 0.5] },
+	// A field book lying flat on its back cover, longest along X. About 18 cm; held in the middle.
+	notebook: { forward: '-x', up: '+y', length: 0.18, grip: [0.5, 0.5] }
 };

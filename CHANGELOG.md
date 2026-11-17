@@ -11,9 +11,18 @@ What changed in each version of Undercroft, newest first. Players see these in g
 - Squeezes are much longer, and there's no room to fight in one (nor while crawling).
 - Under the water, the view turns murky green. Once you dive you stay down at the depth you swim to, with no floating back up, until you swim to the surface or run out of breath. You can't swim hard under the water, or fight in it.
 - The results screen's deepest level now counts the three levels of the catacombs.
+- The Gloaming is a real fight now. It no longer turns up when you've stayed too long. Performing the rite is what brings it, right there in the chapel, and the Gloaming is only resolved once you banish it. Then get out past whatever else is still down there.
+- The Gloaming rears back before it strikes, so you can see the blow coming and step out of reach. A landed blow hurts but doesn't drop you outright: 40 alone, 50 for two, 60 for three or more, and whatever you wear takes some of it. Being near it no longer drains you.
+- Flick your headlamp off and on with the Gloaming in the beam and the flash stuns it for 2 seconds. It won't fall for it again for 20.
+- You can see your light working: the Gloaming burns brighter the longer you hold a lamp on it, and flares when weapons can hurt it.
+- The creatures in the catacombs are tougher, more so the bigger your party: a little tougher alone, more for two, and more again for three or more.
+- Hold the cursor over anything in the store to see what it is and what it does, as on the Loadout page.
+- The red arrival bar under the expedition clock is gone, and so is the throbbing red at the edges of the screen when your sanity runs low.
+- Draw your own map. Buy a surveyor's notebook in the store, carry it down, and press M (or Map in your pack) to open it. Stand still and hold Sketch to draw what is around you: passages, rooms, stairs, the ways out and your chalk marks. Your map is yours alone; stand next to a friend and hold Show to swap what you both know. A pencil can be heard.
 - Controller shortcuts on the dashboard, with their buttons shown on screen: hold X to launch an expedition and again to confirm your loadout, hold Y to open the store or to purchase, View for your Loadout, a click of the right stick for Social, and LB/RB for the tabs. The button fills from left to right while you hold it.
 - Looting with a controller: once X has sent an item from a crate or corpse to your pack, you move on to the next one, so pressing X again and again empties it.
-- Hide the rite and your party's health down the left of the screen with H, or by clicking the right stick, and bring them back the same way. Only the Affliction's name stays. Handy on a tablet; it's also under Settings > Interface.
+- Hide the rite down the left of the screen with H, or by clicking the right stick, and bring it back the same way. Only the Affliction's name stays. Handy on a tablet or a phone; it's also under Settings > Interface. Your party's health always stays on screen.
+- A menu underground: Tab or I (View on a controller) opens your pack as before, with a Rite tab beside it that shows what you know of the rite and who carries what. Abandon expedition is there now too, instead of in the settings. The menu can't be opened while you're down, and while it's open your hands are full: you can walk with the keyboard, but not fight, use things or run.
 - The game's fonts now come from the game itself rather than Google, so pages load without a stop at another site and nothing about you is sent there.
 - Avatars: upload a picture on the Account screen and frame it in the circle. It shows beside your gamer tag and on your pane on the Expedition screen, for your whole party. Signed in with Discord? Your Discord avatar is used until you upload your own.
 - With a controller, the store's quantity is on the right stick: push it left or right to choose how many, and the left stick goes straight to Purchase.

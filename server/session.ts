@@ -26,6 +26,7 @@ import { CORPSES, CRATES } from '../src/lib/content/loot.ts';
 import { DEFAULT_MARK_WHEEL, MARKS } from '../src/lib/content/marks.ts';
 import { DOORS } from '../src/lib/content/doors.ts';
 import { doorBox, tierAt, tierCells } from '../src/lib/shared/map/doors.ts';
+import { SURVEY } from '../src/lib/content/map/survey.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import {
 	addItem,
@@ -50,6 +51,12 @@ import {
 	rubbleSites,
 	spawnPoint
 } from '../src/lib/shared/map/points.ts';
+import {
+	carriesSurvey,
+	sketchCells,
+	surveyMap,
+	type SurveyMap
+} from '../src/lib/shared/map/survey.ts';
 import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
 import {
@@ -84,6 +91,7 @@ import { Doors } from './doors.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
 import { Marks } from './marks.ts';
+import { Surveys } from './survey.ts';
 import { log } from './log.ts';
 
 interface Player {
@@ -174,6 +182,9 @@ export class Session {
 	private tiers = new Map<string, number>();
 	private affliction!: AfflictionDirector;
 	private rite!: RiteDirector;
+	/** What a map can show of this one, and what each player has drawn in theirs. */
+	private survey!: SurveyMap;
+	private surveys!: Surveys;
 	/** Chalk marks on the walls. */
 	private marks = new Marks();
 	/** Items not put in this map: quest items someone in the party already owns. */
@@ -192,14 +203,16 @@ export class Session {
 	private players = new Map<string, Player>();
 	/** Dead players still watching: they get ticks but are not in the simulation. */
 	private spectators = new Map<string, { name: string; socket: WebSocket }>();
-	/** Players who got out alive (climbed out, or were carried out by a banishing). */
+	/** Players who got out alive. */
 	private escaped = 0;
 	private tick = 0;
 	private timer: NodeJS.Timeout | null = null;
 	private hadPlayers = false;
 	/** How many players went down (for game stats). */
 	private joined = 0;
-	/** When the Affliction manifested (ms); null until it does. */
+	/** The omen stage clients were last told of (an `omen` event goes out when it changes). */
+	private omen = 0;
+	/** When the rite summoned the manifestation (ms); null until it does. */
 	private manifestedAt: number | null = null;
 	/** Players whose run has been written (server/stats.ts), so each is written once. */
 	private logged = new Set<string>();
@@ -235,6 +248,8 @@ export class Session {
 		this.itemsSent = null;
 		this.affliction = this.direct();
 		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
+		this.survey = surveyMap(this.layout, PIECES, MAP_KIT);
+		this.surveys = new Surveys(this.survey);
 		this.populate();
 	}
 
@@ -362,6 +377,7 @@ export class Session {
 			markWheel: [...player.markWheel]
 		});
 		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
+		this.sendSurvey(player);
 		log.info(`Player ${name} joined session ${this.id.slice(0, 8)}`);
 		if (!this.timer) this.start();
 		return player;
@@ -393,6 +409,7 @@ export class Session {
 			markWheel: [...player.markWheel]
 		});
 		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
+		this.sendSurvey(player);
 		log.info(`Player ${player.name} reconnected to session ${this.id.slice(0, 8)}`);
 		return true;
 	}
@@ -605,10 +622,13 @@ export class Session {
 				}
 				break;
 			case 'manifest':
-				this.affliction.setMeter(1);
+				this.summon(player.state.position);
 				break;
 			case 'banish':
 				this.affliction.banish();
+				break;
+			case 'stun':
+				this.affliction.stun();
 				break;
 			case 'infiniteAmmo':
 				player.state.flags.infiniteAmmo = command.enabled === true;
@@ -658,6 +678,14 @@ export class Session {
 				break;
 			case 'openDoors':
 				this.doors.openAll();
+				break;
+			case 'revealMap':
+				this.surveys.revealAll(player.id);
+				this.sendSurvey(player);
+				break;
+			case 'clearMap':
+				this.surveys.clear(player.id);
+				this.sendSurvey(player);
 				break;
 			case 'resetCrates':
 				for (const other of this.players.values()) this.shutCrate(other);
@@ -709,6 +737,8 @@ export class Session {
 		this.marks.clear();
 		this.broadcast({ type: 'map', layout: this.layout });
 		this.broadcast({ type: 'marks', marks: [] });
+		// A new map: what was drawn of the old one is no use (`build` started the maps over).
+		for (const player of this.players.values()) this.sendSurvey(player);
 		log.info(`Session ${this.id.slice(0, 8)} regenerated with seed ${seed}`);
 	}
 
@@ -774,7 +804,9 @@ export class Session {
 				const frame = player.queue.shift() as InputFrame;
 				const pressedInteract = frame.interact && !player.lastInput?.interact;
 				const events: SimEvent[] = [];
+				const lit = headlampOutput(player.state).on;
 				stepPlayer(player.state, frame, this.world, DT, MOVEMENT, DEFAULT_HEADLAMP, events);
+				if (!lit && headlampOutput(player.state).on) this.strobe(player);
 				resolve(this.combat(), player, events);
 				if (pressedInteract) this.pickUp(player);
 				player.lastInput = frame;
@@ -794,6 +826,7 @@ export class Session {
 		this.stepCrates();
 		this.stepDoors();
 		this.stepMarks();
+		this.stepSurvey();
 		this.tally();
 		// Anyone still alive down here after this tick? The dead can watch them.
 		const alive = [...this.players.values()].some((p) => !p.state.dead && !p.state.extracted);
@@ -827,19 +860,6 @@ export class Session {
 			this.removePlayer(player.id, player.state.dead ? null : player.state.inventory);
 			if (player.state.dead && alive) {
 				this.spectators.set(player.id, { name: player.name, socket: player.socket });
-			}
-		}
-		if (this.affliction.banished && this.players.size > 0) {
-			log.info(`Session ${this.id.slice(0, 8)}: banished`);
-			for (const player of [...this.players.values()]) {
-				this.escaped++;
-				this.send(player, {
-					type: 'banished',
-					...this.summary(player),
-					carried: allStacks(player.state.inventory)
-				});
-				this.logRun(player, 'banished', player.state.inventory);
-				this.removePlayer(player.id, player.state.inventory);
 			}
 		}
 		if (this.players.size === 0) return;
@@ -958,24 +978,62 @@ export class Session {
 		return true;
 	}
 
-	/** The meter, omens and the manifestation; banishing it ends the expedition for everyone. */
+	/**
+	 * The meter, omens and the manifestation. Its blows land on what is worn first, like a
+	 * creature's. Banishing what the rite summoned resolves the Affliction (nobody is carried out).
+	 */
 	private stepAffliction(): void {
-		const before = this.affliction.stage;
-		const manifested = this.affliction.manifested;
+		this.affliction.party = this.creatures.party = Math.max(1, this.joined);
 		const prey = [...this.players.values()].map((p) => ({ id: p.id, state: p.state }));
 		for (const hit of this.affliction.step(prey)) {
 			const player = this.players.get(hit.playerId);
-			if (player) this.hurt(player, hit.amount);
+			if (!player) continue;
+			const s = player.state;
+			if (s.flags.godMode || s.downed || s.dead) continue;
+			const { through, torn } = absorbBlow(s.inventory, hit.amount);
+			if (torn) this.events.push({ kind: 'break', item: torn, position: [...s.position] });
+			this.hurt(player, through);
 		}
-		if (this.affliction.stage !== before) {
-			this.events.push({ kind: 'omen', stage: this.affliction.stage });
-			log.info(`Session ${this.id.slice(0, 8)} omen stage ${this.affliction.stage}`);
+		// Banished by a weapon or an admin earlier this tick.
+		if (this.affliction.defeated) this.resolve();
+		if (this.affliction.stage !== this.omen) {
+			this.omen = this.affliction.stage;
+			this.events.push({ kind: 'omen', stage: this.omen });
+			log.info(`Session ${this.id.slice(0, 8)} omen stage ${this.omen}`);
 		}
-		if (!manifested && this.affliction.manifested) {
-			this.manifestedAt ??= Date.now();
-			this.events.push({ kind: 'manifest' });
-			log.info(`Session ${this.id.slice(0, 8)}: the Affliction manifests`);
-		}
+	}
+
+	/** The rite was performed (or an admin forces it): the manifestation appears in its room. */
+	private summon(from: Vec3): void {
+		if (this.affliction.manifested || this.affliction.calmed) return;
+		this.affliction.party = Math.max(1, this.joined);
+		const prey = [...this.players.values()].map((p) => ({ id: p.id, state: p.state }));
+		this.affliction.summon((p) => this.rite.inRoom(p), from, prey);
+		if (!this.affliction.manifested) return;
+		this.manifestedAt ??= Date.now();
+		this.events.push({ kind: 'manifest' });
+		log.info(`Session ${this.id.slice(0, 8)}: the Affliction manifests`);
+	}
+
+	/**
+	 * What the rite summoned was banished: the Affliction is resolved for everyone who went down,
+	 * and calmed (omens lift). They still have to get out past the creatures.
+	 */
+	private resolve(): void {
+		if (this.rite.resolved) return;
+		this.rite.resolved = true;
+		const at = this.affliction.snapshot().manifestation?.position ?? [0, 0, 0];
+		this.events.push({ kind: 'resolved', position: [...at] });
+		this.hooks.onResolved?.();
+		log.info(`The Affliction was resolved in ${this.id.slice(0, 8)}`);
+	}
+
+	/** A player turned their lamp on from off: a flash that stuns what is vulnerable to it. */
+	private strobe(player: Player): void {
+		const s = player.state;
+		if (s.downed || s.dead || s.extracted) return;
+		const stunned = (this.affliction.strobe(s) ? 1 : 0) + this.creatures.strobe(s);
+		this.events.push({ kind: 'strobe', player: player.id, position: [...s.position], stunned });
 	}
 
 	/** Thrown items: hit creatures, land, make noise. */
@@ -1099,7 +1157,7 @@ export class Session {
 
 	/**
 	 * The rite: whoever carries everything it needs, in its room, holds interact. When it is done
-	 * the Affliction is resolved and calmed, but everyone still has to get out.
+	 * it summons the manifestation there; banishing that resolves the Affliction (`resolve`).
 	 */
 	private stepRite(): void {
 		const seconds = this.affliction.def.rite.seconds;
@@ -1111,16 +1169,13 @@ export class Session {
 				continue;
 			}
 			s.performing += TICK_DT;
-			if (s.performing < seconds || this.rite.resolved) continue;
+			if (s.performing < seconds || this.rite.performed) continue;
 			s.performing = 0;
 			this.rite.take(s);
-			this.rite.resolved = true;
-			const stage = this.affliction.stage;
-			this.affliction.calm();
+			this.rite.performed = true;
 			this.events.push({ kind: 'rite', player: player.id, position: [...s.position] });
-			if (stage !== 0) this.events.push({ kind: 'omen', stage: 0 });
-			this.hooks.onResolved?.();
 			log.info(`${player.name} performed the rite in ${this.id.slice(0, 8)}`);
+			this.summon(s.position);
 		}
 	}
 
@@ -1259,6 +1314,86 @@ export class Session {
 		}
 	}
 
+	/**
+	 * The map (docs/dev/map.md), held on the map screen with a notebook in the pack and the hands
+	 * free. Sketching: standing still for SURVEY.sketchSeconds draws what is around you. Showing:
+	 * next to a teammate who has a notebook too, SURVEY.shareSeconds copies each map into the
+	 * other. Each sketches or shows once per hold (-1 until it is let go).
+	 */
+	private stepSurvey(): void {
+		for (const player of this.players.values()) {
+			const s = player.state;
+			const hold = player.lastInput?.survey ?? null;
+			const able = this.canUseHands(player) && carriesSurvey(s.inventory);
+			if (hold !== 'sketch') s.sketching = 0;
+			else if (s.sketching >= 0) {
+				const still = Math.hypot(s.velocity[0], s.velocity[2]) < SURVEY.stillSpeed;
+				s.sketching = able && still ? s.sketching + TICK_DT : 0;
+				if (s.sketching >= SURVEY.sketchSeconds) {
+					s.sketching = -1;
+					this.sketch(player);
+				}
+			}
+			if (hold !== 'share') s.sharing = 0;
+			else if (s.sharing >= 0) {
+				const partner = able ? this.mapPartner(player) : null;
+				s.sharing = partner ? s.sharing + TICK_DT : 0;
+				if (partner && s.sharing >= SURVEY.shareSeconds) {
+					s.sharing = -1;
+					this.showMap(player, partner);
+				}
+			}
+		}
+	}
+
+	/** Draw what the player can see from where they stand into their map. */
+	private sketch(player: Player): void {
+		const s = player.state;
+		const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
+		const cells = sketchCells(this.survey, this.world, s.position, eye, SURVEY.sketchRange);
+		this.surveys.draw(player.id, cells);
+		this.sendSurvey(player);
+		this.events.push({ kind: 'sketch', player: player.id, position: [...s.position] });
+		this.creatures.hear(s.position, SURVEY.sketchNoise, player);
+	}
+
+	/** The nearest teammate on their feet, close enough and with a notebook, to show your map to. */
+	private mapPartner(player: Player): Player | null {
+		const at = player.state.position;
+		let best: Player | null = null;
+		let bestDistance: number = SURVEY.shareRange;
+		for (const other of this.players.values()) {
+			const o = other.state;
+			if (other === player || o.downed || o.dead || o.extracted || !carriesSurvey(o.inventory)) {
+				continue;
+			}
+			const d = Math.hypot(o.position[0] - at[0], o.position[1] - at[1], o.position[2] - at[2]);
+			if (d <= bestDistance) {
+				best = other;
+				bestDistance = d;
+			}
+		}
+		return best;
+	}
+
+	/** Two maps shown to each other: both now have everything either had. */
+	private showMap(player: Player, partner: Player): void {
+		this.surveys.share(player.id, partner.id);
+		this.sendSurvey(player);
+		this.sendSurvey(partner);
+		this.events.push({
+			kind: 'showMap',
+			player: player.id,
+			with: partner.id,
+			position: [...player.state.position]
+		});
+		log.info(`${player.name} showed their map to ${partner.name} in ${this.id.slice(0, 8)}`);
+	}
+
+	private sendSurvey(player: Player): void {
+		this.send(player, { type: 'survey', cells: this.surveys.snapshot(player.id) });
+	}
+
 	private hurt(player: Player, amount: number): void {
 		const s = player.state;
 		if (s.flags.godMode || s.downed || s.dead) return;
@@ -1281,6 +1416,8 @@ export class Session {
 		s.opening = 0;
 		s.erasing = 0;
 		s.unbarring = 0;
+		s.sketching = 0;
+		s.sharing = 0;
 		this.shutCrate(player);
 		log.info(`Player ${player.name} is down`);
 	}

@@ -13,9 +13,11 @@
 		stack: ItemStack;
 		/** The slot's place on the screen (`getBoundingClientRect`). */
 		anchor: DOMRect;
+		/** It is for sale in the store, not owned: what it holds, not what is in it now. */
+		forSale?: boolean;
 	}
 
-	let { stack, anchor }: Props = $props();
+	let { stack, anchor, forSale = false }: Props = $props();
 
 	const GAP = 10;
 	const WIDTH = 280;
@@ -23,7 +25,7 @@
 	let height = $state(0);
 
 	const def = $derived(ITEMS[stack.item]);
-	const stats = $derived(itemStats(stack));
+	const stats = $derived(itemStats(stack, forSale));
 	const rarity = $derived(rarityOf(stack.item));
 	const rarityName = $derived(RARITIES.find((r) => r.id === rarity)?.name ?? '');
 	const left = $derived(
