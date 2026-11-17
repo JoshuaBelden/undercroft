@@ -60,7 +60,7 @@ Each symbol has one material: a `MeshStandardMaterial` in chalk white whose text
 
 ## Who drew it, and erasing
 
-- **Label:** `Marks.nearest` is the closest mark within `MARKS.labelRange` that is in front of you, faces you and is in sight (`markInSight`). The play page projects it to the screen and shows `MarkLabel` under it, with the drawer's name or "You". Only one shows at a time.
+- **Label:** `Marks.nearest` is the closest mark within `MARKS.labelRange` that is in front of you, faces you and is in sight (`markInSight`). The marks feature (`src/lib/game/play/marks.svelte.ts`, [play.md](play.md)) projects it to the screen and shows `MarkLabel` under it, with the drawer's name or "You". Only one shows at a time.
 - **Erasing:** only your own marks. `lookedAtMark` (shared, `MARKS.eraseAngle`, only marks `by` you) picks the one interact would erase; floor items and crates come first. Holding interact on it counts `PlayerState.erasing` up on the server (`stepMarks`, like `opening` for crates). At `MARKS.eraseSeconds` the mark is removed, with a `rub` event and a new list. The client shows "[E] to erase your mark" with the same rule and the progress.
 
 ## Tuning

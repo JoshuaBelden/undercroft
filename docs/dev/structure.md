@@ -31,6 +31,7 @@ src/
       audio/
         AudioManager.ts     Web Audio buses and playback
         captions.svelte.ts  sound caption feed and direction
+      play/                 the play page's features: ropes, marks, crates, the rite... (docs/dev/play.md)
       net/
         GameClient.ts       WebSocket client, reconnect, RTT
       diagnostics.ts        what a bug report carries (version, GPU, the game, the console)
@@ -77,7 +78,7 @@ src/
     (hub)/                  dashboard: frame (+layout) and a page per tab
       +page.svelte          Expedition: the party, the Affliction, launch
       loadout/ afflictions/ store/ social/ feedback/ (ideas and feedback)
-    play/+page.svelte       expedition: the game view (client-only)
+    play/+page.svelte       expedition: the game view (client-only; docs/dev/play.md)
     auth/                   sign-in and sign-up pages
     about/                  What's new (release notes) and Credits, open without signing in
     api/                    JSON endpoints: auth, account, ticket, explorer, shop, report, ideas, feedback, admin (dev)
