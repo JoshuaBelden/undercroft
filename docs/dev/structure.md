@@ -94,7 +94,8 @@ server/
   testing/                  fixtures for the server tests: fake sockets, a real Session (docs/dev/testing.md)
   accounts.ts               who a connection is, from the ticket in its hello
   belongings.ts             loadouts taken down at descent, belongings given back after
-  session.ts                Session: authoritative state and tick loop, sanity, revives
+  session.ts                Session: the map, players, input and the tick loop (docs/dev/session.md)
+  systems/                  each feature's part in an expedition: ropes, marks, crates, the rite... (docs/dev/session.md)
   creatures.ts              CreatureDirector: creature AI, damage, noise
   combat.ts                 resolves shots, swings, throws and drops
   affliction.ts             AfflictionDirector: meter, omens, manifestation, banishing

@@ -1,7 +1,7 @@
-import { vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 import type { WebSocket } from 'ws';
 import { SIM_RATE, TICK_RATE } from '../../src/lib/shared/constants.ts';
-import { emptyInventory } from '../../src/lib/shared/items/inventory.ts';
+import { addItem, emptyInventory, newStack } from '../../src/lib/shared/items/inventory.ts';
 import type { CollisionWorld } from '../../src/lib/shared/map/collision.ts';
 import { buildNav, type NavGrid } from '../../src/lib/shared/map/nav.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
@@ -11,6 +11,7 @@ import { realMap, realWorld } from '../../src/lib/shared/testing/maps.ts';
 import { createPlayerState, eyeHeight, idleFrame } from '../../src/lib/shared/player/simulate.ts';
 import type { InputFrame, Inventory, PlayerState } from '../../src/lib/shared/player/types.ts';
 import type { ServerMessage } from '../../src/lib/shared/protocol.ts';
+import { config } from '../config.ts';
 import { Session, type SessionHooks } from '../session.ts';
 
 /**
@@ -86,6 +87,36 @@ export function newSession(
 	} finally {
 		random.mockRestore();
 	}
+}
+
+/**
+ * Sessions for a test file: call at the top of the file. Time is faked and dev mode is on for
+ * each test, and every session the returned `open` makes is stopped after it.
+ */
+export function useSessions(): (...args: Parameters<typeof newSession>) => Session {
+	let sessions: Session[] = [];
+	beforeEach(() => {
+		fakeTime();
+		config.devMode = true;
+	});
+	afterEach(() => {
+		for (const session of sessions) session.stop();
+		sessions = [];
+		vi.useRealTimers();
+		config.devMode = false;
+	});
+	return (...args) => {
+		const session = newSession(...args);
+		sessions.push(session);
+		return session;
+	};
+}
+
+/** A pack holding these items (`[item, count]`), each stack as full as it may be. */
+export function kit(...stacks: [string, number?][]): Inventory {
+	const inv = emptyInventory();
+	for (const [item, count] of stacks) addItem(inv, newStack(item, count ?? 1, 99));
+	return inv;
 }
 
 /** One player in a `Session`, with what they were sent. */

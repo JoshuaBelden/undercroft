@@ -19,7 +19,7 @@ The decisions behind it:
 | `src/lib/content/items.ts`      | `notebook`, with `survey: true`                                                                |
 | `src/lib/shared/map/survey.ts`  | `surveyMap` (what a map can show), `sketchCells` (what one sketch draws), `carriesSurvey`      |
 | `server/survey.ts`              | `Surveys`: the cells each player has drawn                                                     |
-| `server/session.ts`             | `stepSurvey` (the holds), `sketch`, `mapPartner`, `showMap`, `sendSurvey`; admin commands      |
+| `server/systems/survey.ts`      | `SurveySystem`: `step` (the holds), `sketch`, `partner`, `show`, `send`; admin commands        |
 | `src/lib/ui/MapScreen.svelte`   | The map screen: the page, levels, zoom and pan, the Sketch and Show holds                      |
 | `src/lib/ui/mapSketch.ts`       | Drawing the page on a canvas                                                                   |
 | `src/routes/play/+page.svelte`  | Opening it (`toggle('map')`), the `survey` message, the screen's view of you (`mapScreenView`) |

@@ -15,7 +15,7 @@ The first-person player. The server is authoritative. The client predicts its ow
 | Climbing ropes (shared)              | `src/lib/shared/player/climb.ts`                                              |
 | Conditions (data / shared)           | `src/lib/content/player/conditions.ts`, `src/lib/shared/player/conditions.ts` |
 | Headlamp models (data)               | `src/lib/content/items/headlamps.ts`                                          |
-| Server side                          | `server/session.ts`                                                           |
+| Server side                          | `server/session.ts`, `server/systems/sanity.ts`                               |
 | Client prediction and camera         | `src/lib/game/player/LocalPlayer.ts`                                          |
 | Headlamp light                       | `src/lib/game/player/Headlamp.ts`                                             |
 | Other players                        | `src/lib/game/player/RemotePlayers.ts`                                        |
@@ -107,7 +107,7 @@ Climbing a rope is its own mode of the simulation (`state.climbing`), entered wi
 
 ## Falls and conditions
 
-**Falls.** Landing from the air faster than `FALL.safeSpeed` (9 m/s, about a 2.2 m drop with gravity 18) is a fall that hurts. `stepPlayer` raises a `land` sim event with the speed, and the server takes `(speed - safeSpeed) * FALL.damagePerSpeed` sanity for it (`Session.moved` → `hurt`). That is about 27 for 4 m, and a 12 m drop downs you. It also makes a `fall` game event (`hard` over `FALL.hardSpeed`, for the louder thump), and creatures hear it (`FALL.noise`). Landing in water never hurts. God mode takes no fall.
+**Falls.** Landing from the air faster than `FALL.safeSpeed` (9 m/s, about a 2.2 m drop with gravity 18) is a fall that hurts. `stepPlayer` raises a `land` sim event with the speed, and the server takes `(speed - safeSpeed) * FALL.damagePerSpeed` sanity for it (`Session.falls` → `hurt`). That is about 27 for 4 m, and a 12 m drop downs you. It also makes a `fall` game event (`hard` over `FALL.hardSpeed`, for the louder thump), and creatures hear it (`FALL.noise`). Landing in water never hurts. God mode takes no fall.
 
 **Conditions** are something wrong with an explorer for a while. They are data (`CONDITIONS` in `src/lib/content/player/conditions.ts`), and `state.conditions` holds the active ones with the seconds they have left. `stepPlayer` counts them down (`stepConditions`) and applies their effects. A condition's `slow` caps speed at that stance's walking speed whatever your stance, and stops sprinting (`conditionSpeedCap`). Getting one you already have starts it over.
 
@@ -294,7 +294,7 @@ One setting (`settings.accessibility.captions`, off by default; `captionSize` se
 
 Sanity is health (0 to `SANITY.max`). All tuning lives in `SANITY` (`src/lib/content/player/sanity.ts`).
 
-Applied by the server (`server/session.ts`) each tick:
+Applied by the server each tick (`server/systems/sanity.ts`; creature and Affliction blows in `creatures.ts` and `affliction.ts` there):
 
 - **Attacks:** a creature's hit takes `attack.damage`, less what the shield of the item in the defense slot takes first (`absorbBlow`, see [items.md](items.md)).
 - **Darkness:** `darknessDrain`/s while your lamp gives no light (off or flat) and other players' lamps put less than 0.02 on your eye.

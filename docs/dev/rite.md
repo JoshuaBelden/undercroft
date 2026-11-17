@@ -45,10 +45,10 @@ Changing what a rite needs is a change to this data. A new requirement needs an 
 
 A hint is read, never carried (`maxStack: 0`):
 
-- on a wall or furniture: pressing interact on it (`Session.pickUp`);
-- in a crate or corpse: once revealed, any request on its slot (right-click Read, shift-click, drag) reads it instead of moving it (`Session.lootAction`).
+- on a wall or furniture: pressing interact on it (`PackSystem.simulated`);
+- in a crate or corpse: once revealed, any request on its slot (right-click Read, shift-click, drag) reads it instead of moving it (`CrateSystem.loot`).
 
-Either way `Session.readClue` calls `RiteDirector.find()` and raises the `clue` game event, with the hint's `text` and the requirements and room it revealed, to every player. The hint item is then removed. Once everything is known, the remaining copies are removed from the floor, the walls and the crates (`clearHints`). A copy read when there is nothing left to learn is left alone.
+Either way `RiteSystem.readClue` (`server/systems/rite.ts`) calls `RiteDirector.find()` and raises the `clue` game event, with the hint's `text` and the requirements and room it revealed, to every player. The hint item is then removed. Once everything is known, the remaining copies are removed from the floor, the walls and the crates (`clearHints`). A copy read when there is nothing left to learn is left alone.
 
 Neither the Pendant nor the hint has a model yet. They are drawn as boxes from `ItemDef.placeholder`: a small brass-coloured block and a pale sheet (standing upright against a wall when mounted).
 
@@ -91,7 +91,7 @@ It isn't hidden automatically by screen size. Anything else added down the left 
 
 There is no holder role. Whoever carries every requirement (in any slot: `carriesAll`) can perform the rite. Players pool items by dropping them for that person to pick up. If they die, the items drop where they fell like everything else.
 
-`Session.stepRite` runs each tick. A player performs while they:
+`RiteSystem.step` runs each tick. A player performs while they:
 
 - are on their feet,
 - hold interact,
@@ -105,7 +105,7 @@ There is no holder role. Whoever carries every requirement (in any slot: `carrie
 - the items are used up;
 - `RiteDirector.performed` is set (the snapshot's `performed`): it can't be performed again in this expedition;
 - a `rite` game event plays `rite.perform` and a banner ("Something answers it") for everyone;
-- **it summons the manifestation** into the room (`Session.summon`, see [affliction.md](affliction.md#the-manifestation)). The Affliction is **not** resolved yet.
+- **it summons the manifestation** into the room (`AfflictionSystem.summon`, see [affliction.md](affliction.md#the-manifestation)). The Affliction is **not** resolved yet.
 
 **Resolving it:** banishing what the rite summoned resolves the Affliction. Then `RiteDirector.resolved` is set (the snapshot's `resolved`), `resolved` is saved for everyone who went down (`SessionHooks.onResolved`), straight away (dying afterwards doesn't undo it), the Affliction is calmed (no more meter or omens, see [affliction.md](affliction.md#calmed)), and a `resolved` event plays `rite.resolve` and a "Banished" banner. Performing the rite and then dying, or getting out without banishing it, resolves nothing: the next expedition needs the rite again.
 

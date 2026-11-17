@@ -32,7 +32,7 @@ A creature keeps a `Statuses` record (`{ [id]: { left, immune } }`), starting em
 
 ## The strobe
 
-Turning a headlamp on from off, at any level, is a strobe. `Session` compares `headlampOutput(state).on` before and after each input frame. If it goes from off to on (with battery: a dead lamp gives no flash), `Session.strobe` calls `AfflictionDirector.strobe(state)` and `CreatureDirector.strobe(state)`, and raises a `strobe` event `{ player, position, stunned }` (how many it stunned). Each one checks that the creature is vulnerable to `'strobe'` and that this player's lamp lights it, using `lampIllumination` (occlusion included):
+Turning a headlamp on from off, at any level, is a strobe. `Session.simulate` notes `headlampOutput(state).on` before each input frame, and `AfflictionSystem.simulated` looks again after it. If it went from off to on (with battery: a dead lamp gives no flash), that calls `AfflictionDirector.strobe(state)` and `CreatureDirector.strobe(state)`, and raises a `strobe` event `{ player, position, stunned }` (how many it stunned). Each one checks that the creature is vulnerable to `'strobe'` and that this player's lamp lights it, using `lampIllumination` (occlusion included):
 
 - the manifestation: on its core;
 - creatures: the brightest of their `bodySamples`.

@@ -12,7 +12,7 @@ Explorers draw marks on walls, floors and ceilings with chalk, to find their way
 | `src/lib/shared/items/pickup.ts`     | `lookedAtMark` (which mark interact erases), `markInSight`          |
 | `src/lib/shared/items/types.ts`      | `MarkSnapshot`, the `mark` and `rub` events                         |
 | `server/marks.ts`                    | `Marks`: the expedition's marks; `check` validates a new one        |
-| `server/session.ts`                  | `mark()` (drawing), `stepMarks()` (erasing)                         |
+| `server/systems/marks.ts`            | `MarkSystem`: `draw()` (drawing), `step()` (erasing)                |
 | `src/lib/game/items/Marks.ts`        | Decals on the stone, the chalk textures, the nearest mark           |
 | `src/lib/ui/MarkWheel.svelte`        | The chalk wheel                                                     |
 | `src/lib/ui/MarkGlyph.svelte`        | One symbol drawn from its strokes (the wheel and the dialog)        |
@@ -43,7 +43,7 @@ An item with `chalk: { marks }` draws. The basic chalk has `marks: 1`: each mark
 1. With chalk in the hand, the client raycasts from the eye (`aimRay`) into the visible map (`MapRenderer.root`, `MARKS.reach`). While it hits, the prompt says "[attack key] to draw a mark".
 2. Holding attack opens the chalk wheel. It uses `LocalPlayer.openWheel`, so the mouse moves its pointer and attack and aim are held back from the simulation. Chalk has no melee or firearm spec, so the attack frames before it opens do nothing. The quick-use wheel and the chalk wheel never open together.
 3. Letting go over a symbol raycasts again and sends `{ type: 'mark', symbol, position, normal }` (world space, the normal turned toward the player). Drawing isn't predicted: the mark appears when the server's list comes back.
-4. The server (`Session.mark`, `Marks.check`) refuses unless the player holds chalk and can use their hands (not downed, swimming, climbing, bandaging, reviving, or in a crate). The symbol must be on their wheel, the point within reach and facing them, and no mark within `MARKS.minSpacing`. The visible stone can sit off the collision boxes, so a collider has to be there: the segment from the eye on past the point must hit one, no nearer than `MARKS.tolerance` short of it. That also means nothing stands in the way.
+4. The server (`MarkSystem.draw`, `Marks.check`) refuses unless the player holds chalk and can use their hands (not downed, swimming, climbing, bandaging, reviving, or in a crate). The symbol must be on their wheel, the point within reach and facing them, and no mark within `MARKS.minSpacing`. The visible stone can sit off the collision boxes, so a collider has to be there: the segment from the eye on past the point must hit one, no nearer than `MARKS.tolerance` short of it. That also means nothing stands in the way.
 5. It works out `up`. On a wall that is world up laid onto the surface; on a floor or ceiling it is the way the player faced, so a floor arrow points where they looked. Then it stores the mark with the drawer's id and gamer tag, wears the chalk, raises a `mark` event (the scratch, heard by everyone near) and calls `creatures.hear` with `MARKS.noise`. Finally it broadcasts the whole list.
 
 Past `MARKS.max` marks in one expedition, the oldest goes.

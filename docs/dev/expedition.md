@@ -7,7 +7,7 @@ A **party** is the group that descends together (one to `PARTY.maxSize` players;
 | What                                             | Where                                                                                  |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------- |
 | Parties (ready, countdown, starting expeditions) | `server/parties.ts`                                                                    |
-| Session (map, players, simulation, extraction)   | `server/session.ts`                                                                    |
+| Session (map, players, simulation, extraction)   | `server/session.ts`; each feature in `server/systems/` ([session.md](session.md))      |
 | Connection routing                               | `server/connection.ts`                                                                 |
 | Party rules (size, countdown, reconnect times)   | `src/lib/content/party.ts`                                                             |
 | Party state sent to clients                      | `src/lib/shared/party/types.ts`                                                        |
@@ -57,7 +57,7 @@ All checks are on the server (`Parties`); `allReady` is shared so both sides use
 
 ## Deadline
 
-An expedition lasts `AfflictionDef.expeditionSeconds` (2400 s, 40 minutes, for the Gloaming), counted from when the first player arrives (`Session.startedAt`). Each tick's `affliction.deadline` is the seconds left. At zero (`Session.stepDeadline`) a `deadline` event is raised and everyone still underground, downed or not, dies: the normal death path drops what they carried where they stand and sends `died` with `lost: true`.
+An expedition lasts `AfflictionDef.expeditionSeconds` (2400 s, 40 minutes, for the Gloaming), counted from when the first player arrives (`DeadlineSystem.startedAt`, `server/systems/deadline.ts`). Each tick's `affliction.deadline` is the seconds left. At zero (`DeadlineSystem.step`) a `deadline` event is raised and everyone still underground, downed or not, dies: the normal death path drops what they carried where they stand and sends `died` with `lost: true`.
 
 The client shows it at the top centre (`ExpeditionClock.svelte`): the time as m:ss, red from five minutes. Nothing else: the Affliction's meter is never shown (see [affliction.md](affliction.md#the-meter)).
 

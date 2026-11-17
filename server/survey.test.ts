@@ -125,7 +125,7 @@ describe('the map', () => {
 		const session = open();
 		const a = diver(session, 'A');
 		session.admin(a.id, { kind: 'revealMap' });
-		expect(a.socket.last('survey')!.cells).toHaveLength(session['survey'].cells.size);
+		expect(a.socket.last('survey')!.cells).toHaveLength(session.systems.survey.map.cells.size);
 		session.admin(a.id, { kind: 'clearMap' });
 		expect(a.socket.last('survey')!.cells).toEqual([]);
 	});

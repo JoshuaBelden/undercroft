@@ -47,7 +47,7 @@ Because it's in the shared lamp code, it is deterministic: prediction, half-ligh
 
 ## The manifestation
 
-It appears only when the rite is performed (`Session.stepRite` calls `Session.summon`, which calls `AfflictionDirector.summon`). Nobody sees it before that.
+It appears only when the rite is performed (`RiteSystem.step` calls `AfflictionSystem.summon`, which calls `AfflictionDirector.summon`). Nobody sees it before that.
 
 1. **Summoned:** on the nav point in the rite's room (`RiteDirector.inRoom`) farthest from where the rite was performed: the room's far corner. If the room has no nav point, it appears 30 to 60 m along the grid from every player instead (`manifestFar`, `spawnDistance`). It is summoned once per expedition. A `manifest` event plays `manifest.signal` for everyone.
 2. **Gathering** (`gatherSeconds`, 2 s): it stands where it appeared.

@@ -67,7 +67,7 @@ A double door stands at the top of every long stair, just behind the extraction 
 | Where they stand (`door-*` markers -> `layout.doors`) | `placeDoors` in `src/lib/shared/map/doors.ts`, called by `generateLayout` |
 | Which door you're looking at (client and server)      | `lookedAtDoor` in `doors.ts`                                              |
 | Which level of the map a place is on                  | `tierCells` / `tierAt` in `doors.ts`                                      |
-| Server state and the hold to open                     | `server/doors.ts`, `Session.stepDoors`                                    |
+| Server state and the hold to open                     | `server/doors.ts`, `server/systems/doors.ts`                              |
 | Model and swing                                       | `src/lib/game/map/Doors.ts` (`prop-door-double`, see asset-pipeline.md)   |
 
 - **Collision:** `buildCollisionWorld` adds a box per door, tagged with its id. `openDoor(world, id)` adds the id to `world.openDoors`, and `boxesNear` (which every collision query goes through) leaves those boxes out. The server opens it in its world; the client opens it in the player's world as soon as a tick lists it, so prediction agrees.

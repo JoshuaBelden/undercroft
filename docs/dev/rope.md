@@ -4,20 +4,21 @@ Rope does three things. You **climb** it: the ropes in the ways out, and any rop
 
 ## Files
 
-| File                                 | What                                                                         |
-| ------------------------------------ | ---------------------------------------------------------------------------- |
-| `src/lib/content/player/movement.ts` | `CLIMB` (reach, speeds, stamina, gap between climbers), `FALL`               |
-| `src/lib/content/rope.ts`            | `ROPE` (laying, gathering, tying), `ANCHOR` (where a tied rope hangs)        |
-| `src/lib/content/items.ts`           | `RopeSpec`, the `rope-pack` and `rope-bundle` items                          |
-| `src/lib/shared/player/climb.ts`     | `ropeToGrab`, `grabRope`, `stepClimb`, `letGo`: climbing in the simulation   |
-| `src/lib/shared/map/collision.ts`    | `RopeLine` and `Anchor` in the `CollisionWorld`, from `rope-*` / `anchor-*`  |
-| `src/lib/shared/items/rope.ts`       | `ropeAction` (tie, untie, gather), `applyTied`, `tiedRopeLine`, `ropeNeeded` |
-| `server/ropes.ts`                    | `Ropes`: the expedition's laid and tied ropes                                |
-| `server/session.ts`                  | `toggleLaying`, `stepRopes` (laying, and the interact hold), `moved` (falls) |
-| `src/lib/game/map/HangingRopes.ts`   | Hanging ropes: a verlet chain each, skinned with a tube, pinned by climbers  |
-| `src/lib/game/items/LaidRopes.ts`    | Laid ropes: tubes along the floor, a heap at each end                        |
-| `src/lib/game/player/RopeCreaks.ts`  | Other climbers' ropes creaking (your own: `PlayerAudio.updateRope`)          |
-| `scripts/blender/kit.py`             | `rope_anchor`, `rope_post`, `build_drop_hall`, `build_pit`                   |
+| File                                 | What                                                                                                        |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `src/lib/content/player/movement.ts` | `CLIMB` (reach, speeds, stamina, gap between climbers), `FALL`                                              |
+| `src/lib/content/rope.ts`            | `ROPE` (laying, gathering, tying), `ANCHOR` (where a tied rope hangs)                                       |
+| `src/lib/content/items.ts`           | `RopeSpec`, the `rope-pack` and `rope-bundle` items                                                         |
+| `src/lib/shared/player/climb.ts`     | `ropeToGrab`, `grabRope`, `stepClimb`, `letGo`: climbing in the simulation                                  |
+| `src/lib/shared/map/collision.ts`    | `RopeLine` and `Anchor` in the `CollisionWorld`, from `rope-*` / `anchor-*`                                 |
+| `src/lib/shared/items/rope.ts`       | `ropeAction` (tie, untie, gather), `applyTied`, `tiedRopeLine`, `ropeNeeded`                                |
+| `server/ropes.ts`                    | `Ropes`: the expedition's laid and tied ropes                                                               |
+| `server/systems/ropes.ts`            | `RopeSystem`: `simulated` (attack starts laying; grabs and let-gos), `step` (laying, and the interact hold) |
+| `server/session.ts`                  | `falls`                                                                                                     |
+| `src/lib/game/map/HangingRopes.ts`   | Hanging ropes: a verlet chain each, skinned with a tube, pinned by climbers                                 |
+| `src/lib/game/items/LaidRopes.ts`    | Laid ropes: tubes along the floor, a heap at each end                                                       |
+| `src/lib/game/player/RopeCreaks.ts`  | Other climbers' ropes creaking (your own: `PlayerAudio.updateRope`)                                         |
+| `scripts/blender/kit.py`             | `rope_anchor`, `rope_post`, `build_drop_hall`, `build_pit`                                                  |
 
 ## Ropes in the world
 
@@ -55,7 +56,7 @@ It runs in `stepPlayer` (`climb.ts`), so the client predicts it and the server d
 
 Rope packs (`rope-pack`, 100 m, sold for 50) and rope bundles (`rope-bundle`, 40 m, rare in crates, not sold) carry `rope: { length }`: how far it lays, and whether it reaches the bottom of a drop. Both are quick-use, one to a slot. **A rope item is used whole:** laying it or tying it spends the pack or bundle however much of it went down, and gathering it up or untying it gives back the same item (`LaidRopeSnapshot.item`, `TiedRopeSnapshot.item`). A stack keeps no metres.
 
-- **Start:** with rope in the hand, a press of attack calls `Session.startLaying`. That starts a laid rope at your feet (`Ropes.start`) and remembers the hand slot it came from (`layingFrom`).
+- **Start:** with rope in the hand, a press of attack calls `RopeSystem.startLaying`. That starts a laid rope at your feet (`Ropes.start`) and remembers the hand slot it came from (`layingFrom`).
 - **Paying out, while attack is held:** `stepRopes` → `stepLaying`, server-side, never from client points. Every `ROPE.spacing` m walked, it adds a point on the floor (`floorHeightAt`), up to the item's `length`.
 - **Stop** (`stopLaying`): letting go of attack, the item's length all laid, anything that takes the hands (`canUseHands`: climbing, swimming, downed, a crate), or the rope leaving the hand. The rope stays where it lies, and the item it came from is used up (`useUpRope`: from that slot, or wherever they now carry one). Let go before a single point was laid, and nothing was laid and nothing is spent.
 - **No physics:** a laid rope crosses and bunches over itself where it was walked.
