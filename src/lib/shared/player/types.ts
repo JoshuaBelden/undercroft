@@ -191,6 +191,8 @@ export interface InputFrame {
 	select: number;
 	stance: Stance;
 	headlamp: HeadlampMode;
+	/** The in-game menu is open: both hands are on it (see `handsBusy`). */
+	reading: boolean;
 }
 
 /** A player's authoritative state as broadcast in each server tick. */

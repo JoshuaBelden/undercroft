@@ -45,8 +45,8 @@ export const ACTIONS = {
 		category: 'Interface',
 		defaults: ['KeyV']
 	},
-	// Underground: hides or shows the rite and the party's health down the left (docs/dev/rite.md).
-	toggleRitePanel: { label: 'Rite and party panel', category: 'Interface', defaults: ['KeyH'] },
+	// Underground: hides or shows the rite down the left (docs/dev/rite.md).
+	toggleRitePanel: { label: 'Rite panel', category: 'Interface', defaults: ['KeyH'] },
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },
 	toggleAdmin: { label: 'Admin panel (dev)', category: 'Interface', defaults: ['F10'] },
 	// Dev only: fly the camera through the map, fully lit, with the debug grid (docs/dev/admin.md).

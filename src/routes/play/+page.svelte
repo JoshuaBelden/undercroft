@@ -75,7 +75,7 @@
 	import Captions from '#lib/ui/Captions.svelte';
 	import CrateScreen from '#lib/ui/CrateScreen.svelte';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
-	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
+	import GameMenu, { type MenuTab } from '#lib/ui/GameMenu.svelte';
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
@@ -86,7 +86,7 @@
 	import DescentLoading from '#lib/ui/DescentLoading.svelte';
 	import { preloadRun, type LoadProgress } from '#lib/game/preload.ts';
 	import Hud from '#lib/ui/Hud.svelte';
-	import RiteOverlay from '#lib/ui/RiteOverlay.svelte';
+	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import ExpeditionClock from '#lib/ui/ExpeditionClock.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
@@ -99,8 +99,10 @@
 	const FREECAM = { speed: 8, fast: 4, mouse: 0.0022, stickTurn: 2.5, maxPitch: 1.55 };
 
 	let canvas: HTMLCanvasElement;
-	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'crate';
+	type PanelName = 'settings' | 'help' | 'admin' | 'menu' | 'crate';
 	let panel = $state<PanelName | null>(null);
+	/** The in-game menu's tab (GameMenu). */
+	let menuTab = $state<MenuTab>('Pack');
 	/**
 	 * The loot crate (or corpse) that is open, as the server tells it (see the `crate` message).
 	 */
@@ -110,12 +112,11 @@
 		reveal: number;
 		corpse: boolean;
 	} | null>(null);
-	/** The rite as known so far, and (while its overlay shows) who carries each requirement. */
+	/** The rite as known so far, and who carries each requirement (the menu's Rite tab). */
 	let rite = $state<RiteSnapshot | null>(null);
-	/** The rite overlay is wanted: it shows over play whenever there is a rite to show. */
 	let riteCarriers = $state<{ name: string; count: number; self: boolean }[][]>([]);
 	let afflictionName = $state('');
-	/** What the player carries, for the inventory screen (kept up to date while it is open). */
+	/** What the player carries, for the pack and crates (kept up to date while one is open). */
 	let inventory = $state<Inventory | null>(null);
 	const status = $derived(connection.status);
 	const statusDetail = $derived(connection.detail);
@@ -286,7 +287,7 @@
 		// With a crate open, the pack and menu keys put it away and nothing more.
 		if (panel === 'crate') {
 			closeCrate();
-			if (name === 'inventory' || name === 'settings') return;
+			if (name === 'menu' || name === 'settings') return;
 		}
 		// Esc on the admin screen just closes it; Esc again opens settings. (Esc can't capture the
 		// pointer: browsers don't count it as a user gesture. A click or a move key does.)
@@ -295,12 +296,15 @@
 			return;
 		}
 		const closing = panel === name;
-		// The pack can only be opened while you are down there and not on the floor.
-		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
+		// The menu only opens down there and on your feet, on the pack: never while down or dead.
+		if (name === 'menu' && !closing) {
+			if (!expedition || !spawned || downed) return;
+			menuTab = 'Pack';
+		}
 		panel = closing ? null : name;
 		if (panel) document.exitPointerLock();
-		// Putting the pack away goes straight back to play.
-		else if (name === 'inventory' && expedition) capture();
+		// Putting the menu away goes straight back to play.
+		else if (name === 'menu' && expedition) capture();
 	}
 
 	onMount(() => {
@@ -598,7 +602,7 @@
 			if (freecam) setFreecam(false);
 			loadId++;
 			loading = null;
-			if (panel === 'inventory' || panel === 'crate') panel = null;
+			if (panel === 'menu' || panel === 'crate') panel = null;
 			crate = null;
 			leavingCrate = false;
 			crates.clear();
@@ -666,7 +670,7 @@
 		/** Dead, with others still down there: keep the world and watch through their eyes. */
 		function startSpectating(): void {
 			expedition = false;
-			if (panel === 'inventory' || panel === 'crate') panel = null;
+			if (panel === 'menu' || panel === 'crate') panel = null;
 			crate = null;
 			spectating = { name: '' };
 			watchId = null;
@@ -1368,9 +1372,11 @@
 			// Before the player reads the mouse: in the free camera, the mouse is the camera's.
 			if (freecam) flyFreecam(delta);
 			const active = (locked || device.kind === 'pad') && !panel && !mapView && !extracting;
+			// With the menu open the keys still walk, but the hands are on it (docs/dev/items.md).
+			const reading = panel === 'menu' && !mapView && !extracting;
 			updateWheel(player.state, active);
 			updateChalkWheel(player.state, active);
-			player.update(delta, active);
+			player.update(delta, active, reading);
 			remote.update(delta, engine.camera);
 			const self = player.state;
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
@@ -1485,8 +1491,8 @@
 					: null;
 				if (state.performing > 0 && !performing) sounds.play('rite.begin');
 				performing = state.performing > 0;
-				if (panel === 'inventory' || panel === 'crate') {
-					if (state.downed && panel === 'inventory') {
+				if (panel === 'menu' || panel === 'crate') {
+					if (state.downed && panel === 'menu') {
 						panel = null;
 					} else {
 						const json = JSON.stringify(state.inventory);
@@ -1520,7 +1526,7 @@
 					toggle('help');
 					break;
 				case 'inventory':
-					toggle('inventory');
+					toggle('menu');
 					break;
 				// Walking away from a loot crate puts it away; moving also leaves the admin screen.
 				case 'moveForward':
@@ -1604,7 +1610,7 @@
 <canvas bind:this={canvas} class:pad={device.kind === 'pad'}></canvas>
 
 {#if spawned && !mapView && !result}
-	<Hud {...hud} lampKey={promptCode('headlamp')} partyShown={settings.interface.ritePanel} />
+	<Hud {...hud} lampKey={promptCode('headlamp')} />
 {/if}
 
 {#if wheel && spawned && !mapView && !result}
@@ -1633,14 +1639,16 @@
 {/if}
 
 {#if rite && !panel && !mapView && !result}
-	<RiteOverlay
-		affliction={afflictionName}
-		{rite}
-		carriers={riteCarriers}
-		interactKey={promptCode('interact')}
-		open={settings.interface.ritePanel}
-		toggleKey={promptCode('toggleRitePanel')}
-	/>
+	<div class="rite-hud">
+		<RitePanel
+			affliction={afflictionName}
+			{rite}
+			carriers={riteCarriers}
+			interactKey={promptCode('interact')}
+			open={settings.interface.ritePanel}
+			toggleKey={promptCode('toggleRitePanel')}
+		/>
+	</div>
 	{#if deadline !== null}
 		<ExpeditionClock seconds={deadline} arrival={calmed || manifested ? null : (meter ?? 0)} />
 	{/if}
@@ -1714,20 +1722,23 @@
 		onclose={() => (panel = null)}
 		onvolume={(category, value) => audio.setVolume(category, value)}
 		ongraphics={() => applyGraphics()}
-		onabandon={expedition
-			? () => {
-					panel = null;
-					send({ type: 'abandon' });
-				}
-			: undefined}
 	/>
 {:else if panel === 'help'}
 	<HelpScreen dim onclose={() => (panel = null)} />
-{:else if panel === 'inventory' && inventory}
-	<InventoryScreen
+{:else if panel === 'menu' && inventory}
+	<GameMenu
+		bind:tab={menuTab}
 		{inventory}
+		affliction={afflictionName}
+		{rite}
+		carriers={riteCarriers}
+		interactKey={promptCode('interact')}
 		onaction={(action) => sendInventory(action)}
-		onclose={() => toggle('inventory')}
+		onabandon={() => {
+			panel = null;
+			send({ type: 'abandon' });
+		}}
+		onclose={() => toggle('menu')}
 	/>
 {:else if panel === 'crate' && inventory && crate}
 	<CrateScreen
@@ -1790,6 +1801,17 @@
 	/* Playing with a controller: no cursor over the game. */
 	canvas.pad {
 		cursor: none;
+	}
+
+	/* The rite (RitePanel) at the middle of the left edge: it takes no clicks, play goes on under it. */
+	.rite-hud {
+		position: fixed;
+		left: 16px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: min(280px, calc(100vw - 32px));
+		pointer-events: none;
+		z-index: 6;
 	}
 
 	.descend {

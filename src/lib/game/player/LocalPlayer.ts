@@ -9,7 +9,7 @@ import { SIM_RATE } from '#lib/shared/constants.ts';
 import type { CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
 import { held } from '#lib/shared/items/inventory.ts';
-import { clonePlayerState, eyeHeight, stepPlayer } from '#lib/shared/player/simulate.ts';
+import { clonePlayerState, eyeHeight, handsBusy, stepPlayer } from '#lib/shared/player/simulate.ts';
 import {
 	HAND,
 	type HeadlampMode,
@@ -273,9 +273,11 @@ export class LocalPlayer {
 
 	/**
 	 * Advance by a frame's `delta` seconds. `active` is false while the pointer is unlocked or a
-	 * menu is open: the player then stands still (but the simulation keeps running).
+	 * menu is open: the player then stands still (but the simulation keeps running). `reading`:
+	 * the in-game menu is open, so the movement keys still walk, but the hands are busy
+	 * (`handsBusy`) and the controller's stick is the menu's.
 	 */
-	update(delta: number, active: boolean): void {
+	update(delta: number, active: boolean, reading = false): void {
 		this.updateSprint(active);
 		this.updateStanceKey(active);
 		const [dx, dy] = this.input.consumeLook();
@@ -319,7 +321,7 @@ export class LocalPlayer {
 		while (this.accumulator >= DT && steps < MAX_STEPS_PER_FRAME) {
 			this.accumulator -= DT;
 			steps++;
-			const frame = this.sample(active);
+			const frame = this.sample(active, reading);
 			this.previous = clonePlayerState(state);
 			stepPlayer(state, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, this.events);
 			this.pending.push(frame);
@@ -384,7 +386,7 @@ export class LocalPlayer {
 		return slot;
 	}
 
-	private sample(active: boolean): InputFrame {
+	private sample(active: boolean, reading: boolean): InputFrame {
 		const input = this.input;
 		const axis = (pos: boolean, neg: boolean) => (pos ? 1 : 0) - (neg ? 1 : 0);
 		// The left stick, when pushed, as it is: half a push walks at half speed.
@@ -393,12 +395,14 @@ export class LocalPlayer {
 		const key = (action: Action) => input.isDown(action, 'keyboard');
 		const keysX = axis(key('moveRight'), key('moveLeft'));
 		const keysZ = axis(key('moveForward'), key('moveBack'));
-		const moveX = !active ? 0 : pushed ? stick.x : keysX;
-		const moveZ = !active ? 0 : pushed ? -stick.y : keysZ;
+		const stickMoves = active && pushed;
+		const walking = active || reading;
+		const moveX = !walking ? 0 : stickMoves ? stick.x : keysX;
+		const moveZ = !walking ? 0 : stickMoves ? -stick.y : keysZ;
 		// A switched-on sprint ends when you stop; a switched-on aim when the gun leaves the hand.
 		if (active && moveX === 0 && moveZ === 0) this.sprintBy = null;
 		if (!this.gunInHand()) this.aimOn = false;
-		return {
+		return handsBusy({
 			seq: this.seq++,
 			moveX,
 			moveZ,
@@ -416,7 +420,8 @@ export class LocalPlayer {
 			drop: active && input.isDown('drop'),
 			select: this.takeSelect(),
 			stance: this.stance,
-			headlamp: this.lamp
-		};
+			headlamp: this.lamp,
+			reading
+		});
 	}
 }
