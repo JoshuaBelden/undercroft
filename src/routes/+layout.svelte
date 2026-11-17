@@ -4,7 +4,6 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import '../app.css';
-	import favicon from '#lib/assets/favicon.svg';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { startGamepads } from '#lib/game/input/gamepad.ts';
 	import { onMenuHold, onMenuMove } from '#lib/game/input/menus.ts';
@@ -107,7 +106,6 @@
 <svelte:window oncontextmenu={(event) => event.preventDefault()} />
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
 	<title>Undercroft</title>
 </svelte:head>
 

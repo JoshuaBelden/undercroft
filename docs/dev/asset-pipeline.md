@@ -279,3 +279,19 @@ It then writes `src/lib/content/images.generated.ts`, the URL of every picture. 
 `login-bg` is the picture behind sign-in, the dashboard and the party screen. It is applied by the global `.backdrop-art` class in `src/app.css`, which darkens it so text stays readable; the element also sets `style:--backdrop-image={BACKDROP_IMAGE}` (the hashed URL). Adding `use:parallax` (`src/lib/ui/parallax.ts`) to the same element makes the picture drift away from the cursor; it is skipped for people who ask for reduced motion. To change the picture, replace `art/images/login-bg.png` and run `pnpm asset:images`. To put it behind another screen, add the class, `style:--backdrop-image={BACKDROP_IMAGE}` and `use:parallax` to that screen's outer element. The expedition results screen uses it too.
 
 Each pane on the Afflictions page has a picture, named by `AfflictionDef.image` in `src/lib/content/afflictions.ts`: `affliction-gloaming-banner` for the Gloaming, and `affliction-unknown-banner` for the panes of Afflictions nobody has met. A pane is 400px wide; the picture is fitted to that width and aligned to the top, the name sits over its first 250px, and below that it fades out behind the text. So make it portrait, at least 800px wide (for sharp screens), with the subject in the top part. Until a picture exists the pane shows a plain dark fade.
+
+### Logo and site icon
+
+Two pictures carry the game's name and mark. Both are cropped tight to the art, with the black they were drawn on made transparent so they sit on any backdrop:
+
+- `logo` (the word UNDERCROFT, its O a way up a ladder) sits over the form on every signed-out page (`src/lib/ui/AuthPage.svelte`).
+- `icon` (the O on its own) is the mark at the far left of the dashboard bar, a link home (`src/routes/(hub)/+layout.svelte`).
+
+### Site icon
+
+`icon` is also the site icon. `pnpm asset:images` makes two files from it at the site root, linked from `src/app.html`. They aren't hashed, because browsers and iOS ask for them by name:
+
+- `static/favicon.ico`: the browser tab icon, PNG images at 16, 32, 48 and 64 px, transparent around the O.
+- `static/apple-touch-icon.png`: 180 px, the O on black, for Add to Home Screen on an iPhone or iPad. iOS doesn't allow transparency there and rounds the corners itself, so the O keeps a margin. `apple-mobile-web-app-title` names the shortcut.
+
+To change either picture, replace `art/images/icon` or `art/images/logo` (cropped, transparent around the art) and run `pnpm asset:images`. Commit `static/favicon.ico` and `static/apple-touch-icon.png` with the pictures.
