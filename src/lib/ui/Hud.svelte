@@ -34,6 +34,8 @@
 		gloom: number;
 		/** Everyone on the expedition (this player included): health and stamina, bottom-left. */
 		party: PartyMember[];
+		/** Conditions on this player (a hobble), with the seconds left: chips under their bars. */
+		conditions?: { id: string; name: string; description: string; left: number; of: number }[];
 	}
 
 	let {
@@ -52,7 +54,8 @@
 		ammo,
 		aiming,
 		gloom,
-		party
+		party,
+		conditions = []
 	}: Props = $props();
 
 	const LAMP_LABELS = ['Off', 'Low', 'Bright'];
@@ -95,6 +98,17 @@
 {/if}
 
 <PartyHealth members={party}>
+	{#if conditions.length}
+		<ul class="conditions" aria-label="Conditions">
+			{#each conditions as condition (condition.id)}
+				<li class="condition" title={condition.description}>
+					<span class="name">{condition.name}</span>
+					<span class="left">{Math.ceil(condition.left)}s</span>
+					<span class="drain" style:width="{(condition.left / condition.of) * 100}%"></span>
+				</li>
+			{/each}
+		</ul>
+	{/if}
 	{#if posture}
 		<div class="posture">{posture}</div>
 	{/if}
@@ -225,6 +239,47 @@
 		top: calc(50% + 40px);
 		transform: translateX(-50%);
 		pointer-events: none;
+	}
+
+	/* Conditions (a hobble): a chip each under this player's bars, draining as it wears off. */
+	.conditions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		margin: 4px 0 0;
+		padding: 0;
+		list-style: none;
+		pointer-events: none;
+	}
+
+	.condition {
+		position: relative;
+		display: flex;
+		gap: 6px;
+		align-items: baseline;
+		padding: 2px 6px 3px;
+		overflow: hidden;
+		border: 1px solid rgb(200 90 70 / 0.55);
+		border-radius: 3px;
+		background: rgb(40 10 8 / 0.55);
+		font: 10px var(--font-ui);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: #efd9cf;
+	}
+
+	.condition .left {
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.condition .drain {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		height: 2px;
+		background: rgb(200 90 70 / 0.8);
+		transition: width 0.25s linear;
 	}
 
 	/* Under this player's bars in the party panel. */

@@ -138,5 +138,10 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'chalk', file: 'writing.wav' },
 	// Worn protection torn apart.
 	{ id: 'defense.torn', file: 'velcro.wav' },
-	{ id: 'creature.hurt', file: 'witch-growl.mp3' }
+	{ id: 'creature.hurt', file: 'witch-growl.mp3' },
+	// A rope taking a climber's weight (played as they go up or down it).
+	{ id: 'rope.tension', file: 'sfx_rope_tension.mp3' },
+	// Knotting a rope to an anchor, untying it, coiling it up.
+	// The recording runs 13.7 s; tying takes a few seconds, so only its start.
+	{ id: 'rope.tie', file: 'sfx_rope_tying.mp3', crop: { start: 0, length: 3.5 } }
 ];

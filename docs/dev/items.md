@@ -40,9 +40,10 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 - `melee`: `damage`, `range` (from the eye), `arc` (half-angle), `windup` (hit lands), `recovery`, `noise` (radius when it hits something), optional `breaksAfter` (bricks).
 - `firearm`: `damage` per pellet, `pellets`, `spread` (hip and aimed cone), `range` and `falloff` (fraction of damage lost by the end of the range), `interval`, `magazine`, `reloadTime`, `ammo` (item id of its rounds), `noise`, `sound` (the shot) and `reloadSound` (played as a reload starts; make it last about `reloadTime`, with the sound's `rate` if needed), `zoom` (the fraction of the field of view left when aimed: revolver 0.6, shotgun 0.7) and `recoil` (`RecoilSpec`: `pitch` and `yaw` throw your view, `rise`, `back` and `settle` jolt the gun in your hands).
 - `throwable`: `speed`, `damage`, `landNoise`, `duration`.
-- `heal`: `amount` of sanity and `seconds` to apply (bandages).
+- `heal`: `amount` of sanity and `seconds` to apply (bandages; the rare medkit gives back all of it, `SANITY.max`, in 5 s).
 - `charge`: `volts` put back into the headlamp and `seconds` to swap it in (batteries).
 - `revive: true`: brings a downed player round (smelling salts).
+- `rope`: `length` in metres of a new one (rope packs, 100 m, sold; rope bundles, 40 m, rare in crates). The metres left are on the stack (`ItemStack.metres`). Laid along the floor or tied at an anchor: see [rope.md](rope.md).
 - `defense`: `shield`, the points of creatures' blows it takes before the wearer does. The points used are kept on the stack (`ItemStack.worn`), so a worn coat stays worn after extraction; when they run out it is torn apart and gone.
 - `weight` is kg for one of it.
 

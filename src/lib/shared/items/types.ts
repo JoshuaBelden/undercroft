@@ -19,6 +19,29 @@ export interface WorldItemSnapshot {
  */
 export type CrateSlot = ItemStack | null | 'hidden';
 
+/** A rope laid along the floor (see docs/dev/rope.md): its points, every ROPE.spacing metres. */
+export interface LaidRopeSnapshot {
+	id: string;
+	/** Player id of whoever laid it, and their gamer tag. */
+	by: string;
+	name: string;
+	points: Vec3[];
+	/** Still being paid out (its last point follows them). */
+	laying: boolean;
+	/** The rope item it was laid from: gathering it up gives that back. */
+	item: string;
+}
+
+/** A rope tied at an anchor, hanging down the drop. */
+export interface TiedRopeSnapshot {
+	/** `Anchor.id` in the collision world. */
+	anchor: string;
+	by: string;
+	name: string;
+	/** The rope item tied there: untying it gives that back. */
+	item: string;
+}
+
 /**
  * A chalk mark on a wall, floor or ceiling, as every client is told it. See docs/dev/marks.md.
  */
@@ -131,6 +154,16 @@ export type GameEvent =
 	/** A chalk mark was drawn, or rubbed out by whoever drew it. */
 	| { kind: 'mark'; player: string; position: Vec3 }
 	| { kind: 'rub'; player: string; position: Vec3 }
+	/** A player hit the floor hard enough to hurt (`hard`: very hard). */
+	| { kind: 'fall'; player: string; position: Vec3; hard: boolean }
+	/** A player took hold of a rope, or let go of one (or slipped off). */
+	| { kind: 'ropeGrab'; player: string; position: Vec3 }
+	| { kind: 'ropeLetGo'; player: string; position: Vec3 }
+	/** Rope tied at an anchor, untied, gathered up; paid out along the floor (every few metres). */
+	| { kind: 'ropeTie'; player: string; position: Vec3 }
+	| { kind: 'ropeUntie'; player: string; position: Vec3 }
+	| { kind: 'ropeGather'; player: string; position: Vec3 }
+	| { kind: 'ropeLay'; player: string; position: Vec3 }
 	/** A player finished sketching into their map, or showing it to a teammate (`with`). */
 	| { kind: 'sketch'; player: string; position: Vec3 }
 	| { kind: 'showMap'; player: string; with: string; position: Vec3 }

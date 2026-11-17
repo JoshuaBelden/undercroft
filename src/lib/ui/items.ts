@@ -136,6 +136,9 @@ export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 		add('Takes', `${def.charge.seconds} s, standing still`);
 	}
 	if (def.revive) add('Use', 'Revives the downed');
+	if (def.rope) {
+		add('Rope', `${def.rope.length} m`);
+	}
 	if (def.defense) {
 		const { shield } = def.defense;
 		add('Shield', forSale ? `${shield}` : `${Math.max(0, shield - (stack.worn ?? 0))} / ${shield}`);

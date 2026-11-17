@@ -19,6 +19,20 @@ function unreached(map: MapLayout, links: Set<number>[]): string[] {
 		.map((p) => p.piece);
 }
 
+/** Placements that can be walked to from the start room without going down a rope drop. */
+function onFoot(map: MapLayout, links: Set<number>[]): Set<number> {
+	const seen = new Set([0]);
+	const queue = [0];
+	while (queue.length) {
+		for (const n of links[queue.pop()!]) {
+			if (seen.has(n) || MAP_KIT[map.placements[n].piece]?.needsRope) continue;
+			seen.add(n);
+			queue.push(n);
+		}
+	}
+	return seen;
+}
+
 const SEEDS = Array.from({ length: 40 }, (_, i) => (i * 2654435761) >>> 0);
 const AFFLICTION_IDS = Object.keys(AFFLICTIONS);
 
@@ -105,12 +119,17 @@ describe('generateLayout', () => {
 
 			it('puts every level strictly below the one above it', () => {
 				// Compared by the level a piece is entered at: a pit room like the cistern, or a canal,
-				// is entered above its lowest level. The start room sits above the first level.
+				// is entered above its lowest level. The start room sits above the first level. A rope drop
+				// goes down as far as the long stair, so it and the way on at its foot are left out: they
+				// stay on the level they hang from and never open into the one below (the next test), but
+				// they reach as deep as it.
 				const entered = (p: Placement) =>
 					placementLevel(p) + Math.min(...PIECES[p.piece].sockets.map((s) => s.level));
 				for (const map of maps) {
+					const walked = onFoot(map, pieceLinks(map, PIECES));
 					const pieces = map.placements.filter(
-						(p, i) => i > 0 && !['descent', 'cap'].includes(MAP_KIT[p.piece]?.role ?? '')
+						(p, i) =>
+							i > 0 && walked.has(i) && !['descent', 'cap'].includes(MAP_KIT[p.piece]?.role ?? '')
 					);
 					for (const tier of [0, 1]) {
 						const lowest = Math.min(...pieces.filter((p) => p.tier === tier).map(entered));

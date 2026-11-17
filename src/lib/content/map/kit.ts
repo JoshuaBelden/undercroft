@@ -57,6 +57,24 @@ export const MAP_KIT: MapKit = {
 	'hall-canal': { role: 'connector', weight: 0.4, sketch: 'water' },
 	'hall-flooded': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'water' },
 	'hall-stairs-down': { role: 'connector', weight: 0.8, descends: true },
+	// Rope drops (docs/dev/rope.md): 12 m down, only with a rope tied at the top. Never on the main
+	// route: the generator hangs `ropeDrops` of them off it, each with a short way on at its foot.
+	'drop-hall': {
+		role: 'connector',
+		descends: true,
+		needsRope: true,
+		room: true,
+		title: 'The Drop',
+		acoustics: 'vast'
+	},
+	pit: {
+		role: 'connector',
+		descends: true,
+		needsRope: true,
+		room: true,
+		title: 'The Pit',
+		acoustics: 'hall'
+	},
 
 	'hall-dead-end': { role: 'end' },
 	'cap-hall': { role: 'cap', seals: 'hall' }

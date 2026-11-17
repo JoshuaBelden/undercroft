@@ -5,6 +5,7 @@ import { MOVEMENT } from '#lib/content/player/movement.ts';
 import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 import type { SoundBank } from '#lib/game/audio/SoundBank.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
+import { ROPE_CREAK, ROPE_CREAK_GAP } from './RopeCreaks.ts';
 
 /** Breathing is silent above this fraction of stamina, fading in over the next 5% below it. */
 const BREATH_BELOW = 0.25;
@@ -13,6 +14,7 @@ const BREATH_BELOW = 0.25;
  * The local player's own sounds: footsteps by surface, breathing that follows stamina, and the
  * headlamp click. Footstep surface comes from the material under the player's feet.
  */
+
 export class PlayerAudio {
 	private travelled = 0;
 	private last: [number, number, number] | null = null;
@@ -20,6 +22,11 @@ export class PlayerAudio {
 	private swimming = false;
 	private underwater = false;
 	private mantling = false;
+	/** Metres climbed (up or down) since the rope last creaked; null while not on one. */
+	private climbed: number | null = null;
+	private climbY = 0;
+	/** When the rope last creaked (performance.now). */
+	private creakAt = 0;
 	/** performance.now() of the next squeeze grunt; null when not squeezing through. */
 	private nextGrunt: number | null = null;
 	private breathSlow: SoundHandle | null = null;
@@ -52,6 +59,7 @@ export class PlayerAudio {
 
 		if (state.swimming && !this.swimming) this.sounds.play('water.enter');
 		if (state.mantle && !this.mantling) this.sounds.play('mantle');
+		this.updateRope(state);
 		this.updateSqueeze(state);
 		this.swimming = state.swimming;
 		this.underwater = state.underwater;
@@ -89,6 +97,23 @@ export class PlayerAudio {
 	 * Pushing through a squeeze: a gasp as you start to move through it, then a grunt every
 	 * 1.3-2.2 s while you keep going.
 	 */
+	private updateRope(state: PlayerState): void {
+		if (!state.climbing) {
+			this.climbed = null;
+			return;
+		}
+		const y = state.position[1];
+		if (this.climbed === null) this.climbed = 0;
+		else this.climbed += Math.abs(y - this.climbY);
+		this.climbY = y;
+		const now = performance.now();
+		if (this.climbed >= ROPE_CREAK && now - this.creakAt >= ROPE_CREAK_GAP) {
+			this.climbed = 0;
+			this.creakAt = now;
+			this.sounds.play('rope.tension');
+		}
+	}
+
 	private updateSqueeze(state: PlayerState): void {
 		const pushing = state.squeezing && Math.hypot(state.velocity[0], state.velocity[2]) > 0.2;
 		if (!pushing) {

@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type { AnimSlot } from '#lib/content/animations.ts';
 import { ITEMS } from '#lib/content/items.ts';
-import { MOVEMENT } from '#lib/content/player/movement.ts';
+import { CONDITIONS } from '#lib/content/player/conditions.ts';
+import { CLIMB, FALL, MOVEMENT } from '#lib/content/player/movement.ts';
 import { PLAYER_MODEL } from '#lib/content/player/model.ts';
 import { Animator } from '#lib/game/Animator.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
@@ -10,6 +11,8 @@ import type { PlayerState } from '#lib/shared/player/types.ts';
 
 /** Below this speed (m/s) a standing player is idle. */
 const STILL = 0.2;
+/** Seconds after a fall that hurt that the fall clip plays on (about its length). */
+const FALL_PLAY = 1.2;
 /** How far a walk or run cycle may be slowed or hurried to match the ground speed. */
 const RATE_RANGE: [number, number] = [0.4, 1.6];
 
@@ -56,8 +59,21 @@ export class PlayerBody {
 
 		let anim: AnimSlot;
 		let pace = 0;
+		const hobble = state.conditions.find((c) => c.id === 'hobble');
+		const fell = hobble && hobble.remaining > CONDITIONS.hobble.seconds - FALL_PLAY;
 		if (state.dead || state.downed) {
 			anim = 'die';
+		} else if (state.climbing) {
+			// Up the rope, down it (the climb backwards), or just hanging there. Sliding down fast
+			// is the hang, hands gripping.
+			const vy = state.velocity[1];
+			const sliding = vy < -CLIMB.downSpeed * 1.2;
+			const climbing = Math.abs(vy) > 0.02 && !sliding;
+			anim = climbing ? 'rope_climb' : 'rope_idle';
+			pace = climbing ? vy / CLIMB.upSpeed : 1;
+		} else if (fell || (!state.grounded && -state.velocity[1] > FALL.safeSpeed)) {
+			anim = 'fall';
+			pace = 1;
 		} else if (state.mantle) {
 			anim = 'climb';
 			pace = 1;
@@ -90,8 +106,14 @@ export class PlayerBody {
 			pace = speed / MOVEMENT.stances.stand.speed;
 		}
 		animator.play(anim);
-		// Crouched or prone and not moving: the cycle stops where it is.
+		// Crouched or prone and not moving: the cycle stops where it is. A rope climb runs at the
+		// climbing pace, backwards on the way down.
 		const moving = anim === 'walking' || anim === 'running';
+		if (anim === 'rope_climb') {
+			animator.setRate(pace);
+			animator.update(delta);
+			return;
+		}
 		animator.setRate(
 			moving
 				? Math.max(RATE_RANGE[0], Math.min(RATE_RANGE[1], pace))

@@ -1,7 +1,7 @@
 import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
 import { ApiError, gameTicket, loadAccount } from '#lib/account/account.svelte.ts';
 import { promptCrash } from '#lib/game/crash.svelte.ts';
-import type { MarkSnapshot } from '#lib/shared/items/types.ts';
+import type { LaidRopeSnapshot, MarkSnapshot, TiedRopeSnapshot } from '#lib/shared/items/types.ts';
 import type { PartyMember, PartyState } from '#lib/shared/party/types.ts';
 import type { ClientMessage, ServerMessage } from '#lib/shared/protocol.ts';
 import type { Person, SocialAction, SocialState } from '#lib/shared/social/types.ts';
@@ -36,6 +36,8 @@ interface Connection {
 	welcome: Welcome | null;
 	/** The chalk marks of that expedition, as last sent (they follow the welcome). */
 	marks: MarkSnapshot[];
+	/** Its ropes, laid and tied, as last sent and grown since (they follow the welcome too). */
+	ropes: { laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[] };
 }
 
 export const connection: Connection = $state({
@@ -48,7 +50,8 @@ export const connection: Connection = $state({
 	social: null,
 	search: null,
 	welcome: null,
-	marks: []
+	marks: [],
+	ropes: { laid: [], tied: [] }
 });
 
 /** Something that wants every message as it arrives (the expedition on `/play`). */
@@ -163,9 +166,18 @@ function receive(message: ServerMessage): void {
 		case 'welcome':
 			connection.welcome = message;
 			connection.marks = [];
+			connection.ropes = { laid: [], tied: [] };
 			break;
 		case 'marks':
 			connection.marks = message.marks;
+			break;
+		case 'ropes':
+			connection.ropes = { laid: message.laid, tied: message.tied };
+			break;
+		case 'ropeGrow':
+			for (const grown of message.ropes) {
+				connection.ropes.laid.find((r) => r.id === grown.id)?.points.push(...grown.points);
+			}
 			break;
 		case 'serverError':
 			// Something broke on the game server: ask whether to report it (docs/dev/reports.md).

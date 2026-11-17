@@ -24,15 +24,24 @@ export const MODELS = {
 	'shared/items/chalk.glb': { url: '/assets/shared/items/chalk.0a8b2783.glb', bytes: 174972 },
 	'shared/items/crowbar.glb': { url: '/assets/shared/items/crowbar.4eb24c2a.glb', bytes: 178840 },
 	'shared/items/knife.glb': { url: '/assets/shared/items/knife.90908878.glb', bytes: 205208 },
+	'shared/items/medkit.glb': { url: '/assets/shared/items/medkit.922e63e8.glb', bytes: 251004 },
 	'shared/items/note.glb': { url: '/assets/shared/items/note.387d1475.glb', bytes: 209852 },
 	'shared/items/notebook.glb': { url: '/assets/shared/items/notebook.7ae4b2a4.glb', bytes: 358292 },
 	'shared/items/pendant.glb': { url: '/assets/shared/items/pendant.0d5e4bbf.glb', bytes: 247724 },
 	'shared/items/revolver.glb': { url: '/assets/shared/items/revolver.fb05cf75.glb', bytes: 224000 },
+	'shared/items/rope_bundle.glb': {
+		url: '/assets/shared/items/rope_bundle.f36da324.glb',
+		bytes: 688184
+	},
+	'shared/items/rope_pack.glb': {
+		url: '/assets/shared/items/rope_pack.0c79721e.glb',
+		bytes: 304096
+	},
 	'shared/items/salts.glb': { url: '/assets/shared/items/salts.403717e9.glb', bytes: 192152 },
 	'shared/items/shotgun.glb': { url: '/assets/shared/items/shotgun.a17b7485.glb', bytes: 226472 },
 	'shared/player/explorer.glb': {
-		url: '/assets/shared/player/explorer.57758970.glb',
-		bytes: 1897844
+		url: '/assets/shared/player/explorer.5385c688.glb',
+		bytes: 2123580
 	},
 	'shared/props/corpse.glb': { url: '/assets/shared/props/corpse.5a51bedd.glb', bytes: 598320 },
 	'shared/props/crate.glb': { url: '/assets/shared/props/crate.aef763a7.glb', bytes: 97380 },

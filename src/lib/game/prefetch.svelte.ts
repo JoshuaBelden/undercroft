@@ -15,7 +15,9 @@ let started = false;
 export function startPrefetch(): void {
 	if (started) return;
 	started = true;
-	void prefetchCore((progress) => (prefetch.progress = progress)).finally(
-		() => (prefetch.done = true)
-	);
+	void prefetchCore((progress) => {
+		prefetch.progress = progress;
+	}).finally(() => {
+		prefetch.done = true;
+	});
 }

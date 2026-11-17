@@ -931,6 +931,8 @@ function noiseRadius(s: PlayerState, def: CreatureDef): number {
 	const hear = def.perception.hear;
 	const speed = Math.hypot(s.velocity[0], s.velocity[2]);
 	if (s.mantle) return hear.walk;
+	// On a rope: the creak and scrape of climbing, nothing while only hanging there.
+	if (s.climbing) return Math.abs(s.velocity[1]) > 0.05 ? hear.walk : 0;
 	if (s.swimming) return speed > 0.3 ? hear.swim : 0;
 	if (speed < 0.3) return 0;
 	if (s.sneaking) return hear.creep;

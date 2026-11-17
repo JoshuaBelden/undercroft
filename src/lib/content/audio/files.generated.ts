@@ -105,7 +105,9 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'item.pickup': ['/assets/shared/audio/item.pickup.f554e9e7.webm'],
 	chalk: ['/assets/shared/audio/chalk.abbadf00.webm'],
 	'defense.torn': ['/assets/shared/audio/defense.torn.f49422b0.webm'],
-	'creature.hurt': ['/assets/shared/audio/creature.hurt.7f823348.webm']
+	'creature.hurt': ['/assets/shared/audio/creature.hurt.7f823348.webm'],
+	'rope.tension': ['/assets/shared/audio/rope.tension.a37433b9.webm'],
+	'rope.tie': ['/assets/shared/audio/rope.tie.d484b77c.webm']
 };
 
 /** Size in bytes of each built sound file, by URL (preload progress). */
@@ -195,5 +197,7 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/item.pickup.f554e9e7.webm': 7470,
 	'/assets/shared/audio/chalk.abbadf00.webm': 12936,
 	'/assets/shared/audio/defense.torn.f49422b0.webm': 5780,
-	'/assets/shared/audio/creature.hurt.7f823348.webm': 13471
+	'/assets/shared/audio/creature.hurt.7f823348.webm': 13471,
+	'/assets/shared/audio/rope.tension.a37433b9.webm': 9591,
+	'/assets/shared/audio/rope.tie.d484b77c.webm': 20914
 };

@@ -55,6 +55,10 @@ export interface GenerateOptions {
 	loops: number;
 	/** Longest loop path, in cells. */
 	loopMaxCells: number;
+	/** Rope drops (`needsRope` connectors) to hang off the map, each with a branch at its foot. */
+	ropeDrops: number;
+	/** Connectors on from the foot of a rope drop. */
+	dropBranch: [number, number];
 	/** Chance a sealed socket gets a dead end instead of a flat cap (when there is room). */
 	deadEndChance: number;
 	/** Fresh RNG streams to try before giving up. */
@@ -72,6 +76,8 @@ const DEFAULTS: GenerateOptions = {
 	branchPasses: 2,
 	loops: 8,
 	loopMaxCells: 16,
+	ropeDrops: 1,
+	dropBranch: [1, 3],
 	deadEndChance: 0.55,
 	attempts: 64,
 	affliction: null
@@ -95,7 +101,8 @@ class LayoutState {
 	links: Set<number>[] = [];
 
 	constructor(
-		readonly rng: Rng,
+		/** Not readonly: the rope drops swap in their own stream while they are placed. */
+		public rng: Rng,
 		readonly pieces: Record<string, PieceDef>,
 		readonly kit: MapKit
 	) {}
@@ -355,11 +362,14 @@ function tryGenerate(
 	rng: Rng,
 	pieces: Record<string, PieceDef>,
 	kit: MapKit,
-	options: GenerateOptions
+	options: GenerateOptions,
+	/** Its own stream for the rope drops, so adding them leaves the rest of the map as it was. */
+	dropRng: Rng
 ): Placement[] {
 	const state = new LayoutState(rng, pieces, kit);
 	const connectors = state.role('connector');
 	const flat = connectors.filter((p) => !kit[p.name].descends);
+	const ropeDrops = connectors.filter((p) => kit[p.name].needsRope);
 	const ends = state.role('end');
 	const caps = state.role('cap');
 	const extractions = state.role('extraction');
@@ -445,6 +455,26 @@ function tryGenerate(
 			}
 		}
 	}
+
+	// Rope drops: off an opening the route and branches left, a drop and a short way on at its
+	// foot. Only ever a detour, never the only way on (docs/dev/rope.md).
+	const mainRng = state.rng;
+	state.rng = dropRng;
+	for (let i = 0; i < options.ropeDrops && ropeDrops.length; i++) {
+		for (const socket of dropRng.shuffle(state.open())) {
+			if (socket.connected) continue;
+			const foot = state.attachAny(socket, ropeDrops);
+			if (!foot) continue;
+			let tip = foot.length ? dropRng.pick(foot) : null;
+			const length = dropRng.int(options.dropBranch[0], options.dropBranch[1]);
+			for (let k = 0; tip && k < length; k++) {
+				const next = state.attachAny(tip, flat);
+				tip = next?.length ? dropRng.pick(next) : null;
+			}
+			break;
+		}
+	}
+	state.rng = mainRng;
 
 	// Loops: join pairs of open sockets on the same level with a pathfound hall.
 	const halls = flat.filter((p) => p.footprint[0] === 1 && p.footprint[1] === 1);
@@ -532,11 +562,12 @@ export function generateLayout(
 	);
 	for (let attempt = 0; attempt < opts.attempts; attempt++) {
 		const rng = new Rng((seed + Math.imul(attempt, 0x9e3779b9)) >>> 0);
+		const dropRng = new Rng((seed ^ 0x0d70f00d) + attempt);
 		try {
 			const layout: MapLayout = {
 				seed,
 				affliction: opts.affliction,
-				placements: tryGenerate(rng, pieces, own, opts),
+				placements: tryGenerate(rng, pieces, own, opts, dropRng),
 				crates: [],
 				doors: []
 			};

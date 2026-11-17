@@ -10,6 +10,7 @@ import type { CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import { clonePlayerState, eyeHeight, handsBusy, stepPlayer } from '#lib/shared/player/simulate.ts';
+import type { ClimberSpot } from '#lib/shared/player/climb.ts';
 import {
 	HAND,
 	type HeadlampMode,
@@ -54,6 +55,20 @@ const SPRINT_PUSH = 0.6;
  * simulation, sends input frames to the server, and reconciles with server snapshots.
  * See docs/dev/player.md.
  */
+/** Holding the headlamp key this long (ms) switches between low and bright; less is a tap. */
+const LAMP_HOLD_MS = 1000;
+
+/** Hobbled: the limp in the view (see `updateLimp`). */
+const LIMP = {
+	/** Steps a second at full pace (one dip every other step). */
+	stepsPerSecond: 1.8,
+	/** Moving at this speed (m/s, a crawl) or more is full pace. */
+	pace: 0.6,
+	/** How far the eye drops (m) and the head nods down (radians) on the bad leg. */
+	dip: 0.06,
+	nod: 0.025
+} as const;
+
 export class LocalPlayer {
 	/** Predicted state; null until the first snapshot arrives. */
 	state: PlayerState | null = null;
@@ -74,6 +89,10 @@ export class LocalPlayer {
 	/** Wanted stance, cycled by the stance key; the simulation rises only when there is room. */
 	private stance: Stance = 'stand';
 	private lamp: HeadlampMode = 1;
+	/** The brightness the headlamp was last on at: a tap of its key comes back on at this. */
+	private lampOn: 1 | 2 = 1;
+	/** When the headlamp key went down (performance.now), until it is let go or held long enough. */
+	private lampPressedAt: number | null = null;
 	/** Creeping (slow, silent walk): while the stance key is held, or the left stick pushed lightly. */
 	private creep = false;
 	private stancePressedAt: number | null = null;
@@ -97,6 +116,12 @@ export class LocalPlayer {
 	 * gun leaves your hand.
 	 */
 	private sprintBy: InputDevice | null = null;
+	private climbers: ClimberSpot[] = [];
+	/** Stance pressed on a rope: let go in the next frame. */
+	private letGo = false;
+	/** Hobbled: how much the limp shows (eases in and out, 0..1) and where in the step it is. */
+	private limp = 0;
+	private limpPhase = 0;
 	private aimOn = false;
 
 	constructor(
@@ -108,10 +133,12 @@ export class LocalPlayer {
 			// Tap vs. long press is decided in `updateStanceKey` once we know how long it's held.
 			// Swimming has no stance: the controller's stance button is swim down there, and nobody
 			// should climb out of the water crouched.
-			if (action === 'stance' && !this.state.swimming) {
+			if (action === 'stance' && !this.state.swimming && !this.state.climbing) {
 				this.stancePressedAt = performance.now();
 				this.sprintBy = null;
 			}
+			// On a rope, stance lets go (and changes nothing about your stance).
+			if (action === 'stance' && this.state.climbing) this.letGo = true;
 			if (action === 'sprint' && this.sprintToggles(device)) {
 				this.sprintBy = this.sprintBy ? null : device;
 			}
@@ -119,7 +146,8 @@ export class LocalPlayer {
 			if (action === 'aim' && settings.accessibility.toggleAim && this.gunInHand()) {
 				this.aimOn = !this.aimOn;
 			}
-			if (action === 'headlamp') this.lamp = ((this.lamp + 1) % 3) as HeadlampMode;
+			// Tap or hold is decided in `updateLampKey`.
+			if (action === 'headlamp') this.lampPressedAt = performance.now();
 			if (action === 'primaryWeapon') this.select = HAND.primary;
 			if (action === 'secondaryWeapon') this.select = HAND.secondary;
 			// Two weapons: either direction is the other one (the primary, from a quick-use item).
@@ -224,6 +252,36 @@ export class LocalPlayer {
 		if (sprinting) this.stance = 'stand';
 	}
 
+	/**
+	 * The headlamp key: a tap switches it off, or back on at the brightness it last had; held for
+	 * LAMP_HOLD_MS it switches between low and bright (coming on, if it was off).
+	 */
+	private updateLampKey(): void {
+		if (this.lampPressedAt === null) return;
+		const held = performance.now() - this.lampPressedAt;
+		if (held >= LAMP_HOLD_MS) {
+			this.lampOn = this.lampOn === 1 ? 2 : 1;
+			this.lamp = this.lampOn;
+			// Done: letting go now is not a tap as well.
+			this.lampPressedAt = null;
+		} else if (!this.input.isDown('headlamp')) {
+			if (this.lamp === 0) this.lamp = this.lampOn;
+			else {
+				this.lampOn = this.lamp;
+				this.lamp = 0;
+			}
+			this.lampPressedAt = null;
+		}
+	}
+
+	/**
+	 * Where everyone else on a rope is (from the latest snapshots), so prediction stops short of
+	 * them as the server does. The play page sets it each frame.
+	 */
+	setClimbers(spots: ClimberSpot[]): void {
+		this.climbers = spots;
+	}
+
 	/** The collision world being predicted against (null while not in an expedition). */
 	get collision(): CollisionWorld | null {
 		return this.world;
@@ -256,12 +314,15 @@ export class LocalPlayer {
 			this.yaw = snapshot.state.yaw;
 			this.pitch = snapshot.state.pitch;
 			this.lamp = snapshot.state.headlamp;
+			if (this.lamp !== 0) this.lampOn = this.lamp;
 			this.stance = snapshot.state.stance;
 			return;
 		}
 		const corrected = clonePlayerState(snapshot.state);
 		this.pending = this.pending.filter((frame) => frame.seq > snapshot.ack);
-		for (const frame of this.pending) stepPlayer(corrected, frame, this.world, DT);
+		for (const frame of this.pending) {
+			stepPlayer(corrected, frame, this.world, DT, MOVEMENT, DEFAULT_HEADLAMP, [], this.climbers);
+		}
 		const old = this.state.position;
 		const error: Vec3 = [
 			old[0] - corrected.position[0],
@@ -283,6 +344,7 @@ export class LocalPlayer {
 	update(delta: number, active: boolean, reading = false): void {
 		this.updateSprint(active);
 		this.updateStanceKey(active);
+		this.updateLampKey();
 		const [dx, dy] = this.input.consumeLook();
 		const stick = this.input.lookStick();
 		const push = Math.hypot(stick.x, stick.y);
@@ -326,7 +388,7 @@ export class LocalPlayer {
 			steps++;
 			const frame = this.sample(active, reading);
 			this.previous = clonePlayerState(state);
-			stepPlayer(state, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, this.events);
+			stepPlayer(state, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, this.events, this.climbers);
 			this.pending.push(frame);
 			this.outbox.push(frame);
 		}
@@ -342,6 +404,28 @@ export class LocalPlayer {
 		for (let i = 0; i < 3; i++) this.offset[i] *= decay;
 		const targetEye = eyeHeight(state);
 		this.eye += (targetEye - this.eye) * Math.min(1, delta * 10);
+		this.updateLimp(state, delta);
+	}
+
+	/**
+	 * Hobbled and moving: a limp, the view dipping on every other step. Eases in and out, and
+	 * follows Settings > Graphics > Camera shake.
+	 */
+	private updateLimp(state: PlayerState, delta: number): void {
+		const speed = Math.hypot(state.velocity[0], state.velocity[2]);
+		const hobbled = state.conditions.some((c) => c.id === 'hobble');
+		const want = hobbled && state.grounded && speed > 0.05 ? 1 : 0;
+		this.limp += (want - this.limp) * Math.min(1, delta * 4);
+		this.limpPhase += delta * LIMP.stepsPerSecond * Math.PI * Math.min(1, speed / LIMP.pace);
+	}
+
+	/** The limp now: how far the eye dips (m) and the head nods (radians). */
+	private limpOffset(): { dip: number; nod: number } {
+		const amount = this.limp * settings.graphics.cameraShake;
+		if (amount <= 0) return { dip: 0, nod: 0 };
+		// Only the bad leg's step: a dip, then level on the good one.
+		const step = Math.max(0, Math.sin(this.limpPhase)) ** 2;
+		return { dip: step * LIMP.dip * amount, nod: step * LIMP.nod * amount };
 	}
 
 	/** Where the feet are drawn: interpolated between sim steps, with correction smoothing. */
@@ -354,10 +438,10 @@ export class LocalPlayer {
 		return [p(0) + this.offset[0], p(1) + this.offset[1], p(2) + this.offset[2]];
 	}
 
-	/** Camera position: the feet plus the (smoothed) eye height. */
+	/** Camera position: the feet plus the (smoothed) eye height, less a hobbling limp. */
 	eyePosition(): Vec3 | null {
 		const feet = this.feetPosition();
-		return feet && [feet[0], feet[1] + this.eye, feet[2]];
+		return feet && [feet[0], feet[1] + this.eye - this.limpOffset().dip, feet[2]];
 	}
 
 	/** Turn to face this way (dev: arriving where the free camera was, looking where it looked). */
@@ -376,11 +460,17 @@ export class LocalPlayer {
 		// Dip the view while hauling up onto a ledge.
 		const mantle = this.state?.mantle;
 		const dip = mantle ? Math.sin((mantle.t / mantle.duration) * Math.PI) * 0.18 : 0;
-		return { yaw: this.yaw, pitch: this.pitch - dip };
+		return { yaw: this.yaw, pitch: this.pitch - dip - this.limpOffset().nod };
 	}
 
 	dispose(): void {
 		this.unsubscribe();
+	}
+
+	private takeLetGo(active: boolean): boolean {
+		const letGo = active && this.letGo;
+		this.letGo = false;
+		return letGo;
 	}
 
 	private takeSelect(): number {
@@ -415,6 +505,7 @@ export class LocalPlayer {
 			sneak: this.creep,
 			climb: active && input.isDown('climb'),
 			swimDown: active && input.isDown('swimDown'),
+			letGo: this.takeLetGo(active),
 			interact: active && input.isDown('interact'),
 			// Choosing from the wheel is not a swing or a shot.
 			attack: active && !this.wheel && input.isDown('attack'),
