@@ -12,7 +12,8 @@ import { emptySlots, maxStack, newStack, type Slots } from './inventory.ts';
 
 /**
  * Rolling loot from the tables in src/lib/content/loot.ts. `depth` is 0 at the start of the map
- * and 1 at the farthest point from it. Seeded, so a map seed gives the same loot.
+ * (or of a crate's level of it) and 1 at the farthest point from it. Seeded, so a map seed gives
+ * the same loot.
  * See docs/dev/economy.md.
  */
 
@@ -30,15 +31,20 @@ function draw(pool: LootEntry[], depth: number, rng: Rng): ItemStack | null {
 
 /**
  * What a crate holds: its slots, filled from the first, commonest things first so the best is
- * the last to be revealed.
+ * the last to be revealed. Only `rarities` (LEVEL_LOOT for the crate's level) are rolled; the dice
+ * for the others are still thrown, so the same seed rolls the same everyday things either way.
  */
-export function rollCrate(depth: number, rng: Rng): Slots {
+export function rollCrate(
+	depth: number,
+	rng: Rng,
+	rarities: readonly Rarity[] = RARITIES.map((r) => r.id)
+): Slots {
 	const counts = new Map<Rarity, number>();
 	for (const { id } of RARITIES) {
 		const { count, chance } = CRATE_RARITY[id];
 		let n = count[0];
 		for (let i = count[0]; i < count[1]; i++) if (rng.next() < lerp(chance, depth)) n++;
-		counts.set(id, n);
+		counts.set(id, rarities.includes(id) ? n : 0);
 	}
 	// Never both of the two best.
 	if ((counts.get('epic') ?? 0) > 0 && (counts.get('legendary') ?? 0) > 0) {

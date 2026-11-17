@@ -39,6 +39,9 @@ WALL_INSET = 0.25  # room inner wall faces sit this far inside the footprint bou
 # Standard `hall` opening: 2 m wide, vertical sides to the springline, semicircular arch.
 HALL_HALF_W = 1.0
 HALL_SPRING = 1.8  # apex = 2.8 m
+# Wide `gate` opening (the double door at the end of each level): 3.2 m wide, 3.2 m apex.
+GATE_HALF_W = 1.6
+GATE_SPRING = 2.2
 
 # Material name -> texture set (art/textures/<set>_4K-JPG) and metres per texture repeat.
 MATERIALS = {
@@ -61,6 +64,7 @@ MATERIALS = {
     "mat-floor-chapel": {"set": "Marble023", "tile": 2.0},
     "mat-wall-chapel": {"set": "Road015C", "tile": 2.5},
     "mat-prop-planks": {"set": "Planks025A", "tile": 1.0},
+    "mat-prop-door": {"set": "PaintedWood007B", "tile": 1.2},
     "mat-rope": {"color": (0.32, 0.24, 0.15), "roughness": 0.95},
     # The unlit inside of a shaft or hatch: reads as a hole going on up into the dark.
     "mat-shaft-dark": {"color": (0.004, 0.004, 0.005), "roughness": 1.0},
@@ -87,6 +91,13 @@ PIECES = [
     "cistern",
     "gloaming-chapel",
     "extraction-shaft",
+    "drop-hall",
+    "pit",
+    "extraction-gate",
+    "stairs-deep",
+    "hall-squeeze-long",
+    "room-vault",
+    "room-gallery",
 ]
 
 
@@ -297,6 +308,11 @@ def hall_profile(segments=12):
 def crawl_profile():
     """Crawlspace: 1.2 m wide, about 1.05 m high."""
     return arch_profile(0.6, 0.6, 0.45)
+
+
+def gate_profile():
+    """Wide `gate` opening for the double door between levels: 3.2 m wide, 2.2 m to the springline, 3.2 m apex."""
+    return arch_profile(GATE_HALF_W, GATE_SPRING, 1.0)
 
 
 def squeeze_profile():
@@ -1546,8 +1562,19 @@ def build_gloaming_chapel(force=False):
 
 
 # ---------------------------------------------------------------------------
-# Extraction: a timber ladder and a rope going up into the dark mark every way out (but the
-# start room's surface door). The extract-<n> empty stands at the foot of the ladder.
+# Extraction: a rope going up into the dark is every way out (but the start room's surface door).
+# The rope is climbed to get out; the game draws it and makes it sway, so the piece only carries a
+# rope-<n> empty where it hangs from (see docs/dev/rope.md).
+
+
+def rope_anchor(coll, parent, name, top, length, exit=None):
+    """rope-<n>: the top of a rope that hangs `length` m straight down. On an extraction rope,
+    `exit` is how far up from its foot (m) a climber gets out of the catacomb."""
+    e = marker(coll, parent, name, top, display="PLAIN_AXES", size=0.3)
+    e["length"] = round(length, 3)
+    if exit is not None:
+        e["exit"] = exit
+    return e
 
 
 def extraction_ladder(mb, cx, cy, z0, z1, axis="x", rail=0.07, half_w=0.24):
@@ -1569,30 +1596,10 @@ def extraction_ladder(mb, cx, cy, z0, z1, axis="x", rail=0.07, half_w=0.24):
         z += 0.3
 
 
-def hanging_rope(mb, x, y, z_top, z_floor, coil=0.28):
-    """A rope hanging from z_top, with a loose coil on the floor beside it."""
-    r = 0.018
-    mb.box((x - r, y - r, z_floor + 0.04), (x + r, y + r, z_top), "mat-rope", skip=("-z", "+z"))
-    if coil <= 0:
-        return
-    segs = 10
-    for k in range(segs):
-        a0, a1 = 2 * math.pi * k / segs, 2 * math.pi * (k + 1) / segs
-        for ring, zc in ((coil, 0.0), (coil * 0.75, 0.04)):
-            p0 = Vector((x + coil + math.cos(a0) * ring, y + math.sin(a0) * ring, z_floor + zc))
-            p1 = Vector((x + coil + math.cos(a1) * ring, y + math.sin(a1) * ring, z_floor + zc))
-            d = (p1 - p0).normalized()
-            n = Vector((-d.y, d.x, 0)) * r * 1.5
-            up = Vector((0, 0, r * 2))
-            mb.face([p0 - n, p1 - n, p1 + n, p0 + n], "mat-rope", facing=(0, 0, 1))
-            mb.face([p0 + n, p1 + n, p1 + n + up, p0 + n + up], "mat-rope")
-            mb.face([p0 - n + up, p1 - n + up, p1 + n + up, p0 + n + up], "mat-rope", facing=(0, 0, 1))
-
-
 def build_extraction_shaft(force=False):
     """2x2 cells, 2 levels: an extraction room. A round shaft rises from the middle of the ceiling
-    toward the surface, with a timber ladder and a rope up it; extract-0 is at the foot of the
-    ladder. Openings on every side (like room-crypt), so the main route runs on through it."""
+    toward the surface, and a rope down it that is climbed to get out (rope-0).
+    Openings on every side (like room-crypt), so the main route runs on through it."""
     name = "extraction-shaft"
     coll = piece_collection(name, force)
     root = root_empty(coll, name, 2, 2, levels=2)
@@ -1637,7 +1644,7 @@ def build_extraction_shaft(force=False):
     for k, (x, y, s) in enumerate([(2.7, 2.6, 0.3), (-2.8, -2.7, 0.28), (0.75, -0.7, 0.22), (-0.8, -0.45, 0.16), (2.9, -0.4, 0.2)]):
         rubble(mb, x, y, 0, s, seed=k + 140)
     mb.finish(coll, root)
-    # The way out: hatch, beams, collar, ladder and rope
+    # The way out: hatch, beams and collar (the rope is the game's; no ladder in extraction rooms)
     xm = MeshBuilder(name + "-way-out")
     xm.face([Vector((math.cos(2 * math.pi * k / segs) * R * 1.08, math.sin(2 * math.pi * k / segs) * R * 1.08, top)) for k in range(segs)], "mat-shaft-dark", facing=(0, 0, -1))
     for y in (-0.55, 0.0, 0.55):
@@ -1645,14 +1652,12 @@ def build_extraction_shaft(force=False):
     c = R + 0.16
     for sx, sy, ex, ey in ((-c, R, c, c), (-c, -c, c, -R), (-c, -R, -R, R), (R, -R, c, R)):
         xm.box((sx, sy, h - 0.22), (ex, ey, h), "mat-prop-planks", skip=("+z",))
-    extraction_ladder(xm, 0, R - 0.3, 0, top - 0.3, axis="x")
-    hanging_rope(xm, -0.6, -0.15, top - 0.3, 0)
     xm.finish(coll, root)
     socket(coll, root, "hall", 0, (2, 4, 0))
     socket(coll, root, "hall", 1, (-2, -4, 0))
     socket(coll, root, "hall", 2, (-4, 2, 0))
     socket(coll, root, "hall", 3, (4, -2, 0))
-    marker(coll, root, "extract-0", (0, 0.1, 0), display="SPHERE", size=0.6)
+    rope_anchor(coll, root, "rope-0", SHAFT_ROPE, SHAFT_ROPE[2], exit=SHAFT_CLIMB)
     t = 4 - i
     col_box(coll, root, "col-floor", (-4, -4, -0.2), (4, 4, 0))
     col_box(coll, root, "col-ceiling-n", (-4, R, h), (4, 4, h + 0.4))
@@ -1664,7 +1669,6 @@ def build_extraction_shaft(force=False):
     col_box(coll, root, "col-shaft-w", (-R - 0.3, -R, h), (-R, R, top))
     col_box(coll, root, "col-shaft-e", (R, -R, h), (R + 0.3, R, top))
     col_box(coll, root, "col-hatch", (-R, -R, top - 0.3), (R, R, 2 * LEVEL))
-    col_box(coll, root, "col-ladder", (-0.3, R - 0.36, 0), (0.3, R - 0.24, top - 0.3))
     wall_cols(coll, root, "wall-n", (-4, i), (4, i), 0, h, t, (0, 1), openings=[(6.0, 1.0, 2.8)])
     wall_cols(coll, root, "wall-s", (-4, -i), (4, -i), 0, h, t, (0, -1), openings=[(2.0, 1.0, 2.8)])
     wall_cols(coll, root, "wall-w", (-i, -4), (-i, 4), 0, h, t, (-1, 0), openings=[(6.0, 1.0, 2.8)])
@@ -1675,12 +1679,13 @@ def build_extraction_shaft(force=False):
 def add_chapel_extraction():
     """Give the (hand-edited) Gloaming Chapel a way out, without rebuilding it: a ladder on the
     dais against the west nave wall, up to a dark hatch where the wall meets the vault, and
-    extract-0 at its foot. Only adds objects; does nothing if the chapel already has them."""
+    extract-0 at its foot. The chapel is the one way out by ladder (hold interact at its foot);
+    the extraction rooms have ropes. Only adds objects; does nothing if the chapel has them."""
     name = "gloaming-chapel"
     coll = bpy.data.collections[name]
     root = bpy.data.objects[name]
     if any(o.name.split(".")[0] == "extract-0" for o in root.children):
-        print("gloaming-chapel already has extract-0")
+        print("gloaming-chapel already has its way out")
         return coll
     hx, spring, dais_h = 3.75, 4.0, 0.35
     y0, y1 = 1.02, 1.68  # between the dais edge (y=1) and the pilaster at the apse (y=1.7)
@@ -1698,10 +1703,273 @@ def add_chapel_extraction():
     for y in (y0 - 0.1, y1):
         xm.box((-hx + 0.01, y, 2.75), (-hx + 0.14, y + 0.1, spring), "mat-prop-planks", skip=("-x",))
     extraction_ladder(xm, -hx + 0.14, cy, dais_h, 4.6, axis="y", half_w=0.22)
-    hanging_rope(xm, -hx + 0.35, y0 + 0.05, 5.0, dais_h, coil=0.0)
     xm.finish(coll, root)
     marker(coll, root, "extract-0", (-3.05, cy, dais_h), display="SPHERE", size=0.6)
     col_box(coll, root, "col-ladder", (-hx, y0 + 0.08, dais_h), (-hx + 0.19, y1 - 0.08, 4.6))
+    return coll
+
+
+# Where the extraction shaft's rope hangs from (piece space, Blender axes), and how far up it a
+# climber gets out. It hangs near the middle, so a climber beside it stays clear of the shaft
+# wall, and you climb most of the way up the shaft (head just under the hatch).
+SHAFT_ROPE = (-0.3, -0.3, 7.4)
+SHAFT_CLIMB = 5.4
+
+
+def ropes_for_extractions():
+    """One-off, for the hand-edited .blend: take the modelled rope (mat-rope faces) out of the
+    extraction room's way-out mesh and its extract-0 empty, and put a rope-0 empty in instead.
+    Does nothing to a room that already has its rope-0. (The chapel keeps its ladder.)"""
+    import bmesh
+
+    # extraction-gate's shaft is the same shaft as extraction-shaft's (#65).
+    rooms = (
+        ("extraction-shaft", SHAFT_ROPE, 0.0, SHAFT_CLIMB),
+        ("extraction-gate", SHAFT_ROPE, 0.0, SHAFT_CLIMB),
+    )
+    for name, top, foot, climb in rooms:
+        coll = bpy.data.collections[name]
+        root = bpy.data.objects[name]
+        kids = {o.name.split(".")[0]: o for o in root.children}
+        if "rope-0" in kids:
+            print(f"{name} already has rope-0")
+            continue
+        way = bpy.data.objects[name + "-way-out"]
+        rope = [i for i, m in enumerate(way.data.materials) if m and m.name.startswith("mat-rope")]
+        bm = bmesh.new()
+        bm.from_mesh(way.data)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index in rope], context="FACES_ONLY")
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+        bm.to_mesh(way.data)
+        bm.free()
+        for i in sorted(rope, reverse=True):
+            way.data.materials.pop(index=i)
+        if "extract-0" in kids:
+            bpy.data.objects.remove(kids["extract-0"])
+        rope_anchor(coll, root, "rope-0", top, top[2] - foot, exit=climb)
+        print(f"{name}: rope-0 at {top}")
+
+
+# Where the extraction rooms' ladders stood (piece space, Blender axes): the rope alone is the way
+# out there now. The Gloaming Chapel keeps its ladder.
+LADDERS = {
+    "extraction-shaft": ((-0.30, 0.74, -0.01), (0.30, 0.86, 7.41)),
+    "extraction-gate": ((-0.30, 0.74, -0.01), (0.30, 0.86, 7.41)),
+}
+
+
+def remove_extraction_ladders():
+    """One-off, for the hand-edited .blend: take the timber ladder out of the extraction rooms'
+    way-out meshes (the faces inside LADDERS) and their col-ladder boxes."""
+    import bmesh
+
+    for name, (lo, hi) in LADDERS.items():
+        root = bpy.data.objects[name]
+        way = bpy.data.objects[name + "-way-out"]
+        to_piece = root.matrix_world.inverted() @ way.matrix_world
+        bm = bmesh.new()
+        bm.from_mesh(way.data)
+
+        def ladder(face):
+            c = to_piece @ face.calc_center_median()
+            return all(lo[i] <= c[i] <= hi[i] for i in range(3))
+
+        gone = [f for f in bm.faces if ladder(f)]
+        bmesh.ops.delete(bm, geom=gone, context="FACES_ONLY")
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+        bm.to_mesh(way.data)
+        bm.free()
+        for o in [o for o in root.children if o.name.startswith("col-ladder")]:
+            bpy.data.objects.remove(o)
+        print(f"{name}: {len(gone)} ladder faces removed")
+
+
+def restore_chapel_ladder():
+    """One-off: give the Gloaming Chapel its ladder way out back (a rope briefly replaced it):
+    the ladder as its own mesh, its col-ladder box, and extract-0 at its foot in place of rope-0.
+    Each part is only added if it is missing."""
+    name = "gloaming-chapel"
+    coll = bpy.data.collections[name]
+    root = bpy.data.objects[name]
+    kids = {o.name.split(".")[0]: o for o in root.children}
+    hx, dais_h = 3.75, 0.35
+    y0, y1 = 1.02, 1.68
+    cy = (y0 + y1) / 2
+    if "col-ladder" not in kids and name + "-ladder" not in kids:
+        mb = MeshBuilder(name + "-ladder")
+        extraction_ladder(mb, -hx + 0.14, cy, dais_h, 4.6, axis="y", half_w=0.22)
+        mb.finish(coll, root)
+        col_box(coll, root, "col-ladder", (-hx, y0 + 0.08, dais_h), (-hx + 0.19, y1 - 0.08, 4.6))
+        print("gloaming-chapel: ladder back")
+    if "rope-0" in kids:
+        bpy.data.objects.remove(kids["rope-0"])
+        print("gloaming-chapel: rope-0 gone")
+    if "extract-0" not in kids:
+        marker(coll, root, "extract-0", (-3.05, cy, dais_h), display="SPHERE", size=0.6)
+        print("gloaming-chapel: extract-0 at the ladder's foot")
+
+
+# ---------------------------------------------------------------------------
+# Rope drops: too far to climb down and too far to jump (12 m, 3 levels). A post on the edge at the
+# top is where a rope is tied (anchor-<n>: the tie point on the ledge floor, its local +Y out
+# over the drop); the game hangs the rope and works out its foot. Always a detour off the map,
+# never the only way on (needsRope in src/lib/content/map/kit.ts). See docs/dev/rope.md.
+
+DROP = 3 * LEVEL  # the drop, and the floor of the way in
+
+
+def rope_post(mb, coll, root, x, y, z, name="anchor-0"):
+    """The anchor where a rope is tied, out over the drop toward -Y, and its timber post beside
+    it (to the +X side, clear of whoever stands at the anchor)."""
+    post = (x + 0.33, y, z)
+    mb.box((post[0], post[1], z), (post[0] + 0.14, post[1] + 0.14, z + 1.0), "mat-prop-planks", skip=("-z",))
+    col_box(coll, root, "col-post", (post[0], post[1], z), (post[0] + 0.14, post[1] + 0.14, z + 1.0))
+    e = marker(coll, root, name, (x, y, z), display="SINGLE_ARROW", size=0.4)
+    e.rotation_euler = (0, 0, math.pi)
+    return e
+
+
+def drop_crate(coll, root, name, x, y, back):
+    """A crate-<n> on the floor at the foot of a drop, its back to the wall on side `back`."""
+    turn = {"n": 0.0, "s": math.pi, "e": -math.pi / 2, "w": math.pi / 2}[back]
+    e = marker(coll, root, name, (x, y, 0), display="CUBE", size=0.3)
+    e.rotation_euler = (0, 0, turn)
+    return e
+
+
+def build_drop_hall(force=False):
+    """2x2 cells, 4 levels: a hall 15 m tall with a gallery 12 m up along its north wall. The way
+    in is onto the gallery (level 3, north side); the way on is at the foot (level 0, south).
+    A rope tied at the post on the gallery's edge (anchor-0) is the only way down."""
+    name = "drop-hall"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 2, 2, levels=4)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    i, t = 3.4, 0.6
+    H = DROP + 3.4  # ceiling
+    edge = 1.4  # the gallery runs from here to the north wall
+    hall = hall_profile()
+    mb = MeshBuilder(name + "-mesh")
+    mb.face([(-i, -i, 0), (i, -i, 0), (i, i, 0), (-i, i, 0)], F, facing=(0, 0, 1))
+    mb.face([(-i, -i, H), (i, -i, H), (i, i, H), (-i, i, H)], W, facing=(0, 0, -1))
+    for side, ((_ox, _oy), facing) in SIDES.items():
+        a, b = _wall_ends(side, -i, i, -i, i)
+        if side == "n":
+            wall(mb, a, b, 0, DROP, W, facing)
+            wall(mb, a, b, DROP, H, W, facing, notches=[(5.4, hall)])
+        elif side == "s":
+            wall(mb, a, b, 0, H, W, facing, notches=[(1.4, hall)])
+        else:
+            wall(mb, a, b, 0, H, W, facing)
+    # The gallery: floor, front edge and underside.
+    lip = DROP - 0.4
+    mb.face([(-i, edge, DROP), (i, edge, DROP), (i, i, DROP), (-i, i, DROP)], F, facing=(0, 0, 1))
+    mb.face([(-i, edge, lip), (i, edge, lip), (i, edge, DROP), (-i, edge, DROP)], W, facing=(0, -1, 0))
+    mb.face([(-i, edge, lip), (i, edge, lip), (i, i, lip), (-i, i, lip)], W, facing=(0, 0, -1))
+    throat(mb, (2, i), (0, 1), 0, 4 - i, hall, W, F, z0=DROP)
+    throat(mb, (-2, -i), (0, -1), 0, 4 - i, hall, W, F)
+    for k, (x, y, s) in enumerate([(2.6, -2.7, 0.3), (-2.9, 2.6, 0.26), (0.9, -0.4, 0.18), (-2.7, -0.6, 0.2)]):
+        rubble(mb, x, y, 0, s, seed=k + 210)
+    rope_post(mb, coll, root, -1.2, edge + 0.1, DROP)
+    mb.finish(coll, root)
+    socket(coll, root, "hall", 0, (2, 4, DROP))
+    socket(coll, root, "hall", 1, (-2, -4, 0))
+    drop_crate(coll, root, "crate-0", 3.0, -1.1, "e")
+    drop_crate(coll, root, "crate-1", -3.0, 0.6, "w")
+    col_box(coll, root, "col-floor", (-4, -4, -0.2), (4, 4, 0))
+    col_box(coll, root, "col-ceiling", (-4, -4, H), (4, 4, H + 0.4))
+    col_box(coll, root, "col-gallery", (-4, edge, lip), (4, 4, DROP))
+    wall_cols(coll, root, "wall-n-low", (-4, i), (4, i), 0, lip, t, (0, 1))
+    wall_cols(coll, root, "wall-n", (-4, i), (4, i), DROP, H, t, (0, 1), openings=[(6.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-s", (-4, -i), (4, -i), 0, H, t, (0, -1), openings=[(2.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-w", (-i, -4), (-i, 4), 0, H, t, (-1, 0))
+    wall_cols(coll, root, "wall-e", (i, -4), (i, 4), 0, H, t, (1, 0))
+    return coll
+
+
+def build_pit(force=False):
+    """2x2 cells, 4 levels: a chamber whose floor falls away into a square shaft 12 m deep, to a
+    low chamber at its foot. The way in is the top chamber (level 3, north side); the way on
+    leaves the bottom one (level 0, south). A rope tied at the post on the shaft's north lip
+    (anchor-0) is the only way down."""
+    name = "pit"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 2, 2, levels=4)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    i, t = 3.4, 0.6
+    H = DROP + 3.4  # the top chamber's ceiling
+    low = 3.4  # the bottom chamber's ceiling
+    r = 1.2  # half the shaft's width
+    hall = hall_profile()
+    mb = MeshBuilder(name + "-mesh")
+    up, down = (0, 0, 1), (0, 0, -1)
+
+    def ring(z, mat, facing):
+        """A square floor or ceiling round the shaft at height z."""
+        mb.face([(-i, r, z), (i, r, z), (i, i, z), (-i, i, z)], mat, facing=facing)
+        mb.face([(-i, -i, z), (i, -i, z), (i, -r, z), (-i, -r, z)], mat, facing=facing)
+        mb.face([(-i, -r, z), (-r, -r, z), (-r, r, z), (-i, r, z)], mat, facing=facing)
+        mb.face([(r, -r, z), (i, -r, z), (i, r, z), (r, r, z)], mat, facing=facing)
+
+    # Top chamber
+    ring(DROP, F, up)
+    mb.face([(-i, -i, H), (i, -i, H), (i, i, H), (-i, i, H)], W, facing=down)
+    for side, ((_ox, _oy), facing) in SIDES.items():
+        a, b = _wall_ends(side, -i, i, -i, i)
+        wall(mb, a, b, DROP, H, W, facing, notches=[(5.4, hall)] if side == "n" else ())
+    # The shaft, through the rock between the two chambers.
+    for (a, b), facing in (
+        (((-r, r), (r, r)), (0, -1, 0)),
+        (((-r, -r), (r, -r)), (0, 1, 0)),
+        (((-r, -r), (-r, r)), (1, 0, 0)),
+        (((r, -r), (r, r)), (-1, 0, 0)),
+    ):
+        wall(mb, a, b, low, DROP, W, facing)
+    # Bottom chamber
+    mb.face([(-i, -i, 0), (i, -i, 0), (i, i, 0), (-i, i, 0)], F, facing=up)
+    ring(low, W, down)
+    for side, ((_ox, _oy), facing) in SIDES.items():
+        a, b = _wall_ends(side, -i, i, -i, i)
+        wall(mb, a, b, 0, low, W, facing, notches=[(1.4, hall)] if side == "s" else ())
+    throat(mb, (2, i), (0, 1), 0, 4 - i, hall, W, F, z0=DROP)
+    throat(mb, (-2, -i), (0, -1), 0, 4 - i, hall, W, F)
+    for k, (x, y, s) in enumerate([(2.7, -2.6, 0.28), (-2.8, 2.7, 0.24), (0.3, -0.5, 0.2), (-0.6, 0.4, 0.14)]):
+        rubble(mb, x, y, 0, s, seed=k + 230)
+    for k, (x, y, s) in enumerate([(2.8, 2.8, 0.22), (-2.9, -2.7, 0.2)]):
+        rubble(mb, x, y, DROP, s, seed=k + 240)
+    rope_post(mb, coll, root, 0.0, r + 0.1, DROP)
+    mb.finish(coll, root)
+    socket(coll, root, "hall", 0, (2, 4, DROP))
+    socket(coll, root, "hall", 1, (-2, -4, 0))
+    drop_crate(coll, root, "crate-0", 3.0, 1.6, "e")
+    drop_crate(coll, root, "crate-1", -3.0, 0.4, "w")
+    # Top chamber: the floor round the shaft, walls and ceiling.
+    lip = DROP - 0.4
+    col_box(coll, root, "col-top-n", (-4, r, lip), (4, 4, DROP))
+    col_box(coll, root, "col-top-s", (-4, -4, lip), (4, -r, DROP))
+    col_box(coll, root, "col-top-w", (-4, -r, lip), (-r, r, DROP))
+    col_box(coll, root, "col-top-e", (r, -r, lip), (4, r, DROP))
+    col_box(coll, root, "col-ceiling", (-4, -4, H), (4, 4, H + 0.4))
+    wall_cols(coll, root, "wall-n", (-4, i), (4, i), DROP, H, t, (0, 1), openings=[(6.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-s-top", (-4, -i), (4, -i), DROP, H, t, (0, -1))
+    wall_cols(coll, root, "wall-w-top", (-i, -4), (-i, 4), DROP, H, t, (-1, 0))
+    wall_cols(coll, root, "wall-e-top", (i, -4), (i, 4), DROP, H, t, (1, 0))
+    # The shaft's walls.
+    s = 0.3
+    col_box(coll, root, "col-shaft-n", (-r - s, r, low), (r + s, r + s, lip))
+    col_box(coll, root, "col-shaft-s", (-r - s, -r - s, low), (r + s, -r, lip))
+    col_box(coll, root, "col-shaft-w", (-r - s, -r, low), (-r, r, lip))
+    col_box(coll, root, "col-shaft-e", (r, -r, low), (r + s, r, lip))
+    # Bottom chamber: floor, the ceiling round the shaft, walls.
+    col_box(coll, root, "col-floor", (-4, -4, -0.2), (4, 4, 0))
+    col_box(coll, root, "col-low-n", (-4, r, low), (4, 4, low + 0.4))
+    col_box(coll, root, "col-low-s", (-4, -4, low), (4, -r, low + 0.4))
+    col_box(coll, root, "col-low-w", (-4, -r, low), (-r, r, low + 0.4))
+    col_box(coll, root, "col-low-e", (r, -r, low), (4, r, low + 0.4))
+    wall_cols(coll, root, "wall-n-low", (-4, i), (4, i), 0, low, t, (0, 1))
+    wall_cols(coll, root, "wall-s", (-4, -i), (4, -i), 0, low, t, (0, -1), openings=[(2.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-w-low", (-i, -4), (-i, 4), 0, low, t, (-1, 0))
+    wall_cols(coll, root, "wall-e-low", (i, -4), (i, 4), 0, low, t, (1, 0))
     return coll
 
 
@@ -1844,6 +2112,358 @@ def build_hall_flooded(force=False):
     return coll
 
 
+# ---------------------------------------------------------------------------
+# Levels: the extraction room with the double door, and the long stair down to the next level
+# (see docs/dev/map-generation.md#levels)
+
+
+def _ceiling_with_hole(mb, ix, iy, h, radius, mat, segs=16):
+    """Flat rectangular ceiling at height h with a round hole of `radius` in the middle."""
+    # A ray through each corner too, so the outer edge follows the rectangle.
+    corners = sorted(
+        [2 * math.pi * k / segs for k in range(segs)]
+        + [math.atan2(sy * iy, sx * ix) % (2 * math.pi) for sx in (-1, 1) for sy in (-1, 1)]
+    )
+    def point(a, r=None):
+        c, s = math.cos(a), math.sin(a)
+        t = r if r is not None else min(ix / max(abs(c), 1e-9), iy / max(abs(s), 1e-9))
+        return Vector((c * t, s * t, h))
+    for k in range(len(corners)):
+        a0, a1 = corners[k], corners[(k + 1) % len(corners)]
+        if a1 <= a0:
+            a1 += 2 * math.pi
+        if a1 - a0 < 1e-6:
+            continue
+        mb.face([point(a0), point(a1), point(a1, radius), point(a0, radius)], mat, facing=(0, 0, -1))
+
+
+def _shaft_and_rope(coll, root, name, h, R, top):
+    """The way up: rough shaft walls above the ceiling hole, hatch and collar, and rope-0, climbed
+    to get out (the rope is the game's, as in extraction-shaft; no ladder in extraction rooms)."""
+    W = "mat-wall-tunnel"
+    segs, rings = 16, 6
+    tile = tile_of(W)
+    mb = MeshBuilder(name + "-shaft")
+    for r in range(rings):
+        za, zb = h + (top - h) * r / rings, h + (top - h) * (r + 1) / rings
+        for k in range(segs):
+            def p(kk, z):
+                a = 2 * math.pi * kk / segs
+                wob = 1.0 + (0.06 * noise.noise(Vector((math.cos(a) * 2, math.sin(a) * 2, z * 0.8))) if h < z < top else 0.0)
+                return Vector((math.cos(a) * R * wob, math.sin(a) * R * wob, z))
+            q = [p(k, za), p(k + 1, za), p(k + 1, zb), p(k, zb)]
+            arc = 2 * math.pi * R / segs
+            uvs = [(k * arc / tile, za / tile), ((k + 1) * arc / tile, za / tile), ((k + 1) * arc / tile, zb / tile), (k * arc / tile, zb / tile)]
+            mb.face(q, W, facing=Vector((0, 0, (za + zb) / 2)) - sum(q, Vector()) / 4, uvs=uvs, smooth=True)
+    mb.finish(coll, root)
+    xm = MeshBuilder(name + "-way-out")
+    xm.face([Vector((math.cos(2 * math.pi * k / segs) * R * 1.08, math.sin(2 * math.pi * k / segs) * R * 1.08, top)) for k in range(segs)], "mat-shaft-dark", facing=(0, 0, -1))
+    for y in (-0.55, 0.0, 0.55):
+        xm.box((-R * 1.05, y - 0.07, top - 0.3), (R * 1.05, y + 0.07, top - 0.15), "mat-prop-planks")
+    c = R + 0.16
+    for sx, sy, ex, ey in ((-c, R, c, c), (-c, -c, c, -R), (-c, -R, -R, R), (R, -R, c, R)):
+        xm.box((sx, sy, h - 0.22), (ex, ey, h), "mat-prop-planks", skip=("+z",))
+    xm.finish(coll, root)
+    rope_anchor(coll, root, "rope-0", SHAFT_ROPE, SHAFT_ROPE[2], exit=SHAFT_CLIMB)
+    col_box(coll, root, "col-shaft-n", (-R - 0.3, R, h), (R + 0.3, R + 0.3, top))
+    col_box(coll, root, "col-shaft-s", (-R - 0.3, -R - 0.3, h), (R + 0.3, -R, top))
+    col_box(coll, root, "col-shaft-w", (-R - 0.3, -R, h), (-R, R, top))
+    col_box(coll, root, "col-shaft-e", (R, -R, h), (R + 0.3, R, top))
+    col_box(coll, root, "col-hatch", (-R, -R, top - 0.3), (R, R, 2 * LEVEL))
+
+
+def build_extraction_gate(force=False):
+    """3x2 cells, 2 levels: the extraction room at the end of a level. A shaft rises from the
+    middle, with a rope down it that is climbed to get out (rope-0); a wide `gate` opening in the
+    north wall leads to the double door and the long stair down to the next level (stairs-deep).
+    Three hall openings lead back into the level."""
+    name = "extraction-gate"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 3, 2, levels=2)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    ix, iy, h = 6 - WALL_INSET, 4 - WALL_INSET, 3.8
+    R, top = 1.1, 7.7
+    hall, gate = hall_profile(), gate_profile()
+    # s is measured from x0 = -ix (n/s walls) or y0 = -iy (e/w walls)
+    openings = {"n": [(ix, gate)], "s": [(ix + 4, hall)], "w": [(iy - 2, hall)], "e": [(iy + 2, hall)]}
+    mb = MeshBuilder(name + "-mesh")
+    mb.face([(-ix, -iy, 0), (ix, -iy, 0), (ix, iy, 0), (-ix, iy, 0)], F, facing=(0, 0, 1))
+    for side, ((_ox, _oy), facing) in SIDES.items():
+        a, b = _wall_ends(side, -ix, ix, -iy, iy)
+        wall(mb, a, b, 0, h, W, facing, notches=openings[side])
+    throat(mb, (0, iy), (0, 1), 0, WALL_INSET, gate, W, F)
+    throat(mb, (4, -iy), (0, -1), 0, WALL_INSET, hall, W, F)
+    throat(mb, (-ix, -2), (-1, 0), 0, WALL_INSET, hall, W, F)
+    throat(mb, (ix, 2), (1, 0), 0, WALL_INSET, hall, W, F)
+    _ceiling_with_hole(mb, ix, iy, h, R, W)
+    # A carved lintel over the gate: marble trim round the arch on the room side.
+    trim = [(x * 1.12, z * 1.04 + 0.02) for x, z in gate]
+    for j in range(len(gate) - 1):
+        (x0, z0), (x1, z1) = gate[j], gate[j + 1]
+        (u0, w0), (u1, w1) = trim[j], trim[j + 1]
+        y = iy - 0.03
+        mb.face([(x0, y, z0), (x1, y, z1), (u1, y, w1), (u0, y, w0)], "mat-trim-marble", facing=(0, -1, 0))
+    for k, (x, y, s) in enumerate([(5.0, 3.0, 0.35), (-5.1, 2.9, 0.3), (-4.8, -3.1, 0.4), (2.4, -0.9, 0.2), (-2.0, 0.8, 0.18)]):
+        rubble(mb, x, y, 0, s, seed=k + 220)
+    mb.finish(coll, root)
+    _shaft_and_rope(coll, root, name, h, R, top)
+    socket(coll, root, "gate", 0, (0, 4, 0))
+    socket(coll, root, "hall", 1, (4, -4, 0))
+    socket(coll, root, "hall", 2, (-6, -2, 0))
+    socket(coll, root, "hall", 3, (6, 2, 0))
+    for k, (x, y) in enumerate([(5.0, 3.0), (-4.8, -3.1)]):
+        marker(coll, root, f"rubble-{k}", (x, y, 0), display="SPHERE", size=0.3)
+    for k, (x, y) in enumerate([(-4.2, 2.2), (4.2, -1.2), (-1.5, -2.6)]):
+        marker(coll, root, f"creature-{k}", (x, y, 0), display="CONE", size=0.4)
+    t = WALL_INSET
+    col_box(coll, root, "col-floor", (-6, -4, -0.2), (6, 4, 0))
+    col_box(coll, root, "col-ceiling-n", (-6, R, h), (6, 4, h + 0.4))
+    col_box(coll, root, "col-ceiling-s", (-6, -4, h), (6, -R, h + 0.4))
+    col_box(coll, root, "col-ceiling-w", (-6, -R, h), (-R, R, h + 0.4))
+    col_box(coll, root, "col-ceiling-e", (R, -R, h), (6, R, h + 0.4))
+    wall_cols(coll, root, "wall-n", (-6, iy), (6, iy), 0, h, t, (0, 1), openings=[(6.0, GATE_HALF_W, GATE_SPRING + 1.0)])
+    wall_cols(coll, root, "wall-s", (-6, -iy), (6, -iy), 0, h, t, (0, -1), openings=[(10.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-w", (-ix, -4), (-ix, 4), 0, h, t, (-1, 0), openings=[(2.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-e", (ix, -4), (ix, 4), 0, h, t, (1, 0), openings=[(6.0, 1.0, 2.8)])
+    return coll
+
+
+# The long stair: 1x6 cells, dropping three levels behind the double door.
+DEEP_DROP = 3 * LEVEL
+DEEP_DOOR_Y = 11.55  # the door's plane, just inside the gate socket (y = 12)
+DEEP_GATE_END = 10.0  # the gate-wide passage behind the door runs to here...
+DEEP_NARROW_END = 8.4  # ...then narrows to a hall by here
+
+
+def _deep_flights():
+    """Stair geometry, top to bottom: (top_y, z_top, risers) for each flight, and the run/rise."""
+    rise, run = 0.2, 0.28
+    flight1_top = 7.6
+    flight1_bottom = flight1_top - 29 * run  # -0.52, z = 6
+    landing_end = flight1_bottom - 1.6  # -2.12
+    flight2_bottom = landing_end - 29 * run  # -10.24, z = 0
+    return rise, run, [(flight1_top, DEEP_DROP, 30, flight1_bottom), (landing_end, DEEP_DROP / 2, 30, flight2_bottom)]
+
+
+def build_stairs_deep(force=False):
+    """1x6 cells, 4 levels: the only way down to the next level. A wide `gate` socket at the top
+    (north, level 3) takes the extraction room's gate; the double door (door-0, the game's
+    prop-door-double) hangs just inside it. Behind the door the passage narrows to a hall, then two
+    long flights with a landing drop 12 m to a hall socket at the bottom (south, level 0)."""
+    name = "stairs-deep"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 1, 6, levels=4)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    top_z = DEEP_DROP
+    rise, run, flights = _deep_flights()
+    hall, gate = hall_profile(), gate_profile()
+    mb = MeshBuilder(name + "-mesh")
+
+    # Gate-wide passage behind the door, easing down to the hall profile (flat, at the top).
+    frames, profiles = [], []
+    steps = 20
+    for k in range(steps + 1):
+        y = 12 - (12 - (flights[0][0] + run)) * k / steps
+        frames.append((Vector((0, y, top_z)), Vector((-1, 0, 0)), 12 - y))
+        f = 1.0 - smoothstep(DEEP_NARROW_END, DEEP_GATE_END, y)
+        profiles.append(morph(gate, hall, f))
+    sweep(mb, gate, frames, W, F, profiles=profiles)
+
+    # The stairwell itself: walls follow the line through the riser bottoms (as in hall-stairs-down).
+    (t1, _z1, _n1, b1), (t2, z2, _n2, b2) = flights
+    # Line from the top of flight 1 to its last riser, the landing, then flight 2 and the bottom.
+    path = [(0, t1 + run, top_z)]
+    for k in range(1, 11):
+        tt = k / 10
+        path.append((0, t1 + run + (b1 - (t1 + run)) * tt, top_z - (top_z - z2) * tt))
+    path.append((0, t2 + run, z2))
+    for k in range(1, 11):
+        tt = k / 10
+        path.append((0, t2 + run + (b2 - (t2 + run)) * tt, z2 * (1 - tt)))
+    path.append((0, -12, 0))
+    sframes, dist = [], 0.0
+    for i, p in enumerate(path):
+        p = Vector(p)
+        if i:
+            dist += (p - Vector(path[i - 1])).length
+        sframes.append((p, Vector((-1, 0, 0)), dist))
+    sweep(mb, hall, sframes, W, None, jitter=0.14, seed=17.5)
+
+    hw = HALL_HALF_W
+    # Landings: top (between the narrowing and flight 1), middle, bottom.
+    mb.face([(-hw, t1, top_z), (hw, t1, top_z), (hw, t1 + run, top_z), (-hw, t1 + run, top_z)], F, facing=(0, 0, 1))
+    mb.face([(-hw, t2, z2), (hw, t2, z2), (hw, b1, z2), (-hw, b1, z2)], F, facing=(0, 0, 1))
+    mb.face([(-hw, -12, 0), (hw, -12, 0), (hw, b2, 0), (-hw, b2, 0)], F, facing=(0, 0, 1))
+    for top_y, z_top, risers, bottom_y in flights:
+        for k in range(1, risers + 1):
+            y = top_y - (k - 1) * run
+            z_hi = z_top - (k - 1) * rise
+            z_lo = z_top - k * rise
+            mb.face([(-hw, y, z_lo), (hw, y, z_lo), (hw, y, z_hi), (-hw, y, z_hi)], F, facing=(0, -1, 0))
+            if k < risers:
+                mb.face([(-hw, y - run, z_lo), (hw, y - run, z_lo), (hw, y, z_lo), (-hw, y, z_lo)], F, facing=(0, 0, 1))
+
+    # Stone filling the arch above the door (the leaves are square-topped, to the springline).
+    yd = DEEP_DOOR_Y - 0.08
+    arch = [(x, z) for x, z in gate if z >= GATE_SPRING - 1e-6]
+    pts = [Vector((x, yd, top_z + z)) for x, z in arch]
+    mb.face(pts, "mat-trim-marble", facing=(0, 1, 0))
+    mb.face(list(reversed([Vector((x, yd - 0.2, top_z + z)) for x, z in arch])), "mat-trim-marble", facing=(0, -1, 0))
+    for k, (x, y, s) in enumerate([(0.6, -11.3, 0.22), (-0.55, -0.9, 0.2)]):
+        rubble(mb, x, y, z2 if t2 <= y <= b1 else 0, s, seed=k + 260)
+    mb.finish(coll, root)
+
+    socket(coll, root, "gate", 0, (0, 12, top_z))
+    socket(coll, root, "hall", 1, (0, -12, 0))
+    marker(coll, root, "door-0", (0, DEEP_DOOR_Y, top_z), display="ARROWS", size=0.6)
+
+    # Collision. The top: a gate-wide floor and walls to the door and a little past it, the narrowing
+    # in 0.2 m steps, then hall walls the whole way down.
+    col_box(coll, root, "col-landing-top", (-1.8, t1, top_z - 0.3), (1.8, 12, top_z))
+    col_box(coll, root, "col-gate-wall-w", (-2.0, DEEP_GATE_END, top_z), (-GATE_HALF_W, 12, top_z + 3.4))
+    col_box(coll, root, "col-gate-wall-e", (GATE_HALF_W, DEEP_GATE_END, top_z), (2.0, 12, top_z + 3.4))
+    col_box(coll, root, "col-gate-ceiling", (-2.0, DEEP_GATE_END, top_z + GATE_SPRING + 1.0), (2.0, 12, top_z + 3.6))
+    col_box(coll, root, "col-arch-fill", (-2.0, yd - 0.2, top_z + GATE_SPRING), (2.0, yd, top_z + 3.6))
+    n = 8
+    for k in range(n):
+        ya = DEEP_NARROW_END + (DEEP_GATE_END - DEEP_NARROW_END) * k / n
+        yb = DEEP_NARROW_END + (DEEP_GATE_END - DEEP_NARROW_END) * (k + 1) / n
+        f = 1.0 - smoothstep(DEEP_NARROW_END, DEEP_GATE_END, yb)  # the narrower end of the slice
+        half = GATE_HALF_W + (hw - GATE_HALF_W) * f
+        col_box(coll, root, f"col-narrow-{k}-w", (-2.0, ya, top_z), (-(half - 0.02), yb, top_z + 3.4))
+        col_box(coll, root, f"col-narrow-{k}-e", (half - 0.02, ya, top_z), (2.0, yb, top_z + 3.4))
+    col_box(coll, root, "col-landing-mid", (-1.5, t2, z2 - 0.3), (1.5, b1, z2))
+    col_box(coll, root, "col-landing-bottom", (-1.5, -12, -0.3), (1.5, b2, 0))
+    for i, (top_y, z_top, risers, bottom_y) in enumerate(flights):
+        z_bottom = z_top - risers * rise
+        length = math.hypot(top_y - bottom_y, z_top - z_bottom)
+        angle = math.atan2(z_top - z_bottom, top_y - bottom_y)
+        cy, cz = (top_y + bottom_y) / 2, (z_top + z_bottom) / 2
+        ramp = col_box(coll, root, f"col-stairs-{i}", (-1.5, cy - length / 2, cz - 0.15), (1.5, cy + length / 2, cz + 0.15))
+        ramp.rotation_euler = (angle, 0, 0)
+    col_box(coll, root, "col-wall-w", (-1.5, -12, 0), (-hw, DEEP_NARROW_END, top_z + 3.2))
+    col_box(coll, root, "col-wall-e", (hw, -12, 0), (1.5, DEEP_NARROW_END, top_z + 3.2))
+    return coll
+
+
+def build_hall_squeeze_long(force=False):
+    """3 cells: the hall pinches to a 0.7 m slot for about 9 m. No fighting in there."""
+    coll, root, half, total = _build_narrow_hall("hall-squeeze-long", 3, squeeze_profile(), (0.15, 1.3), 0.05, 21.7, force)
+    tight = half - 1.3
+    col_box(coll, root, "col-floor", (-1.5, -half, -0.2), (1.5, half, 0))
+    narrow_end_cols(coll, root, hall_profile(), squeeze_profile(), (0.15, 1.3), half, tight, total)
+    col_box(coll, root, "col-squeeze-wall-w", (-1.5, -tight, 0), (-0.35, tight, 3.0))
+    col_box(coll, root, "col-squeeze-wall-e", (0.35, -tight, 0), (1.5, tight, 3.0))
+    vol_box(coll, root, "vol-squeeze-0", (-0.6, -(tight + 0.3), 0), (0.6, tight + 0.3, 2.0))
+    return coll
+
+
+def _pillar(mb, x, y, half, h, mat, base_mat="mat-trim-marble"):
+    """Square pillar with a plinth and a capital."""
+    mb.box((x - half - 0.12, y - half - 0.12, 0), (x + half + 0.12, y + half + 0.12, 0.35), base_mat, skip=("-z",))
+    mb.box((x - half, y - half, 0.35), (x + half, y + half, h - 0.3), mat, skip=("-z", "+z"))
+    mb.box((x - half - 0.1, y - half - 0.1, h - 0.3), (x + half + 0.1, y + half + 0.1, h), base_mat, skip=("+z",))
+
+
+def build_room_vault(force=False):
+    """3x3 cells, 2 levels: a high charnel vault held up by four pillars round a bone-heaped bier.
+    Openings on every side, so it is a crossroads in the level."""
+    name = "room-vault"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 3, 3, levels=2)
+    W, F = "mat-wall-ossuary", "mat-floor-ossuary"
+    i, h = 6 - WALL_INSET, 4.8
+    hall = hall_profile()
+    # s from x0/y0 = -5.75: N at x=-4, S at x=4, W at y=-4, E at y=4
+    openings = {"n": [(i - 4, hall)], "s": [(i + 4, hall)], "w": [(i - 4, hall)], "e": [(i + 4, hall)]}
+    mb = MeshBuilder(name + "-mesh")
+    chamber(mb, -i, i, -i, i, h, W, F, W, openings=openings)
+    throat(mb, (-4, i), (0, 1), 0, WALL_INSET, hall, W, F)
+    throat(mb, (4, -i), (0, -1), 0, WALL_INSET, hall, W, F)
+    throat(mb, (-i, -4), (-1, 0), 0, WALL_INSET, hall, W, F)
+    throat(mb, (i, 4), (1, 0), 0, WALL_INSET, hall, W, F)
+    pillars = [(-2.6, -2.6), (2.6, -2.6), (-2.6, 2.6), (2.6, 2.6)]
+    for px, py in pillars:
+        _pillar(mb, px, py, 0.45, h, W)
+    # The bier in the middle, with a heap of bones on it.
+    mb.box((-1.1, -0.6, 0), (1.1, 0.6, 0.8), "mat-trim-marble", skip=("-z",))
+    for k, (x, y, s) in enumerate([(-4.9, -4.8, 0.45), (4.8, 4.7, 0.4), (4.9, -1.2, 0.3), (-4.6, 1.6, 0.35), (0.9, -4.6, 0.25), (-1.4, 4.5, 0.3)]):
+        rubble(mb, x, y, 0, s, seed=k + 300, mat="mat-wall-tunnel")
+    mb.finish(coll, root)
+    bones = MeshBuilder(name + "-bones", colors=True)
+    for k in range(9):
+        a = k * 2.399
+        x, y = 0.75 * math.cos(a) * (k / 9), 0.35 * math.sin(a) * (k / 9)
+        tint = 0.75 + 0.2 * noise.noise(Vector((k * 1.3, 2.0, 0.5)))
+        _skull(bones, Vector((x, y, 0.8 + 0.085)), 1 if k % 2 else -1, (tint, tint * 0.96, tint * 0.88, 1.0))
+    bones.finish(coll, root, smooth_angle=60)
+    socket(coll, root, "hall", 0, (-4, 6, 0))
+    socket(coll, root, "hall", 1, (4, -6, 0))
+    socket(coll, root, "hall", 2, (-6, -4, 0))
+    socket(coll, root, "hall", 3, (6, 4, 0))
+    for k, (x, y) in enumerate([(-4.9, -4.8), (4.8, 4.7), (-4.6, 1.6)]):
+        marker(coll, root, f"rubble-{k}", (x, y, 0), display="SPHERE", size=0.3)
+    for k, (x, y) in enumerate([(-4.5, 4.4), (4.4, -4.4), (0.0, -2.2), (0.0, 2.4)]):
+        marker(coll, root, f"creature-{k}", (x, y, 0), display="CONE", size=0.4)
+    t = WALL_INSET
+    col_box(coll, root, "col-floor", (-6, -6, -0.2), (6, 6, 0))
+    col_box(coll, root, "col-ceiling", (-6, -6, h), (6, 6, h + 0.4))
+    wall_cols(coll, root, "wall-n", (-6, i), (6, i), 0, h, t, (0, 1), openings=[(2.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-s", (-6, -i), (6, -i), 0, h, t, (0, -1), openings=[(10.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-w", (-i, -6), (-i, 6), 0, h, t, (-1, 0), openings=[(2.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-e", (i, -6), (i, 6), 0, h, t, (1, 0), openings=[(10.0, 1.0, 2.8)])
+    for k, (px, py) in enumerate(pillars):
+        col_box(coll, root, f"col-pillar-{k}", (px - 0.57, py - 0.57, 0), (px + 0.57, py + 0.57, h))
+    col_box(coll, root, "col-bier", (-1.1, -0.6, 0), (1.1, 0.6, 0.8))
+    return coll
+
+
+def build_room_gallery(force=False):
+    """4x2 cells: a long burial gallery, niches stacked three high down both long walls and a row of
+    columns down the middle. Two openings at each end."""
+    name = "room-gallery"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 4, 2)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    ix, iy, h = 8 - WALL_INSET, 4 - WALL_INSET, 3.6
+    hall = hall_profile()
+    niches = {"n": niche_grid(2 * ix, 9, 3), "s": niche_grid(2 * ix, 9, 3)}
+    # s from y0 = -3.75: openings at y = -2 and y = 2
+    openings = {"w": [(iy - 2, hall), (iy + 2, hall)], "e": [(iy - 2, hall), (iy + 2, hall)]}
+    mb = MeshBuilder(name + "-mesh")
+    chamber(mb, -ix, ix, -iy, iy, h, W, F, W, openings=openings, niches=niches)
+    for y in (-2, 2):
+        throat(mb, (-ix, y), (-1, 0), 0, WALL_INSET, hall, W, F)
+        throat(mb, (ix, y), (1, 0), 0, WALL_INSET, hall, W, F)
+    columns = [(-4.0, 0.0), (0.0, 0.0), (4.0, 0.0)]
+    for cx, cy in columns:
+        _pillar(mb, cx, cy, 0.3, h, "mat-column-marble")
+    for k, (x, y, s) in enumerate([(-6.8, 2.9, 0.3), (6.5, -2.9, 0.35), (1.9, 2.8, 0.22), (-2.2, -2.9, 0.25)]):
+        rubble(mb, x, y, 0, s, seed=k + 340)
+    mb.finish(coll, root)
+    props = MeshBuilder(name + "-bones", colors=True)
+    _niche_props(props, -ix, ix, -iy, iy, niches, seed=13.0)
+    props.finish(coll, root, smooth_angle=60)
+    socket(coll, root, "hall", 0, (-8, -2, 0))
+    socket(coll, root, "hall", 1, (-8, 2, 0))
+    socket(coll, root, "hall", 2, (8, -2, 0))
+    socket(coll, root, "hall", 3, (8, 2, 0))
+    for k, (x, y) in enumerate([(-6.8, 2.9), (6.5, -2.9)]):
+        marker(coll, root, f"rubble-{k}", (x, y, 0), display="SPHERE", size=0.3)
+    for k, (x, y) in enumerate([(-6.0, 0.0), (6.0, 0.0), (-2.0, 1.8), (2.0, -1.8)]):
+        marker(coll, root, f"creature-{k}", (x, y, 0), display="CONE", size=0.4)
+    t = WALL_INSET
+    col_box(coll, root, "col-floor", (-8, -4, -0.2), (8, 4, 0))
+    col_box(coll, root, "col-ceiling", (-8, -4, h), (8, 4, h + 0.4))
+    wall_cols(coll, root, "wall-n", (-8, iy), (8, iy), 0, h, t, (0, 1))
+    wall_cols(coll, root, "wall-s", (-8, -iy), (8, -iy), 0, h, t, (0, -1))
+    wall_cols(coll, root, "wall-w", (-ix, -4), (-ix, 4), 0, h, t, (-1, 0), openings=[(2.0, 1.0, 2.8), (6.0, 1.0, 2.8)])
+    wall_cols(coll, root, "wall-e", (ix, -4), (ix, 4), 0, h, t, (1, 0), openings=[(2.0, 1.0, 2.8), (6.0, 1.0, 2.8)])
+    for k, (cx, cy) in enumerate(columns):
+        col_box(coll, root, f"col-column-{k}", (cx - 0.42, cy - 0.42, 0), (cx + 0.42, cy + 0.42, h))
+    return coll
+
+
 BUILDERS = {
     "hall-straight": build_hall_straight,
     "hall-corner": build_hall_corner,
@@ -1865,6 +2485,13 @@ BUILDERS = {
     "cistern": build_cistern,
     "gloaming-chapel": build_gloaming_chapel,
     "extraction-shaft": build_extraction_shaft,
+    "drop-hall": build_drop_hall,
+    "pit": build_pit,
+    "extraction-gate": build_extraction_gate,
+    "stairs-deep": build_stairs_deep,
+    "hall-squeeze-long": build_hall_squeeze_long,
+    "room-vault": build_room_vault,
+    "room-gallery": build_room_gallery,
 }
 
 
@@ -1891,11 +2518,31 @@ def build_reference(force=False):
 
 
 def layout_pieces(names=None, spacing=14.0):
-    """Spread piece collections out along X in the viewport so they don't overlap (roots only)."""
-    for idx, name in enumerate(PIECES):
+    """Spread piece collections out along X in the viewport so they don't overlap (roots only).
+
+    With no names, every piece in PIECES goes to its slot in the list. With names (just built),
+    they go on past the furthest piece in the file, hand-made ones included, so they never land
+    on one that isn't in PIECES.
+    """
+    if names is None:
+        for idx, name in enumerate(PIECES):
+            root = bpy.data.objects.get(name)
+            if root:
+                root.location = (idx * spacing, 0, 0)
+        return
+    others = [
+        o for o in bpy.data.objects
+        if o.parent is None and "footprint_w" in o.keys() and o.name not in names
+    ]
+    x = max((o.location.x + o["footprint_w"] * CELL / 2 for o in others), default=-spacing)
+    for name in names:
         root = bpy.data.objects.get(name)
-        if root and (names is None or name in names):
-            root.location = (idx * spacing, 0, 0)
+        if not root:
+            continue
+        half = root["footprint_w"] * CELL / 2
+        x += spacing - CELL + half
+        root.location = (x, 0, 0)
+        x += half
 
 
 def reset_layout():

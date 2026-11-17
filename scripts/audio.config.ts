@@ -37,7 +37,9 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'breath.slow', file: 'breathing_slow.wav', keepSilence: true },
 	{ id: 'breath.fast', file: 'breathing_fast.wav', keepSilence: true },
 	{ id: 'gasp', file: 'gasp.wav' },
-	// Effort grunts for climbing and pushing through squeezes.
+	// Pushing through a squeeze.
+	{ id: 'squeeze.grunt', file: 'sfx_grunt.mp3' },
+	// Effort grunts for climbing.
 	{ id: 'exertion', file: 'exertion.mp3', slice: { minGap: 0.6, maxLength: 1.0, threshold: 0.3 } },
 	{ id: 'headlamp.on', file: 'flashlight_on.wav' },
 	{ id: 'headlamp.off', file: 'flashlight_off.wav' },
@@ -128,11 +130,18 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'creature.breath', file: 'sfx_witch_breathing.mp3', loopCrossfade: 0.5, keepSilence: true },
 	// A crate's lid lifting.
 	{ id: 'crate.open', file: 'drawer_open.wav' },
+	// A door between levels dragging open.
+	{ id: 'door.open', file: 'sfx_door_open.mp3' },
 	// Something taken off the floor into the pack.
 	{ id: 'item.pickup', file: 'zipper_bag.wav' },
 	// Chalk on stone (drawn, and slowed down for rubbing a mark out).
 	{ id: 'chalk', file: 'writing.wav' },
 	// Worn protection torn apart.
 	{ id: 'defense.torn', file: 'velcro.wav' },
-	{ id: 'creature.hurt', file: 'witch-growl.mp3' }
+	{ id: 'creature.hurt', file: 'witch-growl.mp3' },
+	// A rope taking a climber's weight (played as they go up or down it).
+	{ id: 'rope.tension', file: 'sfx_rope_tension.mp3' },
+	// Knotting a rope to an anchor, untying it, coiling it up.
+	// The recording runs 13.7 s; tying takes a few seconds, so only its start.
+	{ id: 'rope.tie', file: 'sfx_rope_tying.mp3', crop: { start: 0, length: 3.5 } }
 ];

@@ -6,10 +6,12 @@
 	import Slot from './Slot.svelte';
 
 	/**
-	 * What is known about the rite, always at the middle of the left edge while underground: the
-	 * Affliction's name, the hints found so far, then a line down the left joining each thing the
-	 * rite needs and the room.
-	 * It takes no clicks and never lets go of the mouse. See docs/dev/rite.md.
+	 * What is known about the rite, at the middle of the left edge while underground (the play page
+	 * places it) and on the Rite tab of the in-game menu (GameMenu): the Affliction's name, the
+	 * hints found so far, then a line down the left joining each thing the rite needs and the room.
+	 * Once performed, one last step: banish what it summoned. Hidden (`open` false), only the name
+	 * stays, with the binding that brings the rest back. Nothing in it can be clicked. See
+	 * docs/dev/rite.md.
 	 */
 	interface Props {
 		/** The Affliction this rite resolves, e.g. "The Gloaming". */
@@ -19,9 +21,13 @@
 		carriers: { name: string; count: number; self: boolean }[][];
 		/** The interact binding ("KeyE"; see KeyCap), shown as a keycap; empty when unbound. */
 		interactKey: string;
+		/** Everything shown; false leaves only the name, with `toggleKey` beside it. */
+		open?: boolean;
+		/** The binding that hides and shows it ("KeyH", "PadR3"); empty when unbound. */
+		toggleKey?: string;
 	}
 
-	let { affliction, rite, carriers, interactKey }: Props = $props();
+	let { affliction, rite, carriers, interactKey, open = true, toggleKey = '' }: Props = $props();
 
 	const room = $derived(rite.room ? (MAP_KIT[rite.room]?.title ?? rite.room) : null);
 
@@ -41,73 +47,86 @@
 	}
 </script>
 
-<aside class="rite" class:resolved={rite.resolved} aria-label="The rite">
+<section class="rite" class:performed={rite.performed} class:closed={!open} aria-label="The rite">
 	<h2>
 		<span class="pill">{affliction || 'The rite'}</span>
 		{#if rite.resolved}<span class="done">Resolved</span>{/if}
+		{#if !open && toggleKey}<span class="show"><KeyCap code={toggleKey} tint="control" /></span
+			>{/if}
 	</h2>
 
-	{#if rite.hints.length}
-		<ol class="said">
-			{#each rite.hints as hint, index (index)}
-				<li>“{hint}”</li>
-			{/each}
-		</ol>
-	{/if}
+	{#if open}
+		{#if rite.hints.length}
+			<ol class="said">
+				{#each rite.hints as hint, index (index)}
+					<li>“{hint}”</li>
+				{/each}
+			</ol>
+		{/if}
 
-	<ol class="hints">
-		{#each rite.requirements as requirement, index (index)}
-			{@const def = requirement ? ITEMS[requirement.item] : undefined}
-			<li class:unknown={!requirement}>
-				<span class="slot" class:held={held(index)}>
-					<Slot
-						name={requirement ? (def?.name ?? requirement.item) : null}
-						count={requirement?.count ?? 1}
-						image={def?.image}
-					/>
-				</span>
-				{#if requirement}
-					<span class="text">
-						<span class="name">{def?.name ?? requirement.item}</span>
-						<span class="who">{carried(index, requirement.count)}</span>
+		<ol class="hints">
+			{#each rite.requirements as requirement, index (index)}
+				{@const def = requirement ? ITEMS[requirement.item] : undefined}
+				<li class:unknown={!requirement}>
+					<span class="slot" class:held={held(index)}>
+						<Slot
+							name={requirement ? (def?.name ?? requirement.item) : null}
+							count={requirement?.count ?? 1}
+							image={def?.image}
+						/>
 					</span>
+					{#if requirement}
+						<span class="text">
+							<span class="name">{def?.name ?? requirement.item}</span>
+							<span class="who">{carried(index, requirement.count)}</span>
+						</span>
+					{/if}
+				</li>
+			{/each}
+			<li class="place" class:unknown={!room}>
+				{#if room}
+					<span class="text">
+						<span class="name">{room}</span>
+						<span class="who"
+							>One of you carries it all here and holds {#if interactKey}<KeyCap
+									code={interactKey}
+									tint="control"
+								/>{:else}interact{/if}</span
+						>
+					</span>
+				{:else}
+					<span class="mark">Location: Unknown</span>
 				{/if}
 			</li>
-		{/each}
-		<li class="place" class:unknown={!room}>
-			{#if room}
-				<span class="text">
-					<span class="name">{room}</span>
-					<span class="who"
-						>One of you carries it all here and holds {#if interactKey}<KeyCap
-								code={interactKey}
-							/>{:else}interact{/if}</span
-					>
-				</span>
-			{:else}
-				<span class="mark">Location: Unknown</span>
+			{#if rite.performed}
+				<li class="banish" class:after={rite.resolved}>
+					<span class="text">
+						<span class="name">{rite.resolved ? 'Banished' : 'Banish it'}</span>
+						<span class="who"
+							>{rite.resolved
+								? 'Now get out.'
+								: 'Hold your light on it to wound it. Flick your lamp off and on to stun it.'}</span
+						>
+					</span>
+				</li>
 			{/if}
-		</li>
-	</ol>
-</aside>
+		</ol>
+	{/if}
+</section>
 
 <style>
 	.rite {
 		--line: rgb(226 220 204 / 0.28);
-		position: fixed;
-		left: 16px;
-		top: 50%;
-		transform: translateY(-50%);
-		width: min(280px, calc(100vw - 32px));
+		width: min(280px, 100%);
 		font: 13px var(--font-ui);
 		color: var(--text);
 		text-shadow: 0 0 6px rgb(0 0 0 / 0.9);
-		pointer-events: none;
-		z-index: 6;
 	}
 
 	/* The name in a pill. */
 	h2 {
+		display: flex;
+		align-items: center;
 		margin: 0 0 10px;
 	}
 
@@ -121,6 +140,16 @@
 		text-transform: uppercase;
 	}
 
+	.rite.closed h2 {
+		margin: 0;
+	}
+
+	/* Hidden: the binding that brings the rest back. */
+	.show {
+		display: flex;
+		margin-left: 8px;
+	}
+
 	.done {
 		margin-left: 8px;
 		font: 600 0.72rem var(--font-ui);
@@ -129,9 +158,14 @@
 		color: var(--accent);
 	}
 
-	/* Done: what it needed is behind them. */
-	.rite.resolved .hints {
+	/* Performed: what it needed is behind them; only the banishing is left (and then that too). */
+	.rite.performed .hints li:not(.banish),
+	.rite.performed .hints li.after {
 		opacity: 0.5;
+	}
+
+	li.banish:not(.after) .name {
+		color: var(--accent);
 	}
 
 	/* The hints, in their own words. */

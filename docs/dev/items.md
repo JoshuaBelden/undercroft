@@ -10,8 +10,9 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 | `src/lib/content/carry.ts`          | Backpacks (slots) and `CARRY` (weight limits, slowdown)                   |
 | `src/lib/content/loadout.ts`        | How many bricks lie around                                                |
 | `src/lib/shared/items/inventory.ts` | Inventory rules: slots, stacking, moving, equipping, weight               |
-| `src/lib/ui/InventoryScreen.svelte` | The pack screen                                                           |
-| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (pack screen and Loadout page)                |
+| `src/lib/ui/GameMenu.svelte`        | The in-game menu underground: the Pack and Rite tabs                      |
+| `src/lib/ui/PackPanel.svelte`       | The Pack tab (the pack screen)                                            |
+| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (Pack tab and Loadout page)                   |
 | `src/lib/ui/QuickWheel.svelte`      | The quick-use wheel; `wheel.ts` decides which slot is chosen              |
 | `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread      |
 | `src/lib/shared/items/pickup.ts`    | Which floor item you're looking at (shared by server and client)          |
@@ -39,9 +40,10 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 - `melee`: `damage`, `range` (from the eye), `arc` (half-angle), `windup` (hit lands), `recovery`, `noise` (radius when it hits something), optional `breaksAfter` (bricks).
 - `firearm`: `damage` per pellet, `pellets`, `spread` (hip and aimed cone), `range` and `falloff` (fraction of damage lost by the end of the range), `interval`, `magazine`, `reloadTime`, `ammo` (item id of its rounds), `noise`, `sound` (the shot) and `reloadSound` (played as a reload starts; make it last about `reloadTime`, with the sound's `rate` if needed), `zoom` (the fraction of the field of view left when aimed: revolver 0.6, shotgun 0.7) and `recoil` (`RecoilSpec`: `pitch` and `yaw` throw your view, `rise`, `back` and `settle` jolt the gun in your hands).
 - `throwable`: `speed`, `damage`, `landNoise`, `duration`.
-- `heal`: `amount` of sanity and `seconds` to apply (bandages).
+- `heal`: `amount` of sanity and `seconds` to apply (bandages; the rare medkit gives back all of it, `SANITY.max`, in 5 s).
 - `charge`: `volts` put back into the headlamp and `seconds` to swap it in (batteries).
 - `revive: true`: brings a downed player round (smelling salts).
+- `rope`: `length` in metres of a new one (rope packs, 100 m, sold; rope bundles, 40 m, rare in crates). The metres left are on the stack (`ItemStack.metres`). Laid along the floor or tied at an anchor: see [rope.md](rope.md).
 - `defense`: `shield`, the points of creatures' blows it takes before the wearer does. The points used are kept on the stack (`ItemStack.worn`), so a worn coat stays worn after extraction; when they run out it is torn apart and gone.
 - `weight` is kg for one of it.
 
@@ -50,6 +52,8 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 The first defense item, the `coat`, is a stand-in so the slot has something to hold.
 
 `chalk` (quick-use, with a model) and `candle` (backpack, unlit, a placeholder box) are rite supplies, sold in the store and found in crates. Chalk draws marks on walls (`chalk: { marks }`, see [marks.md](marks.md)). Candles do nothing in the hand yet: lighting them comes with light sources ([#26](https://github.com/JoshuaBelden/undercroft/issues/26)).
+
+The `notebook` (backpack, a placeholder box) has `survey: true`: carried anywhere, it lets you open, draw in and show your map ([map.md](map.md)).
 
 ## Inventory
 
@@ -78,9 +82,18 @@ The rules are all in `src/lib/shared/items/inventory.ts`, and work on `Belonging
 
 **Weight** is the one limit besides slots. Everything carried counts (`carriedWeight`). Up to `CARRY.comfortable` kg there is no effect. From there to `CARRY.max` the ground speed falls evenly to `CARRY.slowest` (`speedFactor`, applied in `stepPlayer`, so it is predicted). Nothing can be picked up, or taken from the stash, past `CARRY.max` (`heavy`). `canTake` says whether one more would fit, or why not (`heavy`, `full`); the client uses it for the pick-up prompt.
 
+### The in-game menu
+
+Underground, the `inventory` action (Tab or I, View on the controller) opens `GameMenu`: a **Pack** tab (`PackPanel`, below) and a **Rite** tab (`RitePanel` and Abandon expedition, see [rite.md](rite.md#the-rite-tab)). Click a tab, or press LB/RB with the controller (the menu's `tabs`). The same action, B or Close puts it away. It doesn't pause anything: the server can't pause a co-op game.
+
+- **It opens on the Pack tab.** It only opens while you are down there and on your feet: never while downed, or dead and spectating. Going down closes it.
+- **Hands busy.** While it is open the client sends `reading: true` in its `InputFrame`s, and `handsBusy` (`src/lib/shared/player/simulate.ts`) takes away sprint, interact, attack, aim, reload, drop and `select`: no fighting, using, picking up, climbing out, reviving, swapping or running. Walking, stance and the headlamp still work. The server applies it in `sanitizeFrame`, the client to the frames it predicts with, so they agree and a client can't keep its hands by not using them. The movement keys walk (`LocalPlayer.update`'s `reading`); the controller's left stick stays the menu's, so with a controller you stand still. The look stays put: the pointer is free for the menu.
+- **The tabs share one place:** both panes sit in the same grid cell, the hidden one `inert` and invisible, so the menu is as big as its bigger tab and keeps its size from one to the other. Switching blurs whatever had the focus in the old tab, and the controller starts on the new one where it was last (the menu's `key` is per tab).
+- **Adding a tab:** a name in `MENU_TABS` (`GameMenu.svelte`), when it shows in `tabs`, and its pane in the markup.
+
 ### The pack screen
 
-The `inventory` action opens `InventoryScreen`: a `LoadoutPanel` (EQUIPMENT, BACKPACK, QUICK USE), with the weight carried beside the title, with the slot in the hand outlined. It doesn't pause anything, and it closes if you go down. Slots are `ItemSlot`s on an `ItemBoard` (see [systems.md](systems.md#item-slots)): drag onto another slot, shift-click, or right-click for Equip / Unequip, Split and Drop. Each sends an `inventory` message carrying an `InventoryAction`.
+The Pack tab (`PackPanel`) is a `LoadoutPanel` (EQUIPMENT, BACKPACK, QUICK USE), with the weight carried beside the title, with the slot in the hand outlined. Slots are `ItemSlot`s on an `ItemBoard` (see [systems.md](systems.md#item-slots)): drag onto another slot, shift-click, or right-click for Equip / Unequip, Split and Drop. Each sends an `inventory` message carrying an `InventoryAction`.
 
 The server checks the request (`sanitizeAction`, which refuses stash slots), applies it in `Session.inventory` with `applyAction`, and refuses it while downed. A `drop` lands on the floor in front of you. If what's in the hand changed, the held item's action is cancelled and the new one comes up (`reequip`). These changes are not predicted: the client sees them in the next snapshot.
 
@@ -102,7 +115,7 @@ The held item is advanced by `stepWeapon`, called from `stepPlayer`, so it is pr
 - a `shots` counter;
 - the previous frame's buttons, for press edges.
 
-`InputFrame` fields: `attack`, `aim`, `reload`, `drop` and `select` (what to take in the hand, as `Inventory.selected`, for one frame; otherwise -1).
+`InputFrame` fields: `attack`, `aim`, `reload`, `drop` and `select` (what to take in the hand, as `Inventory.selected`, for one frame; otherwise -1). All of them are off while `reading` (see [the in-game menu](#the-in-game-menu)).
 
 The rules:
 
@@ -163,13 +176,13 @@ Where one is found is the rite's to say (`place: 'crate'` on the requirement, se
 
 Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 slots.
 
-**Where they stand.** Pieces carry `crate-<n>` markers: places a crate may stand, with its back to a wall (see [asset-pipeline.md](asset-pipeline.md)). A marker is only a possibility. `placeCrates(layout, PIECES, seed)` fills each with probability `CRATES.fill`, none within `CRATES.minDistance` of the start, seeded by the map seed. The server calls it once the layout is generated and stores the result in `layout.crates` (`id`, `position`, `yaw`), which goes to clients with the layout.
+**Where they stand.** Pieces carry `crate-<n>` markers: places a crate may stand, with its back to a wall (see [asset-pipeline.md](asset-pipeline.md)). A marker is only a possibility. `placeCrates(layout, PIECES, seed)` fills each with probability `CRATES.fill`, none within `CRATES.minDistance` of the start, seeded by the map seed. The server calls it once the layout is generated and stores the result in `layout.crates` (`id`, `position`, `yaw`, and `tier`, the level of the map), which goes to clients with the layout.
 
 **Not in the start room.** The start room (`stairwell`) has a crate marker, but `placeCrates` always leaves it empty. To try the loot screen without walking for it, fill your stash with `pnpm dev:seed`, or teleport to a room from the admin panel.
 
 **Solid.** `buildCollisionWorld` adds a box of `CRATES.size` for each entry of `layout.crates`. Server and client both build the world from the layout, so movement prediction, line of sight and the nav grid all take crates into account. The box is a little higher than the model (0.55 m), above the nav grid's step height, so nothing treats a lid as a floor.
 
-**What is in them.** `Crates` (`server/crates.ts`) rolls each crate with `rollCrate` at its depth (see [economy.md](economy.md#tables)). Every slot that holds something starts **hidden**.
+**What is in them.** `Crates` (`server/crates.ts`) rolls each crate with `rollCrate` at its depth in its level, with the rarities its level allows (`LEVEL_LOOT`; see [economy.md](economy.md#tables)). Every slot that holds something starts **hidden**.
 
 **Opening.** Holding interact for `CRATES.openSeconds` (1 s) on the crate `lookedAtCrate` picks opens it: within `PICKUP.range` of the eye, within `CRATE_REACH.angle` of the look direction, nothing but the crate in the way. A floor item being looked at comes first (interact picks that up). `PlayerState.opening` counts the seconds (server-driven, like `performing`), and resets if any of that stops. The client prompts with the same rule: the interact key as a keycap and "to search", filling as it is held, for crates and corpses alike (with interact unbound, "Interact to search").
 

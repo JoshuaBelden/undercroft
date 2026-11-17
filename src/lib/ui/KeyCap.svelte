@@ -7,16 +7,21 @@
 	 * black. A controller button is drawn in the same style, in the current icon set (`padFamily`):
 	 * round face buttons (letters, or PlayStation's shapes), the d-pad with the pressed arm dark,
 	 * the rest by name. Pass the binding's code (`promptCode`), so it follows remapping and the
-	 * device in use.
+	 * device in use. With `tint="control"` (the dashboard's shortcuts, ButtonHint.svelte, and the
+	 * hold prompts underground, HoldPrompt.svelte) it takes the colours of the control it sits in
+	 * instead: `--hint-cap` for the cap (the control's text colour; `--text` by default) and
+	 * `--hint-label` for the letter (its background; `--bg`).
 	 */
 	interface Props {
 		/** The binding, e.g. "KeyF" or "PadA". */
 		code: string;
 		/** small: beside HUD bars (the default). large: in a hold prompt. */
 		size?: 'small' | 'large';
+		/** keycap: white, face buttons in their colours (the default). control: see above. */
+		tint?: 'keycap' | 'control';
 	}
 
-	let { code, size = 'small' }: Props = $props();
+	let { code, size = 'small', tint = 'keycap' }: Props = $props();
 
 	/** Face buttons' colours: Xbox style and PlayStation. */
 	const FACES: Record<string, readonly [string, string]> = {
@@ -38,11 +43,17 @@
 	const family = $derived(padFamily());
 	const label = $derived(bindingLabel(code, family));
 	const face = $derived(FACES[code]?.[family === 'playstation' ? 1 : 0]);
+	const control = $derived(tint === 'control');
 	const turn = $derived(DPAD[code]);
 </script>
 
 {#if face}
-	<kbd class="key face" class:large={size === 'large'} style:color={face}>
+	<kbd
+		class="key face"
+		class:large={size === 'large'}
+		class:control
+		style:color={control ? undefined : face}
+	>
 		{#if family === 'playstation'}
 			<svg viewBox="0 0 10 10" role="img" aria-label={label}><path d={SHAPES[code]} /></svg>
 		{:else}
@@ -50,14 +61,16 @@
 		{/if}
 	</kbd>
 {:else if turn !== undefined}
-	<kbd class="key dpad" class:large={size === 'large'}>
+	<kbd class="key dpad" class:large={size === 'large'} class:control>
 		<svg viewBox="0 0 10 10" role="img" aria-label={label}>
 			<path class="cross" d="M4 1h2v3h3v2H6v3H4V6H1V4h3z" />
 			<path class="arm" d="M4 1h2v3H4z" transform="rotate({turn} 5 5)" />
 		</svg>
 	</kbd>
 {:else}
-	<kbd class="key" class:wide={label.length > 1} class:large={size === 'large'}>{label}</kbd>
+	<kbd class="key" class:wide={label.length > 1} class:large={size === 'large'} class:control>
+		{label}
+	</kbd>
 {/if}
 
 <style>
@@ -136,5 +149,22 @@
 
 	.dpad .arm {
 		fill: #111;
+	}
+
+	/* In the colours of the control it sits in, which set them (see the props above). */
+	.key.control {
+		border-color: transparent;
+		background: var(--hint-cap, var(--text));
+		box-shadow: none;
+		color: var(--hint-label, var(--bg));
+	}
+
+	.control .cross {
+		fill: currentColor;
+		opacity: 0.4;
+	}
+
+	.control .arm {
+		fill: currentColor;
 	}
 </style>

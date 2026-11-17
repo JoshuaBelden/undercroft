@@ -2,7 +2,7 @@
 
 A separate SvelteKit app in `admin/`, for the team: members, bug reports, crashes, the ideas board, feedback, game stats and an audit log. It shares the game's MongoDB and its store code (`src/lib/server/store/`), and nothing else. Players never download any of it: it isn't in the game's build, and in production it lives on its own subdomain, `admin.<DOMAIN>`.
 
-The in-game F10 admin panel is something else: dev-mode debug tools for testing an expedition (noclip, spawning creatures...). It never ships enabled.
+The in-game F10 admin panel is something else: dev-mode debug tools for testing an expedition (noclip, spawning creatures...), with F9 for a free camera over the map's debug grid ([map-generation.md](map-generation.md#debug-grid)). Neither ships enabled.
 
 ## Running it
 
@@ -76,7 +76,7 @@ A suspension with an end date lifts itself when it passes; the field stays on th
 
 The game server writes:
 
-- **`runs`**: one document per player per expedition, when they leave it (`Session.logRun`, once per player): the outcome (`extracted`, `banished`, `died`, `lost`: time ran out, `abandoned`, `left`: left the party or dropped for good), seconds, deepest level, kills, crates, clues, what they carried out is worth at the store (`carriedValue`, from `sellPrice`), party size, seed, version, the Affliction, and how long it took to manifest.
+- **`runs`**: one document per player per expedition, when they leave it (`Session.logRun`, once per player): the outcome (`extracted`, `banished` (no longer written: banishing used to carry everyone out), `died`, `lost`: time ran out, `abandoned`, `left`: left the party or dropped for good), seconds, deepest level, kills, crates, clues, what they carried out is worth at the store (`carriedValue`, from `sellPrice`), party size, seed, version, the Affliction, and how long it took to manifest.
 - **`serverStatus`**: one document, every 15 seconds (`server/stats.ts`): players online and underground, parties, expeditions, version, when it started, memory. The dashboard calls the game server down when it hasn't written for a minute.
 
 The site keeps `accounts.lastSeen` (set when a game ticket is issued) for daily and weekly active members.

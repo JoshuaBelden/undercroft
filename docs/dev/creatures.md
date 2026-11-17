@@ -32,7 +32,9 @@ Each `CreatureDef` in `CREATURES` holds:
 - `visibleBand`: the half-light band;
 - `breath.range`: how close its breathing is heard;
 - `spawn`: how many per expedition and their minimum distance (along the grid) from the start;
-- `health`, `stagger` (threshold and seconds), `hitRadius` and `corpseTime` (see Damage and death).
+- `health`: damage that kills it, by party size (the first entry for one explorer, the next for two; the last covers any larger party). The witch's is `[150, 180, 210]`. `creatureHealth(def, party)` reads it. A creature counts the damage it has taken (`wounds`), and `CreatureDirector.party` (set by the session each tick from the explorers who went down) decides how much kills it, so one that spawned before the whole party arrived is still as tough as it should be.
+- `stagger` (threshold and seconds), `hitRadius` and `corpseTime` (see Damage and death).
+- `vulnerable` and `statuses` (optional): what can cause it a status (the strobe) and how it takes each, its own seconds and immunity. Stunned, it stands still and an unlanded attack is cancelled. See [status.md](status.md).
 
 Attack clips are stretched on the client to `attack.duration`, so the strike lines up with `windup` on the server.
 
@@ -40,7 +42,9 @@ Attack clips are stretched on the client to `attack.duration`, so the strike lin
 
 Every rigged model names its clips differently, so each one (every `CreatureDef`, and the explorer in [player.md](player.md#player-model)) maps them onto one standard set of slots (`ANIM_SLOTS` in `src/lib/content/animations.ts`):
 
-`idle`, `walking`, `running`, `jumping`, `melee_attack`, `weapon_attack`, `spell_attack`, `dodge`, `climb`, `crouch`, `crawl`, `take_damage`, `die`.
+`idle`, `walking`, `running`, `jumping`, `melee_attack`, `weapon_attack`, `spell_attack`, `dodge`, `climb`, `rope_idle`, `rope_climb`, `fall`, `crouch`, `crawl`, `take_damage`, `die`.
+
+`rope_idle`, `rope_climb` and `fall` are the explorer's (hanging on a rope, climbing it, falling; see [rope.md](rope.md#body-animation)); no creature uses them yet.
 
 `animations` holds one entry per slot the model has a clip for: `{ clip, speed?, start?, end? }`. `clip` is the name in the file and `speed` the playback rate (default 1; 0 holds the first frame as a pose). `start` and `end` (seconds into the clip) use only part of it, to skip a lead-in or cut a tail off. Two slots can share a clip. Slots the model has nothing for are left out.
 
@@ -59,7 +63,7 @@ The server only ever sends a slot name (`CreatureSnapshot.anim`), picked in `Cre
 | Investigating                     | `gait.stalk`                 |
 | Chasing                           | `gait.burst` or `gait.stalk` |
 
-On the client an `Animator` (one per model copy) plays the slot's clip, crossfading from the last. If the model has none, `resolveAnim` takes the first mapped slot from `ANIM_FALLBACKS` (`crawl` → `crouch` → `walking`, any attack → another attack, and so on). If nothing fits, the state is skipped and whatever was playing carries on. `LOOPING_ANIMS` lists the slots that repeat (`idle`, `walking`, `running`, `climb`, `crouch`, `crawl`); the rest play once and hold their last frame.
+On the client an `Animator` (one per model copy) plays the slot's clip, crossfading from the last. If the model has none, `resolveAnim` takes the first mapped slot from `ANIM_FALLBACKS` (`crawl` → `crouch` → `walking`, any attack → another attack, and so on). If nothing fits, the state is skipped and whatever was playing carries on. `LOOPING_ANIMS` lists the slots that repeat (`idle`, `walking`, `running`, `climb`, `rope_idle`, `rope_climb`, `crouch`, `crawl`); the rest play once and hold their last frame.
 
 The witch's map:
 

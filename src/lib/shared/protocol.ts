@@ -9,8 +9,10 @@ import type {
 	CratesSnapshot,
 	GameEvent,
 	InventoryAction,
+	LaidRopeSnapshot,
 	MarkSnapshot,
 	ProjectileSnapshot,
+	TiedRopeSnapshot,
 	WorldItemSnapshot
 } from './items/types.ts';
 import type { MapLayout, Vec3 } from './map/types.ts';
@@ -80,13 +82,18 @@ export type AdminCommand =
 	| { kind: 'killCreatures' }
 	/** Set the Affliction meter (0..1). */
 	| { kind: 'setMeter'; value: number }
-	/** Fill the meter: it manifests. */
+	/** Summon the manifestation, in the rite's room (as the rite does). */
 	| { kind: 'manifest' }
+	/** Banish it: the Affliction is resolved, as if a weapon had. */
 	| { kind: 'banish' }
+	/** Stun it (immunity still applies). */
+	| { kind: 'stun' }
 	/** Put a creature a few metres in front of you. */
 	| { kind: 'spawnCreature' }
 	| { kind: 'clearCreatures' }
 	| { kind: 'setSanity'; value: number }
+	/** Take every condition off you (a hobble). */
+	| { kind: 'clearConditions' }
 	/** Reveal everything the clues would. */
 	| { kind: 'revealClues' }
 	/** Forget the rite's clues, for this expedition and for everyone in it afterwards. */
@@ -95,10 +102,22 @@ export type AdminCommand =
 	| { kind: 'setDeadline'; seconds: number }
 	/** Teleport to a start or major room by piece name. */
 	| { kind: 'teleport'; room: string }
+	/**
+	 * Move your body to the free camera: `position` is the camera. The eyes go there and the body
+	 * falls to the floor below (with noclip on, it stays). Nothing happens over no floor at all.
+	 */
+	| { kind: 'teleportTo'; position: Vec3 }
+	/** Open every door between levels. */
+	| { kind: 'openDoors' }
 	/** Shut every loot crate and fill them again, hidden. */
 	| { kind: 'resetCrates' }
 	/** Rub out every chalk mark. */
 	| { kind: 'clearMarks' }
+	/** Take up every rope, laid and tied (anyone on one falls). */
+	| { kind: 'clearRopes' }
+	/** Your map: every cell drawn in it (`reveal`), or none (`clear`). See docs/dev/map.md. */
+	| { kind: 'revealMap' }
+	| { kind: 'clearMap' }
 	/** New map; omit the seed for a random one. */
 	| { kind: 'regenerate'; seed?: number }
 	/** Throw an error on the game server, to try the crash prompt (docs/dev/reports.md). */
@@ -147,6 +166,8 @@ export type ServerMessage =
 			affliction: AfflictionSnapshot;
 			/** Loot crates opened and in use (where they stand is in the layout). */
 			crates: CratesSnapshot;
+			/** Doors between levels that have been opened (where they stand is in the layout). */
+			doors: string[];
 	  }
 	/**
 	 * The loot crate you have open, sent while it is open: its slots, and how far along (0..1) the
@@ -158,6 +179,18 @@ export type ServerMessage =
 	 * a player arriving or coming back.
 	 */
 	| { type: 'marks'; marks: MarkSnapshot[] }
+	/**
+	 * Every rope: laid along the floor, and tied at anchors. Sent like `marks`, whenever one is
+	 * started, stopped, gathered up, tied or untied (see docs/dev/rope.md).
+	 */
+	| { type: 'ropes'; laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[] }
+	/** Points added to ropes being laid since the last tick. */
+	| { type: 'ropeGrow'; ropes: { id: string; points: Vec3[] }[] }
+	/**
+	 * Your map: every cell you have sketched (or been shown), [x, z, level]. Sent whenever it
+	 * changes, and to a player arriving or coming back. See docs/dev/map.md.
+	 */
+	| { type: 'survey'; cells: [number, number, number][] }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }
 	/**
@@ -175,8 +208,6 @@ export type ServerMessage =
 	| ({ type: 'abandoned' } & ExpeditionSummary)
 	/** The expedition you were watching is over; `escaped` players got out alive. */
 	| { type: 'spectateEnd'; escaped: number }
-	/** The manifestation was banished: everyone leaves the expedition. */
-	| ({ type: 'banished'; carried: ItemStack[] } & ExpeditionSummary)
 	/** Your progress on an Affliction was reset (`resetAffliction`): reload the account. */
 	| { type: 'afflictionReset'; id: string }
 	/**
@@ -255,12 +286,14 @@ const SERVER_TYPES = new Set<string>([
 	'tick',
 	'crate',
 	'marks',
+	'ropes',
+	'ropeGrow',
+	'survey',
 	'map',
 	'extracted',
 	'died',
 	'abandoned',
 	'spectateEnd',
-	'banished',
 	'afflictionReset',
 	'serverError',
 	'achievement',

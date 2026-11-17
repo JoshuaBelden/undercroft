@@ -1,3 +1,4 @@
+import { capsuleFits, findFreeSpot, floorHeightAt, type CollisionWorld } from './collision.ts';
 import { LEVEL_HEIGHT, rotateXZ, toWorld } from './grid.ts';
 import type { MapKit, MapLayout, PieceDef, Vec3 } from './types.ts';
 
@@ -16,7 +17,8 @@ export function spawnPoint(
 
 /**
  * Floor-level centre of each start, major and extraction room, for admin teleports. A piece used
- * more than once (extraction rooms) is numbered from the second on: `extraction-shaft-2`.
+ * more than once (extraction rooms) is numbered from the second on: `extraction-gate-2`. Then the
+ * room side of each door between levels.
  */
 export function roomPoints(
 	layout: MapLayout,
@@ -25,7 +27,7 @@ export function roomPoints(
 ): { name: string; position: Vec3 }[] {
 	const rooms = new Set(['start', 'major', 'extraction']);
 	const seen = new Map<string, number>();
-	return layout.placements
+	const points: { name: string; position: Vec3 }[] = layout.placements
 		.filter((p) => rooms.has(kit[p.piece]?.role ?? ''))
 		.map((p) => {
 			const floor = pieces[p.piece]?.sockets[0]?.level ?? 0;
@@ -36,6 +38,15 @@ export function roomPoints(
 				position: [p.position[0], p.position[1] + floor * LEVEL_HEIGHT + 0.05, p.position[2]]
 			};
 		});
+	// The doors between levels: in front of each, on the room side (`level-2-door` leads to level 2).
+	for (const door of layout.doors) {
+		const [x, y, z] = door.position;
+		points.push({
+			name: `level-${door.tier + 1}-door`,
+			position: [x - Math.sin(door.yaw) * 1.5, y + 0.05, z - Math.cos(door.yaw) * 1.5]
+		});
+	}
+	return points;
 }
 
 /** Collapsed walls: every rubble-* marker in the map, in world space (where bricks lie). */
@@ -51,3 +62,24 @@ export function creatureSpawns(layout: MapLayout, pieces: Record<string, PieceDe
 		(pieces[placement.piece]?.creatures ?? []).map((local) => toWorld(placement, local))
 	);
 }
+
+/**
+ * Admin: where to put a body moved to the free camera, given where its feet would be under the
+ * camera. Right there when it fits, to fall from; in a wall or a floor, the free spot nearest the
+ * floor below. Null when there is no floor below at all: it would fall forever.
+ */
+export function dropSpot(
+	world: CollisionWorld,
+	feet: Vec3,
+	height: number,
+	radius: number
+): Vec3 | null {
+	const [x, y, z] = feet;
+	const floor = floorHeightAt(world, x, z, y + height, y - DROP_DEPTH);
+	if (floor === null) return null;
+	if (capsuleFits(world, feet, height, radius)) return feet;
+	return findFreeSpot(world, [x, floor + 0.05, z], height, radius);
+}
+
+/** How far below the camera a floor is looked for (m): deeper than any map. */
+const DROP_DEPTH = 64;

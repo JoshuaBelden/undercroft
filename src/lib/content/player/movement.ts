@@ -81,6 +81,54 @@ export interface MovementTuning {
 	};
 }
 
+/** Climbing a rope (see docs/dev/rope.md). */
+export const CLIMB = {
+	/** How far (horizontal, m) from a rope it can be grabbed. */
+	reach: 0.8,
+	/** Grabbing it takes looking within this angle (radians) of it. */
+	facing: 0.8,
+	/** How far beside the rope the climber's body hangs (m). */
+	hold: 0.3,
+	/** Climbing speed up and down (m/s), at a full push. */
+	upSpeed: 0.5,
+	downSpeed: 0.65,
+	/** With sprint held: hauling up faster (and harder), and sliding down. */
+	fastUpSpeed: 0.95,
+	slideSpeed: 2.2,
+	/**
+	 * Stamina per second climbing up (and faster, sprinting), down, and hanging still: it never
+	 * comes back on a rope, and when it runs out you drop. A full 12 m climb up costs about 84 of
+	 * 100 at the normal pace, about 113 at the fast one: too much in one go.
+	 */
+	upDrain: 3.5,
+	fastUpDrain: 9,
+	downDrain: 1.5,
+	hangDrain: 0.4,
+	/** Climbers on one rope stay this far apart (feet to feet, m): nobody climbs past anyone. */
+	gap: 1.9,
+	/** A climber whose feet are this close above the rope's foot steps off onto the floor. */
+	footClearance: 0.05,
+	/** Grabbing from the floor needs the feet within this of the rope's foot (m). */
+	grabFromFloor: 0.6,
+	/** Grabbing from the top: the feet this close to the landing, in height and across (m). */
+	grabFromTop: 0.5,
+	topReach: 0.9,
+	/** Mounting from the top puts the feet this far below the landing. */
+	topDrop: 1.4
+} as const;
+
+/** Falls: landing faster than `safeSpeed` hurts, and hobbles (see CONDITIONS). */
+export const FALL = {
+	/** m/s. With gravity 18, about a 2.2 m drop. */
+	safeSpeed: 9,
+	/** Sanity lost per m/s over `safeSpeed`: a 4 m drop costs about 27, 12 m downs you. */
+	damagePerSpeed: 9,
+	/** Over this speed it is a hard landing (the louder sound, the fall animation). */
+	hardSpeed: 13,
+	/** How far creatures hear a painful landing (m). */
+	noise: 8
+} as const;
+
 export const MOVEMENT: MovementTuning = {
 	radius: 0.3,
 	stances: {

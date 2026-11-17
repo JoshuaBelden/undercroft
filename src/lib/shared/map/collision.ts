@@ -1,6 +1,8 @@
+import { DOORS } from '../../content/doors.ts';
 import { CRATES } from '../../content/loot.ts';
 import { toWorld } from './grid.ts';
 import type { ColliderBox, MapLayout, PieceDef, Quat, Vec3 } from './types.ts';
+import { ANCHOR } from '../../content/rope.ts';
 
 /**
  * World collision built from each piece's oriented collision boxes (`col-*` in Blender).
@@ -13,10 +15,49 @@ export interface WorldBox {
 	half: Vec3;
 	/** Unit axes of the box in world space. */
 	axes: [Vec3, Vec3, Vec3];
+	/** A door's box (its id): solid only while the door is shut. */
+	door?: string;
 }
 
 export interface WorldVolume extends WorldBox {
 	kind: string;
+}
+
+/** A rope players climb, straight down from `top` to the floor at `bottom`. See docs/dev/rope.md. */
+export interface RopeLine {
+	/** `map-<n>` for the map's own ropes; the server's id for one a player tied. */
+	id: string;
+	top: Vec3;
+	/** World y of its foot, on the floor. */
+	bottom: number;
+	/** An extraction rope: a climber whose feet get this high (world y) is out of the catacomb. */
+	exitY?: number;
+	/** Where a climber steps off at the top (a ledge), and from where they can get on it there. */
+	landing?: Vec3;
+	/**
+	 * A rope tied at an anchor is drawn from its knot on the post, along the ledge to the lip and
+	 * down from there; `top` stays where a climber's hands reach to (see Anchor).
+	 */
+	knot?: Vec3;
+	lip?: Vec3;
+}
+
+/**
+ * Where a rope can be tied down a drop. `top` is where it hangs from (out over the lip), `landing`
+ * where you stand to tie it and step off it at the top, `bottom` the floor below. See docs/dev/rope.md.
+ */
+export interface Anchor {
+	/** `anchor-<n>`, in the order the map lists them. */
+	id: string;
+	/** The tie point on the ledge floor. */
+	position: Vec3;
+	top: Vec3;
+	landing: Vec3;
+	/** Where the rope is knotted round the post, and where it goes over the edge (drawing only). */
+	knot: Vec3;
+	lip: Vec3;
+	/** World y of the floor under the rope; the drop is `top[1] - bottom`. */
+	bottom: number;
 }
 
 export interface CollisionWorld {
@@ -24,8 +65,14 @@ export interface CollisionWorld {
 	volumes: WorldVolume[];
 	/** Extraction points (extract-* markers) in world space. */
 	extracts: Vec3[];
+	/** Ropes to climb: the map's (rope-* markers), and ones players tie at anchors. */
+	ropes: RopeLine[];
+	/** Where a rope can be tied at the top of a drop (anchor-* markers). */
+	anchors: Anchor[];
 	/** Spatial hash: bucket key -> indices into `boxes`. */
 	grid: Map<string, number[]>;
+	/** Doors that have been opened: their boxes no longer count. See `openDoor`. */
+	openDoors: Set<string>;
 }
 
 export interface Contact {
@@ -97,7 +144,17 @@ export function buildCollisionWorld(
 	layout: MapLayout,
 	pieces: Record<string, PieceDef>
 ): CollisionWorld {
-	const world: CollisionWorld = { boxes: [], volumes: [], extracts: [], grid: new Map() };
+	const world: CollisionWorld = {
+		boxes: [],
+		volumes: [],
+		extracts: [],
+		ropes: [],
+		anchors: [],
+		grid: new Map(),
+		openDoors: new Set()
+	};
+	/** Anchors in world space, without their floor below (that needs the boxes, below). */
+	const anchors: { position: Vec3; out: [number, number]; knot: Vec3 }[] = [];
 	for (const placement of layout.placements) {
 		const piece = pieces[placement.piece];
 		if (!piece) continue;
@@ -105,6 +162,32 @@ export function buildCollisionWorld(
 			world.boxes.push(toWorldBox(box, placement.rotation, toWorld(placement, box.center)));
 		}
 		for (const point of piece.extracts) world.extracts.push(toWorld(placement, point));
+		for (const rope of piece.ropes) {
+			const top = toWorld(placement, rope.top);
+			world.ropes.push({
+				id: `map-${world.ropes.length}`,
+				top,
+				bottom: top[1] - rope.length,
+				...(rope.exit !== undefined && { exitY: top[1] - rope.length + rope.exit })
+			});
+		}
+		for (const anchor of piece.anchors) {
+			const position = toWorld(placement, anchor.position);
+			// Its way out over the drop, turned with the piece.
+			const ahead = toWorld(placement, [
+				anchor.position[0] - Math.sin(anchor.yaw),
+				anchor.position[1],
+				anchor.position[2] - Math.cos(anchor.yaw)
+			]);
+			// The post stands to the anchor's side (kit.rope_post): its local -X, ANCHOR.post away.
+			const [px, py, pz] = anchor.position;
+			const knot = toWorld(placement, [
+				px - Math.cos(anchor.yaw) * ANCHOR.post.side,
+				py + ANCHOR.post.knot,
+				pz + Math.sin(anchor.yaw) * ANCHOR.post.side
+			]);
+			anchors.push({ position, out: [ahead[0] - position[0], ahead[2] - position[2]], knot });
+		}
 		for (const volume of piece.volumes) {
 			world.volumes.push({
 				kind: volume.kind,
@@ -123,23 +206,74 @@ export function buildCollisionWorld(
 			axes: [rotate(q, [1, 0, 0]), rotate(q, [0, 1, 0]), rotate(q, [0, 0, 1])]
 		});
 	}
+	// Doors between levels are solid until opened (openDoor).
+	for (const door of layout.doors) {
+		const [w, h, d] = DOORS.size;
+		const q: Quat = [0, Math.sin(door.yaw / 2), 0, Math.cos(door.yaw / 2)];
+		world.boxes.push({
+			center: [door.position[0], door.position[1] + h / 2, door.position[2]],
+			half: [w / 2, h / 2, d / 2],
+			axes: [rotate(q, [1, 0, 0]), rotate(q, [0, 1, 0]), rotate(q, [0, 0, 1])],
+			door: door.id
+		});
+	}
 	world.boxes.forEach((box, index) => {
-		const [lo, hi] = aabb(box);
-		for (let x = Math.floor(lo[0] / BUCKET); x <= Math.floor(hi[0] / BUCKET); x++) {
-			for (let y = Math.floor(lo[1] / BUCKET); y <= Math.floor(hi[1] / BUCKET); y++) {
-				for (let z = Math.floor(lo[2] / BUCKET); z <= Math.floor(hi[2] / BUCKET); z++) {
-					const key = bucketKey(x, y, z);
-					const list = world.grid.get(key);
-					if (list) list.push(index);
-					else world.grid.set(key, [index]);
-				}
-			}
-		}
+		indexBox(world, box, index);
+	});
+	world.anchors = anchors.map(({ position, out, knot }, i) => {
+		const [ox, oz] = out;
+		const top: Vec3 = [
+			position[0] + ox * ANCHOR.overhang,
+			position[1] + ANCHOR.height,
+			position[2] + oz * ANCHOR.overhang
+		];
+		const landing: Vec3 = [
+			position[0] - ox * ANCHOR.stand,
+			position[1],
+			position[2] - oz * ANCHOR.stand
+		];
+		const floor = floorHeightAt(
+			world,
+			top[0],
+			top[2],
+			position[1] - 0.5,
+			position[1] - ANCHOR.deepest
+		);
+		const lip: Vec3 = [position[0] + ox * ANCHOR.lip, position[1], position[2] + oz * ANCHOR.lip];
+		return {
+			id: `anchor-${i}`,
+			position,
+			top,
+			landing,
+			knot,
+			lip,
+			bottom: floor ?? position[1]
+		};
 	});
 	return world;
 }
 
-/** Boxes whose buckets overlap the given bounds. */
+/** Put a box in the spatial hash. */
+function indexBox(world: CollisionWorld, box: WorldBox, index: number): void {
+	const [lo, hi] = aabb(box);
+	for (let x = Math.floor(lo[0] / BUCKET); x <= Math.floor(hi[0] / BUCKET); x++) {
+		for (let y = Math.floor(lo[1] / BUCKET); y <= Math.floor(hi[1] / BUCKET); y++) {
+			for (let z = Math.floor(lo[2] / BUCKET); z <= Math.floor(hi[2] / BUCKET); z++) {
+				const key = bucketKey(x, y, z);
+				const list = world.grid.get(key);
+				if (list) list.push(index);
+				else world.grid.set(key, [index]);
+			}
+		}
+	}
+}
+
+/** A door opens: its box stops counting, for good. */
+export function openDoor(world: CollisionWorld, id: string): void {
+	world.openDoors.add(id);
+}
+
+/** Boxes whose buckets overlap the given bounds (an opened door's left out). */
 export function boxesNear(world: CollisionWorld, lo: Vec3, hi: Vec3): WorldBox[] {
 	const seen = new Set<number>();
 	const out: WorldBox[] = [];
@@ -149,7 +283,9 @@ export function boxesNear(world: CollisionWorld, lo: Vec3, hi: Vec3): WorldBox[]
 				for (const index of world.grid.get(bucketKey(x, y, z)) ?? []) {
 					if (seen.has(index)) continue;
 					seen.add(index);
-					out.push(world.boxes[index]);
+					const box = world.boxes[index];
+					if (box.door && world.openDoors.has(box.door)) continue;
+					out.push(box);
 				}
 			}
 		}

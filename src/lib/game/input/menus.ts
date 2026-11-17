@@ -1,6 +1,9 @@
 import type { Attachment } from 'svelte/attachments';
 import { device } from './device.svelte.ts';
-import { pads } from './gamepad.ts';
+import { pads, type Stick } from './gamepad.ts';
+import { Hold } from './hold.ts';
+import { hints } from './hints.svelte.ts';
+import { REPEAT_DELAY, REPEAT_EVERY, Repeat, stickStep } from './repeat.ts';
 
 /**
  * The controller in menus. Every screen is built from native buttons and inputs, so one focus
@@ -17,12 +20,24 @@ import { pads } from './gamepad.ts';
  *   TabScreen's fields, with the focus on its tabs).
  * - `data-pad-stepper`: a value with a button either side (and maybe a field between): it is one
  *   stop, and left and right press its first and last buttons.
+ * - `data-pad-stick-stepper`: the same, but the right stick's left and right press its buttons,
+ *   wherever the focus is in the menu, and it is no stop at all (the store's quantity, so the
+ *   focus moves straight past it to Purchase).
+ * - `data-pad-hold="x"` (or `"y"`): holding that button presses this control, from anywhere in
+ *   the menu, while it is enabled (Launch, Confirm loadout, the store, Purchase). A quick press of
+ *   it still goes to the focused control, on release instead of on press.
  * - A `padpress` event (a `CustomEvent<PadButton>`) reaches the focused control first; calling
  *   `preventDefault()` on it means it was handled (item slots carry things this way).
+ *
+ * A menu can also take X or Y as held buttons of its own (`holding`): told when one goes down and
+ * when it comes up, for a hold whose length the game counts (the map's sketch, docs/dev/map.md).
  */
 
 /** A face button pressed on the focused control. */
 export type PadButton = 'a' | 'b' | 'x' | 'y';
+
+/** What the controller did in a menu, for its tick: moved the focus (or a tab), or stepped a value. */
+export type MenuTick = 'move' | 'step';
 
 export interface MenuOptions {
 	/** B: back out one step (close it, or go up a page). */
@@ -31,6 +46,11 @@ export interface MenuOptions {
 	tabs?: (by: -1 | 1) => void;
 	/** Remember the control used last under this name, for the next time the menu opens. */
 	key?: string;
+	/**
+	 * X or Y went down (`true`) or came up (`false`) while this menu was on top. A menu with this
+	 * takes them as held buttons: they don't press the focused control.
+	 */
+	holding?: (button: 'x' | 'y', down: boolean) => void;
 }
 
 type Direction = 'up' | 'down' | 'left' | 'right';
@@ -53,21 +73,27 @@ const DIRECTIONS: Record<string, Direction> = {
 	PadStickRight: 'right'
 };
 const FACES: Record<string, PadButton> = { PadA: 'a', PadB: 'b', PadX: 'x', PadY: 'y' };
+/** The face buttons a control can be held for (`data-pad-hold`). */
+const HOLDS: ReadonlySet<PadButton> = new Set(['x', 'y']);
 /** Every button a menu takes from the game while it is open. */
 const TAKEN = new Set([...Object.keys(DIRECTIONS), ...Object.keys(FACES), 'PadLB', 'PadRB']);
 const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]';
-/** Milliseconds a direction is held before it repeats, and then between repeats. */
-const REPEAT_DELAY = 400;
-const REPEAT_EVERY = 90;
 /** Pixels a second the right stick scrolls at full push. */
 const SCROLL_SPEED = 1400;
 
 const menus: Menu[] = [];
 /** The control used last in each menu with a `key`, by its place among the menu's controls. */
 const remembered = new Map<string, number>();
-const moveListeners = new Set<() => void>();
+const moveListeners = new Set<(tick: MenuTick) => void>();
+const holdListeners = new Set<() => void>();
 /** The direction held, by which button, and when it next repeats. */
 let held: { code: string; direction: Direction; at: number } | null = null;
+/** The right stick held left or right on a `data-pad-stick-stepper`. */
+const stickHeld = new Repeat();
+/** A face button held down for a control's `data-pad-hold`, from its press until it is let go. */
+let holding: { code: string; button: PadButton; control: HTMLElement; hold: Hold } | null = null;
+/** X or Y down for a menu's own `holding`, until it is let go (or the menu stops being on top). */
+let faceDown: { code: string; button: 'x' | 'y'; menu: Menu } | null = null;
 /** The right stick's scroll not yet a whole pixel. */
 const carry = { x: 0, y: 0 };
 let frame = 0;
@@ -103,16 +129,47 @@ export function menuTakes(code: string): boolean {
 	return TAKEN.has(code) && top() !== null;
 }
 
-/** Called each time the controller moves the focus or switches tabs (the menu tick). */
-export function onMenuMove(listener: () => void): () => void {
+/**
+ * Move the focus to `control` as the D-pad does: lit, scrolled into view, with the menu tick. For
+ * a screen that moves it on by itself (a crate, once X has sent an item away).
+ */
+export function moveFocus(control: HTMLElement): void {
+	focus(control);
+	for (const listener of moveListeners) listener('move');
+}
+
+/**
+ * Called each time the controller moves the focus or switches tabs (`move`), or steps a value with
+ * the right stick (`step`): the menu ticks.
+ */
+export function onMenuMove(listener: (tick: MenuTick) => void): () => void {
 	moveListeners.add(listener);
 	return () => moveListeners.delete(listener);
+}
+
+/** Called each time a menu button held for a control (`data-pad-hold`) completes and presses it. */
+export function onMenuHold(listener: () => void): () => void {
+	holdListeners.add(listener);
+	return () => holdListeners.delete(listener);
+}
+
+/** Whether this controller button belongs to the menus while one is open (A, B, X, Y, LB, RB...). */
+export function isMenuButton(code: string): boolean {
+	return TAKEN.has(code);
+}
+
+/** The root of the innermost menu `element` is in, if any: its menu buttons work while it is on top. */
+export function menuOf(element: Element): HTMLElement | null {
+	return owner(element)?.root ?? null;
 }
 
 function start(): void {
 	unsubscribe = pads.onPress(press);
 	lastFrame = performance.now();
 	frame = requestAnimationFrame(loop);
+	// At once, not next frame: a menu attached again (the dashboard's, on each page) doesn't
+	// blink its button icons.
+	hints.top = top()?.root ?? null;
 }
 
 function stop(): void {
@@ -120,16 +177,34 @@ function stop(): void {
 	unsubscribe = null;
 	cancelAnimationFrame(frame);
 	held = null;
+	stickHeld.reset();
+	holding = null;
+	letGoFace();
+	hints.top = null;
+	showHold(null, 0);
+}
+
+/** The face button held for a menu's own `holding` is up: tell it. */
+function letGoFace(): void {
+	if (!faceDown) return;
+	const { menu, button } = faceDown;
+	faceDown = null;
+	menu.holding?.(button, false);
 }
 
 /**
  * Every frame while the controller is in use: keep the focus in the menu on top (it opened, or
- * what had the focus went away), repeat a held direction, and scroll with the right stick.
+ * what had the focus went away), repeat a held direction, fill a hold, and step or scroll with the
+ * right stick.
  */
 function loop(now: number): void {
 	const seconds = Math.min(0.1, (now - lastFrame) / 1000);
 	lastFrame = now;
 	const menu = top();
+	const root = menu?.root ?? null;
+	if (hints.top !== root) hints.top = root;
+	if (holding) holdFrame(menu, now);
+	if (faceDown && (!pads.isDown(faceDown.code) || faceDown.menu !== menu)) letGoFace();
 	if (menu && device.kind === 'pad') {
 		if (!focused(menu)) focusStart(menu);
 		if (held && !pads.isDown(held.code)) held = null;
@@ -137,8 +212,8 @@ function loop(now: number): void {
 			held.at = now + REPEAT_EVERY;
 			move(menu, held.direction);
 		}
-		scroll(menu, seconds);
-	}
+		rightStick(menu, now, seconds);
+	} else stickHeld.reset();
 	frame = requestAnimationFrame(loop);
 }
 
@@ -153,11 +228,30 @@ function press(code: string): void {
 	}
 	if ((code === 'PadLB' || code === 'PadRB') && menu.tabs) {
 		menu.tabs(code === 'PadLB' ? -1 : 1);
-		for (const listener of moveListeners) listener();
+		for (const listener of moveListeners) listener('move');
 		return;
 	}
 	const button = FACES[code];
 	if (!button) return;
+	if ((button === 'x' || button === 'y') && menu.holding) {
+		if (faceDown) return;
+		faceDown = { code, button, menu };
+		menu.holding(button, true);
+		return;
+	}
+	// A control here is held for this button: wait for the release to tell a hold from a quick
+	// press. Only from a fresh press, and one hold at a time.
+	const control = HOLDS.has(button) && !holding ? holdable(menu, button) : null;
+	if (control) {
+		holding = { code, button, control, hold: new Hold(performance.now()) };
+		showHold(control, 0);
+		return;
+	}
+	face(menu, button);
+}
+
+/** A face button on the focused control: `padpress` first, then A presses it and B backs out. */
+function face(menu: Menu, button: PadButton): void {
 	const target = focused(menu);
 	// Nothing focused yet: the first press only puts the focus in the menu. B still backs out.
 	if (!target && button !== 'b') {
@@ -172,6 +266,40 @@ function press(code: string): void {
 	if (target && !target.dispatchEvent(event)) return;
 	if (button === 'a' && target) activate(target);
 	if (button === 'b') menu.back?.();
+}
+
+/**
+ * Each frame of a hold: fill it, press its control when it completes (with a tick), and when the
+ * button is let go early, do what a quick press does. If its control goes away, is disabled or a
+ * menu opens over it, the hold empties and the press does nothing.
+ */
+function holdFrame(menu: Menu | null, now: number): void {
+	if (!holding) return;
+	const { code, button, control, hold } = holding;
+	if (!pads.isDown(code)) {
+		holding = null;
+		showHold(null, 0);
+		// Not when the window lost the focus: the controller just stopped reporting.
+		if (hold.release() && menu && document.hasFocus()) face(menu, button);
+		return;
+	}
+	if (!hold.done && (!menu || holdable(menu, button) !== control)) hold.cancel();
+	if (hold.update(now)) {
+		activate(control);
+		for (const listener of holdListeners) listener();
+	}
+	showHold(control, hold.progress(now));
+}
+
+/** The control in the menu held for `button` (`data-pad-hold`), if there is one and it is enabled. */
+function holdable(menu: Menu, button: PadButton): HTMLElement | null {
+	return controls(menu).find((control) => control.dataset.padHold === button) ?? null;
+}
+
+/** The slide across the held-for control's background (ButtonHint.svelte). */
+function showHold(control: HTMLElement | null, progress: number): void {
+	if (hints.target !== control) hints.target = control;
+	if (hints.progress !== progress) hints.progress = progress;
 }
 
 function move(menu: Menu, direction: Direction): void {
@@ -193,9 +321,7 @@ function move(menu: Menu, direction: Direction): void {
 			bestDistance = distance;
 		}
 	}
-	if (!best) return;
-	focus(best);
-	for (const listener of moveListeners) listener();
+	if (best) moveFocus(best);
 }
 
 /** Left and right on a slider or stepper change its value. True if `control` is one. */
@@ -223,9 +349,42 @@ function activate(control: HTMLElement): void {
 	control.click();
 }
 
-/** The right stick scrolls whatever scrolls around the focus, or the menu's `data-pad-scroll`. */
-function scroll(menu: Menu, seconds: number): void {
+/**
+ * The right stick: left and right step the menu's `data-pad-stick-stepper`, if it has one (held,
+ * they repeat); otherwise, and up and down, it scrolls.
+ */
+function rightStick(menu: Menu, now: number, seconds: number): void {
 	const stick = pads.right();
+	const stepper = stick.x ? stickStepper(menu) : null;
+	const direction = stepper ? stickStep(stick) : 0;
+	const by = stickHeld.next(direction, now);
+	if (stepper && by) step(stepper, by);
+	// Left and right step instead of scrolling; up and down scroll unless the push is a step.
+	scroll(menu, stepper ? { x: 0, y: direction ? 0 : stick.y } : stick, seconds);
+}
+
+/** The menu's `data-pad-stick-stepper` showing, if any (not one in a menu inside it). */
+function stickStepper(menu: Menu): Element | null {
+	for (const stepper of menu.root.querySelectorAll('[data-pad-stick-stepper]')) {
+		if (stepper.closest('[inert]') || !stepper.checkVisibility({ visibilityProperty: true })) {
+			continue;
+		}
+		if (owner(stepper) === menu) return stepper;
+	}
+	return null;
+}
+
+/** Press a stick stepper's first (-1) or last (1) button, with a tick, unless it is at its end. */
+function step(stepper: Element, by: -1 | 1): void {
+	const buttons = stepper.querySelectorAll('button');
+	const button = buttons[by < 0 ? 0 : buttons.length - 1];
+	if (!button || button.disabled) return;
+	button.click();
+	for (const listener of moveListeners) listener('step');
+}
+
+/** The right stick scrolls whatever scrolls around the focus, or the menu's `data-pad-scroll`. */
+function scroll(menu: Menu, stick: Stick, seconds: number): void {
 	const from = focused(menu) ?? menu.root;
 	const page = document.scrollingElement ?? document.documentElement;
 	for (const axis of ['x', 'y'] as const) {
@@ -305,6 +464,8 @@ function controls(menu: Menu): HTMLElement[] {
 	return [...menu.root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((control) => {
 		if (control.matches(':disabled, [tabindex="-1"]:not([data-pad-stop])')) return false;
 		if (control.closest('[inert]')) return false;
+		// The right stick steps it, wherever the focus is: no stop.
+		if (control.closest('[data-pad-stick-stepper]')) return false;
 		if (!control.checkVisibility({ visibilityProperty: true })) return false;
 		// A stepper is one stop: its first control stands for it.
 		const stepper = control.closest('[data-pad-stepper]');

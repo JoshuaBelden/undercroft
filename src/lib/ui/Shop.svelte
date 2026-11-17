@@ -6,7 +6,9 @@
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
+	import ButtonHint from './ButtonHint.svelte';
 	import ItemFilters from './ItemFilters.svelte';
+	import ItemTooltip from './ItemTooltip.svelte';
 	import {
 		categoryLabel,
 		COIN_SIGN,
@@ -19,7 +21,8 @@
 
 	/**
 	 * The Store page: what is for sale, as slots in a panel like the stash, with the same filters.
-	 * Clicking one slides its details in from the right, where you say how many and purchase.
+	 * Hovering or focusing one shows its tooltip, as on the Loadout page. Clicking one slides its
+	 * details in from the right, where you say how many and purchase.
 	 * Selling is done from the Loadout page. See docs/dev/economy.md.
 	 */
 	interface Props {
@@ -42,8 +45,27 @@
 	let quantity = $state<number | null>(1);
 	let error = $state('');
 	let busy = $state(false);
+	/** The ware under the pointer (or focused), by item id: its tooltip, beside its slot. */
+	let pointed = $state.raw<{ item: string; rect: DOMRect } | null>(null);
+
+	function point(ware: ShopEntry, event: Event): void {
+		pointed = {
+			item: ware.item,
+			rect: (event.currentTarget as HTMLElement).getBoundingClientRect()
+		};
+	}
+
+	function unpoint(ware: ShopEntry): void {
+		if (pointed?.item === ware.item) pointed = null;
+	}
 
 	const shown = $derived(SHOP.filter((entry) => matchesFilter(entry.item, filter)));
+	/** The pointed ware, while the filter still shows it and its details aren't open. */
+	const tip = $derived(
+		pointed && pointed.item !== selected
+			? (shown.find((ware) => ware.item === pointed?.item) ?? null)
+			: null
+	);
 	const entry = $derived(SHOP.find((e) => e.item === selected) ?? null);
 	const def = $derived(entry ? ITEMS[entry.item] : undefined);
 	const lots = $derived(Math.min(MAX_LOTS, Math.max(1, Math.floor(quantity ?? 1))));
@@ -60,6 +82,9 @@
 		selected = null;
 		error = '';
 	}
+
+	/** Purchase can be pressed (and held Y presses it: menus.ts, data-pad-hold). */
+	const canBuy = $derived(!busy && !explorer.underground && !ready && explorer.money >= total);
 
 	async function purchase(bought: ShopEntry): Promise<void> {
 		if (busy) return;
@@ -106,6 +131,10 @@
 							)}"
 							aria-pressed={selected === ware.item}
 							onclick={() => select(ware.item)}
+							onpointerenter={(event) => point(ware, event)}
+							onpointerleave={() => unpoint(ware)}
+							onfocus={(event) => point(ware, event)}
+							onblur={() => unpoint(ware)}
 						>
 							<Slot
 								name={item?.name ?? ware.item}
@@ -129,6 +158,10 @@
 		{/if}
 	</section>
 </div>
+
+{#if tip && pointed}
+	<ItemTooltip stack={{ item: tip.item, count: tip.lot }} anchor={pointed.rect} forSale />
+{/if}
 
 {#if entry}
 	<aside
@@ -163,7 +196,7 @@
 			</button>
 		</header>
 
-		<div class="about">
+		<div class="about" data-pad-scroll>
 			{#if def?.flavor}
 				<p class="flavor">{def.flavor}</p>
 			{/if}
@@ -193,7 +226,7 @@
 			</p>
 			<p class="purse">You have {@render coins(explorer.money)}</p>
 			<div class="buy">
-				<div class="quantity" data-pad-stepper>
+				<div class="quantity" data-pad-stick-stepper>
 					<button
 						type="button"
 						aria-label="One fewer"
@@ -223,10 +256,14 @@
 				<button
 					type="button"
 					class="purchase"
-					disabled={busy || explorer.underground || ready || explorer.money < total}
+					disabled={!canBuy}
+					data-pad-hold="y"
 					onclick={() => void purchase(entry)}
 				>
 					Purchase
+					{#if canBuy}
+						<ButtonHint code="PadY" hold />
+					{/if}
 				</button>
 			</div>
 		</footer>
@@ -570,8 +607,15 @@
 		margin: 0;
 	}
 
+	/* Its controller button is in its colours, swapped: a light cap, the letter in the blue. */
 	.purchase {
+		--hint-cap: var(--text);
+		--hint-label: var(--accent);
 		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
 		padding: 10px 20px;
 		border-color: var(--accent);
 		border-radius: 999px;

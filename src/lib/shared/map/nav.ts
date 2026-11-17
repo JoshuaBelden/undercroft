@@ -5,6 +5,7 @@ import {
 	volumesAt,
 	type CollisionWorld
 } from './collision.ts';
+import { doorBox } from './doors.ts';
 import { CELL, LEVEL_HEIGHT, occupiedCells } from './grid.ts';
 import type { MapLayout, PieceDef, Vec3 } from './types.ts';
 import type { Stance } from '../player/types.ts';
@@ -23,12 +24,16 @@ export interface NavPoint {
 	clearance: Stance;
 	/** In water: wading or swimming. Paths avoid it unless there's no dry way round. */
 	water: boolean;
+	/** In a doorway (the door's id): no way through while that door is shut. */
+	door?: string;
 }
 
 export interface NavGrid {
 	points: NavPoint[];
 	/** "ix,iz" (lattice index) -> indices of points stacked at that spot (different floors). */
 	columns: Map<string, number[]>;
+	/** Doors still shut: paths and distances don't go through their doorways. */
+	closed: Set<string>;
 }
 
 /** Lattice spacing (m). Fine enough to sample doorway centre lines and narrow walkways. */
@@ -84,7 +89,11 @@ export function buildNav(
 	/** A point known to be reachable (the start spawn); everything not connected to it is dropped. */
 	root: Vec3
 ): NavGrid {
-	const grid: NavGrid = { points: [], columns: new Map() };
+	// Built with every door open, so the levels below are in it. Then the doorways are marked, and
+	// the doors still shut in `world` close them (NavGrid.closed).
+	const shut = world;
+	world = { ...world, openDoors: new Set(layout.doors.map((door) => door.id)) };
+	const grid: NavGrid = { points: [], columns: new Map(), closed: new Set() };
 	const seen = new Set<string>();
 	for (const placement of layout.placements) {
 		const piece = pieces[placement.piece];
@@ -132,7 +141,37 @@ export function buildNav(
 			}
 		}
 	});
-	return reachableFrom(grid, nearestPoint(grid, root));
+	const nav = reachableFrom(grid, nearestPoint(grid, root));
+	markDoorways(nav, layout);
+	for (const door of layout.doors) if (!shut.openDoors.has(door.id)) nav.closed.add(door.id);
+	return nav;
+}
+
+/** Tag the points in each doorway (within a body's reach of the shut door) with its id. */
+function markDoorways(grid: NavGrid, layout: MapLayout): void {
+	for (const door of layout.doors) {
+		const { center, half, yaw } = doorBox(door);
+		const c = Math.cos(yaw);
+		const s = Math.sin(yaw);
+		for (const point of grid.points) {
+			const [x, y, z] = point.position;
+			if (y < door.position[1] - 0.5 || y > center[1] + half[1]) continue;
+			const dx = x - center[0];
+			const dz = z - center[2];
+			// Into the door's frame (undo its turn about +Y).
+			const lx = dx * c - dz * s;
+			const lz = dx * s + dz * c;
+			if (Math.abs(lx) <= half[0] + BODY_RADIUS && Math.abs(lz) <= half[2] + BODY_RADIUS) {
+				point.door = door.id;
+			}
+		}
+	}
+}
+
+/** True when a path may step onto this point: not in the doorway of a shut door. */
+function passable(grid: NavGrid, index: number): boolean {
+	const door = grid.points[index].door;
+	return !door || !grid.closed.has(door);
 }
 
 /** Adds a point for every walkable floor surface at (x, z) within a level, top down. */
@@ -168,7 +207,7 @@ function addColumn(
  * (and other pockets nothing can walk into) form islands, which this drops.
  */
 function reachableFrom(grid: NavGrid, start: number): NavGrid {
-	if (start < 0) return { points: [], columns: new Map() };
+	if (start < 0) return { points: [], columns: new Map(), closed: new Set() };
 	const remap = new Map<number, number>([[start, 0]]);
 	const order = [start];
 	for (let i = 0; i < order.length; i++) {
@@ -178,7 +217,7 @@ function reachableFrom(grid: NavGrid, start: number): NavGrid {
 			order.push(n);
 		}
 	}
-	const out: NavGrid = { points: [], columns: new Map() };
+	const out: NavGrid = { points: [], columns: new Map(), closed: new Set() };
 	for (const old of order) {
 		const { position, neighbours, clearance, water } = grid.points[old];
 		out.points.push({
@@ -267,7 +306,7 @@ class OpenSet {
 	}
 }
 
-/** A* over the grid. Returns the point positions from start to goal, or null. */
+/** A* over the grid, never through a shut door. Returns the positions from start to goal, or null. */
 export function findPath(grid: NavGrid, from: number, to: number, maxNodes = 20000): Vec3[] | null {
 	if (from < 0 || to < 0) return null;
 	const goal = grid.points[to].position;
@@ -296,7 +335,7 @@ export function findPath(grid: NavGrid, from: number, to: number, maxNodes = 200
 		const p = grid.points[current].position;
 		const base = g.get(current) ?? Infinity;
 		for (const n of grid.points[current].neighbours) {
-			if (closed.has(n)) continue;
+			if (closed.has(n) || !passable(grid, n)) continue;
 			const q = grid.points[n].position;
 			const step = Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]);
 			const tentative = base + (grid.points[n].water ? step * WATER_COST : step);
@@ -313,8 +352,9 @@ export function findPath(grid: NavGrid, from: number, to: number, maxNodes = 200
 /**
  * Distance (m, along the grid) from the nearest of `from` to every point; undefined where
  * unreachable. A breadth-first walk summing horizontal step lengths: close enough for spawning.
+ * Shut doors stop it, unless `throughDoors` (laying out the whole map when it is made).
  */
-export function gridDistances(grid: NavGrid, from: number[]): number[] {
+export function gridDistances(grid: NavGrid, from: number[], throughDoors = false): number[] {
 	const distance: number[] = new Array(grid.points.length);
 	const queue = from.filter((f) => f >= 0);
 	for (const f of queue) distance[f] = 0;
@@ -322,7 +362,7 @@ export function gridDistances(grid: NavGrid, from: number[]): number[] {
 		const at = queue[i];
 		const p = grid.points[at].position;
 		for (const n of grid.points[at].neighbours) {
-			if (distance[n] !== undefined) continue;
+			if (distance[n] !== undefined || (!throughDoors && !passable(grid, n))) continue;
 			const q = grid.points[n].position;
 			distance[n] = distance[at] + Math.hypot(q[0] - p[0], q[2] - p[2]);
 			queue.push(n);

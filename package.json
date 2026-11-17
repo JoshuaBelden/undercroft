@@ -32,6 +32,7 @@
 		"test:coverage": "vitest run --coverage",
 		"format": "prettier --write .",
 		"asset:dev": "tsx scripts/make-dev-asset.ts",
+		"asset:export": "tsx scripts/export-map.ts",
 		"asset:build": "tsx scripts/build-assets.ts",
 		"asset:audio": "tsx scripts/build-audio.ts",
 		"asset:images": "tsx scripts/build-images.ts",

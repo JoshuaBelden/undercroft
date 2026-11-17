@@ -1,4 +1,5 @@
 import { Rng } from '../rng.ts';
+import { placeDoors } from './doors.ts';
 import {
 	CELL,
 	EDGE_DIR,
@@ -17,13 +18,20 @@ import type { Edge, MapKit, MapLayout, PieceDef, PieceRole, Placement } from './
 /**
  * Map layout generator. Runs on the server; clients receive the resulting layout.
  *
- * 1. Main route: start room -> its exit piece -> each major room in random order, joined by
- *    corridors of connectors, with extraction rooms spaced evenly along it. The `final` major
- *    room comes last, after a forced descent, and descending pieces only ever go down, so it is
- *    always the deepest room.
+ * The map is `tiers` levels stacked one under the other. Each one is grown the same way:
+ *
+ * 1. Main route: from where the level begins (the start room on the first, the foot of the long
+ *    stair on the others), through the level's share of the major rooms, joined by corridors of
+ *    connectors, to its last room: an extraction room, or on the deepest level the `final` room.
+ *    An extraction room's `gate` takes the `descent` piece (the long stair behind a double door),
+ *    whose foot is where the next level begins. That stair is the only way between levels.
  * 2. Branches: side passages off open sockets, in passes, so branches can branch again.
  * 3. Loops: open sockets on the same level are joined by pathfinding a hall through free cells.
  * 4. Seal: facing open sockets are joined; the rest get a dead end or a cap.
+ *
+ * Loops and joins never connect two levels, and never two sockets with the same anchor (the room
+ * or junction a plain passage leads back to): no corridor leaves a room and comes straight back
+ * into it.
  *
  * See docs/dev/map-generation.md.
  */
@@ -33,8 +41,11 @@ export interface GenerateOptions {
 	corridor: [number, number];
 	/** Connectors a corridor may grow beyond its length when the room at its end won't fit. */
 	stretch: number;
-	/** Extraction rooms on the main route, spaced evenly between the start and the final room. */
-	extractions: number;
+	/**
+	 * Levels. Every one but the deepest ends in an extraction room whose double door leads down
+	 * the long stair to the next. Needs an `extraction` and a `descent` piece; otherwise one level.
+	 */
+	tiers: number;
 	/** Chance an open socket grows a side branch. */
 	branchChance: number;
 	branchLength: [number, number];
@@ -44,6 +55,10 @@ export interface GenerateOptions {
 	loops: number;
 	/** Longest loop path, in cells. */
 	loopMaxCells: number;
+	/** Rope drops (`needsRope` connectors) to hang off the map, each with a branch at its foot. */
+	ropeDrops: number;
+	/** Connectors on from the foot of a rope drop. */
+	dropBranch: [number, number];
 	/** Chance a sealed socket gets a dead end instead of a flat cap (when there is room). */
 	deadEndChance: number;
 	/** Fresh RNG streams to try before giving up. */
@@ -55,12 +70,14 @@ export interface GenerateOptions {
 const DEFAULTS: GenerateOptions = {
 	corridor: [4, 7],
 	stretch: 3,
-	extractions: 2,
-	branchChance: 0.5,
+	tiers: 3,
+	branchChance: 0.55,
 	branchLength: [2, 5],
 	branchPasses: 2,
 	loops: 8,
 	loopMaxCells: 16,
+	ropeDrops: 1,
+	dropBranch: [1, 3],
 	deadEndChance: 0.55,
 	attempts: 64,
 	affliction: null
@@ -68,6 +85,10 @@ const DEFAULTS: GenerateOptions = {
 
 interface OpenSocket extends WorldSocket {
 	connected: boolean;
+	/** Index of the placement the socket belongs to. */
+	owner: number;
+	/** Level of the map (0 = top) the socket's piece is on. */
+	tier: number;
 }
 
 class GenerationFailed extends Error {}
@@ -76,9 +97,12 @@ class LayoutState {
 	placements: Placement[] = [];
 	occupied = new Set<string>();
 	sockets: OpenSocket[] = [];
+	/** Which placements open into which (caps and seals excluded). */
+	links: Set<number>[] = [];
 
 	constructor(
-		readonly rng: Rng,
+		/** Not readonly: the rope drops swap in their own stream while they are placed. */
+		public rng: Rng,
 		readonly pieces: Record<string, PieceDef>,
 		readonly kit: MapKit
 	) {}
@@ -98,14 +122,29 @@ class LayoutState {
 	}
 
 	place(piece: PieceDef, placement: Placement): OpenSocket[] {
+		const owner = this.placements.length;
 		this.placements.push(placement);
+		this.links.push(new Set());
 		for (const [x, z, l] of occupiedCells(piece, placement)) this.occupied.add(cellKey(x, z, l));
 		const added = piece.sockets.map((s) => ({
 			...worldSocket(piece, placement, s),
-			connected: false
+			connected: false,
+			owner,
+			tier: placement.tier
 		}));
 		this.sockets.push(...added);
 		return added;
+	}
+
+	link(a: number, b: number): void {
+		this.links[a].add(b);
+		this.links[b].add(a);
+	}
+
+	/** Join two open sockets (facing each other, or the two ends of a loop). */
+	join(a: OpenSocket, b: OpenSocket): void {
+		a.connected = b.connected = true;
+		this.link(a.owner, b.owner);
 	}
 
 	open(): OpenSocket[] {
@@ -113,11 +152,46 @@ class LayoutState {
 	}
 
 	/**
+	 * The room or junction a placement's passage leads back to: walking back from it through plain
+	 * passages (connectors with two openings that are not rooms) to the first piece that isn't one.
+	 * Two open sockets with the same anchor must never be joined: that would be a corridor going
+	 * round in a circle back into where it started, with no junction on the way.
+	 */
+	anchor(index: number): number {
+		const seen = new Set<number>();
+		let at = index;
+		while (this.passage(at) && !seen.has(at)) {
+			seen.add(at);
+			const back = [...this.links[at]].find((n) => !seen.has(n));
+			if (back === undefined) break;
+			at = back;
+		}
+		return at;
+	}
+
+	private passage(index: number): boolean {
+		const name = this.placements[index].piece;
+		const entry = this.kit[name];
+		return entry?.role === 'connector' && !entry.room && this.pieces[name]?.sockets.length === 2;
+	}
+
+	/** May these two open sockets be joined into one passage? */
+	joinable(a: OpenSocket, b: OpenSocket): boolean {
+		return (
+			a.tier === b.tier &&
+			a.level === b.level &&
+			a.type === b.type &&
+			this.anchor(a.owner) !== this.anchor(b.owner)
+		);
+	}
+
+	/**
 	 * Connect `piece` to an open socket. Tries each matching socket of the piece in each rotation
 	 * that makes it face `target`. Descending pieces only attach by their highest socket, so they
-	 * always lead down. Returns the piece's remaining open sockets, or null if nothing fits.
+	 * always lead down. The piece goes on `tier` (the target's own by default). Returns the piece's
+	 * remaining open sockets, or null if nothing fits.
 	 */
-	attach(target: OpenSocket, piece: PieceDef): OpenSocket[] | null {
+	attach(target: OpenSocket, piece: PieceDef, tier = target.tier): OpenSocket[] | null {
 		const want = OPPOSITE[target.edge];
 		const [dx, dz] = EDGE_DIR[target.edge];
 		const neighbour: [number, number] = [target.cell[0] + dx, target.cell[1] + dz];
@@ -137,12 +211,14 @@ class LayoutState {
 						(target.level - socket.level) * LEVEL_HEIGHT,
 						neighbour[1] * CELL - oz
 					],
-					rotation
+					rotation,
+					tier
 				};
 				if (!this.fits(piece, placement)) continue;
 				const added = this.place(piece, placement);
-				target.connected = true;
 				const mate = added.find((s) => facing(s, target));
+				target.connected = true;
+				this.link(target.owner, added[0].owner);
 				if (mate) mate.connected = true;
 				return added.filter((s) => !s.connected);
 			}
@@ -151,9 +227,9 @@ class LayoutState {
 	}
 
 	/** Try connectors in weighted order until one attaches. */
-	attachAny(target: OpenSocket, options: PieceDef[]): OpenSocket[] | null {
+	attachAny(target: OpenSocket, options: PieceDef[], tier = target.tier): OpenSocket[] | null {
 		for (const piece of this.weightedOrder(options)) {
-			const next = this.attach(target, piece);
+			const next = this.attach(target, piece, tier);
 			if (next) return next;
 		}
 		return null;
@@ -170,8 +246,17 @@ class LayoutState {
 		return out;
 	}
 
-	/** Place a 1x1 hall piece in `cell` whose sockets face exactly `edges`. */
-	placeHall(cell: [number, number], level: number, edges: Edge[], halls: PieceDef[]): boolean {
+	/**
+	 * Place a 1x1 hall piece in `cell` whose sockets face exactly `edges`. Returns its placement
+	 * index, or -1 if nothing fits.
+	 */
+	placeHall(
+		cell: [number, number],
+		level: number,
+		edges: Edge[],
+		halls: PieceDef[],
+		tier: number
+	): number {
 		for (const piece of halls) {
 			if (piece.footprint[0] !== 1 || piece.footprint[1] !== 1) continue;
 			if (piece.sockets.length !== edges.length) continue;
@@ -181,14 +266,16 @@ class LayoutState {
 				const placement: Placement = {
 					piece: piece.name,
 					position: [cell[0] * CELL, level * LEVEL_HEIGHT, cell[1] * CELL],
-					rotation
+					rotation,
+					tier
 				};
 				if (!this.fits(piece, placement)) continue;
-				for (const s of this.place(piece, placement)) s.connected = true;
-				return true;
+				const added = this.place(piece, placement);
+				for (const s of added) s.connected = true;
+				return added[0].owner;
 			}
 		}
-		return false;
+		return -1;
 	}
 }
 
@@ -249,41 +336,57 @@ function findPath(
 	return null;
 }
 
+/**
+ * The rooms on each level's main route, in order: the major rooms shared out evenly (in random
+ * order), then the level's last room: an extraction room, or on the deepest level the final room.
+ */
+function planRoute(
+	rng: Rng,
+	kit: MapKit,
+	majors: PieceDef[],
+	extractions: PieceDef[],
+	tiers: number
+): PieceDef[][] {
+	const finals = majors.filter((p) => kit[p.name].final);
+	const rooms = rng.shuffle(majors.filter((p) => !kit[p.name].final));
+	const route: PieceDef[][] = Array.from({ length: tiers }, () => []);
+	rooms.forEach((room, i) => route[Math.floor((i * tiers) / rooms.length)].push(room));
+	for (let t = 0; t < tiers - 1; t++) {
+		route[t].push(rng.weighted(extractions, (p) => kit[p.name].weight ?? 1));
+	}
+	route[tiers - 1].push(...rng.shuffle(finals));
+	return route;
+}
+
 function tryGenerate(
 	rng: Rng,
 	pieces: Record<string, PieceDef>,
 	kit: MapKit,
-	options: GenerateOptions
+	options: GenerateOptions,
+	/** Its own stream for the rope drops, so adding them leaves the rest of the map as it was. */
+	dropRng: Rng
 ): Placement[] {
 	const state = new LayoutState(rng, pieces, kit);
 	const connectors = state.role('connector');
 	const flat = connectors.filter((p) => !kit[p.name].descends);
-	const descenders = connectors.filter((p) => kit[p.name].descends);
+	const ropeDrops = connectors.filter((p) => kit[p.name].needsRope);
 	const ends = state.role('end');
 	const caps = state.role('cap');
-	const majors = state.role('major');
-	const finals = majors.filter((p) => kit[p.name].final);
 	const extractions = state.role('extraction');
-	const rooms = rng.shuffle(majors.filter((p) => !kit[p.name].final));
-	// Extraction rooms spaced evenly between the start and the final room: with three major rooms
-	// and two extraction rooms, major, extraction, major, extraction, major, final.
-	const want = extractions.length ? options.extractions : 0;
-	const route: PieceDef[] = [];
-	let placed = 0;
-	for (let i = 0; i <= rooms.length; i++) {
-		while (placed < want && Math.round(((placed + 1) * rooms.length) / (want + 1)) <= i) {
-			route.push(rng.weighted(extractions, (p) => kit[p.name].weight ?? 1));
-			placed++;
-		}
-		if (i < rooms.length) route.push(rooms[i]);
-	}
-	route.push(...rng.shuffle(finals));
+	const descents = state.role('descent');
+	const tiers = extractions.length && descents.length ? Math.max(1, options.tiers) : 1;
+	const route = planRoute(rng, kit, state.role('major'), extractions, tiers);
 
 	// Start room, its first cell on world cell [0, 0], then its fixed exit piece.
 	const start = rng.pick(state.role('start'));
 	const rotation = rng.int(0, 3);
 	const [ox, oz] = rotateXZ(cellOffset(start, [0, 0]), rotation);
-	const open = state.place(start, { piece: start.name, position: [-ox, 0, -oz], rotation });
+	const open = state.place(start, {
+		piece: start.name,
+		position: [-ox, 0, -oz],
+		rotation,
+		tier: 0
+	});
 	let tips = open;
 	const exit = kit[start.name].exit;
 	if (exit) {
@@ -292,9 +395,9 @@ function tryGenerate(
 		tips = next;
 	}
 
-	// Main route through every major and extraction room. Each step grows from one of the last
-	// piece's open sockets, trying the others when it doesn't fit; the ones not taken stay open
-	// for branches. A room that won't fit stretches its corridor a little first.
+	// Main route through each level. Each step grows from one of the last piece's open sockets,
+	// trying the others when it doesn't fit; the ones not taken stay open for branches. A room that
+	// won't fit stretches its corridor a little first.
 	const grow = (kinds: PieceDef[]): OpenSocket[] | null => {
 		for (const tip of rng.shuffle(tips)) {
 			if (tip.connected) continue;
@@ -303,35 +406,42 @@ function tryGenerate(
 		}
 		return null;
 	};
-	for (const room of route) {
-		const length = rng.int(options.corridor[0], options.corridor[1]);
-		const descendAt = kit[room.name].final && descenders.length ? rng.int(0, length - 1) : -1;
-		for (let i = 0; i < length; i++) {
-			const next = grow(i === descendAt ? descenders : flat);
-			if (!next) throw new GenerationFailed();
-			tips = next;
-		}
-		const final = room === route[route.length - 1];
-		let next: OpenSocket[] | null = null;
-		for (let stretch = 0; stretch <= options.stretch && !next; stretch++) {
-			if (stretch > 0) {
-				const longer = grow(flat);
-				if (!longer) break;
-				tips = longer;
+	const last = route[tiers - 1][route[tiers - 1].length - 1];
+	for (let tier = 0; tier < tiers; tier++) {
+		for (const room of route[tier]) {
+			const length = rng.int(options.corridor[0], options.corridor[1]);
+			for (let i = 0; i < length; i++) {
+				const next = grow(flat);
+				if (!next) throw new GenerationFailed();
+				tips = next;
 			}
-			for (const tip of rng.shuffle(tips)) {
-				if (tip.connected) continue;
-				next = state.attach(tip, room);
-				if (next) break;
+			let next: OpenSocket[] | null = null;
+			for (let stretch = 0; stretch <= options.stretch && !next; stretch++) {
+				if (stretch > 0) {
+					const longer = grow(flat);
+					if (!longer) break;
+					tips = longer;
+				}
+				for (const tip of rng.shuffle(tips)) {
+					if (tip.connected) continue;
+					next = state.attach(tip, room);
+					if (next) break;
+				}
 			}
+			// Only the very last room may close the route.
+			if (!next || (room !== last && !next.length)) throw new GenerationFailed();
+			if (room === last) break;
+			tips = next.filter((s) => s.type !== 'gate');
+			if (kit[room.name].role !== 'extraction' || tier === tiers - 1) continue;
+			// The end of the level: the double door and the long stair down to the next one.
+			const gate = next.find((s) => s.type === 'gate');
+			const down = gate && state.attachAny(gate, descents, tier + 1);
+			if (!down?.length) throw new GenerationFailed();
+			tips = down;
 		}
-		// Only the final room may close the route.
-		if (!next || (!final && !next.length)) throw new GenerationFailed();
-		if (final) break;
-		tips = next;
 	}
 
-	// Side branches (never descending, so nothing ends up below the final room). A tee or cross on
+	// Side branches (never descending, so every level stays on its own floor). A tee or cross on
 	// a branch leaves sockets open that the next pass can branch off again.
 	for (let pass = 0; pass < options.branchPasses; pass++) {
 		for (const socket of rng.shuffle(state.open())) {
@@ -346,6 +456,26 @@ function tryGenerate(
 		}
 	}
 
+	// Rope drops: off an opening the route and branches left, a drop and a short way on at its
+	// foot. Only ever a detour, never the only way on (docs/dev/rope.md).
+	const mainRng = state.rng;
+	state.rng = dropRng;
+	for (let i = 0; i < options.ropeDrops && ropeDrops.length; i++) {
+		for (const socket of dropRng.shuffle(state.open())) {
+			if (socket.connected) continue;
+			const foot = state.attachAny(socket, ropeDrops);
+			if (!foot) continue;
+			let tip = foot.length ? dropRng.pick(foot) : null;
+			const length = dropRng.int(options.dropBranch[0], options.dropBranch[1]);
+			for (let k = 0; tip && k < length; k++) {
+				const next = state.attachAny(tip, flat);
+				tip = next?.length ? dropRng.pick(next) : null;
+			}
+			break;
+		}
+	}
+	state.rng = mainRng;
+
 	// Loops: join pairs of open sockets on the same level with a pathfound hall.
 	const halls = flat.filter((p) => p.footprint[0] === 1 && p.footprint[1] === 1);
 	let loops = 0;
@@ -356,7 +486,7 @@ function tryGenerate(
 		const from: [number, number] = [a.cell[0] + adx, a.cell[1] + adz];
 		const candidates = state
 			.open()
-			.filter((b) => b !== a && b.level === a.level && b.type === a.type)
+			.filter((b) => b !== a && state.joinable(a, b))
 			.sort(
 				(p, q) =>
 					Math.abs(p.cell[0] - a.cell[0]) +
@@ -368,30 +498,37 @@ function tryGenerate(
 			const to: [number, number] = [b.cell[0] + bdx, b.cell[1] + bdz];
 			const path = findPath(state, from, to, a.level, options.loopMaxCells);
 			if (!path || path.length < 2) continue;
-			const ok = path.every((cell, i) => {
+			let previous = a.owner;
+			for (let i = 0; i < path.length; i++) {
+				const cell = path[i];
 				const back = i === 0 ? OPPOSITE[a.edge] : edgeBetween(cell, path[i - 1]);
 				const fwd = i === path.length - 1 ? OPPOSITE[b.edge] : edgeBetween(cell, path[i + 1]);
-				return state.placeHall(cell, a.level, [back, fwd], halls);
-			});
-			if (!ok) throw new GenerationFailed();
+				const placed = state.placeHall(cell, a.level, [back, fwd], halls, a.tier);
+				if (placed < 0) throw new GenerationFailed();
+				state.link(previous, placed);
+				previous = placed;
+			}
+			state.link(previous, b.owner);
 			a.connected = b.connected = true;
 			loops++;
 			break;
 		}
 	}
 
-	// Seal: join facing sockets, then dead ends or caps.
+	// Seal: join facing sockets (unless that would make a roundabout), then dead ends or caps.
 	for (const socket of state.open()) {
 		if (socket.connected) continue;
-		const across = state.open().find((other) => other !== socket && facing(other, socket));
+		const across = state
+			.open()
+			.find((other) => other !== socket && facing(other, socket) && state.joinable(socket, other));
 		if (across) {
-			socket.connected = across.connected = true;
+			state.join(socket, across);
 			continue;
 		}
 		if (ends.length && rng.next() < options.deadEndChance && state.attachAny(socket, ends))
 			continue;
 		const cap = caps.find((c) => kit[c.name].seals === socket.type);
-		if (!cap) throw new Error(`No cap piece seals "${socket.type}" openings`);
+		if (!cap) throw new GenerationFailed();
 		const [ex, ez] = EDGE_DIR[socket.edge];
 		// Caps are modelled facing north with their origin on the opening.
 		const capRotation = [0, 1, 2, 3].find((r) => rotateEdge('n', r) === socket.edge) ?? 0;
@@ -402,8 +539,10 @@ function tryGenerate(
 				socket.level * LEVEL_HEIGHT,
 				(socket.cell[1] + ez / 2) * CELL
 			],
-			rotation: capRotation
+			rotation: capRotation,
+			tier: socket.tier
 		});
+		state.links.push(new Set());
 		socket.connected = true;
 	}
 	return state.placements;
@@ -423,13 +562,17 @@ export function generateLayout(
 	);
 	for (let attempt = 0; attempt < opts.attempts; attempt++) {
 		const rng = new Rng((seed + Math.imul(attempt, 0x9e3779b9)) >>> 0);
+		const dropRng = new Rng((seed ^ 0x0d70f00d) + attempt);
 		try {
-			return {
+			const layout: MapLayout = {
 				seed,
 				affliction: opts.affliction,
-				placements: tryGenerate(rng, pieces, own, opts),
-				crates: []
+				placements: tryGenerate(rng, pieces, own, opts, dropRng),
+				crates: [],
+				doors: []
 			};
+			layout.doors = placeDoors(layout, pieces);
+			return layout;
 		} catch (error) {
 			if (!(error instanceof GenerationFailed)) throw error;
 		}

@@ -25,7 +25,7 @@
 	import { devMode } from '#lib/dev.ts';
 	import { device, padFamily } from '#lib/game/input/device.svelte.ts';
 	import { canVibrate, connectedPads, familyOf, playRumble } from '#lib/game/input/gamepad.ts';
-	import type { PadFamily } from '#lib/game/input/actions.ts';
+	import { bindingLabel, type PadFamily } from '#lib/game/input/actions.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import type { PlayerFlags } from '#lib/shared/player/types.ts';
 	import type { AdminCommand } from '#lib/shared/protocol.ts';
@@ -46,6 +46,10 @@
 		rooms: string[];
 		flags: PlayerFlags | null;
 		mapView: boolean;
+		/** The map view flown through (F9) instead of orbited. */
+		freecam: boolean;
+		/** Cell and entrance grid over the map view. */
+		gridView: boolean;
 		/** Creature markers drawn through walls. */
 		markers: boolean;
 		/** Affliction meter 0..1 (dev only) and omen stage. */
@@ -53,6 +57,12 @@
 		omen: number;
 		onadmin: (command: AdminCommand) => void;
 		onmapview: (enabled: boolean) => void;
+		onfreecam: (enabled: boolean) => void;
+		ongridview: (enabled: boolean) => void;
+		/** In the free camera: your body to the camera, and back into it. */
+		onbodytocamera: () => void;
+		/** In the free camera: the camera back to your body, still flying. */
+		oncameratobody: () => void;
 		onmarkers: (enabled: boolean) => void;
 	}
 
@@ -65,11 +75,17 @@
 		rooms,
 		flags,
 		mapView,
+		freecam,
+		gridView,
 		markers,
 		meter,
 		omen,
 		onadmin,
 		onmapview,
+		onfreecam,
+		ongridview,
+		onbodytocamera,
+		oncameratobody,
 		onmarkers
 	}: Props = $props();
 
@@ -79,6 +95,11 @@
 	});
 
 	const onOff = (value: boolean): string => (value ? 'On' : 'Off');
+	const freecamKey = $derived(
+		settings.bindings.toggleFreecam[0]
+			? bindingLabel(settings.bindings.toggleFreecam[0])
+			: 'Unbound'
+	);
 
 	const FAMILY_NAMES: Record<PadFamily, string> = { xbox: 'Xbox', playstation: 'PlayStation' };
 
@@ -284,6 +305,37 @@
 				onstep={() => onmapview(!mapView)}
 				hint="Orbit camera, fully lit."
 			/>
+			<StepperField
+				label="Free camera"
+				text={onOff(freecam)}
+				onstep={() => onfreecam(!freecam)}
+				hint="{freecamKey}. Fly with the move keys, climb and swim down for up and down, sprint for faster."
+			/>
+			{#if freecam}
+				{@render action(
+					'Move your body here',
+					onbodytocamera,
+					'Where the camera is; you fall to the floor below.'
+				)}
+				{@render action('Camera back to your body', oncameratobody)}
+			{/if}
+			{@render action(
+				'Reveal whole map',
+				() => onadmin({ kind: 'revealMap' }),
+				'Every cell drawn in your map (docs/dev/map.md).'
+			)}
+			{@render action('Clear map', () => onadmin({ kind: 'clearMap' }), 'Nothing drawn in it.')}
+			<StepperField
+				label="Grid"
+				text={onOff(gridView)}
+				onstep={() => ongridview(!gridView)}
+				hint="In map view: cell outlines, rooms in yellow; entrances green when connected, red when blocked (cap or dead end)."
+			/>
+			{@render action(
+				'Open the doors',
+				() => onadmin({ kind: 'openDoors' }),
+				'Every door between levels, for everyone, as if held open.'
+			)}
 		{:else if group === 'Player'}
 			{#each toggles as toggle (toggle.kind)}
 				<StepperField
@@ -301,6 +353,7 @@
 				</label>
 				<button type="submit">Set</button>
 			</form>
+			{@render action('Clear conditions', () => onadmin({ kind: 'clearConditions' }))}
 			<p class="hint">Teleport to a room:</p>
 			{#each rooms as room (room)}
 				{@render action(room, () => onadmin({ kind: 'teleport', room }))}
@@ -337,8 +390,9 @@
 				</label>
 				<button type="submit">Set</button>
 			</form>
-			{@render action('Force manifestation', () => onadmin({ kind: 'manifest' }))}
-			{@render action('Banish', () => onadmin({ kind: 'banish' }))}
+			{@render action('Summon manifestation', () => onadmin({ kind: 'manifest' }))}
+			{@render action('Stun it', () => onadmin({ kind: 'stun' }))}
+			{@render action('Banish (resolves it)', () => onadmin({ kind: 'banish' }))}
 		{:else if group === 'Rite'}
 			{@render action('Reveal all clues', () => onadmin({ kind: 'revealClues' }))}
 			{@render action('Reset rite progress', () => onadmin({ kind: 'resetRite' }))}

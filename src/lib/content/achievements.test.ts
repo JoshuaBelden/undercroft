@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { ACHIEVEMENTS, achievementsForRite, achievementsForRun } from './achievements.ts';
+import {
+	ACHIEVEMENTS,
+	achievementsForBanishing,
+	achievementsForRite,
+	achievementsForRun
+} from './achievements.ts';
 
 describe('achievements', () => {
 	it('have unique Steam API names', () => {
@@ -12,14 +17,14 @@ describe('achievements', () => {
 	it('are earned by how a run ends and how many were in it', () => {
 		expect(achievementsForRun('extracted', 1)).toEqual(['FIRST_EXTRACTION']);
 		expect(achievementsForRun('extracted', 3)).toEqual(['FIRST_EXTRACTION', 'COOP_EXTRACTION']);
-		expect(achievementsForRun('banished', 1)).toEqual(['FIRST_EXTRACTION', 'BANISHED']);
-		for (const outcome of ['died', 'lost', 'abandoned', 'left'] as const) {
+		for (const outcome of ['died', 'lost', 'abandoned', 'left', 'banished'] as const) {
 			expect(achievementsForRun(outcome, 4)).toEqual([]);
 		}
 	});
 
-	it('include one for the rite', () => {
+	it('include one for the rite, and one for banishing what it summoned', () => {
 		expect(achievementsForRite()).toEqual(['RITE_PERFORMED']);
+		expect(achievementsForBanishing()).toEqual(['BANISHED']);
 	});
 });
 

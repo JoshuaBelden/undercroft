@@ -8,9 +8,14 @@ export interface ManifestationSnapshot {
 	state: 'gathering' | 'hunting' | 'banished';
 	/** Light is on it: weapons hurt it now. */
 	exposed: boolean;
-	/** Radius (m) within which it drains sanity. */
-	radius: number;
-	/** How many times its touch has landed so far: each new one is a strike to show. */
+	/** 0..1: how near the light held on it is to exposing it (1 while exposed). */
+	charge: number;
+	/** Stunned (a strobe): it stands still and can't strike. */
+	stunned: boolean;
+	/**
+	 * How many swings it has begun so far: each new one is a strike to show, from its wind-up.
+	 * The blow lands partway through (`strikeAt`).
+	 */
 	strikes: number;
 }
 
@@ -26,13 +31,15 @@ export interface RiteSnapshot {
 	seconds: number;
 	/** The hints found so far, in the order they are learned. */
 	hints: string[];
-	/** The rite has been performed in this expedition. */
+	/** The rite has been performed in this expedition: it summoned the manifestation. */
+	performed: boolean;
+	/** The manifestation the rite summoned has been banished: the Affliction is resolved. */
 	resolved: boolean;
 }
 
 /**
- * The Affliction as broadcast in each tick: the omen stage, how near it is to arriving (`meter`,
- * shown as the arrival bar) and how long is left before everyone must be out.
+ * The Affliction as broadcast in each tick: the omen stage, the hidden meter (for admin tools;
+ * never shown to players) and how long is left before everyone must be out.
  */
 export interface AfflictionSnapshot {
 	id: string;
@@ -40,9 +47,9 @@ export interface AfflictionSnapshot {
 	omen: number;
 	manifestation: ManifestationSnapshot | null;
 	rite: RiteSnapshot;
-	/** 0..1: at 1 it manifests. */
+	/** 0..1: drives the omen stages. Nothing manifests when it fills. */
 	meter: number;
-	/** The rite was performed: it is calmed for the rest of the expedition. */
+	/** It was resolved (the rite, then banishing what it summoned): calmed for the rest of the run. */
 	calmed: boolean;
 	/** Seconds left before anyone still underground is lost. */
 	deadline: number;

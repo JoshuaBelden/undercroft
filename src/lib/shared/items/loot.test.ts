@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ITEMS, rarityOf } from '../../content/items.ts';
-import { CRATES, LOOSE_LOOT } from '../../content/loot.ts';
+import { CRATES, LEVEL_LOOT, LOOSE_LOOT } from '../../content/loot.ts';
 import { Rng } from '../rng.ts';
 import { maxStack } from './inventory.ts';
 import { rollCrate, rollLoose } from './loot.ts';
@@ -38,6 +38,37 @@ describe('rollCrate', () => {
 				.map((s) => rarityOf(s.item));
 			expect(rarities.includes('epic') && rarities.includes('legendary')).toBe(false);
 		}
+	});
+});
+
+describe('rollCrate by level', () => {
+	const rarities = (level: number, depth: number, seed: number) =>
+		rollCrate(depth, new Rng(seed), LEVEL_LOOT[level].rarities)
+			.filter((s) => s !== null)
+			.map((s) => rarityOf(s.item));
+
+	it('holds only everyday things on the first two levels', () => {
+		for (const level of [0, 1]) {
+			for (let seed = 0; seed < 500; seed++) {
+				for (const r of rarities(level, 1, seed)) expect(['common', 'uncommon']).toContain(r);
+			}
+		}
+	});
+
+	it('keeps the good stuff for the third level, deepest of all at its far end', () => {
+		const found = (depth: number) =>
+			Array.from({ length: 2000 }, (_, seed) => rarities(2, depth, seed)).flat();
+		const good = (list: string[]) => list.filter((r) => r === 'rare' || r === 'epic').length;
+		expect(good(found(0))).toBeGreaterThan(0);
+		expect(good(found(1))).toBeGreaterThan(good(found(0)));
+	});
+
+	it('rolls the same everyday things whatever the level', () => {
+		const everyday = (level: number) =>
+			rollCrate(0.5, new Rng(3), LEVEL_LOOT[level].rarities).filter(
+				(s) => s !== null && ['common', 'uncommon'].includes(rarityOf(s.item))
+			).length;
+		expect(everyday(0)).toBeGreaterThan(0);
 	});
 });
 

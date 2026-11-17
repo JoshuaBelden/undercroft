@@ -57,18 +57,21 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 		body: `These are your keys now. The full list is under Controls in the settings ({action:toggleSettings}).
 
 - {action:moveForward} {action:moveLeft} {action:moveBack} {action:moveRight} move, {action:sprint} run
-- {action:stance} tap to crouch or crawl, hold to creep
+- {action:stance} tap to crouch or crawl, hold to creep, let go of a rope
 - {action:climb} climb up a ledge, swim up
-- {action:headlamp} headlamp off, low, bright
-- {action:interact} pick up, search, open, climb out, revive
+- {action:swimDown} swim down
+- {action:headlamp} tap: headlamp off or on, hold: low or bright
+- {action:interact} pick up, search, open, take hold of a rope, climb out, revive
 - {action:attack} swing, fire, use what is in your hand
 - {action:aim} aim a gun, throw
 - {action:reload} reload
 - {action:primaryWeapon} {action:secondaryWeapon} take a weapon in hand
 - {action:quickUse} the quick-use wheel
-- {action:inventory} your pack
+- {action:inventory} your pack and the rite
+- {action:map} your map, if you carry a notebook
 - {action:drop} drop what is in your hand
 - {action:toggleView} over the shoulder or through your eyes
+- {action:toggleRitePanel} hide or show the rite
 - {action:toggleSettings} settings, {action:toggleHelp} help`
 	},
 	{
@@ -79,13 +82,17 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 
 Move with the left stick: push it gently to creep, a slow walk that makes no footstep sound. Look with the right stick. Click {pad:sprint} to run until you stop, slow down, aim or creep.
 
-{pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, and swims down in water. {pad:interact} interacts and revives. {pad:attack} attacks, fires or uses what is in your hand, {pad:aim} aims or throws, and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
+{pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, swims down in water and lets go of a rope. {pad:interact} interacts, takes hold of a rope and revives. {pad:attack} attacks, fires or uses what is in your hand, {pad:aim} aims or throws, and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
 
-{pad:headlamp} switches the headlamp, {pad:drop} drops what you hold, {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. {pad:inventory} opens your pack and {pad:toggleSettings} the settings.
+{pad:headlamp} switches the headlamp off and on (hold it to change between low and bright), {pad:drop} drops what you hold, {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. Click {pad:toggleRitePanel} to hide the rite down the left, and again to bring it back. {pad:inventory} opens your pack and the rite, and {pad:toggleSettings} the settings.
 
-In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. While a menu is open, the D-pad and face buttons work the menu, not the game.
+In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. In the store, push the right stick left or right to choose how many. While a menu is open, the D-pad and face buttons work the menu, not the game.
 
-In your pack, a crate or the Loadout page, {button:PadA} picks an item up and the slots that would take it light up; {button:PadA} on one puts it down, and {button:PadB} puts it back. {button:PadX} sends an item straight where it belongs, and {button:PadY} opens its menu. Typing, such as a friend's gamer tag, still needs a keyboard.
+In your pack, a crate or the Loadout page, {button:PadA} picks an item up and the slots that would take it light up; {button:PadA} on one puts it down, and {button:PadB} puts it back. {button:PadX} sends an item straight where it belongs, and {button:PadY} opens its menu. In a crate or a corpse, once {button:PadX} has sent an item to your pack you move on to the next one, so you can empty it by pressing {button:PadX} again and again. On the Loadout page {button:PadX} and {button:PadY} act when you let go, so that holding them can do something else (below). Typing, such as a friend's gamer tag, still needs a keyboard.
+
+With a notebook in your pack, your pack has a Map button. On the map, hold {button:PadX} to sketch and {button:PadY} to show your map to a teammate. {button:PadLB} and {button:PadRB} change level, {pad:mapZoomIn} and {pad:mapZoomOut} zoom, and the right stick moves the page. {button:PadB} puts it away.
+
+On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
 
 Settings > Controller has look sensitivity, invert Y, the dead zone, vibration, sprint (toggle or hold) and the button icons. A controller the game doesn't recognise has to be mapped to the standard layout in your system's or Steam's own controller settings.`
 	},
@@ -101,7 +108,7 @@ Tap {action:stance} to change stance: walking, crouching, crawling, then back to
 
 Press {action:toggleView} to step back and see yourself from over your shoulder, and again to look through your own eyes. Crouched, crawling or swimming, you always see through your own eyes.
 
-Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk: you have to work your way through slowly, and you can't run. You can't stand up while something is overhead; you'll rise as soon as there is room.`
+Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk, and long: you have to work your way through slowly, you can't run, and there's no room to fight. Make sure nothing is following you in. You can't stand up while something is overhead; you'll rise as soon as there is room.`
 	},
 	{
 		id: 'stamina',
@@ -117,15 +124,31 @@ Run it all the way down and you're spent: you can't sprint, climb or dive again 
 		category: 'Moving',
 		body: `Walk up to a ledge or a low wall and hold {action:climb} to pull yourself up onto it, if there's room on top. Climbing costs a little stamina, and you can't do it while you're spent.
 
-In the water, swim up to an edge and hold {action:climb} to pull yourself out.`
+In the water, swim up to an edge and hold {action:climb} to pull yourself out.
+
+Ropes hang in the ways out, and wherever someone has tied one. Stand beside a rope, look at it and press {action:interact} to take hold of it, then {action:moveForward} to climb up and {action:moveBack} to climb down. Hold {action:sprint} to haul yourself up faster (it tires you quicker) or to slide down. At the bottom you step off; at the top you haul yourself over onto the ledge. A rope can't hold two people at the same height: whoever is on it first is in your way, above or below, until they move.
+
+Climbing wears you out, faster going up than down, and even hanging still tires you a little: you get no breath back until you are off the rope. Run out of stamina and your grip goes. Press {action:stance} to drop off the rope on purpose: a long drop hurts (see Falls).`
+	},
+	{
+		id: 'falls',
+		title: 'Falls and conditions',
+		category: 'Moving',
+		body: `A short drop does nothing. From much higher than your own height you land hard: it costs you sanity, and from high enough it can put you on the floor for someone to revive.
+
+A fall that hurts leaves you hobbled for 20 seconds: you can go no faster than a crawl, and you can't run. Anything wrong with you like this shows beside your health, at the bottom left, with the seconds until it wears off.
+
+Creatures hear a body hit the stone.`
 	},
 	{
 		id: 'swimming',
 		title: 'Swimming',
 		category: 'Moving',
-		body: `In deep water you swim where you look. You float with your head just above the surface. Hold {action:climb} to swim up and {action:swimDown} to dive; looking down while swimming forward also takes you under.
+		body: `In deep water you swim where you look. At the surface you float with your head just above it. Hold {action:climb} to swim up and {action:swimDown} to dive; looking down while swimming forward also takes you under. Once you're under, you stay at the depth you swim to until you swim back up. You can only swim hard ({action:sprint}) at the surface, and there's no fighting in the water.
 
-Underwater, your stamina is your breath: it drains and won't come back until you surface. When it runs out you're forced up for air, and you can't dive again until you've recovered.
+Underwater, your stamina is your breath: it drains and won't come back until you surface. When it runs out you're forced up for air, and you can't dive again until you've recovered. Keep an eye on it: nothing else brings you up.
+
+Under the surface everything goes murky and close, and sounds are muffled.
 
 Look for steps or a low edge to get out. Every pool has a way out.`
 	},
@@ -141,17 +164,29 @@ Flooded passages dip under the water: the ceiling comes down to meet it, and the
 		id: 'extraction',
 		title: 'Getting out',
 		category: 'Expeditions',
-		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. Further in are two shafts, each with a ladder going up into the dark, the second deeper than the first. The last is a ladder in the deepest room of all.
+		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. At the end of the first and second levels is a shaft with a rope going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
 
 The deeper ways out save you the long walk back with your haul. Remember where you saw them.
 
-Stand at the foot of the ladder (or at the door) and hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
+At a rope, look at it and press {action:interact} to take hold of it, then {action:moveForward} to climb: a few metres up, you are out. At the door, or at the foot of the ladder, hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
 
 Don't stay too long. The time at the top of your view is how long you have left. When it runs out, anyone still down here is lost in the dark: it is as if they had died, and what they carried stays below.
 
 Once you're out, your expedition is over. The results show how it went (time underground, how deep you got, creatures killed, crates opened, hints found) and what you brought out; Continue takes you to your loadout to put the haul away. In a group, the others can stay down; the expedition ends when everyone is out.
 
-You can also give up from anywhere: open the settings ({action:toggleSettings}) and choose Abandon expedition. You go back to the surface, but everything you carried stays where you stood.`
+You can also give up from anywhere, as long as you're on your feet: press {action:inventory}, go to the Rite tab and choose Abandon expedition. You go back to the surface, but everything you carried stays where you stood.`
+	},
+	{
+		id: 'levels',
+		title: 'Levels and doors',
+		category: 'Expeditions',
+		body: `The catacombs go down in three levels, one under the other. Each is a maze of its own: passages, junctions, burial rooms and dead ends.
+
+At the far end of the first and second levels is a room with a shaft up to the surface, and a great double door. Behind the door a long stair leads down to the next level. It is the only way down.
+
+The doors are barred. Hold {action:interact} on one to throw off the bar and push it open. It stays open for good, for everyone, and the sound carries: whatever is down there, or behind you, will hear it, and once it's open they can come through too.
+
+The deeper you go, the better the finds. The first two levels hold everyday things; anything rare or precious lies on the third, where the rite is done.`
 	},
 	{
 		id: 'parties',
@@ -187,7 +222,7 @@ Things of a kind share a slot, up to a few of each. Drop one stack on another to
 
 Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
 
-What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the Gloaming comes.
+What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the omens close in.
 
 What you take down and don't bring back is gone. If you die, everything you carried stays where you fell, and so does anything you left lying down there.
 
@@ -197,7 +232,7 @@ Press {action:toggleFullscreen} on any screen, or choose Display under Graphics 
 		id: 'the-shop',
 		title: 'The store',
 		category: 'The surface',
-		body: `Click your money, at the top right of the dashboard, to open the store. It is closed to you once you are ready to descend. The round buttons beside it show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. Click something to see what it is and what it costs, choose how many, and press Purchase.
+		body: `Click your money, at the top right of the dashboard, to open the store. It is closed to you once you are ready to descend. The round buttons beside it show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. Hold the cursor over something to see what it is and what it does. Click it to see what it costs, choose how many, and press Purchase.
 
 What you buy goes to your stash, which only has so many slots: open "Loadout" to take it with you. Firearms come empty, so buy rounds too.
 
@@ -225,7 +260,7 @@ To see how smoothly the game is running, press {action:toggleStats}: the frame r
 		id: 'headlamp',
 		title: 'Headlamp',
 		category: 'Surviving',
-		body: `Press {action:headlamp} to switch your headlamp between off, low and bright.
+		body: `Tap {action:headlamp} to switch your headlamp off, and again to bring it back on as it was. Hold {action:headlamp} for a second to change between low and bright.
 
 Bright reaches much further but drains the battery about three times as fast. The cells in the bottom-left corner show the charge left, with its voltage beside them: 24V is full, and at 0V the lamp dies.
 
@@ -241,7 +276,7 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 
 It wears down when you're in the dark with your lamp off and no one else's light on you, and when you look at something you shouldn't. Being struck takes a great deal of it at once.
 
-A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel.
+A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel. A medkit works the same way, takes a little longer, and gives it all back: they are rare below, and dear in the store.
 
 When your sanity runs out you go down. You can only look around and drag yourself slowly across the floor, and you don't have long. If you can reach a way out, you can still climb out: hold {action:interact} there.
 
@@ -293,7 +328,7 @@ If you die down here, everything you carried stays where you fell. Someone else 
 		id: 'pack',
 		title: 'Your pack',
 		category: 'Gear and loot',
-		body: `Press {action:inventory} to open your pack. The catacombs don't wait while you look through it.
+		body: `Press {action:inventory} to open your pack. It is the first tab of the menu; the Rite tab beside it shows what you know of the rite. You can't open the menu while you're down. The catacombs don't wait while you look through it, and your hands are full: you can walk, but not fight, use or pick up anything, or run. With a controller you stand still.
 
 It is laid out like your loadout on the surface. Equipment: two weapons, and what you wear for protection. The backpack, which takes anything. And the quick-use slots, which are what the wheel offers. The slot in your hand is outlined.
 
@@ -346,6 +381,30 @@ Marks are only chalk. In the dark you won't see them; a lamp on the wall brings 
 You can rub out your own marks: look at one and hold {action:interact}. Other people's marks are theirs to keep.`
 	},
 	{
+		id: 'rope',
+		title: 'Rope',
+		category: 'Gear and loot',
+		body: `Rope packs, a hundred metres of rope each, are sold in the store. Down below you may find a bundle of old rope, but not often. Keep rope in a quick-use slot and take it from the wheel.
+
+Lay it behind you to find your way back: with rope in your hand, hold {action:attack} and walk. It pays out along the floor wherever you go, as far as the rope reaches. Let go of {action:attack}, or put the rope away, and it stops where it lies. Once laid, the pack or bundle is spent, however little of it you used, so lay it where it counts. Like chalk, it only shows where a lamp falls on it. Anyone can gather up a laid rope: stand on it and hold {action:interact}, and you get the pack or bundle back.
+
+Some places drop away into the dark, too far to climb down and too far to jump. At the top there is a post to tie a rope to. With a rope long enough for the drop in your hand, stand at the post and hold {action:interact} to tie it off and let it down. It takes the whole pack or bundle. Then anyone can climb it, down and back up (see Climbing): look out over the edge and press {action:interact} to go over. The rope can only be untied at the post, by holding {action:interact} there with your back to the drop, and not while someone is on it: you get the rope back. Leave it, and it is there for the way back.`
+	},
+	{
+		id: 'map',
+		title: 'The map',
+		category: 'Gear and loot',
+		body: `Nobody knows the way down here, and nobody gives you a map. You draw your own, in a surveyor's notebook from the store. It goes in your pack like anything else, and it is lost with everything else if you die.
+
+With a notebook in your pack, press {action:map} to open your map (on a controller, open your pack and choose Map). It starts blank. The catacombs don't wait while you look at it.
+
+To draw, stand still with the map open and hold Sketch ({action:sketchMap}). After a moment what you can see from where you stand goes down on the page, a dozen paces at most. Only what you can see: a corner, a pillar or the far end of a big room stay blank until you go and look. Ways on that you haven't drawn yet trail off at the edge of the page. The pencil can be heard.
+
+Your map is yours alone: what your friends draw goes in their notebooks, not yours. When you meet up again, stand close and hold Show ({action:showMap}): you each see the other's map and copy it into your own. They need a notebook of their own.
+
+The map shows passages and rooms, the names of the rooms you have drawn, stairs and where they lead, the ways out, water, crawls and squeezes, and the chalk marks in places you have drawn. It shows you as a red arrow. It shows one level at a time: change level with {action:mapLevelUp} and {action:mapLevelDown}. Zoom with the mouse wheel or {action:mapZoomIn} and {action:mapZoomOut}, and drag the page to look around. Find me brings it back to where you are.`
+	},
+	{
 		id: 'captions',
 		title: 'Sound captions',
 		category: 'Settings',
@@ -369,13 +428,15 @@ These are warnings. When they come thick and close together, it is time to think
 		id: 'the-gloaming',
 		title: 'The Gloaming',
 		category: 'The Gloaming',
-		body: `Stay too long and the Gloaming comes for you itself. The thin red bar under the time at the top of your view fills as it draws near; killing and carrying loot fill it faster. You'll know when it arrives: something vast breathes out through the stone, and then it is walking toward you.
+		body: `Perform the rite and the Gloaming answers it. Something vast breathes out through the stone, and it is there in the room with you, in the corner you were told not to look at. The rite alone doesn't end it: you have to banish what it brings.
 
-Near it, the mind goes. Its touch is worse. It is slower while a lamp is on it, and quick when none is.
+It comes at whoever is nearest, slower while a lamp is on it and quick when none is. When it reaches you it rears back to strike. That is your moment to get out of reach. A blow that lands is hard: what you wear takes some of it, and two will put you down. It hits harder the more of you there are.
 
-Light is how you fight it. Hold your lamp on it and keep it there. Only while the light holds does steel or shot bite. Two lamps are better than one.
+Light is how you fight it. Hold your lamp on it and keep it there: it begins to burn, and when it flares and hisses, steel and shot bite. Only while the light holds. Two lamps are better than one.
 
-Drive it off and you'll all be carried out. It isn't over, though. Only the rite ends the Gloaming.
+Turn your lamp off and back on ({action:headlamp}) with it in the beam, and the flash stuns it: it stands frozen for a moment, and a strike it was winding up is lost. It won't fall for that again for a while.
+
+Banish it and the Gloaming is resolved: the omens lift and the dark lets go. The other things down here don't, and you still have to get out before time runs out.
 
 Long ago, the keepers of the dead held back the dusk each evening with a rite. The last keeper died with it unspoken, and the robbers who broke into his grave brought down what he had kept shut away.`
 	},
@@ -383,7 +444,9 @@ Long ago, the keepers of the dead held back the dusk each evening with a rite. T
 		id: 'the-rite',
 		title: 'The rite',
 		category: 'The Gloaming',
-		body: `The rite is what ends it. What is known about it is always at the left of your view down here: the Affliction's name, the hints you have found, then a line joining everything the rite needs and where it must be done. Once a hint has told you what a thing is, its picture appears beside it, greyed out until you carry it yourself.
+		body: `The rite is what ends it. What is known about it is always at the left of your view down here, and on the Rite tab of the menu: press {action:inventory} and choose Rite ({button:PadRB} with a controller). It shows the Affliction's name, the hints you have found, then a line joining everything the rite needs and where it must be done. Once a hint has told you what a thing is, its picture appears beside it, greyed out until you carry it yourself.
+
+If it covers too much of your screen, press {action:toggleRitePanel} to hide it. Only the Affliction's name stays at the left edge, with the button that brings the rest back, and the menu still shows all of it. It stays hidden on your next descent until you press it again, or turn Show rite panel back on under Interface in the settings.
 
 At first, nothing is. Scraps of writing were left about the catacombs by those who came before: pinned to the walls of the great rooms, lying on coffins and altars, stuffed in crates, in the pockets of the dead. Never just dropped on the floor. Press {action:interact} on one to read it (in a crate, right-click it and choose Read). Whichever scrap you find, it tells you the next thing, always in the same order, until you know everything the rite needs and where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
 
@@ -393,7 +456,7 @@ For the Gloaming, the rite needs five candles, a stick of chalk and the Pendant.
 
 One person has to carry everything the rite needs. If it's spread between you, drop things for that person to pick up. If they die, what they carried lies where they fell.
 
-That person goes to the place and holds {action:interact}. Nothing has to be set down, and nothing has to be fought. When it's done the Affliction is resolved: the omens lift and it won't come for you. You still have to get out before time runs out.`
+That person goes to the place and holds {action:interact}. Nothing has to be set down. When it's done, the Affliction comes: banish it there and it is resolved. Be ready before you begin.`
 	},
 	{
 		id: 'account',

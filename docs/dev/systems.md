@@ -44,9 +44,10 @@ Bindings use `KeyboardEvent.code` (layout-independent) and `Mouse0`..`Mouse4`. M
 
 - `input.isDown(action)` for held input (`input.isDown(action, 'pad')` for one device only).
 - `input.onPressed(fn)` for presses, with the device that pressed it; returns an unsubscribe function.
+- `new InputMap(window, only, padOnly)` outside the game: `only` limits it to those actions, and `padOnly` adds actions heard from the controller alone, their keys left to the page.
 - `input.consumeLook()` returns mouse movement since the last call while the pointer is locked (mouse look is an axis, not an action).
 
-**Tab** is a game key only in the game view (`/play`): there `src/routes/+layout.svelte` stops it moving the browser's focus (in the capture phase, so dialogs can't let it through), and the input map treats it as any other key. By default it is the `inventory` action, the pack. Everywhere else (the dashboard, settings, account, the sign-in pages) Tab moves between buttons and fields as usual, and no page binds `inventory`.
+**Tab** is a game key only in the game view (`/play`): there `src/routes/+layout.svelte` stops it moving the browser's focus (in the capture phase, so dialogs can't let it through), and the input map treats it as any other key. By default it is the `inventory` action, the pack. Everywhere else (the dashboard, settings, account, the sign-in pages) Tab moves between buttons and fields as usual, and no page binds `inventory` to its keys: the dashboard hears it from the controller only (View goes to the Loadout page).
 
 **Controllers** play through the same actions, with their buttons bound apart from the keys (`settings.padBindings`); the sticks are `input.moveStick()` and `input.lookStick()`. See [controller.md](controller.md).
 
@@ -148,7 +149,7 @@ Blank lines separate paragraphs, and a paragraph whose lines all start with `- `
 
 `devMode` (`src/lib/dev.ts`) is true on the dev server or when `PUBLIC_DEV_MODE=true`. `AdminPanel` (F10) renders nothing unless `devMode` is true. Gate every debug tool the same way.
 
-**The admin screen** is a `TabScreen` laid like settings, one group per area: Session (connection, IDs, stats overlay), Map (seed, regenerate, debug view), Player (cheat toggles, sanity, teleport to rooms), Items (give, refill ammo, reset crates), Affliction (meter, force manifestation, banish), Rite, Creatures, Controller (connected controllers live, test rumble) and Account (surface grants). It reopens on the group last used. To add a tool, put it in its group in `AdminPanel.svelte` with the same fields: `StepperField` for on/off, the `action` snippet for a command, a `form.setting` with a `label.pill` input and a submit button for a value.
+**The admin screen** is a `TabScreen` laid like settings, one group per area: Session (connection, IDs, stats overlay), Map (seed, regenerate, debug view), Player (cheat toggles, sanity, teleport to rooms), Items (give, refill ammo, reset crates), Affliction (meter, summon the manifestation, stun it, banish it), Rite, Creatures, Controller (connected controllers live, test rumble) and Account (surface grants). It reopens on the group last used. To add a tool, put it in its group in `AdminPanel.svelte` with the same fields: `StepperField` for on/off, the `action` snippet for a command, a `form.setting` with a `label.pill` input and a submit button for a value.
 
 - **Leaving it:** a move key (`moveForward`, `moveBack`, `moveLeft`, `moveRight`, `climb`, `stance`) closes it and captures the mouse again, so a change can be tried at once. Esc only closes it; Esc again opens settings. Esc can't capture the mouse (browsers don't count it as a user gesture), so click or move to carry on. `InputMap` passes Esc through even from a text field.
 

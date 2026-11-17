@@ -1,21 +1,29 @@
 import { AFFLICTIONS, type AfflictionDef } from '../src/lib/content/afflictions.ts';
+import { STROBE } from '../src/lib/content/statuses.ts';
 import { TICK_RATE } from '../src/lib/shared/constants.ts';
 import type { AfflictionSnapshot } from '../src/lib/shared/affliction/types.ts';
-import { illumination } from '../src/lib/shared/creature/visibility.ts';
+import { illumination, lampIllumination } from '../src/lib/shared/creature/visibility.ts';
 import { lootValue } from '../src/lib/shared/items/inventory.ts';
 import type { CollisionWorld } from '../src/lib/shared/map/collision.ts';
 import { findPath, gridDistances, nearestPoint, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { eyeHeight } from '../src/lib/shared/player/simulate.ts';
+import type { PlayerState } from '../src/lib/shared/player/types.ts';
 import { Rng } from '../src/lib/shared/rng.ts';
+import {
+	applyStatus,
+	hasStatus,
+	stepStatuses,
+	type Statuses
+} from '../src/lib/shared/status/status.ts';
 import type { CreatureBody, CreatureDirector, Prey } from './creatures.ts';
 
 /**
- * The Affliction for one expedition: the hidden meter, omen stages (lamp failure, bolder and
- * more creatures; clients add the sounds), and the manifestation at 100%: it hunts along the
- * nav grid, drains the sanity of anyone near it, strikes whoever it reaches, and can only be
- * hurt while lamp light exposes it. Banishing it ends the expedition; performing the rite calms it
- * for good (see `calm`). Lamps fail only by omen stage; the manifestation itself puts no lamp out.
+ * The Affliction for one expedition: the hidden meter and its omen stages (lamp failure, bolder
+ * and more creatures; clients add the sounds), and the manifestation the rite summons. It hunts
+ * along the nav grid, winds up and strikes whoever it reaches, can only be hurt while lamp light
+ * exposes it, and a lamp flicked on in its face (a strobe) stuns it. Banishing it resolves the
+ * Affliction and calms it for good (see `calm`). Lamps fail only by omen stage.
  * See docs/dev/affliction.md.
  */
 
@@ -27,6 +35,12 @@ const REPATH = 0.5;
 const EXPOSE_HOLD = 0.4;
 /** Below this much lamp light on it, it moves at its unlit speed. */
 const UNLIT = 0.02;
+/** A swing that has begun still lands on someone this much (m) beyond its reach. */
+const REACH_SLACK = 0.4;
+/** Height difference (m) beyond which it can't reach someone (a floor above or below). */
+const REACH_HEIGHT = 2;
+/** Seconds a swing takes without a body to time it. */
+const STRIKE_SECONDS = 1.2;
 
 interface Manifested {
 	position: Vec3;
@@ -41,31 +55,36 @@ interface Manifested {
 	path: Vec3[];
 	pathIndex: number;
 	repath: number;
-	/** Per player: seconds until its touch can hit them again. */
-	touch: Map<string, number>;
-	/** Touches landed so far (clients animate each new one). */
+	statuses: Statuses;
+	/** Seconds into the swing it is making, or -1 when it isn't swinging. */
+	swing: number;
+	/** The swing it is making has landed (or missed). */
+	landed: boolean;
+	/** Seconds it stands after a swing. */
+	recover: number;
+	/** Swings begun so far (clients animate each new one). */
 	strikes: number;
 }
 
-/** What the manifestation did to a player this tick. */
+/** A blow the manifestation landed on a player this tick, before what they wear absorbs. */
 export interface AfflictionHit {
 	playerId: string;
 	amount: number;
-	/** A touch (a hard hit) rather than the steady drain. */
-	touch: boolean;
 }
 
 export class AfflictionDirector {
 	readonly def: AfflictionDef;
-	/** 0..1: at 1 it manifests. Clients show it as the arrival bar. */
+	/** 0..1: drives the omen stages. Nothing manifests when it fills. */
 	meter = 0;
 	stage = 0;
+	/** Explorers who went down: how hard its strikes land (`strikeDamage`). */
+	party = 1;
 	private manifestation: Manifested | null = null;
 	private lastKills = 0;
 	private rng: Rng;
-	/** Set once it's banished: the session ends the expedition. */
-	banished = false;
-	/** The rite was performed: no meter, no omens, no manifestation for the rest of the run. */
+	/** What the rite summoned has been banished: the Affliction is resolved. */
+	defeated = false;
+	/** Resolved: no meter, no omens for the rest of the run. */
 	calmed = false;
 
 	constructor(
@@ -89,30 +108,71 @@ export class AfflictionDirector {
 	}
 
 	/**
-	 * The rite is done: the meter stops for good, omens and gloom lift, creatures are only as bold
-	 * as ever, and a manifestation already out fades away without ending the expedition.
+	 * The rite was performed: the manifestation appears in its room, on the floor point there
+	 * (`inRoom`) farthest from where it was performed, and gathers before it hunts. With no such
+	 * point it appears far from everyone instead. Does nothing if it is already out.
+	 */
+	summon(inRoom: (position: Vec3) => boolean, from: Vec3, players: Prey[]): void {
+		if (this.manifestation || this.calmed) return;
+		let at: Vec3 | null = null;
+		let farthest = -1;
+		for (const point of this.nav.points) {
+			if (!inRoom(point.position)) continue;
+			const p = point.position;
+			const d = Math.hypot(p[0] - from[0], p[1] - from[1], p[2] - from[2]);
+			if (d > farthest) {
+				farthest = d;
+				at = p;
+			}
+		}
+		if (at) this.appear(at);
+		else this.manifestFar(players);
+	}
+
+	/** Admin: bring it out far from everyone (no rite room to summon it into). */
+	forceManifest(players: Prey[]): void {
+		if (!this.manifestation && !this.calmed) this.manifestFar(players);
+	}
+
+	/**
+	 * Resolved: the meter stops for good, omens and gloom lift, and creatures are only as bold as
+	 * ever. The creatures themselves stay.
 	 */
 	calm(): void {
 		if (this.calmed) return;
 		this.calmed = true;
 		this.stage = 0;
 		this.creatures.boldness = 1;
-		const d = this.manifestation;
-		if (d && d.state !== 'banished') {
-			d.state = 'banished';
-			d.time = 0;
-		}
 	}
 
-	/** Admin: banish it now. */
+	/** Admin: banish it now (it counts, like a weapon would). */
 	banish(): void {
 		if (this.manifestation && this.manifestation.state !== 'banished')
 			this.dissolve(this.manifestation);
 	}
 
+	/** Admin: stun it (by its own reaction, so immunity still applies). */
+	stun(): boolean {
+		const d = this.manifestation;
+		if (!d || d.state === 'banished') return false;
+		return applyStatus(d.statuses, STROBE.causes, this.def.manifestation.statuses);
+	}
+
+	/**
+	 * A player turned their lamp on from off: if the manifestation is vulnerable to the strobe and
+	 * this lamp lights its core, it gets what the strobe causes (stunned), unless it is immune.
+	 */
+	strobe(state: PlayerState): boolean {
+		const d = this.manifestation;
+		const m = this.def.manifestation;
+		if (!d || d.state === 'banished' || !m.vulnerable.includes('strobe')) return false;
+		if (lampIllumination(this.world, state, this.core(d)) < STROBE.light) return false;
+		return applyStatus(d.statuses, STROBE.causes, m.statuses);
+	}
+
 	/**
 	 * Advance one tick: the meter, stages, the manifestation. Sets every player's gloom (the
-	 * omen stage's) and returns the sanity the manifestation takes.
+	 * omen stage's) and returns the blows the manifestation landed.
 	 */
 	step(players: Prey[]): AfflictionHit[] {
 		const def = this.def;
@@ -124,18 +184,15 @@ export class AfflictionDirector {
 		// The meter: time underground, kills, loot carried.
 		const kills = this.creatures.kills - this.lastKills;
 		this.lastKills = this.creatures.kills;
-		if (!this.manifestation) {
-			const loot = players.reduce((sum, p) => sum + lootValue(p.state.inventory), 0);
-			this.meter = Math.min(
-				1,
-				this.meter +
-					DT / def.meter.seconds +
-					kills * def.meter.perKill +
-					loot * def.meter.perLoot * DT
-			);
-		}
+		const loot = players.reduce((sum, p) => sum + lootValue(p.state.inventory), 0);
+		this.meter = Math.min(
+			1,
+			this.meter +
+				DT / def.meter.seconds +
+				kills * def.meter.perKill +
+				loot * def.meter.perLoot * DT
+		);
 		this.updateStage(players);
-		if (this.meter >= 1 && !this.manifestation) this.manifest(players);
 
 		const base = def.stages[this.stage - 1]?.gloom ?? 0;
 		const hits: AfflictionHit[] = [];
@@ -173,6 +230,12 @@ export class AfflictionDirector {
 		return (this.manifestation?.exposed ?? 0) > 0;
 	}
 
+	/** Damage a landed strike does, for this party's size. */
+	get strikeDamage(): number {
+		const table = this.def.manifestation.strikeDamage;
+		return table[Math.max(0, Math.min(table.length, this.party) - 1)] ?? 0;
+	}
+
 	/** Everything but the rite and the deadline, which the session adds (see server/rite.ts). */
 	snapshot(): Omit<AfflictionSnapshot, 'rite' | 'deadline'> {
 		const d = this.manifestation;
@@ -186,7 +249,8 @@ export class AfflictionDirector {
 						position: d.position.map((v) => Math.round(v * 1000) / 1000) as Vec3,
 						state: d.state,
 						exposed: d.exposed > 0,
-						radius: this.def.manifestation.radius,
+						charge: d.exposed > 0 ? 1 : Math.round(Math.min(1, d.charge / EXPOSE_HOLD) * 100) / 100,
+						stunned: hasStatus(d.statuses, 'stunned'),
 						strikes: d.strikes
 					}
 				: null
@@ -214,7 +278,7 @@ export class AfflictionDirector {
 		this.creatures.boldness = stages[stage - 1]?.boldness ?? 1;
 	}
 
-	private manifest(players: Prey[]): void {
+	private manifestFar(players: Prey[]): void {
 		const m = this.def.manifestation;
 		const starts = players.map((p) => nearestPoint(this.nav, p.state.position));
 		const distance = gridDistances(this.nav, starts);
@@ -227,27 +291,35 @@ export class AfflictionDirector {
 			spots = this.nav.points.filter((_, i) => (distance[i] ?? 0) >= far * 0.8);
 		}
 		const at = spots.length ? this.rng.pick(spots).position : this.nav.points[0]?.position;
-		if (!at) return;
+		if (at) this.appear(at);
+	}
+
+	private appear(at: Vec3): void {
 		this.manifestation = {
 			position: [...at],
 			state: 'gathering',
 			time: 0,
-			health: m.health,
+			health: this.def.manifestation.health,
 			exposed: 0,
 			charge: 0,
 			slowed: 0,
 			path: [],
 			pathIndex: 0,
 			repath: 0,
-			touch: new Map(),
+			statuses: {},
+			swing: -1,
+			landed: false,
+			recover: 0,
 			strikes: 0
 		};
 	}
 
+	/** Banished: it fades away, and the Affliction is resolved. */
 	private dissolve(d: Manifested): void {
 		d.state = 'banished';
 		d.time = 0;
-		this.banished = true;
+		this.defeated = true;
+		this.calm();
 	}
 
 	private stepManifestation(
@@ -259,6 +331,7 @@ export class AfflictionDirector {
 		const m = this.def.manifestation;
 		d.time += DT;
 		if (d.state === 'banished') return;
+		stepStatuses(d.statuses, m.statuses, DT);
 		if (d.state === 'gathering') {
 			if (d.time >= m.gatherSeconds) {
 				d.state = 'hunting';
@@ -278,34 +351,55 @@ export class AfflictionDirector {
 		d.exposed = d.charge >= EXPOSE_HOLD ? m.exposeLinger : Math.max(0, d.exposed - DT);
 		d.slowed = Math.max(0, d.slowed - DT);
 
-		// Hunt the nearest player who's still up.
-		const target = this.nearest(d, able);
-		if (target) {
-			const speed = (light < UNLIT ? m.unlitSpeed : m.speed) * (d.slowed > 0 ? 0.3 : 1);
-			this.move(d, target.state.position, speed * DT);
+		// Stunned, it stands where it is, and a swing not yet landed is lost.
+		if (hasStatus(d.statuses, 'stunned')) {
+			d.swing = -1;
+			d.recover = 0;
+			return;
 		}
 
-		// Being near it drains, its core strikes.
-		for (const p of able) {
-			const dist = this.distance(d, p);
-			if (dist <= m.radius) hits.push({ playerId: p.id, amount: m.drain * DT, touch: false });
-			const cooldown = Math.max(0, (d.touch.get(p.id) ?? 0) - DT);
-			const horizontal = Math.hypot(
-				p.state.position[0] - d.position[0],
-				p.state.position[2] - d.position[2]
-			);
-			if (
-				horizontal <= m.core &&
-				Math.abs(p.state.position[1] - d.position[1]) < 2 &&
-				cooldown <= 0
-			) {
-				hits.push({ playerId: p.id, amount: m.touchDamage, touch: true });
-				d.touch.set(p.id, m.touchInterval);
-				d.strikes++;
-			} else {
-				d.touch.set(p.id, cooldown);
+		// Swinging: it stands, and the blow lands partway through on whoever is still in reach.
+		if (d.swing >= 0) {
+			d.swing += DT;
+			if (!d.landed && d.swing >= m.strikeAt) {
+				d.landed = true;
+				for (const p of able) {
+					if (this.reaches(d, p, m.reach + REACH_SLACK)) {
+						hits.push({ playerId: p.id, amount: this.strikeDamage });
+					}
+				}
 			}
+			if (d.swing >= (m.body?.strikeSeconds ?? STRIKE_SECONDS)) {
+				d.swing = -1;
+				d.recover = m.strikeRecover;
+			}
+			return;
 		}
+		if (d.recover > 0) {
+			d.recover = Math.max(0, d.recover - DT);
+			return;
+		}
+
+		// Hunt the nearest player who's still up; within reach, it begins a swing.
+		const target = this.nearest(d, able);
+		if (!target) return;
+		if (this.reaches(d, target, m.reach)) {
+			d.swing = 0;
+			d.landed = false;
+			d.strikes++;
+			return;
+		}
+		const speed = (light < UNLIT ? m.unlitSpeed : m.speed) * (d.slowed > 0 ? 0.3 : 1);
+		this.move(d, target.state.position, speed * DT);
+	}
+
+	/** Is a player within this distance of it along the floor (and on its level)? */
+	private reaches(d: Manifested, p: Prey, distance: number): boolean {
+		const s = p.state.position;
+		return (
+			Math.hypot(s[0] - d.position[0], s[2] - d.position[2]) <= distance &&
+			Math.abs(s[1] - d.position[1]) < REACH_HEIGHT
+		);
 	}
 
 	/** Eye-to-core distance. */

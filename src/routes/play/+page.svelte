@@ -19,17 +19,29 @@
 	import { Effects } from '#lib/game/items/Effects.ts';
 	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { Crates } from '#lib/game/items/Crates.ts';
+	import { Doors } from '#lib/game/map/Doors.ts';
+	import { Underwater } from '#lib/game/Underwater.ts';
+	import UnderwaterOverlay from '#lib/ui/UnderwaterOverlay.svelte';
+	import { DOORS } from '#lib/content/doors.ts';
+	import { lookedAtDoor } from '#lib/shared/map/doors.ts';
 	import { Marks } from '#lib/game/items/Marks.ts';
 	import { DEFAULT_MARK_WHEEL, MARKS } from '#lib/content/marks.ts';
 	import { WorldItems } from '#lib/game/items/WorldItems.ts';
 	import { ITEMS } from '#lib/content/items.ts';
-	import { DISTANT_SHOT } from '#lib/content/audio/sounds.ts';
+	import { DISTANT_SHOT, type SoundId } from '#lib/content/audio/sounds.ts';
+	import { SURVEY } from '#lib/content/map/survey.ts';
+	import { carriesSurvey, cellAt, surveyMap, type SurveyMap } from '#lib/shared/map/survey.ts';
 	import { CRATES } from '#lib/content/loot.ts';
 	import { canTake, carriedCount, held, quickWith, shieldOf } from '#lib/shared/items/inventory.ts';
 	import { carriesAll } from '#lib/shared/affliction/rite.ts';
 	import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
 	import { lookedAtCrate, lookedAtItem, lookedAtMark } from '#lib/shared/items/pickup.ts';
-	import type { CrateSlot, GameEvent, InventoryAction } from '#lib/shared/items/types.ts';
+	import type {
+		CrateSlot,
+		GameEvent,
+		InventoryAction,
+		MarkSnapshot
+	} from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
 	import { charging, eyeHeight, healing } from '#lib/shared/player/simulate.ts';
 	import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
@@ -38,6 +50,19 @@
 	import { device, promptCode } from '#lib/game/input/device.svelte.ts';
 	import { rumble } from '#lib/game/input/gamepad.ts';
 	import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
+	import { MapDebugGrid } from '#lib/game/map/MapDebugGrid.ts';
+	import { HangingRopes, type RopeClimber } from '#lib/game/map/HangingRopes.ts';
+	import { RopeCreaks } from '#lib/game/player/RopeCreaks.ts';
+	import { LaidRopes } from '#lib/game/items/LaidRopes.ts';
+	import { ROPE } from '#lib/content/rope.ts';
+	import {
+		applyTied,
+		laidLength,
+		ropeAction,
+		ropeInHand,
+		ropeLength
+	} from '#lib/shared/items/rope.ts';
+	import { mapDebugGrid, type MapDebugCounts } from '#lib/shared/map/debug.ts';
 	import { connection, gameClient, me, start, subscribe } from '#lib/game/net/connection.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
 	import { PlayerBody } from '#lib/game/player/PlayerBody.ts';
@@ -53,6 +78,8 @@
 	import { roomPoints } from '#lib/shared/map/points.ts';
 	import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
 	import { nearExtract } from '#lib/shared/player/simulate.ts';
+	import { ropeById, ropeToGrab } from '#lib/shared/player/climb.ts';
+	import { CONDITIONS, isConditionId } from '#lib/content/player/conditions.ts';
 	import { EXPEDITION } from '#lib/content/expedition.ts';
 	import { bindingLabel, type Action } from '#lib/game/input/actions.ts';
 	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
@@ -61,7 +88,8 @@
 		type Inventory,
 		type ItemStack,
 		type PlayerFlags,
-		type PlayerState
+		type PlayerState,
+		type SurveyHold
 	} from '#lib/shared/player/types.ts';
 	import type {
 		AdminCommand,
@@ -73,7 +101,9 @@
 	import Captions from '#lib/ui/Captions.svelte';
 	import CrateScreen from '#lib/ui/CrateScreen.svelte';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
-	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
+	import GameMenu, { type MenuTab } from '#lib/ui/GameMenu.svelte';
+	import MapScreen from '#lib/ui/MapScreen.svelte';
+	import type { SketchContent } from '#lib/ui/mapSketch.ts';
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
@@ -84,17 +114,23 @@
 	import DescentLoading from '#lib/ui/DescentLoading.svelte';
 	import { preloadRun, type LoadProgress } from '#lib/game/preload.ts';
 	import Hud from '#lib/ui/Hud.svelte';
-	import RiteOverlay from '#lib/ui/RiteOverlay.svelte';
+	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import ExpeditionClock from '#lib/ui/ExpeditionClock.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import type { PartyMember } from '#lib/ui/PartyHealth.svelte';
 	import StatsOverlay from '#lib/ui/StatsOverlay.svelte';
+	import MapDebugPanel from '#lib/ui/MapDebugPanel.svelte';
+
+	/** The dev free camera: metres a second, the sprint multiple, mouse and stick turn rates. */
+	const FREECAM = { speed: 8, fast: 4, mouse: 0.0022, stickTurn: 2.5, maxPitch: 1.55 };
 
 	let canvas: HTMLCanvasElement;
-	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'crate';
+	type PanelName = 'settings' | 'help' | 'admin' | 'menu' | 'crate' | 'map';
 	let panel = $state<PanelName | null>(null);
+	/** The in-game menu's tab (GameMenu). */
+	let menuTab = $state<MenuTab>('Pack');
 	/**
 	 * The loot crate (or corpse) that is open, as the server tells it (see the `crate` message).
 	 */
@@ -104,12 +140,11 @@
 		reveal: number;
 		corpse: boolean;
 	} | null>(null);
-	/** The rite as known so far, and (while its overlay shows) who carries each requirement. */
+	/** The rite as known so far, and who carries each requirement (the menu's Rite tab). */
 	let rite = $state<RiteSnapshot | null>(null);
-	/** The rite overlay is wanted: it shows over play whenever there is a rite to show. */
 	let riteCarriers = $state<{ name: string; count: number; self: boolean }[][]>([]);
 	let afflictionName = $state('');
-	/** What the player carries, for the inventory screen (kept up to date while it is open). */
+	/** What the player carries, for the pack and crates (kept up to date while one is open). */
 	let inventory = $state<Inventory | null>(null);
 	const status = $derived(connection.status);
 	const statusDetail = $derived(connection.detail);
@@ -124,8 +159,16 @@
 	let rtt = $state(0);
 	let locked = $state(false);
 	let mapView = $state(false);
+	/** Dev: the map view flown through with the move keys and mouse, instead of orbited. */
+	let freecam = $state(false);
+	/** Dev: the cell and entrance grid drawn over the map view. */
+	let gridView = $state(false);
+	/** Dev: what the map is made of, for the map view's side panel. */
+	let mapCounts = $state<MapDebugCounts | null>(null);
 	let markers = $state(false);
 	let spawned = $state(false);
+	/** How far under the water the view is, 0..1 (the overlay follows the fog). */
+	let underwater = $state(0);
 	let hud = $state({
 		battery: 1,
 		volts: DEFAULT_HEADLAMP.volts,
@@ -141,7 +184,8 @@
 		ammo: null as { loaded: number; spare: number } | null,
 		aiming: false,
 		gloom: 0,
-		party: [] as PartyMember[]
+		party: [] as PartyMember[],
+		conditions: [] as { id: string; name: string; description: string; left: number; of: number }[]
 	});
 	/** The quick-use wheel while its key is held: the slots, the pointer and the slot it is on. */
 	let wheel = $state<{
@@ -153,16 +197,36 @@
 	let chalkWheel = $state<{ pointer: { x: number; y: number }; chosen: number } | null>(null);
 	/** The chalk symbols on this player's wheel, as the server sent them in `welcome`. */
 	let chalkSymbols = $state<readonly string[]>(DEFAULT_MARK_WHEEL);
+	/** Your map (docs/dev/map.md): what a map can show of this one, and what you have drawn. */
+	let survey = $state.raw<SurveyMap | null>(null);
+	let surveyDrawn = $state.raw<ReadonlySet<string>>(new Set());
+	/** Every chalk mark, as the server last sent them: the map draws them too. */
+	let chalkMarks = $state.raw<MarkSnapshot[]>([]);
+	/** While the map is open: you on it, how far the holds have got, and who you could show it. */
+	let mapState = $state<{
+		self: SketchContent['self'];
+		sketch: number;
+		share: number;
+		partner: string | null;
+	}>({ self: null, sketch: 0, share: 0, partner: null });
+	/** The game's input map, for the map screen's keys and sticks. */
+	let gameInput = $state.raw<InputMap | null>(null);
+	/** Carrying a notebook: there is a map to open. */
+	let hasNotebook = false;
+	/** Until when (ms) the HUD says there is no notebook, after the map key was pressed without one. */
+	let noNotebookUntil = 0;
+	let setSurveyHold = (hold: SurveyHold): void => {
+		void hold;
+	};
+	let playUi = (id: SoundId): void => {
+		void id;
+	};
 	/** Who drew the chalk mark you are close to, and where it is on the screen. */
 	let markLabel = $state<{ name: string; x: number; y: number } | null>(null);
 	let meter = $state<number | null>(null);
 	let omen = $state(0);
 	/** Seconds left before anyone still underground is lost. */
 	let deadline = $state<number | null>(null);
-	/** The rite was performed: the Affliction is calmed (no arrival bar). */
-	let calmed = $state(false);
-	/** It has manifested: the arrival bar has nothing left to count. */
-	let manifested = $state(false);
 	/** Set while downed: bleed-out time left (0..1), what happens next, and the hold to surrender. */
 	let downed = $state<{ remaining: number; message: string; surrender: number } | null>(null);
 	/** Set when this player has left the expedition (climbed out or died); shows the results. */
@@ -170,7 +234,7 @@
 		summary: ExpeditionSummary;
 		/** The Affliction's name, as it was underground. */
 		affliction: string;
-		outcome: 'extracted' | 'died' | 'lost' | 'abandoned' | 'banished' | 'resolved';
+		outcome: 'extracted' | 'died' | 'lost' | 'abandoned' | 'resolved';
 		/** Set after spectating: how many of the others got out. */
 		escaped: number | null;
 		/** What was carried out and kept; null when it was lost. */
@@ -189,7 +253,7 @@
 	let spectateStop = (): void => {};
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
 	let banner = $state<{ title: string; subtitle?: string; key: number } | null>(null);
-	/** Down in the catacombs (between `welcome` and extracting, dying or being banished out). */
+	/** Down in the catacombs (between `welcome` and extracting, dying or abandoning). */
 	let expedition = $state(false);
 	/** The run's assets are still loading (see src/lib/game/preload.ts): the loading bar shows. */
 	let loading = $state<LoadProgress | null>(null);
@@ -203,6 +267,16 @@
 	let setMapView = (enabled: boolean): void => {
 		mapView = enabled;
 	};
+	let setFreecam = (enabled: boolean): void => {
+		freecam = enabled;
+	};
+	let setGridView = (enabled: boolean): void => {
+		gridView = enabled;
+	};
+	/** Dev, in the free camera: your body to where the camera is, and back into it. */
+	let bodyToCamera = (): void => {};
+	/** Dev, in the free camera: the camera back to where your body is, still flying. */
+	let cameraToBody = (): void => {};
 	let setMarkers = (enabled: boolean): void => {
 		markers = enabled;
 	};
@@ -257,14 +331,14 @@
 	function closeAdmin(): void {
 		if (panel !== 'admin') return;
 		panel = null;
-		if (expedition && !mapView) capture();
+		if (expedition && (!mapView || freecam)) capture();
 	}
 
 	function toggle(name: PanelName): void {
 		// With a crate open, the pack and menu keys put it away and nothing more.
 		if (panel === 'crate') {
 			closeCrate();
-			if (name === 'inventory' || name === 'settings') return;
+			if (name === 'menu' || name === 'settings') return;
 		}
 		// Esc on the admin screen just closes it; Esc again opens settings. (Esc can't capture the
 		// pointer: browsers don't count it as a user gesture. A click or a move key does.)
@@ -273,12 +347,22 @@
 			return;
 		}
 		const closing = panel === name;
-		// The pack can only be opened while you are down there and not on the floor.
-		if (name === 'inventory' && !closing && (!expedition || !spawned || downed)) return;
+		// The menu and the map only open down there and on your feet: never while down or dead.
+		const underground = expedition && spawned && !downed;
+		if ((name === 'menu' || name === 'map') && !closing && !underground) return;
+		// The menu always opens on the pack.
+		if (name === 'menu' && !closing) menuTab = 'Pack';
+		// No notebook, no map: the HUD says so for a moment.
+		if (name === 'map' && !closing && !hasNotebook) {
+			noNotebookUntil = performance.now() + 2500;
+			return;
+		}
+		const wasMap = panel === 'map';
 		panel = closing ? null : name;
+		if (wasMap !== (panel === 'map')) playUi(wasMap ? 'map.close' : 'map.open');
 		if (panel) document.exitPointerLock();
-		// Putting the pack away goes straight back to play.
-		else if (name === 'inventory' && expedition) capture();
+		// Putting the menu or the map away goes straight back to play.
+		else if ((name === 'menu' || name === 'map') && expedition) capture();
 	}
 
 	onMount(() => {
@@ -298,6 +382,8 @@
 		const orbit = new OrbitControls(engine.camera, canvas);
 		orbit.enableDamping = true;
 		orbit.enabled = false;
+		const debugGrid = new MapDebugGrid();
+		engine.scene.add(debugGrid.root);
 
 		// The player's head: where their eyes are and which way they look. It is the camera,
 		// except over the shoulder, where the camera hangs back and the lamp stays on the head.
@@ -339,7 +425,6 @@
 					case 'extracted':
 					case 'died':
 					case 'abandoned':
-					case 'banished':
 						result = {
 							summary: {
 								seconds: message.seconds,
@@ -349,7 +434,7 @@
 								clues: message.clues
 							},
 							affliction: afflictionName,
-							// Out alive after performing the rite; or lost when time ran out.
+							// Out alive after banishing what the rite summoned; or lost when time ran out.
 							outcome:
 								message.type === 'extracted' && rite?.resolved
 									? 'resolved'
@@ -377,7 +462,22 @@
 						loadMap(message.layout);
 						break;
 					case 'marks':
-						if (expedition || spectating) marks.apply(message.marks);
+						if (expedition || spectating) {
+							marks.apply(message.marks);
+							chalkMarks = message.marks;
+						}
+						break;
+					case 'survey':
+						surveyDrawn = new Set(message.cells.map(([x, z, level]) => cellKey(x, z, level)));
+						break;
+					case 'ropes':
+						// connection.ropes has it already (connection.svelte.ts).
+						if (expedition || spectating) showRopes();
+						break;
+					case 'ropeGrow':
+						if (expedition || spectating) {
+							for (const grown of message.ropes) laidRopes.grow(grown.id, grown.points);
+						}
 						break;
 					case 'crate':
 						if (message.id === null) {
@@ -427,6 +527,7 @@
 						creatures.apply(message.creatures);
 						worldItems.apply(message.items, message.projectiles);
 						crates.apply(message.crates);
+						doors.apply(message.doors);
 						for (const event of message.events) onGameEvent(event);
 						manifestation.apply(
 							message.affliction.manifestation,
@@ -439,8 +540,6 @@
 						omen = message.affliction.omen;
 						meter = message.affliction.meter;
 						deadline = message.affliction.deadline;
-						calmed = message.affliction.calmed;
-						manifested = message.affliction.manifestation !== null;
 						ambience.setOmen(
 							AFFLICTIONS[message.affliction.id]?.stages[omen - 1]?.ambience ?? null
 						);
@@ -450,6 +549,11 @@
 		});
 		const player = new LocalPlayer(input, client);
 		const sounds = new SoundBank(audio);
+		gameInput = input;
+		setSurveyHold = (hold) => {
+			player.survey = hold;
+		};
+		playUi = (id) => sounds.play(id);
 		sounds.oncaption = (cue) => {
 			if (settings.accessibility.captions) captions.push(cue);
 		};
@@ -464,12 +568,32 @@
 		engine.scene.add(worldItems.root);
 		const crates = new Crates();
 		engine.scene.add(crates.root);
+		const doors = new Doors();
+		engine.scene.add(doors.root);
+		const water = new Underwater(engine.scene);
+		/** The low drone heard with your head under, started on first use. */
+		let waterDrone: { setVolume(v: number): void; stop(): void } | null = null;
+		let waterDroneStarting = false;
 		const marks = new Marks(map.root);
 		engine.scene.add(marks.root);
 		const chalkRay = new THREE.Raycaster();
 		chalkRay.far = MARKS.reach;
 		const effects = new Effects();
 		engine.scene.add(effects.root);
+		const ropes = new HangingRopes();
+		engine.scene.add(ropes.root);
+		const creaks = new RopeCreaks(sounds);
+		const laidRopes = new LaidRopes();
+		engine.scene.add(laidRopes.root);
+		/** Ropes changed: draw the laid ones, and the tied ones are climbable (and drawn) from now. */
+		function showRopes(): void {
+			laidRopes.apply(connection.ropes.laid);
+			const world = player.collision;
+			if (world) {
+				applyTied(world, connection.ropes.tied);
+				ropes.sync(world);
+			}
+		}
 		const muzzle = new THREE.Vector3();
 		/** The held item's action last frame (to start reload and swing sounds). */
 		let lastAction = 'none';
@@ -477,6 +601,8 @@
 		let pickupTarget: { id: string; item: string } | null = null;
 		/** The loot crate the player would open, if any (a floor item comes first). */
 		let crateTarget: string | null = null;
+		/** The shut door between levels interact would open, if any (floor items and crates first). */
+		let doorTarget: string | null = null;
 		/** Your own chalk mark that interact would erase, if any (floor items and crates first). */
 		let markTarget: string | null = null;
 		setMarkers = (enabled) => {
@@ -533,6 +659,9 @@
 				}
 			});
 			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
+			// What was drawn of a map that is gone is no use; the server sends what there is.
+			survey = surveyMap(layout, PIECES, MAP_KIT);
+			surveyDrawn = new Set();
 			const id = ++loadId;
 			loading = { loaded: 0, total: 0 };
 			void Promise.all([
@@ -548,8 +677,13 @@
 				})
 				.catch((error) => console.error('Map load failed', error));
 			crates.build(layout.crates);
+			const grid = mapDebugGrid(layout, PIECES, MAP_KIT);
+			debugGrid.build(grid);
+			mapCounts = grid.counts;
 			const world = buildCollisionWorld(layout, PIECES);
+			doors.build(layout.doors, world);
 			player.setWorld(world);
+			ropes.sync(world);
 			ambience.setMap(layout, world);
 		}
 
@@ -565,22 +699,53 @@
 		/** Whether the rite was being performed last frame (to ring its bell once). */
 		let performing = false;
 
+		/**
+		 * Ropes: who is on one. The hanging ropes sway and pull taut under them (as drawn), and
+		 * prediction stops short of the others (as the server last said) so nobody climbs past.
+		 */
+		function updateRopes(delta: number): void {
+			const climbers: RopeClimber[] = [];
+			const self = player.state;
+			const feet = player.feetPosition();
+			if (self?.climbing && feet) climbers.push({ rope: self.climbing.rope, feet });
+			for (const other of remote.states()) {
+				if (other.climbing) climbers.push({ rope: other.climbing.rope, feet: other.position });
+			}
+			ropes.update(delta, climbers);
+			player.setClimbers(
+				remote
+					.players()
+					.flatMap(({ state }) =>
+						state.climbing ? [{ rope: state.climbing.rope, y: state.position[1] }] : []
+					)
+			);
+			creaks.update(remote.players());
+		}
+
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
+			if (freecam) setFreecam(false);
 			loadId++;
 			loading = null;
-			if (panel === 'inventory' || panel === 'crate') panel = null;
+			if (panel === 'menu' || panel === 'crate' || panel === 'map') panel = null;
 			crate = null;
 			leavingCrate = false;
+			survey = null;
+			surveyDrawn = new Set();
+			chalkMarks = [];
 			crates.clear();
+			doors.clear();
+			water.reset();
+			underwater = 0;
 			marks.clear();
+			ropes.clear();
+			creaks.clear();
+			laidRopes.clear();
 			markLabel = null;
 			chalkWheel = null;
 			rite = null;
 			deadline = null;
-			calmed = false;
-			manifested = false;
 			performing = false;
 			spectating = null;
 			watchId = null;
@@ -638,7 +803,7 @@
 		/** Dead, with others still down there: keep the world and watch through their eyes. */
 		function startSpectating(): void {
 			expedition = false;
-			if (panel === 'inventory' || panel === 'crate') panel = null;
+			if (panel === 'menu' || panel === 'crate') panel = null;
 			crate = null;
 			spectating = { name: '' };
 			watchId = null;
@@ -852,6 +1017,43 @@
 				case 'mark':
 					sounds.playAt('chalk.draw', event.position, 1, 2);
 					break;
+				case 'fall':
+					sounds.playAt(event.hard ? 'fall.land.hard' : 'fall.land', event.position, 1, 2);
+					if (event.player === client.playerId) sounds.play('condition.hobble');
+					break;
+				case 'ropeGrab':
+					sounds.playAt(
+						'rope.grab',
+						[event.position[0], event.position[1] + 1.4, event.position[2]],
+						1,
+						2
+					);
+					break;
+				case 'ropeTie':
+				case 'ropeUntie':
+				case 'ropeGather':
+					sounds.playAt('rope.tie', event.position, 1, 2);
+					break;
+				case 'ropeLay':
+					sounds.playAt('rope.payout', event.position, 1, 2);
+					break;
+				case 'ropeLetGo':
+					sounds.playAt(
+						'rope.letgo',
+						[event.position[0], event.position[1] + 1.4, event.position[2]],
+						1,
+						2
+					);
+					break;
+				// Your own pencil and pages are in your hands; someone else's are heard from where they are.
+				case 'sketch':
+					if (event.player === self) sounds.play('map.sketch');
+					else sounds.playAt('map.sketch', event.position, 1, 2);
+					break;
+				case 'showMap':
+					if (event.player === self || event.with === self) sounds.play('map.show');
+					else sounds.playAt('map.show', event.position, 1, 2);
+					break;
 				case 'rub':
 					sounds.playAt('chalk.rub', event.position, 1, 2);
 					break;
@@ -859,6 +1061,11 @@
 					if (crates.kind(event.id) === 'corpse')
 						sounds.playAt('corpse.search', event.position, 1, 3);
 					else sounds.playAt('crate.open', event.position, 1, 4);
+					break;
+				case 'doorOpen':
+					// Heard far down the stair and back across the level.
+					sounds.playAt('door.unbar', event.position, 1, 6);
+					sounds.playAt('door.open', event.position, 1, 10);
 					break;
 				case 'rummage':
 					// Your own hands are right there; someone else's are heard from where they are.
@@ -878,12 +1085,26 @@
 					break;
 				}
 				case 'rite':
-					sounds.play('rite.resolve');
+					sounds.play('rite.perform');
 					banner = {
 						title: 'The rite is done',
+						subtitle: `Something answers it. Banish ${afflictionName || 'the Affliction'}.`,
+						key: (banner?.key ?? 0) + 1
+					};
+					break;
+				case 'resolved':
+					sounds.play('rite.resolve');
+					banner = {
+						title: 'Banished',
 						subtitle: `${afflictionName || 'The Affliction'} is resolved. Now get out.`,
 						key: (banner?.key ?? 0) + 1
 					};
+					break;
+				case 'strobe':
+					// The lamp's own click already plays; a flash that stunned something cracks too.
+					if (event.stunned <= 0) break;
+					if (event.player === self) sounds.play('strobe.flash');
+					else sounds.playAt('strobe.flash', event.position, 1, 4);
 					break;
 				case 'deadline':
 					banner = { title: 'Lost in the dark', key: (banner?.key ?? 0) + 1 };
@@ -1022,6 +1243,7 @@
 			const world = player.collision;
 			pickupTarget = null;
 			crateTarget = null;
+			doorTarget = null;
 			markTarget = null;
 			if (world && !state.downed && !state.swimming) {
 				const { origin, direction } = aimRay(state, eyeHeight(state));
@@ -1029,6 +1251,12 @@
 				if (item) pickupTarget = { id: item.id, item: item.item };
 				else crateTarget = lookedAtCrate(world, origin, direction, crates.placements)?.id ?? null;
 				if (!pickupTarget && !crateTarget) {
+					const door = lookedAtDoor(world, origin, direction, doors.placements, (id) =>
+						doors.isOpen(id)
+					);
+					doorTarget = door?.id ?? null;
+				}
+				if (!pickupTarget && !crateTarget && !doorTarget) {
 					const self = client.playerId;
 					const mine = lookedAtMark(world, origin, direction, marks.list, (m) => m.by === self);
 					markTarget = mine?.id ?? null;
@@ -1074,6 +1302,11 @@
 				// The only thing a downed player can still do: climb out.
 				return extractPrompt(state) ?? { prompt: null, progress: 0 };
 			}
+			if (performance.now() < noNotebookUntil) {
+				return { prompt: 'No notebook to draw a map in', progress: 0 };
+			}
+			const rope = ropePrompt(state);
+			if (rope) return rope;
 			const heal = healing(state);
 			if (heal && state.bandaging > 0) {
 				return { prompt: 'Bandaging...', progress: state.bandaging / heal.seconds };
@@ -1090,7 +1323,7 @@
 			}
 			if (
 				rite &&
-				!rite.resolved &&
+				!rite.performed &&
 				inRiteRoom(state.position) &&
 				carriesAll(state.inventory, rite.requirements)
 			) {
@@ -1114,6 +1347,9 @@
 				if (fit === 'full') return { prompt: name + ': no room for it', progress: 0 };
 				return keyPrompt('interact', `to pick up ${name}`);
 			}
+			if (doorTarget) {
+				return keyPrompt('interact', 'to open the door', state.unbarring / DOORS.openSeconds);
+			}
 			if (markTarget && settings.interface.itemPrompts) {
 				return keyPrompt('interact', 'to erase your mark', state.erasing / MARKS.eraseSeconds);
 			}
@@ -1125,7 +1361,82 @@
 			) {
 				return keyPrompt('attack', 'to draw a mark');
 			}
-			return { prompt: null, progress: 0 };
+			return gearRopePrompt(state) ?? { prompt: null, progress: 0 };
+		}
+
+		/**
+		 * Rope as gear (docs/dev/rope.md): tying it at an anchor, untying it, gathering a laid one
+		 * up (interact, held), and paying it out with it in the hand (attack).
+		 */
+		function gearRopePrompt(
+			state: PlayerState
+		): { prompt: string; promptKey?: string; progress: number } | null {
+			const world = player.collision;
+			if (!world || state.swimming || state.climbing) return null;
+			const { laid, tied } = connection.ropes;
+			const action = ropeAction(world, laid, tied, state);
+			const tieProgress = state.roping / ROPE.tieSeconds;
+			if (action?.kind === 'untie') {
+				const climbing = [self(), ...remote.players()].some(
+					(p) => p?.state.climbing?.rope === `tied-${action.anchor.id}`
+				);
+				if (climbing) return { prompt: 'Someone is on the rope', progress: 0 };
+				return keyPrompt('interact', 'to untie the rope', tieProgress);
+			}
+			if (action?.kind === 'tie') {
+				return keyPrompt('interact', 'to tie the rope', tieProgress);
+			}
+			if (action?.kind === 'short') {
+				return { prompt: `Not enough rope: this drop needs ${action.need} m`, progress: 0 };
+			}
+			const rope = ropeInHand(state);
+			// Laying: held, the pill filling as the rope runs out.
+			const laying = laid.find((r) => r.laying && r.by === client.playerId);
+			if (laying && rope) {
+				return keyPrompt('attack', 'to keep laying rope', laidLength(laying) / ropeLength(rope));
+			}
+			if (action?.kind === 'gather' && settings.interface.itemPrompts) {
+				return keyPrompt('interact', 'to gather up the rope', state.roping / ROPE.pickupSeconds);
+			}
+			if (rope && settings.interface.itemPrompts) {
+				return keyPrompt('attack', 'to lay rope behind you');
+			}
+			return null;
+		}
+
+		/** This player as `remote.players()` lists the others, or null before the first snapshot. */
+		function self(): { id: string; state: PlayerState } | null {
+			return player.state ? { id: client.playerId ?? '', state: player.state } : null;
+		}
+
+		/** The map screen's view: you on the map, the holds (0..1, 1 once done) and who is close. */
+		function mapScreenView(state: PlayerState): typeof mapState {
+			const feet = player.feetPosition() ?? state.position;
+			const key = survey ? cellAt(survey, feet) : null;
+			const level = key ? survey!.cells.get(key)!.cell[2] : Math.round(feet[1] / LEVEL_HEIGHT);
+			const progress = (seconds: number, of: number) =>
+				seconds < 0 ? 1 : Math.min(1, seconds / of);
+			let partner: string | null = null;
+			let nearest: number = SURVEY.shareRange;
+			for (const other of remote.players()) {
+				const o = other.state;
+				if (o.downed || o.dead) continue;
+				const d = Math.hypot(
+					o.position[0] - state.position[0],
+					o.position[1] - state.position[1],
+					o.position[2] - state.position[2]
+				);
+				if (d <= nearest) {
+					nearest = d;
+					partner = other.name;
+				}
+			}
+			return {
+				self: { x: feet[0], z: feet[2], level, yaw: player.look().yaw },
+				sketch: progress(state.sketching, SURVEY.sketchSeconds),
+				share: progress(state.sharing, SURVEY.shareSeconds),
+				partner
+			};
 		}
 
 		function downedMessage(state: PlayerState): string {
@@ -1199,6 +1510,36 @@
 			}
 		}
 
+		/** On a rope: how to get out up it, or how to let go. Beside one: how to take hold. */
+		function ropePrompt(
+			state: PlayerState
+		): { prompt: string; promptKey?: string; progress: number } | null {
+			const world = player.collision;
+			if (!world || state.swimming) return null;
+			if (state.climbing) {
+				const rope = ropeById(world, state.climbing.rope);
+				if (rope?.exitY !== undefined) {
+					const progress = (state.position[1] - rope.bottom) / (rope.exitY - rope.bottom);
+					return keyPrompt('moveForward', 'to climb out', Math.max(0, progress));
+				}
+				return keyPrompt('stance', 'to drop');
+			}
+			const others = remote
+				.players()
+				.flatMap(({ state: o }) =>
+					o.climbing ? [{ rope: o.climbing.rope, y: o.position[1] }] : []
+				);
+			const grab = ropeToGrab(world, state, others);
+			if (!grab) return null;
+			const label =
+				grab.rope.exitY !== undefined
+					? 'to climb out'
+					: grab.rope.landing && grab.y > grab.rope.bottom + 1
+						? 'to climb down the rope'
+						: 'to climb the rope';
+			return keyPrompt('interact', label);
+		}
+
 		function extractPrompt(
 			state: PlayerState
 		): { prompt: string; promptKey?: string; progress: number } | null {
@@ -1223,8 +1564,10 @@
 
 		setMapView = (enabled) => {
 			mapView = enabled;
+			freecam = false;
 			orbit.enabled = enabled;
 			debugLight.visible = enabled;
+			debugGrid.setVisible(enabled && gridView);
 			if (enabled) {
 				document.exitPointerLock();
 				const eye = player.eyePosition();
@@ -1234,6 +1577,81 @@
 				}
 			}
 		};
+
+		/** The free camera's own look, apart from the player's. */
+		const fly = { yaw: 0, pitch: 0 };
+		const flyMove = new THREE.Vector3();
+		/**
+		 * Dev: the map view flown from where you stand, with the move keys (climb and swim down for
+		 * up and down, sprint for faster) and the mouse or sticks. The player stays where they were.
+		 */
+		setFreecam = (enabled) => {
+			if (enabled && !devMode) return;
+			setMapView(enabled);
+			freecam = enabled;
+			orbit.enabled = false;
+			if (!enabled) {
+				if (expedition && !panel) capture();
+				return;
+			}
+			const eye = player.eyePosition();
+			const look = player.look();
+			if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
+			fly.yaw = look.yaw;
+			fly.pitch = look.pitch;
+			capture();
+		};
+
+		bodyToCamera = () => {
+			if (!freecam) return;
+			const { x, y, z } = engine.camera.position;
+			sendAdmin({ kind: 'teleportTo', position: [x, y, z] });
+			player.face(fly.yaw, fly.pitch);
+			setFreecam(false);
+		};
+
+		cameraToBody = () => {
+			if (!freecam) return;
+			const eye = player.eyePosition();
+			const look = player.look();
+			if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
+			fly.yaw = look.yaw;
+			fly.pitch = look.pitch;
+		};
+
+		setGridView = (enabled) => {
+			gridView = enabled;
+			debugGrid.setVisible(mapView && enabled);
+		};
+
+		function flyFreecam(delta: number): void {
+			const [dx, dy] = input.consumeLook();
+			if (panel) return;
+			const look = input.lookStick();
+			const mouse = FREECAM.mouse * settings.controls.mouseSensitivity;
+			fly.yaw -= dx * mouse + look.x * FREECAM.stickTurn * delta;
+			fly.pitch -=
+				(dy * mouse + look.y * FREECAM.stickTurn * delta) * (settings.controls.invertY ? -1 : 1);
+			fly.pitch = Math.max(-FREECAM.maxPitch, Math.min(FREECAM.maxPitch, fly.pitch));
+			engine.camera.rotation.set(fly.pitch, fly.yaw, 0);
+			const keys = (pos: Action, neg: Action) =>
+				(input.isDown(pos) ? 1 : 0) - (input.isDown(neg) ? 1 : 0);
+			const stick = input.moveStick();
+			const pushed = Math.hypot(stick.x, stick.y) > 0;
+			flyMove.set(
+				pushed ? stick.x : keys('moveRight', 'moveLeft'),
+				keys('climb', 'swimDown'),
+				pushed ? stick.y : -keys('moveForward', 'moveBack')
+			);
+			if (flyMove.lengthSq() === 0) return;
+			const speed = FREECAM.speed * (input.isDown('sprint') ? FREECAM.fast : 1);
+			// Up and down stay straight up and down; the rest follows where you look.
+			const vertical = flyMove.y;
+			flyMove.y = 0;
+			flyMove.applyQuaternion(engine.camera.quaternion);
+			flyMove.y += vertical;
+			engine.camera.position.addScaledVector(flyMove, speed * delta);
+		}
 
 		// Usually the expedition began while the dashboard was showing: its `welcome` is waiting.
 		start();
@@ -1245,13 +1663,14 @@
 			expedition = true;
 			loadMap(layout, !connection.welcome.resumed);
 			marks.apply(connection.marks);
+			showRopes();
 		}
 
 		const onLockChange = () => (locked = document.pointerLockElement === canvas);
 		document.addEventListener('pointerlockchange', onLockChange);
 		const requestLock = () => {
 			void audio.unlock();
-			if (!panel && !mapView && !spectating && !extracting && !loading) {
+			if (!panel && (!mapView || freecam) && !spectating && !extracting && !loading) {
 				void canvas.requestPointerLock();
 			}
 		};
@@ -1260,25 +1679,31 @@
 		engine.onUpdate((delta) => {
 			// A controller can't capture the pointer (browsers don't count it as a gesture): while it
 			// is the device in use, the game plays without.
+			// Before the player reads the mouse: in the free camera, the mouse is the camera's.
+			if (freecam) flyFreecam(delta);
 			const active = (locked || device.kind === 'pad') && !panel && !mapView && !extracting;
+			// With the menu open the keys still walk, but the hands are on it (docs/dev/items.md).
+			const reading = panel === 'menu' && !mapView && !extracting;
 			updateWheel(player.state, active);
 			updateChalkWheel(player.state, active);
-			player.update(delta, active);
+			player.update(delta, active, reading);
 			remote.update(delta, engine.camera);
 			const self = player.state;
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
 			creatures.update(delta, player.collision, lamps);
 			worldItems.update(delta);
 			crates.update(delta);
+			doors.update(delta);
 			marks.update(delta);
 			effects.update(delta, engine.camera);
+			updateRopes(delta);
 			// Only on your feet: crouched, crawling or swimming, the body fills the view from
 			// behind, so those are always first person.
 			const upright = player.state?.stance === 'stand' && !player.state.swimming;
 			const shoulder = settings.graphics.view === 'shoulder' && !mapView && !spectating && upright;
 			let outside = mapView;
 			if (mapView) {
-				orbit.update();
+				if (!freecam) orbit.update();
 			} else if (spectating) {
 				const view = watchedView();
 				if (view) {
@@ -1344,6 +1769,15 @@
 			engine.camera.getWorldDirection(lookDir);
 			audio.setListener([cam.x, cam.y, cam.z], [lookDir.x, lookDir.y, lookDir.z]);
 			ambience.update(delta, [cam.x, cam.y, cam.z], state);
+			underwater = water.update(
+				!mapView && Underwater.below(player.collision, [cam.x, cam.y, cam.z]),
+				delta
+			);
+			if (underwater > 0 && audio.unlocked && !waterDrone && !waterDroneStarting) {
+				waterDroneStarting = true;
+				void sounds.loop('underwater.drone').then((handle) => (waterDrone = handle));
+			}
+			waterDrone?.setVolume(underwater);
 			manifestation.update(delta, [cam.x, cam.y, cam.z]);
 			creatures.listen(delta, [cam.x, cam.y, cam.z]);
 			captions.update();
@@ -1366,7 +1800,20 @@
 					hurt: hud.hurt,
 					...itemHud(state),
 					gloom: state.gloom,
-					party: party(state)
+					party: party(state),
+					conditions: state.conditions.flatMap((c) => {
+						if (!isConditionId(c.id)) return [];
+						const def = CONDITIONS[c.id];
+						return [
+							{
+								id: c.id,
+								name: def.name,
+								description: def.description,
+								left: c.remaining,
+								of: def.seconds
+							}
+						];
+					})
 				};
 				if (state.downed && !downed) rumble('downed');
 				downed = state.downed
@@ -1378,8 +1825,14 @@
 					: null;
 				if (state.performing > 0 && !performing) sounds.play('rite.begin');
 				performing = state.performing > 0;
-				if (panel === 'inventory' || panel === 'crate') {
-					if (state.downed && panel === 'inventory') {
+				hasNotebook = carriesSurvey(state.inventory);
+				if (panel === 'map') {
+					// Going down, or the notebook gone from the pack, puts the map away.
+					if (state.downed || !hasNotebook) panel = null;
+					else mapState = mapScreenView(state);
+				}
+				if (panel === 'menu' || panel === 'crate') {
+					if (state.downed && panel === 'menu') {
 						panel = null;
 					} else {
 						const json = JSON.stringify(state.inventory);
@@ -1413,7 +1866,10 @@
 					toggle('help');
 					break;
 				case 'inventory':
-					toggle('inventory');
+					toggle('menu');
+					break;
+				case 'map':
+					toggle('map');
 					break;
 				// Walking away from a loot crate puts it away; moving also leaves the admin screen.
 				case 'moveForward':
@@ -1429,12 +1885,36 @@
 					settings.graphics.view = settings.graphics.view === 'shoulder' ? 'first' : 'shoulder';
 					saveSettings();
 					break;
+				case 'toggleRitePanel':
+					settings.interface.ritePanel = !settings.interface.ritePanel;
+					saveSettings();
+					sounds.play('ui.toggle');
+					break;
 				case 'toggleStats':
 					settings.interface.showStats = !settings.interface.showStats;
 					saveSettings();
 					break;
 				case 'toggleAdmin':
 					if (devMode) toggle('admin');
+					break;
+				// In the free camera: interact moves your body here, reload brings the camera back to it.
+				case 'interact':
+					if (freecam && !panel) {
+						bodyToCamera();
+						sounds.play('ui.toggle');
+					}
+					break;
+				case 'reload':
+					if (freecam && !panel) {
+						cameraToBody();
+						sounds.play('ui.toggle');
+					}
+					break;
+				case 'toggleFreecam':
+					if (devMode && expedition) {
+						setFreecam(!freecam);
+						sounds.play('ui.toggle');
+					}
 					break;
 			}
 		});
@@ -1447,12 +1927,16 @@
 			canvas.removeEventListener('click', requestLock);
 			document.exitPointerLock();
 			heartbeat?.stop();
+			waterDrone?.stop();
 			creatures.dispose();
 			viewModel.dispose();
 			manifestation.dispose();
 			worldItems.dispose();
 			crates.dispose();
+			doors.dispose();
 			marks.dispose();
+			ropes.dispose();
+			laidRopes.dispose();
 			effects.dispose();
 			playerAudio.dispose();
 			ambience.dispose();
@@ -1461,6 +1945,7 @@
 			body.dispose();
 			remote.dispose();
 			orbit.dispose();
+			debugGrid.dispose();
 			input.dispose();
 			unsubscribeNet();
 			engine.dispose();
@@ -1491,6 +1976,10 @@
 	<Captions captions={captions.list} size={settings.accessibility.captionSize} />
 {/if}
 
+{#if underwater > 0 && !mapView && !result}
+	<UnderwaterOverlay amount={underwater} />
+{/if}
+
 {#if downed && spawned && !mapView && !result}
 	<DownedScreen
 		remaining={downed.remaining}
@@ -1501,14 +1990,18 @@
 {/if}
 
 {#if rite && !panel && !mapView && !result}
-	<RiteOverlay
-		affliction={afflictionName}
-		{rite}
-		carriers={riteCarriers}
-		interactKey={promptCode('interact')}
-	/>
+	<div class="rite-hud">
+		<RitePanel
+			affliction={afflictionName}
+			{rite}
+			carriers={riteCarriers}
+			interactKey={promptCode('interact')}
+			open={settings.interface.ritePanel}
+			toggleKey={promptCode('toggleRitePanel')}
+		/>
+	</div>
 	{#if deadline !== null}
-		<ExpeditionClock seconds={deadline} arrival={calmed || manifested ? null : (meter ?? 0)} />
+		<ExpeditionClock seconds={deadline} />
 	{/if}
 {/if}
 
@@ -1566,6 +2059,10 @@
 	{status}{statusDetail ? `: ${statusDetail}` : ''}
 </div>
 
+{#if devMode && mapView && mapCounts}
+	<MapDebugPanel counts={mapCounts} {seed} {freecam} />
+{/if}
+
 {#if settings.interface.showStats}
 	<StatsOverlay {stats} {rtt} />
 {/if}
@@ -1576,20 +2073,38 @@
 		onclose={() => (panel = null)}
 		onvolume={(category, value) => audio.setVolume(category, value)}
 		ongraphics={() => applyGraphics()}
-		onabandon={expedition
-			? () => {
-					panel = null;
-					send({ type: 'abandon' });
-				}
-			: undefined}
 	/>
 {:else if panel === 'help'}
 	<HelpScreen dim onclose={() => (panel = null)} />
-{:else if panel === 'inventory' && inventory}
-	<InventoryScreen
+{:else if panel === 'menu' && inventory}
+	<GameMenu
+		bind:tab={menuTab}
 		{inventory}
+		affliction={afflictionName}
+		{rite}
+		carriers={riteCarriers}
+		interactKey={promptCode('interact')}
 		onaction={(action) => sendInventory(action)}
-		onclose={() => toggle('inventory')}
+		onabandon={() => {
+			panel = null;
+			send({ type: 'abandon' });
+		}}
+		onmap={() => toggle('map')}
+		onclose={() => toggle('menu')}
+	/>
+{:else if panel === 'map' && survey && gameInput}
+	<MapScreen
+		map={survey}
+		drawn={surveyDrawn}
+		self={mapState.self}
+		marks={chalkMarks}
+		input={gameInput}
+		sketch={mapState.sketch}
+		share={mapState.share}
+		partner={mapState.partner}
+		onhold={(hold) => setSurveyHold(hold)}
+		onpack={() => toggle('menu')}
+		onclose={() => toggle('map')}
 	/>
 {:else if panel === 'crate' && inventory && crate}
 	<CrateScreen
@@ -1614,11 +2129,27 @@
 		{rooms}
 		{flags}
 		{mapView}
+		{freecam}
+		{gridView}
 		{markers}
 		{meter}
 		{omen}
 		onadmin={(command) => sendAdmin(command)}
 		onmapview={(enabled) => setMapView(enabled)}
+		onfreecam={(enabled) => {
+			panel = null;
+			setFreecam(enabled);
+		}}
+		ongridview={(enabled) => setGridView(enabled)}
+		onbodytocamera={() => {
+			panel = null;
+			bodyToCamera();
+		}}
+		oncameratobody={() => {
+			panel = null;
+			cameraToBody();
+			capture();
+		}}
 		onmarkers={(enabled) => setMarkers(enabled)}
 	/>
 {/if}
@@ -1636,6 +2167,17 @@
 	/* Playing with a controller: no cursor over the game. */
 	canvas.pad {
 		cursor: none;
+	}
+
+	/* The rite (RitePanel) at the middle of the left edge: it takes no clicks, play goes on under it. */
+	.rite-hud {
+		position: fixed;
+		left: 16px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: min(280px, calc(100vw - 32px));
+		pointer-events: none;
+		z-index: 6;
 	}
 
 	.descend {

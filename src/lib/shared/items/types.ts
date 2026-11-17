@@ -19,6 +19,29 @@ export interface WorldItemSnapshot {
  */
 export type CrateSlot = ItemStack | null | 'hidden';
 
+/** A rope laid along the floor (see docs/dev/rope.md): its points, every ROPE.spacing metres. */
+export interface LaidRopeSnapshot {
+	id: string;
+	/** Player id of whoever laid it, and their gamer tag. */
+	by: string;
+	name: string;
+	points: Vec3[];
+	/** Still being paid out (its last point follows them). */
+	laying: boolean;
+	/** The rope item it was laid from: gathering it up gives that back. */
+	item: string;
+}
+
+/** A rope tied at an anchor, hanging down the drop. */
+export interface TiedRopeSnapshot {
+	/** `Anchor.id` in the collision world. */
+	anchor: string;
+	by: string;
+	name: string;
+	/** The rope item tied there: untying it gives that back. */
+	item: string;
+}
+
 /**
  * A chalk mark on a wall, floor or ceiling, as every client is told it. See docs/dev/marks.md.
  */
@@ -107,6 +130,8 @@ export type GameEvent =
 	| { kind: 'creatureDie'; id: string; position: Vec3; by: string | null }
 	/** A loot crate was opened for the first time. */
 	| { kind: 'crateOpen'; id: string; player: string; position: Vec3 }
+	/** A door between levels was opened (it stays open). */
+	| { kind: 'doorOpen'; id: string; player: string; position: Vec3 }
 	/** Someone going through a crate started on the next thing in it. */
 	| { kind: 'rummage'; player: string; position: Vec3 }
 	/** A hint was found: what it says, and the requirements (item ids) and room (piece id) it revealed. */
@@ -118,14 +143,31 @@ export type GameEvent =
 			requirements: string[];
 			room: string | null;
 	  }
-	/** The rite was performed: the Affliction is calmed. */
+	/** The rite was performed: it summons the manifestation. */
 	| { kind: 'rite'; player: string; position: Vec3 }
+	/** The manifestation the rite summoned was banished: the Affliction is resolved and calmed. */
+	| { kind: 'resolved'; position: Vec3 }
+	/** A lamp was turned on from off: a flash that stuns what is vulnerable to it, if lit. */
+	| { kind: 'strobe'; player: string; position: Vec3; stunned: number }
 	/** Time ran out: everyone still underground is lost. */
 	| { kind: 'deadline' }
 	/** A chalk mark was drawn, or rubbed out by whoever drew it. */
 	| { kind: 'mark'; player: string; position: Vec3 }
 	| { kind: 'rub'; player: string; position: Vec3 }
+	/** A player hit the floor hard enough to hurt (`hard`: very hard). */
+	| { kind: 'fall'; player: string; position: Vec3; hard: boolean }
+	/** A player took hold of a rope, or let go of one (or slipped off). */
+	| { kind: 'ropeGrab'; player: string; position: Vec3 }
+	| { kind: 'ropeLetGo'; player: string; position: Vec3 }
+	/** Rope tied at an anchor, untied, gathered up; paid out along the floor (every few metres). */
+	| { kind: 'ropeTie'; player: string; position: Vec3 }
+	| { kind: 'ropeUntie'; player: string; position: Vec3 }
+	| { kind: 'ropeGather'; player: string; position: Vec3 }
+	| { kind: 'ropeLay'; player: string; position: Vec3 }
+	/** A player finished sketching into their map, or showing it to a teammate (`with`). */
+	| { kind: 'sketch'; player: string; position: Vec3 }
+	| { kind: 'showMap'; player: string; with: string; position: Vec3 }
 	/** The Affliction reached a new omen stage. */
 	| { kind: 'omen'; stage: number }
-	/** The Affliction manifests (it gathers, then hunts). */
+	/** The rite summoned the manifestation (it gathers, then hunts). */
 	| { kind: 'manifest' };

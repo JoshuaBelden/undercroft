@@ -23,6 +23,7 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'breath.slow': ['/assets/shared/audio/breath.slow.b54eeed4.webm'],
 	'breath.fast': ['/assets/shared/audio/breath.fast.9966abc6.webm'],
 	gasp: ['/assets/shared/audio/gasp.7abd9c72.webm'],
+	'squeeze.grunt': ['/assets/shared/audio/squeeze.grunt.4447fd0e.webm'],
 	exertion: [
 		'/assets/shared/audio/exertion-1.563eee49.webm',
 		'/assets/shared/audio/exertion-2.0cd1132d.webm'
@@ -100,10 +101,13 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'corpse.search': ['/assets/shared/audio/corpse.search.37952a69.webm'],
 	'creature.breath': ['/assets/shared/audio/creature.breath.f3615e70.webm'],
 	'crate.open': ['/assets/shared/audio/crate.open.a51fed17.webm'],
+	'door.open': ['/assets/shared/audio/door.open.b67a0599.webm'],
 	'item.pickup': ['/assets/shared/audio/item.pickup.f554e9e7.webm'],
 	chalk: ['/assets/shared/audio/chalk.abbadf00.webm'],
 	'defense.torn': ['/assets/shared/audio/defense.torn.f49422b0.webm'],
-	'creature.hurt': ['/assets/shared/audio/creature.hurt.7f823348.webm']
+	'creature.hurt': ['/assets/shared/audio/creature.hurt.7f823348.webm'],
+	'rope.tension': ['/assets/shared/audio/rope.tension.a37433b9.webm'],
+	'rope.tie': ['/assets/shared/audio/rope.tie.d484b77c.webm']
 };
 
 /** Size in bytes of each built sound file, by URL (preload progress). */
@@ -125,6 +129,7 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/breath.slow.b54eeed4.webm': 8063,
 	'/assets/shared/audio/breath.fast.9966abc6.webm': 15720,
 	'/assets/shared/audio/gasp.7abd9c72.webm': 3909,
+	'/assets/shared/audio/squeeze.grunt.4447fd0e.webm': 2836,
 	'/assets/shared/audio/exertion-1.563eee49.webm': 6700,
 	'/assets/shared/audio/exertion-2.0cd1132d.webm': 5689,
 	'/assets/shared/audio/headlamp.on.0699a334.webm': 1977,
@@ -188,8 +193,11 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/corpse.search.37952a69.webm': 17986,
 	'/assets/shared/audio/creature.breath.f3615e70.webm': 76261,
 	'/assets/shared/audio/crate.open.a51fed17.webm': 6607,
+	'/assets/shared/audio/door.open.b67a0599.webm': 9929,
 	'/assets/shared/audio/item.pickup.f554e9e7.webm': 7470,
 	'/assets/shared/audio/chalk.abbadf00.webm': 12936,
 	'/assets/shared/audio/defense.torn.f49422b0.webm': 5780,
-	'/assets/shared/audio/creature.hurt.7f823348.webm': 13471
+	'/assets/shared/audio/creature.hurt.7f823348.webm': 13471,
+	'/assets/shared/audio/rope.tension.a37433b9.webm': 9591,
+	'/assets/shared/audio/rope.tie.d484b77c.webm': 20914
 };

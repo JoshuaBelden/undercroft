@@ -40,6 +40,8 @@ import type {
 	Edge,
 	PieceDef,
 	PieceSocket,
+	RopeMarker,
+	AnchorMarker,
 	Vec3,
 	VolumeBox
 } from '../src/lib/shared/map/types.ts';
@@ -101,7 +103,10 @@ const MARKER_PREFIXES = [
 	'extract-',
 	'rite-',
 	'crate-',
+	'door-',
 	'rubble-',
+	'rope-',
+	'anchor-',
 	'col-',
 	'vol-'
 ];
@@ -198,6 +203,25 @@ function crateFromNode(
 	return { position, yaw: round(2 * Math.atan2(r[1], r[3])) };
 }
 
+/**
+ * A rope-<n> empty: the top of a rope hanging straight down, `length` m long (a custom property).
+ * `exit`, on an extraction rope: how far up from its foot a climber gets out.
+ */
+function ropeFromNode(piece: string, label: string, node: Node): RopeMarker {
+	const extras = node.getExtras() as Record<string, unknown>;
+	const length = Number(extras.length);
+	if (!(length > 0)) throw new PieceError(`${piece}: ${label} needs a length property (m)`);
+	const rope: RopeMarker = { top: vec(node.getTranslation()), length: round(length) };
+	if (extras.exit !== undefined) {
+		const exit = Number(extras.exit);
+		if (!(exit > 0 && exit < length)) {
+			throw new PieceError(`${piece}: ${label} exit must be between 0 and its length`);
+		}
+		rope.exit = round(exit);
+	}
+	return rope;
+}
+
 /** Vertical extent of an oriented box (its 8 corners, rotated). */
 function boxYRange(box: ColliderBox): [number, number] {
 	const [x, y, z, w] = box.rotation;
@@ -243,7 +267,10 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const extracts: Vec3[] = [];
 	const rites: Vec3[] = [];
 	const crates: CrateMarker[] = [];
+	const doors: CrateMarker[] = [];
 	const rubble: Vec3[] = [];
+	const ropes: RopeMarker[] = [];
+	const anchors: AnchorMarker[] = [];
 	const colliders: ColliderBox[] = [];
 	const volumes: VolumeBox[] = [];
 	const stripped: Node[] = [];
@@ -263,8 +290,16 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			rites.push(position);
 		} else if (label.startsWith('rubble-')) {
 			rubble.push(position);
+		} else if (label.startsWith('rope-')) {
+			ropes.push(ropeFromNode(name, label, node));
+		} else if (label.startsWith('anchor-')) {
+			// The empty's local +Y in Blender (-Z here) points out over the drop.
+			const { position, yaw } = crateFromNode(name, label, node, w, d);
+			anchors.push({ position, yaw });
 		} else if (label.startsWith('crate-')) {
 			crates.push(crateFromNode(name, label, node, w, d));
+		} else if (label.startsWith('door-')) {
+			doors.push(crateFromNode(name, label, node, w, d));
 		} else if (label.startsWith('col-')) {
 			colliders.push(boxFromNode(node));
 			stripped.push(node);
@@ -339,7 +374,10 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		extracts,
 		rites,
 		crates,
+		doors,
 		rubble,
+		ropes,
+		anchors,
 		colliders,
 		volumes,
 		triangles
@@ -666,6 +704,11 @@ async function main(): Promise<void> {
 	const pieces: PieceDef[] = [];
 	let failed = false;
 	for (const f of files) {
+		// Retired pieces (still in the .blend and art/export) ship only while MAP_KIT uses them.
+		if (!MAP_KIT[path.basename(f, '.glb')]) {
+			console.warn(`  - ${path.basename(f, '.glb')}: not in MAP_KIT, skipped`);
+			continue;
+		}
 		try {
 			pieces.push(await buildPiece(io, path.join(SOURCE_DIR, f)));
 		} catch (error) {

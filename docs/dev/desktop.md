@@ -128,13 +128,13 @@ STEAM_DEV_TRUST=true
 
 The game server decides who earns an achievement, and the desktop app records it on Steam:
 
-1. `src/lib/content/achievements.ts` lists each achievement: its Steam API name (`id`), name, description and `trigger`. A trigger is either how a run ended (`{ on: 'run', outcomes, minParty }`) or the rite being performed (`{ on: 'rite' }`).
-2. The game server (`server/session.ts`) sends `{ type: 'achievement', ids }` when a run ends for a player (`logRun`), and to everyone still underground when the rite is performed (`awardRite`).
+1. `src/lib/content/achievements.ts` lists each achievement: its Steam API name (`id`), name, description and `trigger`. A trigger is how a run ended (`{ on: 'run', outcomes, minParty }`), the rite being performed (`{ on: 'rite' }`), or what it summoned being banished (`{ on: 'banished' }`).
+2. The game server (`server/session.ts`) sends `{ type: 'achievement', ids }` when a run ends for a player (`logRun`), and to everyone still underground when the rite is performed or what it summoned is banished (`awardEveryoneDown`).
 3. The client (`connection.svelte.ts`) passes each id to `unlockAchievement`. Steam ignores one that is already unlocked. A browser does nothing with it. An older client doesn't know the message and drops it, so the protocol version didn't change.
 
 The admin screen's **Steam** group (dev mode, in the desktop app) shows what Steam reports and can unlock each achievement directly. Until the game's own app exists, Steam refuses ours. **Unlock ACH_WIN_ONE_GAME** unlocks one of Spacewar's, to see the overlay's toast. It unlocks on your real Steam account, under Spacewar.
 
-**Adding an achievement**: add it to `ACHIEVEMENTS` (a new trigger kind needs a line in `achievementsForRun` or a call like `awardRite` in the session), add a row to `deploy/steam/achievements.md` (a test checks the two match), and enter it in the partner site with its icons. Never rename a shipped API name.
+**Adding an achievement**: add it to `ACHIEVEMENTS` (a new trigger kind needs a line in `achievementsForRun` or a call like `awardEveryoneDown(achievementsForBanishing())` in the session), add a row to `deploy/steam/achievements.md` (a test checks the two match), and enter it in the partner site with its icons. Never rename a shipped API name.
 
 ### Rich presence
 

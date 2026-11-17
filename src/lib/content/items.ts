@@ -1,5 +1,6 @@
 import type { SoundId } from './audio/sounds.ts';
 import { modelUrl } from './models.ts';
+import { SANITY } from './player/sanity.ts';
 
 /**
  * Item definitions (data). Weapons, defense, ammo, consumables and loot. Behaviour is driven
@@ -112,6 +113,15 @@ export interface ChalkSpec {
 	marks: number;
 }
 
+/** Rope (see docs/dev/rope.md): laid along the floor, or tied at an anchor to climb down. */
+export interface RopeSpec {
+	/**
+	 * Metres of rope in it: the longest it lays, and whether it reaches the bottom of a drop.
+	 * Laying or tying it uses the whole thing, however much of it that took.
+	 */
+	length: number;
+}
+
 export interface DefenseSpec {
 	/**
 	 * Points of a creature's blow it takes before the wearer does. The points it has taken are kept
@@ -177,8 +187,15 @@ export interface ItemDef {
 	revive?: boolean;
 	/** Draws marks on walls from the quick-use slot (see docs/dev/marks.md). */
 	chalk?: ChalkSpec;
+	/** Rope to lay or tie, from the quick-use slot (see docs/dev/rope.md). */
+	rope?: RopeSpec;
 	/** Worn in the defense slot. */
 	defense?: DefenseSpec;
+	/**
+	 * Carried anywhere, it lets you open your map, sketch into it and show it to a teammate
+	 * (the surveyor's notebook, see docs/dev/map.md).
+	 */
+	survey?: boolean;
 }
 
 /** How many of most things share a slot. Weapons and defense never stack. */
@@ -338,6 +355,22 @@ export const ITEMS: Record<string, ItemDef> = {
 		weight: 0.05,
 		heal: { amount: 25, seconds: 3 }
 	},
+	// Rare: everything a bandage does and more, all at once (a full refill of sanity).
+	medkit: {
+		id: 'medkit',
+		name: 'Medkit',
+		kind: 'consumable',
+		category: 'quick',
+		flavor:
+			'A tin case of field dressings, iodine and a little morphine. Enough to put anyone back together, once.',
+		image: 'medkit',
+		model: modelUrl('shared/items/medkit.glb'),
+		hold: HOLD_RIGHT,
+		maxStack: 2,
+		weight: 0.6,
+		rarity: 'rare',
+		heal: { amount: SANITY.max, seconds: 5 }
+	},
 	// Half a lamp's worth: the starter lamp is full at 24 V (see items/headlamps.ts).
 	battery: {
 		id: 'battery',
@@ -380,6 +413,51 @@ export const ITEMS: Record<string, ItemDef> = {
 		maxStack: DEFAULT_STACK,
 		weight: 0.01,
 		chalk: { marks: 1 }
+	},
+	// Rope (docs/dev/rope.md). The store sells packs; bundles are only found below, and rope picked
+	// back up comes back as a bundle of what was gathered.
+	'rope-pack': {
+		id: 'rope-pack',
+		name: 'Rope pack',
+		kind: 'consumable',
+		category: 'quick',
+		flavor:
+			'A hundred metres of hemp, bound tight. Tie it off at a drop, or pay it out behind you to find the way back.',
+		image: 'rope_pack',
+		model: modelUrl('shared/items/rope_pack.glb'),
+		hold: HOLD_RIGHT,
+		maxStack: 1,
+		weight: 4,
+		rope: { length: 100 }
+	},
+	'rope-bundle': {
+		id: 'rope-bundle',
+		name: 'Rope bundle',
+		kind: 'consumable',
+		category: 'quick',
+		flavor: 'A loose heap of old rope, still sound. Someone came down here meaning to climb.',
+		image: 'rope_bundle',
+		model: modelUrl('shared/items/rope_bundle.glb'),
+		hold: HOLD_RIGHT,
+		maxStack: 1,
+		weight: 1.6,
+		rarity: 'rare',
+		rope: { length: 40 }
+	},
+	// Your map: without one there is none to open (see docs/dev/map.md).
+	notebook: {
+		id: 'notebook',
+		name: "Surveyor's notebook",
+		kind: 'consumable',
+		category: 'other',
+		flavor:
+			'Squared paper and a stub of pencil. What you draw in it is all you will know of the way back.',
+		image: 'notebook',
+		model: modelUrl('shared/items/notebook.glb'),
+		hold: HOLD_RIGHT,
+		maxStack: 1,
+		weight: 0.3,
+		survey: true
 	},
 	// Unlit. The rite takes five; lighting them comes with light sources.
 	candle: {

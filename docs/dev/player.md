@@ -4,25 +4,27 @@ The first-person player. The server is authoritative. The client predicts its ow
 
 ## Files
 
-| What                                 | Where                                  |
-| ------------------------------------ | -------------------------------------- |
-| State and input types                | `src/lib/shared/player/types.ts`       |
-| Simulation (pure, shared)            | `src/lib/shared/player/simulate.ts`    |
-| Headlamp output and flicker (shared) | `src/lib/shared/player/headlamp.ts`    |
-| Collision world                      | `src/lib/shared/map/collision.ts`      |
-| Spawn and teleport points            | `src/lib/shared/map/points.ts`         |
-| Movement tuning (data)               | `src/lib/content/player/movement.ts`   |
-| Headlamp models (data)               | `src/lib/content/items/headlamps.ts`   |
-| Server side                          | `server/session.ts`                    |
-| Client prediction and camera         | `src/lib/game/player/LocalPlayer.ts`   |
-| Headlamp light                       | `src/lib/game/player/Headlamp.ts`      |
-| Other players                        | `src/lib/game/player/RemotePlayers.ts` |
-| Player body (model and animation)    | `src/lib/game/player/PlayerBody.ts`    |
-| Explorer model and camera (data)     | `src/lib/content/player/model.ts`      |
-| Footsteps, breathing, click          | `src/lib/game/player/PlayerAudio.ts`   |
-| HUD                                  | `src/lib/ui/Hud.svelte`                |
-| Sanity tuning (data)                 | `src/lib/content/player/sanity.ts`     |
-| Downed overlay                       | `src/lib/ui/DownedScreen.svelte`       |
+| What                                 | Where                                                                         |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| State and input types                | `src/lib/shared/player/types.ts`                                              |
+| Simulation (pure, shared)            | `src/lib/shared/player/simulate.ts`                                           |
+| Headlamp output and flicker (shared) | `src/lib/shared/player/headlamp.ts`                                           |
+| Collision world                      | `src/lib/shared/map/collision.ts`                                             |
+| Spawn and teleport points            | `src/lib/shared/map/points.ts`                                                |
+| Movement tuning (data)               | `src/lib/content/player/movement.ts`                                          |
+| Climbing ropes (shared)              | `src/lib/shared/player/climb.ts`                                              |
+| Conditions (data / shared)           | `src/lib/content/player/conditions.ts`, `src/lib/shared/player/conditions.ts` |
+| Headlamp models (data)               | `src/lib/content/items/headlamps.ts`                                          |
+| Server side                          | `server/session.ts`                                                           |
+| Client prediction and camera         | `src/lib/game/player/LocalPlayer.ts`                                          |
+| Headlamp light                       | `src/lib/game/player/Headlamp.ts`                                             |
+| Other players                        | `src/lib/game/player/RemotePlayers.ts`                                        |
+| Player body (model and animation)    | `src/lib/game/player/PlayerBody.ts`                                           |
+| Explorer model and camera (data)     | `src/lib/content/player/model.ts`                                             |
+| Footsteps, breathing, click          | `src/lib/game/player/PlayerAudio.ts`                                          |
+| HUD                                  | `src/lib/ui/Hud.svelte`                                                       |
+| Sanity tuning (data)                 | `src/lib/content/player/sanity.ts`                                            |
+| Downed overlay                       | `src/lib/ui/DownedScreen.svelte`                                              |
 
 ## Simulation
 
@@ -45,8 +47,9 @@ Each step:
 All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, swim and mantle settings, stamina rates, light intensities, drain and flicker.
 
 - **Stances:** stand (1.75 m), crouch (1.2 m), crawl (0.7 m). The client cycles the wanted stance with one key. Standing up is blocked while the taller capsule wouldn't fit (`capsuleFits`). The wanted stance persists, so you rise (as far as fits) once there's room.
-- **Squeezes:** a `vol-squeeze-*` volume marks the tight part of a piece (currently `hall-squeeze`). Inside it, `state.squeezing` is set, speed is capped at `squeezeSpeed` (0.7 m/s, momentum clamped on entry) and sprinting is impossible. The client gasps as you start to push through, then grunts. Heavy packs that won't fit come with backpack tiers (Phase 5).
+- **Squeezes:** a `vol-squeeze-*` volume marks the tight part of a piece (currently `hall-squeeze-long`). Inside it, `state.squeezing` is set, speed is capped at `squeezeSpeed` (0.7 m/s, momentum clamped on entry), sprinting is impossible, and so is fighting: the held weapon can't swing, fire, aim or throw (`able` in `stepPlayer`, so the client predicts it and the server agrees). The squeeze is three cells, with about 9 m of it tight. The client gasps as you start to push through, then grunts. Heavy packs that won't fit come with backpack tiers (Phase 5).
 - **Sneak ("creep" in game):** caps speed at `sneakSpeed` and wins over sprint. It sets `state.sneaking`, which silences footsteps, and creatures only hear it within `hear.creep` (see [creatures.md](creatures.md)).
+- **Headlamp key (client):** a tap switches the lamp off, or back on at the brightness it last had (`lampOn`); held for `LAMP_HOLD_MS` (1 s) it switches between low and bright, and comes on if it was off (`LocalPlayer.updateLampKey`). The mode goes to the server in every input frame (`InputFrame.headlamp`).
 - **Stance key (client):** a tap (released within 350 ms) cycles the wanted stance; while the key is held you creep, and releasing a hold leaves the stance as it was (`LocalPlayer.updateStanceKey`). Holding sprint resets the wanted stance to standing and stops creeping.
 - **Stamina:** sprinting drains it, and it regenerates after a short delay. At zero the player is `exhausted` and can't sprint, climb or dive until stamina recovers to `recoverAt`.
 - **Battery:** drains by headlamp mode. At zero the lamp gives no light. It is a fraction of the lamp's full voltage (`HeadlampModel.volts`, 24 V for the starter lamp); the HUD shows it in volts beside the cells (`Math.ceil(battery × volts)`, so a lamp still giving light never reads 0V). A battery item adds its `charge.volts` (see [items.md](items.md)). Under `lowAlert.volts` (3 V) with the lamp on, the client beeps (`battery.low`) at once and then every `lowAlert.seconds` (60); turning the lamp off pauses the minute, and charging above 3 V resets it.
@@ -61,12 +64,24 @@ Water comes from `vol-water-*` volumes in the pieces (the manifest's `volumes`).
   - the capsule is short (`swim.height`) and there is no gravity;
   - movement follows the look direction, including pitch;
   - `climb` swims up and `swimDown` swims down;
-  - buoyancy floats you with the eye `swim.floatEye` above the surface unless you're diving (`swimDown`, or moving forward while looking down);
+  - at the surface, buoyancy floats you with the eye `swim.floatEye` above it unless you're diving (`swimDown`, or moving forward while looking down);
+  - once you dive you're `submerged`: no buoyancy, so you stay at the depth you swim to (up, down and holding still are all your own doing) until you swim back up to the surface, where floating takes over again;
+  - sprinting (swimming hard) works at the surface only, not with the eye underwater;
+  - no weapons: you can't swing, fire, aim or throw;
   - you can't swim up out of the water;
   - at the surface, holding `climb` (Space) at an edge mantles out (up to `mantle.maxFromWater` above the surface). Never automatic;
   - swimmers also step up onto low ledges, so swimming into submerged steps walks you out.
-- **Breath:** while the eye is underwater (`state.underwater`), stamina drains at `swim.breathDrain` and doesn't regenerate. At zero you're `exhausted`, and buoyancy always wins, so you're forced up. Drowning damage comes with sanity in Phase 2.
+- **Breath:** while the eye is underwater (`state.underwater`), stamina drains at `swim.breathDrain` and doesn't regenerate. At zero you're `exhausted`, which ends `submerged` and floats you up: the one time you surface on your own. Drowning damage comes with sanity in Phase 2.
 - **Wading** (shallower water) slows movement by `wadeSpeed` and switches footsteps to splashes.
+
+### Underwater
+
+With the camera under a water surface (`Underwater.below`: the camera, not the body, so it works over the shoulder and in the free camera too), the view goes murky:
+
+- **Fog:** `Underwater` (`src/lib/game/Underwater.ts`) puts a dense, dark green `FogExp2` on the scene, fading in and out over 0.2 s. Things a few metres off are half hidden and nothing past about 9 m shows. Every map material takes fog by default, so a new one needs nothing.
+- **Overlay:** `UnderwaterOverlay.svelte`: a murky green tint, darker toward the edges. Nothing moves in it.
+- **Sound:** the world is muffled and dry (`Ambience`, as before), under a low `underwater.drone` loop on the ambience bus that follows the fade.
+- Off in the map debug view, which is fully lit.
 
 ## Mantling
 
@@ -85,6 +100,22 @@ Water comes from `vol-water-*` volumes in the pieces (the manifest's `volumes`).
 **What happens:** a successful find starts `state.mantle`. For `duration` seconds the position follows a fixed path (rise, then move over), input is ignored, and collisions are skipped because the target was already validated. At the end you stand on the ledge in the stance that fit. A mantle costs `staminaCost`.
 
 It's part of the deterministic state, so server and prediction agree. The client dips the camera during a mantle.
+
+## Ropes
+
+Climbing a rope is its own mode of the simulation (`state.climbing`), entered with a fresh press of `climb` beside one: up and down it, nobody past anyone, off at either end or out of the catacomb up an extraction rope. See [rope.md](rope.md#climbing).
+
+## Falls and conditions
+
+**Falls.** Landing from the air faster than `FALL.safeSpeed` (9 m/s, about a 2.2 m drop with gravity 18) is a fall that hurts. `stepPlayer` raises a `land` sim event with the speed, and the server takes `(speed - safeSpeed) * FALL.damagePerSpeed` sanity for it (`Session.moved` → `hurt`). That is about 27 for 4 m, and a 12 m drop downs you. It also makes a `fall` game event (`hard` over `FALL.hardSpeed`, for the louder thump), and creatures hear it (`FALL.noise`). Landing in water never hurts. God mode takes no fall.
+
+**Conditions** are something wrong with an explorer for a while. They are data (`CONDITIONS` in `src/lib/content/player/conditions.ts`), and `state.conditions` holds the active ones with the seconds they have left. `stepPlayer` counts them down (`stepConditions`) and applies their effects. A condition's `slow` caps speed at that stance's walking speed whatever your stance, and stops sprinting (`conditionSpeedCap`). Getting one you already have starts it over.
+
+- **Hobbled** (`hobble`, 20 s, no faster than a crawl): every fall that hurts. The simulation applies it on landing, so the client predicts the slow-down at once. While you move hobbled, the view limps: the eye dips and the head nods on every other step (`LocalPlayer.updateLimp`, `LIMP`), easing in and out, scaled by Settings > Graphics > Camera shake.
+
+The HUD shows each one as a chip under your bars in the party panel, with its name and the seconds left, draining as it wears off (`Hud.svelte`, `conditions`). Admin: "Clear conditions" in the Player group.
+
+To add a condition: an entry in `CONDITIONS` (id, name, seconds, description and its effects), a way to get it (`applyCondition` in the simulation, or on the server), and a line in the "Falls and conditions" help topic. A new kind of effect goes where movement or the hands read it (`conditionSpeedCap` is the pattern).
 
 ## Collision
 
@@ -107,7 +138,7 @@ Collision boxes must cover everything walkable. Every surface the player can rea
 | Server, each 20 Hz tick | Simulates queued frames for each player, at most at real-time rate (a per-player budget refilled at `SIM_RATE`, so flooding frames can't speed a player up). Records the last applied `seq` as `ack`. Broadcasts `tick` with a `PlayerSnapshot` (state + ack) for every player. |
 | Client, on snapshot     | Resets to the server state, drops pending frames up to `ack`, and replays the rest. Any difference from the previous prediction becomes a visual offset that fades over 100 ms. Differences over 2 m (teleport, respawn) snap.                                                  |
 
-The camera interpolates between the last two simulation steps, so movement is smooth at any frame rate. Input frames are sanitized on the server (`sanitizeFrame`).
+The camera interpolates between the last two simulation steps, so movement is smooth at any frame rate. Input frames are sanitized on the server (`sanitizeFrame`), which also applies `handsBusy` while the in-game menu is open (`reading`, see [items.md](items.md#the-in-game-menu)).
 
 **Other players** are not predicted; they are interpolated (`RemotePlayers`):
 
@@ -217,6 +248,8 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 - **Sneaking** plays no footsteps.
 - **Expedition stingers:** `expedition.intro` (`sfx_expedition_intro.mp3`) on arriving underground and `expedition.outro` (`sfx_extraction_outro.mp3`) on leaving alive, both on the music bus. See [expedition.md](expedition.md#leaving-and-results).
 - **Menu click:** `ui.click` (`menu_click.wav`) plays on every move between pages off the expedition: the dashboard tabs, store, social, settings, the keys that switch them, and back/forward. The root layout (`src/routes/+layout.svelte`) plays it from `onNavigate`, so any new page gets it for free. It skips navigation into or out of `/play` and query-only changes.
+- **Menu ticks (controller):** `ui.focus` as the focus moves in a menu, the lower `ui.step` as the right stick steps a value (the store's quantity), and `ui.hold`, a little louder and lower, when a button held in a menu presses its control (Launch, the store). The root layout plays them from `onMenuMove` and `onMenuHold` (see [controller.md](controller.md#menus)).
+- **Panel toggle:** `ui.toggle`, the same recording quieter and higher, when the rite panel is hidden or shown underground (see [rite.md](rite.md#hiding-the-panel)). The admin free camera uses it too, as it starts or stops, moves your body to it or goes back to your body (see [map-generation.md](map-generation.md#debug-grid)).
 
 ### Mix
 
@@ -280,8 +313,8 @@ Bandages and smelling salts are quick-use items (see [items.md](items.md)); play
 
 **Client:**
 
-- The HUD shows a vignette that darkens with lost sanity and pulses below 40%.
-- **Party panel** (`src/lib/ui/PartyHealth.svelte`, bottom-left): every explorer on the expedition, each with their gamer tag in small text above a health (sanity) bar and a stamina bar, and "Downed" when they are. Teammates come from `RemotePlayers.players()` (their tick snapshots, so it is the server's state) in a stable order; this player is always last, at the bottom, with slightly larger bars and the posture and headlamp battery (the headlamp key as a small keycap, the cells, then the voltage in small text) under them. Solo it is just you.
+- The HUD shows a vignette that darkens with lost sanity (and with the omens' gloom). It doesn't pulse: the heartbeat below 40% is heard, not shown.
+- **Party panel** (`src/lib/ui/PartyHealth.svelte`, bottom-left): every explorer on the expedition, each with their gamer tag in small text above a health (sanity) bar and a stamina bar, and "Downed" when they are. Teammates come from `RemotePlayers.players()` (their tick snapshots, so it is the server's state) in a stable order; this player is always last, at the bottom, with slightly larger bars and the posture and headlamp battery (the headlamp key as a small keycap, the cells, then the voltage in small text) under them. Solo it is just you. It is always shown, even with the rite panel hidden.
 - A hit (a drop of more than 3 in one frame) flashes red, plays `player.hurt` and shakes the camera, scaled by the **Camera shake** setting.
 - `heartbeat` loops louder and faster below 40%; `whisper` plays near you below 20%.
 - Downed, the camera tilts and `DownedScreen` shows the bleed-out bar, what happens next and the hold-to-surrender prompt.

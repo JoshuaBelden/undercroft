@@ -12,7 +12,9 @@ export type AchievementTrigger =
 	/** A player's expedition ended this way, with at least `minParty` in it (counting them). */
 	| { on: 'run'; outcomes: RunOutcome[]; minParty?: number }
 	/** The rite was performed while they were in the expedition (alive and not yet out). */
-	| { on: 'rite' };
+	| { on: 'rite' }
+	/** What the rite summoned was banished while they were in the expedition (alive, not yet out). */
+	| { on: 'banished' };
 
 export interface AchievementDef {
 	/** Steam API name: upper case, digits and _. Never change one that has shipped. */
@@ -22,8 +24,8 @@ export interface AchievementDef {
 	trigger: AchievementTrigger;
 }
 
-/** Getting out alive with what you carry: extracting, or the manifestation's banishing. */
-const OUT_ALIVE: RunOutcome[] = ['extracted', 'banished'];
+/** Getting out alive with what you carry. (Banishing doesn't end the run: they still have to get out.) */
+const OUT_ALIVE: RunOutcome[] = ['extracted'];
 
 export const ACHIEVEMENTS: AchievementDef[] = [
 	{
@@ -48,7 +50,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 		id: 'BANISHED',
 		name: 'Banished',
 		description: 'Be there when a manifestation is banished.',
-		trigger: { on: 'run', outcomes: ['banished'] }
+		trigger: { on: 'banished' }
 	}
 ];
 
@@ -65,4 +67,9 @@ export function achievementsForRun(outcome: RunOutcome, partySize: number): stri
 /** The achievements everyone in the expedition earns when the rite is performed. */
 export function achievementsForRite(): string[] {
 	return ACHIEVEMENTS.filter(({ trigger }) => trigger.on === 'rite').map(({ id }) => id);
+}
+
+/** The achievements everyone in the expedition earns when what the rite summoned is banished. */
+export function achievementsForBanishing(): string[] {
+	return ACHIEVEMENTS.filter(({ trigger }) => trigger.on === 'banished').map(({ id }) => id);
 }

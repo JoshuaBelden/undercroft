@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CREATURES } from '../src/lib/content/creatures.ts';
+import { CREATURES, creatureHealth } from '../src/lib/content/creatures.ts';
 import { TICK_RATE } from '../src/lib/shared/constants.ts';
 import { gridDistances, nearestPoint } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
@@ -38,7 +38,7 @@ describe('CreatureDirector', () => {
 		creatures.populate(map.start);
 		expect(creatures.count).toBeGreaterThanOrEqual(WITCH.spawn.count[0]);
 		expect(creatures.count).toBeLessThanOrEqual(WITCH.spawn.count[1]);
-		const distance = gridDistances(map.nav, [nearestPoint(map.nav, map.start)]);
+		const distance = gridDistances(map.nav, [nearestPoint(map.nav, map.start)], true);
 		for (const { position } of creatures.bodies()) {
 			expect(distance[nearestPoint(map.nav, position)]).toBeGreaterThanOrEqual(
 				WITCH.spawn.minDistance - 1
@@ -101,7 +101,8 @@ describe('CreatureDirector', () => {
 	it('loses a player who gets away, and goes back to patrolling', () => {
 		const { creatures, player } = faceOff();
 		run(creatures, 0.5, [player]);
-		expect(mode(creatures)).toBe('agro');
+		// Hunting them: chasing, or already striking if it spawned close enough.
+		expect(['agro', 'attack']).toContain(mode(creatures));
 		// They vanish from where it can sense them.
 		run(creatures, WITCH.perception.evadeTime + 1, []);
 		expect(mode(creatures)).toBe('patrol');
@@ -113,7 +114,7 @@ describe('CreatureDirector', () => {
 		expect(creatures.damage(body.id, WITCH.stagger.threshold, player)).toBe(false);
 		expect(creatures.snapshots()[0].state).toBe('agro');
 		expect(creatures.damage('nobody', 10, null)).toBe(false);
-		expect(creatures.damage(body.id, WITCH.health, player)).toBe(true);
+		expect(creatures.damage(body.id, WITCH.health[0], player)).toBe(true);
 		expect(creatures.damage(body.id, 10, player)).toBe(false);
 		expect(creatures.kills).toBe(1);
 		expect(creatures.hitBodies()).toHaveLength(0);
@@ -125,6 +126,60 @@ describe('CreatureDirector', () => {
 		expect(creatures.count).toBe(1);
 		const back = creatures.bodies()[0].position;
 		expect(Math.hypot(back[0] - map.start[0], back[2] - map.start[2])).toBeGreaterThan(5);
+	});
+
+	it('a strobe stuns one vulnerable to it (by its own reaction), and not the others', () => {
+		// A test-only kind: no creature in the game is vulnerable to strobe yet.
+		CREATURES.dazzled = {
+			...WITCH,
+			id: 'dazzled',
+			vulnerable: ['strobe'],
+			statuses: { stunned: { seconds: 1, immunity: 3 } }
+		};
+		try {
+			const creatures = director();
+			const player = prey('p', map.start, 0);
+			player.state.headlamp = 2;
+			creatures.spawnNear(player.state, 'dazzled');
+			creatures.spawnNear(player.state);
+			const [dazzled, witch] = creatures.hitBodies();
+			expect(creatures.strobe(player.state)).toBe(1);
+			expect(creatures.stunned(dazzled.id)).toBe(true);
+			expect(creatures.stunned(witch.id)).toBe(false);
+			// It stands where it is, reeling, while stunned.
+			const at = [...creatures.bodies()[0].position];
+			run(creatures, 0.9, [player]);
+			const still = creatures.bodies()[0].position;
+			expect(Math.hypot(still[0] - at[0], still[2] - at[2])).toBeLessThan(0.05);
+			expect(creatures.snapshots()[0].anim).toBe('take_damage');
+			run(creatures, 0.2, [player]);
+			expect(creatures.stunned(dazzled.id)).toBe(false);
+			// Immune for its own while after.
+			expect(creatures.strobe(player.state)).toBe(0);
+			run(creatures, 3.1, []);
+			// Patrolling meanwhile, it may have walked out of the beam (that depends on the map): put
+			// it back where it was, so only the immunity is tested.
+			creatures.bodies()[0].position.splice(0, 3, ...at);
+			expect(creatures.strobe(player.state)).toBe(1);
+			// A lamp turned away from it lights nothing.
+			run(creatures, 4.2, []);
+			player.state.yaw = Math.PI;
+			expect(creatures.strobe(player.state)).toBe(0);
+		} finally {
+			delete CREATURES.dazzled;
+		}
+	});
+
+	it('takes more killing the bigger the party: 150 solo, 180 for two, 210 for three or more', () => {
+		expect([1, 2, 3, 4, 0].map((n) => creatureHealth(WITCH, n))).toEqual([150, 180, 210, 210, 150]);
+		const { creatures, player } = faceOff();
+		const [body] = creatures.hitBodies();
+		expect(creatures.damage(body.id, 140, player)).toBe(false);
+		// Someone else arrived after it spawned: it is as tough as a party of two makes it.
+		creatures.party = 2;
+		expect(creatures.damage(body.id, 20, player)).toBe(false);
+		expect(creatures.damage(body.id, 15, player)).toBe(false);
+		expect(creatures.damage(body.id, 5, player)).toBe(true);
 	});
 
 	it('admin can kill or clear them all', () => {

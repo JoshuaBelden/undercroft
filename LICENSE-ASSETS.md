@@ -7,7 +7,7 @@ The **code** of Undercroft is free software under the GNU Affero General Public 
 ## What counts as assets
 
 - Everything under `static/assets/`: models, textures, animations, sounds, music and images.
-- Raw art sources (`art/`, not in this repository): Blender files, exports, recordings, image sources.
+- Raw art sources (`art/`, kept in a separate private repository, not this one): Blender files, exports, recordings, image sources.
 - The game's writing: lore, the Affliction, item and rite text, hints and notes, wherever they appear (including as strings in `src/lib/content/`).
 - The name **Undercroft** as the name of this game, and its logos.
 

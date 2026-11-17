@@ -10,7 +10,9 @@
 	import { menu } from '#lib/game/input/menus.ts';
 	import { connection, me } from '#lib/game/net/connection.svelte.ts';
 	import { startPrefetch } from '#lib/game/prefetch.svelte.ts';
+	import { settings } from '#lib/settings/settings.svelte.ts';
 	import AccountMenu from '#lib/ui/AccountMenu.svelte';
+	import ButtonHint from '#lib/ui/ButtonHint.svelte';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import type { LayoutProps } from './$types';
@@ -20,6 +22,9 @@
 	let help = $state(false);
 	/** On the Social page (friends, the party, invites). */
 	const social = $derived(page.route.id === '/(hub)/social');
+	/** On the Store or Loadout page: their controller shortcuts do nothing there (no toggles). */
+	const store = $derived(page.route.id === '/(hub)/store');
+	const loadout = $derived(page.route.id === '/(hub)/loadout');
 	/** Friend requests and party invites waiting for an answer: the number on the social button. */
 	const waiting = $derived(
 		(connection.social?.incoming.length ?? 0) + (connection.social?.invites.length ?? 0)
@@ -57,10 +62,14 @@
 		void loadAccount();
 		// Shared models and sounds download in the background, so the descent loads quickly.
 		startPrefetch();
-		// Only these actions: every other key and click is left to the page. Not `inventory`: it
-		// is Tab, which moves between buttons and fields up here.
-		const input = new InputMap(window, ['toggleSettings', 'toggleHelp', 'toggleSocial']);
-		const unsubscribe = input.onPressed((action) => {
+		// Only these actions: every other key and click is left to the page. `inventory` only from
+		// the controller: its key is Tab, which moves between buttons and fields up here.
+		const input = new InputMap(
+			window,
+			['toggleSettings', 'toggleHelp', 'toggleSocial'],
+			['inventory']
+		);
+		const unsubscribe = input.onPressed((action, from) => {
 			// The key backs out one step: it closes Help, then returns to the Expedition page, and
 			// only from there opens the settings page.
 			if (action === 'toggleSettings') {
@@ -69,10 +78,17 @@
 				else void goto(resolve('/settings'));
 			}
 			if (action === 'toggleHelp') help = !help;
-			// To the Social page; from there, the same key goes back to the party.
+			// To the Social page; from there, the same key goes back to the party. The controller's
+			// button only opens it: B goes back.
 			if (action === 'toggleSocial') {
 				help = false;
-				void goto(resolve(social ? '/(hub)' : '/(hub)/social'));
+				if (!social) void goto(resolve('/(hub)/social'));
+				else if (from === 'keyboard') void goto(resolve('/(hub)'));
+			}
+			// The controller's View: the Loadout page. Not a toggle there either: B goes back.
+			if (action === 'inventory') {
+				help = false;
+				if (!loadout) void goto(resolve('/(hub)/loadout'));
 			}
 		});
 		return () => {
@@ -91,6 +107,8 @@
 >
 	<header bind:clientHeight={bar}>
 		<nav aria-label="Dashboard">
+			<!-- The controller's shortcuts show their buttons while it is in use (ButtonHint). -->
+			<ButtonHint code="PadLB" />
 			{#each TABS as tab (tab.path)}
 				<a
 					href={resolve(tab.path)}
@@ -100,6 +118,7 @@
 					{tab.label}
 				</a>
 			{/each}
+			<ButtonHint code="PadRB" />
 		</nav>
 		<div class="who">
 			{#if explorer && ready}
@@ -113,16 +132,21 @@
 					<span aria-hidden="true">{explorer.money}</span>
 				</span>
 			{:else if explorer}
+				<!-- Held Y opens it from every other page (menus.ts, data-pad-hold). -->
 				<a
 					class="coins"
-					class:current={page.route.id === '/(hub)/store'}
+					class:current={store}
 					href={resolve('/(hub)/store')}
 					aria-label="Store: you have {money(explorer.money)}"
-					aria-current={page.route.id === '/(hub)/store' ? 'page' : undefined}
+					aria-current={store ? 'page' : undefined}
 					title="Store"
+					data-pad-hold={store ? undefined : 'y'}
 				>
 					<span class="sign" aria-hidden="true">＄</span>
 					<span aria-hidden="true">{explorer.money}</span>
+					{#if !store}
+						<ButtonHint code="PadY" hold />
+					{/if}
 				</a>
 			{/if}
 			<AccountMenu {gamerTag} {avatar} />
@@ -177,6 +201,9 @@
 			<span>Social</span>
 			{#if waiting > 0}
 				<span class="badge" aria-hidden="true">{waiting}</span>
+			{/if}
+			{#if !social}
+				<ButtonHint code={settings.padBindings.toggleSocial[0] ?? ''} />
 			{/if}
 		</a>
 		<a class="icon" href={resolve('/settings')} aria-label="Settings" title="Settings">
@@ -274,6 +301,10 @@
 		font-weight: bold;
 		color: var(--accent);
 		font-variant-numeric: tabular-nums;
+		/* Its controller button: the blue cap, the letter dark as the bar. */
+		--hint-gap: 8px;
+		--hint-cap: var(--accent);
+		--hint-label: var(--bg);
 	}
 
 	.coins:hover,
