@@ -15,6 +15,8 @@
 	import { toggleFullscreen, watchFullscreen } from '#lib/ui/fullscreen.svelte.ts';
 	import { bugReport } from '#lib/game/crash.svelte.ts';
 	import BugReport from '#lib/ui/BugReport.svelte';
+	import { diagnosticsRun } from '#lib/game/benchmark/state.svelte.ts';
+	import Diagnostics from '#lib/ui/Diagnostics.svelte';
 	import CrashDialog from '#lib/ui/CrashDialog.svelte';
 	import LaunchCountdown from '#lib/ui/LaunchCountdown.svelte';
 	import type { LayoutProps } from './$types';
@@ -189,5 +191,9 @@
 	<CrashDialog />
 	{#if bugReport.open}
 		<BugReport />
+	{/if}
+	<!-- Run Diagnostics, from the account menu (docs/dev/diagnostics.md). -->
+	{#if diagnosticsRun.open}
+		<Diagnostics />
 	{/if}
 {/if}

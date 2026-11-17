@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { Collection, Db, Filter } from 'mongodb';
 import { ADMIN } from '../../content/admin.ts';
 import { REPORT, cleanLine, cleanText, type ReportStatus } from '../../content/reports.ts';
+import { cleanBenchmark, type BenchmarkResult } from '../../shared/diagnostics.ts';
 import type { CrashInfo, Diagnostics, ReportInput } from '../../shared/reports.ts';
 
 /**
@@ -26,6 +27,8 @@ export interface ReportDoc {
 	steps: string;
 	diagnostics?: Diagnostics;
 	crash?: CrashInfo;
+	/** Run Diagnostics' results: a diagnostics report, not a bug (docs/dev/diagnostics.md). */
+	benchmark?: BenchmarkResult;
 	/** The `errors` entry the crash belongs to. */
 	errorId?: string;
 	status: ReportStatus;
@@ -113,8 +116,13 @@ export function cleanReport(raw: unknown): ReportInput | { error: string } {
 	if (description === null || steps === null) {
 		return { error: `Keep each box under ${REPORT.textMax} characters` };
 	}
-	if (!description) return { error: 'Say what happened' };
+	const benchmark = body.benchmark === undefined ? null : cleanBenchmark(body.benchmark);
+	if (body.benchmark !== undefined && !benchmark)
+		return { error: 'Those diagnostics are not readable' };
+	// A diagnostics report's description is an optional note; a bug report needs one.
+	if (!description && !benchmark) return { error: 'Say what happened' };
 	const input: ReportInput = { title, description, steps };
+	if (benchmark) input.benchmark = benchmark;
 	const diagnostics = cleanDiagnostics(body.diagnostics);
 	if (diagnostics) input.diagnostics = diagnostics;
 	const crash = cleanCrash(body.crash);
@@ -191,6 +199,7 @@ export async function createReport(
 		createdAt: new Date()
 	};
 	if (input.diagnostics) report.diagnostics = input.diagnostics;
+	if (input.benchmark) report.benchmark = input.benchmark;
 	if (input.crash) {
 		report.crash = input.crash;
 		const known = input.crash.errorId

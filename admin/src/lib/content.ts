@@ -13,3 +13,4 @@ export {
 	type ReportStatus
 } from '../../../src/lib/content/reports.ts';
 export type { CrashInfo, Diagnostics } from '../../../src/lib/shared/reports.ts';
+export { benchmarkMarkdown, type BenchmarkResult } from '../../../src/lib/shared/diagnostics.ts';

@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import {
 		REPORT_STATUSES,
+		benchmarkMarkdown,
+		type BenchmarkResult,
 		type CrashInfo,
 		type Diagnostics,
 		type ReportStatus
@@ -20,6 +22,7 @@
 			steps: string;
 			diagnostics?: Diagnostics;
 			crash?: CrashInfo;
+			benchmark?: BenchmarkResult;
 			errorId?: string;
 			status: ReportStatus;
 			issue?: { number: number; url: string };
@@ -46,6 +49,7 @@
 				<summary>
 					<span class="badge {BADGE[report.status]}">{REPORT_STATUSES[report.status]}</span>
 					{#if report.crash}<span class="badge warn">Crash</span>{/if}
+					{#if report.benchmark}<span class="badge">Diagnostics</span>{/if}
 					<strong>{report.title}</strong>
 					<span class="muted">
 						{#if !hideSender}{report.gamerTag} ·{/if}
@@ -68,8 +72,14 @@
 							· <a href="{resolve('/reports')}?error={report.errorId}">Same crash</a>
 						{/if}
 					</p>
-					<h3>What happened</h3>
-					<p class="text">{report.description}</p>
+					{#if report.benchmark}
+						<h3>Benchmark</h3>
+						<pre>{benchmarkMarkdown(report.benchmark)}</pre>
+					{/if}
+					{#if report.description || !report.benchmark}
+						<h3>{report.benchmark ? 'Note' : 'What happened'}</h3>
+						<p class="text">{report.description}</p>
+					{/if}
 					{#if report.steps}
 						<h3>How to make it happen</h3>
 						<p class="text">{report.steps}</p>

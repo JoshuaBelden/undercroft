@@ -4,6 +4,8 @@
  * See docs/dev/reports.md.
  */
 
+import type { BenchmarkResult } from './diagnostics.ts';
+
 /** Facts about the game and the machine, gathered by src/lib/game/diagnostics.ts. */
 export interface Diagnostics {
 	version: string;
@@ -34,13 +36,17 @@ export interface CrashInfo {
 	errorId?: string;
 }
 
-/** The body of `POST /api/report`. */
+/**
+ * The body of `POST /api/report`. With `benchmark` it is a diagnostics report (Run Diagnostics,
+ * docs/dev/diagnostics.md): the description is the player's note, and may be empty.
+ */
 export interface ReportInput {
 	title: string;
 	description: string;
 	steps: string;
 	diagnostics?: Diagnostics;
 	crash?: CrashInfo;
+	benchmark?: BenchmarkResult;
 }
 
 /** An idea on the board, as a player sees it. */

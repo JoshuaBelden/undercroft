@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import { PLAYER_MODEL } from '#lib/content/player/model.ts';
 import { eyeHeight } from '#lib/shared/player/simulate.ts';
 import type { PlayerSnapshot, PlayerState } from '#lib/shared/player/types.ts';
+import type { TeammateShadows } from '#lib/settings/settings.svelte.ts';
 import { Headlamp } from './Headlamp.ts';
 import { PlayerBody } from './PlayerBody.ts';
+import { pickShadowCaster } from './shadowCaster.ts';
 
 /** Where a remote player was at a moment of server time. */
 interface Sample {
@@ -20,6 +22,10 @@ const INTERPOLATION_DELAY = 0.1;
 const MAX_SAMPLES = 10;
 /** A jump this far (m) between snapshots is a teleport: snap instead of sliding. */
 const TELEPORT = 6;
+
+/** "Nearest" teammate shadows: another lamp takes them once it's this much closer (m). */
+const CASTER_MARGIN = 1.5;
+const eye = new THREE.Vector3();
 
 const frustum = new THREE.Frustum();
 const viewProjection = new THREE.Matrix4();
@@ -50,7 +56,13 @@ interface RemoteBody {
 export class RemotePlayers {
 	readonly root = new THREE.Group();
 	private bodies = new Map<string, RemoteBody>();
-	private shadows = { enabled: true, mapSize: 512 };
+	private shadows: { enabled: boolean; mapSize: number; mode: TeammateShadows } = {
+		enabled: true,
+		mapSize: 512,
+		mode: 'all'
+	};
+	/** With "Nearest", whose lamp casts shadows now. */
+	private caster: string | null = null;
 	/**
 	 * Server clock minus local clock, seconds: turns "now" into server time. Follows the
 	 * least-delayed packet, so network jitter doesn't move it.
@@ -63,12 +75,41 @@ export class RemotePlayers {
 		this.root.name = 'remote-players';
 	}
 
-	/** Shadow settings for remote headlamps (kept at most 512 px; they're secondary lights). */
-	setShadows(enabled: boolean, mapSize: number): void {
-		this.shadows = { enabled, mapSize: Math.min(512, mapSize) };
-		for (const remote of this.bodies.values()) {
-			remote.lamp.setShadows(enabled, this.shadows.mapSize);
+	/**
+	 * Shadow settings for remote headlamps (kept at most 512 px; they're secondary lights).
+	 * `mode` is the "Teammate lamp shadows" setting: every lamp, only the nearest (picked each
+	 * frame in `update`), or none. `enabled` false (Low quality) means none whatever the mode.
+	 */
+	setShadows(enabled: boolean, mapSize: number, mode: TeammateShadows = 'all'): void {
+		this.shadows = { enabled, mapSize: Math.min(512, mapSize), mode };
+		for (const [id, remote] of this.bodies) {
+			remote.lamp.setShadows(this.casts(id), this.shadows.mapSize);
 		}
+	}
+
+	/** Whether this player's lamp casts shadows now. */
+	private casts(id: string): boolean {
+		const { enabled, mode } = this.shadows;
+		if (!enabled || mode === 'off') return false;
+		return mode === 'all' || id === this.caster;
+	}
+
+	/** "Nearest": hand the shadows to the nearest lit lamp (one caster, so no recompiles). */
+	private pickCaster(camera: THREE.Camera): void {
+		if (!this.shadows.enabled || this.shadows.mode !== 'nearest') return;
+		camera.getWorldPosition(eye);
+		const lamps = [...this.bodies].map(([id, remote]) => ({
+			id,
+			distance: remote.root.position.distanceTo(eye),
+			lit: remote.state.headlamp !== 0 && remote.state.battery > 0
+		}));
+		const next = pickShadowCaster(lamps, this.caster, CASTER_MARGIN);
+		if (next === this.caster) return;
+		const before = this.caster;
+		this.caster = next;
+		// Off first, then on: the count of shadow-casting lights never goes up even for a moment.
+		if (before) this.bodies.get(before)?.lamp.setShadows(false, this.shadows.mapSize);
+		if (next) this.bodies.get(next)?.lamp.setShadows(true, this.shadows.mapSize);
 	}
 
 	/** Take a tick's player snapshots; `serverTime` is the tick's timestamp in milliseconds. */
@@ -154,6 +195,7 @@ export class RemotePlayers {
 		viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
 		frustum.setFromProjectionMatrix(viewProjection);
 		const renderTime = performance.now() / 1000 + (this.offset ?? 0) - INTERPOLATION_DELAY;
+		this.pickCaster(camera);
 		for (const remote of this.bodies.values()) {
 			const { root, body, head, state } = remote;
 			const [from, to, blend] = bracket(remote.samples, renderTime);
@@ -184,6 +226,7 @@ export class RemotePlayers {
 	}
 
 	private remove(id: string, remote: RemoteBody): void {
+		if (id === this.caster) this.caster = null;
 		remote.lamp.dispose();
 		remote.body.dispose();
 		remote.root.removeFromParent();
@@ -203,7 +246,7 @@ export class RemotePlayers {
 		root.add(head);
 		const lamp = new Headlamp(head);
 		lamp.setForward(PLAYER_MODEL.lampForward);
-		lamp.setShadows(this.shadows.enabled, this.shadows.mapSize);
+		lamp.setShadows(this.casts(snap.id), this.shadows.mapSize);
 		this.root.add(root);
 		return {
 			name: snap.name,

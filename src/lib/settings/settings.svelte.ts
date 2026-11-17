@@ -62,7 +62,15 @@ export interface GraphicsSettings {
 	renderScale: number;
 	/** Frames per second at most; 0 = as many as the screen shows. */
 	frameCap: FrameCap;
+	/**
+	 * Which teammates' headlamps cast shadows (docs/dev/player.md#teammate-shadows). Each one costs
+	 * a pass over the scene every frame; Low quality has no shadows whatever this says.
+	 */
+	teammateShadows: TeammateShadows;
 }
+
+export const TEAMMATE_SHADOWS = ['all', 'nearest', 'off'] as const;
+export type TeammateShadows = (typeof TEAMMATE_SHADOWS)[number];
 
 export const FRAME_CAPS = [0, 30, 60] as const;
 export type FrameCap = (typeof FRAME_CAPS)[number];
@@ -145,7 +153,8 @@ function defaults(): Settings {
 			cameraShake: 1,
 			fullscreen: false,
 			renderScale: 1,
-			frameCap: 0
+			frameCap: 0,
+			teammateShadows: 'all'
 		},
 		accessibility: {
 			captions: false,
