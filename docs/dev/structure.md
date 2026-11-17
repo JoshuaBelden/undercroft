@@ -67,7 +67,7 @@ src/
       loadout.ts            what lies around the map (bricks)
       items/headlamps.ts    headlamp models
       audio/                sound registry and footstep surfaces
-      credits.ts            the Credits page: AI statement, inspirations, assets, tools
+      credits.ts            the Credits page: AI statement, art, sound, contributors
       reports.ts            bug report, idea and feedback rules; idea statuses
       admin.ts              admin app rules; audit log action names
       release.ts            the current release's notes for What's new, from release.json (written by pnpm release)

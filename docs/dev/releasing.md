@@ -48,7 +48,7 @@ If a step fails it stops there, and prints the commands left to finish by hand.
 
 ## Credits
 
-The **Credits** page (`/about/credits`) is data in `src/lib/content/credits.ts`: the creator, the statement on AI use, which AI tools made what, and sections for inspirations, art, sound, tools and testers. When you add a third-party asset, tool or source, add its credit in the same change, with its license. Entries marked `todo: true` are placeholders: they show (in yellow) only in dev mode, so players never see an empty slot. `SOURCE_URL` links the source code, which the AGPL asks for on a hosted copy; set it once the repository is public.
+The **Credits** page (`/about/credits`) is data in `src/lib/content/credits.ts`: the statement on AI use, and sections for art, sound and contributors (the contributors section links to the repository rather than naming people). When you add a third-party asset or source, add its credit in the same change, with its license. Entries marked `todo: true` are placeholders: they show (in yellow) only in dev mode, so players never see an empty slot. `SOURCE_URL` links the source code, which the AGPL asks for on a hosted copy; set it once the repository is public.
 
 Both About pages are behind sign-in, like everything but the sign-in pages (`isOpen` in `src/lib/server/session.ts`).
 
