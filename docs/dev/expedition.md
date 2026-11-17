@@ -100,8 +100,8 @@ Only the dead spectate. Players who left alive see the leaving fade, then the re
 **Where:** extraction points are `extract-*` markers in a piece (Blender) and come through the manifest's `extracts`. `buildCollisionWorld` puts them all into `world.extracts` in world space. Every map has four:
 
 1. the start room (`stairwell`), at its sealed surface door;
-2. and 3. the two extraction rooms (`extraction-shaft`, role `extraction`) that the generator spaces evenly along the main route, about a third and two thirds of the way to the final room (see [map-generation.md](map-generation.md#algorithm));
-3. the final room (`gloaming-chapel`), at the foot of a ladder on its dais.
+2. and 3. the extraction rooms (`extraction-gate`, role `extraction`) at the end of levels 1 and 2, beside the double door down to the next level (see [map-generation.md](map-generation.md#levels));
+3. the final room (`gloaming-chapel`) on level 3, at the foot of a ladder on its dais.
 
 Every way out but the start door is marked by the same model: a timber ladder (and a rope) going up into the dark (`extraction_ladder` and `hanging_rope` in `scripts/blender/kit.py`). In the shaft room it climbs a round shaft through the ceiling; in the chapel, a hatch where the wall meets the vault.
 
@@ -115,7 +115,7 @@ Every way out but the start door is marked by the same model: a timber ladder (a
 
 **Keyboard shortcuts on screen:** draw a key with `KeyCap` (`src/lib/ui/KeyCap.svelte`): a white rounded cap with the label in bold black, `small` (14 px, beside HUD bars) or `large` (in a prompt). Always pass the player's current binding through `bindingLabel` (`src/lib/game/input/actions.ts`), never a hard-coded letter, so it follows remapping; show nothing when the action is unbound. The headlamp key sits to the left of the battery cells (`Hud`'s `lampKey`).
 
-**Adding an extraction point:** put an `extract-<n>` empty in a piece at the foot of a ladder (`kit.extraction_ladder`), export, then run `pnpm asset:build`. To add another kind of extraction room, build it with an `extract-0` and give it `role: 'extraction'` in `MAP_KIT`; `GenerateOptions.extractions` sets how many go on the route, picked by `weight`.
+**Adding an extraction point:** put an `extract-<n>` empty in a piece at the foot of a ladder (`kit.extraction_ladder`), export, then run `pnpm asset:build`. To add another kind of extraction room, build it with an `extract-0` and a `gate` socket, and give it `role: 'extraction'` in `MAP_KIT`. One ends every level but the deepest, picked by `weight`.
 
 ## Leaving and results
 
@@ -125,7 +125,7 @@ Every way out but the start door is marked by the same model: a timber ladder (a
 
 **Outcome:** the results screen's title comes from the message, except that `extracted` after the Affliction was resolved (the last tick's `rite.resolved`: the rite performed and what it summoned banished) shows "The dark recedes", and `died` with `lost` shows "Lost in the dark".
 
-**Results:** `ExpeditionSummary` (`src/lib/shared/protocol.ts`), built by `Session.summary`: time underground, deepest level reached (shown counting the start as level 1), and the player's `kills`, `crates` (first to open) and `clues`. The session counts those from the tick's events (`Session.tally`): `creatureDie.by`, `crateOpen.player`, `clue.player`. The client adds the Affliction's name and lists what was brought out with what it would sell for. To add a stat, add it to `ExpeditionSummary` and `Player.stats`, count it in `tally`, and show it in `ExpeditionResult`.
+**Results:** `ExpeditionSummary` (`src/lib/shared/protocol.ts`), built by `Session.summary`: time underground, deepest level of the map reached (`tierAt`, 0 for the first; shown counting from 1), and the player's `kills`, `crates` (first to open) and `clues`. The session counts those from the tick's events (`Session.tally`): `creatureDie.by`, `crateOpen.player`, `clue.player`. The client adds the Affliction's name and lists what was brought out with what it would sell for. To add a stat, add it to `ExpeditionSummary` and `Player.stats`, count it in `tally`, and show it in `ExpeditionResult`.
 
 **Continue** always goes to the Loadout page (`surface`), to put the haul away or kit out again.
 

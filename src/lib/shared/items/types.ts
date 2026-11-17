@@ -107,6 +107,8 @@ export type GameEvent =
 	| { kind: 'creatureDie'; id: string; position: Vec3; by: string | null }
 	/** A loot crate was opened for the first time. */
 	| { kind: 'crateOpen'; id: string; player: string; position: Vec3 }
+	/** A door between levels was opened (it stays open). */
+	| { kind: 'doorOpen'; id: string; player: string; position: Vec3 }
 	/** Someone going through a crate started on the next thing in it. */
 	| { kind: 'rummage'; player: string; position: Vec3 }
 	/** A hint was found: what it says, and the requirements (item ids) and room (piece id) it revealed. */

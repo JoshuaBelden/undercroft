@@ -161,7 +161,7 @@ export const SOUNDS = {
 		variation: 0.06
 	},
 	'squeeze.grunt': {
-		file: 'exertion',
+		file: 'squeeze.grunt',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.45,
@@ -411,6 +411,24 @@ export const SOUNDS = {
 		caption: 'a lid creaks open',
 		captionOthers: true
 	},
+	// A door between levels: the bar thrown off, then the leaves dragging open on old hinges.
+	'door.unbar': {
+		synth: { kind: 'thud', cutoff: 700 },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.05,
+		caption: 'a heavy bar drops',
+		captionOthers: true
+	},
+	'door.open': {
+		file: 'door.open',
+		synth: { kind: 'groan' },
+		category: 'sfx',
+		volume: 1,
+		variation: 0.05,
+		caption: 'a great door groans open',
+		captionOthers: true
+	},
 	// Turning over a corpse to search it, the first time.
 	'corpse.search': {
 		file: 'corpse.search',
@@ -537,6 +555,12 @@ export const SOUNDS = {
 		category: 'ambience',
 		volume: 1,
 		caption: 'a vast breath through the stone'
+	},
+	// Your head under the water: a dull, close pressure under the muffled world (looped).
+	'underwater.drone': {
+		synth: { kind: 'drone', pitch: 52 },
+		category: 'ambience',
+		volume: 0.35
 	},
 	'manifest.presence': {
 		synth: { kind: 'drone', pitch: 33 },

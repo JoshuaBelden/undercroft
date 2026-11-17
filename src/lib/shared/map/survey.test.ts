@@ -78,8 +78,17 @@ describe('surveyMap', () => {
 		const placed = (test: (piece: string) => boolean) =>
 			layout.placements.filter((p) => test(p.piece)).length;
 		const kinds = (kind: string) => map.features.filter((f) => f.kind === kind);
-		const stairs = placed((piece) => MAP_KIT[piece]?.descends === true);
+		const stairs = placed(
+			(piece) => MAP_KIT[piece]?.descends === true || MAP_KIT[piece]?.role === 'descent'
+		);
 		expect(stairs).toBeGreaterThan(0);
+		// The long stair between levels is drawn as a stair too.
+		const longStairs = layout.placements.filter((p) => MAP_KIT[p.piece]?.role === 'descent');
+		expect(longStairs.length).toBeGreaterThan(0);
+		for (const stair of longStairs) {
+			const index = layout.placements.indexOf(stair);
+			expect(kinds('down').some((f) => f.piece === index)).toBe(true);
+		}
 		expect(kinds('down')).toHaveLength(stairs);
 		expect(kinds('up')).toHaveLength(stairs);
 		for (const down of kinds('down')) {

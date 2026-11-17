@@ -96,6 +96,8 @@ export type AdminCommand =
 	 * falls to the floor below (with noclip on, it stays). Nothing happens over no floor at all.
 	 */
 	| { kind: 'teleportTo'; position: Vec3 }
+	/** Open every door between levels. */
+	| { kind: 'openDoors' }
 	/** Shut every loot crate and fill them again, hidden. */
 	| { kind: 'resetCrates' }
 	/** Rub out every chalk mark. */
@@ -151,6 +153,8 @@ export type ServerMessage =
 			affliction: AfflictionSnapshot;
 			/** Loot crates opened and in use (where they stand is in the layout). */
 			crates: CratesSnapshot;
+			/** Doors between levels that have been opened (where they stand is in the layout). */
+			doors: string[];
 	  }
 	/**
 	 * The loot crate you have open, sent while it is open: its slots, and how far along (0..1) the

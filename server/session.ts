@@ -18,13 +18,14 @@ import {
 } from '../src/lib/shared/creature/visibility.ts';
 import { generateLayout } from '../src/lib/shared/map/generate.ts';
 import { AFFLICTIONS, DEFAULT_AFFLICTION } from '../src/lib/content/afflictions.ts';
-import { LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import { buildNav, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
 import { CORPSES, CRATES } from '../src/lib/content/loot.ts';
 import { DEFAULT_MARK_WHEEL, MARKS } from '../src/lib/content/marks.ts';
+import { DOORS } from '../src/lib/content/doors.ts';
+import { doorBox, tierAt, tierCells } from '../src/lib/shared/map/doors.ts';
 import { SURVEY } from '../src/lib/content/map/survey.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import {
@@ -86,6 +87,7 @@ import { carriedValue, logRun } from './stats.ts';
 import type { RunOutcome } from '../src/lib/server/store/runs.ts';
 import { RiteDirector, scatterRite } from './rite.ts';
 import { Crates, type Crate } from './crates.ts';
+import { Doors } from './doors.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
 import { Marks } from './marks.ts';
@@ -175,6 +177,9 @@ export class Session {
 	private creatures!: CreatureDirector;
 	private items!: WorldItems;
 	private crates!: Crates;
+	private doors!: Doors;
+	/** Which level of the map each occupied cell is on (deepest level reached). */
+	private tiers = new Map<string, number>();
 	private affliction!: AfflictionDirector;
 	private rite!: RiteDirector;
 	/** What a map can show of this one, and what each player has drawn in theirs. */
@@ -231,6 +236,8 @@ export class Session {
 		this.layout = generate(seed, this.chosen);
 		this.world = buildCollisionWorld(this.layout, PIECES);
 		this.nav = this.buildNav();
+		this.doors = new Doors(this.world, this.nav, this.layout.doors);
+		this.tiers = tierCells(this.layout, PIECES);
 		this.creatures = new CreatureDirector(
 			this.world,
 			this.nav,
@@ -669,6 +676,9 @@ export class Session {
 				this.marks.clear();
 				this.broadcast({ type: 'marks', marks: [] });
 				break;
+			case 'openDoors':
+				this.doors.openAll();
+				break;
 			case 'revealMap':
 				this.surveys.revealAll(player.id);
 				this.sendSurvey(player);
@@ -803,8 +813,8 @@ export class Session {
 				player.ack = frame.seq;
 				player.processed++;
 			}
-			const level = Math.round(-player.state.position[1] / LEVEL_HEIGHT);
-			player.deepestLevel = Math.max(player.deepestLevel, level);
+			const level = tierAt(this.tiers, player.state.position);
+			if (level !== null) player.deepestLevel = Math.max(player.deepestLevel, level);
 		}
 		this.stepCreatures();
 		this.stepAffliction();
@@ -814,6 +824,7 @@ export class Session {
 		this.stepRite();
 		this.stepDeadline();
 		this.stepCrates();
+		this.stepDoors();
 		this.stepMarks();
 		this.stepSurvey();
 		this.tally();
@@ -876,7 +887,8 @@ export class Session {
 				rite: this.rite.snapshot(),
 				deadline: Math.ceil(this.deadline)
 			},
-			crates: this.crates.snapshot()
+			crates: this.crates.snapshot(),
+			doors: this.doors.snapshot()
 		});
 		this.events = [];
 		this.tallied = 0;
@@ -1239,6 +1251,42 @@ export class Session {
 	}
 
 	/**
+	 * Doors between levels: holding interact on a shut one (when no floor item or crate is what
+	 * interact would take) lifts the bar and pushes it open after DOORS.openSeconds. It stays open,
+	 * for everyone, and creatures can path through it from then on.
+	 */
+	private stepDoors(): void {
+		for (const player of this.players.values()) {
+			const s = player.state;
+			const { origin, direction } = aimRay(s, eyeHeight(s));
+			const door =
+				this.canUseHands(player) &&
+				player.lastInput?.interact &&
+				!this.items.lookedAt(s, origin, direction) &&
+				!this.crates.lookedAt(origin, direction)
+					? this.doors.lookedAt(origin, direction)
+					: null;
+			if (!door) {
+				s.unbarring = 0;
+				continue;
+			}
+			s.unbarring += TICK_DT;
+			if (s.unbarring < DOORS.openSeconds) continue;
+			s.unbarring = 0;
+			if (!this.doors.open(door.id)) continue;
+			this.events.push({
+				kind: 'doorOpen',
+				id: door.id,
+				player: player.id,
+				position: doorBox(door).center
+			});
+			// Heard a long way down the stair and back through the level: creatures come to look.
+			this.creatures.hear(door.position, DOORS.noise, null);
+			log.info(`${player.name} opened door ${door.id} in ${this.id.slice(0, 8)}`);
+		}
+	}
+
+	/**
 	 * Chalk marks: holding interact on your own mark (when no floor item or crate is what interact
 	 * would take) rubs it out after MARKS.eraseSeconds.
 	 */
@@ -1367,6 +1415,7 @@ export class Session {
 		s.reviving = 0;
 		s.opening = 0;
 		s.erasing = 0;
+		s.unbarring = 0;
 		s.sketching = 0;
 		s.sharing = 0;
 		this.shutCrate(player);

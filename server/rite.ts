@@ -157,7 +157,7 @@ export function scatterRite(
 	const { layout, pieces, kit, world, nav, start, seed } = map;
 	const rng = new Rng(seed ^ 0x51ce);
 	const riteCells = cellsOf(layout, pieces, spec.room);
-	const distance = gridDistances(nav, [nearestPoint(nav, start)]);
+	const distance = gridDistances(nav, [nearestPoint(nav, start)], true);
 	const floor = floorPoints(nav, distance);
 	const wanted = spec.requirements.filter((r) => r.place && ITEMS[r.item] && !withheld.has(r.item));
 

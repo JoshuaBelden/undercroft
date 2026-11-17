@@ -38,7 +38,7 @@ describe('CreatureDirector', () => {
 		creatures.populate(map.start);
 		expect(creatures.count).toBeGreaterThanOrEqual(WITCH.spawn.count[0]);
 		expect(creatures.count).toBeLessThanOrEqual(WITCH.spawn.count[1]);
-		const distance = gridDistances(map.nav, [nearestPoint(map.nav, map.start)]);
+		const distance = gridDistances(map.nav, [nearestPoint(map.nav, map.start)], true);
 		for (const { position } of creatures.bodies()) {
 			expect(distance[nearestPoint(map.nav, position)]).toBeGreaterThanOrEqual(
 				WITCH.spawn.minDistance - 1
@@ -101,7 +101,8 @@ describe('CreatureDirector', () => {
 	it('loses a player who gets away, and goes back to patrolling', () => {
 		const { creatures, player } = faceOff();
 		run(creatures, 0.5, [player]);
-		expect(mode(creatures)).toBe('agro');
+		// Hunting them: chasing, or already striking if it spawned close enough.
+		expect(['agro', 'attack']).toContain(mode(creatures));
 		// They vanish from where it can sense them.
 		run(creatures, WITCH.perception.evadeTime + 1, []);
 		expect(mode(creatures)).toBe('patrol');
@@ -156,6 +157,9 @@ describe('CreatureDirector', () => {
 			// Immune for its own while after.
 			expect(creatures.strobe(player.state)).toBe(0);
 			run(creatures, 3.1, []);
+			// Patrolling meanwhile, it may have walked out of the beam (that depends on the map): put
+			// it back where it was, so only the immunity is tested.
+			creatures.bodies()[0].position.splice(0, 3, ...at);
 			expect(creatures.strobe(player.state)).toBe(1);
 			// A lamp turned away from it lights nothing.
 			run(creatures, 4.2, []);

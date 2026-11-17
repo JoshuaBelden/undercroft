@@ -97,7 +97,7 @@ export class WorldItems {
 	 */
 	scatterLoot(nav: NavGrid, seed: number, start: Vec3, cells: number): void {
 		const rng = new Rng(seed ^ 0x100f);
-		const distance = gridDistances(nav, [nearestPoint(nav, start)]);
+		const distance = gridDistances(nav, [nearestPoint(nav, start)], true);
 		const spots = nav.points
 			.map((point, index) => ({ point, distance: distance[index] }))
 			.filter(

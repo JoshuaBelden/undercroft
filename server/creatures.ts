@@ -174,7 +174,7 @@ export class CreatureDirector {
 		if (!def) return;
 		const from = nearestPoint(this.nav, start);
 		if (from < 0) return;
-		const distance = gridDistances(this.nav, [from]);
+		const distance = gridDistances(this.nav, [from], true);
 		const count = this.rng.int(def.spawn.count[0], def.spawn.count[1]);
 		const placed: Vec3[] = [];
 		for (const spots of [

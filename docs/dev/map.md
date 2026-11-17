@@ -31,7 +31,7 @@ The map works on the layout's grid: 4 m cells, one level every 4 m (see [map-gen
 - **Cells:** every cell a piece fills (caps fill none), with the piece it belongs to and whether it is in a room (start, major, extraction, or a connector with `room: true`).
 - **Sides:** each side of a cell is `open` (more of the same piece), `way` (a way through: the pieces on both sides have a socket there) or `wall`. A cap has a socket too, but caps aren't counted, so a capped opening is a wall. A dead end is walked into (its bricks lie there), so the opening into one is a way.
 - **Next:** where you can walk from a cell: across an `open` or `way` side, or up and down within one piece (a stair). Every cell can be reached from the start (tested).
-- **Features:** a stair gets `down` on its top level and `up` on its bottom one; an extraction room gets `extraction`; a kit entry's `sketch` puts that symbol on it. **Rooms:** a piece with a `title` is named on the map.
+- **Features:** a stair (a `descends` piece, or the `descent` long stair between levels) gets `down` on its top level and `up` on its bottom one; an extraction room gets `extraction`; a kit entry's `sketch` puts that symbol on it. **Rooms:** a piece with a `title` is named on the map.
 
 ## Sketching (`sketchCells`)
 

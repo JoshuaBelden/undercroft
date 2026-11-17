@@ -97,15 +97,17 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 - **Root:** an empty named after the piece (`hall-straight`) at the origin. All other objects are parented to it. Custom properties: `footprint_w`, `footprint_d` (cells along X and Y), `levels`, and optionally `max_texture` (default 1024).
 - **Origin:** floor of the lowest level, centred on the footprint.
 - **Standard `hall` opening:** 2 m wide, vertical sides to 1.8 m, semicircular arch to 2.8 m, centred on a cell edge. Use `kit.hall_profile()`, and the `gauge-opening-hall` in the `_reference` collection to check by eye. Hall passages sweep the same profile, so seams match.
+- **`gate` opening:** the double door between levels: 3.2 m wide, sides to 2.2 m, arch to 3.2 m (`kit.gate_profile()`, `GATE_HALF_W`, `GATE_SPRING`). It has the same point count as the hall profile, so a passage can `morph` from one to the other. Behind the door, `stairs-deep` narrows from gate to hall before the stairs begin.
 - **Room walls** sit 0.25 m inside the footprint. Each opening gets a short throat out to the boundary.
 - **Markers** (empties, kebab-case prefixes):
   - `socket-<type>-<n>`: an opening, at floor level, on the footprint boundary, centred on a cell edge. The edge and cell are derived from the position.
   - `spawn-<n>`: player start. `extract-<n>`: extraction point, at the foot of a ladder made with `extraction_ladder` (see `build_extraction_shaft`, and `add_chapel_extraction`, which added one to the hand-edited chapel without rebuilding it). `rite-<n>`: where the rite is initiated.
+  - `door-<n>`: a door, on the floor in the middle of the doorway, its local +Y pointing to the room side (the leaves swing away from it). The game stands `prop-door-double` there and makes it solid until opened (see [map-generation.md](map-generation.md#doors)). Only `stairs-deep` has one.
   - `rubble-<n>`: a collapsed wall, on the floor at the foot of the fall. Bricks lie only by these, 1 to 3 at each (see [items.md](items.md)).
   - `creature-<n>`: where a creature may start, on the floor with standing room (it snaps to the nav grid within 2 m). Markers too close to the start are skipped; with too few, creatures start in dead-end corners instead (see [creatures.md](creatures.md#spawning)).
   - `crate-<n>`: where a loot crate may stand (the game fills only some). On the floor at the crate's centre, turned about Z only, with its local +Y pointing at the wall behind the crate. Leave 1.2 m of clear floor in front. `props.crate_marker(piece, x, y, wall)` adds one pushed back against the `'n'`, `'s'`, `'e'` or `'w'` wall near a point, and reports anything in its way.
 - **Collision:** `col-*` meshes are unit cubes scaled and rotated into place. They go into the manifest as oriented boxes and are stripped from the shipped model. Keep the boxes inside the visible rock everywhere the player can reach, because walls are single-sided: a player whose camera ends up inside the rock sees the void and the pieces behind it. Where a passage narrows or lowers gradually (the ease into `hall-crawl` and `hall-squeeze`), step the boxes every 0.2 m to follow it (`narrow_end_cols` in `kit.py`). The walls should count only below the head of the tallest stance that fits, and the ceiling box should cover the arch across the capsule's reach. Every rock face also has to be closed: an open edge anywhere except a socket ring shows up as a see-through gap.
-- **Volumes:** `vol-<kind>-<n>` unit cubes mark gameplay volumes, such as `vol-water-0` (swimmable water) in the Cistern or `vol-squeeze-0` (slow, no sprinting) in `hall-squeeze`. Like colliders, they go into the manifest and are stripped from the model.
+- **Volumes:** `vol-<kind>-<n>` unit cubes mark gameplay volumes, such as `vol-water-0` (swimmable water) in the Cistern or `vol-squeeze-0` (slow, no sprinting, no fighting) in `hall-squeeze-long`. Like colliders, they go into the manifest and are stripped from the model.
 - **Every water volume needs a way out:** steps, or an edge no more than 0.9 m above the water surface (the swim-out mantle height, `MOVEMENT.mantle.maxFromWater`). The Cistern has both: steps on the south side of the basin and a walkway 0.45 m above the water.
 - **Water connectors dip below their sockets,** so they declare an extra level with the origin at the bottom and sockets at level 1, like the Cistern:
   - `hall-canal`: a widened passage with a 1 m ledge beside a water channel; the water is 0.3 m below the ledge.
@@ -114,6 +116,15 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 - **Materials:** single-sided (backface culling on, so they export with `doubleSided: false`). Name them by use (`mat-wall-tunnel`), not by texture, so a texture can be swapped without renaming. Texture sets per material are listed in `MATERIALS` in `kit.py`.
 - **UVs:** world-scale, one texture repeat per `tile` metres per material.
 - **Budgets:** 1-cell pieces ≤ 5k triangles, rooms ≤ 40k.
+
+**Level pieces** (`build_extraction_gate` and `build_stairs_deep` in kit.py):
+
+- `extraction-gate` is a 3×2 room with the shaft and ladder in the middle, three hall openings, and the `gate` in its north wall framed in marble.
+- `stairs-deep` is 1×6 cells and 4 levels: the `gate` at the top (level 3) with the door just inside it, the narrowing, then two 30-riser flights with a landing between, down to a hall at level 0.
+
+**Big rooms:** `room-vault` (3×3, four pillars round a bier, an opening on every side) and `room-gallery` (4×2, niches three high down both long walls, two openings at each end). `hall-squeeze-long` is the squeeze stretched to 3 cells, about 9 m of it tight.
+
+**The door** is a prop (`props.build_door_double`): two `mat-prop-door` (PaintedWood007B) leaves, `door-leaf-l` and `door-leaf-r`, with their origins on their hinges, and a `door-bar` across them on the room side.
 
 Blender adds `.001` suffixes when names repeat across collections (`col-floor.001`). The build script strips them.
 

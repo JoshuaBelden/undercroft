@@ -14,6 +14,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [{ center: [0, 1.4, 0.2], halfExtents: [1, 1.4, 0.2], rotation: [0, 0, 0, 1] }],
 		volumes: [],
@@ -36,6 +37,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 1.85, 0], halfExtents: [4.4, 0.15, 2.4], rotation: [0, 0, 0, 1] },
@@ -80,51 +82,64 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		triangles: 782
 	},
-	'extraction-shaft': {
-		name: 'extraction-shaft',
-		url: '/assets/shared/map/extraction-shaft.d17ff184.gltf',
-		bytes: 1681776,
-		footprint: [2, 2],
+	'extraction-gate': {
+		name: 'extraction-gate',
+		url: '/assets/shared/map/extraction-gate.ba59ef8f.gltf',
+		bytes: 2034315,
+		footprint: [3, 2],
 		levels: 2,
 		sockets: [
-			{ type: 'hall', cell: [1, 0], level: 0, edge: 'n' },
-			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' },
-			{ type: 'hall', cell: [0, 0], level: 0, edge: 'w' },
-			{ type: 'hall', cell: [1, 1], level: 0, edge: 'e' }
+			{ type: 'gate', cell: [1, 0], level: 0, edge: 'n' },
+			{ type: 'hall', cell: [2, 1], level: 0, edge: 's' },
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [2, 0], level: 0, edge: 'e' }
 		],
 		spawns: [],
-		creatures: [],
+		creatures: [
+			[-4.2, 0, -2.2],
+			[4.2, 0, 1.2],
+			[-1.5, 0, 2.6]
+		],
 		extracts: [[0, 0, -0.1]],
 		rites: [],
-		crates: [],
-		rubble: [],
+		crates: [
+			{ position: [-3.2, 0, -3.41], yaw: 0 },
+			{ position: [-5.41, 0, -0.5], yaw: 1.571 },
+			{ position: [5.41, 0, 1], yaw: -1.571 },
+			{ position: [1.6, 0, 3.41], yaw: -3.142 }
+		],
+		doors: [],
+		rubble: [
+			[5, 0, -3],
+			[-4.8, 0, 3.1]
+		],
 		colliders: [
-			{ center: [2.55, 3.6, 0], halfExtents: [1.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
-			{ center: [0, 3.6, -2.55], halfExtents: [4, 0.2, 1.45], rotation: [0, 0, 0, 1] },
-			{ center: [0, 3.6, 2.55], halfExtents: [4, 0.2, 1.45], rotation: [0, 0, 0, 1] },
-			{ center: [-2.55, 3.6, 0], halfExtents: [1.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
-			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [3.55, 4, 0], halfExtents: [2.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 4, -2.55], halfExtents: [6, 0.2, 1.45], rotation: [0, 0, 0, 1] },
+			{ center: [0, 4, 2.55], halfExtents: [6, 0.2, 1.45], rotation: [0, 0, 0, 1] },
+			{ center: [-3.55, 4, 0], halfExtents: [2.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 4], rotation: [0, 0, 0, 1] },
 			{ center: [0, 7.7, 0], halfExtents: [1.1, 0.3, 1.1], rotation: [0, 0, 0, 1] },
 			{ center: [0, 3.7, -0.8], halfExtents: [0.3, 3.7, 0.06], rotation: [0, 0, 0, 1] },
-			{ center: [1.25, 5.55, 0], halfExtents: [0.15, 2.15, 1.1], rotation: [0, 0, 0, 1] },
-			{ center: [0, 5.55, -1.25], halfExtents: [1.4, 2.15, 0.15], rotation: [0, 0, 0, 1] },
-			{ center: [0, 5.55, 1.25], halfExtents: [1.4, 2.15, 0.15], rotation: [0, 0, 0, 1] },
-			{ center: [-1.25, 5.55, 0], halfExtents: [0.15, 2.15, 1.1], rotation: [0, 0, 0, 1] },
-			{ center: [3.7, 1.7, 3.5], halfExtents: [0.3, 1.7, 0.5], rotation: [0, 0, 0, 1] },
-			{ center: [3.7, 3.1, 2], halfExtents: [0.3, 0.3, 1], rotation: [0, 0, 0, 1] },
-			{ center: [3.7, 1.7, -1.5], halfExtents: [0.3, 1.7, 2.5], rotation: [0, 0, 0, 1] },
-			{ center: [-1.5, 1.7, -3.7], halfExtents: [2.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
-			{ center: [2, 3.1, -3.7], halfExtents: [1, 0.3, 0.3], rotation: [0, 0, 0, 1] },
-			{ center: [3.5, 1.7, -3.7], halfExtents: [0.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
-			{ center: [-3.5, 1.7, 3.7], halfExtents: [0.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
-			{ center: [-2, 3.1, 3.7], halfExtents: [1, 0.3, 0.3], rotation: [0, 0, 0, 1] },
-			{ center: [1.5, 1.7, 3.7], halfExtents: [2.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
-			{ center: [-3.7, 1.7, 1.5], halfExtents: [0.3, 1.7, 2.5], rotation: [0, 0, 0, 1] },
-			{ center: [-3.7, 3.1, -2], halfExtents: [0.3, 0.3, 1], rotation: [0, 0, 0, 1] },
-			{ center: [-3.7, 1.7, -3.5], halfExtents: [0.3, 1.7, 0.5], rotation: [0, 0, 0, 1] }
+			{ center: [1.25, 5.75, 0], halfExtents: [0.15, 1.95, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5.75, -1.25], halfExtents: [1.4, 1.95, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5.75, 1.25], halfExtents: [1.4, 1.95, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [-1.25, 5.75, 0], halfExtents: [0.15, 1.95, 1.1], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 1.9, 1.5], halfExtents: [0.125, 1.9, 2.5], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 3.3, -2], halfExtents: [0.125, 0.5, 1], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 1.9, -3.5], halfExtents: [0.125, 1.9, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-3.8, 1.9, -3.875], halfExtents: [2.2, 1.9, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.5, -3.875], halfExtents: [1.6, 0.3, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.8, 1.9, -3.875], halfExtents: [2.2, 1.9, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.9, 3.875], halfExtents: [4.5, 1.9, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [4, 3.3, 3.875], halfExtents: [1, 0.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [5.5, 1.9, 3.875], halfExtents: [0.5, 1.9, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 1.9, 3.5], halfExtents: [0.125, 1.9, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 3.3, 2], halfExtents: [0.125, 0.5, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 1.9, -1.5], halfExtents: [0.125, 1.9, 2.5], rotation: [0, 0, 0, 1] }
 		],
 		volumes: [],
-		triangles: 1068
+		triangles: 1108
 	},
 	'gloaming-chapel': {
 		name: 'gloaming-chapel',
@@ -145,6 +160,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [3.41, 0, -0.3], yaw: -1.571 },
 			{ position: [-3.41, 0, -0.3], yaw: 1.571 }
 		],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 0.9, -3.4], halfExtents: [1, 0.55, 0.45], rotation: [0, 0, 0, 1] },
@@ -189,6 +205,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 7.6, 0], halfExtents: [2, 0.2, 2.4], rotation: [0, 0, 0, 1] },
@@ -238,6 +255,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
@@ -301,6 +319,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 2.025, 0], halfExtents: [1.5, 0.975, 1.8], rotation: [0, 0, 0, 1] },
@@ -396,6 +415,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
@@ -420,6 +440,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [{ position: [0, 0, 0.836], yaw: 0 }],
+		doors: [],
 		rubble: [[0, 0, -0.2]],
 		colliders: [
 			{ center: [0, 1.5, -1.3], halfExtents: [1.5, 1.5, 0.7], rotation: [0, 0, 0, 1] },
@@ -446,6 +467,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 1.85, 0], halfExtents: [1.5, 0.15, 0.8], rotation: [0, 0, 0, 1] },
@@ -490,6 +512,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [1.7, 0, -1.06], yaw: 0 },
 			{ position: [1.7, 0, 1.06], yaw: -3.142 }
 		],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [-2, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
@@ -508,75 +531,76 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 1172
 	},
-	'hall-squeeze': {
-		name: 'hall-squeeze',
-		url: '/assets/shared/map/hall-squeeze.5c6aefee.gltf',
-		bytes: 1270596,
-		footprint: [1, 1],
+	'hall-squeeze-long': {
+		name: 'hall-squeeze-long',
+		url: '/assets/shared/map/hall-squeeze-long.d9ea5f05.gltf',
+		bytes: 1275198,
+		footprint: [1, 3],
 		levels: 1,
 		sockets: [
 			{ type: 'hall', cell: [0, 0], level: 0, edge: 'n' },
-			{ type: 'hall', cell: [0, 0], level: 0, edge: 's' }
+			{ type: 'hall', cell: [0, 2], level: 0, edge: 's' }
 		],
 		spawns: [],
 		creatures: [],
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
-			{ center: [0, -0.1, -1.35], halfExtents: [1.5, 0.1, 0.65], rotation: [0, 0, 0, 1] },
-			{ center: [0, -0.1, 1.35], halfExtents: [1.5, 0.1, 0.65], rotation: [0, 0, 0, 1] },
-			{ center: [0, -0.1, 0], halfExtents: [1.5, 0.1, 2], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.66, -0.793], halfExtents: [1.5, 0.74, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0.938, 1.5, -0.793], halfExtents: [0.562, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-0.938, 1.5, -0.793], halfExtents: [0.562, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.676, -0.979], halfExtents: [1.5, 0.724, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0.958, 1.5, -0.979], halfExtents: [0.542, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-0.958, 1.5, -0.979], halfExtents: [0.542, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.709, -1.164], halfExtents: [1.5, 0.691, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0.999, 1.5, -1.164], halfExtents: [0.501, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-0.999, 1.5, -1.164], halfExtents: [0.501, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.763, -1.35], halfExtents: [1.5, 0.637, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [1.073, 1.5, -1.35], halfExtents: [0.427, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-1.073, 1.5, -1.35], halfExtents: [0.427, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.81, -1.536], halfExtents: [1.5, 0.59, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [1.146, 1.5, -1.536], halfExtents: [0.354, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-1.146, 1.5, -1.536], halfExtents: [0.354, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.83, -1.721], halfExtents: [1.5, 0.57, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [1.187, 1.5, -1.721], halfExtents: [0.313, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-1.187, 1.5, -1.721], halfExtents: [0.313, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.84, -1.907], halfExtents: [1.5, 0.56, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [1.213, 1.5, -1.907], halfExtents: [0.287, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-1.214, 1.5, -1.907], halfExtents: [0.286, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.663, 0.793], halfExtents: [1.5, 0.737, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0.938, 1.5, 0.793], halfExtents: [0.562, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-0.938, 1.5, 0.793], halfExtents: [0.562, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.676, 0.979], halfExtents: [1.5, 0.724, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0.958, 1.5, 0.979], halfExtents: [0.542, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-0.958, 1.5, 0.979], halfExtents: [0.542, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.706, 1.164], halfExtents: [1.5, 0.694, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0.999, 1.5, 1.164], halfExtents: [0.501, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-0.999, 1.5, 1.164], halfExtents: [0.501, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.759, 1.35], halfExtents: [1.5, 0.641, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [1.073, 1.5, 1.35], halfExtents: [0.427, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-1.072, 1.5, 1.35], halfExtents: [0.428, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.808, 1.536], halfExtents: [1.5, 0.592, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [1.146, 1.5, 1.536], halfExtents: [0.354, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-1.146, 1.5, 1.536], halfExtents: [0.354, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.831, 1.721], halfExtents: [1.5, 0.569, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [1.187, 1.5, 1.721], halfExtents: [0.313, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-1.187, 1.5, 1.721], halfExtents: [0.313, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0, 2.841, 1.907], halfExtents: [1.5, 0.559, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [1.214, 1.5, 1.907], halfExtents: [0.286, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [-1.213, 1.5, 1.907], halfExtents: [0.287, 1.5, 0.093], rotation: [0, 0, 0, 1] },
-			{ center: [0.925, 1.5, 0], halfExtents: [0.575, 1.5, 0.7], rotation: [0, 0, 0, 1] },
-			{ center: [-0.925, 1.5, 0], halfExtents: [0.575, 1.5, 0.7], rotation: [0, 0, 0, 1] }
+			{ center: [0, 2.642, -4.793], halfExtents: [1.5, 0.758, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0.915, 1.5, -4.793], halfExtents: [0.585, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-0.915, 1.5, -4.793], halfExtents: [0.585, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.668, -4.979], halfExtents: [1.5, 0.732, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0.938, 1.5, -4.979], halfExtents: [0.562, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-0.938, 1.5, -4.979], halfExtents: [0.562, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.735, -5.164], halfExtents: [1.5, 0.665, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0.995, 1.5, -5.164], halfExtents: [0.505, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-0.995, 1.5, -5.164], halfExtents: [0.505, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.771, -5.35], halfExtents: [1.5, 0.629, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [1.07, 1.5, -5.35], halfExtents: [0.43, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-1.07, 1.5, -5.35], halfExtents: [0.43, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.849, -5.536], halfExtents: [1.5, 0.551, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [1.147, 1.5, -5.536], halfExtents: [0.353, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-1.147, 1.5, -5.536], halfExtents: [0.353, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.912, -5.721], halfExtents: [1.5, 0.488, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [1.208, 1.5, -5.721], halfExtents: [0.292, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-1.208, 1.5, -5.721], halfExtents: [0.292, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.943, -5.907], halfExtents: [1.5, 0.457, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [1.239, 1.5, -5.907], halfExtents: [0.261, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-1.239, 1.5, -5.907], halfExtents: [0.261, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, -5.35], halfExtents: [1.5, 0.1, 0.65], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.642, 4.793], halfExtents: [1.5, 0.758, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0.915, 1.5, 4.793], halfExtents: [0.585, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-0.915, 1.5, 4.793], halfExtents: [0.585, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.668, 4.979], halfExtents: [1.5, 0.732, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0.938, 1.5, 4.979], halfExtents: [0.562, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-0.938, 1.5, 4.979], halfExtents: [0.562, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.735, 5.164], halfExtents: [1.5, 0.665, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0.995, 1.5, 5.164], halfExtents: [0.505, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-0.995, 1.5, 5.164], halfExtents: [0.505, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.771, 5.35], halfExtents: [1.5, 0.629, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [1.07, 1.5, 5.35], halfExtents: [0.43, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-1.07, 1.5, 5.35], halfExtents: [0.43, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.849, 5.536], halfExtents: [1.5, 0.551, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [1.147, 1.5, 5.536], halfExtents: [0.353, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-1.147, 1.5, 5.536], halfExtents: [0.353, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.912, 5.721], halfExtents: [1.5, 0.488, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [1.208, 1.5, 5.721], halfExtents: [0.292, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-1.208, 1.5, 5.721], halfExtents: [0.292, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.943, 5.907], halfExtents: [1.5, 0.457, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [1.239, 1.5, 5.907], halfExtents: [0.261, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [-1.239, 1.5, 5.907], halfExtents: [0.261, 1.5, 0.093], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 5.35], halfExtents: [1.5, 0.1, 0.65], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [1.5, 0.1, 6], rotation: [0, 0, 0, 1] },
+			{ center: [0.925, 1.5, 0], halfExtents: [0.575, 1.5, 4.7], rotation: [0, 0, 0, 1] },
+			{ center: [-0.925, 1.5, 0], halfExtents: [0.575, 1.5, 4.7], rotation: [0, 0, 0, 1] }
 		],
 		volumes: [
-			{ kind: 'squeeze', center: [0, 1, 0], halfExtents: [0.6, 1, 1], rotation: [0, 0, 0, 1] }
+			{ kind: 'squeeze', center: [0, 1, 0], halfExtents: [0.6, 1, 5], rotation: [0, 0, 0, 1] }
 		],
-		triangles: 272
+		triangles: 816
 	},
 	'hall-stairs-down': {
 		name: 'hall-stairs-down',
@@ -593,6 +617,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, -0.15, 3.35], halfExtents: [1.5, 0.15, 0.65], rotation: [0, 0, 0, 1] },
@@ -619,6 +644,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [1.5, 0.2, 2], rotation: [0, 0, 0, 1] },
@@ -645,6 +671,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [],
 		rites: [],
 		crates: [],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
@@ -680,6 +707,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, -1.8], yaw: 1.571 },
 			{ position: [-5.41, 0, -0.4], yaw: 1.571 }
 		],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [3.475, 0.725, -3.58], halfExtents: [2.075, 0.725, 0.17], rotation: [0, 0, 0, 1] },
@@ -728,6 +756,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, 3.5], yaw: 1.571 },
 			{ position: [-2, 0, 5.41], yaw: -3.142 }
 		],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 6.8, 0], halfExtents: [6, 0.2, 6], rotation: [0, 0, 0, 1] },
@@ -774,6 +803,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [3.06, 0, -1.8], yaw: -1.571 },
 			{ position: [-3.06, 0, 1.8], yaw: 1.571 }
 		],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 3.6, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
@@ -797,6 +827,60 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 324
 	},
+	'room-gallery': {
+		name: 'room-gallery',
+		url: '/assets/shared/map/room-gallery.6588b3bf.gltf',
+		bytes: 1670972,
+		footprint: [4, 2],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [3, 1], level: 0, edge: 'e' },
+			{ type: 'hall', cell: [3, 0], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [
+			[-6, 0, 0],
+			[6, 0, 0],
+			[-2, 0, -1.8],
+			[2, 0, 1.8]
+		],
+		extracts: [],
+		rites: [],
+		crates: [
+			{ position: [-7.41, 0, 0], yaw: 1.571 },
+			{ position: [7.41, 0, 0], yaw: -1.571 },
+			{ position: [-2, 0, -3.41], yaw: 0 },
+			{ position: [2, 0, 3.41], yaw: -3.142 }
+		],
+		doors: [],
+		rubble: [
+			[-6.8, 0, -2.9],
+			[6.5, 0, 2.9]
+		],
+		colliders: [
+			{ center: [0, 3.8, 0], halfExtents: [8, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-4, 1.8, 0], halfExtents: [0.42, 1.8, 0.42], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.8, 0], halfExtents: [0.42, 1.8, 0.42], rotation: [0, 0, 0, 1] },
+			{ center: [4, 1.8, 0], halfExtents: [0.42, 1.8, 0.42], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [8, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [7.875, 1.8, 3.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [7.875, 3.2, 2], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [7.875, 1.8, 0], halfExtents: [0.125, 1.8, 1], rotation: [0, 0, 0, 1] },
+			{ center: [7.875, 3.2, -2], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [7.875, 1.8, -3.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.8, -3.875], halfExtents: [8, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.8, 3.875], halfExtents: [8, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-7.875, 1.8, 3.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-7.875, 3.2, 2], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-7.875, 1.8, 0], halfExtents: [0.125, 1.8, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-7.875, 3.2, -2], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-7.875, 1.8, -3.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 3068
+	},
 	'room-small': {
 		name: 'room-small',
 		url: '/assets/shared/map/room-small.5656b0b0.gltf',
@@ -815,6 +899,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-1.06, 0, 0], yaw: 1.571 },
 			{ position: [1.06, 0, 0], yaw: -1.571 }
 		],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 3.2, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
@@ -829,6 +914,114 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 506
 	},
+	'room-vault': {
+		name: 'room-vault',
+		url: '/assets/shared/map/room-vault.96f19af6.gltf',
+		bytes: 2170027,
+		footprint: [3, 3],
+		levels: 2,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'n' },
+			{ type: 'hall', cell: [2, 2], level: 0, edge: 's' },
+			{ type: 'hall', cell: [0, 2], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [2, 0], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [
+			[-4.5, 0, -4.4],
+			[4.4, 0, 4.4],
+			[0, 0, 2.2],
+			[0, 0, -2.4]
+		],
+		extracts: [],
+		rites: [],
+		crates: [
+			{ position: [-1.5, 0, -5.41], yaw: 0 },
+			{ position: [1.8, 0, -5.41], yaw: 0 },
+			{ position: [-1, 0, 5.41], yaw: -3.142 },
+			{ position: [5.41, 0, 1.5], yaw: -1.571 },
+			{ position: [-5.41, 0, -1.5], yaw: 1.571 },
+			{ position: [5.41, 0, -1.6], yaw: -1.571 }
+		],
+		doors: [],
+		rubble: [
+			[-4.9, 0, 4.8],
+			[4.8, 0, -4.7],
+			[-4.6, 0, -1.6]
+		],
+		colliders: [
+			{ center: [0, 0.4, 0], halfExtents: [1.1, 0.4, 0.6], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5, 0], halfExtents: [6, 0.2, 6], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 6], rotation: [0, 0, 0, 1] },
+			{ center: [-2.6, 2.4, 2.6], halfExtents: [0.57, 2.4, 0.57], rotation: [0, 0, 0, 1] },
+			{ center: [2.6, 2.4, 2.6], halfExtents: [0.57, 2.4, 0.57], rotation: [0, 0, 0, 1] },
+			{ center: [-2.6, 2.4, -2.6], halfExtents: [0.57, 2.4, 0.57], rotation: [0, 0, 0, 1] },
+			{ center: [2.6, 2.4, -2.6], halfExtents: [0.57, 2.4, 0.57], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 2.4, 1.5], halfExtents: [0.125, 2.4, 4.5], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 3.8, -4], halfExtents: [0.125, 1, 1], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 2.4, -5.5], halfExtents: [0.125, 2.4, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-5.5, 2.4, -5.875], halfExtents: [0.5, 2.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-4, 3.8, -5.875], halfExtents: [1, 1, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 2.4, -5.875], halfExtents: [4.5, 2.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 2.4, 5.875], halfExtents: [4.5, 2.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [4, 3.8, 5.875], halfExtents: [1, 1, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [5.5, 2.4, 5.875], halfExtents: [0.5, 2.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 2.4, 5.5], halfExtents: [0.125, 2.4, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 3.8, 4], halfExtents: [0.125, 1, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 2.4, -1.5], halfExtents: [0.125, 2.4, 4.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 962
+	},
+	'stairs-deep': {
+		name: 'stairs-deep',
+		url: '/assets/shared/map/stairs-deep.ae82b8be.gltf',
+		bytes: 1636948,
+		footprint: [1, 6],
+		levels: 4,
+		sockets: [
+			{ type: 'gate', cell: [0, 0], level: 3, edge: 'n' },
+			{ type: 'hall', cell: [0, 5], level: 0, edge: 's' }
+		],
+		spawns: [],
+		creatures: [],
+		extracts: [],
+		rites: [],
+		crates: [],
+		doors: [{ position: [0, 12, -11.55], yaw: 0 }],
+		rubble: [],
+		colliders: [
+			{ center: [0, 14.9, -11.37], halfExtents: [2, 0.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 15.4, -11], halfExtents: [2, 0.2, 1], rotation: [0, 0, 0, 1] },
+			{ center: [1.8, 13.7, -11], halfExtents: [0.2, 1.7, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.8, 13.7, -11], halfExtents: [0.2, 1.7, 1], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.15, 11.12], halfExtents: [1.5, 0.15, 0.88], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5.85, 1.32], halfExtents: [1.5, 0.15, 0.8], rotation: [0, 0, 0, 1] },
+			{ center: [0, 11.85, -9.8], halfExtents: [1.8, 0.15, 2.2], rotation: [0, 0, 0, 1] },
+			{ center: [1.503, 13.7, -8.5], halfExtents: [0.497, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.503, 13.7, -8.5], halfExtents: [0.497, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.537, 13.7, -8.7], halfExtents: [0.463, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.537, 13.7, -8.7], halfExtents: [0.463, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.585, 13.7, -8.9], halfExtents: [0.415, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.585, 13.7, -8.9], halfExtents: [0.415, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.64, 13.7, -9.1], halfExtents: [0.36, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.64, 13.7, -9.1], halfExtents: [0.36, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.695, 13.7, -9.3], halfExtents: [0.305, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.695, 13.7, -9.3], halfExtents: [0.305, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.743, 13.7, -9.5], halfExtents: [0.257, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.743, 13.7, -9.5], halfExtents: [0.257, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.777, 13.7, -9.7], halfExtents: [0.223, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.777, 13.7, -9.7], halfExtents: [0.223, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.79, 13.7, -9.9], halfExtents: [0.21, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.79, 13.7, -9.9], halfExtents: [0.21, 1.7, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 9, -3.54], halfExtents: [1.5, 0.15, 5.048], rotation: [0.313, 0, 0, 0.95] },
+			{ center: [0, 3, 6.18], halfExtents: [1.5, 0.15, 5.048], rotation: [0.313, 0, 0, 0.95] },
+			{ center: [1.25, 7.6, 1.8], halfExtents: [0.25, 7.6, 10.2], rotation: [0, 0, 0, 1] },
+			{ center: [-1.25, 7.6, 1.8], halfExtents: [0.25, 7.6, 10.2], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 1688
+	},
 	stairwell: {
 		name: 'stairwell',
 		url: '/assets/shared/map/stairwell.fb86d090.gltf',
@@ -841,6 +1034,7 @@ export const PIECES: Record<string, PieceDef> = {
 		extracts: [[-3.2, 0, 0]],
 		rites: [],
 		crates: [{ position: [1, 0, -1.41], yaw: 0 }],
+		doors: [],
 		rubble: [],
 		colliders: [
 			{ center: [0, 3.875, 0], halfExtents: [4, 0.125, 2], rotation: [0, 0, 0, 1] },

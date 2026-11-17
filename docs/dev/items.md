@@ -175,13 +175,13 @@ Where one is found is the rite's to say (`place: 'crate'` on the requirement, se
 
 Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 slots.
 
-**Where they stand.** Pieces carry `crate-<n>` markers: places a crate may stand, with its back to a wall (see [asset-pipeline.md](asset-pipeline.md)). A marker is only a possibility. `placeCrates(layout, PIECES, seed)` fills each with probability `CRATES.fill`, none within `CRATES.minDistance` of the start, seeded by the map seed. The server calls it once the layout is generated and stores the result in `layout.crates` (`id`, `position`, `yaw`), which goes to clients with the layout.
+**Where they stand.** Pieces carry `crate-<n>` markers: places a crate may stand, with its back to a wall (see [asset-pipeline.md](asset-pipeline.md)). A marker is only a possibility. `placeCrates(layout, PIECES, seed)` fills each with probability `CRATES.fill`, none within `CRATES.minDistance` of the start, seeded by the map seed. The server calls it once the layout is generated and stores the result in `layout.crates` (`id`, `position`, `yaw`, and `tier`, the level of the map), which goes to clients with the layout.
 
 **Not in the start room.** The start room (`stairwell`) has a crate marker, but `placeCrates` always leaves it empty. To try the loot screen without walking for it, fill your stash with `pnpm dev:seed`, or teleport to a room from the admin panel.
 
 **Solid.** `buildCollisionWorld` adds a box of `CRATES.size` for each entry of `layout.crates`. Server and client both build the world from the layout, so movement prediction, line of sight and the nav grid all take crates into account. The box is a little higher than the model (0.55 m), above the nav grid's step height, so nothing treats a lid as a floor.
 
-**What is in them.** `Crates` (`server/crates.ts`) rolls each crate with `rollCrate` at its depth (see [economy.md](economy.md#tables)). Every slot that holds something starts **hidden**.
+**What is in them.** `Crates` (`server/crates.ts`) rolls each crate with `rollCrate` at its depth in its level, with the rarities its level allows (`LEVEL_LOOT`; see [economy.md](economy.md#tables)). Every slot that holds something starts **hidden**.
 
 **Opening.** Holding interact for `CRATES.openSeconds` (1 s) on the crate `lookedAtCrate` picks opens it: within `PICKUP.range` of the eye, within `CRATE_REACH.angle` of the look direction, nothing but the crate in the way. A floor item being looked at comes first (interact picks that up). `PlayerState.opening` counts the seconds (server-driven, like `performing`), and resets if any of that stops. The client prompts with the same rule: the interact key as a keycap and "to search", filling as it is held, for crates and corpses alike (with interact unbound, "Interact to search").
 

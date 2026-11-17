@@ -2,10 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { AFFLICTIONS } from '../../content/afflictions.ts';
 import { MAP_KIT } from '../../content/map/kit.ts';
 import { realMap } from '../testing/maps.ts';
+import { pieceLinks } from './debug.ts';
 import { generateLayout } from './generate.ts';
 import { cellKey, occupiedCells, placementLevel } from './grid.ts';
 import { PIECES } from './pieces.generated.ts';
-import type { Placement } from './types.ts';
+import type { MapLayout, Placement } from './types.ts';
+
+/** Pieces (not caps) that can't be walked to from the start room. */
+function unreached(map: MapLayout, links: Set<number>[]): string[] {
+	const seen = new Set([0]);
+	const queue = [0];
+	while (queue.length)
+		for (const n of links[queue.pop()!]) if (!seen.has(n) && queue.push(n)) seen.add(n);
+	return map.placements
+		.filter((p, i) => !seen.has(i) && MAP_KIT[p.piece]?.role !== 'cap')
+		.map((p) => p.piece);
+}
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => (i * 2654435761) >>> 0);
 const AFFLICTION_IDS = Object.keys(AFFLICTIONS);
@@ -55,22 +67,98 @@ describe('generateLayout', () => {
 				}
 			});
 
-			it('puts the final room strictly deeper than every other room', () => {
-				// Rooms only (canal halls reach below their own floor), compared by the level they are
-				// entered at: a pit room like the cistern is entered above its lowest level.
-				const ROOMS = new Set(['start', 'major', 'extraction']);
+			it('has three levels, each ending in an extraction room with the long stair down', () => {
+				for (const map of maps) {
+					const links = pieceLinks(map, PIECES);
+					const of = (role: string) =>
+						map.placements.filter((p) => MAP_KIT[p.piece]?.role === role);
+					expect(new Set(map.placements.map((p) => p.tier))).toEqual(new Set([0, 1, 2]));
+					expect(
+						of('extraction')
+							.map((p) => p.tier)
+							.sort()
+					).toEqual([0, 1]);
+					expect(
+						of('descent')
+							.map((p) => p.tier)
+							.sort()
+					).toEqual([1, 2]);
+					for (const stair of of('descent')) {
+						const above = [...links[map.placements.indexOf(stair)]].map((i) => map.placements[i]);
+						const room = above.find((p) => MAP_KIT[p.piece]?.role === 'extraction');
+						expect(room?.tier, `seed ${map.seed}`).toBe(stair.tier - 1);
+					}
+				}
+			});
+
+			it('puts the final room on the deepest level, and a major room on every level', () => {
+				for (const map of maps) {
+					expect(map.placements.find((p) => MAP_KIT[p.piece]?.final)?.tier).toBe(2);
+					for (const tier of [0, 1, 2]) {
+						const majors = map.placements.filter(
+							(p) => p.tier === tier && MAP_KIT[p.piece]?.role === 'major'
+						);
+						expect(majors.length, `seed ${map.seed} level ${tier}`).toBeGreaterThan(0);
+					}
+				}
+			});
+
+			it('puts every level strictly below the one above it', () => {
+				// Compared by the level a piece is entered at: a pit room like the cistern, or a canal,
+				// is entered above its lowest level. The start room sits above the first level.
 				const entered = (p: Placement) =>
 					placementLevel(p) + Math.min(...PIECES[p.piece].sockets.map((s) => s.level));
 				for (const map of maps) {
-					const finalRoom = map.placements.find((p) => MAP_KIT[p.piece]?.final)!;
-					const others = map.placements.filter(
-						(p) => p !== finalRoom && ROOMS.has(MAP_KIT[p.piece]?.role ?? '')
+					const pieces = map.placements.filter(
+						(p, i) => i > 0 && !['descent', 'cap'].includes(MAP_KIT[p.piece]?.role ?? '')
 					);
-					for (const room of others) {
-						expect(entered(room), `seed ${map.seed}: ${room.piece}`).toBeGreaterThan(
-							entered(finalRoom)
-						);
+					for (const tier of [0, 1]) {
+						const lowest = Math.min(...pieces.filter((p) => p.tier === tier).map(entered));
+						const highest = Math.max(...pieces.filter((p) => p.tier === tier + 1).map(entered));
+						expect(highest, `seed ${map.seed}`).toBeLessThan(lowest);
 					}
+				}
+			});
+
+			it('joins levels only through the long stair, and reaches every piece', () => {
+				for (const map of maps) {
+					const links = pieceLinks(map, PIECES);
+					links.forEach((others, i) => {
+						for (const j of others) {
+							const [a, b] = [map.placements[i], map.placements[j]];
+							if (a.tier === b.tier) continue;
+							const roles = [a, b].map((p) => MAP_KIT[p.piece]?.role).sort();
+							expect(roles, `seed ${map.seed}`).toEqual(['descent', 'extraction']);
+						}
+					});
+					expect(unreached(map, links), `seed ${map.seed}`).toEqual([]);
+				}
+			});
+
+			it('never has a passage that leaves a room or junction and comes back into it', () => {
+				for (const map of maps) {
+					const links = pieceLinks(map, PIECES);
+					const passage = (i: number) => {
+						const entry = MAP_KIT[map.placements[i].piece];
+						return (
+							entry?.role === 'connector' &&
+							!entry.room &&
+							PIECES[map.placements[i].piece].sockets.length === 2
+						);
+					};
+					links.forEach((others, from) => {
+						if (passage(from)) return;
+						for (const first of others) {
+							// Follow the passage out of `from` to whatever it leads to.
+							let [prev, at] = [from, first];
+							while (passage(at)) {
+								const next = [...links[at]].find((n) => n !== prev);
+								if (next === undefined) break;
+								[prev, at] = [at, next];
+							}
+							expect(at, `seed ${map.seed}: ${map.placements[from].piece}`).not.toBe(from);
+						}
+					});
 				}
 			});
 		});

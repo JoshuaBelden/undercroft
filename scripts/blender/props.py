@@ -31,7 +31,7 @@ import kit
 
 EXPORT = os.path.join(kit.EXPORT, "props")
 
-PROPS = ["crate"]
+PROPS = ["crate", "door-double"]
 
 # The crate: outer size (m), plank thickness, and how thick the lid is.
 CRATE_W = 0.9
@@ -95,7 +95,52 @@ def build_crate(force=False):
     return coll
 
 
-BUILDERS = {"crate": build_crate}
+# The double door between levels (stairs-deep): two leaves filling the 3.2 m gate to its springline.
+DOOR_LEAF_W = kit.GATE_HALF_W - 0.02
+DOOR_H = kit.GATE_SPRING
+DOOR_T = 0.1
+DOOR_PAINT = "mat-prop-door"
+DOOR_IRON = "mat-door-metal"
+
+
+def _door_leaf(name, side):
+    """One leaf, in its own space: the origin is on its hinge (the outer edge, on the floor), and it
+    reaches toward the middle (-X for the left leaf, side 1). Iron straps on both faces."""
+    leaf = kit.MeshBuilder(name)
+    x_in = side * DOOR_LEAF_W
+    lo_x, hi_x = min(0.0, x_in), max(0.0, x_in)
+    leaf.box((lo_x, -DOOR_T / 2, 0), (hi_x, DOOR_T / 2, DOOR_H), DOOR_PAINT)
+    proud = 0.012
+    for z in (0.35, 1.05, 1.8):
+        for y0, y1 in ((-DOOR_T / 2 - proud, -DOOR_T / 2), (DOOR_T / 2, DOOR_T / 2 + proud)):
+            leaf.box((lo_x + 0.03, y0, z), (hi_x - 0.03, y1, z + 0.1), DOOR_IRON)
+    # A ring pull on the room side (+Y), near the meeting edge.
+    rx = x_in - side * 0.25
+    leaf.box((rx - 0.06, DOOR_T / 2 + proud, 1.0), (rx + 0.06, DOOR_T / 2 + 0.05, 1.12), DOOR_IRON)
+    return leaf
+
+
+def build_door_double(force=False):
+    """The double door at the top of the long stair: two painted, iron-strapped leaves hung on
+    their outer edges. The room side is +Y (the door-0 marker's +Y points into the room); the
+    leaves swing away from it, toward -Y. The game lifts `door-bar` off its brackets, then turns
+    `door-leaf-l` and `door-leaf-r` about their vertical axes."""
+    coll, root = prop_collection("door-double", force)
+    # Left leaf hinged at -X reaching +X; right leaf hinged at +X reaching -X.
+    for name, hinge, side in (("door-leaf-l", -1, 1), ("door-leaf-r", 1, -1)):
+        obj = _door_leaf(name, side).finish(coll, root)
+        obj.location = (hinge * (kit.GATE_HALF_W - 0.01), 0, 0)
+    # The bar across both leaves, on the room side, resting in iron brackets.
+    bar = kit.MeshBuilder("door-bar")
+    bar.box((-1.3, 0, -0.06), (1.3, 0.12, 0.06), "mat-prop-planks")
+    for x in (-1.0, 1.0):
+        bar.box((x - 0.05, -0.002, -0.09), (x + 0.05, 0.14, -0.06), DOOR_IRON)
+    obj = bar.finish(coll, root)
+    obj.location = (0, DOOR_T / 2 + 0.005, 1.25)
+    return coll
+
+
+BUILDERS = {"crate": build_crate, "door-double": build_door_double}
 
 
 # ---------------------------------------------------------------------------

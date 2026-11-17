@@ -105,7 +105,8 @@ export function surveyMap(
 		const base = placementLevel(placement);
 		const top = base + piece.levels - 1;
 		const at: [number, number] = [placement.position[0], placement.position[2]];
-		if (entry?.descends && top > base) {
+		// Stairs within a level, and the long stair between levels.
+		if ((entry?.descends || role === 'descent') && top > base) {
 			features.push({ kind: 'down', piece: index, level: top, at });
 			features.push({ kind: 'up', piece: index, level: base, at });
 		}

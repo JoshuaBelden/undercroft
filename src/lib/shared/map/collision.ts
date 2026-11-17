@@ -1,3 +1,4 @@
+import { DOORS } from '../../content/doors.ts';
 import { CRATES } from '../../content/loot.ts';
 import { toWorld } from './grid.ts';
 import type { ColliderBox, MapLayout, PieceDef, Quat, Vec3 } from './types.ts';
@@ -13,6 +14,8 @@ export interface WorldBox {
 	half: Vec3;
 	/** Unit axes of the box in world space. */
 	axes: [Vec3, Vec3, Vec3];
+	/** A door's box (its id): solid only while the door is shut. */
+	door?: string;
 }
 
 export interface WorldVolume extends WorldBox {
@@ -26,6 +29,8 @@ export interface CollisionWorld {
 	extracts: Vec3[];
 	/** Spatial hash: bucket key -> indices into `boxes`. */
 	grid: Map<string, number[]>;
+	/** Doors that have been opened: their boxes no longer count. See `openDoor`. */
+	openDoors: Set<string>;
 }
 
 export interface Contact {
@@ -97,7 +102,13 @@ export function buildCollisionWorld(
 	layout: MapLayout,
 	pieces: Record<string, PieceDef>
 ): CollisionWorld {
-	const world: CollisionWorld = { boxes: [], volumes: [], extracts: [], grid: new Map() };
+	const world: CollisionWorld = {
+		boxes: [],
+		volumes: [],
+		extracts: [],
+		grid: new Map(),
+		openDoors: new Set()
+	};
 	for (const placement of layout.placements) {
 		const piece = pieces[placement.piece];
 		if (!piece) continue;
@@ -123,6 +134,17 @@ export function buildCollisionWorld(
 			axes: [rotate(q, [1, 0, 0]), rotate(q, [0, 1, 0]), rotate(q, [0, 0, 1])]
 		});
 	}
+	// Doors between levels are solid until opened (openDoor).
+	for (const door of layout.doors) {
+		const [w, h, d] = DOORS.size;
+		const q: Quat = [0, Math.sin(door.yaw / 2), 0, Math.cos(door.yaw / 2)];
+		world.boxes.push({
+			center: [door.position[0], door.position[1] + h / 2, door.position[2]],
+			half: [w / 2, h / 2, d / 2],
+			axes: [rotate(q, [1, 0, 0]), rotate(q, [0, 1, 0]), rotate(q, [0, 0, 1])],
+			door: door.id
+		});
+	}
 	world.boxes.forEach((box, index) => {
 		const [lo, hi] = aabb(box);
 		for (let x = Math.floor(lo[0] / BUCKET); x <= Math.floor(hi[0] / BUCKET); x++) {
@@ -139,7 +161,12 @@ export function buildCollisionWorld(
 	return world;
 }
 
-/** Boxes whose buckets overlap the given bounds. */
+/** A door opens: its box stops counting, for good. */
+export function openDoor(world: CollisionWorld, id: string): void {
+	world.openDoors.add(id);
+}
+
+/** Boxes whose buckets overlap the given bounds (an opened door's left out). */
 export function boxesNear(world: CollisionWorld, lo: Vec3, hi: Vec3): WorldBox[] {
 	const seen = new Set<number>();
 	const out: WorldBox[] = [];
@@ -149,7 +176,9 @@ export function boxesNear(world: CollisionWorld, lo: Vec3, hi: Vec3): WorldBox[]
 				for (const index of world.grid.get(bucketKey(x, y, z)) ?? []) {
 					if (seen.has(index)) continue;
 					seen.add(index);
-					out.push(world.boxes[index]);
+					const box = world.boxes[index];
+					if (box.door && world.openDoors.has(box.door)) continue;
+					out.push(box);
 				}
 			}
 		}

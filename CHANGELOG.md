@@ -4,6 +4,13 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- The catacombs now go down in three levels, one under the other, each a maze of its own. The far end of the first and second levels has a way out and a great barred double door: hold Interact to open it, and a long stair takes you down to the next level. It's the only way down, and once it's open, whatever is down there can come up.
+- Bigger rooms: a pillared charnel vault and long burial galleries lined with niches.
+- No more passages that just leave a room and wander straight back into it.
+- The good loot is deeper: crates on the first two levels hold everyday things, and anything rare or precious is on the third, where the rite is done.
+- Squeezes are much longer, and there's no room to fight in one (nor while crawling).
+- Under the water, the view turns murky green. Once you dive you stay down at the depth you swim to, with no floating back up, until you swim to the surface or run out of breath. You can't swim hard under the water, or fight in it.
+- The results screen's deepest level now counts the three levels of the catacombs.
 - The Gloaming is a real fight now. It no longer turns up when you've stayed too long. Performing the rite is what brings it, right there in the chapel, and the Gloaming is only resolved once you banish it. Then get out past whatever else is still down there.
 - The Gloaming rears back before it strikes, so you can see the blow coming and step out of reach. A landed blow hurts but doesn't drop you outright: 40 alone, 50 for two, 60 for three or more, and whatever you wear takes some of it. Being near it no longer drains you.
 - Flick your headlamp off and on with the Gloaming in the beam and the flash stuns it for 2 seconds. It won't fall for it again for 20.

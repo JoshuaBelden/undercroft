@@ -101,6 +101,7 @@ const MARKER_PREFIXES = [
 	'extract-',
 	'rite-',
 	'crate-',
+	'door-',
 	'rubble-',
 	'col-',
 	'vol-'
@@ -243,6 +244,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const extracts: Vec3[] = [];
 	const rites: Vec3[] = [];
 	const crates: CrateMarker[] = [];
+	const doors: CrateMarker[] = [];
 	const rubble: Vec3[] = [];
 	const colliders: ColliderBox[] = [];
 	const volumes: VolumeBox[] = [];
@@ -265,6 +267,8 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			rubble.push(position);
 		} else if (label.startsWith('crate-')) {
 			crates.push(crateFromNode(name, label, node, w, d));
+		} else if (label.startsWith('door-')) {
+			doors.push(crateFromNode(name, label, node, w, d));
 		} else if (label.startsWith('col-')) {
 			colliders.push(boxFromNode(node));
 			stripped.push(node);
@@ -339,6 +343,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		extracts,
 		rites,
 		crates,
+		doors,
 		rubble,
 		colliders,
 		volumes,
@@ -666,6 +671,11 @@ async function main(): Promise<void> {
 	const pieces: PieceDef[] = [];
 	let failed = false;
 	for (const f of files) {
+		// Retired pieces (still in the .blend and art/export) ship only while MAP_KIT uses them.
+		if (!MAP_KIT[path.basename(f, '.glb')]) {
+			console.warn(`  - ${path.basename(f, '.glb')}: not in MAP_KIT, skipped`);
+			continue;
+		}
 		try {
 			pieces.push(await buildPiece(io, path.join(SOURCE_DIR, f)));
 		} catch (error) {

@@ -35,5 +35,9 @@ export const MODELS = {
 		bytes: 1897844
 	},
 	'shared/props/corpse.glb': { url: '/assets/shared/props/corpse.5a51bedd.glb', bytes: 598320 },
-	'shared/props/crate.glb': { url: '/assets/shared/props/crate.aef763a7.glb', bytes: 97380 }
+	'shared/props/crate.glb': { url: '/assets/shared/props/crate.aef763a7.glb', bytes: 97380 },
+	'shared/props/door-double.glb': {
+		url: '/assets/shared/props/door-double.a9f9a35a.glb',
+		bytes: 336280
+	}
 } as const;

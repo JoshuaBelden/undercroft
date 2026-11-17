@@ -63,6 +63,11 @@ export interface PlayerState {
 	wading: boolean;
 	/** Eye below the water surface: breath (stamina) drains. */
 	underwater: boolean;
+	/**
+	 * Dived under: no floating back up. You stay at the depth you are until you swim up to the
+	 * surface (or run out of breath, which forces you up).
+	 */
+	submerged: boolean;
 	/** Moving slowly and silently (no footsteps; creatures hear less). */
 	sneaking: boolean;
 	/** Inside a squeeze volume: slowed, no sprinting, grunting through. */
@@ -101,6 +106,8 @@ export interface PlayerState {
 	opening: number;
 	/** Seconds spent holding interact to erase your own chalk mark (server-driven). */
 	erasing: number;
+	/** Seconds spent holding interact to open a door between levels (server-driven). */
+	unbarring: number;
 	/**
 	 * Seconds spent sketching into the map (server-driven). -1 once a sketch is done, until the
 	 * hold is let go, so a held button sketches once. See docs/dev/map.md.

@@ -114,14 +114,15 @@ Every item has a rarity (`ItemDef.rarity`, `rarityOf(item)`): `common` (when lef
 All of it is data in `src/lib/content/loot.ts`. There is no editor: change the file.
 
 - `CRATE_LOOT`: everything a crate can hold, each with a `count` range (how many come together) and a `weight` near the start and at the far end of the map. Supplies (bandages, rounds, salts, chalk, candles) are in it as common things.
-- `CRATE_RARITY`: how many things of each rarity a crate holds, as a fewest and a most: 1 to 4 common, 0 to 2 uncommon, 0 or 1 rare, 0 or 1 epic, 0 or 1 legendary. With `CRATES.fill` at 0.35 a map has about 20 crates holding about 2 things each, a couple of rares, an epic in about half of maps and a legendary in about one in five, nearly all of them deep. Each one above the fewest is there with probability `chance`, which also runs from a value near the start to one at the far end. A crate never has more than the most.
+- `CRATE_RARITY`: how many things of each rarity a crate holds, as a fewest and a most: 1 to 4 common, 0 to 2 uncommon, 0 or 1 rare, 0 or 1 epic, 0 or 1 legendary. With `CRATES.fill` at 0.22 a map has about 30 crates, ten on each level, holding about 2 things each. There are a couple of rares, an epic in about half of maps and a legendary in about one in five, all on the third level. Each one above the fewest is there with probability `chance`, which also runs from a value near the start to one at the far end. A crate never has more than the most.
+- `LEVEL_LOOT`: which rarities a crate can hold, by the level of the map it stands on. The first two levels have common and uncommon things only; rare, epic and legendary are all on the third, where the rite is done. A crate knows its level (`CratePlacement.tier`, from its piece). Rarities a level leaves out are still rolled and then dropped, so the everyday things in a crate don't depend on its level.
 - `LOOSE_LOOT`: the little that lies on the floor.
 
-**Depth** is one number from 0 to 1: a spot's distance along the floor from the start, divided by the farthest reachable point's (`gridDistances`). Descents only lead down, so it rises with the level too. Every weight and chance slides between its two values by it.
+**Depth** is one number from 0 to 1. For a crate, it is how far into its own level it stands: its distance along the floor from the start (`gridDistances`, through the doors), from the level's nearest crate (0) to its farthest (1). For loose loot, it is the distance divided by the farthest reachable point's. Every weight and chance slides between its two values by it.
 
-`rollCrate(depth, rng)` (`src/lib/shared/items/loot.ts`) fills a crate:
+`rollCrate(depth, rng, rarities)` (`src/lib/shared/items/loot.ts`) fills a crate:
 
-1. Roll how many of each rarity.
+1. Roll how many of each rarity; none of the rarities its level leaves out.
 2. If both an epic and a legendary came up, drop one of them (a coin toss).
 3. For each, draw an item of that rarity from `CRATE_LOOT` by weight. What is drawn leaves the pool, so a crate never holds the same thing twice (if a rarity runs out of things, it gets fewer).
 4. If that is more than the crate's 8 slots, leave out the commonest.
