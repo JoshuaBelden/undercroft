@@ -81,11 +81,15 @@ const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]';
 /** Pixels a second the right stick scrolls at full push. */
 const SCROLL_SPEED = 1400;
 
+/** What sounds as a button when pressed: not links (moving between pages has its own sound). */
+export const BUTTON = 'button:not(:disabled), [role="button"]';
+
 const menus: Menu[] = [];
 /** The control used last in each menu with a `key`, by its place among the menu's controls. */
 const remembered = new Map<string, number>();
 const moveListeners = new Set<(tick: MenuTick) => void>();
 const holdListeners = new Set<() => void>();
+const pressListeners = new Set<() => void>();
 /** The direction held, by which button, and when it next repeats. */
 let held: { code: string; direction: Direction; at: number } | null = null;
 /** The right stick held left or right on a `data-pad-stick-stepper`. */
@@ -145,6 +149,15 @@ export function moveFocus(control: HTMLElement): void {
 export function onMenuMove(listener: (tick: MenuTick) => void): () => void {
 	moveListeners.add(listener);
 	return () => moveListeners.delete(listener);
+}
+
+/**
+ * Called each time the controller's A presses a button in a menu. That click is the page's own
+ * (`element.click()`, not trusted), so this is how the root layout knows to play the press.
+ */
+export function onMenuPress(listener: () => void): () => void {
+	pressListeners.add(listener);
+	return () => pressListeners.delete(listener);
 }
 
 /** Called each time a menu button held for a control (`data-pad-hold`) completes and presses it. */
@@ -264,7 +277,12 @@ function face(menu: Menu, button: PadButton): void {
 		cancelable: true
 	});
 	if (target && !target.dispatchEvent(event)) return;
-	if (button === 'a' && target) activate(target);
+	if (button === 'a' && target) {
+		// Checked first: pressing it may disable it (or take it off the page).
+		const pressesButton = target.matches(BUTTON);
+		activate(target);
+		if (pressesButton) for (const listener of pressListeners) listener();
+	}
 	if (button === 'b') menu.back?.();
 }
 

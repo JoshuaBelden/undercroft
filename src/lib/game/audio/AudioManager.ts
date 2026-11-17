@@ -29,6 +29,11 @@ export interface PlayOptions {
 	category?: Exclude<AudioCategory, 'master'>;
 	volume?: number;
 	loop?: boolean;
+	/**
+	 * With loop: the second each pass after the first returns to, so an opening plays only once.
+	 * Left out, the whole buffer loops.
+	 */
+	loopStart?: number;
 	/** Playback rate (1 = normal); also shifts pitch. */
 	rate?: number;
 }
@@ -40,7 +45,8 @@ export interface PositionalOptions extends PlayOptions {
 
 /** A playing sound whose volume and rate can change while it plays (loops, breathing). */
 export interface SoundHandle {
-	setVolume(value: number): void;
+	/** Ease to `value` over about `seconds` (a quick 0.05 s by default; longer is a fade). */
+	setVolume(value: number, seconds?: number): void;
 	setRate(value: number): void;
 	stop(): void;
 }
@@ -220,6 +226,10 @@ export class AudioManager {
 		const source = context.createBufferSource();
 		source.buffer = buffer;
 		source.loop = options.loop ?? false;
+		if (source.loop && options.loopStart) {
+			source.loopStart = options.loopStart;
+			source.loopEnd = buffer.duration;
+		}
 		source.playbackRate.value = options.rate ?? 1;
 		const gain = context.createGain();
 		gain.gain.value = options.volume ?? 1;
@@ -229,7 +239,9 @@ export class AudioManager {
 		source.start();
 		const ramp = 0.05;
 		return {
-			setVolume: (value) => gain.gain.setTargetAtTime(value, context.currentTime, ramp),
+			// setTargetAtTime's time constant gets about 95% of the way in three of them.
+			setVolume: (value, seconds = ramp * 3) =>
+				gain.gain.setTargetAtTime(value, context.currentTime, seconds / 3),
 			setRate: (value) => source.playbackRate.setTargetAtTime(value, context.currentTime, ramp),
 			stop: () => {
 				source.stop();

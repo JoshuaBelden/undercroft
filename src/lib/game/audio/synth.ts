@@ -399,22 +399,6 @@ function drone(ctx: BaseAudioContext, pitch: number): AudioBuffer {
 	});
 }
 
-function signal(ctx: BaseAudioContext): AudioBuffer {
-	const rand = noise(149);
-	const a = lowpass(90, ctx.sampleRate);
-	let y = 0;
-	let phase = 0;
-	const b = buffer(ctx, 5, (t) => {
-		y += a * (rand() - y);
-		// A slow swell that falls in pitch, like the whole place breathing out.
-		const freq = 55 - t * 6;
-		phase += (2 * Math.PI * freq) / ctx.sampleRate;
-		const env = Math.sin(Math.min(1, t / 5) * Math.PI) ** 0.7;
-		return (Math.sin(phase) * 0.6 + y * 4) * env;
-	});
-	return echo(b, 0.43, 0.35, 3);
-}
-
 function hiss(ctx: BaseAudioContext): AudioBuffer {
 	const rand = noise(151);
 	const a = lowpass(6000, ctx.sampleRate);
@@ -498,8 +482,6 @@ export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer 
 			return rustle(ctx);
 		case 'drone':
 			return drone(ctx, spec.pitch);
-		case 'signal':
-			return signal(ctx);
 		case 'hiss':
 			return hiss(ctx);
 		case 'bell':

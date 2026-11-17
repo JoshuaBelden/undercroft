@@ -234,6 +234,25 @@ function loopable(pcm: Pcm, seconds: number): Pcm {
 	return { rate: pcm.rate, samples: out };
 }
 
+/**
+ * A loop that keeps its opening: the clip is untouched except its last `seconds`, which
+ * crossfade into the stretch starting `from` seconds in. It plays from its start once, then
+ * loops from where that crossfade arrived (the returned `loopStart`), seamlessly.
+ */
+function loopableFrom(pcm: Pcm, seconds: number, from: number): { pcm: Pcm; loopStart: number } {
+	const n = Math.floor(seconds * pcm.rate);
+	const a = Math.floor(from * pcm.rate);
+	const s = pcm.samples;
+	const end = s.length;
+	if (a + n > end - n) throw new Error('loopFrom leaves no room for the crossfade');
+	const out = s.slice();
+	for (let i = 0; i < n; i++) {
+		const t = i / n;
+		out[end - n + i] = s[end - n + i] * (1 - t) + s[a + i] * t;
+	}
+	return { pcm: { rate: pcm.rate, samples: out }, loopStart: (a + n) / pcm.rate };
+}
+
 function normalize(pcm: Pcm): Pcm {
 	let peak = 0;
 	for (const v of pcm.samples) peak = Math.max(peak, Math.abs(v));
@@ -319,9 +338,12 @@ async function main(): Promise<void> {
 
 	const files: Record<string, string[]> = {};
 	const sizes: Record<string, number> = {};
+	const loopStarts: Record<string, number> = {};
 	let total = 0;
 	for (const source of AUDIO_SOURCES) {
 		const clips: Pcm[] = [];
+		/** Where each clip's loop returns to (seconds), when it keeps its opening. */
+		const clipLoopStarts: (number | undefined)[] = [];
 		for (const file of Array.isArray(source.file) ? source.file : [source.file]) {
 			const input = path.join(SOURCE_DIR, file);
 			if (!existsSync(input)) {
@@ -336,7 +358,13 @@ async function main(): Promise<void> {
 				);
 			} else {
 				let clip = source.keepSilence ? pcm : trim(pcm);
-				if (source.loopCrossfade) clip = loopable(clip, source.loopCrossfade);
+				let loopStart: number | undefined;
+				if (source.loopCrossfade && source.loopFrom !== undefined) {
+					({ pcm: clip, loopStart } = loopableFrom(clip, source.loopCrossfade, source.loopFrom));
+				} else if (source.loopCrossfade) {
+					clip = loopable(clip, source.loopCrossfade);
+				}
+				clipLoopStarts.push(loopStart);
 				// Loops must start and end on the same sample: no fades.
 				clips.push(source.loopCrossfade ? normalize(clip) : finish(clip));
 			}
@@ -348,6 +376,8 @@ async function main(): Promise<void> {
 			total += bytes;
 			const url = `${URL_BASE}/${file}`;
 			sizes[url] = bytes;
+			const loopStart = clipLoopStarts[i];
+			if (loopStart !== undefined) loopStarts[url] = Math.round(loopStart * 1e4) / 1e4;
 			return url;
 		});
 		const seconds = clips.reduce((sum, c) => sum + c.samples.length / c.rate, 0);
@@ -361,6 +391,12 @@ export const AUDIO_FILES: Record<string, string[]> = ${JSON.stringify(files)};
 
 /** Size in bytes of each built sound file, by URL (preload progress). */
 export const AUDIO_BYTES: Record<string, number> = ${JSON.stringify(sizes)};
+
+/**
+ * Loops that keep their opening (loopFrom in scripts/audio.config.ts): by URL, the second
+ * each pass after the first loops back to. Others loop the whole file.
+ */
+export const AUDIO_LOOP_STARTS: Record<string, number> = ${JSON.stringify(loopStarts)};
 `;
 	const config = await prettier.resolveConfig(MANIFEST);
 	writeFileSync(MANIFEST, await prettier.format(source, { ...config, filepath: MANIFEST }));

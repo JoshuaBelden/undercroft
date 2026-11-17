@@ -141,8 +141,8 @@ Admin > Controller (dev only): each connected controller with its id, layout and
 
 Every screen is built from native buttons, links and inputs, so one focus system drives them all (`menus.ts`):
 
-- The D-pad or left stick moves the focus to the nearest control that way (held, it repeats), with a quiet `ui.focus` tick.
-- A presses it. B backs out one step, the same chain as Esc: dialog, then panel, then page. On the dashboard B goes back to the Expedition page.
+- The D-pad or left stick moves the focus to the nearest control that way (held, it repeats), with `ui.focus`, the menu navigation sound, quiet.
+- A presses it (a button sounds `ui.button`, through `onMenuPress`). B backs out one step, the same chain as Esc: dialog, then panel, then page. On the dashboard B goes back to the Expedition page.
 - LB/RB switch tabs: the settings and admin groups, the dashboard's tabs (from the store or social, to the first or last).
 - The right stick scrolls whatever scrolls around the focus.
 - On a slider, or a stepper (a value with arrows either side), left and right change the value instead of moving away.
@@ -166,7 +166,7 @@ Every screen is built from native buttons, links and inputs, so one focus system
 
 View and R3 go through the `InputMap` (bindings, remappable). The dashboard's input map hears `inventory` from the controller only (`InputMap`'s `padOnly`): its key is Tab, which moves the focus there. The holds and LB/RB are menu buttons, fixed like A and B.
 
-**Holds.** A control with `data-pad-hold="x"` (or `"y"`) is pressed by holding that button for `HOLD_TIME` (600 ms, in `hold.ts`: tune the feel there), from anywhere in its menu, while it is enabled and its menu has the controller. A grey slide fills the control's background from left to right as it is held, like a crate's search bar, and `ui.hold`, a quiet tick, plays when it completes (the root layout, `onMenuHold`). Letting go early empties it and does what a quick press of the button does: the focused control's `padpress`, on release instead of on press. So on the Loadout page a quick X on an item slot still sends it and a quick Y opens its menu, while a hold confirms or opens the store. Where no control is held for a button (the pack, crates, the store), X and Y act on press as before.
+**Holds.** A control with `data-pad-hold="x"` (or `"y"`) is pressed by holding that button for `HOLD_TIME` (600 ms, in `hold.ts`: tune the feel there), from anywhere in its menu, while it is enabled and its menu has the controller. A grey slide fills the control's background from left to right as it is held, like a crate's search bar, and `ui.hold`, the button press sound, plays when it completes (the root layout, `onMenuHold`). Letting go early empties it and does what a quick press of the button does: the focused control's `padpress`, on release instead of on press. So on the Loadout page a quick X on an item slot still sends it and a quick Y opens its menu, while a hold confirms or opens the store. Where no control is held for a button (the pack, crates, the store), X and Y act on press as before.
 
 - A hold only counts from a fresh press: holding X through Launch doesn't go on to confirm on the Loadout page.
 - One at a time: a press of the other button meanwhile acts on press.

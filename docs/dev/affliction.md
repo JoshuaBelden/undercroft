@@ -11,7 +11,7 @@ An Affliction is the force behind an expedition (see `docs/HANDOFF.md`). The rit
 | `src/lib/shared/player/headlamp.ts`        | Gloom: lamp failure in the shared lamp output                            |
 | `server/affliction.ts`                     | `AfflictionDirector`: meter, stages, the manifestation, exposure, banish |
 | `src/lib/content/statuses.ts`              | Statuses and the strobe (see [status.md](status.md))                     |
-| `src/lib/game/affliction/Manifestation.ts` | Client: the figure, presence rumble, hiss, fading away                   |
+| `src/lib/game/affliction/Manifestation.ts` | Client: the figure, its attack and stun sounds, fading away              |
 | `src/lib/game/audio/Ambience.ts`           | Omen sound layers (`setOmen`)                                            |
 
 ## The meter
@@ -49,7 +49,7 @@ Because it's in the shared lamp code, it is deterministic: prediction, half-ligh
 
 It appears only when the rite is performed (`RiteSystem.step` calls `AfflictionSystem.summon`, which calls `AfflictionDirector.summon`). Nobody sees it before that.
 
-1. **Summoned:** on the nav point in the rite's room (`RiteDirector.inRoom`) farthest from where the rite was performed: the room's far corner. If the room has no nav point, it appears 30 to 60 m along the grid from every player instead (`manifestFar`, `spawnDistance`). It is summoned once per expedition. A `manifest` event plays `manifest.signal` for everyone.
+1. **Summoned:** on the nav point in the rite's room (`RiteDirector.inRoom`) farthest from where the rite was performed: the room's far corner. If the room has no nav point, it appears 30 to 60 m along the grid from every player instead (`manifestFar`, `spawnDistance`). It is summoned once per expedition. A `manifest` event goes to everyone; the fight music starting is how players hear it (see Client).
 2. **Gathering** (`gatherSeconds`, 2 s): it stands where it appeared.
 3. **Hunting:** it goes along the nav grid (A\*, re-planned every 0.5 s) toward the nearest player who isn't down, at `speed`, or `unlitSpeed` when no lamp light reaches it. The server simulates it as a point, not a body: no collision, and water, crawls and squeezes don't slow it. Downed players are ignored.
 
@@ -57,7 +57,7 @@ It appears only when the rite is performed (`RiteSystem.step` calls `AfflictionS
 
 Its only damage is a telegraphed strike. **There is no touch, aura or other ongoing damage**: standing next to it between strikes costs nothing.
 
-- Within `reach` (1.6 m along the floor, on its level) of the player it hunts, it stops and begins a swing. The snapshot's `strikes` counts swings begun, so clients play the wind-up (`melee_attack`, stretched to `body.strikeSeconds`) and `manifest.windup` before the blow.
+- Within `reach` (1.6 m along the floor, on its level) of the player it hunts, it stops and begins a swing. The snapshot's `strikes` counts swings begun, so clients play the wind-up (`melee_attack`, stretched to `body.strikeSeconds`) and `manifest.windup` (`sfx_gloaming_boss_attack.mp3`, which builds to its peak about as the blow lands) before the blow.
 - At `strikeAt` (0.8 s) into the swing the blow lands on every able player still within reach (plus 0.4 m of slack). Stepping out of reach before then dodges it.
 - After the swing it stands for `strikeRecover` seconds, then hunts again.
 - **How hard:** `strikeDamage`, by party size: the explorers who went down (`Session.joined`, set on `AfflictionDirector.party`). The Gloaming's is `[40, 50, 60]`: 40 solo, 50 for two, 60 for three or more (the last entry covers any larger party). It doesn't drop as players die or leave.
@@ -79,7 +79,9 @@ The Gloaming is vulnerable to the strobe (`vulnerable: ['strobe']`): a headlamp 
 
 ## Client
 
-`Manifestation` draws the figure at the snapshot position, hisses when light exposes it, shrieks (`manifest.stun`) when a strobe stuns it, and fades it away over 3 s when banished. A presence rumble loop gets louder within 28 m. There is no darkness around it: no cloud, and no effect on lamps.
+The fight has music: the Affliction's `manifestation.music` (a sound id, the Gloaming's `music.gloaming.fight`) loops on the music bus while the snapshot has a manifestation that isn't banished, and fades out with the figure when it is. The `Affliction` play feature runs it (see [player.md](player.md#fading-loops)). Leave `music` out and the fight has none. Banishing it plays `rite.resolve`, the fight won.
+
+`Manifestation` draws the figure at the snapshot position, flares (silently) when light exposes it, shrieks (`manifest.stun`, `sfx_gloaming_boss_stun.mp3`) when a strobe stuns it, and fades it away over 3 s when banished. The fight music carries its arrival, its presence and its end, so it has no sound of its own for those (no summoning signal, presence rumble, hiss when exposed or banishing howl). There is no darkness around it: no cloud, and no effect on lamps.
 
 ### The figure
 
@@ -115,7 +117,7 @@ The Gloaming's body is `gloaming_boss.glb`, scaled 1.3 (about 2.2 m, its hit cap
 
 ## Adding an Affliction
 
-1. Add an `AfflictionDef` to `AFFLICTIONS` (meter, stages, manifestation spec, rite).
+1. Add an `AfflictionDef` to `AFFLICTIONS` (meter, stages, manifestation spec, rite). Give the manifestation `music` for its fight: add the recording to `scripts/audio.config.ts` (cropped and looped, like `music.gloaming.fight`), run `pnpm asset:audio`, and register it in `src/lib/content/audio/sounds.ts` on the music bus.
 2. The meter, stages, gloom and omen sounds work from data.
 3. Give the manifestation a `body`, the figure players see: export it to `art/export/creatures/`, run `pnpm asset:build`, and map its clips.
 4. A manifestation that behaves differently (not a figure that hunts) needs its own behaviour in `AfflictionDirector` and its own client renderer, chosen by the Affliction id. An expedition is against the Affliction its party's host chose on the Expedition page (`PartyState.affliction`, passed to `Session`); every entry in `AFFLICTIONS` appears in the picker.
