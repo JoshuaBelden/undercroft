@@ -101,8 +101,12 @@ const date = new Date().toISOString().slice(0, 10);
 const release: ReleaseEntry = { version: next, date, notes };
 
 const run = (command: string, list: string[]) =>
-	// pnpm is a .cmd on Windows, which only runs through a shell.
-	execFileSync(command, list, { stdio: 'inherit', shell: process.platform === 'win32' });
+	// pnpm is a .cmd on Windows, which only runs through a shell. Nothing else does: a shell would
+	// split an argument with spaces in it (the release's title) into several.
+	execFileSync(command, list, {
+		stdio: 'inherit',
+		shell: command === 'pnpm' && process.platform === 'win32'
+	});
 
 /** Every step, in order, with the command that does it by hand if it is left to finish. */
 const steps: { name: string; manual: string; run: () => void }[] = [
