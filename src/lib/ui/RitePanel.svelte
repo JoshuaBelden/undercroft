@@ -6,11 +6,12 @@
 	import Slot from './Slot.svelte';
 
 	/**
-	 * What is known about the rite, always at the middle of the left edge while underground: the
-	 * Affliction's name, the hints found so far, then a line down the left joining each thing the
-	 * rite needs and the room. Once performed, one last step: banish what it summoned. Hidden
-	 * (`open` false), only the name stays, with the binding that brings the rest back.
-	 * It takes no clicks and never lets go of the mouse. See docs/dev/rite.md.
+	 * What is known about the rite, at the middle of the left edge while underground (the play page
+	 * places it) and on the Rite tab of the in-game menu (GameMenu): the Affliction's name, the
+	 * hints found so far, then a line down the left joining each thing the rite needs and the room.
+	 * Once performed, one last step: banish what it summoned. Hidden (`open` false), only the name
+	 * stays, with the binding that brings the rest back. Nothing in it can be clicked. See
+	 * docs/dev/rite.md.
 	 */
 	interface Props {
 		/** The Affliction this rite resolves, e.g. "The Gloaming". */
@@ -46,7 +47,7 @@
 	}
 </script>
 
-<aside class="rite" class:performed={rite.performed} class:closed={!open} aria-label="The rite">
+<section class="rite" class:performed={rite.performed} class:closed={!open} aria-label="The rite">
 	<h2>
 		<span class="pill">{affliction || 'The rite'}</span>
 		{#if rite.resolved}<span class="done">Resolved</span>{/if}
@@ -111,21 +112,15 @@
 			{/if}
 		</ol>
 	{/if}
-</aside>
+</section>
 
 <style>
 	.rite {
 		--line: rgb(226 220 204 / 0.28);
-		position: fixed;
-		left: 16px;
-		top: 50%;
-		transform: translateY(-50%);
-		width: min(280px, calc(100vw - 32px));
+		width: min(280px, 100%);
 		font: 13px var(--font-ui);
 		color: var(--text);
 		text-shadow: 0 0 6px rgb(0 0 0 / 0.9);
-		pointer-events: none;
-		z-index: 6;
 	}
 
 	/* The name in a pill. */
@@ -133,16 +128,6 @@
 		display: flex;
 		align-items: center;
 		margin: 0 0 10px;
-	}
-
-	.rite.closed h2 {
-		margin: 0;
-	}
-
-	/* Hidden: the binding that brings the rest back. */
-	.show {
-		display: flex;
-		margin-left: 8px;
 	}
 
 	.pill {
@@ -153,6 +138,16 @@
 		font: 400 0.85rem var(--font-lore);
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
+	}
+
+	.rite.closed h2 {
+		margin: 0;
+	}
+
+	/* Hidden: the binding that brings the rest back. */
+	.show {
+		display: flex;
+		margin-left: 8px;
 	}
 
 	.done {

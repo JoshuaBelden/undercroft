@@ -25,6 +25,7 @@ import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
 import { CORPSES, CRATES } from '../src/lib/content/loot.ts';
 import { DEFAULT_MARK_WHEEL, MARKS } from '../src/lib/content/marks.ts';
+import { SURVEY } from '../src/lib/content/map/survey.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import {
 	addItem,
@@ -44,10 +45,17 @@ import { aimRay, reequip } from '../src/lib/shared/items/weapons.ts';
 import { crateCentre, placeCrates } from '../src/lib/shared/map/crates.ts';
 import {
 	creatureSpawns,
+	dropSpot,
 	roomPoints,
 	rubbleSites,
 	spawnPoint
 } from '../src/lib/shared/map/points.ts';
+import {
+	carriesSurvey,
+	sketchCells,
+	surveyMap,
+	type SurveyMap
+} from '../src/lib/shared/map/survey.ts';
 import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
 import {
@@ -81,6 +89,7 @@ import { Crates, type Crate } from './crates.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
 import { Marks } from './marks.ts';
+import { Surveys } from './survey.ts';
 import { log } from './log.ts';
 
 interface Player {
@@ -168,6 +177,9 @@ export class Session {
 	private crates!: Crates;
 	private affliction!: AfflictionDirector;
 	private rite!: RiteDirector;
+	/** What a map can show of this one, and what each player has drawn in theirs. */
+	private survey!: SurveyMap;
+	private surveys!: Surveys;
 	/** Chalk marks on the walls. */
 	private marks = new Marks();
 	/** Items not put in this map: quest items someone in the party already owns. */
@@ -229,6 +241,8 @@ export class Session {
 		this.itemsSent = null;
 		this.affliction = this.direct();
 		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
+		this.survey = surveyMap(this.layout, PIECES, MAP_KIT);
+		this.surveys = new Surveys(this.survey);
 		this.populate();
 	}
 
@@ -356,6 +370,7 @@ export class Session {
 			markWheel: [...player.markWheel]
 		});
 		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
+		this.sendSurvey(player);
 		log.info(`Player ${name} joined session ${this.id.slice(0, 8)}`);
 		if (!this.timer) this.start();
 		return player;
@@ -387,6 +402,7 @@ export class Session {
 			markWheel: [...player.markWheel]
 		});
 		this.send(player, { type: 'marks', marks: this.marks.snapshot() });
+		this.sendSurvey(player);
 		log.info(`Player ${player.name} reconnected to session ${this.id.slice(0, 8)}`);
 		return true;
 	}
@@ -653,6 +669,14 @@ export class Session {
 				this.marks.clear();
 				this.broadcast({ type: 'marks', marks: [] });
 				break;
+			case 'revealMap':
+				this.surveys.revealAll(player.id);
+				this.sendSurvey(player);
+				break;
+			case 'clearMap':
+				this.surveys.clear(player.id);
+				this.sendSurvey(player);
+				break;
 			case 'resetCrates':
 				for (const other of this.players.values()) this.shutCrate(other);
 				this.crates.fill();
@@ -661,6 +685,19 @@ export class Session {
 				const room = roomPoints(this.layout, PIECES, MAP_KIT).find((r) => r.name === command.room);
 				if (!room) return;
 				player.state.position = this.freeSpot(room.position);
+				player.state.velocity = [0, 0, 0];
+				break;
+			}
+			case 'teleportTo': {
+				const at = command.position;
+				if (!Array.isArray(at) || at.length !== 3 || !at.every(Number.isFinite)) return;
+				const [x, y, z] = at as Vec3;
+				const feet: Vec3 = [x, y - eyeHeight(player.state), z];
+				const spot = player.state.flags.noclip
+					? feet
+					: dropSpot(this.world, feet, MOVEMENT.stances.stand.height, MOVEMENT.radius);
+				if (!spot) return;
+				player.state.position = spot;
 				player.state.velocity = [0, 0, 0];
 				break;
 			}
@@ -690,6 +727,8 @@ export class Session {
 		this.marks.clear();
 		this.broadcast({ type: 'map', layout: this.layout });
 		this.broadcast({ type: 'marks', marks: [] });
+		// A new map: what was drawn of the old one is no use (`build` started the maps over).
+		for (const player of this.players.values()) this.sendSurvey(player);
 		log.info(`Session ${this.id.slice(0, 8)} regenerated with seed ${seed}`);
 	}
 
@@ -776,6 +815,7 @@ export class Session {
 		this.stepDeadline();
 		this.stepCrates();
 		this.stepMarks();
+		this.stepSurvey();
 		this.tally();
 		// Anyone still alive down here after this tick? The dead can watch them.
 		const alive = [...this.players.values()].some((p) => !p.state.dead && !p.state.extracted);
@@ -1226,6 +1266,86 @@ export class Session {
 		}
 	}
 
+	/**
+	 * The map (docs/dev/map.md), held on the map screen with a notebook in the pack and the hands
+	 * free. Sketching: standing still for SURVEY.sketchSeconds draws what is around you. Showing:
+	 * next to a teammate who has a notebook too, SURVEY.shareSeconds copies each map into the
+	 * other. Each sketches or shows once per hold (-1 until it is let go).
+	 */
+	private stepSurvey(): void {
+		for (const player of this.players.values()) {
+			const s = player.state;
+			const hold = player.lastInput?.survey ?? null;
+			const able = this.canUseHands(player) && carriesSurvey(s.inventory);
+			if (hold !== 'sketch') s.sketching = 0;
+			else if (s.sketching >= 0) {
+				const still = Math.hypot(s.velocity[0], s.velocity[2]) < SURVEY.stillSpeed;
+				s.sketching = able && still ? s.sketching + TICK_DT : 0;
+				if (s.sketching >= SURVEY.sketchSeconds) {
+					s.sketching = -1;
+					this.sketch(player);
+				}
+			}
+			if (hold !== 'share') s.sharing = 0;
+			else if (s.sharing >= 0) {
+				const partner = able ? this.mapPartner(player) : null;
+				s.sharing = partner ? s.sharing + TICK_DT : 0;
+				if (partner && s.sharing >= SURVEY.shareSeconds) {
+					s.sharing = -1;
+					this.showMap(player, partner);
+				}
+			}
+		}
+	}
+
+	/** Draw what the player can see from where they stand into their map. */
+	private sketch(player: Player): void {
+		const s = player.state;
+		const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
+		const cells = sketchCells(this.survey, this.world, s.position, eye, SURVEY.sketchRange);
+		this.surveys.draw(player.id, cells);
+		this.sendSurvey(player);
+		this.events.push({ kind: 'sketch', player: player.id, position: [...s.position] });
+		this.creatures.hear(s.position, SURVEY.sketchNoise, player);
+	}
+
+	/** The nearest teammate on their feet, close enough and with a notebook, to show your map to. */
+	private mapPartner(player: Player): Player | null {
+		const at = player.state.position;
+		let best: Player | null = null;
+		let bestDistance: number = SURVEY.shareRange;
+		for (const other of this.players.values()) {
+			const o = other.state;
+			if (other === player || o.downed || o.dead || o.extracted || !carriesSurvey(o.inventory)) {
+				continue;
+			}
+			const d = Math.hypot(o.position[0] - at[0], o.position[1] - at[1], o.position[2] - at[2]);
+			if (d <= bestDistance) {
+				best = other;
+				bestDistance = d;
+			}
+		}
+		return best;
+	}
+
+	/** Two maps shown to each other: both now have everything either had. */
+	private showMap(player: Player, partner: Player): void {
+		this.surveys.share(player.id, partner.id);
+		this.sendSurvey(player);
+		this.sendSurvey(partner);
+		this.events.push({
+			kind: 'showMap',
+			player: player.id,
+			with: partner.id,
+			position: [...player.state.position]
+		});
+		log.info(`${player.name} showed their map to ${partner.name} in ${this.id.slice(0, 8)}`);
+	}
+
+	private sendSurvey(player: Player): void {
+		this.send(player, { type: 'survey', cells: this.surveys.snapshot(player.id) });
+	}
+
 	private hurt(player: Player, amount: number): void {
 		const s = player.state;
 		if (s.flags.godMode || s.downed || s.dead) return;
@@ -1247,6 +1367,8 @@ export class Session {
 		s.reviving = 0;
 		s.opening = 0;
 		s.erasing = 0;
+		s.sketching = 0;
+		s.sharing = 0;
 		this.shutCrate(player);
 		log.info(`Player ${player.name} is down`);
 	}

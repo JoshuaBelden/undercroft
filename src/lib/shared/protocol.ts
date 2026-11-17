@@ -91,10 +91,18 @@ export type AdminCommand =
 	| { kind: 'setDeadline'; seconds: number }
 	/** Teleport to a start or major room by piece name. */
 	| { kind: 'teleport'; room: string }
+	/**
+	 * Move your body to the free camera: `position` is the camera. The eyes go there and the body
+	 * falls to the floor below (with noclip on, it stays). Nothing happens over no floor at all.
+	 */
+	| { kind: 'teleportTo'; position: Vec3 }
 	/** Shut every loot crate and fill them again, hidden. */
 	| { kind: 'resetCrates' }
 	/** Rub out every chalk mark. */
 	| { kind: 'clearMarks' }
+	/** Your map: every cell drawn in it (`reveal`), or none (`clear`). See docs/dev/map.md. */
+	| { kind: 'revealMap' }
+	| { kind: 'clearMap' }
 	/** New map; omit the seed for a random one. */
 	| { kind: 'regenerate'; seed?: number }
 	/** Throw an error on the game server, to try the crash prompt (docs/dev/reports.md). */
@@ -154,6 +162,11 @@ export type ServerMessage =
 	 * a player arriving or coming back.
 	 */
 	| { type: 'marks'; marks: MarkSnapshot[] }
+	/**
+	 * Your map: every cell you have sketched (or been shown), [x, z, level]. Sent whenever it
+	 * changes, and to a player arriving or coming back. See docs/dev/map.md.
+	 */
+	| { type: 'survey'; cells: [number, number, number][] }
 	/** The map changed (admin regenerate); players have been respawned. */
 	| { type: 'map'; layout: MapLayout }
 	/**
@@ -234,6 +247,7 @@ const SERVER_TYPES = new Set<string>([
 	'tick',
 	'crate',
 	'marks',
+	'survey',
 	'map',
 	'extracted',
 	'died',

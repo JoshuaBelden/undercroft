@@ -12,7 +12,7 @@ src/
       protocol.ts           WebSocket message types, encode/decode
       rng.ts                seeded PRNG (deterministic on server and client)
       player/               player state types, fixed-step simulation, headlamp output
-      map/                  map types, grid math, layout generator, piece manifest, nav grid
+      map/                  map types, grid math, layout generator, piece manifest, nav grid, the explorer's map (survey)
       creature/             creature snapshot type, half-light visibility
       affliction/           Affliction snapshot type
       items/                inventory helpers, weapon step, pickup rule, item/event types
@@ -53,6 +53,7 @@ src/
     content/
       help/index.ts         player help topics
       map/kit.ts            map piece roles and weights
+      map/survey.ts         the explorer's map: sketching and showing tuning
       player/movement.ts    movement and stamina tuning
       player/sanity.ts      sanity, downed and revive tuning
       creatures.ts          creature definitions
@@ -99,6 +100,7 @@ server/
   items.ts                  WorldItems: items in the map, pickups, thrown items
   crates.ts                 Crates: what loot crates hold, revealing it, who has one open
   marks.ts                  Marks: chalk marks on the walls, checking a new one
+  survey.ts                 Surveys: what each player has drawn in their map
   errors.ts                 errors on the game server: recorded, told to the players they hit
   suspensions.ts            closes the connections of suspended accounts
   stats.ts                  writes runs and the server status for the admin app

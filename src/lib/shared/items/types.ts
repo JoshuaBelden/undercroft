@@ -129,6 +129,9 @@ export type GameEvent =
 	/** A chalk mark was drawn, or rubbed out by whoever drew it. */
 	| { kind: 'mark'; player: string; position: Vec3 }
 	| { kind: 'rub'; player: string; position: Vec3 }
+	/** A player finished sketching into their map, or showing it to a teammate (`with`). */
+	| { kind: 'sketch'; player: string; position: Vec3 }
+	| { kind: 'showMap'; player: string; with: string; position: Vec3 }
 	/** The Affliction reached a new omen stage. */
 	| { kind: 'omen'; stage: number }
 	/** The rite summoned the manifestation (it gathers, then hunts). */

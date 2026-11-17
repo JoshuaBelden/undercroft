@@ -2,7 +2,7 @@
 
 A separate SvelteKit app in `admin/`, for the team: members, bug reports, crashes, the ideas board, feedback, game stats and an audit log. It shares the game's MongoDB and its store code (`src/lib/server/store/`), and nothing else. Players never download any of it: it isn't in the game's build, and in production it lives on its own subdomain, `admin.<DOMAIN>`.
 
-The in-game F10 admin panel is something else: dev-mode debug tools for testing an expedition (noclip, spawning creatures...). It never ships enabled.
+The in-game F10 admin panel is something else: dev-mode debug tools for testing an expedition (noclip, spawning creatures...), with F9 for a free camera over the map's debug grid ([map-generation.md](map-generation.md#debug-grid)). Neither ships enabled.
 
 ## Running it
 

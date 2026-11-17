@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { CRATES } from '../src/lib/content/loot.ts';
+import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { DEFAULT_MARK_WHEEL } from '../src/lib/content/marks.ts';
 import { SANITY } from '../src/lib/content/player/sanity.ts';
 import { addItem, emptyInventory, newStack } from '../src/lib/shared/items/inventory.ts';
 import { segmentHit } from '../src/lib/shared/map/collision.ts';
 import { crateCentre } from '../src/lib/shared/map/crates.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
-import { spawnPoint } from '../src/lib/shared/map/points.ts';
+import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { HAND, type Inventory } from '../src/lib/shared/player/types.ts';
 import { config } from './config.ts';
@@ -509,6 +510,18 @@ describe('getting out', () => {
 		expect(session.ended).toBe(true);
 	});
 
+	it("can't climb out with the menu open: the hands are on it", () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const point = session['world'].extracts[0];
+		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
+		diver.hold({}, 0.5);
+		diver.hold({ interact: true, reading: true }, 4);
+		expect(diver.socket.last('extracted')).toBeUndefined();
+		expect(diver.state.extracting).toBe(0);
+	});
+
 	it('when time runs out, everyone still down is lost', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);
@@ -678,6 +691,31 @@ describe('admin commands', () => {
 		expect(() => session.admin(diver.id, { kind: 'throw' })).toThrow();
 	});
 
+	it('moves the body to the free camera: it falls to the floor, or stays with noclip', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const room = roomPoints(session['layout'], PIECES, MAP_KIT).find(
+			(r) => r.name !== 'stairwell'
+		)!;
+		const [x, y, z] = room.position;
+		// The camera a few metres over the room's floor: the eyes go there, then the body falls.
+		session.admin(diver.id, { kind: 'teleportTo', position: [x, y + 4, z] });
+		expect(Math.hypot(diver.state.position[0] - x, diver.state.position[2] - z)).toBeLessThan(3);
+		expect(diver.state.position[1]).toBeGreaterThan(y + 1);
+		diver.hold({}, 2);
+		expect(diver.state.position[1]).toBeLessThan(y + 1);
+		// Over no floor at all, or not a position: nothing happens.
+		const before = [...diver.state.position];
+		session.admin(diver.id, { kind: 'teleportTo', position: [99999, 0, 99999] });
+		session.admin(diver.id, { kind: 'teleportTo', position: [NaN, 0, 0] as Vec3 });
+		expect(diver.state.position).toEqual(before);
+		// Noclip: the body stays under the camera, in the air.
+		session.admin(diver.id, { kind: 'noclip', enabled: true });
+		session.admin(diver.id, { kind: 'teleportTo', position: [x, y + 20, z] });
+		diver.hold({}, 1);
+		expect(diver.state.position[1]).toBeGreaterThan(y + 15);
+	});
 	it('reveal and reset the rite, and clear the marks', () => {
 		const clues = vi.fn();
 		const reset = vi.fn();

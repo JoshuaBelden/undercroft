@@ -441,6 +441,38 @@ export const SOUNDS = {
 		caption: 'chalk is rubbed away',
 		captionOthers: true
 	},
+	// The map (docs/dev/map.md): the notebook opened and shut, the pencil, and a map shown.
+	'map.open': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.2,
+		variation: 0.1
+	},
+	'map.close': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.3,
+		rate: 0.9,
+		variation: 0.1
+	},
+	'map.sketch': {
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.6,
+		variation: 0.15,
+		caption: 'a pencil scratches',
+		captionOthers: true
+	},
+	'map.show': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.1,
+		caption: 'pages turn',
+		captionOthers: true
+	},
 	// The surface.
 	/** Moving between pages (the tabs, the store, social, settings). */
 	'ui.click': { file: 'ui.click', synth: { kind: 'click' }, category: 'sfx', volume: 0.8 },
@@ -450,7 +482,10 @@ export const SOUNDS = {
 	'ui.step': { synth: { kind: 'click' }, category: 'sfx', volume: 0.2, rate: 1.4 },
 	/** A controller button held in a menu pressed its control (Launch, the store): a lower tick. */
 	'ui.hold': { synth: { kind: 'click' }, category: 'sfx', volume: 0.35, rate: 1.2 },
-	/** Hiding or showing the rite and party panel underground (docs/dev/rite.md): a quiet tick. */
+	/**
+	 * Hiding or showing the rite panel underground (docs/dev/rite.md), and the admin free camera
+	 * (docs/dev/map-generation.md#debug-grid): a quiet tick.
+	 */
 	'ui.toggle': {
 		file: 'ui.click',
 		synth: { kind: 'click' },

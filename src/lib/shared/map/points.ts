@@ -1,3 +1,4 @@
+import { capsuleFits, findFreeSpot, floorHeightAt, type CollisionWorld } from './collision.ts';
 import { LEVEL_HEIGHT, rotateXZ, toWorld } from './grid.ts';
 import type { MapKit, MapLayout, PieceDef, Vec3 } from './types.ts';
 
@@ -51,3 +52,24 @@ export function creatureSpawns(layout: MapLayout, pieces: Record<string, PieceDe
 		(pieces[placement.piece]?.creatures ?? []).map((local) => toWorld(placement, local))
 	);
 }
+
+/**
+ * Admin: where to put a body moved to the free camera, given where its feet would be under the
+ * camera. Right there when it fits, to fall from; in a wall or a floor, the free spot nearest the
+ * floor below. Null when there is no floor below at all: it would fall forever.
+ */
+export function dropSpot(
+	world: CollisionWorld,
+	feet: Vec3,
+	height: number,
+	radius: number
+): Vec3 | null {
+	const [x, y, z] = feet;
+	const floor = floorHeightAt(world, x, z, y + height, y - DROP_DEPTH);
+	if (floor === null) return null;
+	if (capsuleFits(world, feet, height, radius)) return feet;
+	return findFreeSpot(world, [x, floor + 0.05, z], height, radius);
+}
+
+/** How far below the camera a floor is looked for (m): deeper than any map. */
+const DROP_DEPTH = 64;
