@@ -13,8 +13,11 @@ interface Handlers {
 	onMessage?: (message: ServerMessage) => void;
 }
 
-/** What we say on connecting: the ticket that proves who we are (from the site). */
-export type Hello = () => { ticket: string };
+/**
+ * What we say on connecting: the ticket that proves who we are (from the site), and our gamer tag
+ * (only used by a desktop game we join as a co-op guest: docs/dev/hosting.md).
+ */
+export type Hello = () => { ticket: string; name?: string };
 
 /**
  * WebSocket connection to the authoritative game server.
@@ -52,6 +55,8 @@ export class GameClient {
 
 		let connected = false;
 		socket.addEventListener('message', (event) => {
+			// A connection we have moved on from (setUrl): nothing it says counts.
+			if (this.socket !== socket) return;
 			const message = decodeServer(String(event.data));
 			if (!message) return;
 			if (message.type === 'party') {
@@ -69,6 +74,7 @@ export class GameClient {
 		});
 
 		socket.addEventListener('close', () => {
+			if (this.socket !== socket) return;
 			this.clearPing();
 			if (this.closed) return;
 			this.handlers.onStatus?.('disconnected');
@@ -78,6 +84,26 @@ export class GameClient {
 
 	send(message: ClientMessage): void {
 		if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(encode(message));
+	}
+
+	/**
+	 * Connect somewhere else from now on (the desktop app: its own server, or a co-op host's
+	 * through the tunnel, docs/dev/hosting.md). An open connection is closed and the new one made
+	 * at once; a rejected or closed client stays closed until `connect`.
+	 */
+	setUrl(url: string): void {
+		if (url === this.url) return;
+		this.url = url;
+		if (this.closed || !this.socket) return;
+		if (this.retryTimer) clearTimeout(this.retryTimer);
+		this.retryTimer = null;
+		const old = this.socket;
+		// Its close event is ignored (it is no longer `this.socket`), so it starts no reconnect.
+		this.socket = null;
+		this.clearPing();
+		old.close();
+		this.playerId = null;
+		this.connect();
 	}
 
 	dispose(): void {

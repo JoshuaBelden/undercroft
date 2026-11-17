@@ -4,6 +4,7 @@ What changed in each version of Undercroft, newest first. Players see these in g
 
 ## Unreleased
 
+- A desktop app for Windows, with Steam. It runs the whole game on your PC, with your save kept there, so it works without our servers, even offline. Your Steam account is your account: no sign-in. Play with Steam friends by inviting them from the Social page: the expedition runs on the host's PC, and everyone keeps their own stash. Earn achievements, let Steam friends see where you are, and close the game with Quit game under your gamer tag.
 - The headlamp key: tap F (D-pad up) to switch it off, and again to bring it back as it was; hold it for a second to change between low and bright.
 - Ropes: the shafts out at the end of the first and second levels are now ropes you climb. Look at one and press E (X on a controller) to take hold, climb with forward and back, and a few metres up you are out. Hold Shift to climb faster or slide down. Ropes take two at once, but nobody can climb past someone else on the same rope. Let go with C (B).
 - Falls hurt. Drop from high up and you lose sanity and are hobbled for 20 seconds, no faster than a crawl. Anything wrong with you like this shows beside your health with the seconds left.

@@ -5,4 +5,4 @@
 	let { data }: PageProps = $props();
 </script>
 
-<AuthForm mode="sign-up" discord={data.discord} />
+<AuthForm mode="sign-up" discord={data.discord} steam={data.steam} />

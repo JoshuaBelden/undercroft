@@ -60,6 +60,8 @@ export const THROTTLE = {
 	forgot: { count: 3, minutes: 60 },
 	forgotFromAddress: { count: 10, minutes: 60 },
 	code: { count: 6, minutes: 15 },
+	// "Continue with Steam", per address: each try asks Steam, so it is kept to what a player needs.
+	steam: { count: 20, minutes: 15 },
 	// Player reports (docs/dev/reports.md), per account: every one sent counts.
 	report: { count: 6, minutes: 60 },
 	idea: { count: 5, minutes: 60 },

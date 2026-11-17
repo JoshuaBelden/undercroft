@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ locals }) => {
 	const account = await requireAccount(db, locals);
 	if (account.totp) return json({ error: 'Two-step sign-in is already on' }, { status: 400 });
 	const secret = await beginTotpSetup(db, account._id);
-	const qr = await QRCode.toString(otpauthUrl(secret, account.email), {
+	const qr = await QRCode.toString(otpauthUrl(secret, account.email ?? account.gamerTag), {
 		type: 'svg',
 		margin: 1,
 		color: { dark: '#000000', light: '#ffffff' }

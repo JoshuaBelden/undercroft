@@ -9,12 +9,13 @@ import {
 	setAccountPassword,
 	type AccountDoc,
 	type AccountError,
-	type DiscordLink
+	type DiscordLink,
+	type SteamLink
 } from './accounts.ts';
 
 /**
  * Everything around signing in besides the password itself: password-reset links, two-step
- * sign-in (authenticator codes and recovery codes), Discord sign-up and linking, and limits on how
+ * sign-in (authenticator codes and recovery codes), Discord and Steam sign-up and linking, and limits on how
  * often things can be tried. Imports by relative path, like the rest of the store.
  * See docs/dev/accounts.md.
  */
@@ -29,11 +30,13 @@ interface ChallengeDoc extends ExpiringDoc {
 	attempts: number;
 }
 
-/** A Discord sign-up waiting for its gamer tag. */
+/** A Discord or Steam sign-up waiting for its gamer tag. One of `discord` and `steam` is set. */
 export interface SignupDoc {
 	_id: string;
-	discord: DiscordLink;
-	email: string;
+	discord?: DiscordLink;
+	steam?: SteamLink;
+	/** From Discord; a Steam sign-up has none. */
+	email?: string;
 	expires: Date;
 }
 
@@ -306,10 +309,21 @@ export async function refreshDiscord(
 	await accounts(db).updateOne({ _id: accountId, 'discord.id': discord.id }, { $set: { discord } });
 }
 
-/** Unlink Discord. Refused for an account with no password: it would have no way in. */
+/**
+ * Accounts that still have a way in without `link`: a password (with an email to sign in with),
+ * or another linked account. Unlinking is only allowed for these.
+ */
+const otherWayIn = (link: 'discord' | 'steam'): object => ({
+	$or: [
+		{ password: { $exists: true }, email: { $exists: true } },
+		{ [link === 'discord' ? 'steam' : 'discord']: { $exists: true } }
+	]
+});
+
+/** Unlink Discord. Refused when it is the only way in (no password, no Steam). */
 export async function unlinkDiscord(db: Db, accountId: string): Promise<'noPassword' | null> {
 	const result = await accounts(db).updateOne(
-		{ _id: accountId, password: { $exists: true } },
+		{ _id: accountId, ...otherWayIn('discord') },
 		{ $unset: { discord: '' } }
 	);
 	return result.matchedCount === 1 ? null : 'noPassword';
@@ -327,24 +341,72 @@ export async function startSignup(db: Db, discord: DiscordLink, email: string): 
 	return id;
 }
 
+/** Someone new signed in with Steam: keep who they are while they choose a gamer tag. */
+export async function startSteamSignup(db: Db, steam: SteamLink): Promise<string> {
+	const id = token();
+	await signups(db).insertOne({ _id: id, steam, expires: minutesFromNow(ACCOUNT.signupMinutes) });
+	return id;
+}
+
 export async function getSignup(db: Db, id: unknown): Promise<SignupDoc | null> {
 	if (!isToken(id)) return null;
 	return signups(db).findOne({ _id: id, expires: { $gt: new Date() } });
 }
 
-/** Finish a Discord sign-up with the gamer tag they chose. */
+/** Finish a Discord or Steam sign-up with the gamer tag they chose. */
 export async function finishSignup(
 	db: Db,
 	id: unknown,
-	gamerTag: unknown
+	gamerTag: unknown,
+	via: 'discord' | 'steam' = 'discord'
 ): Promise<{ account: AccountDoc } | { error: AccountError | 'expired' }> {
 	const signup = await getSignup(db, id);
-	if (!signup) return { error: 'expired' };
-	const result = await createAccount(db, {
-		email: signup.email,
-		gamerTag,
-		discord: signup.discord
-	});
+	// A sign-up only finishes the way it started (a Steam one can't be finished as Discord).
+	if (!signup || !signup[via]) return { error: 'expired' };
+	const result = await createAccount(
+		db,
+		via === 'steam'
+			? { gamerTag, steam: signup.steam }
+			: { email: signup.email, gamerTag, discord: signup.discord }
+	);
 	if ('account' in result) await signups(db).deleteOne({ _id: signup._id });
 	return result;
+}
+
+// --- Steam ------------------------------------------------------------------------------------
+
+export async function accountBySteam(db: Db, steamId: string): Promise<AccountDoc | null> {
+	return accounts(db).findOne({ 'steam.id': steamId });
+}
+
+/** Link a Steam account to this one. Refused if another account already has it. */
+export async function linkSteam(
+	db: Db,
+	accountId: string,
+	steam: SteamLink
+): Promise<AccountError | null> {
+	const other = await accountBySteam(db, steam.id);
+	if (other && other._id !== accountId) return 'steamTaken';
+	try {
+		await accounts(db).updateOne({ _id: accountId }, { $set: { steam } });
+	} catch (error) {
+		// Linked to another account between the check and now.
+		if ((error as { code?: unknown }).code === 11000) return 'steamTaken';
+		throw error;
+	}
+	return null;
+}
+
+/** Signed in with Steam again: keep their Steam name as it is now. */
+export async function refreshSteam(db: Db, accountId: string, steam: SteamLink): Promise<void> {
+	await accounts(db).updateOne({ _id: accountId, 'steam.id': steam.id }, { $set: { steam } });
+}
+
+/** Unlink Steam. Refused when it is the only way in (no password, no Discord). */
+export async function unlinkSteam(db: Db, accountId: string): Promise<'noOtherWay' | null> {
+	const result = await accounts(db).updateOne(
+		{ _id: accountId, ...otherWayIn('steam') },
+		{ $unset: { steam: '' } }
+	);
+	return result.matchedCount === 1 ? null : 'noOtherWay';
 }

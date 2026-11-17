@@ -8,7 +8,8 @@
 		'Rite',
 		'Creatures',
 		'Controller',
-		'Account'
+		'Account',
+		'Steam'
 	] as const;
 	type Group = (typeof GROUPS)[number];
 	/** The group last looked at, so reopening the screen goes back to it. */
@@ -17,6 +18,9 @@
 
 <script lang="ts">
 	import { adminAccount, ApiError } from '#lib/account/account.svelte.ts';
+	import { ACHIEVEMENTS } from '#lib/content/achievements.ts';
+	import { desktop } from '#lib/desktop.ts';
+	import type { LobbyStatus, SteamStatus } from '#lib/shared/desktop.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { devMode } from '#lib/dev.ts';
 	import { device, padFamily } from '#lib/game/input/device.svelte.ts';
@@ -170,6 +174,29 @@
 		{ kind: 'godMode', label: 'God mode', hint: 'No sanity loss.' },
 		{ kind: 'infiniteAmmo', label: 'Infinite ammo' }
 	];
+
+	/** The desktop app's Steam, read when the Steam group is opened (null: not the desktop app). */
+	let steam = $state<SteamStatus | null>(null);
+	let steamMessage = $state('');
+	/** The Steam lobby behind the party (docs/dev/hosting.md#the-lobby). */
+	let lobby = $state<LobbyStatus | null>(null);
+	$effect(() => {
+		if (group !== 'Steam') return;
+		const bridge = desktop();
+		void bridge?.steam.status().then((status) => (steam = status));
+		void bridge?.party.status().then((status) => (lobby = status));
+		return bridge?.party.onChange((status) => (lobby = status));
+	});
+
+	/** Unlock an achievement on Steam directly, without earning it (to see it work). */
+	async function testAchievement(id: string): Promise<void> {
+		const bridge = desktop();
+		if (!bridge) return;
+		const unlocked = await bridge.steam.achievement(id);
+		steamMessage = unlocked
+			? `${id} unlocked: Steam shows it in the overlay`
+			: `Steam refused ${id}: it isn't one of this app's achievements (yet)`;
+	}
 
 	/** Account tools go to the site, not the game server, and work on the surface. */
 	async function account(change: Parameters<typeof adminAccount>[0]): Promise<void> {
@@ -393,6 +420,57 @@
 				<p class="hint">No controllers. Browsers only show one once a button on it is pressed.</p>
 			{/each}
 			{@render action('Test rumble', () => playRumble('hit'), 'On every controller.')}
+		{:else if group === 'Steam'}
+			{#if !desktop()}
+				<p class="hint">Steam is only there in the desktop app (pnpm desktop:dev).</p>
+			{:else}
+				{@render info('Desktop app', desktop()?.version ?? '—')}
+				{@render info('Steam', steam ? (steam.available ? 'Running' : 'Not running') : '…')}
+				{@render info(
+					'App id',
+					String(steam?.appId ?? '—'),
+					'Spacewar (480) until the game has its own.'
+				)}
+				{@render info('SteamID', steam?.steamId ?? '—')}
+				{@render info('Steam name', steam?.persona ?? '—')}
+				{@render info(
+					'Lobby',
+					lobby?.available ? `${lobby.role} of ${lobby.lobbyId}` : 'None (no Steam)',
+					"Host: our game server runs the expedition. Guest: we play on the owner's."
+				)}
+				{@render info('Lobby owner', lobby?.owner ?? '—')}
+				{@render info('Lobby members', lobby?.members.join(', ') || '—')}
+				{@render info(
+					'Friends can join',
+					lobby ? (lobby.joinable ? 'Yes' : 'No (underground)') : '—'
+				)}
+				{#if lobby?.role === 'guest'}
+					{@render action(
+						'Leave the lobby',
+						() => void desktop()?.party.leave(),
+						'Back to our own game.'
+					)}
+				{:else if lobby?.available}
+					{@render action(
+						'Invite friends',
+						() => void desktop()?.party.invite(),
+						"Steam's invite dialog."
+					)}
+				{/if}
+				{#each ACHIEVEMENTS as achievement (achievement.id)}
+					{@render action(
+						`Unlock ${achievement.id}`,
+						() => void testAchievement(achievement.id),
+						achievement.name
+					)}
+				{/each}
+				{@render action(
+					'Unlock ACH_WIN_ONE_GAME',
+					() => void testAchievement('ACH_WIN_ONE_GAME'),
+					"One of Spacewar's own, to see the overlay with app 480."
+				)}
+				<p class="hint" role="status">{steamMessage}</p>
+			{/if}
 		{:else}
 			<form
 				class="setting"

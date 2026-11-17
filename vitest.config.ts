@@ -4,14 +4,22 @@ import { defineConfig } from 'vitest/config';
 // under test needs none, and leaving it out keeps the runs fast.
 export default defineConfig({
 	test: {
-		include: ['src/**/*.test.ts', 'server/**/*.test.ts'],
+		include: ['src/**/*.test.ts', 'server/**/*.test.ts', 'desktop/src/**/*.test.ts'],
 		environment: 'node',
 		// Quiets the game server's log (server/testing/setup.ts).
 		setupFiles: ['server/testing/setup.ts'],
 		// `pnpm test:coverage`: only the code meant to be unit tested is counted.
 		coverage: {
 			provider: 'v8',
-			include: ['src/lib/shared/**/*.ts', 'server/**/*.ts'],
+			include: [
+				'src/lib/shared/**/*.ts',
+				'server/**/*.ts',
+				'src/lib/server/localdb/**/*.ts',
+				'src/lib/server/store/**/*.ts',
+				'desktop/src/frames.ts',
+				'desktop/src/tunnel.ts',
+				'desktop/src/navigation.ts'
+			],
 			exclude: [
 				'**/*.test.ts',
 				'**/testing/**',

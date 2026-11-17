@@ -793,6 +793,63 @@ describe('the rite', () => {
 	});
 });
 
+describe('achievements', () => {
+	const earned = (diver: Diver): string[] =>
+		diver.socket.all('achievement').flatMap((message) => message.ids);
+
+	it('getting out alive alone earns the first extraction, not the co-op one', () => {
+		const session = open(SEED);
+		const diver = new Diver(session, 'A');
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const point = session['world'].extracts[0];
+		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
+		diver.hold({}, 0.5);
+		diver.hold({ interact: true }, 4);
+		expect(diver.socket.last('extracted')).toBeDefined();
+		expect(earned(diver)).toEqual(['FIRST_EXTRACTION']);
+	});
+
+	it('a banishing earns it for everyone still down there, who then still have to get out', () => {
+		const session = open(SEED);
+		const a = new Diver(session, 'A');
+		const b = new Diver(session, 'B');
+		session.admin(a.id, { kind: 'manifest' });
+		wait(0.2);
+		session.admin(a.id, { kind: 'banish' });
+		wait(0.2);
+		for (const diver of [a, b]) {
+			expect(diver.inside).toBe(true);
+			expect(earned(diver)).toEqual(['BANISHED']);
+		}
+	});
+
+	it('dying earns nothing', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		session.admin(diver.id, { kind: 'setDeadline', seconds: 0 });
+		wait(0.2);
+		expect(diver.socket.last('died')).toBeDefined();
+		expect(earned(diver)).toEqual([]);
+	});
+
+	it('performing the rite earns it for everyone still down there', () => {
+		const session = open(SEED);
+		const stacks = RITE.requirements.map((r): [string, number] => [r.item, r.count]);
+		const performer = new Diver(session, 'A', kit(...stacks));
+		const other = new Diver(session, 'B');
+		session.admin(performer.id, { kind: 'clearCreatures' });
+		session.revealClues(RITE.clues.length);
+		session.admin(performer.id, { kind: 'teleport', room: RITE.room });
+		performer.hold({}, 0.5);
+		performer.hold({ interact: true }, RITE.seconds + 0.5);
+		// Performed, not resolved: that takes banishing what it summons.
+		expect(session['rite'].performed).toBe(true);
+		expect(session['rite'].resolved).toBe(false);
+		expect(earned(performer)).toEqual(['RITE_PERFORMED']);
+		expect(earned(other)).toEqual(['RITE_PERFORMED']);
+	});
+});
+
 describe('admin commands', () => {
 	it('are ignored unless the server runs in dev mode', () => {
 		const session = open(SEED);

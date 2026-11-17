@@ -1,6 +1,6 @@
 # Accounts, sign-in and explorers
 
-The whole game is behind sign-in. An account is an email, a gamer tag, and a way to sign in: a password, a linked Discord account, or both. Two-step sign-in (an authenticator app) can be turned on. Each account has one explorer: the character who owns the stash, the loadout, the money and the rite progress. Steam sign-in is a later phase.
+The whole game is behind sign-in. An account is a gamer tag and at least one way to sign in: an email and password, a linked Discord account, a linked Steam account (in the desktop app), or several of those. An account made with Steam has no email until the player adds one, because Steam doesn't share it. Two-step sign-in (an authenticator app) can be turned on. Each account has one explorer: the character who owns the stash, the loadout, the money and the rite progress.
 
 ## Files
 
@@ -13,6 +13,8 @@ The whole game is behind sign-in. An account is an email, a gamer tag, and a way
 | `src/lib/server/totp.ts`                           | Authenticator codes (RFC 6238)                                   |
 | `src/lib/server/mail.ts`                           | Email through Resend (or the log, without a key)                 |
 | `src/lib/server/discord.ts`                        | The Discord OAuth2 round trip                                    |
+| `src/lib/server/steam.ts`                          | Checking a Steam ticket with Steam ([desktop.md](desktop.md))    |
+| `src/lib/account/steam.ts`                         | Client: is Steam here, and a fresh ticket from it                |
 | `src/lib/shared/account/avatar.ts`                 | `avatarUrl`: which avatar shows (upload, Discord, none)          |
 | `src/lib/server/avatarImage.ts`                    | `processAvatar`: an upload checked and stored again as WebP      |
 | `src/lib/server/store/avatars.ts`                  | Uploaded avatars in MongoDB                                      |
@@ -31,27 +33,27 @@ The whole game is behind sign-in. An account is an email, a gamer tag, and a way
 
 ## Data (MongoDB)
 
-- `accounts`: `_id`, `email` (lower-cased, unique), `password` (`scrypt$<salt>$<hash>`, from `node:crypto`; missing on an account made with Discord until one is set), `gamerTag`, `tagKey` (lower-cased tag, unique, so tags can't differ only by case), `discord` (`{ id, username, avatar }`, as of the last Discord sign-in or link; `discord.id` unique), `avatar` (the version of the picture they uploaded, see [Avatars](#avatars)), `totp` (`secret`, `enabledAt`, `recovery`: the sha256 of each unused recovery code, `usedStep`: the last time step accepted), `totpPending` (a secret being set up), `role` (`'admin'`: can use the admin app, see [admin.md](admin.md)), `suspended` (`reason`, `until`, `by`, `at`: set by an admin, see [admin.md](admin.md#suspending)), `lastSeen` (when a game ticket was last issued), `createdAt`.
+- `accounts`: `_id`, `email` (lower-cased, unique among the accounts that have one: a partial index; missing on an account made with Steam until it adds one), `password` (`scrypt$<salt>$<hash>`, from `node:crypto`; missing on an account made with Discord or Steam until one is set), `gamerTag`, `tagKey` (lower-cased tag, unique, so tags can't differ only by case), `discord` (`{ id, username, avatar }`, as of the last Discord sign-in or link; `discord.id` unique), `steam` (`{ id, persona }`: the 64-bit SteamID and their Steam name as of the last Steam sign-in or link; `steam.id` unique), `avatar` (the version of the picture they uploaded, see [Avatars](#avatars)), `totp` (`secret`, `enabledAt`, `recovery`: the sha256 of each unused recovery code, `usedStep`: the last time step accepted), `totpPending` (a secret being set up), `role` (`'admin'`: can use the admin app, see [admin.md](admin.md)), `suspended` (`reason`, `until`, `by`, `at`: set by an admin, see [admin.md](admin.md#suspending)), `lastSeen` (when a game ticket was last issued), `createdAt`.
 - `explorers`: `_id`, `account`, `money`, `stash` (one entry per stash slot: a stack or null), `loadout` (an `Inventory`), `layout` (how those two are stored; older documents are converted when read, see [economy.md](economy.md)), `underground`. One per account today, created the first time it is needed (`explorerFor`). It is a separate collection, keyed by its own id, so an account can have several later.
 - `avatars`: `_id` is the account; `image` (the WebP), `version`, `updatedAt`. See [Avatars](#avatars).
 - `sessions`: `_id` is the cookie value; `account`, `expires` (30 days).
 - `tickets`: `_id` is the ticket; `account`, `expires` (12 hours).
 - `resets`: `_id` is the sha256 of an emailed reset token (the token itself is never stored); `account`, `expires` (1 hour).
 - `challenges`: a sign-in waiting for its two-step code. `_id` is the token in the `undercroft.challenge` cookie; `account`, `expires` (5 minutes), `attempts`.
-- `signups`: a Discord sign-up waiting for its gamer tag. `_id` is the token in the `undercroft.signup` cookie; `discord`, `email`, `expires` (15 minutes).
+- `signups`: a Discord or Steam sign-up waiting for its gamer tag. `_id` is the token in the `undercroft.signup` cookie; `discord` and `email`, or `steam`; `expires` (15 minutes).
 - `throttle`: `_id` is `<rule>:<key>`; `count`, `expires`. See [Limits](#limits).
 - `progress`: rite progress, keyed by explorer (see [rite.md](rite.md)).
 - `ledger`: the economy log (see [economy.md](economy.md#the-ledger)).
 - `adminSessions`, `adminLog`: the admin app's sessions and audit log; `runs`, `serverStatus`: game stats (see [admin.md](admin.md)).
 - `reports`, `errors`, `ideas`, `ideaVotes`, `feedback`: what players send us (see [reports.md](reports.md)).
 
-Sessions, tickets, resets, challenges, sign-ups and throttles have a TTL index, so MongoDB removes them when they expire. `ensureIndexes` creates all the indexes (`ensureAuthIndexes` for `auth.ts`'s) and runs when either process connects.
+Sessions, tickets, resets, challenges, sign-ups and throttles have a TTL index, so MongoDB removes them when they expire. `ensureIndexes` creates all the indexes (`ensureAuthIndexes` for `auth.ts`'s) and runs when either process connects. The email index used to be plain `unique`: `ensureIndexes` replaces it with the partial one the first time it runs against an older database.
 
 Addresses aren't verified at sign-up yet. A reset link only works for whoever reads the mailbox, so a reset does prove the address.
 
 ## The site (SvelteKit)
 
-`hooks.server.ts` reads the `undercroft.session` cookie and sets `locals.account` (`id`, `email`, `gamerTag`). Without an account, anything outside `/auth/` and `/api/auth/` redirects to `/auth/sign-in`, or returns 401 for `/api/`. The paths that stay open are `isOpen` in `session.ts`; the release notes and credits are behind sign-in too. `+layout.server.ts` passes the account to every page, and it reads the URL so it runs again on every navigation, in the browser too: a session that ended goes to the sign-in page on the next click instead of to a page that waits for an account.
+`hooks.server.ts` reads the `undercroft.session` cookie and sets `locals.account` (`id`, `email` or null, `gamerTag`). Without an account, anything outside `/auth/` and `/api/auth/` redirects to `/auth/sign-in`, or returns 401 for `/api/`. The paths that stay open are `isOpen` in `session.ts`; the release notes and credits are behind sign-in too. `+layout.server.ts` passes the account to every page, and it reads the URL so it runs again on every navigation, in the browser too: a session that ended goes to the sign-in page on the next click instead of to a page that waits for an account.
 
 Endpoints (JSON):
 
@@ -63,6 +65,8 @@ Endpoints (JSON):
 | `POST /api/auth/forgot`         | `{ email }`: emails a reset link; the same answer either way                 |
 | `POST /api/auth/reset`          | `{ token, password }`: new password, signs out everywhere                    |
 | `POST /api/auth/discord-signup` | `{ gamerTag }`: finishes a Discord sign-up                                   |
+| `POST /api/auth/steam`          | `{ ticket, steamId, persona }`: Steam sign-in ([desktop.md](desktop.md))     |
+| `POST /api/auth/steam-signup`   | `{ gamerTag }`: finishes a Steam sign-up (no email)                          |
 | `POST /api/auth/sign-out`       | Ends the session                                                             |
 | `GET /api/account`              | `AccountView`: gamer tag, explorer, rite progress                            |
 | `PATCH /api/account`            | `{ gamerTag }`: change the gamer tag                                         |
@@ -72,7 +76,10 @@ Endpoints (JSON):
 | `POST /api/account/mfa/setup`   | `{ secret, qr }`: a new secret (kept as `totpPending`) and its QR code (SVG) |
 | `POST /api/account/mfa/enable`  | `{ code }`: turns it on; `{ codes, account }`, the recovery codes shown once |
 | `POST /api/account/mfa/disable` | `{ code }` (app or recovery code): turns it off                              |
-| `DELETE /api/account/discord`   | Unlink Discord; refused without a password                                   |
+| `DELETE /api/account/discord`   | Unlink Discord; refused when it is the only way in                           |
+| `POST /api/account/steam`       | `{ ticket, steamId, persona }`: link Steam (desktop app)                     |
+| `DELETE /api/account/steam`     | Unlink Steam; refused when it is the only way in                             |
+| `POST /api/account/email`       | `{ email }`: add an email to an account with none (made with Steam)          |
 | `PUT /api/account/avatar`       | Body: the picture itself. A new avatar; answers with the `AccountView`       |
 | `DELETE /api/account/avatar`    | Remove the uploaded avatar (Discord's shows again)                           |
 | `GET /avatars/<account>?v=<n>`  | An uploaded avatar (WebP), cached for good: `v` changes with every upload    |
@@ -90,10 +97,10 @@ The gamer tag is the name other players see: in the lobby, while spectating, on 
 
 ## The Account screen
 
-The gamer tag at the top right of the dashboard is a menu (`AccountMenu.svelte`): Account and Sign out. It closes on Escape (which then doesn't also back out of the page), on a click elsewhere, and after a choice; the arrow keys move between its items. Account opens `/account`, a TabScreen like `/settings` and, like it, outside the dashboard group, so it replaces the frame. Escape (`toggleSettings`) leaves it. Its groups:
+The gamer tag at the top right of the dashboard is a menu (`AccountMenu.svelte`): Account, Ideas and feedback, Report a bug, Sign out, and Quit game in the desktop app. It closes on Escape (which then doesn't also back out of the page), on a click elsewhere, and after a choice; the arrow keys move between its items. Account opens `/account`, a TabScreen like `/settings` and, like it, outside the dashboard group, so it replaces the frame. Escape (`toggleSettings`) leaves it. Its groups:
 
-- **Profile**: the avatar (see [Avatars](#avatars)), the gamer tag (sends `profile` after a change), the email, Sign out, Delete account.
-- **Sign-in**: change or set the password; link or unlink Discord (shown when Discord is configured, or already linked).
+- **Profile**: the avatar (see [Avatars](#avatars)), the gamer tag (sends `profile` after a change), the email (or a field to add one, for an account made with Steam), Sign out, Delete account.
+- **Sign-in**: change or set the password (once there is an email); link or unlink Discord (shown when Discord is configured, or already linked); link or unlink Steam (shown in the desktop app with Steam running, or when already linked).
 - **Security**: turn two-step sign-in on (QR code, the key as text, a code to confirm, then the recovery codes once) or off; sign out everywhere else.
 
 Account things live only here, not in Settings, so the gamer tag can't be changed underground.
@@ -161,13 +168,23 @@ The OAuth2 code flow with the `identify` and `email` scopes (`src/lib/server/dis
   - otherwise a `signups` entry and `/auth/discord/tag`, where they choose a gamer tag (it starts as their Discord name). The account is only created then.
 - Results come back as `?discord=<reason>`, said to the player through `DISCORD_RESULTS`.
 
-Unlinking is refused for an account without a password, so it always has a way in.
+Unlinking is refused when Discord is the only way in (no email and password, no Steam), so the account always has a way in.
 
-**Adding another provider** (Steam, say): a module like `discord.ts`, routes like `/auth/discord`, a unique sparse field on `accounts` like `discord.id`, and `signIn` for the session. If the provider gives no email, sign-up has to ask for one, or the account can't recover a password.
+## The desktop app's own account
+
+In the desktop app the site runs on the player's PC ([hosting.md](hosting.md)), and nobody signs in. Every request from its window is the local account (`localAccount`): the one linked to the player's SteamID, made the first time with their Steam name as the gamer tag, or, without Steam, a single account with the id `local`. It has no email or password, and the Account screen shows only its Profile tab.
+
+## Steam
+
+"Continue with Steam" is only in the desktop app, because a browser has no Steam to ask. The desktop app gets a Web API ticket from Steam, the site checks it with Steam, and the SteamID it belongs to signs in, or starts an account at `/auth/steam/tag` (a gamer tag, no email). Otherwise it works like Discord: `signIn` for the session, a `signups` entry while the tag is chosen, link and unlink from the Account screen, and unlinking refused when it is the only way in. How the ticket is checked, and how to test it locally, is in [desktop.md](desktop.md#steam-sign-in).
+
+An account made with Steam has no email. Limits on wrong passwords count against the account id instead (`throttleKey`), the authenticator app labels it with the gamer tag, and a password can only be set once an email is added (`addEmail`; an email that is already there isn't changed this way). The admin app shows "None" and has no reset email to send.
+
+**Adding another provider**: a module like `discord.ts` or `steam.ts`, routes like `/auth/discord` or `/api/auth/steam`, a unique sparse field on `accounts` like `discord.id`, `signIn` for the session, and the provider in `otherWayIn` (`auth.ts`) so unlinking never leaves an account with no way in.
 
 ## Limits
 
-`throttle(db, rule, key)` counts a try and says whether it is allowed; `throttled` only checks. The rules are data (`THROTTLE` in `content/account.ts`): `signIn` (per email) and `code` (per account, through `checkSecondFactor`) count only wrong passwords and codes, so getting it right never uses one up; `forgot` (per email) and `forgotFromAddress` (per IP) count every reset email. `report`, `idea`, `feedback` and `vote` (per account) count every one sent (see [reports.md](reports.md)); so does `avatar` (per account), every picture uploaded. A challenge also ends after too many attempts.
+`throttle(db, rule, key)` counts a try and says whether it is allowed; `throttled` only checks. The rules are data (`THROTTLE` in `content/account.ts`): `signIn` (per email) and `code` (per account, through `checkSecondFactor`) count only wrong passwords and codes, so getting it right never uses one up; `forgot` (per email) and `forgotFromAddress` (per IP) count every reset email. `steam` counts every Steam sign-in (per IP) and link (per account), because each one asks Steam. `report`, `idea`, `feedback` and `vote` (per account) count every one sent (see [reports.md](reports.md)); so does `avatar` (per account), every picture uploaded. A challenge also ends after too many attempts.
 
 ## The game server
 

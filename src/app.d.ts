@@ -8,7 +8,7 @@ declare global {
 		}
 		interface Locals {
 			/** The signed-in account (set in hooks.server.ts); null on the sign-in pages. */
-			account: { id: string; email: string; gamerTag: string } | null;
+			account: { id: string; email: string | null; gamerTag: string } | null;
 		}
 		// interface PageData {}
 		// interface PageState {}

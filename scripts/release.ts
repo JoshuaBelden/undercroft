@@ -5,7 +5,7 @@
  *   pnpm release <patch | minor | major | x.y.z>
  *
  * 1. Needs a clean working tree and something under `## Unreleased` in CHANGELOG.md.
- * 2. Sets `version` in package.json.
+ * 2. Sets `version` in package.json, and in desktop/package.json (the desktop app's installer).
  * 3. Renames the Unreleased section to `## <version> - <date>` and starts a new, empty one.
  * 4. Commits ("Release v<version>") and makes an annotated tag `v<version>` holding the notes.
  *
@@ -15,6 +15,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const PACKAGE = 'package.json';
+const DESKTOP_PACKAGE = 'desktop/package.json';
 const CHANGELOG = 'CHANGELOG.md';
 const UNRELEASED = '## Unreleased';
 
@@ -56,8 +57,11 @@ writeFileSync(
 	`${log.slice(0, start)}${UNRELEASED}\n\n## ${next} - ${date}\n\n${notes}\n${end < 0 ? '' : log.slice(end)}`
 );
 writeFileSync(PACKAGE, pkgText.replace(`"version": "${current}"`, `"version": "${next}"`));
+// The desktop app is released with the game, at the same version.
+const desktopText = readFileSync(DESKTOP_PACKAGE, 'utf8');
+writeFileSync(DESKTOP_PACKAGE, desktopText.replace(/"version": "[^"]+"/, `"version": "${next}"`));
 
-git('add', PACKAGE, CHANGELOG);
+git('add', PACKAGE, DESKTOP_PACKAGE, CHANGELOG);
 git('commit', '-m', `Release v${next}`);
 git('tag', '-a', `v${next}`, '-m', `Undercroft ${next}\n\n${notes}`);
 

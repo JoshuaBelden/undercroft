@@ -90,6 +90,24 @@ export async function unlinkDiscord(): Promise<void> {
 	session.account = await api<AccountView>('/api/account/discord', 'DELETE');
 }
 
+/** Link the Steam account the desktop app runs under (proof from src/lib/account/steam.ts). */
+export async function linkSteam(proof: {
+	ticket: string;
+	steamId: string;
+	persona: string;
+}): Promise<void> {
+	session.account = await api<AccountView>('/api/account/steam', 'POST', proof);
+}
+
+export async function unlinkSteam(): Promise<void> {
+	session.account = await api<AccountView>('/api/account/steam', 'DELETE');
+}
+
+/** Add an email to an account that has none (made with Steam). */
+export async function addEmail(email: string): Promise<void> {
+	session.account = await api<AccountView>('/api/account/email', 'POST', { email });
+}
+
 /**
  * Upload a new avatar: the square the crop editor made (docs/dev/accounts.md#avatars). Throws
  * `ApiError` if it is refused.

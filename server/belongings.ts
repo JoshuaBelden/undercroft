@@ -9,15 +9,18 @@ import {
 import { emptyInventory } from '../src/lib/shared/items/inventory.ts';
 import type { Inventory } from '../src/lib/shared/player/types.ts';
 import { getDb } from './db.ts';
+import { guestLock, guestReturn, guestTake, guestTaken, isGuest } from './guests.ts';
 import { log } from './log.ts';
 
 /**
  * What explorers take down and bring back: the game server's side of the stash and loadout kept
- * in MongoDB. See docs/dev/economy.md.
+ * in MongoDB. See docs/dev/economy.md. A co-op guest on a desktop game keeps theirs in their own
+ * save: for them each of these asks their client instead (server/guests.ts, docs/dev/hosting.md).
  */
 
 /** Descent: the explorer's loadout leaves the surface with them. */
 export async function takeKit(explorer: string, session: string): Promise<Inventory> {
+	if (isGuest(explorer)) return (await guestTake(explorer, session)).kit;
 	const db = getDb();
 	if (!db) return emptyInventory();
 	try {
@@ -30,14 +33,20 @@ export async function takeKit(explorer: string, session: string): Promise<Invent
 
 /** Every item (id) these explorers keep on the surface, in their stash or loadout. */
 export async function owned(explorers: string[]): Promise<Set<string>> {
+	const items = new Set<string>();
+	// Guests said what they own when they said what they take down (takeKit, asked first).
+	for (const explorer of explorers.filter(isGuest)) {
+		for (const item of (await guestTaken(explorer))?.owned ?? []) items.add(item);
+	}
+	const here = explorers.filter((explorer) => !isGuest(explorer));
 	const db = getDb();
-	if (!db || explorers.length === 0) return new Set();
+	if (!db || here.length === 0) return items;
 	try {
-		return await itemsOwned(db, explorers);
+		for (const item of await itemsOwned(db, here)) items.add(item);
 	} catch (error) {
 		log.warn(`Could not read what explorers own: ${(error as Error).message}`);
-		return new Set();
 	}
+	return items;
 }
 
 /**
@@ -45,18 +54,28 @@ export async function owned(explorers: string[]): Promise<Set<string>> {
  * `markWheel` gives them the default). Read at descent, like the loadout.
  */
 export async function markWheels(explorers: string[]): Promise<Map<string, string[]>> {
+	const wheels = new Map<string, string[]>();
+	for (const explorer of explorers.filter(isGuest)) {
+		const wheel = (await guestTaken(explorer))?.markWheel;
+		if (wheel) wheels.set(explorer, wheel);
+	}
+	const here = explorers.filter((explorer) => !isGuest(explorer));
 	const db = getDb();
-	if (!db || explorers.length === 0) return new Map();
+	if (!db || here.length === 0) return wheels;
 	try {
-		return await markWheelsOf(db, explorers);
+		for (const [explorer, wheel] of await markWheelsOf(db, here)) wheels.set(explorer, wheel);
 	} catch (error) {
 		log.warn(`Could not read chalk wheels: ${(error as Error).message}`);
-		return new Map();
 	}
+	return wheels;
 }
 
 /** The expedition is over for them: what they carried out (null if it was lost) goes back. */
 export function giveBack(explorer: string, session: string, carried: Inventory | null): void {
+	if (isGuest(explorer)) {
+		guestReturn(explorer, session, carried);
+		return;
+	}
 	const db = getDb();
 	if (!db) return;
 	returnFromExpedition(db, explorer, session, carried).catch((error: Error) =>
@@ -69,6 +88,10 @@ export function giveBack(explorer: string, session: string, carried: Inventory |
  * stash and loadout. Resolves once it is in place.
  */
 export function lockKit(explorer: string, ready: boolean): Promise<void> {
+	if (isGuest(explorer)) {
+		guestLock(explorer, ready);
+		return Promise.resolve();
+	}
 	const db = getDb();
 	if (!db) return Promise.resolve();
 	// One at a time per explorer, in the order asked: the last one asked for is what holds.

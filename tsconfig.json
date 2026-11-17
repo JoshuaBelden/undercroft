@@ -8,6 +8,8 @@
 		"src",
 		"server",
 		"scripts",
+		"deploy",
+		"desktop/src/host",
 		"vite.config.ts",
 		"vitest.config.ts",
 		"eslint.config.js",

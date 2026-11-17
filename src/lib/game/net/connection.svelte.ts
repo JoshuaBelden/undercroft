@@ -1,11 +1,22 @@
-import { PUBLIC_GAME_SERVER_URL } from '$app/env/public';
-import { ApiError, gameTicket, loadAccount } from '#lib/account/account.svelte.ts';
+import { ApiError, gameTicket, loadAccount, session } from '#lib/account/account.svelte.ts';
+import { presenceFor } from '#lib/content/presence.ts';
+import {
+	currentGameServer,
+	gameServerUrl,
+	leaveFriendsGame,
+	onGameServerChange,
+	setJoinable,
+	setPresence,
+	unlockAchievement,
+	watchParty
+} from '#lib/desktop.ts';
 import { promptCrash } from '#lib/game/crash.svelte.ts';
 import type { LaidRopeSnapshot, MarkSnapshot, TiedRopeSnapshot } from '#lib/shared/items/types.ts';
 import type { PartyMember, PartyState } from '#lib/shared/party/types.ts';
 import type { ClientMessage, ServerMessage } from '#lib/shared/protocol.ts';
 import type { Person, SocialAction, SocialState } from '#lib/shared/social/types.ts';
 import { GameClient, type ConnectionStatus } from './GameClient.ts';
+import { answerVault } from './vault.ts';
 
 /**
  * The one connection to the game server, shared by every page: the dashboard (the party, friends
@@ -76,7 +87,7 @@ export function me(): PartyMember | null {
 
 /** The connection itself, for the code that sends input every frame. */
 export function gameClient(): GameClient {
-	client ??= new GameClient(PUBLIC_GAME_SERVER_URL, () => ({ ticket }), {
+	client ??= new GameClient(gameServerUrl(), () => ({ ticket, name: session.account?.gamerTag }), {
 		onStatus: (next, detail) => {
 			connection.status = next;
 			connection.detail = detail ?? '';
@@ -85,6 +96,10 @@ export function gameClient(): GameClient {
 			if (next === 'rejected' && detail === 'Sign in to play' && !ticketRetried) {
 				ticketRetried = true;
 				connect();
+			} else if (next === 'rejected' && guest) {
+				// A co-op host sent us home (we left, were removed, or they can't have us).
+				connection.error = detail ?? '';
+				leaveFriendsGame();
 			}
 			if (next !== 'connected') {
 				connection.party = null;
@@ -101,10 +116,26 @@ export function gameClient(): GameClient {
 	return client;
 }
 
+/**
+ * In the desktop app: playing on a friend's PC as their co-op guest (docs/dev/hosting.md), with
+ * the game connection going through the tunnel. False on our own game server, and in a browser.
+ */
+let guest = false;
+
 /** Open the connection, if it isn't already. Safe to call from every page. */
 export function start(): void {
 	if (started) return;
 	started = true;
+	// The desktop app moved us to a friend's game server, or back to our own.
+	watchParty((status) => {
+		guest = status.role === 'guest';
+	});
+	onGameServerChange((url) => {
+		const client = gameClient();
+		client.setUrl(url);
+		// Closed for good (a host sent us home): connect again, to the new one.
+		if (connection.status === 'rejected') connect();
+	});
 	connect();
 }
 
@@ -129,11 +160,12 @@ export function subscribe(listener: Listener): () => void {
 function connect(): void {
 	if (retry) clearTimeout(retry);
 	retry = null;
-	gameTicket()
-		.then((fresh) => {
+	// The account first: its gamer tag goes in `hello` (a co-op host has no account for us).
+	Promise.all([gameTicket(), currentGameServer(), loadAccount()])
+		.then(([fresh, url]) => {
 			if (!started) return;
 			ticket = fresh;
-			void loadAccount();
+			gameClient().setUrl(url);
 			gameClient().connect();
 		})
 		.catch((error: unknown) => {
@@ -192,5 +224,24 @@ function receive(message: ServerMessage): void {
 		case 'abandoned':
 			connection.welcome = null;
 			break;
+		case 'vault':
+			// Only a co-op host asks: this player's belongings are in their own save.
+			void answerVault(message, send);
+			break;
+		case 'achievement':
+			// The server decided it (src/lib/content/achievements.ts); Steam only records it.
+			for (const id of message.ids) unlockAchievement(id);
+			break;
 	}
+	showPresence();
+}
+
+/** Tell Steam where we are (desktop app only; nothing is sent unless it changed). */
+function showPresence(): void {
+	const party = connection.party;
+	const size = party?.members.length ?? 1;
+	const underground = connection.welcome !== null || me()?.inExpedition === true;
+	setPresence(presenceFor(underground, size), size, size > 1 && party ? party.leader : null);
+	// Our Steam lobby takes friends only while our own party is on the surface.
+	if (!guest && party) setJoinable(!party.expedition);
 }

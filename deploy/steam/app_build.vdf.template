@@ -1,0 +1,22 @@
+"AppBuild"
+{
+	"AppID" "{{APP_ID}}"
+	"Desc" "{{DESCRIPTION}}"
+	"ContentRoot" "{{CONTENT_ROOT}}"
+	"BuildOutput" "{{BUILD_OUTPUT}}"
+	// Never set live from here: a build goes live from the Steamworks partner site.
+	"SetLive" ""
+	"Depots"
+	{
+		"{{DEPOT_ID}}"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+			"FileExclusion" "*.pdb"
+		}
+	}
+}

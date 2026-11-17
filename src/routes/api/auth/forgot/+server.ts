@@ -24,7 +24,7 @@ export const POST: RequestHandler = async ({ request, url, getClientAddress }) =
 	if (reset) {
 		const link = `${url.origin}/auth/reset?token=${reset.token}`;
 		try {
-			await sendMail({ to: reset.account.email, ...resetMail(link) });
+			await sendMail({ to: email, ...resetMail(link) });
 		} catch (error) {
 			console.error('[forgot]', error);
 			return json({ error: 'The email could not be sent. Try again later' }, { status: 502 });

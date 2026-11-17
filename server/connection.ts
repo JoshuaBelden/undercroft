@@ -1,17 +1,25 @@
 import type { RawData, WebSocket } from 'ws';
 import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
-import { currentProfile, identify } from './accounts.ts';
+import { cleanTag } from '../src/lib/content/account.ts';
+import { currentProfile, identify, type Identity } from './accounts.ts';
 import { crashMessage, serverCrash } from './errors.ts';
+import { attachGuest, guestExplorer, vaultAnswer } from './guests.ts';
 import type { Parties, Member } from './parties.ts';
 import type { Social } from './social.ts';
 
 /**
  * One player's connection: who they are (from `hello`), and every message they send routed to
- * their party, their social lists or their expedition. Set up by server/index.ts for each new
- * WebSocket.
+ * their party, their social lists or their expedition. Set up by server/start.ts for each new
+ * WebSocket. `guest`: this connection came through a desktop game's tunnel for a co-op guest,
+ * who is that SteamID (docs/dev/hosting.md); they join the host's party and nothing else.
  */
-export function serve(socket: WebSocket, parties: Parties, social: Social): void {
+export function serve(
+	socket: WebSocket,
+	parties: Parties,
+	social: Social,
+	guest: { steamId: string } | null = null
+): void {
 	/** Set by `hello`; every other message needs it. */
 	let member: Member | null = null;
 	/** Looking up who they are (a `hello` is being checked). */
@@ -29,6 +37,22 @@ export function serve(socket: WebSocket, parties: Parties, social: Social): void
 				return;
 			}
 			if (member || identifying) return;
+			if (guest) {
+				const explorer = guestExplorer(guest.steamId);
+				const identity: Identity = {
+					account: explorer,
+					explorer,
+					gamerTag: cleanTag(message.name) ?? 'Guest',
+					avatar: null,
+					remote: true
+				};
+				attachGuest(explorer, socket);
+				const arrived = parties.connect(socket, identity);
+				const problem = parties.joinHost(arrived);
+				if (problem) parties.expel(arrived.account, problem);
+				else member = arrived;
+				return;
+			}
 			identifying = true;
 			const { ticket } = message;
 			void identify(ticket).then((identity) => {
@@ -67,9 +91,14 @@ export function serve(socket: WebSocket, parties: Parties, social: Social): void
 				void parties.resetAffliction(member, message.id);
 				break;
 			case 'social':
-				void social.act(member, message.action);
+				// A guest's friends are on Steam, not here.
+				if (!member.remote) void social.act(member, message.action);
+				break;
+			case 'vault':
+				if (member.remote) vaultAnswer(member.explorer, message);
 				break;
 			case 'profile': {
+				if (member.remote) break;
 				const changed = member;
 				void currentProfile(changed.account).then((profile) => {
 					if (profile) parties.updateProfile(changed, profile);

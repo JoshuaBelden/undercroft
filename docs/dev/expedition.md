@@ -25,7 +25,7 @@ A **party** is the group that descends together (one to `PARTY.maxSize` players;
 Every connection is in exactly one party from its `hello` on. The server owns parties and sends each member the whole `PartyState` (`party` message) whenever anything in it changes; the client only renders it. The lobby is the dashboard's Expedition page: one `ExplorerPane` per member, and the launch panel in the lower right.
 
 - **Creating:** `hello` puts you in a party of one. That is "not in a group": the page shows only you.
-- **Joining:** by accepting a friend's invite (see [social.md](social.md)), which moves you into their party (`Parties.join`). There are no invite codes.
+- **Joining:** by accepting a friend's invite (see [social.md](social.md)), which moves you into their party (`Parties.join`). There are no invite codes. In the desktop app, friends join through Steam instead: a guest who arrives through the tunnel joins the host's party at once (`joinHost`), and leaving it sends them home to their own game. See [hosting.md](hosting.md#guests-on-the-hosts-game-server).
 - **Leaving:** `leaveParty` moves you to a new party of one. The host can do the same to someone else with `kick { member }` (see [social.md](social.md#kicking)). A party with no members is deleted.
 - **Host:** the first member (`PartyState.leader`). If the host leaves, the longest-standing member takes over. The host chooses the Affliction.
 - **Affliction:** `affliction { id }`, host only. `PartyState.affliction` is null until then. `PartyState.progress` is the host's clues and resolution for it: the whole party plays at the host's progress (see [rite.md](rite.md#progress-across-runs)). Changing it makes everyone not ready. It stays chosen after an expedition.

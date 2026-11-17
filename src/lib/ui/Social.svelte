@@ -1,5 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { PARTY } from '#lib/content/party.ts';
+	import { desktop, watchParty } from '#lib/desktop.ts';
+	import type { LobbyStatus } from '#lib/shared/desktop.ts';
 	import { connection, me, send, social } from '#lib/game/net/connection.svelte.ts';
 	import type { PartyMember } from '#lib/shared/party/types.ts';
 	import { SOCIAL, type Friend, type Person } from '#lib/shared/social/types.ts';
@@ -13,7 +17,20 @@
 	 * on their own has no party and the panel is not there). Everything in
 	 * it comes from the game server as it changes (`connection.party`, `connection.social`).
 	 * See docs/dev/social.md.
+	 *
+	 * In the desktop app (docs/dev/hosting.md) friends are Steam friends: the left-hand column is
+	 * the Steam party instead, to invite them into a game on this PC, or to leave a friend's.
 	 */
+	const local = $derived(page.data.local === true);
+	let lobby = $state<LobbyStatus | null>(null);
+	let lobbyNotice = $state('');
+	onMount(() =>
+		watchParty((status) => {
+			lobby = status;
+			if (status.notice) lobbyNotice = status.notice;
+		})
+	);
+	const guest = $derived(lobby?.role === 'guest');
 
 	const lists = $derived(connection.social);
 	const party = $derived(connection.party);
@@ -104,158 +121,213 @@
 </script>
 
 <div class="social">
-	<div class="side">
-		<section class="panel find" aria-labelledby="find-title">
-			<header>
-				<h2 id="find-title">Find players</h2>
-			</header>
-			<div class="scroll">
-				<input
-					type="search"
-					aria-label="Search by gamer tag"
-					placeholder="Search by gamer tag"
-					autocomplete="off"
-					spellcheck="false"
-					maxlength="24"
-					bind:value={query}
-					oninput={typed}
-				/>
-				{#if searching}
-					{#if results === null}
-						<p class="muted">Searching...</p>
-					{:else if results.length === 0}
-						<p class="muted">No player's gamer tag starts with that.</p>
+	{#if local}
+		<div class="side">
+			<section class="panel steam" aria-labelledby="steam-title">
+				<header>
+					<h2 id="steam-title">Play with friends</h2>
+					{#if lobby?.available}
+						<span class="count">{lobby.members.length} / {PARTY.maxSize}</span>
+					{/if}
+				</header>
+				{#if !lobby?.available}
+					<p class="muted">
+						Playing with friends needs Steam. Start Steam, then the game again, to invite them.
+					</p>
+				{:else if guest}
+					<p class="muted">
+						You are in a friend's game: the expedition runs on their PC. What you take down and
+						bring back is yours, in your own save.
+					</p>
+					<div class="actions">
+						<button type="button" onclick={() => void desktop()?.party.invite()}>
+							Invite Steam friends
+						</button>
+						<button type="button" class="leave" onclick={() => void desktop()?.party.leave()}>
+							Leave their game
+						</button>
+					</div>
+				{:else}
+					<p class="muted">
+						Invite Steam friends into your game: it runs on this PC, and they bring their own stash
+						and loadout from theirs. They can also choose Join game beside your name in Steam.
+					</p>
+					<div class="actions">
+						<button
+							type="button"
+							class="primary"
+							disabled={!lobby.joinable}
+							onclick={() => void desktop()?.party.invite()}
+						>
+							Invite Steam friends
+						</button>
+					</div>
+					{#if !lobby.joinable}
+						<p class="muted">Friends can join once your party is back on the surface.</p>
+					{/if}
+				{/if}
+				{#if lobbyNotice}
+					<p class="notice" role="status">{lobbyNotice}</p>
+				{/if}
+				{#if connection.error && guest}
+					<p class="notice" role="status">{connection.error}</p>
+				{/if}
+			</section>
+		</div>
+	{:else}
+		<div class="side">
+			<section class="panel find" aria-labelledby="find-title">
+				<header>
+					<h2 id="find-title">Find players</h2>
+				</header>
+				<div class="scroll">
+					<input
+						type="search"
+						aria-label="Search by gamer tag"
+						placeholder="Search by gamer tag"
+						autocomplete="off"
+						spellcheck="false"
+						maxlength="24"
+						bind:value={query}
+						oninput={typed}
+					/>
+					{#if searching}
+						{#if results === null}
+							<p class="muted">Searching...</p>
+						{:else if results.length === 0}
+							<p class="muted">No player's gamer tag starts with that.</p>
+						{:else}
+							<ul>
+								{#each results as person (person.account)}
+									{@const what = relation(person)}
+									<li>
+										<span class="who"><span class="name">{person.name}</span></span>
+										{#if what === 'friend'}
+											<span class="sub">Friends</span>
+										{:else if what === 'outgoing'}
+											<span class="sub">Requested</span>
+										{:else if what === 'incoming'}
+											<button
+												type="button"
+												class="primary"
+												onclick={() => social({ kind: 'accept', account: person.account })}
+											>
+												Accept
+											</button>
+										{:else}
+											<button
+												type="button"
+												class="primary"
+												onclick={() => social({ kind: 'request', account: person.account })}
+											>
+												Add
+											</button>
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					{/if}
+
+					<h3>Friend requests</h3>
+					{#if !lists || lists.incoming.length === 0}
+						<p class="muted">None waiting for you.</p>
 					{:else}
 						<ul>
-							{#each results as person (person.account)}
-								{@const what = relation(person)}
+							{#each lists.incoming as person (person.account)}
 								<li>
 									<span class="who"><span class="name">{person.name}</span></span>
-									{#if what === 'friend'}
-										<span class="sub">Friends</span>
-									{:else if what === 'outgoing'}
-										<span class="sub">Requested</span>
-									{:else if what === 'incoming'}
-										<button
-											type="button"
-											class="primary"
-											onclick={() => social({ kind: 'accept', account: person.account })}
-										>
-											Accept
-										</button>
-									{:else}
-										<button
-											type="button"
-											class="primary"
-											onclick={() => social({ kind: 'request', account: person.account })}
-										>
-											Add
-										</button>
-									{/if}
+									<button
+										type="button"
+										class="primary"
+										onclick={() => social({ kind: 'accept', account: person.account })}
+									>
+										Accept
+									</button>
+									<button
+										type="button"
+										onclick={() => social({ kind: 'decline', account: person.account })}
+									>
+										Decline
+									</button>
 								</li>
 							{/each}
 						</ul>
 					{/if}
-				{/if}
 
-				<h3>Friend requests</h3>
-				{#if !lists || lists.incoming.length === 0}
-					<p class="muted">None waiting for you.</p>
-				{:else}
-					<ul>
-						{#each lists.incoming as person (person.account)}
-							<li>
-								<span class="who"><span class="name">{person.name}</span></span>
-								<button
-									type="button"
-									class="primary"
-									onclick={() => social({ kind: 'accept', account: person.account })}
-								>
-									Accept
-								</button>
-								<button
-									type="button"
-									onclick={() => social({ kind: 'decline', account: person.account })}
-								>
-									Decline
-								</button>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-
-				{#if lists && lists.outgoing.length > 0}
-					<h3>Requests you sent</h3>
-					<ul>
-						{#each lists.outgoing as person (person.account)}
-							<li>
-								<span class="who">
-									<span class="name">{person.name}</span>
-									<span class="sub">Waiting for an answer</span>
-								</span>
-								<button
-									type="button"
-									onclick={() => social({ kind: 'decline', account: person.account })}
-								>
-									Cancel
-								</button>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
-		</section>
-
-		<section class="panel friends" aria-labelledby="friends-title">
-			<header>
-				<h2 id="friends-title">Friends</h2>
-				{#if lists}
-					<span class="count">{online} online of {friends.length}</span>
-				{/if}
-			</header>
-			<div class="scroll">
-				{#if connection.error}
-					<p class="error" role="alert">{connection.error}</p>
-				{/if}
-				{#if !lists}
-					<p class="muted">Loading...</p>
-				{:else if friends.length === 0}
-					<p class="muted">Nobody yet. Find a player by their gamer tag to add them.</p>
-				{:else}
-					<ul>
-						{#each friends as friend (friend.account)}
-							<!-- Only a friend who is online and in no party can be invited. -->
-							{@const free = friend.status === 'online'}
-							<li class:off={friend.status === 'offline'}>
-								<span class="who">
-									<span class="name">{friend.name}</span>
-									<span class="sub" class:on={friend.status !== 'offline'}>
-										{friend.withYou ? 'In your party' : STATUS[friend.status]}
+					{#if lists && lists.outgoing.length > 0}
+						<h3>Requests you sent</h3>
+						<ul>
+							{#each lists.outgoing as person (person.account)}
+								<li>
+									<span class="who">
+										<span class="name">{person.name}</span>
+										<span class="sub">Waiting for an answer</span>
 									</span>
-								</span>
-								{#if friend.withYou}
-									<!-- Nothing to do: they are here. -->
-								{:else if lists.invited.includes(friend.account)}
-									<span class="sub">Invited</span>
-								{:else if free}
 									<button
 										type="button"
-										class="primary"
-										disabled={!canInvite}
-										title={canInvite ? undefined : 'Your party is full or underground'}
-										onclick={() => social({ kind: 'invite', account: friend.account })}
+										onclick={() => social({ kind: 'decline', account: person.account })}
 									>
-										Invite
+										Cancel
 									</button>
-								{/if}
-								<button type="button" onclick={() => (unfriending = friend)}>Remove</button>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
-		</section>
-	</div>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			</section>
+
+			<section class="panel friends" aria-labelledby="friends-title">
+				<header>
+					<h2 id="friends-title">Friends</h2>
+					{#if lists}
+						<span class="count">{online} online of {friends.length}</span>
+					{/if}
+				</header>
+				<div class="scroll">
+					{#if connection.error}
+						<p class="error" role="alert">{connection.error}</p>
+					{/if}
+					{#if !lists}
+						<p class="muted">Loading...</p>
+					{:else if friends.length === 0}
+						<p class="muted">Nobody yet. Find a player by their gamer tag to add them.</p>
+					{:else}
+						<ul>
+							{#each friends as friend (friend.account)}
+								<!-- Only a friend who is online and in no party can be invited. -->
+								{@const free = friend.status === 'online'}
+								<li class:off={friend.status === 'offline'}>
+									<span class="who">
+										<span class="name">{friend.name}</span>
+										<span class="sub" class:on={friend.status !== 'offline'}>
+											{friend.withYou ? 'In your party' : STATUS[friend.status]}
+										</span>
+									</span>
+									{#if friend.withYou}
+										<!-- Nothing to do: they are here. -->
+									{:else if lists.invited.includes(friend.account)}
+										<span class="sub">Invited</span>
+									{:else if free}
+										<button
+											type="button"
+											class="primary"
+											disabled={!canInvite}
+											title={canInvite ? undefined : 'Your party is full or underground'}
+											onclick={() => social({ kind: 'invite', account: friend.account })}
+										>
+											Invite
+										</button>
+									{/if}
+									<button type="button" onclick={() => (unfriending = friend)}>Remove</button>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			</section>
+		</div>
+	{/if}
 
 	{#if grouped}
 		<section class="panel party" aria-labelledby="party-title">
@@ -399,6 +471,23 @@
 	.find {
 		flex: none;
 		max-height: 50%;
+	}
+
+	/* The desktop app's Steam party, in the left-hand column. */
+	.steam {
+		flex: none;
+		gap: 12px;
+	}
+
+	.steam .actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+
+	.steam .notice {
+		margin: 0;
+		color: var(--accent);
 	}
 
 	.friends {

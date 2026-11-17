@@ -1,0 +1,56 @@
+{
+	"name": "undercroft-desktop",
+	"version": "0.2.0",
+	"private": true,
+	"description": "Undercroft's desktop app: the game in an Electron window, with Steam. See docs/dev/desktop.md.",
+	"license": "AGPL-3.0-only",
+	"author": "Joshua Belden",
+	"main": "dist/main.js",
+	"scripts": {
+		"build": "node build.mjs",
+		"check": "tsc -p tsconfig.json",
+		"dev": "node build.mjs && electron . --dev",
+		"start": "node build.mjs && electron .",
+		"dist": "pnpm -C .. build && node build.mjs --package && electron-builder --win --x64"
+	},
+	"dependencies": {
+		"sharp": "^0.35.5",
+		"steamworks.js": "0.4.0",
+		"ws": "^8.22.2"
+	},
+	"devDependencies": {
+		"@types/node": "^22",
+		"@types/ws": "^8.18.2",
+		"electron": "45.3.3",
+		"electron-builder": "26.18.0",
+		"esbuild": "0.28.2",
+		"typescript": "^6.0.3"
+	},
+	"build": {
+		"appId": "us.undercroft.desktop",
+		"productName": "Undercroft",
+		"directories": {
+			"output": "release"
+		},
+		"files": [
+			"dist/**/*",
+			"package.json",
+			"!node_modules/steamworks.js/dist/linux64/**",
+			"!node_modules/steamworks.js/dist/osx/**"
+		],
+		"win": {
+			"target": [
+				"dir",
+				"nsis"
+			]
+		},
+		"nsis": {
+			"oneClick": false,
+			"allowToChangeInstallationDirectory": true
+		},
+		"electronLanguages": [
+			"en-US"
+		],
+		"asar": false
+	}
+}

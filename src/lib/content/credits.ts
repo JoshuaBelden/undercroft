@@ -151,6 +151,30 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 			{ name: 'Resend', detail: 'Password-reset emails', url: 'https://resend.com' },
 			{ name: 'Discord', detail: 'Sign in with Discord', url: 'https://discord.com' },
 			{
+				name: 'Electron and electron-builder',
+				detail: 'The desktop app',
+				url: 'https://www.electronjs.org',
+				license: 'MIT'
+			},
+			{
+				name: 'steamworks.js',
+				detail: 'Steam in the desktop app',
+				url: 'https://github.com/ceifa/steamworks.js',
+				license: 'MIT'
+			},
+			{
+				name: 'Steamworks SDK',
+				detail: 'Steam sign-in, achievements and the overlay',
+				url: 'https://partner.steamgames.com',
+				license: 'Steamworks SDK Access Agreement'
+			},
+			{
+				name: 'esbuild',
+				detail: 'Bundling the desktop app',
+				url: 'https://esbuild.github.io',
+				license: 'MIT'
+			},
+			{
 				name: 'glTF Transform and meshoptimizer',
 				detail: 'Model optimization',
 				url: 'https://gltf-transform.dev',

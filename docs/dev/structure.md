@@ -85,6 +85,9 @@ src/
 admin/                      the admin app (its own SvelteKit app, docs/dev/admin.md)
   src/routes/               dashboard, members, bug reports, crashes, ideas, feedback, audit log
   src/lib/server/store.ts   the game's store code, re-exported
+desktop/                    the desktop app: Electron and Steam (docs/dev/desktop.md)
+  src/host/                 its host process: the local site, game server and save (docs/dev/hosting.md)
+deploy/steam/               SteamPipe build script, achievements and rich presence for Steamworks
 server/
   index.ts                  WebSocket server entry (startup, shutdown)
   connection.ts             one connection: hello, and every message routed to its party or expedition

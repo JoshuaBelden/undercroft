@@ -14,6 +14,11 @@ export interface Profile {
 export interface Identity extends Profile {
 	account: string;
 	explorer: string;
+	/**
+	 * A co-op guest on a desktop game (docs/dev/hosting.md): known by their SteamID, with their
+	 * belongings in their own save (server/guests.ts), and no account in this server's database.
+	 */
+	remote?: boolean;
 }
 
 /**

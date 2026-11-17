@@ -11,8 +11,11 @@ import { ADMIN } from './store.ts';
 export interface MemberRow {
 	id: string;
 	gamerTag: string;
-	email: string;
+	/** Null for an account made with Steam that hasn't added one. */
+	email: string | null;
 	discord: string | null;
+	/** The linked Steam account's name. */
+	steam: string | null;
 	admin: boolean;
 	suspended: boolean;
 	createdAt: Date | null;
@@ -21,12 +24,23 @@ export interface MemberRow {
 
 const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Members whose email, gamer tag or Discord name contains `query`; the newest first. */
+/**
+ * Members whose email, gamer tag, Discord name or Steam name contains `query` (or whose SteamID
+ * it is); the newest first.
+ */
 export async function searchMembers(db: Db, query: string): Promise<MemberRow[]> {
 	const text = query.trim();
 	const pattern = new RegExp(escape(text), 'i');
 	const filter = text
-		? { $or: [{ email: pattern }, { tagKey: pattern }, { 'discord.username': pattern }] }
+		? {
+				$or: [
+					{ email: pattern },
+					{ tagKey: pattern },
+					{ 'discord.username': pattern },
+					{ 'steam.persona': pattern },
+					{ 'steam.id': text }
+				]
+			}
 		: {};
 	const docs = await db
 		.collection<AccountDoc>('accounts')
@@ -41,8 +55,9 @@ export function memberRow(account: AccountDoc): MemberRow {
 	return {
 		id: account._id,
 		gamerTag: account.gamerTag,
-		email: account.email,
+		email: account.email ?? null,
 		discord: account.discord?.username ?? null,
+		steam: account.steam?.persona ?? null,
 		admin: account.role === 'admin',
 		suspended: Boolean(
 			account.suspended && (!account.suspended.until || account.suspended.until > new Date())

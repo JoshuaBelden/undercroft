@@ -465,12 +465,36 @@ That person goes to the place and holds {action:interact}. Nothing has to be set
 		body: `Click your avatar and gamer tag at the top right of the dashboard for your Account screen, or to sign out.
 
 - Profile: your avatar, the picture other players see beside your gamer tag and on your pane before a descent. Upload a picture, then move and zoom it until the right part shows in the circle (drag it, or use the right stick on a controller). If you linked Discord, your Discord avatar shows until you upload one; remove yours to go back to it. Your gamer tag is here too, the name other players see. Delete account is here too: it removes your account, your explorer, your stash and your friends list for good, after you type your gamer tag (and your password, and a two-step code if you use one). Bug reports, ideas and feedback you sent stay, without your name.
-- Sign-in: change your password, and link your Discord account so you can sign in with it. If you made your account with Discord, you can set a password here too.
+- Sign-in: change your password, and link your Discord account so you can sign in with it. If you made your account with Discord, you can set a password here too. In the desktop app, you can link your Steam account here as well.
 - Security: two-step sign-in, and signing out every other browser.
 
 Forgot your password? On the sign-in page, choose "Forgot your password?" and we'll email you a link to choose a new one. It works once, for an hour. Choosing a new password signs you out everywhere else.
 
 Two-step sign-in asks for a code from an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, 1Password, Authy and others) after your password, so a stolen password isn't enough. When you turn it on you get eight recovery codes: keep them somewhere safe. If you lose your phone, each one signs you in once.`
+	},
+	{
+		id: 'desktop-app',
+		title: 'The desktop app and Steam',
+		category: 'The surface',
+		body: `Undercroft also comes as a desktop app for Windows. It is the same game, in its own window, played on your PC.
+
+- There is nothing to sign in to: your Steam account is your account, and your gamer tag starts as your Steam name (change it on your Account screen). Without Steam running, you play on your own.
+- Your save is on your PC, separate from an account on the website: what you keep in the desktop app stays there.
+- Achievements unlock on Steam as you earn them, and your Steam friends can see whether you are on the surface or down in the undercroft, and with how many.
+- Press Shift+Tab for the Steam overlay.
+- To close the game, choose Quit game from the menu under your gamer tag.`
+	},
+	{
+		id: 'playing-with-friends',
+		title: 'Playing with friends (desktop)',
+		category: 'The surface',
+		body: `In the desktop app, the game runs on your own PC, and so does your save: your stash, your coins and your explorer are kept there, not on a server.
+
+- To play together, open the Social page and choose Invite Steam friends. A friend can also choose Join game beside your name in their Steam friends list.
+- When a friend joins, you are the host: the expedition runs on your PC, and they connect to it through Steam. They bring their own stash and loadout, and what they carry out goes back to their own save.
+- When you join a friend, your hub stays yours: your stash, loadout and shop are on your PC. Choose Leave their game on the Social page to go back to playing on your own.
+- Friends can join while the party is on the surface, not during an expedition.
+- Without Steam running, you can still play on your own.`
 	},
 	{
 		id: 'feedback',
