@@ -510,6 +510,18 @@ describe('getting out', () => {
 		expect(session.ended).toBe(true);
 	});
 
+	it("can't climb out with the menu open: the hands are on it", () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const point = session['world'].extracts[0];
+		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
+		diver.hold({}, 0.5);
+		diver.hold({ interact: true, reading: true }, 4);
+		expect(diver.socket.last('extracted')).toBeUndefined();
+		expect(diver.state.extracting).toBe(0);
+	});
+
 	it('when time runs out, everyone still down is lost', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);

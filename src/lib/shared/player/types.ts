@@ -200,6 +200,8 @@ export interface InputFrame {
 	headlamp: HeadlampMode;
 	/** Held on the map screen: sketching what is around you, or showing your map to a teammate. */
 	survey: SurveyHold;
+	/** The in-game menu is open: both hands are on it (see `handsBusy`). */
+	reading: boolean;
 }
 
 /** What the map screen's hold is doing (docs/dev/map.md). */

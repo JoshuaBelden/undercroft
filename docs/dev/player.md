@@ -107,7 +107,7 @@ Collision boxes must cover everything walkable. Every surface the player can rea
 | Server, each 20 Hz tick | Simulates queued frames for each player, at most at real-time rate (a per-player budget refilled at `SIM_RATE`, so flooding frames can't speed a player up). Records the last applied `seq` as `ack`. Broadcasts `tick` with a `PlayerSnapshot` (state + ack) for every player. |
 | Client, on snapshot     | Resets to the server state, drops pending frames up to `ack`, and replays the rest. Any difference from the previous prediction becomes a visual offset that fades over 100 ms. Differences over 2 m (teleport, respawn) snap.                                                  |
 
-The camera interpolates between the last two simulation steps, so movement is smooth at any frame rate. Input frames are sanitized on the server (`sanitizeFrame`).
+The camera interpolates between the last two simulation steps, so movement is smooth at any frame rate. Input frames are sanitized on the server (`sanitizeFrame`), which also applies `handsBusy` while the in-game menu is open (`reading`, see [items.md](items.md#the-in-game-menu)).
 
 **Other players** are not predicted; they are interpolated (`RemotePlayers`):
 
@@ -218,7 +218,7 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 - **Expedition stingers:** `expedition.intro` (`sfx_expedition_intro.mp3`) on arriving underground and `expedition.outro` (`sfx_extraction_outro.mp3`) on leaving alive, both on the music bus. See [expedition.md](expedition.md#leaving-and-results).
 - **Menu click:** `ui.click` (`menu_click.wav`) plays on every move between pages off the expedition: the dashboard tabs, store, social, settings, the keys that switch them, and back/forward. The root layout (`src/routes/+layout.svelte`) plays it from `onNavigate`, so any new page gets it for free. It skips navigation into or out of `/play` and query-only changes.
 - **Menu ticks (controller):** `ui.focus` as the focus moves in a menu, the lower `ui.step` as the right stick steps a value (the store's quantity), and `ui.hold`, a little louder and lower, when a button held in a menu presses its control (Launch, the store). The root layout plays them from `onMenuMove` and `onMenuHold` (see [controller.md](controller.md#menus)).
-- **Panel toggle:** `ui.toggle`, the same recording quieter and higher, when the rite and party panel is hidden or shown underground (see [rite.md](rite.md#hiding-the-panel)).
+- **Panel toggle:** `ui.toggle`, the same recording quieter and higher, when the rite panel is hidden or shown underground (see [rite.md](rite.md#hiding-the-panel)). The admin free camera uses it too, as it starts or stops, moves your body to it or goes back to your body (see [map-generation.md](map-generation.md#debug-grid)).
 
 ### Mix
 
@@ -283,7 +283,7 @@ Bandages and smelling salts are quick-use items (see [items.md](items.md)); play
 **Client:**
 
 - The HUD shows a vignette that darkens with lost sanity and pulses below 40%.
-- **Party panel** (`src/lib/ui/PartyHealth.svelte`, bottom-left): every explorer on the expedition, each with their gamer tag in small text above a health (sanity) bar and a stamina bar, and "Downed" when they are. Teammates come from `RemotePlayers.players()` (their tick snapshots, so it is the server's state) in a stable order; this player is always last, at the bottom, with slightly larger bars and the posture and headlamp battery (the headlamp key as a small keycap, the cells, then the voltage in small text) under them. Solo it is just you. It hides with the rite overlay (`settings.interface.ritePanel`, see [rite.md](rite.md#hiding-the-panel)).
+- **Party panel** (`src/lib/ui/PartyHealth.svelte`, bottom-left): every explorer on the expedition, each with their gamer tag in small text above a health (sanity) bar and a stamina bar, and "Downed" when they are. Teammates come from `RemotePlayers.players()` (their tick snapshots, so it is the server's state) in a stable order; this player is always last, at the bottom, with slightly larger bars and the posture and headlamp battery (the headlamp key as a small keycap, the cells, then the voltage in small text) under them. Solo it is just you. It is always shown, even with the rite panel hidden.
 - A hit (a drop of more than 3 in one frame) flashes red, plays `player.hurt` and shakes the camera, scaled by the **Camera shake** setting.
 - `heartbeat` loops louder and faster below 40%; `whisper` plays near you below 20%.
 - Downed, the camera tilts and `DownedScreen` shows the bleed-out bar, what happens next and the hold-to-surrender prompt.

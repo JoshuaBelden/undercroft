@@ -83,7 +83,7 @@
 	import Captions from '#lib/ui/Captions.svelte';
 	import CrateScreen from '#lib/ui/CrateScreen.svelte';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
-	import InventoryScreen from '#lib/ui/InventoryScreen.svelte';
+	import GameMenu, { type MenuTab } from '#lib/ui/GameMenu.svelte';
 	import MapScreen from '#lib/ui/MapScreen.svelte';
 	import type { SketchContent } from '#lib/ui/mapSketch.ts';
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
@@ -96,7 +96,7 @@
 	import DescentLoading from '#lib/ui/DescentLoading.svelte';
 	import { preloadRun, type LoadProgress } from '#lib/game/preload.ts';
 	import Hud from '#lib/ui/Hud.svelte';
-	import RiteOverlay from '#lib/ui/RiteOverlay.svelte';
+	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import ExpeditionClock from '#lib/ui/ExpeditionClock.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
@@ -109,8 +109,10 @@
 	const FREECAM = { speed: 8, fast: 4, mouse: 0.0022, stickTurn: 2.5, maxPitch: 1.55 };
 
 	let canvas: HTMLCanvasElement;
-	type PanelName = 'settings' | 'help' | 'admin' | 'inventory' | 'crate' | 'map';
+	type PanelName = 'settings' | 'help' | 'admin' | 'menu' | 'crate' | 'map';
 	let panel = $state<PanelName | null>(null);
+	/** The in-game menu's tab (GameMenu). */
+	let menuTab = $state<MenuTab>('Pack');
 	/**
 	 * The loot crate (or corpse) that is open, as the server tells it (see the `crate` message).
 	 */
@@ -120,12 +122,11 @@
 		reveal: number;
 		corpse: boolean;
 	} | null>(null);
-	/** The rite as known so far, and (while its overlay shows) who carries each requirement. */
+	/** The rite as known so far, and who carries each requirement (the menu's Rite tab). */
 	let rite = $state<RiteSnapshot | null>(null);
-	/** The rite overlay is wanted: it shows over play whenever there is a rite to show. */
 	let riteCarriers = $state<{ name: string; count: number; self: boolean }[][]>([]);
 	let afflictionName = $state('');
-	/** What the player carries, for the inventory screen (kept up to date while it is open). */
+	/** What the player carries, for the pack and crates (kept up to date while one is open). */
 	let inventory = $state<Inventory | null>(null);
 	const status = $derived(connection.status);
 	const statusDetail = $derived(connection.detail);
@@ -320,7 +321,7 @@
 		// With a crate open, the pack and menu keys put it away and nothing more.
 		if (panel === 'crate') {
 			closeCrate();
-			if (name === 'inventory' || name === 'settings') return;
+			if (name === 'menu' || name === 'settings') return;
 		}
 		// Esc on the admin screen just closes it; Esc again opens settings. (Esc can't capture the
 		// pointer: browsers don't count it as a user gesture. A click or a move key does.)
@@ -329,9 +330,11 @@
 			return;
 		}
 		const closing = panel === name;
-		// The pack and the map can only be opened while you are down there and not on the floor.
+		// The menu and the map only open down there and on your feet: never while down or dead.
 		const underground = expedition && spawned && !downed;
-		if ((name === 'inventory' || name === 'map') && !closing && !underground) return;
+		if ((name === 'menu' || name === 'map') && !closing && !underground) return;
+		// The menu always opens on the pack.
+		if (name === 'menu' && !closing) menuTab = 'Pack';
 		// No notebook, no map: the HUD says so for a moment.
 		if (name === 'map' && !closing && !hasNotebook) {
 			noNotebookUntil = performance.now() + 2500;
@@ -341,8 +344,8 @@
 		panel = closing ? null : name;
 		if (wasMap !== (panel === 'map')) playUi(wasMap ? 'map.close' : 'map.open');
 		if (panel) document.exitPointerLock();
-		// Putting the pack or the map away goes straight back to play.
-		else if ((name === 'inventory' || name === 'map') && expedition) capture();
+		// Putting the menu or the map away goes straight back to play.
+		else if ((name === 'menu' || name === 'map') && expedition) capture();
 	}
 
 	onMount(() => {
@@ -654,7 +657,7 @@
 			if (freecam) setFreecam(false);
 			loadId++;
 			loading = null;
-			if (panel === 'inventory' || panel === 'crate' || panel === 'map') panel = null;
+			if (panel === 'menu' || panel === 'crate' || panel === 'map') panel = null;
 			crate = null;
 			leavingCrate = false;
 			survey = null;
@@ -725,7 +728,7 @@
 		/** Dead, with others still down there: keep the world and watch through their eyes. */
 		function startSpectating(): void {
 			expedition = false;
-			if (panel === 'inventory' || panel === 'crate') panel = null;
+			if (panel === 'menu' || panel === 'crate') panel = null;
 			crate = null;
 			spectating = { name: '' };
 			watchId = null;
@@ -1469,9 +1472,11 @@
 			// Before the player reads the mouse: in the free camera, the mouse is the camera's.
 			if (freecam) flyFreecam(delta);
 			const active = (locked || device.kind === 'pad') && !panel && !mapView && !extracting;
+			// With the menu open the keys still walk, but the hands are on it (docs/dev/items.md).
+			const reading = panel === 'menu' && !mapView && !extracting;
 			updateWheel(player.state, active);
 			updateChalkWheel(player.state, active);
-			player.update(delta, active);
+			player.update(delta, active, reading);
 			remote.update(delta, engine.camera);
 			const self = player.state;
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
@@ -1592,8 +1597,8 @@
 					if (state.downed || !hasNotebook) panel = null;
 					else mapState = mapScreenView(state);
 				}
-				if (panel === 'inventory' || panel === 'crate') {
-					if (state.downed && panel === 'inventory') {
+				if (panel === 'menu' || panel === 'crate') {
+					if (state.downed && panel === 'menu') {
 						panel = null;
 					} else {
 						const json = JSON.stringify(state.inventory);
@@ -1627,7 +1632,7 @@
 					toggle('help');
 					break;
 				case 'inventory':
-					toggle('inventory');
+					toggle('menu');
 					break;
 				case 'map':
 					toggle('map');
@@ -1714,7 +1719,7 @@
 <canvas bind:this={canvas} class:pad={device.kind === 'pad'}></canvas>
 
 {#if spawned && !mapView && !result}
-	<Hud {...hud} lampKey={promptCode('headlamp')} partyShown={settings.interface.ritePanel} />
+	<Hud {...hud} lampKey={promptCode('headlamp')} />
 {/if}
 
 {#if wheel && spawned && !mapView && !result}
@@ -1743,14 +1748,16 @@
 {/if}
 
 {#if rite && !panel && !mapView && !result}
-	<RiteOverlay
-		affliction={afflictionName}
-		{rite}
-		carriers={riteCarriers}
-		interactKey={promptCode('interact')}
-		open={settings.interface.ritePanel}
-		toggleKey={promptCode('toggleRitePanel')}
-	/>
+	<div class="rite-hud">
+		<RitePanel
+			affliction={afflictionName}
+			{rite}
+			carriers={riteCarriers}
+			interactKey={promptCode('interact')}
+			open={settings.interface.ritePanel}
+			toggleKey={promptCode('toggleRitePanel')}
+		/>
+	</div>
 	{#if deadline !== null}
 		<ExpeditionClock seconds={deadline} arrival={calmed || manifested ? null : (meter ?? 0)} />
 	{/if}
@@ -1824,21 +1831,24 @@
 		onclose={() => (panel = null)}
 		onvolume={(category, value) => audio.setVolume(category, value)}
 		ongraphics={() => applyGraphics()}
-		onabandon={expedition
-			? () => {
-					panel = null;
-					send({ type: 'abandon' });
-				}
-			: undefined}
 	/>
 {:else if panel === 'help'}
 	<HelpScreen dim onclose={() => (panel = null)} />
-{:else if panel === 'inventory' && inventory}
-	<InventoryScreen
+{:else if panel === 'menu' && inventory}
+	<GameMenu
+		bind:tab={menuTab}
 		{inventory}
+		affliction={afflictionName}
+		{rite}
+		carriers={riteCarriers}
+		interactKey={promptCode('interact')}
 		onaction={(action) => sendInventory(action)}
+		onabandon={() => {
+			panel = null;
+			send({ type: 'abandon' });
+		}}
 		onmap={() => toggle('map')}
-		onclose={() => toggle('inventory')}
+		onclose={() => toggle('menu')}
 	/>
 {:else if panel === 'map' && survey && gameInput}
 	<MapScreen
@@ -1851,7 +1861,7 @@
 		share={mapState.share}
 		partner={mapState.partner}
 		onhold={(hold) => setSurveyHold(hold)}
-		onpack={() => toggle('inventory')}
+		onpack={() => toggle('menu')}
 		onclose={() => toggle('map')}
 	/>
 {:else if panel === 'crate' && inventory && crate}
@@ -1915,6 +1925,17 @@
 	/* Playing with a controller: no cursor over the game. */
 	canvas.pad {
 		cursor: none;
+	}
+
+	/* The rite (RitePanel) at the middle of the left edge: it takes no clicks, play goes on under it. */
+	.rite-hud {
+		position: fixed;
+		left: 16px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: min(280px, calc(100vw - 32px));
+		pointer-events: none;
+		z-index: 6;
 	}
 
 	.descend {
