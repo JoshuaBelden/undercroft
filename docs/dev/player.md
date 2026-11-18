@@ -193,6 +193,7 @@ Every player is drawn with the explorer model (`PLAYER_MODEL` in `src/lib/conten
 | ------------------------------- | ---------------- | ------------------------------------------------ |
 | Downed or dead                  | `die`            | plays once, then holds                           |
 | Mantling                        | `climb`          | no clip: falls back to the walk                  |
+| Struck (0.4 s after a blow)     | `take_damage`    | plays once, from the start                       |
 | Swinging or throwing            | `melee_attack`   | stretched to the item's swing or throw           |
 | Swimming                        | `crawl`          | ground speed / swim speed                        |
 | Crouched or crawling            | `crouch`/`crawl` | ground speed / stance speed; stops when you stop |
@@ -210,9 +211,10 @@ The explorer's map:
 | `crouch`       | `Cautious_Crouch_Walk_Forward` |                                                   |
 | `crawl`        | `Crawl_and_Look_Back`          | the first 2.1 s only; the rest stops to look back |
 | `melee_attack` | `Heavy_Hammer_Swing`           |                                                   |
-| `dodge`        | `Block5`                       | mapped, nothing plays it yet                      |
-| `take_damage`  | `Face_Punch_Reaction_1`        | mapped, nothing plays it yet                      |
+| `take_damage`  | `Face_Punch_Reaction_1`        | 2.1 to 2.5 s only: the punch landing, the twist   |
 | `die`          | `Shot_and_Slow_Fall_Backward`  |                                                   |
+
+**Flinching.** A drop of more than 3 sanity in one frame is a blow (a creature's hit, a hard fall), the same test as the HUD's hurt flash. `PlayerBody` then plays `take_damage` for 0.4 s (`FLINCH`) over whatever they were doing, a swing included, with the arms in it too (no upper-body pose meanwhile). Not while down, on a rope, falling, mantling or swimming. The darkness's slow drain never sets it off. Every clip in the file is used: nothing maps `dodge`.
 
 The body doesn't cast shadows. The lamp is inside the head, so a shadow-casting body would block its own lamp, and Three.js can't exempt one light.
 

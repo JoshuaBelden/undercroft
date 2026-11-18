@@ -16,6 +16,13 @@ import { upperBodyPose } from './pose.ts';
 const STILL = 0.2;
 /** Seconds after a fall that hurt that the fall clip plays on (about its length). */
 const FALL_PLAY = 1.2;
+/**
+ * Sanity lost in one frame that counts as a blow (a creature's hit, a hard fall), not the slow
+ * drain of the dark: the same test the HUD's hurt flash uses. The body flinches.
+ */
+const HIT_DROP = 3;
+/** Seconds the flinch (`take_damage`) plays: the length of the explorer's cut of it. */
+const FLINCH = 0.4;
 /** How far a walk or run cycle may be slowed or hurried to match the ground speed. */
 const RATE_RANGE: [number, number] = [0.4, 1.6];
 
@@ -39,6 +46,11 @@ export class PlayerBody {
 	private loading = 0;
 	/** Shots fired, as of last frame: when it changes, another shot has begun. */
 	private shots = -1;
+	/** Sanity last frame: a drop of more than HIT_DROP in one go is a blow, and they flinch. */
+	private sanity: number | null = null;
+	/** Seconds of flinch left, and whether it began this frame. */
+	private flinch = 0;
+	private flinchBegan = false;
 	private disposed = false;
 	/** The hand action's clock last frame: when it goes back, a new swing has begun. */
 	private actionTime = 0;
@@ -70,10 +82,14 @@ export class PlayerBody {
 		this.root.rotation.y = yaw;
 		const animator = this.animator;
 		if (!animator) return;
+		this.flinchBegan = this.sanity !== null && state.sanity < this.sanity - HIT_DROP;
+		this.sanity = state.sanity;
+		this.flinch = this.flinchBegan ? FLINCH : Math.max(0, this.flinch - delta);
 		this.full(delta, state, animator);
 		const shot = state.weapon.action === 'shot' && state.weapon.shots !== this.shots;
 		this.shots = state.weapon.shots;
-		this.upper?.play(upperBodyPose(state), shot);
+		// A flinch takes the whole body, arms and all.
+		this.upper?.play(this.flinch > 0 ? null : upperBodyPose(state), shot);
 		this.upper?.apply(delta);
 		this.hold(state);
 	}
@@ -143,6 +159,11 @@ export class PlayerBody {
 		} else if (state.mantle) {
 			anim = 'climb';
 			pace = 1;
+		} else if (this.flinch > 0 && !state.swimming) {
+			// Struck: the flinch plays once, over whatever they were doing (a swing included).
+			animator.play('take_damage', FLINCH - this.flinch, this.flinchBegan);
+			animator.update(delta);
+			return;
 		} else if (w.action === 'swing' || w.action === 'throw') {
 			anim = 'melee_attack';
 			const def = ITEMS[held(state.inventory)?.item ?? ''];

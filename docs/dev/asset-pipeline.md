@@ -215,7 +215,7 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 
 `art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is meshopt-compressed and written to `static/assets/shared/creatures/<name>.<hash>.glb`. The witch drops from 53 MB to about 1.3 MB. Creatures in `art/export/afflictions/<id>/creatures/` go to `static/assets/afflictions/<id>/creatures/` (the Gloaming's boss, about 1 MB).
 
-The explorer (every player's body) goes through the same pass: `art/export/player/*.glb` to `static/assets/shared/player/<name>.<hash>.glb` (18.7 MB to about 2.2 MB). See [player.md](player.md#player-model).
+The explorer (every player's body) goes through the same pass: `art/export/player/*.glb` to `static/assets/shared/player/<name>.<hash>.glb` (18.9 MB to about 1.9 MB). See [player.md](player.md#player-model).
 
 ### The explorer
 

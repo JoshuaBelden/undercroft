@@ -26,9 +26,8 @@ export const PLAYER_MODEL: PlayerModelDef = {
 	model: modelUrl('shared/player/explorer.glb'),
 	yawOffset: Math.PI,
 	lampForward: 0.45,
-	// The model has no idle, jump or ledge-climb clip (holding and using items is in `upper`).
-	// Also in the file and unused: 'Gun_Hold_Left_Turn', 'Left_Jab_from_Guard' and
-	// 'Cautious_Crouch_Walk_Right_inplace'.
+	// The model has no idle, jump, ledge-climb or dodge clip (holding and using items is in
+	// `upper`). Every clip in the file is used.
 	animations: {
 		// No idle clip yet: the walk's first frame (feet passing, nearly upright), held.
 		idle: { clip: 'Walking', speed: 0 },
@@ -44,13 +43,13 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		fall: { clip: 'Climb_Attempt_and_Fall_5' },
 		// Stretched to the held weapon's swing.
 		melee_attack: { clip: 'Heavy_Hammer_Swing' },
-		// Nothing plays these two yet.
-		dodge: { clip: 'Block5' },
-		take_damage: { clip: 'Face_Punch_Reaction_1' },
+		// Struck (see PlayerBody's flinch): only the punch landing and the twist away from it. The
+		// clip squares up in a guard first, and doubles over and recovers after.
+		take_damage: { clip: 'Face_Punch_Reaction_1', start: 2.1, end: 2.5 },
 		die: { clip: 'Shot_and_Slow_Fall_Backward', speed: 1.5 }
 	},
-	// Hand-keyed in art/blender/Explorer.blend (scripts/blender/explorer.py). Firing is stretched
-	// to the gun's settle and reloading to its reload time; the rest play at their own pace.
+	// Hand-keyed in art/blender/Explorer.blend (scripts/blender/explorer.py). Reloading is stretched
+	// to the gun's reload time; the rest play at their own pace.
 	upper: {
 		hold_one_hand: { clip: 'Hold_One_Hand' },
 		hold_two_hand: { clip: 'Hold_Two_Hand' },
