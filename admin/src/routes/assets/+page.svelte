@@ -60,11 +60,14 @@
 		)
 	);
 
-	const url = (path: string): string => `${data.gameOrigin}${path}`;
+	/** An asset's preview, served by this app (assets/file), so the game site needn't be running. */
+	const url = (path: string): string => `/assets/file/${path.replace(/^\/assets\//, '')}`;
 	const isImage = (path: string): boolean => /\.(webp|png|jpe?g)$/.test(path);
 
 	/** The sound playing now, so a second press stops it. */
 	let playing = $state<{ id: string; audio: HTMLAudioElement } | null>(null);
+	/** Why the last sound didn't play. */
+	let playError = $state<string | null>(null);
 
 	function play(row: AssetRow): void {
 		const was = playing?.id;
@@ -76,8 +79,10 @@
 			if (playing?.audio === audio) playing = null;
 		});
 		playing = { id: row.id, audio };
-		void audio.play().catch(() => {
-			playing = null;
+		playError = null;
+		void audio.play().catch((failure: unknown) => {
+			if (playing?.audio === audio) playing = null;
+			playError = `${row.id} didn't play: ${failure instanceof Error ? failure.message : String(failure)}`;
 		});
 	}
 </script>
@@ -87,7 +92,7 @@
 <h1>Art & Assets</h1>
 <p class="muted">
 	Every model, map piece, picture, sound and animation the game uses or names, from the built
-	manifests, the content data and the source, as checked out here. Levels come from
+	manifests, the content data and the source, as checked out where this app runs. Levels come from
 	<code>pnpm asset:levels</code>.
 </p>
 
@@ -96,6 +101,8 @@
 {:else}
 	<p class="summary">Everything is in.</p>
 {/if}
+
+{#if playError}<p class="error" role="alert">{playError}</p>{/if}
 
 <div class="filters">
 	<div class="toolbar" role="group" aria-label="Kind">

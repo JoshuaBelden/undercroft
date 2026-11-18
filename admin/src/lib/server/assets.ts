@@ -3,4 +3,4 @@
  * content data and files, one folder up from admin/.
  */
 export { buildCatalog } from '../../../../src/lib/server/assets/catalog.ts';
-export { readAssetDisk } from '../../../../src/lib/server/assets/disk.ts';
+export { assetFile, readAssetDisk } from '../../../../src/lib/server/assets/disk.ts';

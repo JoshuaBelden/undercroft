@@ -99,7 +99,7 @@ The Art & Assets page (`/assets`) is a working checklist for art and audio: ever
 | Animations   | Each rigged model's standard slots: the clip, a held pose (speed 0), or what the slot falls back to (`ANIM_FALLBACKS`); a clip the map names but the file lacks   |
 | Unused files | Anything under `static/assets` no row above covers                                                                                                                |
 
-Statuses: **OK** (used and there), **Missing** (named but no file, or a clip the file lacks), **Placeholder** (a box for a model, a held pose for a clip), **Synthesized** (no recording: made in code), **Unused** (a file nothing uses). The counts of everything that isn't OK are at the top; filter by kind, status or a search. Pictures show a thumbnail and sounds a play button, both loaded from `GAME_ORIGIN`.
+Statuses: **OK** (used and there), **Missing** (named but no file, or a clip the file lacks), **Placeholder** (a box for a model, a held pose for a clip), **Synthesized** (no recording: made in code), **Unused** (a file nothing uses). The counts of everything that isn't OK are at the top; filter by kind, status or a search. Pictures show a thumbnail and sounds a play button. Both load from the admin app itself (`/assets/file/<path>`, behind its sign-in; `assetFile` keeps the path inside the assets folder), so they work without the game site running.
 
 **Levels** are the ones `pnpm asset:levels` last wrote to `src/lib/content/audio/levels.generated.ts`, with the files it measured: a sound whose files have changed since says "out of date". Run it after `pnpm asset:audio` and commit the file.
 

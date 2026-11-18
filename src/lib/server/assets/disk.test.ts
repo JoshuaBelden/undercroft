@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildCatalog } from './catalog.ts';
-import { assetsDir, gltfJson, gltfUses, readAssetDisk, repositoryRoot } from './disk.ts';
+import { assetFile, assetsDir, gltfJson, gltfUses, readAssetDisk, repositoryRoot } from './disk.ts';
 
 /** A .glb holding just this JSON chunk. */
 function glb(json: object): Buffer {
@@ -53,6 +53,13 @@ describe('in the Docker image', () => {
 			expect(repositoryRoot(path.join(root, 'src'))).toBe(root);
 			const disk = await readAssetDisk(root);
 			expect([...disk.files.keys()]).toEqual(['ui/logo.1.webp']);
+			// The previews' file route: inside the assets folder only.
+			expect(assetFile('ui/logo.1.webp', root)).toBe(
+				path.join(root, 'build/client/assets/ui/logo.1.webp')
+			);
+			expect(assetFile('ui/logo.1.webp.br', root)).toBeNull();
+			expect(assetFile('../../../src/lib/content', root)).toBeNull();
+			expect(assetFile('ui/none.webp', root)).toBeNull();
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

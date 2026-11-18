@@ -30,6 +30,18 @@ export function assetsDir(root: string): string | null {
 	return null;
 }
 
+/**
+ * A built asset on disk, by its path under /assets (`shared/audio/gasp.7abd9c72.webm`), or null if
+ * there is none. Never anything outside the assets folder, whatever the path says.
+ */
+export function assetFile(asset: string, root = repositoryRoot()): string | null {
+	const dir = assetsDir(root);
+	if (!dir || /\.(br|gz)$/.test(asset)) return null;
+	const full = path.resolve(dir, asset);
+	if (!full.startsWith(dir + path.sep) || !existsSync(full)) return null;
+	return full;
+}
+
 /** Every file under `dir`, as forward-slash paths from it. */
 async function walk(
 	dir: string,
