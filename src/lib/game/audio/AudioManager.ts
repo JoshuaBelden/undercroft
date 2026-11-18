@@ -11,6 +11,7 @@
  * After the master bus, an output stage applies two settings to every manager at once
  * (`applyAudioOptions`): mono (accessibility) and muting while the game is in the background.
  */
+import { AUDIO_CATEGORIES, type AudioCategory } from '#lib/content/audio/categories.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
 
 const OPEN_FREQUENCY = 20000;
@@ -22,8 +23,8 @@ const IMPULSE_SECONDS = 2.8;
 const REF_DISTANCE = 1.5;
 const MAX_DISTANCE = 60;
 
-export const AUDIO_CATEGORIES = ['master', 'music', 'ambience', 'sfx'] as const;
-export type AudioCategory = (typeof AUDIO_CATEGORIES)[number];
+/** The volume groups live with the sound data (content/audio/categories.ts). */
+export { AUDIO_CATEGORIES, type AudioCategory };
 
 export interface PlayOptions {
 	category?: Exclude<AudioCategory, 'master'>;

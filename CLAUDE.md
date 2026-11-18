@@ -50,7 +50,7 @@ pnpm asset:export       # art/blender/catacomb-kit.blend -> art/export/<piece>.g
 pnpm asset:build        # art/export/*.glb -> optimized static/assets/map + piece manifest
 pnpm asset:audio        # art/sfx/*.wav -> Opus in static/assets/shared/audio + sound file list
 pnpm asset:images       # art/images/*.png -> WebP in static/assets/ui/images (interface art)
-pnpm asset:levels       # how loud every sound plays, for mixing (docs/dev/player.md#mix)
+pnpm asset:levels       # how loud every sound plays, for mixing; writes levels for the admin Art & Assets page (docs/dev/player.md#mix)
 pnpm deploy:provision   # create the DigitalOcean droplet (needs DIGITALOCEAN_ACCESS_TOKEN)
 pnpm release <bump>     # after /release-notes: version, commit, tag, GitHub release, deploy (docs/dev/releasing.md)
 pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)

@@ -1,6 +1,6 @@
 # The admin app
 
-A separate SvelteKit app in `admin/`, for the team: members, bug reports, crashes, the ideas board, feedback, game stats and an audit log. It shares the game's MongoDB and its store code (`src/lib/server/store/`), and nothing else. Players never download any of it: it isn't in the game's build, and in production it lives on its own subdomain, `admin.<DOMAIN>`.
+A separate SvelteKit app in `admin/`, for the team: members, bug reports, crashes, the ideas board, feedback, game stats, the art and assets checklist and an audit log. It shares the game's MongoDB and its store code (`src/lib/server/store/`), and nothing else. Players never download any of it: it isn't in the game's build, and in production it lives on its own subdomain, `admin.<DOMAIN>`.
 
 The in-game F10 admin panel is something else: dev-mode debug tools for testing an expedition (noclip, spawning creatures...), with F9 for a free camera over the map's debug grid ([map-generation.md](map-generation.md#debug-grid)). Neither ships enabled.
 
@@ -24,7 +24,8 @@ pnpm admin:grant <email>      # make an account an admin; --remove takes it away
 | `admin/src/lib/server/members.ts`   | Member search and a member's explorers and ledger                            |
 | `admin/src/lib/server/stats.ts`     | Sign-ups, active members, the economy, for the dashboard                     |
 | `admin/src/lib/ui/Action.svelte`    | A button that runs one form action, asking first when it should              |
-| `admin/src/routes/`                 | Dashboard, members, bug reports, crashes, ideas, feedback, audit log         |
+| `admin/src/routes/`                 | Dashboard, members, bug reports, crashes, ideas, feedback, art, audit log    |
+| `admin/src/lib/server/assets.ts`    | The Art & Assets list (`src/lib/server/assets/`), re-exported                |
 | `src/lib/server/store/admin.ts`     | Roles, admin-app sessions, the audit log                                     |
 | `src/lib/server/store/runs.ts`      | Game stats: runs and the game server's status                                |
 | `src/lib/content/admin.ts`          | Session length, page size, the audit log's action names                      |
@@ -84,3 +85,22 @@ The site keeps `accounts.lastSeen` (set when a game ticket is issued) for daily 
 The dashboard: the game server now; members; what needs an answer (ideas waiting, unread feedback, reports that failed to file, crashes in the last day); then, over the last 7, 14, 30 or 90 days, runs, how many got out, a typical run, runs, players and sign-ups per day, how runs ended, and the ledger's money by kind. The charts are `BarChart.svelte`: inline SVG, a hover tooltip and a table under each.
 
 **Adding a stat**: a field on `RunDoc` written in `Session.logRun`, a line in `runSummary`'s `$group`, and a tile on the dashboard. Old runs simply don't have it: average with `$avg`, which skips missing values.
+
+## Art and assets
+
+The Art & Assets page (`/assets`) is a working checklist for art and audio: every asset the game uses, every one it names but doesn't have, and every file nothing uses. Nothing in it is kept by hand. `buildCatalog` (`src/lib/server/assets/catalog.ts`) builds it on each visit from the generated manifests (`models.generated.ts`, `pieces.generated.ts`, `images.generated.ts`, `files.generated.ts`, `levels.generated.ts`), the content data (items, creatures, Afflictions, the explorer, `sounds.ts`, `animations.ts`) and what `readAssetDisk` (`disk.ts`) finds: every file under `static/assets` (in the Docker image, which has no `static/`, the site build's copy in `build/client/assets`), the clips and files in each glTF, and the source in `src/` and `server/`. It takes about a tenth of a second.
+
+| Section      | Rows                                                                                                                                                              |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Models       | Each built `.glb`, with the items, creatures, manifestations and code (`modelUrl('…')`) that load it; items with no model (drawn as a placeholder box)            |
+| Map pieces   | Each piece the generator places, with its `.gltf`, buffers and textures                                                                                           |
+| Pictures     | Each interface picture, with the items, Afflictions and code (`imageUrl('…')`, or a constant ending in `IMAGE`) that name it; items that name no picture          |
+| Sounds       | Every `SoundId`: recorded or synthesized, its category, the files that name it, its files, and how loud it plays (`pnpm asset:levels`); recordings no sound plays |
+| Animations   | Each rigged model's standard slots: the clip, a held pose (speed 0), or what the slot falls back to (`ANIM_FALLBACKS`); a clip the map names but the file lacks   |
+| Unused files | Anything under `static/assets` no row above covers                                                                                                                |
+
+Statuses: **OK** (used and there), **Missing** (named but no file, or a clip the file lacks), **Placeholder** (a box for a model, a held pose for a clip), **Synthesized** (no recording: made in code), **Unused** (a file nothing uses). The counts of everything that isn't OK are at the top; filter by kind, status or a search. Pictures show a thumbnail and sounds a play button, both loaded from `GAME_ORIGIN`.
+
+**Levels** are the ones `pnpm asset:levels` last wrote to `src/lib/content/audio/levels.generated.ts`, with the files it measured: a sound whose files have changed since says "out of date". Run it after `pnpm asset:audio` and commit the file.
+
+**Keeping it right:** load models with `modelUrl('<path>')` and pictures with `imageUrl('<name>')` (or a constant named `…IMAGE`), with the name written out, so the page can find them. A name built at run time (`` `footstep.${surface}` ``) still works in the game, but the page can't say where it is used. `catalog.test.ts` covers the rules; `disk.test.ts` also checks that every file the manifests name is there.

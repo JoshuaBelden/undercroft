@@ -15,6 +15,7 @@
 		{ path: '/crashes', label: 'Crashes' },
 		{ path: '/ideas', label: 'Ideas' },
 		{ path: '/feedback', label: 'Feedback' },
+		{ path: '/assets', label: 'Art & Assets' },
 		{ path: '/audit', label: 'Audit log' }
 	] as const;
 

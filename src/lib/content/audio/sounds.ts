@@ -1,4 +1,4 @@
-import type { AudioCategory } from '#lib/game/audio/AudioManager.ts';
+import type { AudioCategory } from './categories.ts';
 
 /**
  * Sound registry. A sound plays a built recording (`file`: an id from `pnpm asset:audio`, see

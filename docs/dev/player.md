@@ -285,7 +285,7 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 
 ### Mix
 
-Every built file is peak-normalized (-1 dBFS), so how loud it sounds depends on the recording. The registry `volume` sets where it sits in the mix. `pnpm asset:levels` measures every sound: the file's loudness (EBU R128, LUFS) plus its `volume`, which is the level it plays at the source, before distance and the player's volume settings. It also lists the sounds that are still synthesized placeholders. Fit a new sound into these bands:
+Every built file is peak-normalized (-1 dBFS), so how loud it sounds depends on the recording. The registry `volume` sets where it sits in the mix. `pnpm asset:levels` measures every sound: the file's loudness (EBU R128, LUFS) plus its `volume`, which is the level it plays at the source, before distance and the player's volume settings. It also lists the sounds that are still synthesized placeholders, and writes the levels to `src/lib/content/audio/levels.generated.ts` for the admin app's [Art & Assets page](admin.md#art-and-assets), which shows them beside each sound (and the placeholders, without running anything). Fit a new sound into these bands:
 
 | Plays at (LUFS) | What                                                                                                              |
 | --------------- | ----------------------------------------------------------------------------------------------------------------- |

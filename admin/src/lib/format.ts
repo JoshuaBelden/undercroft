@@ -26,3 +26,10 @@ export function duration(seconds: number): string {
 	const m = Math.floor((s % 3600) / 60);
 	return h > 0 ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
 }
+
+/** A file size: `812 B`, `14.2 KB`, `1.27 MB`. */
+export function bytes(n: number): string {
+	if (n < 1000) return `${n} B`;
+	if (n < 1e6) return `${(n / 1e3).toFixed(1)} KB`;
+	return `${(n / 1e6).toFixed(2)} MB`;
+}

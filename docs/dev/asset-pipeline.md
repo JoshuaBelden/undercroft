@@ -2,6 +2,8 @@
 
 Models are built in Blender, exported as glTF binary (`.glb`), and loaded with Three.js.
 
+To see what is built, what is still a placeholder or synthesized and what is missing, open the admin app's [Art & Assets page](admin.md#art-and-assets).
+
 ## Conventions
 
 - **Units:** 1 Blender unit = 1 meter. Apply scale before export (Ctrl+A > Scale).
@@ -159,7 +161,9 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 
 **The .blend file is the source of truth.** `kit.py` only bootstrapped the first pieces. Edit pieces by hand in Blender. `build_all()` never touches a collection that already exists. Regenerating one (`kit.build_stairwell(force=True)`) wipes its hand edits, so only do it deliberately. The only pnpm script that runs Blender is `pnpm asset:export`, and it never saves the .blend. `export_all()` and `pnpm asset:build` only read your work. Commit .blend changes to undercroft-art when they are done rather than after every save: each commit stores the whole file again in LFS.
 
-### Conventions
+#To see what is built, what is still a placeholder or synthesized and what is missing, open the admin app's [Art & Assets page](admin.md#art-and-assets).
+
+## Conventions
 
 - **Grid:** 4 m cells, 4 m levels. Blender **+Y is north** (it becomes -Z in glTF and Three.js).
 - **Root:** an empty named after the piece (`hall-straight`) at the origin. All other objects are parented to it. Custom properties: `footprint_w`, `footprint_d` (cells along X and Y), `levels`, and optionally `max_texture` (default 1024).
@@ -269,6 +273,8 @@ The whole set is about 0.9 MB (it was 7.1 MB as WAV). Opus in WebM decodes throu
 3. Point a sound in `src/lib/content/audio/sounds.ts` at it with `file: '<id>'`.
 
 Only sounds listed in the config are built and committed. Recordings for later features stay in `art/sfx/` until they're used.
+
+Then run `pnpm asset:levels` so the admin app has its level (see [Mix](player.md#mix)).
 
 ## Interface art
 
