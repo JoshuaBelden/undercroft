@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { MenuEntry } from './itemBoard.svelte.ts';
+	import { COIN_SIGN } from './items.ts';
 
 	/**
 	 * The alternate menu of an item slot (right-click, or the keyboard's menu key): a short list of
@@ -71,13 +72,22 @@
 >
 	{#each entries as entry (entry.id)}
 		<button type="button" role="menuitem" onclick={() => onchoose(entry.id)}>
-			<span>{entry.label}</span>
+			<span>
+				{entry.label}{#if entry.price}
+					{@const { amount, after } = entry.price}
+					<span class="sign" aria-hidden="true">{COIN_SIGN}</span>{amount}{after}{/if}
+			</span>
 			{#if entry.note}<span class="note">{entry.note}</span>{/if}
 		</button>
 	{/each}
 </div>
 
 <style>
+	/* The wide coin sign sits close to its amount, as in the store and the tooltip. */
+	.sign {
+		margin-right: -0.12em;
+	}
+
 	.item-menu {
 		position: fixed;
 		z-index: 45;

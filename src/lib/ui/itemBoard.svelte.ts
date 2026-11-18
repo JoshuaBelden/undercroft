@@ -1,6 +1,5 @@
 import { sellPrice } from '#lib/content/economy.ts';
 import { ITEMS } from '#lib/content/items.ts';
-import { COIN_SIGN } from './items.ts';
 import { accepts, canEquip, getSlot, type Belongings } from '#lib/shared/items/inventory.ts';
 import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
 import type { ItemStack } from '#lib/shared/player/types.ts';
@@ -11,6 +10,8 @@ export interface MenuEntry {
 	label: string;
 	/** Shown to the right (the price). */
 	note?: string;
+	/** After the label, with the coin sign: "Sell ＄5", or "Sell ＄5 each" for a stack. */
+	price?: { amount: number; after: string };
 }
 
 export interface BoardOptions {
@@ -162,8 +163,11 @@ export class ItemBoard {
 		const each = this.options.sell ? sellPrice(stack.item) : 0;
 		// The price of one; a stack asks how many next.
 		if (each > 0) {
-			const price = `Sell ${COIN_SIGN}${each}`;
-			entries.push({ id: 'sell', label: stack.count > 1 ? `${price} each` : price });
+			entries.push({
+				id: 'sell',
+				label: 'Sell',
+				price: { amount: each, after: stack.count > 1 ? ' each' : '' }
+			});
 		}
 		entries.push({ id: 'drop', label: 'Drop' });
 		return entries;
