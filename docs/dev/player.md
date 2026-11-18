@@ -165,7 +165,7 @@ So you see teammates about 100 ms plus latency in the past, and the local player
 
 **Other players' headlamps:** `RemotePlayers` gives each remote player a head pivot (eye height, yaw, pitch from their snapshot) with its own `Headlamp`. Their flicker uses the same `headlampOutput`, with the lamp clock advanced locally between 20 Hz snapshots so it stays smooth. Remote lamps cast shadows (at most 512 px) so their light doesn't leak through walls, and each one counts toward `LIGHT_BUDGET`. **Reduce flashing** (`src/lib/game/flashing.ts`) only changes what is drawn: `SteadyLight` eases every lamp's light (and the viewmodel's fill) toward the shared `headlampOutput` over about 0.3 s, so flicker becomes a waver and cut-outs slow dips. `flashStrength()` scales muzzle flashes, flares and the shot's ambient pulse to a quarter, and the hurt vignette fades in and out slowly. The simulation, and so what the server counts as lit, doesn't change.
 
-**Toggle sprint and aim** (accessibility settings) are handled in `LocalPlayer`: a press switches sprint or aim on and the input frames carry it as if held. Sprint ends when you stop moving or press the stance key. The controller has its own sprint setting, a toggle by default (see [controller.md](controller.md#moving-and-looking)); `sprintBy` remembers which device switched it on. Aim only toggles with a firearm in hand (with anything else the aim key throws on every press) and ends when the gun leaves the hand. Aiming sensitivity (`controls.aimSensitivity`) multiplies the look speed while zoomed in.
+**Toggle sprint and aim** (accessibility settings) are handled in `LocalPlayer`: a press switches sprint or aim on and the input frames carry it as if held. Sprint ends when you stop moving or press the stance key. The controller has its own sprint setting, a toggle by default (see [controller.md](controller.md#moving-and-looking)); `sprintBy` remembers which device switched it on. Aim only toggles with a firearm in hand and ends when the gun leaves the hand. Aiming sensitivity (`controls.aimSensitivity`) multiplies the look speed while zoomed in.
 
 A lamp redraws its shadow map only while it's lit and its light could reach the view (`Headlamp.update` with the camera's frustum). Otherwise `shadow.autoUpdate` is off, and Three.js keeps the old map without a pass over the scene. Shadows are never turned off with `castShadow` while playing, because changing how many lights cast shadows recompiles every material, like changing the number of lights. "Nearest" below swaps which lamp casts without changing how many.
 
@@ -230,14 +230,14 @@ What is in a player's hand shows on their body: the item's model in the right ha
 
 **Upper-body poses.** The legs keep playing the full-body clip above. Over it, `UpperBody` (`src/lib/game/UpperBody.ts`) plays clips that turn only arm and hand bones. Each frame, after the full-body clip has posed the skeleton, every bone an upper clip turns is slerped from that pose toward the clip's, so walking, running and crouching need no clip per hold. A bone the clip leaves alone (the free arm of a one-handed hold) follows the legs' clip. Poses fade in and out over 0.2 s; a shot or reload over 0.05 s, so the kick isn't lost. `upperBodyPose(state)` (`src/lib/game/player/pose.ts`) picks the slot from the state alone:
 
-| State                                                                                           | Upper slot                        | Clip                                          |
-| ----------------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------- |
-| Down, dead, on a rope, mantling, swimming, crawling, kneeling at a medkit, swinging or throwing | none: the full-body clip          |                                               |
-| Bandaging yourself, or tending a teammate with a heal item                                      | `use_bandage`                     | `Use_Bandage` (loops)                         |
-| Changing your battery, or a teammate's                                                          | `use_battery`                     | `Use_Battery` (loops)                         |
-| A gun firing (each new shot, by `weapon.shots`, restarts it)                                    | `fire_one_hand` / `fire_two_hand` | `Fire_One_Hand` / `Fire_Two_Hand`             |
-| A gun reloading                                                                                 | `reload`                          | `Reload`, stretched to its `reloadTime`       |
-| Anything else in the hand, by its `grip.pose` (`oneHand`, `twoHand`, `item`)                    | `hold_one_hand` and so on         | `Hold_One_Hand`, `Hold_Two_Hand`, `Hold_Item` |
+| State                                                                                                                 | Upper slot                        | Clip                                          |
+| --------------------------------------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------- |
+| Down, dead, on a rope, mantling, swimming, crawling, kneeling at a medkit, swinging, drawing back a throw or throwing | none: the full-body clip          |                                               |
+| Bandaging yourself, or tending a teammate with a heal item                                                            | `use_bandage`                     | `Use_Bandage` (loops)                         |
+| Changing your battery, or a teammate's                                                                                | `use_battery`                     | `Use_Battery` (loops)                         |
+| A gun firing (each new shot, by `weapon.shots`, restarts it)                                                          | `fire_one_hand` / `fire_two_hand` | `Fire_One_Hand` / `Fire_Two_Hand`             |
+| A gun reloading                                                                                                       | `reload`                          | `Reload`, stretched to its `reloadTime`       |
+| Anything else in the hand, by its `grip.pose` (`oneHand`, `twoHand`, `item`)                                          | `hold_one_hand` and so on         | `Hold_One_Hand`, `Hold_Two_Hand`, `Hold_Item` |
 
 The slots are `UPPER_SLOTS` in `src/lib/content/animations.ts`, mapped to clips in `PLAYER_MODEL.upper`. A swing or throw keeps the full-body `melee_attack`.
 
@@ -346,7 +346,7 @@ One setting (`settings.accessibility.captions`, off by default; `captionSize` se
 
 ## Items
 
-`PlayerState` carries `inventory` (equipment, backpack, quick-use slots and which of them is in the hand) and `weapon` (the held item's action). `InputFrame` has `attack`, `aim`, `reload`, `drop` and `select`. The `primaryWeapon` and `secondaryWeapon` actions and the quick-use wheel (`quickUse`, held) set `select`. `stepPlayer` advances the held item with `stepWeapon` and can collect `SimEvent`s for the server to resolve. Aiming a firearm caps speed at `aimSpeed` and blocks sprinting. All of it is described in [items.md](items.md).
+`PlayerState` carries `inventory` (equipment, backpack, quick-use slots and which of them is in the hand) and `weapon` (the held item's action). `InputFrame` has `attack`, `aim`, `reload` and `select`. The `primaryWeapon` and `secondaryWeapon` actions and the quick-use wheel (`quickUse`, held) set `select`. `stepPlayer` advances the held item with `stepWeapon` and can collect `SimEvent`s for the server to resolve. Aiming a firearm caps speed at `aimSpeed` and blocks sprinting. All of it is described in [items.md](items.md).
 
 ## Sanity
 

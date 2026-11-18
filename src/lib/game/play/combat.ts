@@ -6,6 +6,7 @@ import { Effects } from '#lib/game/items/Effects.ts';
 import { ViewModel } from '#lib/game/items/ViewModel.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
+import { THROW_DRAW } from '#lib/shared/items/weapons.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 import type { PlayContext, PlayFeature } from './feature.ts';
@@ -19,6 +20,8 @@ export class Combat implements PlayFeature {
 	private muzzle = new THREE.Vector3();
 	/** The held item's action last frame (to start reload and swing sounds). */
 	private lastAction = 'none';
+	/** A throw was drawn back all the way last frame (for the click that says it's ready). */
+	private throwReady = false;
 
 	constructor(private ctx: PlayContext) {
 		ctx.engine.scene.add(this.effects.root);
@@ -48,10 +51,17 @@ export class Combat implements PlayFeature {
 			} else if (event.kind === 'empty') {
 				sounds.play('gun.empty');
 			} else if (event.kind === 'throw') {
-				sounds.play('brick.throw');
+				const spec = ITEMS[event.item]?.throwable;
+				if (spec) sounds.play(spec.sound);
 			}
 		}
 		const action = state.weapon.action;
+		const ready = action === 'draw' && state.weapon.time >= THROW_DRAW;
+		if (ready && !this.throwReady) {
+			sounds.play('throw.ready');
+			rumble('throwReady');
+		}
+		this.throwReady = ready;
 		if (action !== this.lastAction) {
 			if (action === 'reload') {
 				const gun = ITEMS[held(state.inventory)?.item ?? '']?.firearm;
@@ -107,12 +117,16 @@ export class Combat implements PlayFeature {
 				else if (event.hit === 'wall') sounds.playAt('melee.hit', event.origin, 1, 3);
 				else if (event.player !== self) sounds.playAt('melee.swing', event.origin, 1, 3);
 				break;
-			case 'throw':
-				if (event.player !== self) sounds.playAt('brick.throw', event.origin, 1, 3);
+			case 'throw': {
+				const spec = ITEMS[event.item]?.throwable;
+				if (spec && event.player !== self) sounds.playAt(spec.sound, event.origin, 1, 3);
 				break;
-			case 'land':
-				sounds.playAt('brick.land', event.position, 1, 4);
+			}
+			case 'land': {
+				const spec = ITEMS[event.item]?.throwable;
+				if (spec) sounds.playAt(spec.land, event.position, 1, 4);
 				break;
+			}
 			case 'break':
 				// A coat torn through, or a brick or crowbar worn out.
 				if (ITEMS[event.item]?.defense) sounds.playAt('defense.torn', event.position, 1, 3);

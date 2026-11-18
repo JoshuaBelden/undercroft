@@ -353,6 +353,16 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'brick clatters'
 	},
+	'knife.throw': { synth: { kind: 'whoosh' }, category: 'sfx', volume: 0.4, rate: 1.3 },
+	'knife.land': {
+		synth: { kind: 'thud', cutoff: 3600 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.1,
+		caption: 'knife clatters'
+	},
+	/** Your own throw is drawn back all the way: let go to throw (docs/dev/items.md). */
+	'throw.ready': { synth: { kind: 'click' }, category: 'sfx', volume: 0.3, rate: 0.8 },
 	'brick.break': {
 		synth: { kind: 'crack' },
 		category: 'sfx',

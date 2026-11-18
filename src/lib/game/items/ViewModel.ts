@@ -4,7 +4,7 @@ import { flashStrength, SteadyLight } from '#lib/game/flashing.ts';
 import { createFlare } from './flare.ts';
 import { itemModel } from './itemModel.ts';
 import { held } from '#lib/shared/items/inventory.ts';
-import { EQUIP_TIME } from '#lib/shared/items/weapons.ts';
+import { EQUIP_TIME, THROW_DRAW } from '#lib/shared/items/weapons.ts';
 import { headlampOutput } from '#lib/shared/player/headlamp.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 
@@ -58,7 +58,9 @@ export class ViewModel {
 	}
 
 	update(delta: number, state: PlayerState | null, visible: boolean): void {
-		const stack = state && !state.downed ? held(state.inventory) : null;
+		// Thrown, it has left the hand: what is next comes up after (`THROW_FOLLOW`).
+		const thrown = state?.weapon.action === 'throw';
+		const stack = state && !state.downed && !thrown ? held(state.inventory) : null;
 		const id = visible ? (stack?.item ?? null) : null;
 		if (id !== this.item) this.setItem(id);
 		this.root.visible = !!this.model && visible;
@@ -105,12 +107,7 @@ export class ViewModel {
 				const melee = def.melee;
 				if (!melee) break;
 				if (w.time < melee.windup) {
-					// Draw back and up.
-					const t = easeOut(w.time / melee.windup);
-					rot.x += t * 0.7;
-					rot.z -= t * 0.25;
-					pos.y += t * 0.05;
-					pos.z += t * 0.06;
+					windUp(easeOut(w.time / melee.windup), pos, rot);
 				} else {
 					// Strike down and across (fast), then settle back (slow).
 					const r = Math.min(1, (w.time - melee.windup) / melee.recovery);
@@ -132,14 +129,22 @@ export class ViewModel {
 				rot.x += dip * 0.3;
 				break;
 			}
-			case 'throw': {
+			case 'draw': {
+				// Through the swing's own wind-up first, so letting go early swings on from there,
+				// then on back over the shoulder until it is drawn.
 				const spec = def.throwable;
 				if (!spec) break;
-				const t = w.time / spec.duration;
-				const back = t < 0.4 ? t / 0.4 : Math.max(0, 1 - (t - 0.4) / 0.25);
-				rot.x += back * 0.9;
-				pos.y += back * 0.1;
-				pos.z += back * 0.1 - (t > 0.4 ? (1 - back) * 0.2 : 0);
+				const windup = def.melee?.windup ?? 0;
+				if (w.time < windup) {
+					windUp(easeOut(w.time / windup), pos, rot);
+					break;
+				}
+				windUp(1, pos, rot);
+				const t = easeOut(Math.min(1, (w.time - windup) / Math.max(0.01, THROW_DRAW - windup)));
+				rot.x += t * 0.4;
+				rot.z += t * 0.2;
+				pos.y += t * 0.06;
+				pos.z += t * 0.1;
 				break;
 			}
 		}
@@ -206,4 +211,12 @@ export class ViewModel {
 
 function easeOut(t: number): number {
 	return 1 - (1 - t) * (1 - t);
+}
+
+/** A swing's wind-up, `t` of the way (0..1): drawn back and up. */
+function windUp(t: number, pos: THREE.Vector3, rot: THREE.Euler): void {
+	rot.x += t * 0.7;
+	rot.z -= t * 0.25;
+	pos.y += t * 0.05;
+	pos.z += t * 0.06;
 }

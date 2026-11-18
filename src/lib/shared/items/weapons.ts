@@ -5,7 +5,7 @@ import { carriedCount, handRef, held, removeItem, spendHeld } from './inventory.
 
 /**
  * The held item's actions, advanced each simulation step: switching, swinging, firing,
- * reloading, throwing and dropping. (Applying a healing item is in `stepPlayer`.) Deterministic (part of `stepPlayer`), so ammo and timing are
+ * reloading and throwing. (Applying a healing item is in `stepPlayer`.) Deterministic (part of `stepPlayer`), so ammo and timing are
  * predicted on the client exactly as the server runs them. What happens (a swing landing, a
  * shot) is reported as SimEvents; the server resolves hits and noise from them.
  * See docs/dev/items.md.
@@ -14,6 +14,12 @@ import { carriedCount, handRef, held, removeItem, spendHeld } from './inventory.
 /** Seconds to bring a newly selected item up. */
 export const EQUIP_TIME = 0.35;
 
+/** Seconds attack is held to draw a throwable back; let go sooner and a melee item swings instead. */
+export const THROW_DRAW = 1;
+
+/** Seconds the arm takes to come through after a throw, before the next thing comes up. */
+export const THROW_FOLLOW = 0.3;
+
 export function idleWeapon(): WeaponState {
 	return {
 		action: 'none',
@@ -21,7 +27,7 @@ export function idleWeapon(): WeaponState {
 		done: false,
 		aiming: false,
 		shots: 0,
-		prev: { attack: false, aim: false, reload: false, drop: false }
+		prev: { attack: false, reload: false }
 	};
 }
 
@@ -55,11 +61,9 @@ export function stepWeapon(
 	const inv = s.inventory;
 	const pressed = {
 		attack: input.attack && !w.prev.attack,
-		aim: input.aim && !w.prev.aim,
-		reload: input.reload && !w.prev.reload,
-		drop: input.drop && !w.prev.drop
+		reload: input.reload && !w.prev.reload
 	};
-	w.prev = { attack: input.attack, aim: input.aim, reload: input.reload, drop: input.drop };
+	w.prev = { attack: input.attack, reload: input.reload };
 	const emit = (event: SimEvent) => events?.push(event);
 	const ray = () => aimRay(s, eye);
 
@@ -74,14 +78,6 @@ export function stepWeapon(
 	w.aiming = able && !!def?.firearm && input.aim && w.action !== 'reload';
 	if (!able) {
 		if (w.action !== 'equip') start(w, 'none');
-		return;
-	}
-
-	if (pressed.drop && stack) {
-		const { origin, direction } = ray();
-		spendHeld(inv, true);
-		emit({ kind: 'drop', origin, direction, stack: { ...stack } });
-		start(w, 'equip');
 		return;
 	}
 
@@ -123,15 +119,15 @@ export function stepWeapon(
 				}
 				break;
 			}
-			case 'throw': {
+			case 'draw': {
 				const spec = def?.throwable;
-				if (!spec || !stack) {
+				// Opening the menu puts it down: neither a swing nor a throw.
+				if (!spec || !stack || input.reading) {
 					start(w, 'none');
 					break;
 				}
-				// Released partway through the motion.
-				if (!w.done && w.time >= spec.duration * 0.4) {
-					w.done = true;
+				if (input.attack) break;
+				if (w.time >= THROW_DRAW) {
 					const { origin, direction } = ray();
 					// One leaves the hand; when it was the last, the hand goes back to the weapon.
 					spendHeld(inv);
@@ -142,10 +138,21 @@ export function stepWeapon(
 						direction,
 						stack: { ...stack, count: 1 }
 					});
+					start(w, 'throw');
+				} else if (def.melee) {
+					// Let go early: a swing, already as far into its wind-up as the draw got.
+					const time = Math.min(w.time, def.melee.windup);
+					start(w, 'swing');
+					w.time = time;
+				} else {
+					start(w, 'none');
 				}
-				if (w.time >= spec.duration) start(w, 'none');
 				break;
 			}
+			case 'throw':
+				// Whatever is in the hand now (the next one, or the weapon) comes up after.
+				if (w.time >= THROW_FOLLOW) start(w, 'equip');
+				break;
 		}
 	}
 	if (w.action !== 'none' || !stack || !def) return;
@@ -178,11 +185,9 @@ export function stepWeapon(
 		}
 		return;
 	}
-	if (def.throwable && pressed.aim) {
-		start(w, 'throw');
-		return;
-	}
-	if (def.melee && input.attack) start(w, 'swing');
+	// Held, a throwable draws back; held, anything else swings again and again.
+	if (def.throwable && input.attack) start(w, 'draw');
+	else if (def.melee && input.attack) start(w, 'swing');
 }
 
 function start(w: WeaponState, action: WeaponState['action']): void {

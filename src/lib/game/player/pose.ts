@@ -27,7 +27,7 @@ export function upperBodyPose(state: PlayerState): UpperPose | null {
 	const def = stack ? ITEMS[stack.item] : undefined;
 	if (!def?.grip) return null;
 	const w = state.weapon;
-	if (w.action === 'swing' || w.action === 'throw') return null;
+	if (w.action === 'swing' || w.action === 'draw' || w.action === 'throw') return null;
 	const tending = state.tending > 0 ? tendKind(state) : null;
 	// A medkit is set down and worked on kneeling: the whole body does that.
 	if (kneeling(state)) return null;

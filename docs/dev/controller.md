@@ -81,11 +81,11 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | ---------- | --------------------------------------------------------- | ----------- | ----------------------------- |
 | Left stick | Move (a light push creeps)                                | Right stick | Look; points at an open wheel |
 | L3         | Sprint (toggle, or hold: a setting)                       | R3          | Rite panel; Social            |
-| A          | Climb / swim up / surrender (hold)                        | RT          | Attack / fire / use           |
-| B          | Stance (tap / hold to creep); swim down; let go of a rope | LT          | Aim (hold) / throw            |
+| A          | Climb / swim up / surrender (hold)                        | RT          | Attack / fire / use / throw   |
+| B          | Stance (tap / hold to creep); swim down; let go of a rope | LT          | Aim (hold)                    |
 | X          | Interact / grab a rope / revive (hold)                    | LB          | Quick-use wheel (hold)        |
 | Y          | Other weapon                                              | RB          | Reload                        |
-| D-pad up   | Headlamp (tap: on/off, hold 1 s: low/bright)              | D-pad down  | Drop held item                |
+| D-pad up   | Headlamp (tap: on/off, hold 1 s: low/bright)              | D-pad down  | (free)                        |
 | D-pad left | Camera: first person / shoulder                           | D-pad right | Help                          |
 | View       | Pack and rite (the in-game menu)                          | Menu        | Settings                      |
 
@@ -123,7 +123,7 @@ In help text, `{action:name}` renders the binding for the device in use. `{pad:n
 
 ## Rumble
 
-`rumble(id)` plays an effect from `RUMBLE` (`src/lib/content/rumble.ts`: duration and strong/weak motor strength) on the controllers that can, while the controller is the device in use and Settings > Controller > Vibration is on. Today: firing, taking a hit, going down.
+`rumble(id)` plays an effect from `RUMBLE` (`src/lib/content/rumble.ts`: duration and strong/weak motor strength) on the controllers that can, while the controller is the device in use and Settings > Controller > Vibration is on. Today: firing, a throw drawn back all the way, taking a hit, going down.
 
 Rumble is `vibrationActuator.playEffect('dual-rumble')`, missing on some setups: Firefox has none, and Chrome on Windows has none for the DualSense. Where it's missing, `rumble` does nothing and the Vibration setting says the controller or browser can't vibrate.
 

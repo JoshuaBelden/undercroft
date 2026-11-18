@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SANITY } from '../../src/lib/content/player/sanity.ts';
+import { THROW_DRAW } from '../../src/lib/shared/items/weapons.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import { HAND } from '../../src/lib/shared/player/types.ts';
 import type { Session } from '../session.ts';
@@ -57,22 +58,24 @@ describe('fighting', () => {
 		session.admin(diver.id, { kind: 'spawnCreature' });
 		const events = () => diver.socket.all('tick').flatMap((t) => t.events);
 		for (let i = 0; i < 40 && !events().some((e) => e.kind === 'creatureHit'); i++) {
-			// Let it come to us, and swing at it.
-			diver.hold({ ...diver.lookAt(creatureChest(session)), attack: true }, 0.25);
+			// Let it come to us, and stab at it: a tap (held, a knife is drawn back to throw).
+			const look = diver.lookAt(creatureChest(session));
+			diver.hold({ ...look, attack: true }, 0.1);
+			diver.hold(look, 0.15);
 		}
 		expect(events().some((e) => e.kind === 'swing' && e.hit === 'creature')).toBe(true);
 	});
 
-	it('a thrown brick flies, lands and can be picked up again', () => {
+	it('a brick held back and let go is thrown, and lands', () => {
 		const session = open(SEED);
 		session.admin('nobody', { kind: 'clearCreatures' });
 		const diver = new Diver(session, 'A', kit(['brick']));
 		diver.hold({ select: HAND.quick }, 0.5);
-		diver.press({ select: HAND.quick, pitch: -0.3, aim: true });
-		diver.hold({ select: HAND.quick }, 2);
+		diver.hold({ pitch: -0.3, attack: true }, THROW_DRAW + 0.1);
+		diver.hold({ pitch: -0.3 }, 2);
 		const events = diver.socket.all('tick').flatMap((t) => t.events);
-		expect(events.some((e) => e.kind === 'throw')).toBe(true);
-		expect(events.some((e) => e.kind === 'land')).toBe(true);
+		expect(events.some((e) => e.kind === 'throw' && e.item === 'brick')).toBe(true);
+		expect(events.some((e) => e.kind === 'land' && e.item === 'brick')).toBe(true);
 		expect(diver.state.inventory.quick[0]).toBeNull();
 	});
 

@@ -191,7 +191,7 @@ export class Diver {
 		};
 	}
 
-	/** One press of a button (e.g. attack, drop): pressed for a frame, then released. */
+	/** One press of a button (e.g. attack, interact): pressed for a frame, then released. */
 	press(input: Partial<InputFrame>): void {
 		this.hold(input, 1 / TICK_RATE);
 		this.hold({ ...input, ...released(input) }, 1 / TICK_RATE);

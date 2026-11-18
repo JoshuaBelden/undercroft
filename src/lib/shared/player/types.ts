@@ -178,7 +178,11 @@ export interface Inventory {
 	pack: string;
 }
 
-export type WeaponAction = 'none' | 'equip' | 'swing' | 'shot' | 'reload' | 'throw';
+/**
+ * `draw`: attack held with a throwable in the hand, drawing it back to throw (see `stepWeapon`).
+ * `throw`: it has left the hand, and the arm comes through.
+ */
+export type WeaponAction = 'none' | 'equip' | 'swing' | 'shot' | 'reload' | 'draw' | 'throw';
 
 /** `Inventory.selected` for the weapons; quick-use slot `i` is `HAND.quick + i`. */
 export const HAND = { primary: 0, secondary: 1, quick: 2 } as const;
@@ -194,7 +198,7 @@ export interface WeaponState {
 	/** Shots fired so far: seeds pellet spread, so server and client agree. */
 	shots: number;
 	/** Previous frame's buttons, for press edges. */
-	prev: { attack: boolean; aim: boolean; reload: boolean; drop: boolean };
+	prev: { attack: boolean; reload: boolean };
 }
 
 /** Something the simulation did that the server resolves (hits, noise) and clients show. */
@@ -202,7 +206,6 @@ export type SimEvent =
 	| { kind: 'swing'; item: string; origin: Vec3; direction: Vec3 }
 	| { kind: 'shot'; item: string; origin: Vec3; direction: Vec3; seed: number; aimed: boolean }
 	| { kind: 'throw'; item: string; origin: Vec3; direction: Vec3; stack: ItemStack }
-	| { kind: 'drop'; origin: Vec3; direction: Vec3; stack: ItemStack }
 	| { kind: 'reloaded'; item: string }
 	/** Hit the floor faster than FALL.safeSpeed (m/s): the server takes sanity for it. */
 	| { kind: 'land'; speed: number }
@@ -232,13 +235,14 @@ export interface InputFrame {
 	letGo: boolean;
 	/** Interact (held): extraction, reviving a teammate, taking hold of a rope (pressed). */
 	interact: boolean;
-	/** Swing, fire or apply what is in the hand (held; firearms fire once per press). */
+	/**
+	 * Swing, fire or apply what is in the hand (held; firearms fire once per press). Held with a
+	 * throwable, it draws it back: let go to swing, or to throw once it is drawn.
+	 */
 	attack: boolean;
-	/** Aim a firearm (held); throw a throwable (press); use the item in the hand on a teammate (held). */
+	/** Aim a firearm (held); use the item in the hand on a teammate (held). */
 	aim: boolean;
 	reload: boolean;
-	/** Drop the held item (press). */
-	drop: boolean;
 	/** What to take in the hand this frame (see `Inventory.selected`), or -1. */
 	select: number;
 	stance: Stance;

@@ -62,6 +62,8 @@ describe('upperBodyPose', () => {
 		const swing = holding('crowbar');
 		swing.weapon.action = 'swing';
 		expect(upperBodyPose(swing)).toBeNull();
+		swing.weapon.action = 'draw';
+		expect(upperBodyPose(swing)).toBeNull();
 		for (const change of [
 			(s: PlayerState) => (s.downed = true),
 			(s: PlayerState) => (s.swimming = true),

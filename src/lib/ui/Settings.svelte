@@ -398,7 +398,7 @@
 				settings.accessibility.toggleAim = !settings.accessibility.toggleAim;
 				saveSettings();
 			}}
-			hint="Press the aim key once to raise a gun to your eye, and again to lower it. Anything else in your hand is still thrown with a press."
+			hint="Press the aim key once to raise a gun to your eye, and again to lower it."
 		/>
 		<StepperField
 			label="Mono audio"
