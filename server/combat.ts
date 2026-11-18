@@ -11,7 +11,7 @@ import { MANIFESTATION_ID, type AfflictionDirector } from './affliction.ts';
 
 /**
  * Resolves what players did with their items (SimEvents from the shared simulation): shots and
- * swings hit creatures or walls, thrown items launch, dropped items land, and all of it makes
+ * swings hit creatures or walls, thrown items launch and land, and all of it makes
  * noise creatures hear. No friendly fire: only creatures are hit. See docs/dev/items.md.
  */
 
@@ -40,15 +40,6 @@ export function resolve(ctx: CombatContext, player: Prey, events: SimEvent[]): v
 			case 'throw':
 				ctx.items.launch(event.stack, event.origin, event.direction, player.id);
 				ctx.out.push({ kind: 'throw', player: player.id, item: event.item, origin: event.origin });
-				break;
-			case 'drop':
-				ctx.items.drop(event.stack, event.origin, event.direction);
-				ctx.out.push({
-					kind: 'drop',
-					player: player.id,
-					item: event.stack.item,
-					position: event.origin
-				});
 				break;
 			case 'reloaded':
 				ctx.out.push({

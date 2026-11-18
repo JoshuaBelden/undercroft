@@ -33,10 +33,10 @@ export const ACTIONS = {
 		category: 'Light',
 		defaults: ['KeyF']
 	},
-	attack: { label: 'Attack / fire / use (hold)', category: 'Items', defaults: ['Mouse0'] },
-	aim: { label: 'Aim (hold) / throw', category: 'Items', defaults: ['Mouse2'] },
+	// Held with a knife or brick, it draws it back: let go once it is drawn to throw it.
+	attack: { label: 'Attack / fire / use (hold) / throw', category: 'Items', defaults: ['Mouse0'] },
+	aim: { label: 'Aim (hold)', category: 'Items', defaults: ['Mouse2'] },
 	reload: { label: 'Reload', category: 'Items', defaults: ['KeyR'] },
-	drop: { label: 'Drop held item', category: 'Items', defaults: ['KeyG'] },
 	primaryWeapon: { label: 'Primary weapon', category: 'Items', defaults: ['Digit1'] },
 	secondaryWeapon: { label: 'Secondary weapon', category: 'Items', defaults: ['Digit2'] },
 	nextItem: { label: 'Other weapon', category: 'Items', defaults: ['WheelDown'] },
@@ -106,7 +106,6 @@ export const PAD_DEFAULTS: Record<Action, readonly string[]> = {
 	attack: ['PadRT'],
 	aim: ['PadLT'],
 	reload: ['PadRB'],
-	drop: ['PadDown'],
 	primaryWeapon: [],
 	secondaryWeapon: [],
 	nextItem: ['PadY'],

@@ -127,7 +127,6 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 		attack: false,
 		aim: false,
 		reload: false,
-		drop: false,
 		select: -1,
 		stance: s.stance,
 		headlamp: s.headlamp,
@@ -138,7 +137,7 @@ export function idleFrame(seq: number, s: PlayerState): InputFrame {
 
 /**
  * While the in-game menu is open (`reading`), both hands are on it: you can still walk, change
- * stance and switch the headlamp, but not sprint, interact, use, aim, reload, drop or take
+ * stance and switch the headlamp, but not sprint, interact, use, aim, reload or take
  * something in hand. The server applies it to every frame it receives (`sanitizeFrame`) and the
  * client to the frames it predicts with, so the two agree. See docs/dev/items.md.
  */
@@ -151,7 +150,6 @@ export function handsBusy(frame: InputFrame): InputFrame {
 		attack: false,
 		aim: false,
 		reload: false,
-		drop: false,
 		select: -1
 	};
 }
@@ -190,7 +188,6 @@ export function sanitizeFrame(raw: unknown): InputFrame | null {
 		attack: f.attack === true,
 		aim: f.aim === true,
 		reload: f.reload === true,
-		drop: f.drop === true,
 		select: typeof f.select === 'number' && Number.isInteger(f.select) ? f.select : -1,
 		stance,
 		headlamp: lamp,

@@ -98,7 +98,6 @@ describe('sanitizeFrame', () => {
 			attack: true,
 			aim: true,
 			reload: true,
-			drop: true,
 			select: 2
 		};
 		const reading = sanitizeFrame({ ...busy, reading: true })!;
@@ -109,7 +108,6 @@ describe('sanitizeFrame', () => {
 			attack: false,
 			aim: false,
 			reload: false,
-			drop: false,
 			select: -1
 		});
 		const playing = sanitizeFrame(busy)!;

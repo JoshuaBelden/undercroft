@@ -62,14 +62,13 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 - {action:swimDown} swim down
 - {action:headlamp} tap: headlamp off or on, hold: low or bright
 - {action:interact} pick up, search, open, take hold of a rope, climb out, revive
-- {action:attack} swing, fire, use what is in your hand
-- {action:aim} aim a gun, throw
+- {action:attack} swing, fire, use what is in your hand; hold and let go to throw a knife or brick
+- {action:aim} aim a gun
 - {action:reload} reload
 - {action:primaryWeapon} {action:secondaryWeapon} take a weapon in hand
 - {action:quickUse} the quick-use wheel
 - {action:inventory} your pack and the rite
 - {action:map} your map, if you carry a notebook
-- {action:drop} drop what is in your hand
 - {action:toggleView} over the shoulder or through your eyes
 - {action:toggleRitePanel} hide or show the rite
 - {action:toggleSettings} settings, {action:toggleHelp} help. With your pack or the map open, {action:toggleSettings} puts it away; then move to carry on`
@@ -82,9 +81,9 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 
 Move with the left stick: push it gently to creep, a slow walk that makes no footstep sound. Look with the right stick. Click {pad:sprint} to run until you stop, slow down, aim or creep.
 
-{pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, swims down in water and lets go of a rope. {pad:interact} interacts, takes hold of a rope and revives. {pad:attack} attacks, fires or uses what is in your hand, {pad:aim} aims or throws, and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
+{pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, swims down in water and lets go of a rope. {pad:interact} interacts, takes hold of a rope and revives. {pad:attack} attacks, fires or uses what is in your hand, and held, throws a knife or brick when you let go. {pad:aim} aims and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
 
-{pad:headlamp} switches the headlamp off and on (hold it to change between low and bright), {pad:drop} drops what you hold, {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. Click {pad:toggleRitePanel} to hide the rite down the left, and again to bring it back. {pad:inventory} opens your pack and the rite, and {pad:toggleSettings} the settings.
+{pad:headlamp} switches the headlamp off and on (hold it to change between low and bright), {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. Click {pad:toggleRitePanel} to hide the rite down the left, and again to bring it back. {pad:inventory} opens your pack and the rite, and {pad:toggleSettings} the settings.
 
 In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. In the store, push the right stick left or right to choose how many. While a menu is open, the D-pad and face buttons work the menu, not the game.
 
@@ -332,11 +331,11 @@ Once one has you, it comes slowly, then all at once. Put your lamp out and get o
 		category: 'Gear and loot',
 		body: `You carry two weapons. Press {action:primaryWeapon} or {action:secondaryWeapon} to take one in your hand, or {action:nextItem} or {action:prevItem} for the other one.
 
-Everything else you can use is on the quick-use wheel. Hold {action:quickUse} and the wheel opens; move the mouse toward what you want and let go, and it is in your hand in place of your weapon. {action:attack} uses it: hold it to bind a wound, swing with a brick, draw with chalk. {action:aim} throws what can be thrown. Press a weapon key to go back.
+Everything else you can use is on the quick-use wheel. Hold {action:quickUse} and the wheel opens; move the mouse toward what you want and let go, and it is in your hand in place of your weapon. {action:attack} uses it: hold it to bind a wound, swing with a brick, draw with chalk. Press a weapon key to go back.
 
 What is in your hand is named in the bottom-right corner, with the rounds loaded and spare when it is a firearm. Spare rounds are taken from your backpack.
 
-Look at something on the floor and press {action:interact} to pick it up. It goes where it belongs if there is room: a weapon to an empty weapon slot, quick-use things to the wheel, the rest to your backpack. Press {action:drop} to put down what you're holding.
+Look at something on the floor and press {action:interact} to pick it up. It goes where it belongs if there is room: a weapon to an empty weapon slot, quick-use things to the wheel, the rest to your backpack. To put something down, open your pack and drop it from its menu.
 
 If you die down here, everything you carried stays where you fell. Someone else might find it.`
 	},
@@ -358,7 +357,9 @@ Everything weighs something, and the weight you carry is shown beside the title.
 		category: 'Surviving',
 		body: `Press {action:attack} to swing or fire. Hold {action:aim} to aim a gun: you move slowly, but your shots go where you look. Press {action:reload} to reload.
 
-A knife is quick and quiet. A crowbar is slow but hits hard enough to stop something mid-swing. Bricks are everywhere; they break after a few blows, and {action:aim} throws one.
+A knife is quick and quiet. A crowbar is slow but hits hard enough to stop something mid-swing. Bricks are everywhere; they break after a few blows.
+
+A knife or a brick can be thrown. Hold {action:attack} and your arm draws back; after a moment it is ready, with a click. Let go to throw. Let go sooner and you only swing. Whatever you threw lies where it lands until you pick it up again. To keep hold of it, take something else in your hand instead of letting go.
 
 Guns are loud. Every shot is heard a long way off, on the floors above and below, and whatever hears it will come. A thrown brick makes noise where it lands, not where you are.
 

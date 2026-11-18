@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { THROW_DRAW } from '../../src/lib/shared/items/weapons.ts';
 import { useSessions, kit, Diver } from '../testing/harness.ts';
 
 const SEED = 1;
@@ -26,13 +27,21 @@ describe('items on the floor', () => {
 		});
 	});
 
-	it('the drop button throws what is in the hand on the floor', () => {
+	it('a thrown knife lands on the floor, and interact picks it back up', () => {
 		const session = open(SEED);
+		session.admin('nobody', { kind: 'clearCreatures' });
 		const diver = new Diver(session, 'A', kit(['knife']));
-		diver.hold({}, 0.5);
-		diver.press({ drop: true });
+		// At your feet, within reach.
+		diver.hold({ pitch: -1.4 }, 0.5);
+		diver.hold({ pitch: -1.4, attack: true }, THROW_DRAW + 0.1);
+		diver.hold({ pitch: -1.4 }, 1);
 		expect(diver.state.inventory.equipment.primary).toBeNull();
-		expect(session['items'].snapshots().some((i) => i.item === 'knife')).toBe(true);
+		const thrown = session['items'].snapshots().find((i) => i.item === 'knife')!;
+		expect(thrown).toBeDefined();
+		const look = diver.lookAt(thrown.position);
+		diver.hold(look, 0.1);
+		diver.press({ ...look, interact: true });
+		expect(diver.state.inventory.equipment.primary?.item).toBe('knife');
 	});
 
 	it('ignores pack requests from someone who is down', () => {

@@ -17,6 +17,8 @@ export const RUMBLE = {
 	shot: { duration: 90, strong: 0.35, weak: 0.8 },
 	/** Firing a gun with several pellets (a shotgun). */
 	heavyShot: { duration: 160, strong: 0.9, weak: 1 },
+	/** A throw drawn back all the way: a light tick in the hand, let go to throw. */
+	throwReady: { duration: 60, strong: 0, weak: 0.35 },
 	/** Taking a hit. */
 	hit: { duration: 220, strong: 0.7, weak: 0.4 },
 	/** Going down. */

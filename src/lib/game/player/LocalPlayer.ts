@@ -106,6 +106,8 @@ export class LocalPlayer {
 	 * moves the pointer instead of the view.
 	 */
 	private wheel: { x: number; y: number } | null = null;
+	/** Attack held since before the wheel opened (a throw drawn back): it stays held until let go. */
+	private wheelAttack = false;
 	/** What the predicted simulation did since the last `drainEvents` (for instant feedback). */
 	private events: SimEvent[] = [];
 	/**
@@ -142,7 +144,7 @@ export class LocalPlayer {
 			if (action === 'sprint' && this.sprintToggles(device)) {
 				this.sprintBy = this.sprintBy ? null : device;
 			}
-			// Only a gun aims: with anything else the aim key throws, every press.
+			// Only a gun aims.
 			if (action === 'aim' && settings.accessibility.toggleAim && this.gunInHand()) {
 				this.aimOn = !this.aimOn;
 			}
@@ -192,6 +194,7 @@ export class LocalPlayer {
 	/** Open the quick-use wheel: until it closes, the mouse moves its pointer, not the view. */
 	openWheel(): void {
 		this.wheel = { x: 0, y: 0 };
+		this.wheelAttack = this.input.isDown('attack');
 	}
 
 	/** Close the wheel. Returns where its pointer was (null if it wasn't open). */
@@ -495,6 +498,8 @@ export class LocalPlayer {
 		// A switched-on sprint ends when you stop; a switched-on aim when the gun leaves the hand.
 		if (active && moveX === 0 && moveZ === 0) this.sprintBy = null;
 		if (!this.gunInHand()) this.aimOn = false;
+		const attacking = input.isDown('attack');
+		if (!attacking) this.wheelAttack = false;
 		return handsBusy({
 			seq: this.seq++,
 			moveX,
@@ -507,11 +512,11 @@ export class LocalPlayer {
 			swimDown: active && input.isDown('swimDown'),
 			letGo: this.takeLetGo(active),
 			interact: active && input.isDown('interact'),
-			// Choosing from the wheel is not a swing or a shot.
-			attack: active && !this.wheel && input.isDown('attack'),
+			// Choosing from the wheel is not a swing or a shot; a throw drawn before it opened is
+			// still drawn.
+			attack: active && attacking && (!this.wheel || this.wheelAttack),
 			aim: this.aiming(active),
 			reload: active && input.isDown('reload'),
-			drop: active && input.isDown('drop'),
 			select: this.takeSelect(),
 			stance: this.stance,
 			headlamp: this.lamp,
