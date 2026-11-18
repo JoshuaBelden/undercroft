@@ -265,6 +265,8 @@ def rest_pose(rig):
 def build(name):
     rig = bpy.data.objects[ARMATURE]
     ad = rig.animation_data or rig.animation_data_create()
+    # Whatever clip was being looked at comes back after (the rebuilt one, if it was this).
+    was = ad.action.name if ad.action else None
     ad.action = None
     rest_pose(rig)
     keys = [(frame, solve(rig, pose)) for frame, pose in CLIPS[name]]
@@ -290,6 +292,7 @@ def build(name):
     track.name = name
     track.strips.new(name, 0, action)
     track.mute = True
+    ad.action = bpy.data.actions.get(was) if was else None
     return action
 
 
@@ -315,6 +318,9 @@ def export():
     """
     rig = bpy.data.objects[ARMATURE]
     ad = rig.animation_data
+    # The clip being looked at in the .blend comes back after: every track is muted, so without
+    # an active action nothing moves in the viewport.
+    was = ad.action
     ad.action = None
     rest_pose(rig)
     # Set the other clips' tracks aside for the export, and put them back after.
@@ -346,6 +352,7 @@ def export():
             track.name = name
             track.strips.new(name, int(start), action)
             track.mute = mute
+        ad.action = was
     print("exported", EXPORT)
 
 
