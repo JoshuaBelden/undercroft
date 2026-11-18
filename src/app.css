@@ -58,6 +58,18 @@ body {
 	font-family: var(--font-body);
 }
 
+/* Underground (/play) nothing is selected by mouse but what is typed (src/routes/play/+page.svelte). */
+body.underground {
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+body.underground :is(input, textarea, [contenteditable]) {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
 h1,
 h2,
 h3,

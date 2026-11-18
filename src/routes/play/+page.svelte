@@ -1112,7 +1112,11 @@
 			}
 		});
 
+		// Underground a stray drag or double-click mustn't select the HUD's text (app.css).
+		document.body.classList.add('underground');
+
 		return () => {
+			document.body.classList.remove('underground');
 			if (leaveTimer) clearTimeout(leaveTimer);
 			setGameContext(null);
 			unsubscribe();

@@ -4,6 +4,8 @@ Underground, the client is one page, `src/routes/play/+page.svelte`. It owns wha
 
 What each feature shows and plays down there is a **feature** in `src/lib/game/play/`, one file per feature. The page reaches it only through hooks. It is the client side of the server's systems ([session.md](session.md)). A new feature adds a file there and a line in `src/lib/game/play/index.ts`. It doesn't add `case`s to the page.
 
+While it is open the page puts `underground` on `<body>`, and `app.css` turns text selection off under it (but in text fields), so a drag or double-click while playing never highlights the HUD or a screen.
+
 ## Files
 
 | File                                     | What                                                                                       |
