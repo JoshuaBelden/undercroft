@@ -226,14 +226,15 @@ What is in a player's hand shows on their body: the item's model in the right ha
 
 **Upper-body poses.** The legs keep playing the full-body clip above. Over it, `UpperBody` (`src/lib/game/UpperBody.ts`) plays clips that turn only arm and hand bones. Each frame, after the full-body clip has posed the skeleton, every bone an upper clip turns is slerped from that pose toward the clip's, so walking, running and crouching need no clip per hold. A bone the clip leaves alone (the free arm of a one-handed hold) follows the legs' clip. Poses fade in and out over 0.2 s; a shot or reload over 0.05 s, so the kick isn't lost. `upperBodyPose(state)` (`src/lib/game/player/pose.ts`) picks the slot from the state alone:
 
-| State                                                                        | Upper slot                        | Clip                                          |
-| ---------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------- |
-| Down, dead, on a rope, mantling, swimming, crawling, swinging or throwing    | none: the full-body clip          |                                               |
-| Bandaging yourself, or tending a teammate with a heal item                   | `use_bandage`                     | `Use_Bandage` (loops)                         |
-| Changing your battery, or a teammate's                                       | `use_battery`                     | `Use_Battery` (loops)                         |
-| A gun firing (each new shot, by `weapon.shots`, restarts it)                 | `fire_one_hand` / `fire_two_hand` | `Fire_One_Hand` / `Fire_Two_Hand`             |
-| A gun reloading                                                              | `reload`                          | `Reload`, stretched to its `reloadTime`       |
-| Anything else in the hand, by its `grip.pose` (`oneHand`, `twoHand`, `item`) | `hold_one_hand` and so on         | `Hold_One_Hand`, `Hold_Two_Hand`, `Hold_Item` |
+| State                                                                                                  | Upper slot                        | Clip                                          |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------- | --------------------------------------------- |
+| Down, dead, on a rope, mantling, swimming, crawling, swinging or throwing                              | none: the full-body clip          |                                               |
+| Using a medkit (`heal.kneel`) on yourself: crouched, the kit set on the floor in front (`FLOOR_AHEAD`) | `use_medkit`                      | `Use_Medkit` (loops)                          |
+| Bandaging yourself, or tending a teammate with a heal item                                             | `use_bandage`                     | `Use_Bandage` (loops)                         |
+| Changing your battery, or a teammate's                                                                 | `use_battery`                     | `Use_Battery` (loops)                         |
+| A gun firing (each new shot, by `weapon.shots`, restarts it)                                           | `fire_one_hand` / `fire_two_hand` | `Fire_One_Hand` / `Fire_Two_Hand`             |
+| A gun reloading                                                                                        | `reload`                          | `Reload`, stretched to its `reloadTime`       |
+| Anything else in the hand, by its `grip.pose` (`oneHand`, `twoHand`, `item`)                           | `hold_one_hand` and so on         | `Hold_One_Hand`, `Hold_Two_Hand`, `Hold_Item` |
 
 The slots are `UPPER_SLOTS` in `src/lib/content/animations.ts`, mapped to clips in `PLAYER_MODEL.upper`. A swing or throw keeps the full-body `melee_attack`.
 

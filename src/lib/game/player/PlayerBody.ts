@@ -9,6 +9,7 @@ import { loadCharacter } from '#lib/game/assets.ts';
 import { itemModel } from '#lib/game/items/itemModel.ts';
 import { UpperBody } from '#lib/game/UpperBody.ts';
 import { held } from '#lib/shared/items/inventory.ts';
+import { kneeling } from '#lib/shared/player/simulate.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 import { upperBodyPose } from './pose.ts';
 
@@ -23,6 +24,8 @@ const FALL_PLAY = 1.2;
 const HIT_DROP = 3;
 /** Seconds the flinch (`take_damage`) plays: the length of the explorer's cut of it. */
 const FLINCH = 0.4;
+/** How far in front of the feet (m) something worked on kneeling is set down. */
+const FLOOR_AHEAD = 0.45;
 /** How far a walk or run cycle may be slowed or hurried to match the ground speed. */
 const RATE_RANGE: [number, number] = [0.4, 1.6];
 
@@ -41,6 +44,10 @@ export class PlayerBody {
 	private upper: UpperBody | null = null;
 	/** Hangs from the right hand bone at the held item's grip; holds its model. */
 	private grip = new THREE.Group();
+	/** On the floor in front of them: where something worked on kneeling (a medkit) is set down. */
+	private floor = new THREE.Group();
+	/** How far the held model's origin sits above its lowest point, to stand it on the floor. */
+	private lift = 0;
 	private item: string | null = null;
 	private model: THREE.Object3D | null = null;
 	private loading = 0;
@@ -74,6 +81,10 @@ export class PlayerBody {
 			scene.getObjectByName(PLAYER_MODEL.hand)?.add(this.grip);
 		});
 		this.grip.name = 'held-item';
+		this.floor.name = 'set-down-item';
+		this.floor.position.set(0, 0, -FLOOR_AHEAD);
+		this.floor.visible = false;
+		this.root.add(this.floor);
 		this.grip.visible = false;
 	}
 
@@ -113,11 +124,25 @@ export class PlayerBody {
 		if (id !== this.item) this.setItem(id);
 		this.grip.visible =
 			!!this.model && !state.dead && !state.downed && !state.climbing && !state.swimming;
+		// Something worked on kneeling (a medkit) is set on the floor in front of them meanwhile.
+		const model = this.model;
+		if (!model) return;
+		const down = kneeling(state);
+		if (down && model.parent !== this.floor) {
+			this.floor.add(model);
+			model.position.set(0, this.lift, 0);
+			model.rotation.set(0, 0, 0);
+		} else if (!down && model.parent !== this.grip) {
+			this.grip.add(model);
+			model.position.set(0, 0, 0);
+			model.rotation.set(0, 0, 0);
+		}
+		this.floor.visible = down && this.grip.visible;
 	}
 
 	private setItem(id: string | null): void {
 		this.item = id;
-		if (this.model) this.grip.remove(this.model);
+		this.model?.removeFromParent();
 		this.model = null;
 		const def = id ? ITEMS[id] : undefined;
 		const grip = def?.grip;
@@ -128,6 +153,8 @@ export class PlayerBody {
 		void itemModel(def).then((model) => {
 			if (token !== this.loading || this.disposed) return;
 			this.model = model;
+			model.updateMatrixWorld(true);
+			this.lift = -new THREE.Box3().setFromObject(model).min.y;
 			this.grip.add(model);
 		});
 	}

@@ -58,6 +58,7 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		fire_two_hand: { clip: 'Fire_Two_Hand' },
 		reload: { clip: 'Reload' },
 		use_bandage: { clip: 'Use_Bandage' },
+		use_medkit: { clip: 'Use_Medkit' },
 		use_battery: { clip: 'Use_Battery' }
 	},
 	hand: 'mixamorigRightHand'

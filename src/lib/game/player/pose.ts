@@ -27,6 +27,8 @@ export function upperBodyPose(state: PlayerState): UpperPose | null {
 	const w = state.weapon;
 	if (w.action === 'swing' || w.action === 'throw') return null;
 	const tending = state.tending > 0 ? tendKind(state) : null;
+	// A medkit is set down and worked on, kneeling; a bandage is wound on standing.
+	if (state.bandaging > 0 && def.heal?.kneel) return { slot: 'use_medkit', at: 0 };
 	if (state.bandaging > 0 || tending === 'heal') return { slot: 'use_bandage', at: 0 };
 	if (state.charging > 0 || tending === 'charge') return { slot: 'use_battery', at: 0 };
 	const gun = def.firearm;

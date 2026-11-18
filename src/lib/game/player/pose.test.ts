@@ -46,6 +46,12 @@ describe('upperBodyPose', () => {
 		bandage.bandaging = 0;
 		bandage.tending = 0.5;
 		expect(upperBodyPose(bandage)?.slot).toBe('use_bandage');
+		const medkit = holding('medkit');
+		medkit.bandaging = 0.5;
+		expect(upperBodyPose(medkit)?.slot).toBe('use_medkit');
+		medkit.bandaging = 0;
+		medkit.tending = 0.5;
+		expect(upperBodyPose(medkit)?.slot).toBe('use_bandage');
 		const battery = holding('battery');
 		battery.tending = 0.5;
 		expect(upperBodyPose(battery)?.slot).toBe('use_battery');

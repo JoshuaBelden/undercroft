@@ -419,6 +419,23 @@ describe('the headlamp and what is in the hand', () => {
 		expect(s.inventory.quick[0]).toBeNull();
 	});
 
+	it('a medkit is used kneeling: you crouch for it, and stand back up after', () => {
+		const inv = emptyInventory();
+		addItem(inv, newStack('medkit'));
+		const s = run(createPlayerState([0, 0, 0], 0, inv), { select: HAND.quick }, seconds(1));
+		s.sanity = 5;
+		// The client keeps asking to stand: crouching is the medkit's doing.
+		run(s, { select: HAND.quick, attack: true, stance: 'stand' }, seconds(1));
+		expect(s.stance).toBe('crouch');
+		run(s, { select: HAND.quick, attack: false, stance: 'stand' }, seconds(1));
+		expect(s.stance).toBe('stand');
+		// A bandage is wound on standing.
+		addItem(s.inventory, newStack('bandage'));
+		run(s, { select: HAND.quick + 1, attack: true, stance: 'stand' }, seconds(1));
+		expect(s.bandaging).toBeGreaterThan(0);
+		expect(s.stance).toBe('stand');
+	});
+
 	it('holding attack with a battery charges the lamp', () => {
 		const inv = emptyInventory();
 		addItem(inv, newStack('battery'));

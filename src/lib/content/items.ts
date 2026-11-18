@@ -99,6 +99,11 @@ export interface HealSpec {
 	amount: number;
 	/** Seconds to apply, standing still. */
 	seconds: number;
+	/**
+	 * Set down on the floor to use (a medkit): using it on yourself crouches you, and your body
+	 * kneels over it with the kit on the floor (see docs/dev/player.md#holding-and-using-items).
+	 */
+	kneel?: boolean;
 }
 
 export interface ChargeSpec {
@@ -399,7 +404,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		maxStack: 2,
 		weight: 0.6,
 		rarity: 'rare',
-		heal: { amount: SANITY.max, seconds: 5 }
+		heal: { amount: SANITY.max, seconds: 5, kneel: true }
 	},
 	// Half a lamp's worth: the starter lamp is full at 24 V (see items/headlamps.ts).
 	battery: {

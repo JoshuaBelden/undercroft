@@ -294,7 +294,7 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 
 It wears down when you're in the dark with your lamp off and no one else's light on you, and when you look at something you shouldn't. Being struck takes a great deal of it at once.
 
-A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel. A medkit works the same way, takes a little longer, and gives it all back: they are rare below, and dear in the store.
+A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel. A medkit works the same way, but you kneel to open it on the floor; it takes a little longer, and gives it all back. They are rare below, and dear in the store.
 
 To tend to a hurt teammate instead, stand close, look at them with the bandage in hand and hold {action:aim}. Stand still and keep them in front of you until it is done: it uses your bandage, and the sanity goes to them.
 

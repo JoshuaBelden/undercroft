@@ -89,6 +89,7 @@ export const UPPER_SLOTS = [
 	'fire_two_hand',
 	'reload',
 	'use_bandage',
+	'use_medkit',
 	'use_battery'
 ] as const;
 export type UpperSlot = (typeof UPPER_SLOTS)[number];

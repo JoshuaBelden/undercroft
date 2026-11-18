@@ -12,7 +12,7 @@ import {
 	waterSurface,
 	type CollisionWorld
 } from '../map/collision.ts';
-import { ITEMS } from '../../content/items.ts';
+import { ITEMS, type HealSpec } from '../../content/items.ts';
 import {
 	cloneInventory,
 	emptyInventory,
@@ -261,7 +261,9 @@ export function stepPlayer(
 	const p = s.position;
 	const surface = s.flags.noclip ? null : waterSurface(world, [p[0], p[1] + 0.05, p[2]]);
 	updateWater(s, surface, world, t);
-	if (!s.swimming) changeStance(s, input.stance, world, t);
+	// Using something that is set down on the floor (a medkit) takes you down to it.
+	if (!s.swimming)
+		changeStance(s, kneeling(s) && input.stance === 'stand' ? 'crouch' : input.stance, world, t);
 
 	const sin = Math.sin(s.yaw);
 	const cos = Math.cos(s.yaw);
@@ -430,8 +432,16 @@ function stepDowned(
 	if (s.downedTime >= SANITY.bleedOut || s.surrendering >= SANITY.surrenderSeconds) s.dead = true;
 }
 
+/**
+ * Using a healing item that is set down on the floor (`heal.kneel`, the medkit) on yourself: you
+ * crouch for it, and stand back up when it is done or let go.
+ */
+export function kneeling(s: PlayerState): boolean {
+	return s.bandaging > 0 && !!healing(s)?.kneel;
+}
+
 /** The healing spec of what is in the hand (a bandage), if it heals. */
-export function healing(s: PlayerState): { amount: number; seconds: number } | undefined {
+export function healing(s: PlayerState): HealSpec | undefined {
 	const stack = held(s.inventory);
 	return stack ? ITEMS[stack.item]?.heal : undefined;
 }
