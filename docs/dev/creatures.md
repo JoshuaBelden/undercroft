@@ -169,8 +169,8 @@ The witch's band is 0.04–Infinity: a bright lamp shows her, so only the dark (
 
 | Light                    | Result  |
 | ------------------------ | ------- |
-| Low lamp, up to ~5 m     | visible |
-| Bright lamp, up to ~15 m | visible |
+| Low lamp, up to ~3.5 m   | visible |
+| Bright lamp, up to ~14 m | visible |
 | The faint edge of a beam | hidden  |
 | No light                 | hidden  |
 

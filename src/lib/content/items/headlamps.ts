@@ -43,8 +43,11 @@ export const HEADLAMPS: Record<string, HeadlampModel> = {
 		name: 'Starter headlamp',
 		modes: [
 			null,
-			{ intensity: 11, range: 9, angle: 0.85, drain: 1 / 900 },
-			{ intensity: 55, range: 20, angle: 0.42, drain: 1 / 300 }
+			// Low: dim, for getting about carefully. A creature shows within about 3.5 m, and
+			// switching on stuns one (the strobe) within about 3 m.
+			{ intensity: 7, range: 8, angle: 0.7, drain: 1 / 900 },
+			// Bright: wide as well as far. A creature shows within about 14 m.
+			{ intensity: 55, range: 18, angle: 0.75, drain: 1 / 300 }
 		],
 		flicker: { rate: 0.35, depth: 0.85, lowBattery: 0.2 },
 		color: 0xffe2b0,

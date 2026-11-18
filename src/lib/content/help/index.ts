@@ -264,7 +264,7 @@ To see how smoothly the game is running, press {action:toggleStats}: the frame r
 		category: 'Surviving',
 		body: `Tap {action:headlamp} to switch your headlamp off, and again to bring it back on as it was. Hold {action:headlamp} for a second to change between low and bright.
 
-Bright reaches much further but drains the battery about three times as fast. The cells in the bottom-left corner show the charge left, with its voltage beside them: 24V is full, and at 0V the lamp dies.
+Low is dim: enough to find your way, but something in the dark can be almost on you before you see it. Bright lights the passage wide and far, and drains the battery about three times as fast. The cells in the bottom-left corner show the charge left, with its voltage beside them: 24V is full, and at 0V the lamp dies.
 
 Batteries turn up in crates and on the dead. Put one in a quick-use slot, take it in hand and hold {action:attack}, standing still, to swap it in. Each gives back 12V, never more than full, so don't waste one on a lamp that's nearly charged.
 

@@ -159,6 +159,7 @@ So you see teammates about 100 ms plus latency in the past, and the local player
 
 - **Flicker:** deterministic, driven by the lamp's `lampClock` (seconds lit, part of the state) through a hash. The server can therefore later ask whether a lamp is flickering, for creature visibility, and get the same answer the client renders.
 - **Low battery:** below `flicker.lowBattery`, the lamp dims and flickers more.
+- **Low and bright** are a choice, not a step up: low (intensity 7, 8 m, a 0.7 rad half-cone) is dim, for getting about carefully, and shows a creature only within about 3.5 m; bright (55, 18 m, 0.75 rad) is as wide as low and far brighter, at three times the drain. A creature shows within about 14 m. The strobe (switching on from off, [status.md](status.md)) needs 0.05 on the creature: within about 3 m on low. Tuning the modes, check these distances with `lampIllumination` ([creatures.md](creatures.md#half-light)); wider cones don't change the light count, but spread each lamp's shadow map wider.
 
 `Headlamp.ts` puts a `SpotLight` on the player's head: an object at the eyes, facing where they look. In first person that is where the camera is; over the shoulder the camera hangs back and the lamp stays on the head, which is where the server works out the light from. It casts one shadow on medium and high quality, and it counts toward `LIGHT_BUDGET`. The scene's ambient light is almost black, so the headlamp is the light.
 
