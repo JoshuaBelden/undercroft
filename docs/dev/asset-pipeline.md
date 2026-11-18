@@ -215,7 +215,25 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 
 `art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is meshopt-compressed and written to `static/assets/shared/creatures/<name>.<hash>.glb`. The witch drops from 53 MB to about 1.3 MB. Creatures in `art/export/afflictions/<id>/creatures/` go to `static/assets/afflictions/<id>/creatures/` (the Gloaming's boss, about 1 MB).
 
-The explorer (every player's body) goes through the same pass: `art/export/player/*.glb` to `static/assets/shared/player/<name>.<hash>.glb` (18.7 MB to about 1.9 MB). See [player.md](player.md#player-model).
+The explorer (every player's body) goes through the same pass: `art/export/player/*.glb` to `static/assets/shared/player/<name>.<hash>.glb` (18.7 MB to about 2.2 MB). See [player.md](player.md#player-model).
+
+### The explorer
+
+The explorer's source is `art/blender/Explorer.blend`: the rig, the mesh and every clip as an NLA track. `art/export/player/explorer.glb` is its Mixamo export, and isn't written again from Blender. The glTF exporter resamples every clip to whole frames, which changes each one's length (a loop then hitches), and it re-encodes the mesh.
+
+The clips made since, for holding and using items (see [player.md](player.md#holding-and-using-items)), are built by `scripts/blender/explorer.py` and exported on their own, on the bare skeleton, to `art/export/player/explorer-clips.glb`:
+
+```python
+import sys, importlib
+sys.path.insert(0, r"D:/Code/undercroft/scripts/blender")
+import explorer; importlib.reload(explorer)
+explorer.build_all()   # every clip in CLIPS, as actions and NLA tracks in the .blend
+explorer.export()      # art/export/player/explorer-clips.glb
+```
+
+`pnpm asset:build` merges any `<name>-clips.glb` beside a rigged `<name>.glb` into it by bone name (`mergeClips`, `scripts/clips.ts`). It keeps a clip's rotation channels that move a bone off its rest pose, so a bone the clip leaves alone follows whatever else is playing. Both files must share the skeleton: a bone resting differently stops the build, and so does a clip already in the model.
+
+The same script places items in the hand for their `grip` (`GRIPS`, `show_item`, `grip_numbers`; see [items.md](items.md#data)).
 
 On the client, `loadCharacter` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
 

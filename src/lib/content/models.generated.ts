@@ -40,8 +40,8 @@ export const MODELS = {
 	'shared/items/salts.glb': { url: '/assets/shared/items/salts.403717e9.glb', bytes: 192152 },
 	'shared/items/shotgun.glb': { url: '/assets/shared/items/shotgun.a17b7485.glb', bytes: 226472 },
 	'shared/player/explorer.glb': {
-		url: '/assets/shared/player/explorer.5385c688.glb',
-		bytes: 2123580
+		url: '/assets/shared/player/explorer.e1ee6844.glb',
+		bytes: 2192512
 	},
 	'shared/props/corpse.glb': { url: '/assets/shared/props/corpse.5a51bedd.glb', bytes: 598320 },
 	'shared/props/crate.glb': { url: '/assets/shared/props/crate.aef763a7.glb', bytes: 97380 },
