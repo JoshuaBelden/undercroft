@@ -21,7 +21,7 @@
 		type TeammateShadows
 	} from '#lib/settings/settings.svelte.ts';
 	import Dialog from './Dialog.svelte';
-	import { fullscreen, toggleFullscreen } from './fullscreen.svelte.ts';
+	import { fullscreen, setFullscreen, toggleFullscreen } from './fullscreen.svelte.ts';
 	import SliderField from './SliderField.svelte';
 	import StepperField from './StepperField.svelte';
 	import TabScreen from './TabScreen.svelte';
@@ -120,6 +120,8 @@
 	function reset(): void {
 		confirmingReset = false;
 		resetSettings();
+		// The default is fullscreen, and this is a click, so the browser allows it now.
+		setFullscreen(settings.graphics.fullscreen);
 		ongraphics?.();
 		for (const category of AUDIO_CATEGORIES) onvolume?.(category, settings.audio[category]);
 		applyAudioOptions();

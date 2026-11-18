@@ -90,7 +90,7 @@ An optional `hint` is shown beside the pill.
 `src/lib/ui/fullscreen.svelte.ts` puts the whole site in fullscreen: it is `document.documentElement` that goes fullscreen, not one page's element, so it lasts across every move between pages, the expedition included (pointer lock works inside it).
 
 - **The key:** the `toggleFullscreen` action (F11 by default, the browser's own fullscreen key, which the input map takes from the browser). The root layout listens for it once, through an `InputMap` limited to that action, so no page has to.
-- **The setting:** Display (Fullscreen / Windowed) at the top of the Graphics group does the same. `settings.graphics.fullscreen` remembers the choice. Browsers only allow fullscreen from a click or a key, so a saved choice is taken up again on the first click or key after the page loads (`watchFullscreen`, called by the root layout).
+- **The setting:** Display (Fullscreen / Windowed) at the top of the Graphics group does the same. `settings.graphics.fullscreen` remembers the choice; it defaults to on, so a new player (or one who resets their settings) plays fullscreen, while a saved choice, windowed included, is kept. Browsers only allow fullscreen from a click or a key, so a saved choice is taken up again on the first click or key after the page loads (`watchFullscreen`, called by the root layout).
 - **Escape:** while fullscreen, Chromium browsers lock the Escape key to the page (the keyboard lock API), so it still opens and closes the settings; holding it leaves fullscreen. Elsewhere Escape leaves fullscreen at once, as the browser decides. Leaving fullscreen any way the browser offers is remembered as windowed.
 - `fullscreen.active` is reactive, for anything that shows the current state.
 
