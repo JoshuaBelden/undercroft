@@ -69,7 +69,8 @@
 	.alert {
 		pointer-events: auto;
 		display: flex;
-		align-items: center;
+		/* The title at the top, not floating in the middle. */
+		align-items: flex-start;
 		gap: 14px;
 		min-width: 300px;
 		max-width: min(380px, calc(100vw - 32px));
@@ -94,6 +95,11 @@
 		padding: 10px 24px 10px 10px;
 		/* The slot fills the height, 10px in from the edge: 100px less the border and padding. */
 		--slot-size: 78px;
+	}
+
+	/* Beside a slot the title starts 14px down too, as it does without one. */
+	.alert.item .text {
+		padding-top: 4px;
 	}
 
 	.text {
