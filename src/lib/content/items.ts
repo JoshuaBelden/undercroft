@@ -84,14 +84,17 @@ export interface RecoilSpec {
 	settle: number;
 }
 
+/** Thrown by holding attack until it is drawn back (`THROW_DRAW`), then letting go (`stepWeapon`). */
 export interface ThrowSpec {
 	/** Launch speed (m/s). */
 	speed: number;
 	damage: number;
 	/** Radius (m) the landing can be heard. */
 	landNoise: number;
-	/** Seconds the throw takes. */
-	duration: number;
+	/** Sound as it leaves the hand. */
+	sound: SoundId;
+	/** Sound where it lands. */
+	land: SoundId;
 }
 
 export interface HealSpec {
@@ -216,7 +219,9 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 0.3,
-		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2 }
+		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2 },
+		// Faster and flatter than a brick, and quieter where it lands: no lure.
+		throwable: { speed: 18, damage: 30, landNoise: 4, sound: 'knife.throw', land: 'knife.land' }
 	},
 	crowbar: {
 		id: 'crowbar',
@@ -253,7 +258,7 @@ export const ITEMS: Record<string, ItemDef> = {
 			noise: 5,
 			breaksAfter: 3
 		},
-		throwable: { speed: 14, damage: 30, landNoise: 8, duration: 0.6 }
+		throwable: { speed: 14, damage: 30, landNoise: 8, sound: 'brick.throw', land: 'brick.land' }
 	},
 	revolver: {
 		id: 'revolver',

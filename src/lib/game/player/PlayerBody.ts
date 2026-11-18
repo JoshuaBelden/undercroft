@@ -7,6 +7,7 @@ import { PLAYER_MODEL } from '#lib/content/player/model.ts';
 import { Animator } from '#lib/game/Animator.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
 import { held } from '#lib/shared/items/inventory.ts';
+import { THROW_DRAW, THROW_FOLLOW } from '#lib/shared/items/weapons.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 
 /** Below this speed (m/s) a standing player is idle. */
@@ -15,6 +16,8 @@ const STILL = 0.2;
 const FALL_PLAY = 1.2;
 /** How far a walk or run cycle may be slowed or hurried to match the ground speed. */
 const RATE_RANGE: [number, number] = [0.4, 1.6];
+/** How much of the attack clip is the arm going back (by eye): a throw holds there while drawn. */
+const WINDUP_PART = 0.4;
 
 /**
  * A player's body: the explorer model, animated from that player's state alone (stance, speed,
@@ -26,7 +29,8 @@ export class PlayerBody {
 	readonly root = new THREE.Group();
 	private animator: Animator | null = null;
 	private disposed = false;
-	/** The hand action's clock last frame: when it goes back, a new swing has begun. */
+	/** The hand action and its clock last frame: a new action, or the clock going back, starts it. */
+	private action = 'none';
 	private actionTime = 0;
 
 	constructor() {
@@ -54,7 +58,8 @@ export class PlayerBody {
 		if (!animator) return;
 		const speed = Math.hypot(state.velocity[0], state.velocity[2]);
 		const w = state.weapon;
-		const began = w.time < this.actionTime;
+		const began = w.action !== this.action || w.time < this.actionTime;
+		this.action = w.action;
 		this.actionTime = w.time;
 
 		let anim: AnimSlot;
@@ -77,15 +82,26 @@ export class PlayerBody {
 		} else if (state.mantle) {
 			anim = 'climb';
 			pace = 1;
-		} else if (w.action === 'swing' || w.action === 'throw') {
+		} else if (w.action === 'swing') {
 			anim = 'melee_attack';
-			const def = ITEMS[held(state.inventory)?.item ?? ''];
-			const seconds =
-				w.action === 'throw'
-					? def?.throwable?.duration
-					: def?.melee && def.melee.windup + def.melee.recovery;
-			if (seconds) animator.setDuration('melee_attack', seconds);
+			const melee = ITEMS[held(state.inventory)?.item ?? '']?.melee;
+			if (melee) animator.setDuration(anim, melee.windup + melee.recovery);
 			animator.play(anim, w.time, began);
+			animator.update(delta);
+			return;
+		} else if (w.action === 'draw') {
+			// The attack's wind-up, drawn out over the draw and held there until they let go.
+			anim = 'melee_attack';
+			animator.setDuration(anim, THROW_DRAW / WINDUP_PART);
+			animator.play(anim, Math.min(w.time, THROW_DRAW), began);
+			animator.update(w.time < THROW_DRAW ? delta : 0);
+			return;
+		} else if (w.action === 'throw') {
+			// The rest of the attack, as the arm comes through.
+			anim = 'melee_attack';
+			const seconds = THROW_FOLLOW / (1 - WINDUP_PART);
+			animator.setDuration(anim, seconds);
+			animator.play(anim, seconds * WINDUP_PART + w.time, began);
 			animator.update(delta);
 			return;
 		} else if (state.swimming) {

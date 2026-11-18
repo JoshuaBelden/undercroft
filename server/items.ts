@@ -187,7 +187,7 @@ export class WorldItems {
 		for (const [id, entry] of this.items) if (entry.stack.item === item) this.items.delete(id);
 	}
 
-	/** Drop in front of a player (from a drop event's origin and look direction). */
+	/** Drop in front of a player (from their eye and look direction): out of the pack. */
 	drop(stack: ItemStack, origin: Vec3, direction: Vec3): void {
 		const ahead: Vec3 = [origin[0] + direction[0] * 0.7, origin[1], origin[2] + direction[2] * 0.7];
 		// Don't drop through a wall.

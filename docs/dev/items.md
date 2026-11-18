@@ -17,7 +17,7 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 | `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread      |
 | `src/lib/shared/items/pickup.ts`    | Which floor item you're looking at (shared by server and client)          |
 | `src/lib/shared/items/types.ts`     | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`                    |
-| `server/combat.ts`                  | Resolves shots, swings, throws and drops; damage and noise                |
+| `server/combat.ts`                  | Resolves shots, swings and throws; damage and noise                       |
 | `server/items.ts`                   | `WorldItems`: bricks scattered, pickups, drops, death drops, throws       |
 | `server/crates.ts`                  | `Crates`: what each loot crate holds, revealing it, who has it open       |
 | `src/lib/shared/map/crates.ts`      | `placeCrates`: which crate markers of a map have a crate                  |
@@ -39,7 +39,7 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 - `flavor`: a line or two for the tooltip. `image`: optional picture id in `static/assets/ui/images` (built by `pnpm asset:images`); without one, slots and the tooltip show the name.
 - `melee`: `damage`, `range` (from the eye), `arc` (half-angle), `windup` (hit lands), `recovery`, `noise` (radius when it hits something), optional `breaksAfter` (bricks).
 - `firearm`: `damage` per pellet, `pellets`, `spread` (hip and aimed cone), `range` and `falloff` (fraction of damage lost by the end of the range), `interval`, `magazine`, `reloadTime`, `ammo` (item id of its rounds), `noise`, `sound` (the shot) and `reloadSound` (played as a reload starts; make it last about `reloadTime`, with the sound's `rate` if needed), `zoom` (the fraction of the field of view left when aimed: revolver 0.6, shotgun 0.7) and `recoil` (`RecoilSpec`: `pitch` and `yaw` throw your view, `rise`, `back` and `settle` jolt the gun in your hands).
-- `throwable`: `speed`, `damage`, `landNoise`, `duration`.
+- `throwable`: `speed`, `damage`, `landNoise`, `sound` (as it leaves the hand) and `land` (where it lands). How long attack is held to draw it back is `THROW_DRAW` (1 s) in `weapons.ts`, the same for every throwable.
 - `heal`: `amount` of sanity and `seconds` to apply (bandages; the rare medkit gives back all of it, `SANITY.max`, in 5 s).
 - `charge`: `volts` put back into the headlamp and `seconds` to swap it in (batteries).
 - `revive: true`: brings a downed player round (smelling salts).
@@ -87,7 +87,7 @@ The rules are all in `src/lib/shared/items/inventory.ts`, and work on `Belonging
 Underground, the `inventory` action (Tab or I, View on the controller) opens `GameMenu`: a **Pack** tab (`PackPanel`, below) and a **Rite** tab (`RitePanel` and Abandon expedition, see [rite.md](rite.md#the-rite-tab)). Click a tab, or press LB/RB with the controller (the menu's `tabs`). The same action, B or Close puts it away. It doesn't pause anything: the server can't pause a co-op game.
 
 - **It opens on the Pack tab.** It only opens while you are down there and on your feet: never while downed, or dead and spectating. Going down closes it.
-- **Hands busy.** While it is open the client sends `reading: true` in its `InputFrame`s, and `handsBusy` (`src/lib/shared/player/simulate.ts`) takes away sprint, interact, attack, aim, reload, drop and `select`: no fighting, using, picking up, climbing out, reviving, swapping or running. Walking, stance and the headlamp still work. The server applies it in `sanitizeFrame`, the client to the frames it predicts with, so they agree and a client can't keep its hands by not using them. The movement keys walk (`LocalPlayer.update`'s `reading`); the controller's left stick stays the menu's, so with a controller you stand still. The look stays put: the pointer is free for the menu.
+- **Hands busy.** While it is open the client sends `reading: true` in its `InputFrame`s, and `handsBusy` (`src/lib/shared/player/simulate.ts`) takes away sprint, interact, attack, aim, reload and `select`: no fighting, using, picking up, climbing out, reviving, swapping or running. Walking, stance and the headlamp still work. The server applies it in `sanitizeFrame`, the client to the frames it predicts with, so they agree and a client can't keep its hands by not using them. The movement keys walk (`LocalPlayer.update`'s `reading`); the controller's left stick stays the menu's, so with a controller you stand still. The look stays put: the pointer is free for the menu.
 - **The tabs share one place:** both panes sit in the same grid cell, the hidden one `inert` and invisible, so the menu is as big as its bigger tab and keeps its size from one to the other. Switching blurs whatever had the focus in the old tab, and the controller starts on the new one where it was last (the menu's `key` is per tab).
 - **Adding a tab:** a name in `MENU_TABS` (`GameMenu.svelte`), when it shows in `tabs`, and its pane in the markup.
 
@@ -109,13 +109,13 @@ Holding `quickUse` opens `QuickWheel` over the game: the six quick-use slots aro
 
 The held item is advanced by `stepWeapon`, called from `stepPlayer`, so it is predicted exactly like movement. `PlayerState.weapon` holds:
 
-- the current `action`: `equip`, `swing`, `shot`, `reload` or `throw`;
+- the current `action`: `equip`, `swing`, `shot`, `reload`, `draw` (a throw being drawn back) or `throw` (it has left the hand);
 - its `time`;
 - `aiming`;
 - a `shots` counter;
 - the previous frame's buttons, for press edges.
 
-`InputFrame` fields: `attack`, `aim`, `reload`, `drop` and `select` (what to take in the hand, as `Inventory.selected`, for one frame; otherwise -1). All of them are off while `reading` (see [the in-game menu](#the-in-game-menu)).
+`InputFrame` fields: `attack`, `aim`, `reload` and `select` (what to take in the hand, as `Inventory.selected`, for one frame; otherwise -1). All of them are off while `reading` (see [the in-game menu](#the-in-game-menu)).
 
 The rules:
 
@@ -123,14 +123,14 @@ The rules:
 - **Zoom:** aiming narrows the camera to `firearm.zoom` of the field of view from the settings, eased in and out with the gun coming up (`ViewModel.zoom()` into `Engine.setZoom`; the viewmodel has its own camera, so the gun isn't distorted). Mouse look is slowed by the same factor (`LocalPlayer.lookScale`), so the view moves as it looks. Only in first person.
 - **Recoil:** your own shot throws your view up by `recoil.pitch` and aside by up to `recoil.yaw` either way (`LocalPlayer.kick`, worked off over about 50 ms). It moves your real aim, which goes to the server with your next frames: you bring it back on target yourself. The shotgun throws about 9 degrees, the revolver about 2. The gun in your hands turns up `recoil.rise` and comes back `recoil.back`, settling over `recoil.settle` seconds.
 - **Melee** swings repeat while attack is held. The hit is decided at `windup`.
-- **Throwables:** aim is the throw (press). One leaves the hand partway through the motion (`spendHeld`).
+- **Throwables** (the knife and the brick, both melee too) are thrown by holding attack: it starts `draw`, and nothing repeats while it is held. Let go once `w.time` reaches `THROW_DRAW` (1 s) and one leaves the hand (`spendHeld`, a `throw` event); `throw` runs `THROW_FOLLOW` (0.3 s) as the arm comes through, then whatever is in the hand now comes up (`equip`). Let go sooner and it swings instead, starting as far into the swing as the draw got (up to `windup`), so a tap hits as soon as it always did. Opening the menu (`reading`), taking something else in hand or becoming unable puts the draw down: no swing, no throw. Aim doesn't throw: it is for guns only.
+- **Dropping** is only from the pack screen (an `InventoryAction`). There is no drop key.
 - **Healing items** (`heal`): holding attack with one in the hand, standing still and hurt, counts `bandaging` up; at `heal.seconds` one is used for `heal.amount`. This is in `stepPlayer` (`updateBandage`), not `stepWeapon`. The client plays `bandage` when one starts (at most once every 2.5 s: the clip runs most of a bandage and isn't cut short if it's interrupted). Moving, letting go or taking something else in the hand resets it.
 - **Batteries** (`charge`): the same, counting `charging` up (`updateCharge`), while the lamp isn't full. At `charge.seconds` one is used and `battery` rises by `charge.volts / lamp.volts` (12 V of the starter lamp's 24 V), never past full. The prompt says "Changing the battery..."; the client plays `battery.charged` when the charge jumps (`lampSounds` in the play page). Batteries are uncommon loot (`CRATE_LOOT`), not sold in the store.
-- **Drop** puts the held stack down in front of you.
 - **Switching** works any time except while downed, and takes `EQUIP_TIME`. The primary and secondary weapons have their own keys; quick-use items come from the wheel.
 - **Not while:** swimming, mantling, crawling, bandaging, changing a battery, reviving or downed. An action in progress is cancelled.
 
-What happened is reported as `SimEvent`s (`shot`, `swing`, `throw`, `drop`, `reloaded`, `empty`):
+What happened is reported as `SimEvent`s (`shot`, `swing`, `throw`, `reloaded`, `empty`):
 
 - **On the server,** `server/combat.ts` resolves them.
 - **On the client,** `LocalPlayer.drainEvents()` gives instant feedback (gunshot, flash, click). Replayed frames during reconciliation don't emit events.
@@ -142,7 +142,7 @@ Pellet spread comes from `pelletDirections(direction, spread, pellets, seed)`. T
 - **Shots:** each pellet is a ray from the eye. It stops at the first wall (`segmentHit`) or creature (`rayVsCapsule` against `CreatureDirector.hitBodies()`). Damage per creature is summed per shot, so a shotgun blast staggers as one hit. Damage loses `falloff` linearly to the end of `range`, and keeps going at that level to 1.5× range. Gunfire calls `creatures.hear(origin, noise, shooter)`.
 - **Swings:** the nearest creature whose body is within `range` and inside the `arc` (widened by the body's angular size up close), with line of sight. A hit, or striking a wall, makes `noise`. Swinging at air is silent. Breakable items wear on every hit and break at `breaksAfter`.
 - **Defense:** a creature's blow lands on what is in the defense slot first (`absorbBlow`, in `CreatureSystem.step`): its shield takes what it has left, and only the rest is taken off sanity. The blow that uses the last of it tears it apart: it leaves the slot and a `break` event plays `defense.torn`. The client plays `player.shielded` (and a small shake) when its shield drops, and shows the shield as a bar over your health (`PartyMember.shield`, your own only). Darkness, seeing things and the manifestation go straight to sanity.
-- **Throws:** `WorldItems.launch` simulates a projectile with gravity in sim-rate steps. It hits a creature (damage, then it drops there) or lands on the world and becomes a floor item. Landing calls `hear` with no source, so creatures go and search the spot: a lure.
+- **Throws:** `WorldItems.launch` simulates a projectile with gravity in sim-rate steps. It hits a creature (damage, then it drops there) or lands on the world and becomes a floor item. Landing calls `hear` with no source, so creatures go and search the spot: a lure (a brick's `landNoise` is 8 m, a knife's only 4).
 - **No friendly fire:** shots and swings only test creatures.
 - **The manifestation** is a target too while it's out (`targets()` adds it, `hurt()` routes id `manifestation` to the Affliction). Hits only damage it while light exposes it; otherwise they slow it. See [affliction.md](affliction.md).
 
@@ -160,7 +160,7 @@ Creatures (see [creatures.md](creatures.md)):
 - **Death:** when a player dies, everything they carried is dropped around where they fell.
 - **On walls:** `WorldItems.mount(stack, position, normal)` hangs an item where it is put, without settling it on a floor (rite hints, see [rite.md](rite.md#in-the-map)). Its snapshot carries `normal`; the client stands it upright against the wall, its thin side along the normal (`WorldItems.ts`, `mounted`). Picking it up works the same at any height.
 
-Each `tick` carries `items`, `projectiles` and `events` (`GameEvent`): shots with their end point, swing results, throws, landings, breaks, reloads, dry clicks, pickups, drops, creature hits and deaths. Clients play sounds and effects for other players from these, and impacts and hits for everyone. Your own gunshot, swing and reload sounds come from prediction instead.
+Each `tick` carries `items`, `projectiles` and `events` (`GameEvent`): shots with their end point, swing results, throws, landings, breaks, reloads, dry clicks, pickups, drops, creature hits and deaths. Clients play sounds and effects for other players from these, and impacts and hits for everyone; a throw and its landing play the item's `throwable.sound` and `land`. Your own gunshot, swing, throw and reload sounds come from prediction instead, and so does the quiet `throw.ready` click (and `throwReady` rumble) when your throw is drawn back all the way.
 
 ## Quest items
 
@@ -213,7 +213,7 @@ The dead are searched like crates: the same 8 slots, loot tables, reveal and loo
 ## Client
 
 - **ViewModel:** drawn in the engine's second pass (`viewScene`/`viewCamera`, depth cleared), so it never clips into walls.
-  - Its motion is procedural, from the predicted `weapon` state: walk bob, equip raise, swing (draw back, strike, settle), recoil (by the gun's `recoil`: the shotgun slams back much harder than the revolver), reload dip, throw, and aiming (moves to `hold.aim`, under the crosshair).
+  - Its motion is procedural, from the predicted `weapon` state: walk bob, equip raise, swing (draw back, strike, settle), recoil (by the gun's `recoil`: the shotgun slams back much harder than the revolver), reload dip, drawing back to throw (through the swing's wind-up, then on back over the shoulder; hidden while `throw` runs: it has left the hand), and aiming (moves to `hold.aim`, under the crosshair).
   - It's lit by a fill light that follows your headlamp output, so in the dark you can barely see it.
   - `flash()` draws your own muzzle flare at `hold.muzzle` and blazes the fill for a moment. It returns false when the viewmodel isn't drawn (over the shoulder, map view), and the flare goes in the world instead.
 - **Shot light costs no light.** The light of a gunshot is the shooter's own headlamp: `Headlamp.flash()` widens its spot to a 66° half-angle, warms it and turns it up to 120 cd for 70 ms, lamp on or off, and it casts real shadows. Every player already has a headlamp in the budget, so shots never add a light, however many people fire. (`RemotePlayers.flash(id)` does it for others.) Your own shot also pulses a faint ambient light in `Effects`, so the room behind you catches a little. Ambient lights are outside the budget.
