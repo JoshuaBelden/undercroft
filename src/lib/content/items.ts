@@ -130,6 +130,23 @@ export interface DefenseSpec {
 	shield: number;
 }
 
+/**
+ * How the arms hold an item: a gun or blade in one hand, a long gun in both, or something small
+ * carried in front. Picks the explorer's holding clip (see docs/dev/player.md#player-model).
+ */
+export type HoldPose = 'oneHand' | 'twoHand' | 'item';
+
+/**
+ * Where an item's model sits in the explorer's right hand, in the hand bone's own frame: an
+ * offset (m) and a rotation (XYZ Euler, radians). Worked out in Blender with
+ * scripts/blender/explorer.py (`grip_numbers`), then tuned with the admin Grip check.
+ */
+export interface GripSpec {
+	pose: HoldPose;
+	offset: [number, number, number];
+	rotation: [number, number, number];
+}
+
 export interface ItemDef {
 	id: string;
 	name: string;
@@ -158,6 +175,12 @@ export interface ItemDef {
 		aim?: [number, number, number];
 		muzzle?: [number, number, number];
 	};
+	/**
+	 * How it is held on an explorer's body (other players, and you over the shoulder): the pose
+	 * of the arms, and where the model sits in the right hand. Items that can't be in the hand
+	 * leave it out, and aren't drawn there.
+	 */
+	grip?: GripSpec;
 	/** How many share a slot. 0: it can't be carried at all (clues). */
 	maxStack: number;
 	/** Weight of one, in kg: everything carried counts toward the load (see CARRY). */
@@ -214,6 +237,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'knife',
 		model: modelUrl('shared/items/knife.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.665, 0.232, 1.181] },
 		maxStack: 1,
 		weight: 0.3,
 		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2 }
@@ -227,6 +251,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'crowbar',
 		model: modelUrl('shared/items/crowbar.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.934, 0.73, 1.052] },
 		maxStack: 1,
 		weight: 2.5,
 		melee: { damage: 40, range: 1.8, arc: 0.6, windup: 0.45, recovery: 0.65, noise: 6 }
@@ -242,6 +267,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'brick',
 		model: modelUrl('shared/items/brick.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'oneHand', offset: [-0.0148, 0.08, -0.0372], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 2.5,
 		melee: {
@@ -265,6 +291,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'revolver',
 		model: modelUrl('shared/items/revolver.glb'),
 		hold: { ...HOLD_RIGHT, aim: [0.06, -0.15, -0.34], muzzle: [0, 0.045, -0.21] },
+		grip: { pose: 'oneHand', offset: [-0.025, 0.07, -0.0223], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 1.1,
 		firearm: {
@@ -298,6 +325,7 @@ export const ITEMS: Record<string, ItemDef> = {
 			aim: [0.07, -0.21, -0.42],
 			muzzle: [0, 0.05, -0.7]
 		},
+		grip: { pose: 'twoHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 3.2,
 		firearm: {
@@ -351,6 +379,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'bandages',
 		model: modelUrl('shared/items/bandage.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'item', offset: [-0.0185, 0.08, -0.0465], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
 		heal: { amount: 25, seconds: 3 }
@@ -366,6 +395,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'medkit',
 		model: modelUrl('shared/items/medkit.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [0, -2.763, -1.571] },
 		maxStack: 2,
 		weight: 0.6,
 		rarity: 'rare',
@@ -381,6 +411,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'battery',
 		model: modelUrl('shared/items/battery.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.15,
 		value: 20,
@@ -396,6 +427,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'smelling_salts',
 		model: modelUrl('shared/items/salts.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
 		revive: true
@@ -410,6 +442,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'chalk',
 		model: modelUrl('shared/items/chalk.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'item', offset: [-0.0111, 0.08, -0.0279], rotation: [1.571, 0, 1.192] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.01,
 		chalk: { marks: 1 }
@@ -426,6 +459,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'rope_pack',
 		model: modelUrl('shared/items/rope_pack.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'item', offset: [-0.0296, 0.08, -0.0743], rotation: [1.571, 0, 2.763] },
 		maxStack: 1,
 		weight: 4,
 		rope: { length: 100 }
@@ -439,6 +473,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'rope_bundle',
 		model: modelUrl('shared/items/rope_bundle.glb'),
 		hold: HOLD_RIGHT,
+		grip: { pose: 'item', offset: [-0.0296, 0.08, -0.0743], rotation: [1.571, 0, 2.763] },
 		maxStack: 1,
 		weight: 1.6,
 		rarity: 'rare',

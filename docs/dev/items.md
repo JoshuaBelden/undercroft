@@ -52,6 +52,8 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 
 `hold` places the model in the viewmodel: `offset` from the camera and `scale`. Firearms also give `aim`, where it moves when aiming down the sights (low and a little right, so it never covers the crosshair; without one, `AIM_OFFSET` in `ViewModel.ts`), and `muzzle`, the barrel's end in the model's own space (where the flare is drawn). `model` points at `modelUrl('shared/items/<id>.glb')` (built into `static/assets/shared/items/<id>.<hash>.glb`). With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).
 
+`grip` is how it is held on an explorer's body (other players, and you over the shoulder; see [player.md](player.md#holding-and-using-items)): `pose` picks how the arms hold it (`oneHand`, `twoHand` or `item`, a small thing carried in front) and `offset` (m) and `rotation` (XYZ Euler, radians) place the model in the right hand bone's own frame. Every weapon and quick-use item has one (a test checks); without one an item isn't drawn in the hand. The numbers come from Blender: `GRIPS` in `scripts/blender/explorer.py` sets each item in the hand by eye (`explorer.show_item(id)`), and `explorer.grip_numbers()` prints them in the frame three.js uses. Check them in the game with the admin **Grip check** (Items tab).
+
 The first defense item, the `coat`, is a stand-in so the slot has something to hold.
 
 `chalk` (quick-use, with a model) and `candle` (backpack, unlit, a placeholder box) are rite supplies, sold in the store and found in crates. Chalk draws marks on walls (`chalk: { marks }`, see [marks.md](marks.md)). Candles do nothing in the hand yet: lighting them comes with light sources ([#26](https://github.com/JoshuaBelden/undercroft/issues/26)).
@@ -241,7 +243,8 @@ The dead are searched like crates: the same 8 slots, loot tables, reveal and loo
 
 1. Add a builder to `scripts/blender/items.py` (origin at the grip, forward +Y, up +Z) and list it in `ITEMS`. Run `items.build_all()` and `items.export_all()` in Blender, then `pnpm asset:build`.
 2. Add an `ItemDef` to `ITEMS` in `src/lib/content/items.ts`, with its `category`, `maxStack`, `flavor`, `weight` and specs. For a picture, put a PNG, JPEG or WebP in `art/images`, run `pnpm asset:images` and set `image`.
-3. New behaviour (an item kind that does something new) goes in `stepWeapon` (timing, events) and `server/combat.ts` (what it does). Keep it keyed by def fields, not item ids.
+3. If it can be in the hand (a weapon or quick-use item), give it a `grip`: add it to `GRIPS` in `scripts/blender/explorer.py`, check it with `explorer.show_item(id)`, copy what `explorer.grip_numbers()` prints, and look at it with the admin Grip check.
+4. New behaviour (an item kind that does something new) goes in `stepWeapon` (timing, events) and `server/combat.ts` (what it does). Keep it keyed by def fields, not item ids.
 
 ## Admin
 

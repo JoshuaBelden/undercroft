@@ -36,6 +36,7 @@
 	import { keyPrompt } from '#lib/game/play/prompt.ts';
 	import { useAlertTargets } from '#lib/game/alerts.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
+	import { GripCheck, type GripPose } from '#lib/game/player/GripCheck.ts';
 	import { PlayerBody } from '#lib/game/player/PlayerBody.ts';
 	import { LocalPlayer } from '#lib/game/player/LocalPlayer.ts';
 	import { PlayerAudio } from '#lib/game/player/PlayerAudio.ts';
@@ -130,6 +131,9 @@
 	let markers = $state(false);
 	/** Dev: teammates' gamer tags drawn over the rock. */
 	let tagsThroughWalls = $state(false);
+	/** Dev: the Grip check's item (null: off) and what it does with it. */
+	let gripItem = $state<string | null>(null);
+	let gripPose = $state<GripPose>('hold');
 	let spawned = $state(false);
 	/** How far under the water the view is, 0..1 (the overlay follows the fog). */
 	let underwater = $state(0);
@@ -214,6 +218,10 @@
 	let cameraToBody = (): void => {};
 	let setMarkers = (enabled: boolean): void => {
 		markers = enabled;
+	};
+	let setGripCheck = (item: string | null, pose: GripPose): void => {
+		gripItem = item;
+		gripPose = pose;
 	};
 	let sendAdmin = (command: AdminCommand): void => {
 		void command;
@@ -326,6 +334,15 @@
 		const body = new PlayerBody();
 		body.root.visible = false;
 		engine.scene.add(body.root);
+		/** Dev: the Grip check's test explorer, in front of you (admin panel, Items). */
+		const gripCheck = new GripCheck();
+		engine.scene.add(gripCheck.root);
+		setGripCheck = (item, pose) => {
+			gripItem = item;
+			gripPose = pose;
+			const feet = player.feetPosition();
+			if (feet) gripCheck.show(item, pose, feet, player.look().yaw);
+		};
 		const shoulderOffset = new THREE.Vector3();
 		applyGraphics = () => {
 			engine.applyGraphics(settings.graphics);
@@ -492,6 +509,7 @@
 			map,
 			creatures,
 			viewModel,
+			body,
 			head,
 			headlamp,
 			ui
@@ -975,6 +993,7 @@
 				body.root.position.set(feet[0], feet[1], feet[2]);
 				body.update(delta, state, player.look().yaw);
 			}
+			gripCheck.update(delta);
 			// With your body drawn, the lamp goes out in front of its head.
 			headlamp.setForward(shoulder ? PLAYER_MODEL.lampForward : 0);
 			headlamp.update(state);
@@ -1145,6 +1164,7 @@
 			player.dispose();
 			headlamp.dispose();
 			body.dispose();
+			gripCheck.dispose();
 			remote.dispose();
 			orbit.dispose();
 			debugGrid.dispose();
@@ -1343,6 +1363,8 @@
 		{gridView}
 		{markers}
 		{tagsThroughWalls}
+		{gripItem}
+		{gripPose}
 		meter={features?.affliction.meter ?? null}
 		omen={features?.affliction.omen ?? 0}
 		onadmin={(command) => sendAdmin(command)}
@@ -1363,6 +1385,7 @@
 		}}
 		onmarkers={(enabled) => setMarkers(enabled)}
 		ontagsthroughwalls={(enabled) => (tagsThroughWalls = enabled)}
+		ongripcheck={(item, pose) => setGripCheck(item, pose)}
 	/>
 {/if}
 

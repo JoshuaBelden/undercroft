@@ -26,7 +26,7 @@ export class Combat implements PlayFeature {
 
 	/** Instant feedback for what the local (predicted) simulation did. */
 	self(state: PlayerState): void {
-		const { sounds, player, viewModel, head, headlamp } = this.ctx;
+		const { sounds, player, viewModel, body, head, headlamp } = this.ctx;
 		for (const event of player.drainEvents()) {
 			if (event.kind === 'shot') {
 				const gun = ITEMS[event.item]?.firearm;
@@ -35,9 +35,11 @@ export class Combat implements PlayFeature {
 				if (gun) player.kick(gun.recoil.pitch, (Math.random() * 2 - 1) * gun.recoil.yaw);
 				const heavy = (gun?.pellets ?? 1) > 1;
 				rumble(heavy ? 'heavyShot' : 'shot');
-				// First person, the flare is on the gun in your hands; otherwise in the world.
+				// First person, the flare is on the gun in your hands; over the shoulder, at the
+				// barrel of the gun your body holds; otherwise just in front of your eyes.
 				const drawn = viewModel.flash(heavy);
-				this.effects.shot(ViewModel.muzzle(head, this.muzzle), event.direction, {
+				const at = (!drawn && body.muzzle(this.muzzle)) || ViewModel.muzzle(head, this.muzzle);
+				this.effects.shot(at, event.direction, {
 					flare: !drawn,
 					own: true,
 					heavy
@@ -82,9 +84,13 @@ export class Combat implements PlayFeature {
 						event.end[1] - event.origin[1],
 						event.end[2] - event.origin[2]
 					];
-					// Out in front of their eyes, near where their gun is.
+					// From the barrel of the gun in their hands; until it is drawn, out in front of
+					// their eyes, near where it would be.
 					const length = Math.hypot(...toward) || 1;
-					const at = event.origin.map((v, i) => v + (toward[i] / length) * 0.6) as Vec3;
+					const barrel = remote.muzzle(event.player, this.muzzle);
+					const at: Vec3 = barrel
+						? [barrel.x, barrel.y, barrel.z]
+						: (event.origin.map((v, i) => v + (toward[i] / length) * 0.6) as Vec3);
 					this.effects.shot(at, toward, {
 						flare: true,
 						own: false,

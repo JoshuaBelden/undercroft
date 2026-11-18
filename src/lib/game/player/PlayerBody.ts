@@ -6,8 +6,11 @@ import { CLIMB, FALL, MOVEMENT } from '#lib/content/player/movement.ts';
 import { PLAYER_MODEL } from '#lib/content/player/model.ts';
 import { Animator } from '#lib/game/Animator.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
+import { itemModel } from '#lib/game/items/itemModel.ts';
+import { UpperBody } from '#lib/game/UpperBody.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
+import { upperBodyPose } from './pose.ts';
 
 /** Below this speed (m/s) a standing player is idle. */
 const STILL = 0.2;
@@ -20,11 +23,22 @@ const RATE_RANGE: [number, number] = [0.4, 1.6];
  * A player's body: the explorer model, animated from that player's state alone (stance, speed,
  * what the hand is doing), so it needs nothing extra from the server. Used for other players and
  * for yourself in the over-the-shoulder view. The owner places `root` at the feet.
- * See docs/dev/player.md (Player model).
+ *
+ * The legs (and the whole body, for a swing, a fall or a climb) play a full-body clip; over it
+ * `UpperBody` poses the arms for what is in the hand (`upperBodyPose`), and the item's model
+ * hangs from the right hand bone at its `grip`. See docs/dev/player.md (Player model).
  */
 export class PlayerBody {
 	readonly root = new THREE.Group();
 	private animator: Animator | null = null;
+	private upper: UpperBody | null = null;
+	/** Hangs from the right hand bone at the held item's grip; holds its model. */
+	private grip = new THREE.Group();
+	private item: string | null = null;
+	private model: THREE.Object3D | null = null;
+	private loading = 0;
+	/** Shots fired, as of last frame: when it changes, another shot has begun. */
+	private shots = -1;
 	private disposed = false;
 	/** The hand action's clock last frame: when it goes back, a new swing has begun. */
 	private actionTime = 0;
@@ -44,7 +58,11 @@ export class PlayerBody {
 			});
 			this.root.add(scene);
 			this.animator = new Animator(scene, clips, PLAYER_MODEL.animations);
+			this.upper = new UpperBody(scene, clips, PLAYER_MODEL.upper);
+			scene.getObjectByName(PLAYER_MODEL.hand)?.add(this.grip);
 		});
+		this.grip.name = 'held-item';
+		this.grip.visible = false;
 	}
 
 	/** Face `yaw` and animate for this state. */
@@ -52,6 +70,54 @@ export class PlayerBody {
 		this.root.rotation.y = yaw;
 		const animator = this.animator;
 		if (!animator) return;
+		this.full(delta, state, animator);
+		const shot = state.weapon.action === 'shot' && state.weapon.shots !== this.shots;
+		this.shots = state.weapon.shots;
+		this.upper?.play(upperBodyPose(state), shot);
+		this.upper?.apply(delta);
+		this.hold(state);
+	}
+
+	/**
+	 * Where the held gun's muzzle is in the world (its `hold.muzzle`), for the flare and smoke of
+	 * a shot; null when no gun is drawn in the hand.
+	 */
+	muzzle(target: THREE.Vector3): THREE.Vector3 | null {
+		const def = this.item ? ITEMS[this.item] : undefined;
+		const at = def?.firearm && def.hold.muzzle;
+		if (!at || !this.model || !this.grip.visible || !this.root.visible) return null;
+		this.model.updateWorldMatrix(true, false);
+		return this.model.localToWorld(target.set(...at));
+	}
+
+	/** The held item in the hand: swapped when it changes, put away while the hands are busy. */
+	private hold(state: PlayerState): void {
+		const stack = held(state.inventory);
+		const id = stack && ITEMS[stack.item]?.grip ? stack.item : null;
+		if (id !== this.item) this.setItem(id);
+		this.grip.visible =
+			!!this.model && !state.dead && !state.downed && !state.climbing && !state.swimming;
+	}
+
+	private setItem(id: string | null): void {
+		this.item = id;
+		if (this.model) this.grip.remove(this.model);
+		this.model = null;
+		const def = id ? ITEMS[id] : undefined;
+		const grip = def?.grip;
+		if (!def || !grip) return;
+		this.grip.position.set(...grip.offset);
+		this.grip.rotation.set(...grip.rotation);
+		const token = ++this.loading;
+		void itemModel(def).then((model) => {
+			if (token !== this.loading || this.disposed) return;
+			this.model = model;
+			this.grip.add(model);
+		});
+	}
+
+	/** The full-body clip: stance, speed, a swing, a fall, a climb. */
+	private full(delta: number, state: PlayerState, animator: Animator): void {
 		const speed = Math.hypot(state.velocity[0], state.velocity[2]);
 		const w = state.weapon;
 		const began = w.time < this.actionTime;
@@ -124,6 +190,7 @@ export class PlayerBody {
 
 	dispose(): void {
 		this.disposed = true;
+		this.setItem(null);
 		this.animator?.dispose();
 		this.root.removeFromParent();
 	}

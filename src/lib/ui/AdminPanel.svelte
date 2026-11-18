@@ -26,6 +26,7 @@
 	import type { LobbyStatus, SteamStatus } from '#lib/shared/desktop.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { raise } from '#lib/game/alerts.svelte.ts';
+	import { GRIP_ITEMS, GRIP_POSES, type GripPose } from '#lib/game/player/GripCheck.ts';
 	import { devMode } from '#lib/dev.ts';
 	import { device, padFamily } from '#lib/game/input/device.svelte.ts';
 	import { canVibrate, connectedPads, familyOf, playRumble } from '#lib/game/input/gamepad.ts';
@@ -58,6 +59,9 @@
 		markers: boolean;
 		/** Teammates' gamer tags drawn over the rock. */
 		tagsThroughWalls: boolean;
+		/** The Grip check's item (null: off) and what the test explorer does with it. */
+		gripItem: string | null;
+		gripPose: GripPose;
 		/** Affliction meter 0..1 (dev only) and omen stage. */
 		meter: number | null;
 		omen: number;
@@ -71,6 +75,7 @@
 		oncameratobody: () => void;
 		onmarkers: (enabled: boolean) => void;
 		ontagsthroughwalls: (enabled: boolean) => void;
+		ongripcheck: (item: string | null, pose: GripPose) => void;
 	}
 
 	let {
@@ -86,6 +91,8 @@
 		gridView,
 		markers,
 		tagsThroughWalls,
+		gripItem,
+		gripPose,
 		meter,
 		omen,
 		onadmin,
@@ -95,7 +102,8 @@
 		onbodytocamera,
 		oncameratobody,
 		onmarkers,
-		ontagsthroughwalls
+		ontagsthroughwalls,
+		ongripcheck
 	}: Props = $props();
 
 	let group = $state<Group>(lastGroup);
@@ -170,6 +178,18 @@
 	function stepItem(by: number): void {
 		const index = itemIds.indexOf(giveItem);
 		giveItem = itemIds[(index + by + itemIds.length) % itemIds.length];
+	}
+
+	/** The Grip check steps through Off and every item that can be in the hand. */
+	function stepGrip(by: number): void {
+		const options = [null, ...GRIP_ITEMS];
+		const index = options.indexOf(gripItem);
+		ongripcheck(options[(index + by + options.length) % options.length], gripPose);
+	}
+
+	function stepGripPose(by: number): void {
+		const index = GRIP_POSES.indexOf(gripPose);
+		ongripcheck(gripItem, GRIP_POSES[(index + by + GRIP_POSES.length) % GRIP_POSES.length]);
 	}
 
 	const toggles: {
@@ -386,6 +406,19 @@
 			{@render action('Refill ammo', () => onadmin({ kind: 'refillAmmo' }))}
 			{@render action('Reset crates', () => onadmin({ kind: 'resetCrates' }))}
 			{@render action('Clear chalk marks', () => onadmin({ kind: 'clearMarks' }))}
+			<StepperField
+				label="Grip check"
+				text={gripItem ? (ITEMS[gripItem]?.name ?? gripItem) : 'Off'}
+				onstep={stepGrip}
+				hint="A test explorer stands in front of you holding this item, as a teammate would (only you see it). Each item's grip is in items.ts."
+			/>
+			<StepperField
+				label="Grip pose"
+				text={gripPose[0].toUpperCase() + gripPose.slice(1)}
+				disabled={!gripItem}
+				onstep={stepGripPose}
+				hint="Hold it; fire and reload (guns); use it (a bandage, a battery) or swing it."
+			/>
 		{:else if group === 'Affliction'}
 			{@render info(
 				'Meter',
