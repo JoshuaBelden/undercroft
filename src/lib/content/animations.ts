@@ -20,6 +20,7 @@ export const ANIM_SLOTS = [
 	'fall',
 	'crouch',
 	'crawl',
+	'kneel',
 	'take_damage',
 	'die'
 ] as const;
@@ -49,7 +50,8 @@ export const LOOPING_ANIMS: ReadonlySet<AnimSlot> = new Set([
 	'rope_idle',
 	'rope_climb',
 	'crouch',
-	'crawl'
+	'crawl',
+	'kneel'
 ]);
 
 /**
@@ -71,9 +73,39 @@ export const ANIM_FALLBACKS: Record<AnimSlot, AnimSlot[]> = {
 	fall: ['take_damage'],
 	crouch: ['walking'],
 	crawl: ['crouch', 'walking'],
+	// Down on one knee, working at something on the floor (a medkit).
+	kneel: ['crouch'],
 	take_damage: [],
 	die: []
 };
+
+/**
+ * Upper-body slots: clips that pose only the arms (and hands), played over whatever the legs are
+ * doing (see `UpperBody` and docs/dev/player.md#player-model). Holding something, firing it,
+ * reloading it and using it. A clip needn't key both arms: an arm it leaves alone follows the
+ * full-body clip underneath.
+ */
+export const UPPER_SLOTS = [
+	'hold_one_hand',
+	'hold_two_hand',
+	'hold_item',
+	'fire_one_hand',
+	'fire_two_hand',
+	'reload',
+	'use_bandage',
+	'use_battery'
+] as const;
+export type UpperSlot = (typeof UPPER_SLOTS)[number];
+
+/** A model's upper-body clips by slot. A slot it has no clip for leaves the arms alone. */
+export type UpperMap = Partial<Record<UpperSlot, AnimClip>>;
+
+/** Upper-body slots that play once (and hold); the rest repeat. */
+export const UPPER_ONCE: ReadonlySet<UpperSlot> = new Set([
+	'fire_one_hand',
+	'fire_two_hand',
+	'reload'
+]);
 
 /** The slot a model will actually play for `anim`: itself, or its first mapped fallback. */
 export function resolveAnim(map: AnimationMap, anim: AnimSlot): AnimSlot | null {

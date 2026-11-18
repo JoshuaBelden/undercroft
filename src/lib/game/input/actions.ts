@@ -35,7 +35,7 @@ export const ACTIONS = {
 	},
 	// Held with a knife or brick, it draws it back: let go once it is drawn to throw it.
 	attack: { label: 'Attack / fire / use (hold) / throw', category: 'Items', defaults: ['Mouse0'] },
-	aim: { label: 'Aim (hold)', category: 'Items', defaults: ['Mouse2'] },
+	aim: { label: 'Aim (hold) / use on a teammate (hold)', category: 'Items', defaults: ['Mouse2'] },
 	reload: { label: 'Reload', category: 'Items', defaults: ['KeyR'] },
 	primaryWeapon: { label: 'Primary weapon', category: 'Items', defaults: ['Digit1'] },
 	secondaryWeapon: { label: 'Secondary weapon', category: 'Items', defaults: ['Digit2'] },
@@ -173,7 +173,7 @@ export function isPadCode(code: string): boolean {
 }
 
 /** The three main mouse buttons, by name; side buttons stay numbered (Mouse 4, Mouse 5). */
-const MOUSE_LABELS: Record<string, string> = { Mouse0: 'MLB', Mouse1: 'MMB', Mouse2: 'MRB' };
+const MOUSE_LABELS: Record<string, string> = { Mouse0: 'LMB', Mouse1: 'MMB', Mouse2: 'RMB' };
 
 /**
  * Human-readable label for a binding code, e.g. 'KeyW' -> 'W', 'PadA' -> 'A' (or 'Cross' with

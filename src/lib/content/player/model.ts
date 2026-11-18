@@ -1,4 +1,4 @@
-import type { AnimationMap } from '../animations.ts';
+import type { AnimationMap, UpperMap } from '../animations.ts';
 import { modelUrl } from '../models.ts';
 
 /**
@@ -10,6 +10,10 @@ export interface PlayerModelDef {
 	yawOffset: number;
 	/** The model's animation map: its clip names by standard slot. */
 	animations: AnimationMap;
+	/** Upper-body clips (holding, firing, reloading, using), played over the legs' clip. */
+	upper: UpperMap;
+	/** The bone the held item hangs from (three.js drops the ':' from Mixamo's names). */
+	hand: string;
 	/**
 	 * How far in front of the eye point (m) the headlamp sits when the body is drawn. The model's
 	 * head is ahead of the eye point and leans further when it runs; a lamp left at the eye point
@@ -22,8 +26,8 @@ export const PLAYER_MODEL: PlayerModelDef = {
 	model: modelUrl('shared/player/explorer.glb'),
 	yawOffset: Math.PI,
 	lampForward: 0.45,
-	// The model has no idle, jump, ledge-climb or gun clip. Also in the file and unused:
-	// 'Gun_Hold_Left_Turn', 'Left_Jab_from_Guard' and 'Cautious_Crouch_Walk_Right_inplace'.
+	// The model has no idle, jump, ledge-climb or dodge clip (holding and using items is in
+	// `upper`). Every clip in the file is used.
 	animations: {
 		// No idle clip yet: the walk's first frame (feet passing, nearly upright), held.
 		idle: { clip: 'Walking', speed: 0 },
@@ -39,11 +43,26 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		fall: { clip: 'Climb_Attempt_and_Fall_5' },
 		// Stretched to the held weapon's swing.
 		melee_attack: { clip: 'Heavy_Hammer_Swing' },
-		// Nothing plays these two yet.
-		dodge: { clip: 'Block5' },
-		take_damage: { clip: 'Face_Punch_Reaction_1' },
+		// Down on the right knee, working at a medkit on the floor in front (hand-keyed, like `upper`).
+		kneel: { clip: 'Kneel_Medkit' },
+		// Struck (see PlayerBody's flinch): only the punch landing and the twist away from it. The
+		// clip squares up in a guard first, and doubles over and recovers after.
+		take_damage: { clip: 'Face_Punch_Reaction_1', start: 2.1, end: 2.5 },
 		die: { clip: 'Shot_and_Slow_Fall_Backward', speed: 1.5 }
-	}
+	},
+	// Hand-keyed in art/blender/Explorer.blend (scripts/blender/explorer.py). Reloading is stretched
+	// to the gun's reload time; the rest play at their own pace.
+	upper: {
+		hold_one_hand: { clip: 'Hold_One_Hand' },
+		hold_two_hand: { clip: 'Hold_Two_Hand' },
+		hold_item: { clip: 'Hold_Item' },
+		fire_one_hand: { clip: 'Fire_One_Hand' },
+		fire_two_hand: { clip: 'Fire_Two_Hand' },
+		reload: { clip: 'Reload' },
+		use_bandage: { clip: 'Use_Bandage' },
+		use_battery: { clip: 'Use_Battery' }
+	},
+	hand: 'mixamorigRightHand'
 };
 
 /** Over-the-shoulder camera: where it sits from the eye, in the look frame (m). */

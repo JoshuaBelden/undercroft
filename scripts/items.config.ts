@@ -29,8 +29,8 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	shotgun: { forward: '-x', up: '+y', length: 1.0, grip: [0.3, 0.5] },
 	// Muzzle at -X, grip hanging down at +X.
 	revolver: { forward: '-x', up: '+y', length: 0.26, grip: [0.2, 0.55] },
-	// Lies flat: blade toward -X, spine toward +Z.
-	knife: { forward: '-x', up: '+z', length: 0.3, grip: [0.3, 0.5] },
+	// Lies flat: blade toward -X, edge toward +Z (so its top, the spine, is -Z).
+	knife: { forward: '-x', up: '-z', length: 0.3, grip: [0.3, 0.5] },
 	// Stands on end: hook at +Y, curling toward +X. Held with the claw curling down, so its top is
 	// -X; the grip is measured from that bottom, so 0.72 is the same spot on the shaft as before.
 	crowbar: { forward: '+y', up: '-x', length: 0.78, grip: [0.29, 0.72] },

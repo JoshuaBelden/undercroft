@@ -11,6 +11,7 @@ import type { Vec3 } from '#lib/shared/map/types.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import { clonePlayerState, eyeHeight, handsBusy, stepPlayer } from '#lib/shared/player/simulate.ts';
 import type { ClimberSpot } from '#lib/shared/player/climb.ts';
+import type { TeammateSpot } from '#lib/shared/player/tend.ts';
 import {
 	HAND,
 	type HeadlampMode,
@@ -119,6 +120,8 @@ export class LocalPlayer {
 	 */
 	private sprintBy: InputDevice | null = null;
 	private climbers: ClimberSpot[] = [];
+	/** Teammates on their feet, to use what is in the hand on (see setTeammates). */
+	private teammates: TeammateSpot[] = [];
 	/** Stance pressed on a rope: let go in the next frame. */
 	private letGo = false;
 	/** Hobbled: how much the limp shows (eases in and out, 0..1) and where in the step it is. */
@@ -285,6 +288,14 @@ export class LocalPlayer {
 		this.climbers = spots;
 	}
 
+	/**
+	 * Teammates on their feet (from the latest snapshots), so prediction tends the one the server
+	 * will. The play page's Tend feature sets it each frame.
+	 */
+	setTeammates(spots: TeammateSpot[]): void {
+		this.teammates = spots;
+	}
+
 	/** The collision world being predicted against (null while not in an expedition). */
 	get collision(): CollisionWorld | null {
 		return this.world;
@@ -324,7 +335,17 @@ export class LocalPlayer {
 		const corrected = clonePlayerState(snapshot.state);
 		this.pending = this.pending.filter((frame) => frame.seq > snapshot.ack);
 		for (const frame of this.pending) {
-			stepPlayer(corrected, frame, this.world, DT, MOVEMENT, DEFAULT_HEADLAMP, [], this.climbers);
+			stepPlayer(
+				corrected,
+				frame,
+				this.world,
+				DT,
+				MOVEMENT,
+				DEFAULT_HEADLAMP,
+				[],
+				this.climbers,
+				this.teammates
+			);
 		}
 		const old = this.state.position;
 		const error: Vec3 = [
@@ -391,7 +412,17 @@ export class LocalPlayer {
 			steps++;
 			const frame = this.sample(active, reading);
 			this.previous = clonePlayerState(state);
-			stepPlayer(state, frame, world, DT, MOVEMENT, DEFAULT_HEADLAMP, this.events, this.climbers);
+			stepPlayer(
+				state,
+				frame,
+				world,
+				DT,
+				MOVEMENT,
+				DEFAULT_HEADLAMP,
+				this.events,
+				this.climbers,
+				this.teammates
+			);
 			this.pending.push(frame);
 			this.outbox.push(frame);
 		}

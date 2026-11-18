@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { ITEMS } from '#lib/content/items.ts';
-import { loadModel } from '#lib/game/assets.ts';
 import { flashStrength, SteadyLight } from '#lib/game/flashing.ts';
 import { createFlare } from './flare.ts';
+import { itemModel } from './itemModel.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import { EQUIP_TIME, THROW_DRAW } from '#lib/shared/items/weapons.ts';
 import { headlampOutput } from '#lib/shared/player/headlamp.ts';
@@ -200,29 +200,13 @@ export class ViewModel {
 		const [mx, my, mz] = def.hold.muzzle ?? [0, 0, -0.25];
 		this.flare.mesh.position.set(mx, my, mz - 0.03).multiplyScalar(def.hold.scale);
 		const token = ++this.loading;
-		const ready = (model: THREE.Object3D) => {
+		void itemModel(def).then((model) => {
 			if (token !== this.loading) return;
 			model.scale.setScalar(def.hold.scale);
-			model.traverse((node) => {
-				if (node instanceof THREE.Mesh) {
-					node.castShadow = false;
-					node.receiveShadow = false;
-					node.frustumCulled = false;
-				}
-			});
 			this.model = model;
 			this.pivot.add(model);
-		};
-		if (def.model) void loadModel(def.model).then(ready, () => ready(placeholder()));
-		else ready(placeholder());
+		});
 	}
-}
-
-function placeholder(): THREE.Object3D {
-	return new THREE.Mesh(
-		new THREE.BoxGeometry(0.04, 0.04, 0.2),
-		new THREE.MeshStandardMaterial({ color: 0x555555 })
-	);
 }
 
 function easeOut(t: number): number {

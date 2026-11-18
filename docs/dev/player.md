@@ -193,6 +193,8 @@ Every player is drawn with the explorer model (`PLAYER_MODEL` in `src/lib/conten
 | ------------------------------- | ---------------- | ------------------------------------------------ |
 | Downed or dead                  | `die`            | plays once, then holds                           |
 | Mantling                        | `climb`          | no clip: falls back to the walk                  |
+| Struck (0.4 s after a blow)     | `take_damage`    | plays once, from the start                       |
+| Using a medkit on yourself      | `kneel`          | loops: down on one knee, working at the kit      |
 | Swinging or throwing            | `melee_attack`   | stretched to the item's swing or throw           |
 | Swimming                        | `crawl`          | ground speed / swim speed                        |
 | Crouched or crawling            | `crouch`/`crawl` | ground speed / stance speed; stops when you stop |
@@ -202,22 +204,46 @@ Every player is drawn with the explorer model (`PLAYER_MODEL` in `src/lib/conten
 
 The explorer's map:
 
-| Slot           | Clip                           | Notes                                             |
-| -------------- | ------------------------------ | ------------------------------------------------- |
-| `idle`         | `Walking`, held at frame 0     | a stand-in: the model has no idle clip            |
-| `walking`      | `Walking`                      |                                                   |
-| `running`      | `Running`                      |                                                   |
-| `crouch`       | `Cautious_Crouch_Walk_Forward` |                                                   |
-| `crawl`        | `Crawl_and_Look_Back`          | the first 2.1 s only; the rest stops to look back |
-| `melee_attack` | `Heavy_Hammer_Swing`           |                                                   |
-| `dodge`        | `Block5`                       | mapped, nothing plays it yet                      |
-| `take_damage`  | `Face_Punch_Reaction_1`        | mapped, nothing plays it yet                      |
-| `die`          | `Shot_and_Slow_Fall_Backward`  |                                                   |
+| Slot           | Clip                           | Notes                                                  |
+| -------------- | ------------------------------ | ------------------------------------------------------ |
+| `idle`         | `Walking`, held at frame 0     | a stand-in: the model has no idle clip                 |
+| `walking`      | `Walking`                      |                                                        |
+| `running`      | `Running`                      |                                                        |
+| `crouch`       | `Cautious_Crouch_Walk_Forward` |                                                        |
+| `crawl`        | `Crawl_and_Look_Back`          | the first 2.1 s only; the rest stops to look back      |
+| `melee_attack` | `Heavy_Hammer_Swing`           |                                                        |
+| `kneel`        | `Kneel_Medkit`                 | hand-keyed, whole body (`scripts/blender/explorer.py`) |
+| `take_damage`  | `Face_Punch_Reaction_1`        | 2.1 to 2.5 s only: the punch landing, the twist        |
+| `die`          | `Shot_and_Slow_Fall_Backward`  |                                                        |
 
-Not yet done:
+**Kneeling at a medkit.** Using an item with `heal.kneel` (the medkit) on yourself crouches you in the shared step (`kneeling`), and your body plays `kneel`: down on the right knee, the left foot planted, both hands working at the kit, which is taken out of the hand and set on the floor in front of the kneeling knee (`FLOOR_SPOT` in `PlayerBody`, its long side toward them) until it is done or let go. The arms are part of the clip, so no upper-body pose plays meanwhile.
 
-- Nothing is drawn in the body's hand, and firing a gun and reloading have no animation (the model has no clip for them).
-- The body doesn't cast shadows. The lamp is inside the head, so a shadow-casting body would block its own lamp, and Three.js can't exempt one light.
+**Flinching.** A drop of more than 3 sanity in one frame is a blow (a creature's hit, a hard fall), the same test as the HUD's hurt flash. `PlayerBody` then plays `take_damage` for 0.4 s (`FLINCH`) over whatever they were doing, a swing included, with the arms in it too (no upper-body pose meanwhile). Not while down, on a rope, falling, mantling or swimming. The darkness's slow drain never sets it off. Every clip in the file is used: nothing maps `dodge`.
+
+The body doesn't cast shadows. The lamp is inside the head, so a shadow-casting body would block its own lamp, and Three.js can't exempt one light.
+
+### Holding and using items
+
+What is in a player's hand shows on their body: the item's model in the right hand, the arms posed for it, and using it plays on the arms.
+
+**The item in the hand.** `PlayerBody` hangs a group from the right hand bone (`PLAYER_MODEL.hand`, `mixamorigRightHand`: three.js drops the `:` from Mixamo's bone names) and puts the held item's model in it at the item's `grip` (`offset` and `rotation` in the hand bone's frame, in `src/lib/content/items.ts`; see [items.md](items.md#data)). It swaps when the held item changes, and is put away while the player is down, dead, on a rope or swimming. An item without a `grip` isn't drawn. The model comes from `itemModel` (`src/lib/game/items/itemModel.ts`), shared with the viewmodel.
+
+**Upper-body poses.** The legs keep playing the full-body clip above. Over it, `UpperBody` (`src/lib/game/UpperBody.ts`) plays clips that turn only arm and hand bones. Each frame, after the full-body clip has posed the skeleton, every bone an upper clip turns is slerped from that pose toward the clip's, so walking, running and crouching need no clip per hold. A bone the clip leaves alone (the free arm of a one-handed hold) follows the legs' clip. Poses fade in and out over 0.2 s; a shot or reload over 0.05 s, so the kick isn't lost. `upperBodyPose(state)` (`src/lib/game/player/pose.ts`) picks the slot from the state alone:
+
+| State                                                                                                                 | Upper slot                        | Clip                                          |
+| --------------------------------------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------- |
+| Down, dead, on a rope, mantling, swimming, crawling, kneeling at a medkit, swinging, drawing back a throw or throwing | none: the full-body clip          |                                               |
+| Bandaging yourself, or tending a teammate with a heal item                                                            | `use_bandage`                     | `Use_Bandage` (loops)                         |
+| Changing your battery, or a teammate's                                                                                | `use_battery`                     | `Use_Battery` (loops)                         |
+| A gun firing (each new shot, by `weapon.shots`, restarts it)                                                          | `fire_one_hand` / `fire_two_hand` | `Fire_One_Hand` / `Fire_Two_Hand`             |
+| A gun reloading                                                                                                       | `reload`                          | `Reload`, stretched to its `reloadTime`       |
+| Anything else in the hand, by its `grip.pose` (`oneHand`, `twoHand`, `item`)                                          | `hold_one_hand` and so on         | `Hold_One_Hand`, `Hold_Two_Hand`, `Hold_Item` |
+
+The slots are `UPPER_SLOTS` in `src/lib/content/animations.ts`, mapped to clips in `PLAYER_MODEL.upper`. A swing or throw keeps the full-body `melee_attack`.
+
+**The clips** are hand-keyed in `art/blender/Explorer.blend` by `scripts/blender/explorer.py` and merged into the explorer at build time (see [asset-pipeline.md](asset-pipeline.md#the-explorer)). Each key there gives where each wrist goes and which way the hand faces; a temporary IK chain solves the arm and the result is baked to rotation keys, fingers curled by a `grip` amount. To change a pose, edit `CLIPS` there, run `explorer.build_all()` and `explorer.export()` in Blender, then `pnpm asset:build`. A clip found elsewhere (Mixamo) works the same, as long as it keys only the arms: put it in the .blend as an NLA track and name it in `PLAYER_MODEL.upper`.
+
+**Shots from the gun.** Another player's muzzle flare and smoke start at the barrel of the gun in their hands (`PlayerBody.muzzle`, the item's `hold.muzzle` in its model's space, via `RemotePlayers.muzzle`), and so does yours over the shoulder. Until the body's gun is drawn they fall back to a point in front of the eyes. The shot itself still goes from the eye along the look direction on the server, so it lands where the crosshair is.
 
 ## Gamer tags
 
@@ -341,6 +367,8 @@ At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed p
 
 **Bandages:** take one in the hand from the quick-use wheel and hold `attack`, standing still, with less than full sanity. `bandaging` counts up in the shared step (so it predicts), and at the item's `heal.seconds` one is used for `heal.amount`. Moving, letting go or switching what is in the hand resets it.
 
+A bandage (or a battery) can go to a teammate instead: hold `aim` looking at them. See [items.md](items.md#using-items-on-a-teammate).
+
 Bandages and smelling salts are quick-use items (see [items.md](items.md)); players bring them down in their loadout (see [economy.md](economy.md)).
 
 **Client:**
@@ -355,14 +383,15 @@ Bandages and smelling salts are quick-use items (see [items.md](items.md)); play
 
 Admin tools are in the admin panel (F10) and need `PUBLIC_DEV_MODE` on the client. The server only accepts the commands when `DEV_MODE=true` (`server/config.ts`).
 
-| Tool                       | Effect                                                                                              |
-| -------------------------- | --------------------------------------------------------------------------------------------------- |
-| Noclip                     | Fly through walls; look direction steers (sprint doubles speed).                                    |
-| Infinite stamina / battery | No drain.                                                                                           |
-| Teleport                   | To the start room or any major room. Lands on the nearest clear spot with a floor (`findFreeSpot`). |
-| Regenerate                 | New map, from a given seed or a random one. Everyone respawns; flags are kept.                      |
-| Map debug view             | Client-only orbit camera with flat lighting, for inspecting layouts.                                |
-| God mode                   | No sanity loss.                                                                                     |
-| Set sanity                 | Sets your sanity (0 downs you; above 0 gets you up if downed).                                      |
-| Creatures                  | Spawn one in front of you, remove all, show markers through walls (see creatures.md).               |
-| Gamer tags through walls   | Client only: teammates' tags drawn over the rock (still fading), to find them. See Gamer tags.      |
+| Tool                       | Effect                                                                                                                                                                                                                                  |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Noclip                     | Fly through walls; look direction steers (sprint doubles speed).                                                                                                                                                                        |
+| Infinite stamina / battery | No drain.                                                                                                                                                                                                                               |
+| Teleport                   | To the start room or any major room. Lands on the nearest clear spot with a floor (`findFreeSpot`).                                                                                                                                     |
+| Regenerate                 | New map, from a given seed or a random one. Everyone respawns; flags are kept.                                                                                                                                                          |
+| Map debug view             | Client-only orbit camera with flat lighting, for inspecting layouts.                                                                                                                                                                    |
+| God mode                   | No sanity loss.                                                                                                                                                                                                                         |
+| Set sanity                 | Sets your sanity (0 downs you; above 0 gets you up if downed).                                                                                                                                                                          |
+| Creatures                  | Spawn one in front of you, remove all, show markers through walls (see creatures.md).                                                                                                                                                   |
+| Gamer tags through walls   | Client only: teammates' tags drawn over the rock (still fading), to find them. See Gamer tags.                                                                                                                                          |
+| Grip check (Items tab)     | Client only: a test explorer 2 m in front of you holding an item, posed to hold, fire, reload or use it (`GripCheck`, `src/lib/game/player/GripCheck.ts`). Step through every item with a `grip`, to check where each sits in the hand. |

@@ -9,6 +9,7 @@ import type { ViewModel } from '#lib/game/items/ViewModel.ts';
 import type { MapRenderer } from '#lib/game/map/MapRenderer.ts';
 import type { GameClient } from '#lib/game/net/GameClient.ts';
 import type { Headlamp } from '#lib/game/player/Headlamp.ts';
+import type { PlayerBody } from '#lib/game/player/PlayerBody.ts';
 import type { LocalPlayer } from '#lib/game/player/LocalPlayer.ts';
 import type { RemotePlayers } from '#lib/game/player/RemotePlayers.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
@@ -77,6 +78,8 @@ export interface PlayContext {
 	map: MapRenderer;
 	creatures: Creatures;
 	viewModel: ViewModel;
+	/** Your own body, drawn over the shoulder (`root.visible` while it is). */
+	body: PlayerBody;
 	/** The player's head: where their eyes are and which way they look. */
 	head: THREE.Object3D;
 	headlamp: Headlamp;

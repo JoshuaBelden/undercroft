@@ -190,6 +190,11 @@ export class RemotePlayers {
 		this.tags = { shown, throughWalls };
 	}
 
+	/** Where a remote player's gun muzzle is drawn now (PlayerBody.muzzle), or null. */
+	muzzle(id: string, target: THREE.Vector3): THREE.Vector3 | null {
+		return this.bodies.get(id)?.body.muzzle(target) ?? null;
+	}
+
 	/** Light another player's gunshot with their headlamp (see Headlamp.flash). */
 	flash(id: string): void {
 		this.bodies.get(id)?.lamp.flash();

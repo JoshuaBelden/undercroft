@@ -30,6 +30,7 @@ import { dedup, meshopt, prune, simplify, textureCompress, weld } from '@gltf-tr
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import * as prettier from 'prettier';
 import sharp from 'sharp';
+import { mergeClips } from './clips.ts';
 import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
@@ -58,6 +59,8 @@ const CREATURE_SOURCE = path.join(SOURCE_DIR, 'creatures');
 const CREATURE_TEXTURE = 1024;
 /** The explorer (every player's body), rigged and animated: art/export/player. */
 const PLAYER_SOURCE = path.join(SOURCE_DIR, 'player');
+/** Clips made apart from a rigged model, merged into it: `<name>-clips.glb` beside `<name>.glb`. */
+const CLIPS_SUFFIX = '-clips.glb';
 /** Item models (weapons, ammo, consumables): art/export/items. */
 const ITEM_SOURCE = path.join(SOURCE_DIR, 'items');
 const ITEM_TEXTURE = 512;
@@ -470,7 +473,9 @@ async function writeModel(io: NodeIO, doc: Document, dir: string, name: string):
 
 /**
  * Rigged models (creatures, the explorer) keep their skin and animations; textures are
- * re-encoded to WebP and the file is written as a single self-contained .glb.
+ * re-encoded to WebP and the file is written as a single self-contained .glb. A
+ * `<name>-clips.glb` beside `<name>.glb` holds more clips for it, made apart (the explorer's,
+ * from scripts/blender/explorer.py): they are merged in by bone name (`mergeClips`).
  */
 async function buildCharacters(
 	io: NodeIO,
@@ -480,11 +485,13 @@ async function buildCharacters(
 ): Promise<void> {
 	if (!existsSync(source)) return;
 	for (const f of readdirSync(source)
-		.filter((name) => name.endsWith('.glb'))
+		.filter((name) => name.endsWith('.glb') && !name.endsWith(CLIPS_SUFFIX))
 		.sort()) {
 		const file = path.join(source, f);
 		const doc = await io.read(file);
 		for (const s of doc.getRoot().listScenes()) s.setExtras({});
+		const clips = path.join(source, path.basename(f, '.glb') + CLIPS_SUFFIX);
+		if (existsSync(clips)) mergeClips(doc, await io.read(clips));
 		const animations = doc
 			.getRoot()
 			.listAnimations()
