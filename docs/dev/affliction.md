@@ -1,6 +1,6 @@
 # The Affliction: meter, omens, manifestation, banishing
 
-An Affliction is the force behind an expedition (see `docs/HANDOFF.md`). The rite that resolves it is in [rite.md](rite.md). In code it is the hidden **meter**, the **omen stages** players read it by, and the **manifestation** the rite summons. Banishing the manifestation resolves the Affliction. The first Affliction is the Gloaming: its manifestation is a figure that hunts the players.
+An Affliction is the force behind an expedition. The rite that resolves it is in [rite.md](rite.md). In code it is the hidden **meter**, the **omen stages** players read it by, and the **manifestation** the rite summons. Banishing the manifestation resolves the Affliction. The first Affliction is the Gloaming: its manifestation is a figure that hunts the players.
 
 ## Files
 

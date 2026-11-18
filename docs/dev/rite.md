@@ -1,6 +1,6 @@
 # The rite: hints, the holder, resolution
 
-The rite is how an Affliction is resolved (see `docs/HANDOFF.md`). Players learn what it needs and where it is held from written hints, bring the items to that room, and one of them performs it. The Gloaming's rite needs 5 candles, 1 chalk and the Pendant, performed in the Gloaming Chapel, and has four hints.
+The rite is how an Affliction is resolved ([affliction.md](affliction.md)). Players learn what it needs and where it is held from written hints, bring the items to that room, and one of them performs it. The Gloaming's rite needs 5 candles, 1 chalk and the Pendant, performed in the Gloaming Chapel, and has four hints.
 
 ## Files
 
