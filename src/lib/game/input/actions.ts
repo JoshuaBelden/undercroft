@@ -178,7 +178,7 @@ export function isPadCode(code: string): boolean {
 }
 
 /** The three main mouse buttons, by name; side buttons stay numbered (Mouse 4, Mouse 5). */
-const MOUSE_LABELS: Record<string, string> = { Mouse0: 'MLB', Mouse1: 'MMB', Mouse2: 'MRB' };
+const MOUSE_LABELS: Record<string, string> = { Mouse0: 'LMB', Mouse1: 'MMB', Mouse2: 'RMB' };
 
 /**
  * Human-readable label for a binding code, e.g. 'KeyW' -> 'W', 'PadA' -> 'A' (or 'Cross' with
