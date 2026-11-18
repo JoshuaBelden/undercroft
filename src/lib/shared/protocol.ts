@@ -3,6 +3,7 @@
  * All messages are JSON with a `type` discriminator.
  */
 import type { AfflictionSnapshot } from './affliction/types.ts';
+import type { Alert } from './alerts/types.ts';
 import type { CreatureSnapshot } from './creature/types.ts';
 import type {
 	CrateSlot,
@@ -136,6 +137,8 @@ export type ServerMessage =
 	| { type: 'social'; state: SocialState }
 	/** Answer to a `search`. */
 	| { type: 'socialSearch'; query: string; results: Person[] }
+	/** Something happened to you worth a notice: a friend request, an item... (docs/dev/alerts.md). */
+	| { type: 'alert'; alert: Alert }
 	/** The expedition has started and you are in it. */
 	| {
 			type: 'welcome';
@@ -280,6 +283,7 @@ const SERVER_TYPES = new Set<string>([
 	'partyError',
 	'social',
 	'socialSearch',
+	'alert',
 	'welcome',
 	'reject',
 	'pong',

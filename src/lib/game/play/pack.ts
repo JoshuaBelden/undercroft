@@ -1,4 +1,5 @@
 import { ITEMS } from '#lib/content/items.ts';
+import { raise } from '#lib/game/alerts.svelte.ts';
 import { WorldItems } from '#lib/game/items/WorldItems.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
 import { canTake } from '#lib/shared/items/inventory.ts';
@@ -35,7 +36,10 @@ export class Pack implements PlayFeature {
 		const { sounds, client } = this.ctx;
 		if (event.kind === 'pickup') {
 			sounds.playAt('item.pickup', event.position, 1, 2);
-			if (event.player === client.playerId && prize(event.item)) sounds.play('loot.found');
+			if (event.player === client.playerId) {
+				if (prize(event.item)) sounds.play('loot.found');
+				raise({ kind: 'item', item: event.item, count: event.count, source: 'pickup' });
+			}
 		} else if (event.kind === 'drop') {
 			sounds.playAt('item.drop', event.position, 1, 2);
 		}

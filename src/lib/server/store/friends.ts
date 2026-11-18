@@ -35,6 +35,12 @@ export interface Friendships {
 
 export type FriendError = 'self' | 'missing' | 'already';
 
+/**
+ * What a friend request did: `asked` (a new request), `friends` (it answered theirs, so they are
+ * friends now) or `waiting` (it had been asked already). Or why it was refused.
+ */
+export type FriendRequestResult = 'asked' | 'friends' | 'waiting' | FriendError;
+
 export const FRIEND_ERRORS: Record<FriendError, string> = {
 	self: "You can't add yourself",
 	missing: 'No such player',
@@ -87,17 +93,20 @@ export async function areFriends(db: Db, a: string, b: string): Promise<boolean>
  * `from` asks `to` to be friends. If `to` had already asked `from`, that is an answer: they are
  * friends now.
  */
-export async function requestFriend(db: Db, from: string, to: string): Promise<FriendError | null> {
+export async function requestFriend(
+	db: Db,
+	from: string,
+	to: string
+): Promise<FriendRequestResult> {
 	if (from === to) return 'self';
 	if ((await accounts(db).countDocuments({ _id: to })) === 0) return 'missing';
 	const id = pairId(from, to);
 	const existing = await friends(db).findOne({ _id: id });
 	if (existing?.status === 'accepted') return 'already';
 	if (existing) {
-		if (existing.requester !== from) {
-			await friends(db).updateOne({ _id: id }, { $set: { status: 'accepted' } });
-		}
-		return null;
+		if (existing.requester === from) return 'waiting';
+		await friends(db).updateOne({ _id: id }, { $set: { status: 'accepted' } });
+		return 'friends';
 	}
 	const [first, second] = [from, to].sort();
 	try {
@@ -115,7 +124,7 @@ export async function requestFriend(db: Db, from: string, to: string): Promise<F
 		}
 		throw error;
 	}
-	return null;
+	return 'asked';
 }
 
 /** `account` accepts the request `from` sent them. False if there was none. */

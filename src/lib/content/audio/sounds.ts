@@ -591,6 +591,12 @@ export const SOUNDS = {
 		volume: 0.45,
 		rate: 1.3
 	},
+	/** An alert sliding in at the right edge (docs/dev/alerts.md): a soft, short chime. */
+	'ui.alert': {
+		synth: { kind: 'bell', pitch: 988, length: 0.45 },
+		category: 'sfx',
+		volume: 0.3
+	},
 	// Stingers on the music bus (dry: no muffling or reverb from where you stand).
 	'expedition.intro': { file: 'expedition.intro', category: 'music', volume: 0.8 },
 	'expedition.outro': { file: 'expedition.outro', category: 'music', volume: 0.5 },

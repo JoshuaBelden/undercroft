@@ -447,6 +447,15 @@
 			hint="Your teammates' names above their heads, while you can see them. Rock hides them, and they fade with distance."
 		/>
 		<StepperField
+			label="Alerts"
+			text={onOff(settings.interface.alerts)}
+			onstep={() => {
+				settings.interface.alerts = !settings.interface.alerts;
+				saveSettings();
+			}}
+			hint="A notice at the right edge when a friend request or invite comes or goes, or something is added to your belongings. Click one to go where it's about."
+		/>
+		<StepperField
 			label="Performance stats"
 			text={onOff(settings.interface.showStats)}
 			onstep={() => {

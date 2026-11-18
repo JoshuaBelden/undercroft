@@ -48,9 +48,10 @@ describe('WorldItems', () => {
 		const state = createPlayerState([0, 0, 0], 0);
 		const item = items.lookedAt(state, [0, 1.6, 0.5], [0, -0.95, -0.3]);
 		expect(item).not.toBeNull();
-		expect(items.pickUp(state, item!)).toBe('coins');
-		expect(items.snapshots()[0].count).toBeLessThan(big);
-		expect(items.snapshots()[0].count).toBeGreaterThan(0);
+		const taken = items.pickUp(state, item!);
+		expect(taken?.item).toBe('coins');
+		expect(taken!.count).toBeGreaterThan(0);
+		expect(items.snapshots()[0].count).toBe(big - taken!.count);
 	});
 
 	it('a thrown brick lands with a noise', () => {

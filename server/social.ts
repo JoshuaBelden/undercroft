@@ -1,4 +1,5 @@
 import { PARTY } from '../src/lib/content/party.ts';
+import type { SocialAlertEvent } from '../src/lib/shared/alerts/types.ts';
 import {
 	acceptFriend,
 	areFriends,
@@ -16,6 +17,7 @@ import {
 	type SocialAction,
 	type SocialState
 } from '../src/lib/shared/social/types.ts';
+import { Alerts } from './alerts.ts';
 import { getDb } from './db.ts';
 import { log } from './log.ts';
 import type { Member, Parties } from './parties.ts';
@@ -38,13 +40,17 @@ interface Known {
 /**
  * Friends and party invites. Friendships are kept in MongoDB (src/lib/server/store/friends.ts);
  * who is here and who has invited whom is only in memory. Every account that is connected gets
- * its whole `SocialState` whenever anything in it changes. See docs/dev/social.md.
+ * its whole `SocialState` whenever anything in it changes, and an alert (server/alerts.ts) when a
+ * request or invite is sent, accepted or turned down. See docs/dev/social.md.
  */
 export class Social {
 	private known = new Map<string, Known>();
 	private invites: Invite[] = [];
 
-	constructor(private parties: Parties) {
+	constructor(
+		private parties: Parties,
+		private alerts = new Alerts(parties)
+	) {
 		parties.onPresence = (accounts) => this.presenceChanged(accounts);
 	}
 
@@ -74,15 +80,22 @@ export class Social {
 			if (typeof them !== 'string') return;
 			switch (action.kind) {
 				case 'request': {
-					const error = await requestFriend(db, me, them);
-					if (error) this.refuse(member, FRIEND_ERRORS[error]);
+					const result = await requestFriend(db, me, them);
+					const done = result === 'asked' || result === 'friends' || result === 'waiting';
+					if (!done) this.refuse(member, FRIEND_ERRORS[result]);
 					await this.reload(me, them);
+					if (result === 'asked') {
+						this.alert(them, 'friendRequest', me);
+						this.alert(me, 'friendRequestSent', them);
+					} else if (result === 'friends') this.befriended(me, them);
 					break;
 				}
-				case 'accept':
-					await acceptFriend(db, me, them);
+				case 'accept': {
+					const accepted = await acceptFriend(db, me, them);
 					await this.reload(me, them);
+					if (accepted) this.befriended(me, them);
 					break;
+				}
 				case 'decline':
 				case 'remove':
 					await removeFriend(db, me, them);
@@ -172,6 +185,8 @@ export class Social {
 		};
 		this.invites.push(invite);
 		this.push(from, to);
+		this.alert(to, 'partyInvite', from);
+		this.alert(from, 'partyInviteSent', to);
 	}
 
 	/** `member` answers the invite `from` sent them. */
@@ -184,8 +199,31 @@ export class Social {
 			const host = this.parties.find(invite.from);
 			const problem = host ? this.parties.join(member, host) : 'That party is gone';
 			if (problem) this.refuse(member, problem);
-		}
+			else this.alert(invite.from, 'partyJoined', to);
+		} else this.alert(invite.from, 'partyInviteDeclined', to);
 		this.push(invite.from, to);
+	}
+
+	/** `a` and `b` just became friends: both are told. */
+	private befriended(a: string, b: string): void {
+		this.alert(a, 'friendAccepted', b);
+		this.alert(b, 'friendAccepted', a);
+	}
+
+	/** Tell `to` (if connected) something that happened between them and `about`. */
+	private alert(to: string, event: SocialAlertEvent, about: string): void {
+		this.alerts.send(to, { kind: 'social', event, person: this.person(about) });
+	}
+
+	/** An account with its gamer tag: as it is now if they are here, else as a list last read it. */
+	private person(account: string): Person {
+		const name = this.parties.find(account)?.name;
+		if (name) return { account, name };
+		for (const known of this.known.values()) {
+			const entry = everyone(known.friendships).find((other) => other.account === account);
+			if (entry) return { account, name: entry.name };
+		}
+		return { account, name: 'Someone' };
 	}
 
 	private dropInvites(which: (invite: Invite) => boolean): void {

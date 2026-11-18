@@ -117,6 +117,8 @@ export interface Settings {
 		gamerTags: boolean;
 		/** The map screen's zoom (pixels per metre) as it was last left (docs/dev/map.md). */
 		mapZoom: number;
+		/** Notices at the right edge: friend requests, invites, items received (docs/dev/alerts.md). */
+		alerts: boolean;
 	};
 	controls: ControlSettings;
 	controller: ControllerSettings;
@@ -137,7 +139,8 @@ function defaults(): Settings {
 			itemPrompts: true,
 			ritePanel: true,
 			gamerTags: true,
-			mapZoom: SURVEY.zoom.initial
+			mapZoom: SURVEY.zoom.initial,
+			alerts: true
 		},
 		controls: { mouseSensitivity: 1, aimSensitivity: 1, invertY: false },
 		controller: {

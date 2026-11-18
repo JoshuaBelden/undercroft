@@ -10,6 +10,7 @@ import {
 	unlockAchievement,
 	watchParty
 } from '#lib/desktop.ts';
+import { raise } from '#lib/game/alerts.svelte.ts';
 import { promptCrash } from '#lib/game/crash.svelte.ts';
 import type { LaidRopeSnapshot, MarkSnapshot, TiedRopeSnapshot } from '#lib/shared/items/types.ts';
 import type { PartyMember, PartyState } from '#lib/shared/party/types.ts';
@@ -194,6 +195,9 @@ function receive(message: ServerMessage): void {
 			break;
 		case 'socialSearch':
 			connection.search = { query: message.query, results: message.results };
+			break;
+		case 'alert':
+			raise(message.alert);
 			break;
 		case 'welcome':
 			connection.welcome = message;

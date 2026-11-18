@@ -213,13 +213,14 @@ export class WorldItems {
 		return lookedAtItem(this.world, state.position, eye, look, this.items.values());
 	}
 
-	/** Pick up an item into a player's inventory. Returns the item id taken, or null. */
-	pickUp(state: PlayerState, item: WorldItem): string | null {
+	/** Pick up an item into a player's inventory. Returns the item id and how many were taken, or null. */
+	pickUp(state: PlayerState, item: WorldItem): { item: string; count: number } | null {
+		const before = item.stack.count;
 		const left = addItem(state.inventory, item.stack);
-		if (left === item.stack.count) return null;
+		if (left === before) return null;
 		if (left > 0) item.stack = { ...item.stack, count: left };
 		else this.items.delete(item.id);
-		return item.stack.item;
+		return { item: item.stack.item, count: before - left };
 	}
 
 	/** Launch a thrown item. */
