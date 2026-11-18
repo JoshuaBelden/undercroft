@@ -384,7 +384,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'bandages',
 		model: modelUrl('shared/items/bandage.glb'),
 		hold: HOLD_RIGHT,
-		grip: { pose: 'item', offset: [-0.0185, 0.08, -0.0465], rotation: [1.571, 0, 2.763] },
+		grip: { pose: 'item', offset: [-0.0166, 0.075, -0.0418], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
 		heal: { amount: 25, seconds: 3 }
@@ -416,7 +416,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'battery',
 		model: modelUrl('shared/items/battery.glb'),
 		hold: HOLD_RIGHT,
-		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [1.571, 0, 2.763] },
+		grip: { pose: 'item', offset: [-0.0129, 0.075, -0.0325], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.15,
 		value: 20,
@@ -432,7 +432,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'smelling_salts',
 		model: modelUrl('shared/items/salts.glb'),
 		hold: HOLD_RIGHT,
-		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [1.571, 0, 2.763] },
+		grip: { pose: 'item', offset: [-0.0092, 0.075, -0.0232], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
 		revive: true
@@ -447,7 +447,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'chalk',
 		model: modelUrl('shared/items/chalk.glb'),
 		hold: HOLD_RIGHT,
-		grip: { pose: 'item', offset: [-0.0111, 0.08, -0.0279], rotation: [1.571, 0, 1.192] },
+		grip: { pose: 'item', offset: [-0.0166, 0.09, -0.0418], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.01,
 		chalk: { marks: 1 }

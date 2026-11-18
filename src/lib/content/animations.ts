@@ -20,6 +20,7 @@ export const ANIM_SLOTS = [
 	'fall',
 	'crouch',
 	'crawl',
+	'kneel',
 	'take_damage',
 	'die'
 ] as const;
@@ -49,7 +50,8 @@ export const LOOPING_ANIMS: ReadonlySet<AnimSlot> = new Set([
 	'rope_idle',
 	'rope_climb',
 	'crouch',
-	'crawl'
+	'crawl',
+	'kneel'
 ]);
 
 /**
@@ -71,6 +73,8 @@ export const ANIM_FALLBACKS: Record<AnimSlot, AnimSlot[]> = {
 	fall: ['take_damage'],
 	crouch: ['walking'],
 	crawl: ['crouch', 'walking'],
+	// Down on one knee, working at something on the floor (a medkit).
+	kneel: ['crouch'],
 	take_damage: [],
 	die: []
 };
@@ -89,7 +93,6 @@ export const UPPER_SLOTS = [
 	'fire_two_hand',
 	'reload',
 	'use_bandage',
-	'use_medkit',
 	'use_battery'
 ] as const;
 export type UpperSlot = (typeof UPPER_SLOTS)[number];

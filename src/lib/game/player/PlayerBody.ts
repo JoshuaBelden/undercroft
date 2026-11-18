@@ -24,8 +24,11 @@ const FALL_PLAY = 1.2;
 const HIT_DROP = 3;
 /** Seconds the flinch (`take_damage`) plays: the length of the explorer's cut of it. */
 const FLINCH = 0.4;
-/** How far in front of the feet (m) something worked on kneeling is set down. */
-const FLOOR_AHEAD = 0.45;
+/**
+ * Where something worked on kneeling (a medkit) is set down, from the feet in the body's frame
+ * (+X its right, -Z ahead): in front of the kneeling right knee, clear of the left shin.
+ */
+const FLOOR_SPOT: [number, number, number] = [0.1, 0, -0.5];
 /** How far a walk or run cycle may be slowed or hurried to match the ground speed. */
 const RATE_RANGE: [number, number] = [0.4, 1.6];
 
@@ -82,7 +85,7 @@ export class PlayerBody {
 		});
 		this.grip.name = 'held-item';
 		this.floor.name = 'set-down-item';
-		this.floor.position.set(0, 0, -FLOOR_AHEAD);
+		this.floor.position.set(...FLOOR_SPOT);
 		this.floor.visible = false;
 		this.root.add(this.floor);
 		this.grip.visible = false;
@@ -131,7 +134,8 @@ export class PlayerBody {
 		if (down && model.parent !== this.floor) {
 			this.floor.add(model);
 			model.position.set(0, this.lift, 0);
-			model.rotation.set(0, 0, 0);
+			// Its long side toward them.
+			model.rotation.set(0, Math.PI / 2, 0);
 		} else if (!down && model.parent !== this.grip) {
 			this.grip.add(model);
 			model.position.set(0, 0, 0);
@@ -185,6 +189,10 @@ export class PlayerBody {
 			pace = 1;
 		} else if (state.mantle) {
 			anim = 'climb';
+			pace = 1;
+		} else if (kneeling(state)) {
+			// Down on one knee at a medkit set on the floor.
+			anim = 'kneel';
 			pace = 1;
 		} else if (this.flinch > 0 && !state.swimming) {
 			// Struck: the flinch plays once, over whatever they were doing (a swing included).

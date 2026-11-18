@@ -2,20 +2,22 @@ import type { Document, Node } from '@gltf-transform/core';
 
 /**
  * Clips made apart from a rigged model, merged into it by bone name: the explorer's hand-keyed
- * upper-body clips (art/export/player/explorer-clips.glb, from scripts/blender/explorer.py) into
- * the explorer. See docs/dev/asset-pipeline.md#the-explorer.
+ * clips (art/export/player/explorer-clips.glb, from scripts/blender/explorer.py) into the
+ * explorer. See docs/dev/asset-pipeline.md#the-explorer.
  *
  * Blender exports every bone of every clip, still ones at rest included (left out, it would
  * also drop a channel that holds still off rest: curled fingers, an arm that doesn't move). Only
- * rotation channels that move a bone off its rest pose are kept, so an arm a clip leaves alone
- * follows whatever else is playing. The two files must share their skeleton (the same rest
- * pose): a bone whose rest differs is an error.
+ * rotation and translation channels that move a bone off its rest pose are kept (the hips of a
+ * whole-body clip move), so an arm a clip leaves alone follows whatever else is playing. The two
+ * files must share their skeleton (the same rest pose): a bone whose rest differs is an error.
  */
 
 /** Quaternions this close (|dot| above it, within about half a degree) are the same rotation. */
 const SAME = 1 - 1e-5;
 /** The two files' rest poses may differ by float noise, no more (about 1.6 degrees). */
 const SAME_REST = 1 - 1e-4;
+/** A bone this close (m) to where it rests hasn't moved. */
+const IN_PLACE = 1e-3;
 
 export function mergeClips(doc: Document, clips: Document): string[] {
 	const root = doc.getRoot();
@@ -30,7 +32,8 @@ export function mergeClips(doc: Document, clips: Document): string[] {
 		for (const channel of clip.listChannels()) {
 			const source = channel.getTargetNode();
 			const sampler = channel.getSampler();
-			if (channel.getTargetPath() !== 'rotation' || !source || !sampler) continue;
+			const path = channel.getTargetPath();
+			if ((path !== 'rotation' && path !== 'translation') || !source || !sampler) continue;
 			const bone = bones.get(source.getName());
 			if (!bone) continue;
 			if (!sameRotation(source.getRotation(), bone.getRotation(), SAME_REST)) {
@@ -38,7 +41,12 @@ export function mergeClips(doc: Document, clips: Document): string[] {
 			}
 			const times = sampler.getInput()?.getArray();
 			const values = sampler.getOutput()?.getArray();
-			if (!times || !values || atRest(values, bone.getRotation())) continue;
+			if (!times || !values) continue;
+			const moved =
+				path === 'rotation'
+					? !atRest(values, bone.getRotation())
+					: !inPlace(values, bone.getTranslation());
+			if (!moved) continue;
 			const input = doc
 				.createAccessor()
 				.setType('SCALAR')
@@ -46,7 +54,7 @@ export function mergeClips(doc: Document, clips: Document): string[] {
 				.setBuffer(buffer);
 			const output = doc
 				.createAccessor()
-				.setType('VEC4')
+				.setType(path === 'rotation' ? 'VEC4' : 'VEC3')
 				.setArray(new Float32Array(values))
 				.setBuffer(buffer);
 			const copy = doc
@@ -57,11 +65,7 @@ export function mergeClips(doc: Document, clips: Document): string[] {
 			out
 				.addSampler(copy)
 				.addChannel(
-					doc
-						.createAnimationChannel()
-						.setTargetNode(bone)
-						.setTargetPath('rotation')
-						.setSampler(copy)
+					doc.createAnimationChannel().setTargetNode(bone).setTargetPath(path).setSampler(copy)
 				);
 		}
 		merged.push(name);
@@ -78,6 +82,15 @@ function atRest(values: ArrayLike<number>, rest: ArrayLike<number>): boolean {
 	for (let i = 0; i + 3 < values.length; i += 4) {
 		const key = [values[i], values[i + 1], values[i + 2], values[i + 3]];
 		if (!sameRotation(key, rest)) return false;
+	}
+	return true;
+}
+
+/** Every key of a translation channel is where the bone rests. */
+function inPlace(values: ArrayLike<number>, rest: ArrayLike<number>): boolean {
+	for (let i = 0; i + 2 < values.length; i += 3) {
+		const d = Math.hypot(values[i] - rest[0], values[i + 1] - rest[1], values[i + 2] - rest[2]);
+		if (d > IN_PLACE) return false;
 	}
 	return true;
 }

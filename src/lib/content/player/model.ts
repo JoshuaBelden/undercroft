@@ -43,6 +43,8 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		fall: { clip: 'Climb_Attempt_and_Fall_5' },
 		// Stretched to the held weapon's swing.
 		melee_attack: { clip: 'Heavy_Hammer_Swing' },
+		// Down on the right knee, working at a medkit on the floor in front (hand-keyed, like `upper`).
+		kneel: { clip: 'Kneel_Medkit' },
 		// Struck (see PlayerBody's flinch): only the punch landing and the twist away from it. The
 		// clip squares up in a guard first, and doubles over and recovers after.
 		take_damage: { clip: 'Face_Punch_Reaction_1', start: 2.1, end: 2.5 },
@@ -58,7 +60,6 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		fire_two_hand: { clip: 'Fire_Two_Hand' },
 		reload: { clip: 'Reload' },
 		use_bandage: { clip: 'Use_Bandage' },
-		use_medkit: { clip: 'Use_Medkit' },
 		use_battery: { clip: 'Use_Battery' }
 	},
 	hand: 'mixamorigRightHand'

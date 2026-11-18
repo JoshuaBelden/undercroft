@@ -194,6 +194,7 @@ Every player is drawn with the explorer model (`PLAYER_MODEL` in `src/lib/conten
 | Downed or dead                  | `die`            | plays once, then holds                           |
 | Mantling                        | `climb`          | no clip: falls back to the walk                  |
 | Struck (0.4 s after a blow)     | `take_damage`    | plays once, from the start                       |
+| Using a medkit on yourself      | `kneel`          | loops: down on one knee, working at the kit      |
 | Swinging or throwing            | `melee_attack`   | stretched to the item's swing or throw           |
 | Swimming                        | `crawl`          | ground speed / swim speed                        |
 | Crouched or crawling            | `crouch`/`crawl` | ground speed / stance speed; stops when you stop |
@@ -203,16 +204,19 @@ Every player is drawn with the explorer model (`PLAYER_MODEL` in `src/lib/conten
 
 The explorer's map:
 
-| Slot           | Clip                           | Notes                                             |
-| -------------- | ------------------------------ | ------------------------------------------------- |
-| `idle`         | `Walking`, held at frame 0     | a stand-in: the model has no idle clip            |
-| `walking`      | `Walking`                      |                                                   |
-| `running`      | `Running`                      |                                                   |
-| `crouch`       | `Cautious_Crouch_Walk_Forward` |                                                   |
-| `crawl`        | `Crawl_and_Look_Back`          | the first 2.1 s only; the rest stops to look back |
-| `melee_attack` | `Heavy_Hammer_Swing`           |                                                   |
-| `take_damage`  | `Face_Punch_Reaction_1`        | 2.1 to 2.5 s only: the punch landing, the twist   |
-| `die`          | `Shot_and_Slow_Fall_Backward`  |                                                   |
+| Slot           | Clip                           | Notes                                                  |
+| -------------- | ------------------------------ | ------------------------------------------------------ |
+| `idle`         | `Walking`, held at frame 0     | a stand-in: the model has no idle clip                 |
+| `walking`      | `Walking`                      |                                                        |
+| `running`      | `Running`                      |                                                        |
+| `crouch`       | `Cautious_Crouch_Walk_Forward` |                                                        |
+| `crawl`        | `Crawl_and_Look_Back`          | the first 2.1 s only; the rest stops to look back      |
+| `melee_attack` | `Heavy_Hammer_Swing`           |                                                        |
+| `kneel`        | `Kneel_Medkit`                 | hand-keyed, whole body (`scripts/blender/explorer.py`) |
+| `take_damage`  | `Face_Punch_Reaction_1`        | 2.1 to 2.5 s only: the punch landing, the twist        |
+| `die`          | `Shot_and_Slow_Fall_Backward`  |                                                        |
+
+**Kneeling at a medkit.** Using an item with `heal.kneel` (the medkit) on yourself crouches you in the shared step (`kneeling`), and your body plays `kneel`: down on the right knee, the left foot planted, both hands working at the kit, which is taken out of the hand and set on the floor in front of the kneeling knee (`FLOOR_SPOT` in `PlayerBody`, its long side toward them) until it is done or let go. The arms are part of the clip, so no upper-body pose plays meanwhile.
 
 **Flinching.** A drop of more than 3 sanity in one frame is a blow (a creature's hit, a hard fall), the same test as the HUD's hurt flash. `PlayerBody` then plays `take_damage` for 0.4 s (`FLINCH`) over whatever they were doing, a swing included, with the arms in it too (no upper-body pose meanwhile). Not while down, on a rope, falling, mantling or swimming. The darkness's slow drain never sets it off. Every clip in the file is used: nothing maps `dodge`.
 
@@ -226,15 +230,14 @@ What is in a player's hand shows on their body: the item's model in the right ha
 
 **Upper-body poses.** The legs keep playing the full-body clip above. Over it, `UpperBody` (`src/lib/game/UpperBody.ts`) plays clips that turn only arm and hand bones. Each frame, after the full-body clip has posed the skeleton, every bone an upper clip turns is slerped from that pose toward the clip's, so walking, running and crouching need no clip per hold. A bone the clip leaves alone (the free arm of a one-handed hold) follows the legs' clip. Poses fade in and out over 0.2 s; a shot or reload over 0.05 s, so the kick isn't lost. `upperBodyPose(state)` (`src/lib/game/player/pose.ts`) picks the slot from the state alone:
 
-| State                                                                                                  | Upper slot                        | Clip                                          |
-| ------------------------------------------------------------------------------------------------------ | --------------------------------- | --------------------------------------------- |
-| Down, dead, on a rope, mantling, swimming, crawling, swinging or throwing                              | none: the full-body clip          |                                               |
-| Using a medkit (`heal.kneel`) on yourself: crouched, the kit set on the floor in front (`FLOOR_AHEAD`) | `use_medkit`                      | `Use_Medkit` (loops)                          |
-| Bandaging yourself, or tending a teammate with a heal item                                             | `use_bandage`                     | `Use_Bandage` (loops)                         |
-| Changing your battery, or a teammate's                                                                 | `use_battery`                     | `Use_Battery` (loops)                         |
-| A gun firing (each new shot, by `weapon.shots`, restarts it)                                           | `fire_one_hand` / `fire_two_hand` | `Fire_One_Hand` / `Fire_Two_Hand`             |
-| A gun reloading                                                                                        | `reload`                          | `Reload`, stretched to its `reloadTime`       |
-| Anything else in the hand, by its `grip.pose` (`oneHand`, `twoHand`, `item`)                           | `hold_one_hand` and so on         | `Hold_One_Hand`, `Hold_Two_Hand`, `Hold_Item` |
+| State                                                                                           | Upper slot                        | Clip                                          |
+| ----------------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------- |
+| Down, dead, on a rope, mantling, swimming, crawling, kneeling at a medkit, swinging or throwing | none: the full-body clip          |                                               |
+| Bandaging yourself, or tending a teammate with a heal item                                      | `use_bandage`                     | `Use_Bandage` (loops)                         |
+| Changing your battery, or a teammate's                                                          | `use_battery`                     | `Use_Battery` (loops)                         |
+| A gun firing (each new shot, by `weapon.shots`, restarts it)                                    | `fire_one_hand` / `fire_two_hand` | `Fire_One_Hand` / `Fire_Two_Hand`             |
+| A gun reloading                                                                                 | `reload`                          | `Reload`, stretched to its `reloadTime`       |
+| Anything else in the hand, by its `grip.pose` (`oneHand`, `twoHand`, `item`)                    | `hold_one_hand` and so on         | `Hold_One_Hand`, `Hold_Two_Hand`, `Hold_Item` |
 
 The slots are `UPPER_SLOTS` in `src/lib/content/animations.ts`, mapped to clips in `PLAYER_MODEL.upper`. A swing or throw keeps the full-body `melee_attack`.
 

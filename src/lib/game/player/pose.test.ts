@@ -48,7 +48,8 @@ describe('upperBodyPose', () => {
 		expect(upperBodyPose(bandage)?.slot).toBe('use_bandage');
 		const medkit = holding('medkit');
 		medkit.bandaging = 0.5;
-		expect(upperBodyPose(medkit)?.slot).toBe('use_medkit');
+		// Kneeling at it is the whole body's.
+		expect(upperBodyPose(medkit)).toBeNull();
 		medkit.bandaging = 0;
 		medkit.tending = 0.5;
 		expect(upperBodyPose(medkit)?.slot).toBe('use_bandage');

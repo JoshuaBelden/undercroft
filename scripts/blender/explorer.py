@@ -4,8 +4,9 @@ The explorer (every player's body) came from Mixamo with walking, running, crawl
 and a few other clips, but nothing for holding a gun, a bandage or a battery. This script adds
 those clips to art/blender/Explorer.blend and exports them, on the bare skeleton, to
 art/export/player/explorer-clips.glb; `pnpm asset:build` merges them into the explorer by bone
-name. They key only the arm bones (and fingers): the game plays them over the legs' clip, on the
-upper body alone (see docs/dev/player.md#player-model).
+name. Most key only the arm bones (and fingers): the game plays them over the legs' clip, on the
+upper body alone (see docs/dev/player.md#player-model). Kneel_Medkit poses the whole body
+(`pose_body`: hips, spine, legs by IK), and plays as a full-body clip.
 
 Run inside Blender with art/blender/Explorer.blend open (Text Editor or the Blender MCP):
 
@@ -77,9 +78,10 @@ def two_hand(rise=0.0):
 
 TWO = two_hand()
 TWO_UP = two_hand(0.01)
-# An item held in front, in the right hand, palm up and in.
-ITEM = dict(R=(v(-0.15, -0.3, 1.04), v(0.25, -1, 0), v(0.5, 0, 0.85), R_POLE, 0.6))
-ITEM_UP = dict(R=(v(-0.15, -0.3, 1.05), v(0.25, -1, 0.02), v(0.5, 0, 0.85), R_POLE, 0.6))
+# An item carried in front, resting on the open right hand, palm up: the fingers only cradle it,
+# so a small thing (a battery, a bottle, chalk) shows for what it is.
+ITEM = dict(R=(v(-0.16, -0.32, 1.06), v(0.25, -1, 0), v(0.25, 0, 1), R_POLE, 0.25))
+ITEM_UP = dict(R=(v(-0.16, -0.32, 1.07), v(0.25, -1, 0.02), v(0.25, 0, 1), R_POLE, 0.25))
 
 
 def kicked(pose, side, up, back, tilt):
@@ -124,6 +126,34 @@ def at_lamp(twist):
     )
 
 
+# Kneeling over a medkit set on the floor in front: down on the right knee, the left foot planted,
+# leaning in, both hands working at the kit. A whole-body pose: `body` gives where the hips go,
+# how far each spine bone leans forward (radians), where each ankle goes (with a point the knee
+# bends toward), and which feet stay flat on the floor.
+KNEEL_BODY = dict(
+    hips=v(0.0, -0.1, 0.5),
+    lean=[("Spine", 0.65), ("Spine1", 0.3), ("Neck", -0.35)],
+    legs={
+        "Right": (v(-0.12, 0.17, 0.12), v(-0.1, -1.0, 0.1)),
+        "Left": (v(0.14, -0.42, 0.14), v(0.14, -1.0, 0.9)),
+    },
+    flat=("Left",),
+)
+# The kit on the floor in front of the kneeling (right) knee, clear of the left shin: 0.1 m to the
+# right and 0.5 m ahead (PlayerBody's FLOOR_SPOT); its top about 0.28 m up.
+KIT = v(-0.1, -0.5, 0.3)
+
+
+def tending_kit(phase):
+    """Both hands at the kit, working: `phase` 0..1 moves them in turn."""
+    a = math.sin(phase * 2 * math.pi) * 0.03
+    return dict(
+        body=KNEEL_BODY,
+        R=(KIT + v(-0.08, 0.08 + a, 0.02), v(0.3, -1, -0.6), v(0.2, 0, -1), R_POLE, 0.5),
+        L=(KIT + v(0.08, 0.08 - a, 0.02), v(-0.3, -1, -0.6), v(-0.2, 0, -1), L_POLE, 0.5),
+    )
+
+
 # Clip name -> (frame, pose) keys. Loops end on their first pose.
 CLIPS = {
     "Hold_One_Hand": [(0, ONE), (36, ONE_UP), (72, ONE)],
@@ -142,6 +172,7 @@ CLIPS = {
     ],
     "Use_Bandage": [(i * 6, winding(i * math.pi / 2)) for i in range(5)],
     "Use_Battery": [(0, at_lamp(0)), (12, at_lamp(0.25)), (24, at_lamp(0))],
+    "Kneel_Medkit": [(i * 12, tending_kit(i / 4)) for i in range(5)],
 }
 
 # ---- building ------------------------------------------------------------------------------
@@ -182,7 +213,7 @@ def curl_quats(rig, side, grip):
             b = rig.data.bones[bone(side, f"Hand{finger}{i}")]
             m = b.matrix_local.to_3x3()
             along = (m @ Vector((0, 1, 0))).normalized()
-            # Turning  about along x palm tips it toward the palm.
+            # Turning `along` about along x palm tips it toward the palm.
             axis_w = along.cross(palm_w).normalized()
             axis_l = (m.inverted() @ axis_w).normalized()
             out[b.name] = Quaternion(axis_l, amount * share * 1.15)
@@ -198,10 +229,68 @@ def ensure_empty(name):
     return obj
 
 
+def pose_body(rig, body, result):
+    """
+    Pose the whole body for a key (`KNEEL_BODY`): hips, spine, legs by IK, flat feet. Leaves the
+    pose on the rig (for the arms to be solved against) and records it in `result`, the hips'
+    move as `loc:<bone>`.
+    """
+    layer = bpy.context.view_layer
+    hips = rig.pose.bones["mixamorig:Hips"]
+    m = hips.matrix.copy()
+    m.translation = body["hips"]
+    hips.matrix = m
+    layer.update()
+    for name, angle in body["lean"]:
+        pb = rig.pose.bones[f"mixamorig:{name}"]
+        head = pb.head.copy()
+        turn = Matrix.Translation(head) @ Matrix.Rotation(angle, 4, "X") @ Matrix.Translation(-head)
+        pb.matrix = turn @ pb.matrix
+        layer.update()
+    for side, (ankle, knee) in body["legs"].items():
+        shin = rig.pose.bones[bone(side, "Leg")]
+        target = ensure_empty(f"tmp-{side}-ankle")
+        target.location = rig.matrix_world @ ankle
+        pole = ensure_empty(f"tmp-{side}-knee")
+        pole.location = rig.matrix_world @ knee
+        ik = shin.constraints.new("IK")
+        ik.name = "tmp-leg"
+        ik.target = target
+        ik.pole_target = pole
+        ik.pole_angle = -math.pi / 2
+        ik.chain_count = 2
+    layer.update()
+    for side in body["legs"]:
+        for part in ("UpLeg", "Leg"):
+            pb = rig.pose.bones[bone(side, part)]
+            pb.matrix_basis = rig.convert_space(
+                pose_bone=pb, matrix=pb.matrix, from_space="POSE", to_space="LOCAL"
+            )
+    clear(rig)
+    layer.update()
+    for side in body.get("flat", ()):
+        foot = rig.pose.bones[bone(side, "Foot")]
+        rest = rig.data.bones[foot.name].matrix_local.to_3x3().to_4x4()
+        foot.matrix = Matrix.Translation(foot.head) @ rest
+        layer.update()
+    names = ["Hips"] + [n for n, _ in body["lean"]]
+    names += [f"{side}{part}" for side in body["legs"] for part in ("UpLeg", "Leg", "Foot")]
+    for name in names:
+        pb = rig.pose.bones[f"mixamorig:{name}"]
+        result[pb.name] = pb.matrix_basis.to_quaternion()
+    result[f"loc:{hips.name}"] = hips.matrix_basis.to_translation()
+
+
 def solve(rig, pose):
-    """Pose the arms for one key; returns {bone: local quaternion} for the keyed bones."""
+    """
+    Pose one key; returns {bone: local quaternion} for the keyed bones (and `loc:<bone>` for a
+    bone that moves, the hips of a whole-body pose).
+    """
     scene = bpy.context.scene
     result = {}
+    rest_pose(rig)
+    if "body" in pose:
+        pose_body(rig, pose["body"], result)
     for side in ("Right", "Left"):
         key = pose.get(side[0])
         fore = rig.pose.bones[bone(side, "ForeArm")]
@@ -282,10 +371,15 @@ def build(name):
     action.use_fake_user = True
     ad.action = action
     for frame, quats in keys:
-        for bone_name, q in quats.items():
-            pb = rig.pose.bones[bone_name]
-            pb.rotation_quaternion = q
-            pb.keyframe_insert("rotation_quaternion", frame=frame, group=bone_name)
+        for key, value in quats.items():
+            if key.startswith("loc:"):
+                pb = rig.pose.bones[key[4:]]
+                pb.location = value
+                pb.keyframe_insert("location", frame=frame, group=pb.name)
+                continue
+            pb = rig.pose.bones[key]
+            pb.rotation_quaternion = value
+            pb.keyframe_insert("rotation_quaternion", frame=frame, group=key)
     ad.action = None
     rest_pose(rig)
     track = ad.nla_tracks.new()
@@ -377,11 +471,11 @@ GRIPS = {
     "brick": ("Hold_One_Hand", (0.08, 0.04, 0.0), (0.0, 0.0, 0.0)),
     "revolver": ("Hold_One_Hand", (0.07, 0.03, 0.015), (0.0, 0.0, 0.0)),
     "shotgun": ("Hold_Two_Hand", (0.07, 0.03, 0.0), (0.0, 0.0, 0.0)),
-    "bandage": ("Hold_Item", (0.08, 0.05, 0.0), ON_PALM),
+    "bandage": ("Hold_Item", (0.075, 0.045, 0.0), ON_PALM),
     "medkit": ("Hold_Item", (0.08, 0.04, 0.0), (0.0, 0.0, -math.pi / 2)),
-    "battery": ("Hold_Item", (0.08, 0.04, 0.0), ON_PALM),
-    "salts": ("Hold_Item", (0.08, 0.04, 0.0), ON_PALM),
-    "chalk": ("Hold_Item", (0.08, 0.03, 0.0), (0.0, 0.0, 0.0)),
+    "battery": ("Hold_Item", (0.075, 0.035, 0.0), ON_PALM),
+    "salts": ("Hold_Item", (0.075, 0.025, 0.0), ON_PALM),
+    "chalk": ("Hold_Item", (0.09, 0.045, 0.0), ON_PALM),
     "rope-pack": ("Hold_Item", (0.08, 0.08, 0.0), ON_PALM),
     "rope-bundle": ("Hold_Item", (0.08, 0.08, 0.0), ON_PALM),
 }
