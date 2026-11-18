@@ -233,7 +233,10 @@
 
 	/** Capture the pointer again for mouse play; the controller plays without it. */
 	function capture(): void {
-		if (device.kind !== 'pad') void canvas.requestPointerLock();
+		if (device.kind === 'pad') return;
+		// Refused if asked too soon after Esc freed it; a click still works. Older browsers
+		// return nothing, hence the Promise.resolve.
+		void Promise.resolve(canvas.requestPointerLock()).catch(() => {});
 	}
 
 	/** Done with the loot crate: tell the server, and straight back to play. */
@@ -257,9 +260,11 @@
 			closeCrate();
 			if (name === 'menu' || name === 'settings') return;
 		}
-		// Esc on the admin screen just closes it; Esc again opens settings. (Esc can't capture the
-		// pointer: browsers don't count it as a user gesture. A click or a move key does.)
-		if (panel === 'admin' && name === 'settings') {
+		// Esc (the settings key) with anything else open just closes it; Esc again opens settings.
+		// It can't capture the pointer: browsers don't count Esc as a user gesture. A click or a
+		// move key does.
+		if (name === 'settings' && panel && panel !== 'settings') {
+			if (panel === 'map') playUi('map.close');
 			panel = null;
 			return;
 		}
@@ -1065,7 +1070,9 @@
 				case 'climb':
 				case 'stance':
 					closeCrate();
-					closeAdmin();
+					if (panel === 'admin') closeAdmin();
+					// Nothing open and the pointer free (after Esc put the pack away): walk on.
+					else if (!panel && !locked && expedition && !mapView) capture();
 					break;
 				case 'toggleView':
 					settings.graphics.view = settings.graphics.view === 'shoulder' ? 'first' : 'shoulder';

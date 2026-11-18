@@ -72,7 +72,7 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 - {action:drop} drop what is in your hand
 - {action:toggleView} over the shoulder or through your eyes
 - {action:toggleRitePanel} hide or show the rite
-- {action:toggleSettings} settings, {action:toggleHelp} help`
+- {action:toggleSettings} settings, {action:toggleHelp} help. With your pack or the map open, {action:toggleSettings} puts it away; then move to carry on`
 	},
 	{
 		id: 'controller',
