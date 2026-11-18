@@ -52,6 +52,8 @@
 		gridView: boolean;
 		/** Creature markers drawn through walls. */
 		markers: boolean;
+		/** Teammates' gamer tags drawn over the rock. */
+		tagsThroughWalls: boolean;
 		/** Affliction meter 0..1 (dev only) and omen stage. */
 		meter: number | null;
 		omen: number;
@@ -64,6 +66,7 @@
 		/** In the free camera: the camera back to your body, still flying. */
 		oncameratobody: () => void;
 		onmarkers: (enabled: boolean) => void;
+		ontagsthroughwalls: (enabled: boolean) => void;
 	}
 
 	let {
@@ -78,6 +81,7 @@
 		freecam,
 		gridView,
 		markers,
+		tagsThroughWalls,
 		meter,
 		omen,
 		onadmin,
@@ -86,7 +90,8 @@
 		ongridview,
 		onbodytocamera,
 		oncameratobody,
-		onmarkers
+		onmarkers,
+		ontagsthroughwalls
 	}: Props = $props();
 
 	let group = $state<Group>(lastGroup);
@@ -353,6 +358,12 @@
 				</label>
 				<button type="submit">Set</button>
 			</form>
+			<StepperField
+				label="Gamer tags through walls"
+				text={onOff(tagsThroughWalls)}
+				onstep={() => ontagsthroughwalls(!tagsThroughWalls)}
+				hint="Teammates' names drawn over the rock, still fading with distance. For checking where they are."
+			/>
 			{@render action('Clear conditions', () => onadmin({ kind: 'clearConditions' }))}
 			<p class="hint">Teleport to a room:</p>
 			{#each rooms as room (room)}

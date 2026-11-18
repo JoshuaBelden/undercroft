@@ -20,6 +20,7 @@ The first-person player. The server is authoritative. The client predicts its ow
 | Headlamp light                       | `src/lib/game/player/Headlamp.ts`                                             |
 | Other players                        | `src/lib/game/player/RemotePlayers.ts`                                        |
 | Player body (model and animation)    | `src/lib/game/player/PlayerBody.ts`                                           |
+| Gamer tags above heads               | `src/lib/game/player/gamerTag.ts`, `src/lib/content/player/gamerTags.ts`      |
 | Explorer model and camera (data)     | `src/lib/content/player/model.ts`                                             |
 | Footsteps, breathing, click          | `src/lib/game/player/PlayerAudio.ts`                                          |
 | HUD                                  | `src/lib/ui/Hud.svelte`                                                       |
@@ -217,6 +218,22 @@ Not yet done:
 - Nothing is drawn in the body's hand, and firing a gun and reloading have no animation (the model has no clip for them).
 - The body doesn't cast shadows. The lamp is inside the head, so a shadow-casting body would block its own lamp, and Three.js can't exempt one light.
 
+## Gamer tags
+
+Each teammate's gamer tag hangs above their explorer (`GamerTag` in `src/lib/game/player/gamerTag.ts`, one per remote player, made and updated by `RemotePlayers`). The rule, kept so the dark still keeps people apart:
+
+- **Line of sight.** The tag is a sprite that is depth-tested against the map, so rock between you and them hides it exactly as it hides their body. No raycasts: the depth buffer does it for free. Murky water hides it too (the sprite takes the scene's fog).
+- **Fades with distance.** Whole up to `GAMER_TAGS.fullUntil` (8 m) from the camera, gone by `goneAt` (20 m), eased between (`tagOpacity`, tested in `gamerTag.test.ts`).
+- **Same size on screen.** `sizeAttenuation: false`, sized to `screenHeight` of the view at a 75° field of view, so a tag far off is still readable while it lasts.
+- **Unlit and not tone-mapped**, so it reads in the black whether or not anyone's lamp is on them. It sits `above` (0.3 m) over their eyes, so it follows them when they crouch, crawl or go down.
+- Not drawn for the teammate a spectator is watching through (`setHidden`), and never for yourself (you aren't a remote player, even over the shoulder).
+
+The name comes from the player snapshot (`PlayerSnapshot.name`, the gamer tag the server read from the database), and is redrawn if it changes. The canvas is drawn in the UI's body typeface, and drawn again once that has loaded.
+
+**Setting:** Interface > Gamer tags (`interface.gamerTags`, on by default) hides them all. The page passes it to `RemotePlayers.setTags` each frame, with the admin **Gamer tags through walls** toggle (Player tab), which turns off the depth test so tags show over the rock (still fading).
+
+**Tuning:** distances, size, colours and the font are data in `GAMER_TAGS` (`src/lib/content/player/gamerTags.ts`). No sound and no bindings.
+
 ## Camera
 
 `settings.graphics.view` is `first` or `shoulder`; `toggleView` (V) switches it, and so does Camera under Graphics in the settings.
@@ -347,3 +364,4 @@ Admin tools are in the admin panel (F10) and need `PUBLIC_DEV_MODE` on the clien
 | God mode                   | No sanity loss.                                                                                     |
 | Set sanity                 | Sets your sanity (0 downs you; above 0 gets you up if downed).                                      |
 | Creatures                  | Spawn one in front of you, remove all, show markers through walls (see creatures.md).               |
+| Gamer tags through walls   | Client only: teammates' tags drawn over the rock (still fading), to find them. See Gamer tags.      |

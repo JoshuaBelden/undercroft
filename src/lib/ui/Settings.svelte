@@ -436,6 +436,15 @@
 			hint="Underground, what the rite needs, down the left. Off, only the Affliction's name stays at the left edge."
 		/>
 		<StepperField
+			label="Gamer tags"
+			text={onOff(settings.interface.gamerTags)}
+			onstep={() => {
+				settings.interface.gamerTags = !settings.interface.gamerTags;
+				saveSettings();
+			}}
+			hint="Your teammates' names above their heads, while you can see them. Rock hides them, and they fade with distance."
+		/>
+		<StepperField
 			label="Performance stats"
 			text={onOff(settings.interface.showStats)}
 			onstep={() => {

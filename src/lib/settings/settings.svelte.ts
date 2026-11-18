@@ -113,6 +113,8 @@ export interface Settings {
 		 * (docs/dev/rite.md). The party's health shows either way.
 		 */
 		ritePanel: boolean;
+		/** Teammates' gamer tags above their heads, when in sight (docs/dev/player.md#gamer-tags). */
+		gamerTags: boolean;
 		/** The map screen's zoom (pixels per metre) as it was last left (docs/dev/map.md). */
 		mapZoom: number;
 	};
@@ -134,6 +136,7 @@ function defaults(): Settings {
 			quickSlots: true,
 			itemPrompts: true,
 			ritePanel: true,
+			gamerTags: true,
 			mapZoom: SURVEY.zoom.initial
 		},
 		controls: { mouseSensitivity: 1, aimSensitivity: 1, invertY: false },

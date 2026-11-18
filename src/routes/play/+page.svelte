@@ -127,6 +127,8 @@
 	/** Dev: what the map is made of, for the map view's side panel. */
 	let mapCounts = $state<MapDebugCounts | null>(null);
 	let markers = $state(false);
+	/** Dev: teammates' gamer tags drawn over the rock. */
+	let tagsThroughWalls = $state(false);
 	let spawned = $state(false);
 	/** How far under the water the view is, 0..1 (the overlay follows the fog). */
 	let underwater = $state(0);
@@ -890,6 +892,7 @@
 			updateWheel(player.state, active);
 			all.marks.updateWheel(player.state, active);
 			player.update(delta, active, reading);
+			remote.setTags(settings.interface.gamerTags, tagsThroughWalls);
 			remote.update(delta, engine.camera);
 			const self = player.state;
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
@@ -1315,6 +1318,7 @@
 		{freecam}
 		{gridView}
 		{markers}
+		{tagsThroughWalls}
 		meter={features?.affliction.meter ?? null}
 		omen={features?.affliction.omen ?? 0}
 		onadmin={(command) => sendAdmin(command)}
@@ -1334,6 +1338,7 @@
 			capture();
 		}}
 		onmarkers={(enabled) => setMarkers(enabled)}
+		ontagsthroughwalls={(enabled) => (tagsThroughWalls = enabled)}
 	/>
 {/if}
 

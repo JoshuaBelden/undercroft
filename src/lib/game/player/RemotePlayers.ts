@@ -1,8 +1,10 @@
 import * as THREE from 'three';
+import { GAMER_TAGS } from '#lib/content/player/gamerTags.ts';
 import { PLAYER_MODEL } from '#lib/content/player/model.ts';
 import { eyeHeight } from '#lib/shared/player/simulate.ts';
 import type { PlayerSnapshot, PlayerState } from '#lib/shared/player/types.ts';
 import type { TeammateShadows } from '#lib/settings/settings.svelte.ts';
+import { GamerTag } from './gamerTag.ts';
 import { Headlamp } from './Headlamp.ts';
 import { PlayerBody } from './PlayerBody.ts';
 import { pickShadowCaster } from './shadowCaster.ts';
@@ -26,6 +28,7 @@ const TELEPORT = 6;
 /** "Nearest" teammate shadows: another lamp takes them once it's this much closer (m). */
 const CASTER_MARGIN = 1.5;
 const eye = new THREE.Vector3();
+const tagAt = new THREE.Vector3();
 
 const frustum = new THREE.Frustum();
 const viewProjection = new THREE.Matrix4();
@@ -37,6 +40,8 @@ interface RemoteBody {
 	/** Pivot at eye height, turned by yaw and pitch; carries the headlamp. */
 	head: THREE.Object3D;
 	lamp: Headlamp;
+	/** Their gamer tag, above their head. */
+	tag: GamerTag;
 	state: PlayerState;
 	/** Seconds since the last snapshot; advances the lamp clock so flicker stays smooth. */
 	since: number;
@@ -70,6 +75,8 @@ export class RemotePlayers {
 	private offset: number | null = null;
 	/** Player whose body is not drawn: the one a spectator is looking through. */
 	private hidden: string | null = null;
+	/** Gamer tags above heads (the Interface setting), and drawn over the rock (admin). */
+	private tags = { shown: true, throughWalls: false };
 
 	constructor() {
 		this.root.name = 'remote-players';
@@ -128,6 +135,8 @@ export class RemotePlayers {
 				remote.body.root.visible = snap.id !== this.hidden;
 				this.bodies.set(snap.id, remote);
 			}
+			remote.name = snap.name;
+			remote.tag.setName(snap.name);
 			remote.state = snap.state;
 			remote.since = 0;
 			remote.samples.push(sample(time, snap.state));
@@ -173,6 +182,14 @@ export class RemotePlayers {
 		for (const [bodyId, remote] of this.bodies) remote.body.root.visible = bodyId !== id;
 	}
 
+	/**
+	 * Whether gamer tags show above heads (the "Gamer tags" setting), and whether they're drawn
+	 * through walls (admin only). Rock hides them otherwise. See docs/dev/player.md#gamer-tags.
+	 */
+	setTags(shown: boolean, throughWalls = false): void {
+		this.tags = { shown, throughWalls };
+	}
+
 	/** Light another player's gunshot with their headlamp (see Headlamp.flash). */
 	flash(id: string): void {
 		this.bodies.get(id)?.lamp.flash();
@@ -196,7 +213,8 @@ export class RemotePlayers {
 		frustum.setFromProjectionMatrix(viewProjection);
 		const renderTime = performance.now() / 1000 + (this.offset ?? 0) - INTERPOLATION_DELAY;
 		this.pickCaster(camera);
-		for (const remote of this.bodies.values()) {
+		camera.getWorldPosition(eye);
+		for (const [id, remote] of this.bodies) {
 			const { root, body, head, state } = remote;
 			const [from, to, blend] = bracket(remote.samples, renderTime);
 			if (from.position.distanceTo(to.position) > TELEPORT) root.position.copy(to.position);
@@ -207,6 +225,12 @@ export class RemotePlayers {
 			head.rotation.y = from.yaw + Math.atan2(Math.sin(turn), Math.cos(turn)) * blend;
 			head.rotation.x = from.pitch + (to.pitch - from.pitch) * blend;
 			body.update(delta, state, head.rotation.y);
+			remote.tag.sprite.position.y = head.position.y + GAMER_TAGS.above;
+			remote.tag.update(
+				this.tags.shown && id !== this.hidden,
+				tagAt.copy(root.position).add(remote.tag.sprite.position).distanceTo(eye),
+				this.tags.throughWalls
+			);
 			remote.since += delta;
 			const lit = state.headlamp !== 0 && state.battery > 0;
 			remote.lamp.update(
@@ -220,6 +244,7 @@ export class RemotePlayers {
 		for (const remote of this.bodies.values()) {
 			remote.lamp.dispose();
 			remote.body.dispose();
+			remote.tag.dispose();
 		}
 		this.root.clear();
 		this.bodies.clear();
@@ -229,6 +254,7 @@ export class RemotePlayers {
 		if (id === this.caster) this.caster = null;
 		remote.lamp.dispose();
 		remote.body.dispose();
+		remote.tag.dispose();
 		remote.root.removeFromParent();
 		this.bodies.delete(id);
 	}
@@ -247,6 +273,9 @@ export class RemotePlayers {
 		const lamp = new Headlamp(head);
 		lamp.setForward(PLAYER_MODEL.lampForward);
 		lamp.setShadows(this.casts(snap.id), this.shadows.mapSize);
+		const tag = new GamerTag(snap.name);
+		tag.sprite.position.y = head.position.y + GAMER_TAGS.above;
+		root.add(tag.sprite);
 		this.root.add(root);
 		return {
 			name: snap.name,
@@ -254,6 +283,7 @@ export class RemotePlayers {
 			body,
 			head,
 			lamp,
+			tag,
 			state: snap.state,
 			since: 0,
 			samples: []

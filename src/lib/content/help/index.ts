@@ -200,6 +200,8 @@ The host, whoever started the party, chooses the Affliction you go against. Then
 
 When everyone is ready, a short countdown starts and the whole party goes down together. Anyone can cancel until it runs out.
 
+Underground, a teammate's gamer tag hangs above their head while you can see them. Rock hides it, as it hides them, and it fades as they get farther away, so in the dark you still have to stay close. Turn the tags off under Interface in the settings.
+
 Whoever climbs out waits on the surface until the rest are out. Nobody can launch again until then.
 
 If you die while others are still down there, you watch through their eyes until it is over. "Next" changes who you watch; "Leave" takes you back to the surface.
@@ -252,7 +254,7 @@ Sprint and Aim, under Accessibility: press the key once instead of holding it. Y
 
 Mono audio, under Accessibility: both ears hear everything. Turn on Captions too, to see which way a sound came from.
 
-Under Graphics, turn down Camera shake, and if the game stutters, lower the Render resolution or set a Frame rate limit (on a laptop, 60 saves battery). Playing with others, Teammate lamp shadows on Nearest or Off helps most in a party of four, though a teammate's lamp without shadows shines through walls. Aiming sensitivity is under Mouse. Under Audio, you can mute the game while another tab or window is in front.
+Under Graphics, turn down Camera shake, and if the game stutters, lower the Render resolution or set a Frame rate limit (on a laptop, 60 saves battery). Playing with others, Teammate lamp shadows on Nearest or Off helps most in a party of four, though a teammate's lamp without shadows shines through walls. Aiming sensitivity is under Mouse. Gamer tags, under Interface, hides your teammates' names above their heads. Under Audio, you can mute the game while another tab or window is in front.
 
 To see how smoothly the game is running, press {action:toggleStats}: the frame rate shows in a corner.`
 	},
