@@ -160,8 +160,11 @@ export class ItemBoard {
 		}
 		if (stack.count > 1 && ref.area !== 'equipment') entries.push({ id: 'split', label: 'Split' });
 		const each = this.options.sell ? sellPrice(stack.item) : 0;
-		// Just the price (one of them): choosing it sells.
-		if (each > 0) entries.push({ id: 'sell', label: `${COIN_SIGN}${each}` });
+		// The price of one; a stack asks how many next.
+		if (each > 0) {
+			const price = `Sell ${COIN_SIGN}${each}`;
+			entries.push({ id: 'sell', label: stack.count > 1 ? `${price} each` : price });
+		}
 		entries.push({ id: 'drop', label: 'Drop' });
 		return entries;
 	}

@@ -53,7 +53,7 @@ Everything is drag and drop; the one button is **Sell all treasure** under the s
 
 - drag a stack onto a slot: it moves, joins a stack of the same item, or swaps places;
 - shift-click: stash to loadout (where it belongs) and back;
-- right-click: Equip or Unequip, Split, the sell price (just "＄5", for one; choosing it sells) and Drop. Split and selling more than one ask how many in a `QuantityDialog`; Drop is confirmed, because on the surface the thing is gone for good;
+- right-click: Equip or Unequip, Split, Sell with the price ("Sell ＄5", or "Sell ＄5 each" for a stack; choosing it sells) and Drop. Split and selling more than one ask how many in a `QuantityDialog`; Drop is confirmed, because on the surface the thing is gone for good;
 - hover or focus: the tooltip.
 
 A change plays `inventory.drop` (`slot-drop.mp3`); a sale plays `shop.sell` (`sfx_sell.mp3`) and throwing something away plays `item.drop` (`sfx_drop_item.mp3`, also heard when something is dropped on the floor underground).
