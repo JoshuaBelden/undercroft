@@ -32,6 +32,7 @@ Each feature addresses six cross-cutting aspects, so they grow with the game ins
 ```
 pnpm install            # install deps
 docker compose up -d    # start MongoDB
+pnpm dev:all            # MongoDB, then site + game server + admin app together, colour-prefixed
 pnpm dev                # SvelteKit client
 pnpm dev:server         # game server (watch mode)
 pnpm dev:admin          # admin app (admin/, port 5174; docs/dev/admin.md)

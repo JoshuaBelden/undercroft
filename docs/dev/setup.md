@@ -12,10 +12,10 @@
 ```
 pnpm install
 cp .env.example .env
-docker compose up -d
-pnpm dev:server
-pnpm dev
+pnpm dev:all
 ```
+
+`pnpm dev:all` starts MongoDB (`docker compose up -d`), then the site, the game server and the admin app together, each line of output prefixed with its name in its own colour (`site`, `game`, `admin`). Ctrl+C stops all three. To run them one at a time instead, in their own terminals: `docker compose up -d`, `pnpm dev:server`, `pnpm dev` and `pnpm dev:admin`.
 
 Open http://localhost:5173, create an account, choose an Affliction and press **Launch Expedition**. The status in the bottom-right shows the game server connection.
 
@@ -23,7 +23,7 @@ MongoDB is required: accounts, sessions and everything a player keeps live there
 
 To play co-op on one machine, sign in to a second account in another browser profile or a private window. See [accounts.md](accounts.md).
 
-The desktop app (Electron, with Steam) opens the same client in its own window: `pnpm desktop:dev`, with `pnpm dev` and `pnpm dev:server` running. See [desktop.md](desktop.md).
+The desktop app (Electron, with Steam) opens the same client in its own window: `pnpm desktop:dev`. It runs its own site and game server on the player's save, so it needs neither `pnpm dev`, `pnpm dev:server` nor MongoDB. See [desktop.md](desktop.md).
 
 ## Environment variables
 
