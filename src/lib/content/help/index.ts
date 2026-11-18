@@ -262,7 +262,7 @@ To see how smoothly the game is running, press {action:toggleStats}: the frame r
 		id: 'headlamp',
 		title: 'Headlamp',
 		category: 'Surviving',
-		body: `Tap {action:headlamp} to switch your headlamp off, and again to bring it back on as it was. Hold {action:headlamp} for a second to change between low and bright.
+		body: `Tap {action:headlamp} to switch your headlamp off, and again to bring it back on as it was. Hold {action:headlamp} for a moment to change between low and bright.
 
 Low is dim: enough to find your way, but something in the dark can be almost on you before you see it. Bright lights the passage wide and far, and drains the battery about three times as fast. The cells in the bottom-left corner show the charge left, with its voltage beside them: 24V is full, and at 0V the lamp dies.
 

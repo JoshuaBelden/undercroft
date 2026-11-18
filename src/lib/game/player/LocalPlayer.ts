@@ -56,7 +56,7 @@ const SPRINT_PUSH = 0.6;
  * See docs/dev/player.md.
  */
 /** Holding the headlamp key this long (ms) switches between low and bright; less is a tap. */
-const LAMP_HOLD_MS = 1000;
+const LAMP_HOLD_MS = 400;
 
 /** Hobbled: the limp in the view (see `updateLimp`). */
 const LIMP = {
