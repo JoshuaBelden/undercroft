@@ -368,10 +368,10 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/ui.nav.09dd6db1.webm']
 	},
 	'ui.button': {
-		level: -31,
-		lufs: -19,
-		peak: -0.9,
-		urls: ['/assets/shared/audio/ui.button.b860873b.webm']
+		level: -31.4,
+		lufs: -27,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/ui.button.b404b48c.webm']
 	},
 	'ui.focus': {
 		level: -33.7,
@@ -386,10 +386,10 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/ui.nav.09dd6db1.webm']
 	},
 	'ui.hold': {
-		level: -31,
-		lufs: -19,
-		peak: -0.9,
-		urls: ['/assets/shared/audio/ui.button.b860873b.webm']
+		level: -31.4,
+		lufs: -27,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/ui.button.b404b48c.webm']
 	},
 	'ui.toggle': {
 		level: -34.6,
