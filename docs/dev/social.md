@@ -35,6 +35,10 @@ The server answers a search with `socialSearch { query, results }`, and otherwis
 
 A refusal comes as `partyError { reason }`, like party refusals, and shows on the social screen and in the launch panel.
 
+Once a request or invite has gone through, both sides also get an alert (`alert { alert }`, sent through `Alerts.send`): a request sent and received, a new friend, an invite sent and received, and the host told when it is accepted or declined. Clicking one opens this page. See [alerts.md](alerts.md).
+
+`requestFriend` says what a request did: `asked`, `friends` (it answered theirs), `waiting` (asked already, so no new alert), or why it was refused.
+
 ## How the server keeps it current
 
 `Social` keeps, for each account that is here, its friendships as last read from MongoDB and the last state it was sent (so nothing is sent when nothing changed).

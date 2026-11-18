@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { WebSocketServer } from 'ws';
 import { GUEST_HEADERS } from '../src/lib/server/local.ts';
 import { GAME_VERSION } from '../src/lib/shared/version.ts';
+import { Alerts } from './alerts.ts';
 import { releaseAll } from './belongings.ts';
 import { closeDb, connectDb } from './db.ts';
 import { serve } from './connection.ts';
@@ -60,7 +61,9 @@ export async function startGameServer(options: GameServerOptions): Promise<GameS
 	await releaseAll();
 
 	const parties = new Parties();
-	const social = new Social(parties);
+	// The one place the server sends alerts from (docs/dev/alerts.md); give it to whatever needs it.
+	const alerts = new Alerts(parties);
+	const social = new Social(parties, alerts);
 	const stopSuspensions = watchSuspensions(parties, social);
 	const stopStatus = watchStatus(parties);
 	/*

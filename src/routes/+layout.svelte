@@ -19,6 +19,8 @@
 	import Diagnostics from '#lib/ui/Diagnostics.svelte';
 	import CrashDialog from '#lib/ui/CrashDialog.svelte';
 	import LaunchCountdown from '#lib/ui/LaunchCountdown.svelte';
+	import Alerts from '#lib/ui/Alerts.svelte';
+	import { onAlertSound } from '#lib/game/alerts.svelte.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -84,7 +86,12 @@
 		})
 	);
 
-	function menuSound(id: 'ui.nav' | 'ui.button' | 'ui.focus' | 'ui.step' | 'ui.hold'): void {
+	// An alert coming in (docs/dev/alerts.md): a soft chime, on every page.
+	onMount(() => onAlertSound(() => menuSound('ui.alert')));
+
+	function menuSound(
+		id: 'ui.nav' | 'ui.button' | 'ui.focus' | 'ui.step' | 'ui.hold' | 'ui.alert'
+	): void {
 		// Until the page is clicked or a key pressed, the browser keeps it silent (a controller
 		// doesn't count): skip the sound rather than have them all play at the first click.
 		if (!navigator.userActivation.hasBeenActive) return;
@@ -188,6 +195,8 @@
 
 <!-- Reports, on every page, underground too (docs/dev/reports.md). Only once signed in. -->
 {#if data.account}
+	<!-- Alerts, the same (docs/dev/alerts.md). -->
+	<Alerts />
 	<CrashDialog />
 	{#if bugReport.open}
 		<BugReport />

@@ -9,9 +9,12 @@
 		'Creatures',
 		'Controller',
 		'Account',
+		'Alerts',
 		'Steam'
 	] as const;
 	type Group = (typeof GROUPS)[number];
+	/** The other player in the Alerts tab's test alerts. */
+	const TEST_PERSON = { account: 'test', name: 'Wanderer' };
 	/** The group last looked at, so reopening the screen goes back to it. */
 	let lastGroup: Group = 'Session';
 </script>
@@ -22,6 +25,7 @@
 	import { desktop } from '#lib/desktop.ts';
 	import type { LobbyStatus, SteamStatus } from '#lib/shared/desktop.ts';
 	import { ITEMS } from '#lib/content/items.ts';
+	import { raise } from '#lib/game/alerts.svelte.ts';
 	import { devMode } from '#lib/dev.ts';
 	import { device, padFamily } from '#lib/game/input/device.svelte.ts';
 	import { canVibrate, connectedPads, familyOf, playRumble } from '#lib/game/input/gamepad.ts';
@@ -431,6 +435,43 @@
 				<p class="hint">No controllers. Browsers only show one once a button on it is pressed.</p>
 			{/each}
 			{@render action('Test rumble', () => playRumble('hit'), 'On every controller.')}
+		{:else if group === 'Alerts'}
+			<!-- Raised here only, to see them stack and slide (docs/dev/alerts.md). -->
+			{@render action(
+				`Item: ${ITEMS[giveItem]?.name ?? giveItem} × ${Number(giveCount) || 1}`,
+				() =>
+					raise({
+						kind: 'item',
+						item: giveItem,
+						count: Number(giveCount) || 1,
+						source: 'pickup'
+					}),
+				'The item and count chosen under Items. Again within its time adds to the same alert.'
+			)}
+			{@render action('Gift from another player', () =>
+				raise({
+					kind: 'item',
+					item: giveItem,
+					count: Number(giveCount) || 1,
+					source: 'gift',
+					from: TEST_PERSON
+				})
+			)}
+			{@render action('Friend request', () =>
+				raise({ kind: 'social', event: 'friendRequest', person: TEST_PERSON })
+			)}
+			{@render action('Party invite', () =>
+				raise({ kind: 'social', event: 'partyInvite', person: TEST_PERSON })
+			)}
+			{@render action(
+				'One of each',
+				() => {
+					raise({ kind: 'social', event: 'friendAccepted', person: TEST_PERSON });
+					raise({ kind: 'item', item: giveItem, count: 1, source: 'store' });
+					raise({ kind: 'social', event: 'partyJoined', person: TEST_PERSON });
+				},
+				settings.interface.alerts ? undefined : 'Alerts are turned off in Settings > Interface.'
+			)}
 		{:else if group === 'Steam'}
 			{#if !desktop()}
 				<p class="hint">Steam is only there in the desktop app (pnpm desktop:dev).</p>

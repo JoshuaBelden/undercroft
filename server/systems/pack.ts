@@ -63,7 +63,7 @@ export class PackSystem implements SessionSystem {
 			return;
 		}
 		const taken = this.ctx.items.pickUp(s, item);
-		if (taken) this.ctx.events.push({ kind: 'pickup', player: player.id, item: taken, position });
+		if (taken) this.ctx.events.push({ kind: 'pickup', player: player.id, ...taken, position });
 	}
 
 	/** Thrown items: hit creatures, land, make noise. */

@@ -243,6 +243,20 @@ Selling is done on the "Loadout" page: right-click something and choose Sell. Wh
 A first descent with nothing is a short one. Bring out what a crate or two holds, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
 	},
 	{
+		id: 'alerts',
+		title: 'Alerts',
+		category: 'The surface',
+		body: `When something happens that is about you, a notice slides in at the right edge of the screen for a few seconds, then slides away. More than one stack up, and the rest move up as each goes. Hold the cursor over one to keep it there.
+
+- A friend request sent to you, or one you sent, and a new friend when one is accepted.
+- A party invite sent to you, or one you sent, and whether it was accepted or turned down.
+- Something added to what you have: bought in the store, picked up below, or given to you. It shows the item and how many. More of the same thing in a row adds to the one notice.
+
+Click a friend or party notice to open the Social page. Click an item notice to open your Loadout. Below, it opens your pack instead, once a menu has let go of the cursor.
+
+They can be turned off in Settings, under Interface.`
+	},
+	{
 		id: 'comfort',
 		title: 'Comfort and accessibility',
 		category: 'Settings',

@@ -567,7 +567,7 @@ export const SOUNDS = {
 	/** Moving between pages (the tabs, the store, social, settings). */
 	'ui.nav': { file: 'ui.nav', synth: { kind: 'click' }, category: 'sfx', volume: 0.2 },
 	/** Pressing a button in a menu: a click, a key, or the controller's A. */
-	'ui.button': { file: 'ui.button', synth: { kind: 'click' }, category: 'sfx', volume: 0.25 },
+	'ui.button': { file: 'ui.button', synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
 	/** The controller moving the focus in a menu (docs/dev/controller.md): the move, quieter. */
 	'ui.focus': { file: 'ui.nav', synth: { kind: 'click' }, category: 'sfx', volume: 0.15 },
 	/** The controller's right stick stepping a value in a menu (the store's quantity): lower. */
@@ -579,7 +579,7 @@ export const SOUNDS = {
 		rate: 0.85
 	},
 	/** A controller button held in a menu pressed its control (Launch, the store): a button press. */
-	'ui.hold': { file: 'ui.button', synth: { kind: 'click' }, category: 'sfx', volume: 0.25 },
+	'ui.hold': { file: 'ui.button', synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
 	/**
 	 * Hiding or showing the rite panel underground (docs/dev/rite.md), and the admin free camera
 	 * (docs/dev/map-generation.md#debug-grid): a quiet tick.
@@ -590,6 +590,12 @@ export const SOUNDS = {
 		category: 'sfx',
 		volume: 0.45,
 		rate: 1.3
+	},
+	/** An alert sliding in at the right edge (docs/dev/alerts.md): a soft, short chime. */
+	'ui.alert': {
+		synth: { kind: 'bell', pitch: 988, length: 0.45 },
+		category: 'sfx',
+		volume: 0.3
 	},
 	// Stingers on the music bus (dry: no muffling or reverb from where you stand).
 	'expedition.intro': { file: 'expedition.intro', category: 'music', volume: 0.8 },

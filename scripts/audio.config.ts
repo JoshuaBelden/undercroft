@@ -81,7 +81,7 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'ui.click', file: 'menu_click.wav' },
 	// Menus: moving between pages and the focus moving; pressing a button.
 	{ id: 'ui.nav', file: 'sfx_menu_nav.mp3' },
-	{ id: 'ui.button', file: 'sfx_menu_button_click.mp3' },
+	{ id: 'ui.button', file: 'sfx_button_click.mp3' },
 	// Stingers: going down at the start of an expedition, and coming up at the end of it.
 	{ id: 'expedition.intro', file: 'sfx_expedition_intro.mp3', rate: 22050 },
 	{ id: 'expedition.outro', file: 'sfx_extraction_outro.mp3', rate: 22050 },

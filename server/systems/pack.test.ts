@@ -19,7 +19,11 @@ describe('items on the floor', () => {
 		diver.press({ ...look, interact: true });
 		expect(diver.state.inventory.backpack[0]).toMatchObject({ item: 'coins', count: 5 });
 		const events = diver.socket.all('tick').flatMap((t) => t.events);
-		expect(events.some((e) => e.kind === 'pickup')).toBe(true);
+		expect(events.find((e) => e.kind === 'pickup')).toMatchObject({
+			player: diver.id,
+			item: 'coins',
+			count: 5
+		});
 	});
 
 	it('the drop button throws what is in the hand on the floor', () => {

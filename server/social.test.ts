@@ -47,11 +47,17 @@ vi.mock('../src/lib/server/store/friends.ts', () => {
 		requestFriend: async (_db: unknown, from: string, to: string) => {
 			if (from === to) return 'self';
 			if (!book.tags.has(to)) return 'missing';
+			if (book.friends.has(key(from, to))) return 'already';
+			if (book.requests.delete(`${to}>${from}`)) {
+				book.friends.add(key(from, to));
+				return 'friends';
+			}
+			if (book.requests.has(`${from}>${to}`)) return 'waiting';
 			book.requests.add(`${from}>${to}`);
-			return null;
+			return 'asked';
 		},
 		acceptFriend: async (_db: unknown, account: string, from: string) => {
-			book.requests.delete(`${from}>${account}`);
+			if (!book.requests.delete(`${from}>${account}`)) return false;
 			book.friends.add(key(account, from));
 			return true;
 		},
@@ -203,6 +209,76 @@ describe('Social', () => {
 		book.friends.clear();
 		await social.forget(['acc-Bob']);
 		expect(lists(ann.socket).friends).toEqual([]);
+	});
+
+	describe('alerts', () => {
+		/** The social alerts a socket got, as `event person`. */
+		const alerts = (socket: FakeSocket) =>
+			socket
+				.all('alert')
+				.map(({ alert }) => (alert.kind === 'social' ? `${alert.event} ${alert.person.name}` : ''));
+
+		it('a friend request alerts both, and so does accepting it', async () => {
+			const ann = await arrive('Ann');
+			const bob = await arrive('Bob');
+			await social.act(ann.member, { kind: 'request', account: 'acc-Bob' });
+			expect(alerts(bob.socket)).toEqual(['friendRequest Ann']);
+			expect(alerts(ann.socket)).toEqual(['friendRequestSent Bob']);
+			await social.act(bob.member, { kind: 'accept', account: 'acc-Ann' });
+			expect(alerts(ann.socket).at(-1)).toBe('friendAccepted Bob');
+			expect(alerts(bob.socket).at(-1)).toBe('friendAccepted Ann');
+		});
+
+		it('asking someone who had asked you makes friends, and asking again says nothing', async () => {
+			const ann = await arrive('Ann');
+			const bob = await arrive('Bob');
+			await social.act(ann.member, { kind: 'request', account: 'acc-Bob' });
+			await social.act(ann.member, { kind: 'request', account: 'acc-Bob' });
+			expect(alerts(ann.socket)).toEqual(['friendRequestSent Bob']);
+			await social.act(bob.member, { kind: 'request', account: 'acc-Ann' });
+			expect(alerts(bob.socket)).toEqual(['friendRequest Ann', 'friendAccepted Ann']);
+			expect(alerts(ann.socket).at(-1)).toBe('friendAccepted Bob');
+		});
+
+		it('a refused request or accept alerts no one', async () => {
+			const ann = await arrive('Ann');
+			const bob = await arrive('Bob');
+			await social.act(ann.member, { kind: 'request', account: 'acc-Ghost' });
+			await social.act(ann.member, { kind: 'accept', account: 'acc-Bob' });
+			expect(alerts(ann.socket)).toEqual([]);
+			expect(alerts(bob.socket)).toEqual([]);
+		});
+
+		it('only a connected player is alerted', async () => {
+			const ann = await arrive('Ann');
+			const bob = await arrive('Bob');
+			parties.disconnect(bob.member, bob.socket.ws);
+			await social.act(ann.member, { kind: 'request', account: 'acc-Bob' });
+			expect(alerts(bob.socket)).toEqual([]);
+			expect(alerts(ann.socket)).toEqual(['friendRequestSent Bob']);
+		});
+
+		it('an invite alerts both; joining or declining tells the host', async () => {
+			const ann = await arrive('Ann');
+			const bob = await arrive('Bob');
+			await befriend(ann.member, bob.member);
+			await social.act(ann.member, { kind: 'invite', account: 'acc-Bob' });
+			expect(alerts(bob.socket).at(-1)).toBe('partyInvite Ann');
+			expect(alerts(ann.socket).at(-1)).toBe('partyInviteSent Bob');
+			await social.act(bob.member, { kind: 'declineInvite', account: 'acc-Ann' });
+			expect(alerts(ann.socket).at(-1)).toBe('partyInviteDeclined Bob');
+			await social.act(ann.member, { kind: 'invite', account: 'acc-Bob' });
+			await social.act(bob.member, { kind: 'acceptInvite', account: 'acc-Ann' });
+			expect(alerts(ann.socket).at(-1)).toBe('partyJoined Bob');
+		});
+
+		it('a refused invite alerts no one', async () => {
+			const ann = await arrive('Ann');
+			const bob = await arrive('Bob');
+			await social.act(ann.member, { kind: 'invite', account: 'acc-Bob' });
+			expect(alerts(bob.socket)).toEqual([]);
+			expect(alerts(ann.socket)).toEqual([]);
+		});
 	});
 
 	it('a store failure is reported, and junk is ignored', async () => {

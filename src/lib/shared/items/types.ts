@@ -123,7 +123,8 @@ export type GameEvent =
 	| { kind: 'break'; item: string; position: Vec3 }
 	| { kind: 'reload'; player: string; item: string; position: Vec3 }
 	| { kind: 'empty'; player: string; item: string; position: Vec3 }
-	| { kind: 'pickup'; player: string; item: string; position: Vec3 }
+	/** `count`: how many were taken (all that fit). */
+	| { kind: 'pickup'; player: string; item: string; count: number; position: Vec3 }
 	| { kind: 'drop'; player: string; item: string; position: Vec3 }
 	| { kind: 'creatureHit'; id: string; position: Vec3 }
 	/** `by`: the player who finished it off, if one did. */

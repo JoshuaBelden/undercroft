@@ -1,3 +1,5 @@
+import { SHOP } from '#lib/content/economy.ts';
+import { raise } from '#lib/game/alerts.svelte.ts';
 import type { AccountView } from '#lib/shared/account/types.ts';
 import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
 
@@ -147,6 +149,10 @@ export async function trade(
 		{ action: 'buy'; item: string; lots: number } | { action: 'sell'; from: SlotRef; count: number }
 ): Promise<void> {
 	session.account = await api<AccountView>('/api/shop', 'POST', change);
+	if (change.action === 'buy') {
+		const lot = SHOP.find((entry) => entry.item === change.item)?.lot ?? 1;
+		raise({ kind: 'item', item: change.item, count: lot * change.lots, source: 'store' });
+	}
 }
 
 /** Dev-mode admin tools for the account (see `/api/admin`). Throws `ApiError` if refused. */
@@ -158,6 +164,9 @@ export async function adminAccount(
 		| { action: 'resetPassword'; email: string; password: string }
 ): Promise<void> {
 	session.account = await api<AccountView>('/api/admin', 'POST', change);
+	if (change.action === 'grantItem') {
+		raise({ kind: 'item', item: change.item, count: change.count, source: 'grant' });
+	}
 }
 
 /**

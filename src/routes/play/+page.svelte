@@ -34,6 +34,7 @@
 	import { createFeatures, type Features } from '#lib/game/play/index.ts';
 	import type { PanelName, PlayFeature, PlayUi, Prompt } from '#lib/game/play/feature.ts';
 	import { keyPrompt } from '#lib/game/play/prompt.ts';
+	import { useAlertTargets } from '#lib/game/alerts.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
 	import { PlayerBody } from '#lib/game/player/PlayerBody.ts';
 	import { LocalPlayer } from '#lib/game/player/LocalPlayer.ts';
@@ -283,6 +284,17 @@
 		// Putting the menu or the map away goes straight back to play.
 		else if ((name === 'menu' || name === 'map') && expedition) capture();
 	}
+
+	// Alerts down here (docs/dev/alerts.md): an item one opens the pack. A social one goes nowhere,
+	// since the Social page would leave the expedition.
+	onMount(() =>
+		useAlertTargets({
+			item: () => {
+				if (panel !== 'menu') toggle('menu');
+			},
+			social: () => {}
+		})
+	);
 
 	onMount(() => {
 		const engine = new Engine(canvas);
