@@ -74,12 +74,12 @@
 		min-width: 300px;
 		max-width: min(380px, calc(100vw - 32px));
 		min-height: 100px;
-		padding: 14px 32px;
+		padding: 14px 24px;
 		background: var(--panel);
 		color: var(--text);
 		border: 1px solid var(--text);
-		/* The site's pill: half the height rounds each end. */
-		border-radius: 50px;
+		/* The slot's 12px corner plus the 10px it sits in: the two curves run side by side. */
+		border-radius: 22px;
 		text-align: left;
 		box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
 		cursor: pointer;
@@ -91,9 +91,9 @@
 	}
 
 	.alert.item {
-		padding-left: 18px;
-		/* A slot that sits inside the round end. */
-		--slot-size: 64px;
+		padding: 10px 24px 10px 10px;
+		/* The slot fills the height, 10px in from the edge: 100px less the border and padding. */
+		--slot-size: 78px;
 	}
 
 	.text {
