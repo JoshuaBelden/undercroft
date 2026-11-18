@@ -20,10 +20,11 @@ import {
 	speedFactor,
 	spendHeld
 } from '../items/inventory.ts';
-import { idleWeapon, stepWeapon } from '../items/weapons.ts';
+import { aimRay, idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
 import { grabRope, letGo, ropeToGrab, stepClimb, type ClimberSpot } from './climb.ts';
 import { applyCondition, conditionSpeedCap, stepConditions } from './conditions.ts';
+import { lookedAtTeammate, needs, tendKind, type TeammateSpot } from './tend.ts';
 import type { InputFrame, Inventory, PlayerState, SimEvent, Stance } from './types.ts';
 
 /**
@@ -85,6 +86,8 @@ export function createPlayerState(
 		weapon: idleWeapon(),
 		bandaging: 0,
 		charging: 0,
+		tending: 0,
+		patient: null,
 		reviving: 0,
 		performing: 0,
 		opening: 0,
@@ -210,7 +213,9 @@ export function stepPlayer(
 	/** Collects what happened this step (shots, swings...); the server resolves them. */
 	events?: SimEvent[],
 	/** Everyone else on a rope this step (nobody climbs past them). */
-	others: readonly ClimberSpot[] = []
+	others: readonly ClimberSpot[] = [],
+	/** Teammates on their feet, to use what is in the hand on (see tend.ts). */
+	teammates: readonly TeammateSpot[] = []
 ): PlayerState {
 	s.yaw = input.yaw;
 	s.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, input.pitch));
@@ -236,6 +241,7 @@ export function stepPlayer(
 			stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
 			s.bandaging = 0;
 			s.charging = 0;
+			stopTending(s);
 			updateStamina(s, false, false, dt, t);
 			updateBattery(s, dt, lamp);
 			return s;
@@ -246,6 +252,7 @@ export function stepPlayer(
 		advanceMantle(s, dt);
 		stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
 		s.extracting = 0;
+		stopTending(s);
 		updateStamina(s, false, false, dt, t);
 		updateBattery(s, dt, lamp);
 		return s;
@@ -335,6 +342,7 @@ export function stepPlayer(
 	updateExtraction(s, input, world, moving, dt);
 	updateBandage(s, input, moving);
 	updateCharge(s, input, moving);
+	updateTend(s, input, moving, world, teammates, t);
 	// No room to swing, aim or throw while pushing through a squeeze.
 	const able =
 		!s.swimming &&
@@ -343,6 +351,7 @@ export function stepPlayer(
 		s.stance !== 'crawl' &&
 		s.bandaging === 0 &&
 		s.charging === 0 &&
+		s.tending === 0 &&
 		s.reviving === 0;
 	stepWeapon(s, input, dt, able, eyeHeight(s, t), events);
 	const heal = healing(s);
@@ -358,6 +367,14 @@ export function stepPlayer(
 		spendHeld(s.inventory);
 		s.battery = Math.min(1, s.battery + charge.volts / lamp.volts);
 		s.charging = 0;
+	}
+	if (s.tending > 0) s.tending += dt;
+	const tend = tendSeconds(s);
+	if (s.patient && tend !== null && s.tending >= tend) {
+		const item = held(s.inventory)?.item ?? '';
+		spendHeld(s.inventory);
+		events?.push({ kind: 'tend', patient: s.patient, item });
+		stopTending(s);
 	}
 	updateStamina(s, sprinting, s.underwater, dt, t);
 	updateBattery(s, dt, lamp);
@@ -405,6 +422,7 @@ function stepDowned(
 	updateExtraction(s, input, world, wishLen > 0.01, dt);
 	s.bandaging = 0;
 	s.charging = 0;
+	stopTending(s);
 	s.downedTime += dt;
 	// A key held since before going down doesn't count: it has to be let go first.
 	if (!input.climb) s.surrendering = 0;
@@ -444,6 +462,56 @@ function updateCharge(s: PlayerState, input: InputFrame, moving: boolean): void 
 		input.attack && !moving && s.grounded && !s.swimming && !!charging(s) && s.battery < 1;
 	if (!ready) s.charging = 0;
 	else if (s.charging === 0) s.charging = 1e-6;
+}
+
+/**
+ * Start, carry on or interrupt using the item in the hand on a teammate: hold aim, standing
+ * still, looking at one within reach who could use it (hurt for a bandage, lamp not full for a
+ * battery). Looking at someone else, letting go or moving starts it over. Not while bandaging
+ * yourself or changing your own battery. See tend.ts.
+ */
+function updateTend(
+	s: PlayerState,
+	input: InputFrame,
+	moving: boolean,
+	world: CollisionWorld,
+	teammates: readonly TeammateSpot[],
+	t: MovementTuning
+): void {
+	const kind = tendKind(s);
+	let patient: TeammateSpot | null = null;
+	if (
+		kind &&
+		input.aim &&
+		!moving &&
+		s.grounded &&
+		!s.swimming &&
+		s.bandaging === 0 &&
+		s.charging === 0 &&
+		teammates.length > 0
+	) {
+		const { origin, direction } = aimRay(s, eyeHeight(s, t));
+		const spot = lookedAtTeammate(world, origin, direction, teammates);
+		if (spot && needs(spot, kind) && (s.tending === 0 || spot.id === s.patient)) patient = spot;
+	}
+	if (!patient) stopTending(s);
+	else if (s.tending === 0) {
+		s.tending = 1e-6;
+		s.patient = patient.id;
+	}
+}
+
+function stopTending(s: PlayerState): void {
+	s.tending = 0;
+	s.patient = null;
+}
+
+/** Seconds it takes to use the item in the hand on someone (its heal or charge time). */
+export function tendSeconds(s: PlayerState): number | null {
+	const kind = tendKind(s);
+	if (kind === 'heal') return healing(s)?.seconds ?? null;
+	if (kind === 'charge') return charging(s)?.seconds ?? null;
+	return null;
 }
 
 /** The extraction point within reach of the player, if any. */

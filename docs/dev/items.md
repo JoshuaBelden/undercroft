@@ -4,31 +4,34 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 
 ## Files
 
-| File                                | What                                                                      |
-| ----------------------------------- | ------------------------------------------------------------------------- |
-| `src/lib/content/items.ts`          | Item definitions (data), `SLOTS`, `DEFAULT_STACK`                         |
-| `src/lib/content/carry.ts`          | Backpacks (slots) and `CARRY` (weight limits, slowdown)                   |
-| `src/lib/content/loadout.ts`        | How many bricks lie around                                                |
-| `src/lib/shared/items/inventory.ts` | Inventory rules: slots, stacking, moving, equipping, weight               |
-| `src/lib/ui/GameMenu.svelte`        | The in-game menu underground: the Pack and Rite tabs                      |
-| `src/lib/ui/PackPanel.svelte`       | The Pack tab (the pack screen)                                            |
-| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (Pack tab and Loadout page)                   |
-| `src/lib/ui/QuickWheel.svelte`      | The quick-use wheel; `wheel.ts` decides which slot is chosen              |
-| `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread      |
-| `src/lib/shared/items/pickup.ts`    | Which floor item you're looking at (shared by server and client)          |
-| `src/lib/shared/items/types.ts`     | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`                    |
-| `server/combat.ts`                  | Resolves shots, swings, throws and drops; damage and noise                |
-| `server/items.ts`                   | `WorldItems`: bricks scattered, pickups, drops, death drops, throws       |
-| `server/crates.ts`                  | `Crates`: what each loot crate holds, revealing it, who has it open       |
-| `src/lib/shared/map/crates.ts`      | `placeCrates`: which crate markers of a map have a crate                  |
-| `src/lib/game/items/Crates.ts`      | Crate models, their lids, highlight of the one you'd open                 |
-| `src/lib/ui/CrateScreen.svelte`     | The loot screen                                                           |
-| `scripts/blender/props.py`          | Builds the crate model and adds crate markers in the kit .blend           |
-| `src/lib/game/items/ViewModel.ts`   | The held item: procedural motion, own render pass                         |
-| `src/lib/game/items/WorldItems.ts`  | Floor and thrown items, highlight of what you'd pick up                   |
-| `src/lib/game/items/Effects.ts`     | Muzzle flares, gun fire and smoke, impact dust and sparks, own-shot pulse |
-| `src/lib/game/items/flare.ts`       | The muzzle flare shader (also impact sparks)                              |
-| `scripts/blender/items.py`          | Builds the item models in the kit .blend                                  |
+| File                                | What                                                                       |
+| ----------------------------------- | -------------------------------------------------------------------------- |
+| `src/lib/content/items.ts`          | Item definitions (data), `SLOTS`, `DEFAULT_STACK`                          |
+| `src/lib/content/carry.ts`          | Backpacks (slots) and `CARRY` (weight limits, slowdown)                    |
+| `src/lib/content/loadout.ts`        | How many bricks lie around                                                 |
+| `src/lib/shared/items/inventory.ts` | Inventory rules: slots, stacking, moving, equipping, weight                |
+| `src/lib/ui/GameMenu.svelte`        | The in-game menu underground: the Pack and Rite tabs                       |
+| `src/lib/ui/PackPanel.svelte`       | The Pack tab (the pack screen)                                             |
+| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (Pack tab and Loadout page)                    |
+| `src/lib/ui/QuickWheel.svelte`      | The quick-use wheel; `wheel.ts` decides which slot is chosen               |
+| `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread       |
+| `src/lib/shared/items/pickup.ts`    | Which floor item you're looking at (shared by server and client)           |
+| `src/lib/shared/items/types.ts`     | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`                     |
+| `server/combat.ts`                  | Resolves shots, swings, throws and drops; damage and noise                 |
+| `src/lib/shared/player/tend.ts`     | Using the item in the hand on a teammate: who is looked at, what they need |
+| `server/systems/tend.ts`            | Gives the teammate what was used on them (or the item back)                |
+| `src/lib/game/play/tend.ts`         | Teammates for prediction, the prompts, the bandage sound                   |
+| `server/items.ts`                   | `WorldItems`: bricks scattered, pickups, drops, death drops, throws        |
+| `server/crates.ts`                  | `Crates`: what each loot crate holds, revealing it, who has it open        |
+| `src/lib/shared/map/crates.ts`      | `placeCrates`: which crate markers of a map have a crate                   |
+| `src/lib/game/items/Crates.ts`      | Crate models, their lids, highlight of the one you'd open                  |
+| `src/lib/ui/CrateScreen.svelte`     | The loot screen                                                            |
+| `scripts/blender/props.py`          | Builds the crate model and adds crate markers in the kit .blend            |
+| `src/lib/game/items/ViewModel.ts`   | The held item: procedural motion, own render pass                          |
+| `src/lib/game/items/WorldItems.ts`  | Floor and thrown items, highlight of what you'd pick up                    |
+| `src/lib/game/items/Effects.ts`     | Muzzle flares, gun fire and smoke, impact dust and sparks, own-shot pulse  |
+| `src/lib/game/items/flare.ts`       | The muzzle flare shader (also impact sparks)                               |
+| `scripts/blender/items.py`          | Builds the item models in the kit .blend                                   |
 
 ## Data
 
@@ -97,7 +100,7 @@ The Pack tab (`PackPanel`) is a `LoadoutPanel` (EQUIPMENT, BACKPACK, QUICK USE),
 
 The server checks the request (`sanitizeAction`, which refuses stash slots), applies it in `PackSystem.request` (`server/systems/pack.ts`) with `applyAction`, and refuses it while downed. A `drop` lands on the floor in front of you. If what's in the hand changed, the held item's action is cancelled and the new one comes up (`reequip`). These changes are not predicted: the client sees them in the next snapshot.
 
-Handing something to another player is dropping it for them to pick up.
+Handing something to another player is dropping it for them to pick up. A bandage or battery can be used on them directly: see [Using items on a teammate](#using-items-on-a-teammate).
 
 A player goes down with their explorer's loadout, chosen on the surface (see [economy.md](economy.md)); a new explorer has nothing. `emptyInventory()` is carrying nothing.
 
@@ -126,6 +129,7 @@ The rules:
 - **Throwables:** aim is the throw (press). One leaves the hand partway through the motion (`spendHeld`).
 - **Healing items** (`heal`): holding attack with one in the hand, standing still and hurt, counts `bandaging` up; at `heal.seconds` one is used for `heal.amount`. This is in `stepPlayer` (`updateBandage`), not `stepWeapon`. The client plays `bandage` when one starts (at most once every 2.5 s: the clip runs most of a bandage and isn't cut short if it's interrupted). Moving, letting go or taking something else in the hand resets it.
 - **Batteries** (`charge`): the same, counting `charging` up (`updateCharge`), while the lamp isn't full. At `charge.seconds` one is used and `battery` rises by `charge.volts / lamp.volts` (12 V of the starter lamp's 24 V), never past full. The prompt says "Changing the battery..."; the client plays `battery.charged` when the charge jumps (`lampSounds` in the play page). Batteries are uncommon loot (`CRATE_LOOT`), not sold in the store.
+- **On a teammate:** a healing item or a battery can go to someone else: see [Using items on a teammate](#using-items-on-a-teammate).
 - **Drop** puts the held stack down in front of you.
 - **Switching** works any time except while downed, and takes `EQUIP_TIME`. The primary and secondary weapons have their own keys; quick-use items come from the wheel.
 - **Not while:** swimming, mantling, crawling, bandaging, changing a battery, reviving or downed. An action in progress is cancelled.
@@ -136,6 +140,18 @@ What happened is reported as `SimEvent`s (`shot`, `swing`, `throw`, `drop`, `rel
 - **On the client,** `LocalPlayer.drainEvents()` gives instant feedback (gunshot, flash, click). Replayed frames during reconciliation don't emit events.
 
 Pellet spread comes from `pelletDirections(direction, spread, pellets, seed)`. The seed is the shot counter, so it's deterministic.
+
+## Using items on a teammate
+
+A bandage, a medkit or a battery in the hand can be used on a teammate instead of yourself ([#96](https://github.com/JoshuaBelden/undercroft/issues/96)): hold `aim` (right click, LT) looking at them, standing still. Giving items away isn't a thing: drop it for them to pick up.
+
+- **Who.** `lookedAtTeammate` (`src/lib/shared/player/tend.ts`): the nearest teammate whose body (a capsule `TEND.radius` wide) the look ray meets within `TEND.range` (2 m) of the eye, with nothing in the way. Only teammates on their feet count (`teammateSpot`): a downed one needs salts, from the quick-use slot as before.
+- **Whether they need it.** A heal item only for a teammate who is hurt, a battery only for a lamp that isn't full (`needs`). The prompt says what aim would do ("[RMB] to tend to Name", "to change Name's battery") only then.
+- **In the step.** `stepPlayer` takes the teammates (`TeammateSpot`s) as its last argument. `updateTend` counts `tending` up while aim is held, standing still and grounded, on the same teammate (`patient`); moving, letting go, looking at someone else, or them no longer needing it starts it over. Not while bandaging yourself or changing your own battery (attack does those), and the hands are busy meanwhile (no swinging or aiming a gun). At the item's `heal.seconds` or `charge.seconds` one is spent and the step reports `SimEvent` `tend`. It is predicted like bandaging: the server builds the teammates from their current states (`TendSystem.teammatesBesides`), the client from the latest snapshots (the `Tend` play feature, `LocalPlayer.setTeammates`), and reconciliation settles a difference.
+- **The server** (`TendSystem`, `server/systems/tend.ts`) gives it to them: sanity up by `heal.amount` (never past full), or their battery up by `charge.volts` of the lamp's volts. If they went down, left, or stepped more than `TEND.range + TEND.slack` away meanwhile, the item goes back to whoever used it (on the floor if it no longer fits). A `tend` `GameEvent` goes out.
+- **Client.** The prompt while tending ("Tending to Name...") with its progress, and the teammate being tended sees "Name is tending to you...". The bandage sound plays as anyone starts tending with a heal item (positional for others). The patient hears the battery go in from their own lamp's charge, as when they change it themselves. Their body plays the bandaging or battery clip.
+
+**Tuning:** `TEND` in `src/lib/content/player/sanity.ts`. **Testing:** two windows in co-op; Set sanity (admin, Player tab) on the other to hurt them.
 
 ## Combat (server)
 

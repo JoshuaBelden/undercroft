@@ -10,6 +10,7 @@ import { RiteSystem } from './rite.ts';
 import { RopeSystem } from './ropes.ts';
 import { SanitySystem } from './sanity.ts';
 import { SurveySystem } from './survey.ts';
+import { TendSystem } from './tend.ts';
 import type { SessionContext, SessionSystem } from './system.ts';
 
 /**
@@ -22,6 +23,7 @@ export function createSystems(ctx: SessionContext) {
 		affliction: new AfflictionSystem(ctx),
 		pack: new PackSystem(ctx),
 		sanity: new SanitySystem(ctx),
+		tend: new TendSystem(ctx),
 		rite: new RiteSystem(ctx),
 		deadline: new DeadlineSystem(ctx),
 		crates: new CrateSystem(ctx),

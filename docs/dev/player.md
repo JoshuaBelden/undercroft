@@ -341,6 +341,8 @@ At 0 the server sets `downed`. In the shared step, `stepDowned` keeps a downed p
 
 **Bandages:** take one in the hand from the quick-use wheel and hold `attack`, standing still, with less than full sanity. `bandaging` counts up in the shared step (so it predicts), and at the item's `heal.seconds` one is used for `heal.amount`. Moving, letting go or switching what is in the hand resets it.
 
+A bandage (or a battery) can go to a teammate instead: hold `aim` looking at them. See [items.md](items.md#using-items-on-a-teammate).
+
 Bandages and smelling salts are quick-use items (see [items.md](items.md)); players bring them down in their loadout (see [economy.md](economy.md)).
 
 **Client:**

@@ -420,6 +420,7 @@ export class Session implements SessionContext {
 			!s.climbing &&
 			s.bandaging === 0 &&
 			s.charging === 0 &&
+			s.tending === 0 &&
 			s.reviving === 0 &&
 			!player.crate
 		);
@@ -538,7 +539,8 @@ export class Session implements SessionContext {
 			MOVEMENT,
 			DEFAULT_HEADLAMP,
 			events,
-			this.climbersBesides(player)
+			this.climbersBesides(player),
+			this.systems.tend.teammatesBesides(player)
 		);
 		resolve(this.combat(), player, events);
 		this.falls(player, events);
@@ -732,6 +734,8 @@ export class Session implements SessionContext {
 		s.extracting = 0;
 		s.bandaging = 0;
 		s.charging = 0;
+		s.tending = 0;
+		s.patient = null;
 		s.reviving = 0;
 		s.opening = 0;
 		s.erasing = 0;

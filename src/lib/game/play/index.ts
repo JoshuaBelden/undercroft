@@ -8,6 +8,7 @@ import { Pack } from './pack.ts';
 import { Rite } from './rite.svelte.ts';
 import { Ropes } from './ropes.ts';
 import { Survey } from './survey.svelte.ts';
+import { Tend } from './tend.ts';
 import { Vitals } from './vitals.ts';
 
 /**
@@ -19,6 +20,7 @@ export function createFeatures(ctx: PlayContext) {
 	const affliction = new Affliction(ctx);
 	return {
 		vitals: new Vitals(ctx),
+		tend: new Tend(ctx),
 		combat: new Combat(ctx),
 		pack: new Pack(ctx),
 		crates: new Crates(ctx),

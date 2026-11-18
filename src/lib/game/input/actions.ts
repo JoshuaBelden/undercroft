@@ -34,7 +34,11 @@ export const ACTIONS = {
 		defaults: ['KeyF']
 	},
 	attack: { label: 'Attack / fire / use (hold)', category: 'Items', defaults: ['Mouse0'] },
-	aim: { label: 'Aim (hold) / throw', category: 'Items', defaults: ['Mouse2'] },
+	aim: {
+		label: 'Aim (hold) / throw / use on a teammate (hold)',
+		category: 'Items',
+		defaults: ['Mouse2']
+	},
 	reload: { label: 'Reload', category: 'Items', defaults: ['KeyR'] },
 	drop: { label: 'Drop held item', category: 'Items', defaults: ['KeyG'] },
 	primaryWeapon: { label: 'Primary weapon', category: 'Items', defaults: ['Digit1'] },

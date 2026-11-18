@@ -282,6 +282,8 @@ Low is dim: enough to find your way, but something in the dark can be almost on 
 
 Batteries turn up in crates and on the dead. Put one in a quick-use slot, take it in hand and hold {action:attack}, standing still, to swap it in. Each gives back 12V, never more than full, so don't waste one on a lamp that's nearly charged.
 
+A teammate's lamp running low? Look at them with the battery in hand and hold {action:aim} instead: it goes into their lamp, not yours.
+
 The starter headlamp is cheap: it flickers, and flickers more as the battery runs down.`
 	},
 	{
@@ -293,6 +295,8 @@ The starter headlamp is cheap: it flickers, and flickers more as the battery run
 It wears down when you're in the dark with your lamp off and no one else's light on you, and when you look at something you shouldn't. Being struck takes a great deal of it at once.
 
 A bandage gives some of it back. Hold {action:quickUse}, pick the bandage from the wheel, then hold {action:attack}. Stand still: it takes a few seconds, and moving or letting go starts it over. The bandage has to be in a quick-use slot to be on the wheel. A medkit works the same way, takes a little longer, and gives it all back: they are rare below, and dear in the store.
+
+To tend to a hurt teammate instead, stand close, look at them with the bandage in hand and hold {action:aim}. Stand still and keep them in front of you until it is done: it uses your bandage, and the sanity goes to them.
 
 When your sanity runs out you go down. You can only look around and drag yourself slowly across the floor, and you don't have long. If you can reach a way out, you can still climb out: hold {action:interact} there.
 

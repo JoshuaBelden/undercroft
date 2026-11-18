@@ -19,3 +19,16 @@ export const SANITY = {
 	/** Seconds a downed player holds climb to give up and die at once. */
 	surrenderSeconds: 1
 };
+
+/**
+ * Using what is in your hand on a teammate (bandaging them, changing their lamp's battery): hold
+ * aim while looking at them. See docs/dev/items.md#using-items-on-a-teammate.
+ */
+export const TEND = {
+	/** Reach (m) from your eye to them. */
+	range: 2,
+	/** How wide a teammate is to look at (m): a little more than their body, to be forgiving. */
+	radius: 0.4,
+	/** The server still applies it if they are this much further (m) when it is done. */
+	slack: 0.5
+};

@@ -769,6 +769,7 @@
 				all.survey.prompt() ??
 				all.ropes.climbPrompt(state) ??
 				all.vitals.prompt(state) ??
+				all.tend.prompt(state) ??
 				all.rite.prompt(state) ??
 				extractPrompt(state) ??
 				all.crates.prompt(state) ??

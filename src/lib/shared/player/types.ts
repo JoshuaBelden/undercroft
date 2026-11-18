@@ -118,6 +118,13 @@ export interface PlayerState {
 	bandaging: number;
 	/** Seconds spent putting the battery in the hand into the headlamp (resets if interrupted). */
 	charging: number;
+	/**
+	 * Seconds spent using the item in the hand on a teammate (bandaging them, changing their
+	 * battery); resets if interrupted. See src/lib/shared/player/tend.ts.
+	 */
+	tending: number;
+	/** The teammate being tended (their player id), or null. */
+	patient: string | null;
 	/** Seconds spent reviving a downed teammate (server-driven). */
 	reviving: number;
 	/** Seconds spent performing the rite (server-driven). */
@@ -202,7 +209,9 @@ export type SimEvent =
 	| { kind: 'grab'; rope: string }
 	/** Let go of a rope or slipped off it (out of stamina). Not stepping off at either end. */
 	| { kind: 'letgo'; rope: string }
-	| { kind: 'empty'; item: string };
+	| { kind: 'empty'; item: string }
+	/** Used the item in the hand on a teammate (one of it is spent): the server applies it to them. */
+	| { kind: 'tend'; patient: string; item: string };
 
 /** One fixed simulation step of player input (1 / SIM_RATE seconds). */
 export interface InputFrame {
@@ -225,7 +234,7 @@ export interface InputFrame {
 	interact: boolean;
 	/** Swing, fire or apply what is in the hand (held; firearms fire once per press). */
 	attack: boolean;
-	/** Aim a firearm (held); throw a throwable (press). */
+	/** Aim a firearm (held); throw a throwable (press); use the item in the hand on a teammate (held). */
 	aim: boolean;
 	reload: boolean;
 	/** Drop the held item (press). */
