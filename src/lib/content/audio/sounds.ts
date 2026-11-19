@@ -32,6 +32,12 @@ export type SynthSpec =
 	| { kind: 'shuffle' }
 	/** Rushing scuff of a sudden burst of speed. */
 	| { kind: 'rush' }
+	/** A small animal's high, bending squeak, `pitch` Hz at its peak. */
+	| { kind: 'squeak'; pitch: number }
+	/** Tiny claws on stone (rats, spiders). */
+	| { kind: 'skitter' }
+	/** Soft wingbeats loop, `rate` beats a second (moths). */
+	| { kind: 'flutter'; rate: number }
 	/** Rasping snarl with a strike. */
 	| { kind: 'snarl' }
 	/** Short pained breath when hurt. */
@@ -276,6 +282,34 @@ export const SOUNDS = {
 		category: 'sfx',
 		volume: 0.5,
 		caption: 'dying rattle'
+	},
+	// Rats (placeholders until there are recordings).
+	'rat.step': {
+		synth: { kind: 'skitter' },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.2,
+		caption: 'skittering claws'
+	},
+	'rat.squeak': {
+		synth: { kind: 'squeak', pitch: 3200 },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.2,
+		caption: 'squeaking'
+	},
+	'rat.bite': {
+		synth: { kind: 'squeak', pitch: 2400 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.15,
+		caption: 'a rat bites'
+	},
+	'rat.die': {
+		synth: { kind: 'squeak', pitch: 1800 },
+		category: 'sfx',
+		volume: 0.5,
+		caption: 'a squeal cut short'
 	},
 	// Items and weapons.
 	'revolver.fire': {

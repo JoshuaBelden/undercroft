@@ -100,7 +100,7 @@ describe('CreatureDirector', () => {
 			() => {
 				const creatures = director();
 				creatures.populate(map.start);
-				expect(creatures.count).toBe(0);
+				expect(creatures.alive('never')).toBe(0);
 			}
 		);
 	});
@@ -288,5 +288,57 @@ describe('CreatureDirector', () => {
 		const after = creatures.bodies().map((b) => b.position);
 		const moved = after.some((p, i) => Math.hypot(p[0] - before[i][0], p[2] - before[i][2]) > 1);
 		expect(moved).toBe(true);
+	});
+});
+
+describe('rats', () => {
+	const RAT = CREATURES.rat;
+
+	it('nest in small groups about the map', () => {
+		const creatures = director();
+		creatures.populate(map.start);
+		const rats = creatures.alive('rat');
+		const rule = RAT.spawn;
+		if (rule.kind !== 'scatter') throw new Error('rats scatter');
+		expect(rats).toBeGreaterThanOrEqual(rule.groups[0]);
+		expect(rats).toBeLessThanOrEqual(rule.groups[1] * rule.size[1]);
+	});
+
+	it('come for a lamp, and bite a little at a time', () => {
+		const creatures = director();
+		const player = prey('p', map.start, 0);
+		player.state.headlamp = 2;
+		creatures.spawnNear(player.state, 'rat');
+		const hits = run(creatures, 8, [player]);
+		expect(hits.length).toBeGreaterThan(0);
+		expect(hits[0].damage).toBe(RAT.attack.damage);
+	});
+
+	it('leave someone still in the dark alone, unless they come right up to them', () => {
+		const creatures = director();
+		const player = prey('p', map.start, 0);
+		player.state.headlamp = 0;
+		creatures.spawnNear(player.state, 'rat');
+		const rat = creatures.hitBodies()[0].position;
+		// Patrolling, it may wander off; keep it where it was for the test.
+		const at = [...rat];
+		for (let i = 0; i < TICK_RATE; i++) {
+			creatures.step([player]);
+			rat.splice(0, 3, ...at);
+		}
+		expect(creatures.snapshots()[0].state).not.toBe('agro');
+		// A step away: it goes for them.
+		player.state.position = [at[0] + 1, at[1], at[2]];
+		run(creatures, 0.1, [player]);
+		expect(['agro', 'attack']).toContain(creatures.snapshots()[0].state);
+	});
+
+	it('one stab kills one', () => {
+		const creatures = director();
+		creatures.spawnNear(prey('p', map.start, 0).state, 'rat');
+		const [rat] = creatures.hitBodies();
+		expect(creatures.damage(rat.id, 18, null)).toBe(true);
+		// Killing vermin doesn't feed the Affliction.
+		expect(creatures.kills).toBe(0);
 	});
 });

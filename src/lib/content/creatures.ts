@@ -146,6 +146,27 @@ export interface CreatureDef {
 
 /** Can't get down for squeezes or crawls, and won't go into water. */
 const UPRIGHT: NavReach = { crouch: false, crawl: false, swim: false };
+/** Goes anywhere: small enough for every squeeze and crawl, and swims. */
+const ANYWHERE: NavReach = { crouch: true, crawl: true, swim: true };
+
+/**
+ * Movement for something small and low: as quick through a crawl as in the open (it moves with
+ * the player simulation, which slows a body down for a low ceiling).
+ */
+function small(speed: number, sprintSpeed: number): MovementTuning {
+	const stances = MOVEMENT.stances;
+	return {
+		...MOVEMENT,
+		radius: 0.2,
+		stances: {
+			stand: { ...stances.stand, speed },
+			crouch: { ...stances.crouch, speed },
+			crawl: { ...stances.crawl, speed }
+		},
+		sprintSpeed,
+		acceleration: 40
+	};
+}
 
 export const CREATURES: Record<string, CreatureDef> = {
 	witch: {
@@ -203,6 +224,66 @@ export const CREATURES: Record<string, CreatureDef> = {
 		breath: { range: 6 },
 		// Drawn by the party's noise and light (server/attraction.ts), and by omens.
 		spawn: { kind: 'attracted' }
+	},
+	rat: {
+		id: 'rat',
+		model: modelUrl('shared/creatures/rat.glb'),
+		yawOffset: Math.PI,
+		// The model is 1.9 m nose to tail, centred on its origin.
+		scale: 0.16,
+		lift: 0.055,
+		height: 0.25,
+		reach: ANYWHERE,
+		dread: false,
+		killWeight: 0,
+		// Clips keyed by scripts/blender/critters.py.
+		animations: {
+			idle: { clip: 'Idle' },
+			walking: { clip: 'Walk' },
+			running: { clip: 'Run' },
+			melee_attack: { clip: 'Bite' },
+			take_damage: { clip: 'Hurt' },
+			die: { clip: 'Die' }
+		},
+		gait: { patrol: 'walking', alert: 'idle', stalk: 'walking', burst: 'running' },
+		movement: small(1.4, 3.8),
+		creepSpeed: 1.4,
+		burstSpeed: 3.8,
+		creepTime: [0.5, 1.2],
+		burstTime: [0.8, 1.6],
+		// Scurries about its nest in short dashes.
+		patrol: { radius: 6, pause: [0.4, 2] },
+		alert: { wait: [0.4, 1.2], maxWait: 3, linger: 2 },
+		attack: { range: 0.8, windup: 0.2, duration: 0.5, damage: 6, cooldown: 1 },
+		perception: {
+			hear: { sprint: 10, walk: 6, crouch: 3, crawl: 2, creep: 1, swim: 6 },
+			alertRange: 12,
+			// Drawn to noise and light; it comes for whoever it finds there.
+			agro: { litRange: 6, darkRange: 1.5 },
+			touch: 1.5,
+			evadeTime: 5
+		},
+		health: [12],
+		stagger: { threshold: 1, seconds: 0.3 },
+		hitRadius: 0.2,
+		corpseTime: 4,
+		visibleBand: [0.04, Infinity],
+		sounds: {
+			step: 'rat.step',
+			burst: 'rat.squeak',
+			attack: 'rat.bite',
+			hurt: 'rat.squeak',
+			die: 'rat.die'
+		},
+		// 4-7 nests of 1-4 about the catacombs.
+		spawn: {
+			kind: 'scatter',
+			groups: [4, 7],
+			size: [1, 4],
+			spread: 3,
+			minDistance: 20,
+			where: 'anywhere'
+		}
 	}
 };
 
