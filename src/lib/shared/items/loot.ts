@@ -33,11 +33,15 @@ function draw(pool: LootEntry[], depth: number, rng: Rng): ItemStack | null {
  * What a crate holds: its slots, filled from the first, commonest things first so the best is
  * the last to be revealed. Only `rarities` (LEVEL_LOOT for the crate's level) are rolled; the dice
  * for the others are still thrown, so the same seed rolls the same everyday things either way.
+ *
+ * With prize (a locked trunk) it always holds an epic or a legendary thing: if it rolled
+ * neither, one is added, legendary with probability prize.
  */
 export function rollCrate(
 	depth: number,
 	rng: Rng,
-	rarities: readonly Rarity[] = RARITIES.map((r) => r.id)
+	rarities: readonly Rarity[] = RARITIES.map((r) => r.id),
+	prize?: number
 ): Slots {
 	const counts = new Map<Rarity, number>();
 	for (const { id } of RARITIES) {
@@ -49,6 +53,9 @@ export function rollCrate(
 	// Never both of the two best.
 	if ((counts.get('epic') ?? 0) > 0 && (counts.get('legendary') ?? 0) > 0) {
 		counts.set(rng.next() < 0.5 ? 'epic' : 'legendary', 0);
+	}
+	if (prize !== undefined && !counts.get('epic') && !counts.get('legendary')) {
+		counts.set(rng.next() < prize ? 'legendary' : 'epic', 1);
 	}
 	const found: ItemStack[] = [];
 	for (const { id } of RARITIES) {

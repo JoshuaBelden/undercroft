@@ -19,6 +19,8 @@
 		prompt: string | null;
 		/** A binding shown as a keycap in the prompt ("KeyE"; see KeyCap); null for none. */
 		promptKey: string | null;
+		/** The prompt's action can't be done yet (no key, no crowbar): drawn in red. */
+		promptBlocked?: boolean;
 		/** 0..1 progress of a held action (extraction); 0 hides the bar. */
 		progress: number;
 		/** 0..1 */
@@ -47,6 +49,7 @@
 		creep,
 		prompt,
 		promptKey,
+		promptBlocked = false,
 		progress,
 		sanity,
 		hurt,
@@ -93,7 +96,7 @@
 
 {#if prompt || promptKey}
 	<div class="prompt">
-		<HoldPrompt text={prompt ?? ''} key={promptKey} {progress} />
+		<HoldPrompt text={prompt ?? ''} key={promptKey} {progress} blocked={promptBlocked} />
 	</div>
 {/if}
 

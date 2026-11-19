@@ -40,6 +40,7 @@ export const MODELS = {
 	'shared/items/brick.glb': { url: '/assets/shared/items/brick.ae689e8c.glb', bytes: 139748 },
 	'shared/items/chalk.glb': { url: '/assets/shared/items/chalk.0a8b2783.glb', bytes: 174972 },
 	'shared/items/crowbar.glb': { url: '/assets/shared/items/crowbar.4eb24c2a.glb', bytes: 178840 },
+	'shared/items/key.glb': { url: '/assets/shared/items/key.26f3dc9c.glb', bytes: 195592 },
 	'shared/items/knife.glb': { url: '/assets/shared/items/knife.1a50d07f.glb', bytes: 205208 },
 	'shared/items/medkit.glb': { url: '/assets/shared/items/medkit.922e63e8.glb', bytes: 251004 },
 	'shared/items/note.glb': { url: '/assets/shared/items/note.387d1475.glb', bytes: 209852 },
@@ -65,5 +66,6 @@ export const MODELS = {
 	'shared/props/door-double.glb': {
 		url: '/assets/shared/props/door-double.a9f9a35a.glb',
 		bytes: 336280
-	}
+	},
+	'shared/props/trunk.glb': { url: '/assets/shared/props/trunk.bd97c458.glb', bytes: 545528 }
 } as const;

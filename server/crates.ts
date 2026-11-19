@@ -1,6 +1,6 @@
 import { ITEMS } from '../src/lib/content/items.ts';
-import { CRATES, LEVEL_LOOT } from '../src/lib/content/loot.ts';
-import type { Slots } from '../src/lib/shared/items/inventory.ts';
+import { CRATES, LEVEL_LOOT, TRUNKS } from '../src/lib/content/loot.ts';
+import { newStack, type Slots } from '../src/lib/shared/items/inventory.ts';
 import { rollCrate } from '../src/lib/shared/items/loot.ts';
 import { lookedAtCrate } from '../src/lib/shared/items/pickup.ts';
 import type { CrateSlot, CratesSnapshot } from '../src/lib/shared/items/types.ts';
@@ -19,8 +19,15 @@ import { Rng } from '../src/lib/shared/rng.ts';
 export interface Crate {
 	id: string;
 	position: Vec3;
-	/** A corpse searched like a crate; absent for a crate. */
-	kind?: 'corpse';
+	/** A corpse searched like a crate, or a locked trunk; absent for a crate. */
+	kind?: CratePlacement['kind'];
+	/**
+	 * What keeps it shut: jammed (a crate stuck fast: pry it with a crowbar), locked (a trunk:
+	 * a key opens it). Null once pried or unlocked, and for everything else.
+	 */
+	lock: 'jammed' | 'locked' | null;
+	/** Someone has tried it and found it jammed: from then on everyone is told (the snapshot). */
+	jamFound: boolean;
 	slots: Slots;
 	/** Slots holding something nobody has seen yet. They can't be touched. */
 	hidden: Set<number>;
@@ -60,7 +67,10 @@ export class Crates {
 			const [lo, hi] = span.get(tier) ?? [Infinity, -Infinity];
 			span.set(tier, [Math.min(lo, d), Math.max(hi, d)]);
 		}
+		// Which crates are jammed: their own stream, so the loot rolled doesn't change with it.
+		const jams = new Rng(seed ^ 0x7a33ed);
 		for (const { id, position, kind, tier } of placements) {
+			const jammed = jams.next() < CRATES.jammed && kind === undefined;
 			const d = along.get(id);
 			const [lo, hi] = span.get(tier) ?? [0, 0];
 			this.depth.set(id, d !== undefined && hi > lo ? (d - lo) / (hi - lo) : 0);
@@ -70,6 +80,8 @@ export class Crates {
 				id,
 				position,
 				kind,
+				lock: kind === 'trunk' ? 'locked' : jammed ? 'jammed' : null,
+				jamFound: false,
 				slots: [],
 				hidden: new Set(),
 				user: null,
@@ -78,6 +90,24 @@ export class Crates {
 			});
 		}
 		this.fill();
+		this.hideKeys(new Rng(seed ^ 0x6e75));
+	}
+
+	/**
+	 * One key per trunk, each in a crate you can walk to that isn't locked or jammed (any crate
+	 * but a trunk if there is none), so no key is ever behind a lock. Seeded by the map seed.
+	 */
+	private hideKeys(rng: Rng): void {
+		const open = [...this.crates.values()].filter(
+			(crate) =>
+				crate.lock === null &&
+				crate.kind !== 'trunk' &&
+				Number.isFinite(this.fromStart.get(crate.id) ?? Infinity)
+		);
+		for (let i = 0; i < this.trunks().length; i++) {
+			if (open.length) this.put(rng.pick(open), newStack(TRUNKS.key));
+			else this.stow(newStack(TRUNKS.key), rng);
+		}
 	}
 
 	/**
@@ -89,7 +119,9 @@ export class Crates {
 		for (const crate of this.crates.values()) {
 			const kept = crate.slots.filter((stack) => stack !== null && placed(stack.item));
 			const level = LEVEL_LOOT[Math.min(this.tier.get(crate.id) ?? 0, LEVEL_LOOT.length - 1)];
-			crate.slots = rollCrate(this.depth.get(crate.id) ?? 0, rng, level.rarities);
+			// A trunk always holds something epic or legendary, among the rest.
+			const prize = crate.kind === 'trunk' ? TRUNKS.legendary : undefined;
+			crate.slots = rollCrate(this.depth.get(crate.id) ?? 0, rng, level.rarities, prize);
 			crate.hidden = new Set(crate.slots.flatMap((stack, index) => (stack ? [index] : [])));
 			crate.user = null;
 			crate.opened = false;
@@ -106,7 +138,8 @@ export class Crates {
 	stow(stack: ItemStack, rng: Rng, nearStart = false): boolean {
 		const distance = (crate: Crate): number => this.fromStart.get(crate.id) ?? Infinity;
 		// Only crates you can walk to: never below a drop you need rope for (docs/dev/rope.md).
-		const every = [...this.crates.values()];
+		// Never in a trunk: what is stowed (a rite's item, a trunk's key) can't need a key itself.
+		const every = [...this.crates.values()].filter((crate) => crate.kind !== 'trunk');
 		const walkable = every.filter((crate) => Number.isFinite(distance(crate)));
 		const all = walkable.length ? walkable : every;
 		if (all.length === 0) return false;
@@ -174,8 +207,21 @@ export class Crates {
 		const all = [...this.crates.values()];
 		return {
 			open: all.filter((c) => c.opened).map((c) => c.id),
-			busy: all.filter((c) => c.user !== null).map((c) => c.id)
+			busy: all.filter((c) => c.user !== null).map((c) => c.id),
+			// Only the jams someone has found: the rest look like any crate until tried.
+			jammed: all.filter((c) => c.lock === 'jammed' && c.jamFound).map((c) => c.id),
+			locked: all.filter((c) => c.lock === 'locked').map((c) => c.id)
 		};
+	}
+
+	/** Every trunk in the map: each needs a key from somewhere else (see Session.populate). */
+	trunks(): Crate[] {
+		return [...this.crates.values()].filter((crate) => crate.kind === 'trunk');
+	}
+
+	/** Unjam or unlock a crate (pried, a key turned, or an admin). */
+	release(crate: Crate): void {
+		crate.lock = null;
 	}
 
 	/** The crate a player is looking at within reach, or null (see lookedAtCrate). */
@@ -224,8 +270,11 @@ export class Crates {
 	}
 }
 
-/** Put in a crate on purpose (quest items, hints): kept through a refill and never pushed out. */
+/**
+ * Put in a crate on purpose (quest items, hints, the keys to the trunks): kept through a refill
+ * and never pushed out.
+ */
 function placed(item: string): boolean {
 	const def = ITEMS[item];
-	return def?.quest === true || def?.kind === 'clue';
+	return def?.quest === true || def?.kind === 'clue' || def?.unlocks === true;
 }

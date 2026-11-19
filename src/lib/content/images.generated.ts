@@ -15,6 +15,7 @@ export const IMAGE_URLS: Record<string, string> = {
 	'gloaming-pendant': '/assets/ui/images/gloaming-pendant.6bb46d92.webp',
 	gold_tooth: '/assets/ui/images/gold_tooth.9b3ba574.webp',
 	icon: '/assets/ui/images/icon.8332507b.webp',
+	key: '/assets/ui/images/key.8e64a1d2.webp',
 	knife: '/assets/ui/images/knife.16dbf279.webp',
 	'login-bg': '/assets/ui/images/login-bg.106d305e.webp',
 	logo: '/assets/ui/images/logo.550337f7.webp',

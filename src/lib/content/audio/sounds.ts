@@ -162,6 +162,15 @@ export const SOUNDS = {
 		volume: 0.6,
 		variation: 0.06
 	},
+	// Leaving the floor in a jump (PlayerAudio.updateJump): a short breath out, quieter than a mantle.
+	jump: {
+		file: 'exertion',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.3,
+		rate: 1.15,
+		variation: 0.08
+	},
 	'squeeze.grunt': {
 		file: 'squeeze.grunt',
 		synth: { kind: 'scrape' },
@@ -506,6 +515,44 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	// The lid of a loot crate, the first time it is lifted.
+	// A jammed crate or a locked trunk that won't give (docs/dev/items.md#jammed-crates).
+	'crate.stuck': {
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 1.4,
+		variation: 0.1,
+		caption: 'a lid rattles, stuck fast',
+		captionOthers: true
+	},
+	// A key turning in a trunk's lock (used up).
+	'key.unlock': {
+		file: 'key.unlock',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.05,
+		caption: 'a key turns in a lock',
+		captionOthers: true
+	},
+	// Levering with a crowbar: a jammed crate, or the wall at a dead end. Heard far.
+	'crowbar.pry': {
+		file: 'crowbar.pry',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.75,
+		variation: 0.04,
+		caption: 'iron grinds on stone'
+	},
+	// A false wall coming down.
+	'crowbar.rocks': {
+		file: 'crowbar.rocks',
+		synth: { kind: 'rockfall' },
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.05,
+		caption: 'a wall collapses'
+	},
 	'crate.open': {
 		file: 'crate.open',
 		synth: { kind: 'thud', cutoff: 500 },
@@ -680,6 +727,7 @@ export const SOUNDS = {
 		variation: 0.1
 	},
 	'map.sketch': {
+		file: 'map.scribble',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.35,

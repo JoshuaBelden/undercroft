@@ -26,7 +26,7 @@ import type { ServerMessage } from '#lib/shared/protocol.ts';
  */
 
 /** The screens that can be open over the game. */
-export type PanelName = 'settings' | 'help' | 'admin' | 'menu' | 'crate' | 'map';
+export type PanelName = 'settings' | 'help' | 'admin' | 'menu' | 'crate';
 
 export type TickMessage = Extract<ServerMessage, { type: 'tick' }>;
 
@@ -35,6 +35,8 @@ export interface Prompt {
 	prompt: string;
 	promptKey?: string;
 	progress: number;
+	/** It can't be done yet (no key for the lock, no crowbar in the hand): shown in red. */
+	blocked?: boolean;
 }
 
 /** Where the player is looking, for working out what interact would take. */

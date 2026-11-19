@@ -1,4 +1,4 @@
-import { CORPSES, CRATES } from '../../content/loot.ts';
+import { CORPSES, CRATES, TRUNKS } from '../../content/loot.ts';
 import { Rng } from '../rng.ts';
 import { boxesNear, buildCollisionWorld, hasFloor, sphereVsBox, volumesAt } from './collision.ts';
 import type { CollisionWorld } from './collision.ts';
@@ -67,6 +67,20 @@ export function placeCrates(
 		crate.kind = 'corpse';
 		turned++;
 	}
+
+	// Locked trunks on the third level: their own stream too. A trunk is deeper than a crate, so it
+	// is pushed out from the wall by the difference to keep its back where the crate's was.
+	const locks = new Rng(seed ^ 0x7c0ffe);
+	for (const crate of crates) {
+		if (crate.kind || crate.tier !== TRUNKS.tier || locks.next() >= TRUNKS.chance) continue;
+		const out = TRUNKS.size[2] / 2 - CRATES.size[2] / 2;
+		crate.position = [
+			round(crate.position[0] + Math.sin(crate.yaw) * out),
+			crate.position[1],
+			round(crate.position[2] + Math.cos(crate.yaw) * out)
+		];
+		crate.kind = 'trunk';
+	}
 	return crates;
 }
 
@@ -124,7 +138,10 @@ function corpseFits(world: CollisionWorld, centre: Vec3, yaw: number): boolean {
 }
 
 /** The middle of a crate, or of a corpse's body: what is looked at to open or search it. */
-export function crateCentre(crate: { position: Vec3; kind?: 'corpse' }): Vec3 {
-	const height = crate.kind === 'corpse' ? CORPSES.lookHeight : CRATES.size[1] / 2;
+export function crateCentre(crate: { position: Vec3; kind?: CratePlacement['kind'] }): Vec3 {
+	const height =
+		crate.kind === 'corpse'
+			? CORPSES.lookHeight
+			: (crate.kind === 'trunk' ? TRUNKS.size[1] : CRATES.size[1]) / 2;
 	return [crate.position[0], crate.position[1] + height, crate.position[2]];
 }

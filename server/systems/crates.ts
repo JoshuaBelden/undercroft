@@ -1,6 +1,12 @@
 import { ITEMS } from '../../src/lib/content/items.ts';
 import { CORPSES, CRATES } from '../../src/lib/content/loot.ts';
-import { applyAction, held, sanitizeAction } from '../../src/lib/shared/items/inventory.ts';
+import {
+	allStacks,
+	applyAction,
+	held,
+	removeItem,
+	sanitizeAction
+} from '../../src/lib/shared/items/inventory.ts';
 import { CRATE_REACH } from '../../src/lib/shared/items/pickup.ts';
 import { aimRay } from '../../src/lib/shared/items/weapons.ts';
 import { crateCentre } from '../../src/lib/shared/map/crates.ts';
@@ -36,17 +42,40 @@ export class CrateSystem implements SessionSystem {
 				if (!crate || !able || !connected || away > CRATE_REACH.leave) this.shut(player);
 				continue;
 			}
+			const pressing = !!player.lastInput?.interact;
+			// A press spent on something else (a key turned, a jam found) is let go before the next.
+			if (!pressing) player.crateLatch = false;
 			const crate =
-				able && player.lastInput?.interact && !ctx.items.lookedAt(s, origin, direction)
+				able && pressing && !player.crateLatch && !ctx.items.lookedAt(s, origin, direction)
 					? ctx.crates.lookedAt(origin, direction)
 					: null;
 			if (!crate || crate.user !== null) {
 				s.opening = 0;
 				continue;
 			}
-			s.opening += TICK_DT;
-			if (s.opening < CRATES.openSeconds) continue;
-			s.opening = 0;
+			if (crate.lock === 'locked') {
+				this.unlock(player, crate);
+				continue;
+			}
+			if (crate.lock === 'jammed' && crate.jamFound) {
+				if (!this.pry(player, crate)) continue;
+			} else {
+				s.opening += TICK_DT;
+				if (s.opening < CRATES.openSeconds) continue;
+				s.opening = 0;
+				if (crate.lock === 'jammed') {
+					// Stuck fast: now everyone knows, and it takes a crowbar.
+					crate.jamFound = true;
+					player.crateLatch = true;
+					ctx.events.push({
+						kind: 'crateStuck',
+						id: crate.id,
+						player: player.id,
+						position: crateCentre(crate)
+					});
+					continue;
+				}
+			}
 			player.crate = crate.id;
 			if (ctx.crates.open(crate, player.id)) {
 				ctx.events.push({
@@ -69,6 +98,62 @@ export class CrateSystem implements SessionSystem {
 			const crate = player.crate ? ctx.crates.get(player.crate) : null;
 			if (crate) ctx.send(player, { type: 'crate', id: crate.id, ...ctx.crates.view(crate) });
 		}
+	}
+
+	/**
+	 * A press on a locked trunk: a key carried anywhere turns in the lock and is used up. Without
+	 * one it only rattles. Either way the press is spent: opening it takes a hold after.
+	 */
+	private unlock(player: Player, crate: Crate): void {
+		const ctx = this.ctx;
+		const inv = player.state.inventory;
+		player.state.opening = 0;
+		player.crateLatch = true;
+		const key = allStacks(inv).find((stack) => ITEMS[stack.item]?.unlocks);
+		const position = crateCentre(crate);
+		if (!key) {
+			ctx.events.push({ kind: 'crateStuck', id: crate.id, player: player.id, position });
+			return;
+		}
+		removeItem(inv, key.item, 1);
+		ctx.crates.release(crate);
+		ctx.events.push({ kind: 'crateUnlock', id: crate.id, player: player.id, position });
+		log.info(`${player.name} unlocked trunk ${crate.id} in ${ctx.id.slice(0, 8)}`);
+	}
+
+	/**
+	 * Holding interact on a jammed crate with something that pries in the hand: `opening` counts
+	 * to `CRATES.prySeconds`, loudly. Returns true once it gives (it then opens like any crate).
+	 */
+	private pry(player: Player, crate: Crate): boolean {
+		const ctx = this.ctx;
+		const s = player.state;
+		if (!ITEMS[held(s.inventory)?.item ?? '']?.pry) {
+			s.opening = 0;
+			return false;
+		}
+		const before = s.opening;
+		s.opening += TICK_DT;
+		if (before === 0) {
+			ctx.events.push({
+				kind: 'pry',
+				target: 'crate',
+				player: player.id,
+				position: crateCentre(crate)
+			});
+		}
+		// Heard as it starts, and again every so often while it goes on.
+		if (
+			Math.floor(s.opening / CRATES.pryEvery) !== Math.floor(before / CRATES.pryEvery) ||
+			before === 0
+		) {
+			ctx.creatures.hear(crate.position, CRATES.pryNoise, { id: player.id, state: s });
+		}
+		if (s.opening < CRATES.prySeconds) return false;
+		s.opening = 0;
+		ctx.crates.release(crate);
+		log.info(`${player.name} pried crate ${crate.id} open in ${ctx.id.slice(0, 8)}`);
+		return true;
 	}
 
 	/**
@@ -141,6 +226,10 @@ export class CrateSystem implements SessionSystem {
 		resetCrates: () => {
 			for (const player of this.ctx.players.values()) this.shut(player);
 			this.ctx.crates.fill();
+		},
+		// Unjams every crate and unlocks every trunk (no key or crowbar needed).
+		unlockCrates: () => {
+			for (const { crate } of this.ctx.crates.list()) this.ctx.crates.release(crate);
 		}
 	} satisfies SessionSystem['admin'];
 }

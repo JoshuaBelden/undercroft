@@ -114,7 +114,11 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'defense.torn': ['/assets/shared/audio/defense.torn.f49422b0.webm'],
 	'creature.hurt': ['/assets/shared/audio/creature.hurt.7f823348.webm'],
 	'rope.tension': ['/assets/shared/audio/rope.tension.a37433b9.webm'],
-	'rope.tie': ['/assets/shared/audio/rope.tie.d484b77c.webm']
+	'rope.tie': ['/assets/shared/audio/rope.tie.d484b77c.webm'],
+	'crowbar.pry': ['/assets/shared/audio/crowbar.pry.1de6e61d.webm'],
+	'crowbar.rocks': ['/assets/shared/audio/crowbar.rocks.d5b148da.webm'],
+	'key.unlock': ['/assets/shared/audio/key.unlock.624f38af.webm'],
+	'map.scribble': ['/assets/shared/audio/map.scribble.bb56d96d.webm']
 };
 
 /** Size in bytes of each built sound file, by URL (preload progress). */
@@ -213,7 +217,11 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/defense.torn.f49422b0.webm': 5780,
 	'/assets/shared/audio/creature.hurt.7f823348.webm': 13471,
 	'/assets/shared/audio/rope.tension.a37433b9.webm': 9591,
-	'/assets/shared/audio/rope.tie.d484b77c.webm': 20914
+	'/assets/shared/audio/rope.tie.d484b77c.webm': 20914,
+	'/assets/shared/audio/crowbar.pry.1de6e61d.webm': 63184,
+	'/assets/shared/audio/crowbar.rocks.d5b148da.webm': 23769,
+	'/assets/shared/audio/key.unlock.624f38af.webm': 7605,
+	'/assets/shared/audio/map.scribble.bb56d96d.webm': 8445
 };
 
 /**

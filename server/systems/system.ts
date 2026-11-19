@@ -52,6 +52,8 @@ export interface Player {
 	lastInput: InputFrame | null;
 	/** The loot crate they have open (its id). */
 	crate: string | null;
+	/** Their interact press was spent on a crate (a key turned, a jam found): let go first. */
+	crateLatch: boolean;
 	/** The chalk symbols on their wheel: the only ones they may draw. */
 	markWheel: readonly string[];
 }

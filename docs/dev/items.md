@@ -89,11 +89,11 @@ The rules are all in `src/lib/shared/items/inventory.ts`, and work on `Belonging
 
 ### The in-game menu
 
-Underground, the `inventory` action (Tab or I, View on the controller) opens `GameMenu`: a **Pack** tab (`PackPanel`, below) and a **Rite** tab (`RitePanel` and Abandon expedition, see [rite.md](rite.md#the-rite-tab)). Click a tab, or press LB/RB with the controller (the menu's `tabs`). The same action, B or Close puts it away. It doesn't pause anything: the server can't pause a co-op game.
+Underground, the `inventory` action (Tab or I, View on the controller) opens `GameMenu`: a **Pack** tab (`PackPanel`, below), a **Map** tab with a notebook in the pack (`MapPane`, see [map.md](map.md#the-screen); the `map` action opens the menu there) and a **Rite** tab (`RitePanel` and Abandon expedition, see [rite.md](rite.md#the-rite-tab)). The tabs are pills at the left of the header; a tab's own buttons go in the middle of it (the Map tab's `MapTools`). Click a tab, or press LB/RB with the controller (the menu's `tabs`). The same action, B or Close (a pill at the bottom right) puts it away. It doesn't pause anything: the server can't pause a co-op game.
 
 - **It opens on the Pack tab.** It only opens while you are down there and on your feet: never while downed, or dead and spectating. Going down closes it.
 - **Hands busy.** While it is open the client sends `reading: true` in its `InputFrame`s, and `handsBusy` (`src/lib/shared/player/simulate.ts`) takes away sprint, interact, attack, aim, reload and `select`: no fighting, using, picking up, climbing out, reviving, swapping or running. Walking, stance and the headlamp still work. The server applies it in `sanitizeFrame`, the client to the frames it predicts with, so they agree and a client can't keep its hands by not using them. The movement keys walk (`LocalPlayer.update`'s `reading`); the controller's left stick stays the menu's, so with a controller you stand still. The look stays put: the pointer is free for the menu.
-- **The tabs share one place:** both panes sit in the same grid cell, the hidden one `inert` and invisible, so the menu is as big as its bigger tab and keeps its size from one to the other. Switching blurs whatever had the focus in the old tab, and the controller starts on the new one where it was last (the menu's `key` is per tab).
+- **The tabs share one place:** the panes sit in the same grid cell, the hidden one `inert` and invisible, so the menu is as big as its bigger tab and keeps its size from one to the other. The Map pane is only there while its tab shows (it draws every frame and takes the sketch keys), so the menu grows to the map's size on it. Switching blurs whatever had the focus in the old tab, and the controller starts on the new one where it was last (the menu's `key` is per tab).
 - **Adding a tab:** a name in `MENU_TABS` (`GameMenu.svelte`), when it shows in `tabs`, and its pane in the markup.
 
 ### The pack screen
@@ -216,7 +216,27 @@ Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 sl
 
 **The loot screen** (`CrateScreen`): most of the window, the crate's 8 slots (4 across) beside a `LoadoutPanel`, on one `ItemBoard`. A hidden slot is a dashed box; the one being revealed shows a progress bar and nothing else. Opening it releases the pointer. The Close button, the pack and menu keys, or any movement key (`moveForward`, `moveBack`, `moveLeft`, `moveRight`, `climb`, `stance`) shut it and take the pointer back.
 
-**Tuning:** `CRATES` (slots, seconds, fill, size, noise). To add crate places, add `crate-<n>` markers to pieces.
+**Tuning:** `CRATES` (slots, seconds, fill, size, noise, jams and prying). To add crate places, add `crate-<n>` markers to pieces.
+
+### Jammed crates
+
+About `CRATES.jammed` (a quarter) of the crates are jammed ([#25](https://github.com/JoshuaBelden/undercroft/issues/25)). `Crates` picks them in its own seeded stream (`Crate.lock = 'jammed'`); corpses and trunks never are. Nothing tells them apart until someone tries one:
+
+- **Found:** holding interact the usual `openSeconds` doesn't open it. It sets `jamFound`, raises `crateStuck` (`crate.stuck`, a rattle) and spends the press (`Player.crateLatch`: interact has to be let go before the next try). From then on the crate is in every tick's `crates.jammed`, so everyone's prompt knows.
+- **Prying:** with an item that has `pry: true` (the crowbar) **in the hand**, holding interact counts `PlayerState.opening` up to `CRATES.prySeconds` (10 s). It raises `pry` as it starts (`crowbar.pry`, the crowbar recording, heard `CRATES.pryNoise` away) and creatures hear it then and every `CRATES.pryEvery` seconds while it goes on, with the pryer as the source. Letting go, looking away or moving off starts it over. When it gives, the lock is gone (`Crates.release`) and the crate opens at once.
+- **Prompt** (`crates.svelte.ts`): "Pry [E]" filling over the ten seconds, or "Jammed: pry [E]" in red with no crowbar in the hand (`Prompt.blocked`, drawn red by `HoldPrompt`).
+- Hints never go in jammed (or locked) crates, nor do the trunks' keys.
+
+### Locked trunks
+
+On the third level (`TRUNKS.tier`) about `TRUNKS.chance` of the crates are locked trunks ([#95](https://github.com/JoshuaBelden/undercroft/issues/95)): `placeCrates` turns them in its own stream after the corpses (`kind: 'trunk'`), pushed out from the wall since a trunk is deeper than a crate. They are solid (`TRUNKS.size`), drawn with `shared/props/trunk.glb` (from `art/export/props/trunk.glb`, fitted by `PROP_FIT`; no lid), and searched like a crate once open.
+
+- **A prize:** `rollCrate`'s `prize` makes sure each holds something epic or legendary (legendary with probability `TRUNKS.legendary` when it rolled neither), among the usual things.
+- **Keys:** the `key` (`unlocks: true`, a backpack item, `TRUNKS.key`) opens one and is used up. `Crates.hideKeys` puts one key per trunk in a crate you can walk to that is neither jammed nor a trunk, so no key is behind a lock; keys are kept through an admin refill. A key carried out is kept like anything else.
+- **Unlocking:** a press of interact on a locked trunk (`CrateSystem.unlock`) with a key **anywhere** in the inventory takes one, clears the lock and raises `crateUnlock` (`key.unlock`). Without one it raises `crateStuck`. Either way the press is spent: opening it is a fresh hold after. Locked trunks are in every tick's `crates.locked`.
+- **Prompt:** "Unlock [E]", red without a key.
+
+**Admin:** **Unlock crates** (`unlockCrates`, Items tab) unjams every crate and unlocks every trunk; Give gives keys and crowbars.
 
 ### Corpses
 
@@ -252,6 +272,7 @@ These need `DEV_MODE`:
 
 - **Give** any item with a count (firearms come loaded); it goes where `addItem` puts it;
 - **Refill ammo** (fills the guns in the weapon slots and adds spare rounds);
-- **Reset crates** (`resetCrates`): shuts every loot crate and fills it again, hidden, with a new roll (a quest item still in a crate stays in it);
+- **Reset crates** (`resetCrates`): shuts every loot crate and fills it again, hidden, with a new roll (a quest item, hint or key still in a crate stays in it);
+- **Unlock crates** (`unlockCrates`): unjams every crate and unlocks every trunk;
 - **Infinite ammo**;
 - **Kill all** creatures.

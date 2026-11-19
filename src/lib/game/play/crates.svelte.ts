@@ -1,6 +1,8 @@
+import { ITEMS } from '#lib/content/items.ts';
 import { CRATES } from '#lib/content/loot.ts';
 import { Crates as CrateModels } from '#lib/game/items/Crates.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
+import { allStacks, held } from '#lib/shared/items/inventory.ts';
 import { lookedAtCrate } from '#lib/shared/items/pickup.ts';
 import type { CrateSlot, GameEvent } from '#lib/shared/items/types.ts';
 import type { MapLayout } from '#lib/shared/map/types.ts';
@@ -16,6 +18,8 @@ export interface OpenCrate {
 	slots: CrateSlot[];
 	reveal: number;
 	corpse: boolean;
+	/** A locked trunk (now unlocked): its screen says so. */
+	trunk: boolean;
 }
 
 /**
@@ -63,7 +67,8 @@ export class Crates implements PlayFeature {
 				id: message.id,
 				slots: message.slots,
 				reveal: message.reveal,
-				corpse: this.models.kind(message.id) === 'corpse'
+				corpse: this.models.kind(message.id) === 'corpse',
+				trunk: this.models.kind(message.id) === 'trunk'
 			};
 			// Something special just revealed (not one seen before the crate was opened).
 			const before = this.open?.id === next.id ? this.open.slots : null;
@@ -100,6 +105,12 @@ export class Crates implements PlayFeature {
 			if (this.models.kind(event.id) === 'corpse') {
 				sounds.playAt('corpse.search', event.position, 1, 3);
 			} else sounds.playAt('crate.open', event.position, 1, 4);
+		} else if (event.kind === 'crateStuck') {
+			sounds.playAt('crate.stuck', event.position, 1, 4);
+		} else if (event.kind === 'crateUnlock') {
+			sounds.playAt('key.unlock', event.position, 1, 4);
+		} else if (event.kind === 'pry' && event.target === 'crate') {
+			sounds.playAt('crowbar.pry', event.position, 1, CRATES.pryNoise);
 		} else if (event.kind === 'rummage') {
 			// Your own hands are right there; someone else's are heard from where they are.
 			if (event.player === client.playerId) sounds.play('inventory.rummage');
@@ -120,7 +131,19 @@ export class Crates implements PlayFeature {
 		if (!this.aimedAt || !settings.interface.itemPrompts) return null;
 		if (this.models.inUse(this.aimedAt))
 			return { prompt: 'Someone is going through it', progress: 0 };
-		// Crates and bodies alike.
+		const id = this.aimedAt;
+		if (this.models.isLocked(id)) {
+			// A key anywhere in the pack turns it; without one the prompt is red.
+			const key = allStacks(state.inventory).some((stack) => ITEMS[stack.item]?.unlocks);
+			return { ...keyPrompt('interact', 'Unlock'), blocked: !key };
+		}
+		if (this.models.isJammed(id)) {
+			// It takes something that pries, in the hand.
+			const bar = !!ITEMS[held(state.inventory)?.item ?? '']?.pry;
+			if (!bar) return { ...keyPrompt('interact', 'Jammed: pry'), blocked: true };
+			return keyPrompt('interact', 'Pry', state.opening / CRATES.prySeconds);
+		}
+		// Crates, trunks and bodies alike.
 		return keyPrompt('interact', 'to search', state.opening / CRATES.openSeconds);
 	}
 

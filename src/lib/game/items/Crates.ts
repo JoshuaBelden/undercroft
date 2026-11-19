@@ -18,6 +18,7 @@ interface Shown {
 
 const MODEL = modelUrl('shared/props/crate.glb');
 const CORPSE_MODEL = modelUrl('shared/props/corpse.glb');
+const TRUNK_MODEL = modelUrl('shared/props/trunk.glb');
 const LID = 'crate-lid';
 const HIGHLIGHT = new THREE.Color(0x2a2418);
 /** Seconds the lid takes to swing up. */
@@ -36,6 +37,8 @@ export class Crates {
 	private shown = new Map<string, Shown>();
 	private opened = new Set<string>();
 	private busy = new Set<string>();
+	private jammed = new Set<string>();
+	private locked = new Set<string>();
 	private buildId = 0;
 
 	constructor() {
@@ -48,7 +51,13 @@ export class Crates {
 		this.placements = placements;
 		const id = this.buildId;
 		for (const placement of placements) {
-			void loadModel(placement.kind === 'corpse' ? CORPSE_MODEL : MODEL).then((model) => {
+			const url =
+				placement.kind === 'corpse'
+					? CORPSE_MODEL
+					: placement.kind === 'trunk'
+						? TRUNK_MODEL
+						: MODEL;
+			void loadModel(url).then((model) => {
 				// A newer map was loaded while this one was on its way.
 				if (id !== this.buildId) return;
 				model.position.set(...placement.position);
@@ -75,9 +84,21 @@ export class Crates {
 	apply(snapshot: CratesSnapshot): void {
 		this.opened = new Set(snapshot.open);
 		this.busy = new Set(snapshot.busy);
+		this.jammed = new Set(snapshot.jammed);
+		this.locked = new Set(snapshot.locked);
 	}
 
-	/** What stands at this id: a corpse, or (undefined) a crate. */
+	/** Found jammed and not pried open yet. */
+	isJammed(id: string): boolean {
+		return this.jammed.has(id);
+	}
+
+	/** A trunk still locked. */
+	isLocked(id: string): boolean {
+		return this.locked.has(id);
+	}
+
+	/** What stands at this id: a corpse, a trunk, or (undefined) a crate. */
 	kind(id: string): CratePlacement['kind'] {
 		return this.placements.find((placement) => placement.id === id)?.kind;
 	}
@@ -122,6 +143,8 @@ export class Crates {
 		this.placements = [];
 		this.opened.clear();
 		this.busy.clear();
+		this.jammed.clear();
+		this.locked.clear();
 	}
 
 	dispose(): void {
