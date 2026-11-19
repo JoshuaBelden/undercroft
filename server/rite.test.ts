@@ -81,14 +81,13 @@ describe('scatterRite', () => {
 		expect(inCrates('pendant')).toBe(0);
 		const [pendant] = onFloor('pendant');
 		expect(pendant).toBeDefined();
-		// The altar, in the chapel's own frame: centred on x, its top 1.62 m up, z -9.1 to -10.3.
+		// On the chapel's altar-0 marker: the altar's top (1.62 m up), between its candles.
 		const chapel = map.layout.placements.find((p) => p.piece === SPEC.room)!;
 		const local = toLocal(chapel, pendant.position);
-		expect(Math.abs(local[0])).toBeLessThan(1.35);
-		expect(local[1]).toBeGreaterThan(1.6);
-		expect(local[1]).toBeLessThan(1.8);
-		expect(local[2]).toBeLessThan(-9.1);
-		expect(local[2]).toBeGreaterThan(-10.3);
+		const [ax, ay, az] = PIECES[SPEC.room].altars![0];
+		expect(Math.abs(local[0] - ax)).toBeLessThan(0.01);
+		expect(Math.abs(local[1] - ay)).toBeLessThan(0.01);
+		expect(Math.abs(local[2] - az)).toBeLessThan(0.01);
 		const copies = SPEC.clues.length * SPEC.clueCopies;
 		const hung = onFloor('clue');
 		expect(inCrates('clue') + hung.length).toBe(copies);

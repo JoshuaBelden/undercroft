@@ -133,13 +133,17 @@ export function cellOf(position: Vec3): string {
 }
 
 /**
- * The altar of a rite's room: the furniture top (see `furnitureSpots`) within reach of where the
- * rite is performed (the room's first `rite-<n>` marker), nearest it. Null if the room isn't in
- * the map or has nothing there to lay a thing on.
+ * The altar of a rite's room: its `altar-0` marker (on the altar's top). A room without one: the
+ * furniture top (see `furnitureSpots`) within reach of where the rite is performed (the room's first
+ * `rite-<n>` marker), nearest it. Null if the room isn't in the map or has nothing there to lay a
+ * thing on. Never a crate or a corpse.
  */
 export function altarSpot(room: string, map: RiteMap, floor: FloorPoint[]): Vec3 | null {
 	const piece = map.pieces[room];
 	const placement = map.layout.placements.find((p) => p.piece === room);
+	// The room says where: its altar-0 marker (the Gloaming Chapel's, on the altar's top).
+	const altar = piece?.altars?.[0];
+	if (placement && altar) return toWorld(placement, altar);
 	const marker = piece?.rites[0];
 	if (!placement || !marker) return null;
 	const at = toWorld(placement, marker);

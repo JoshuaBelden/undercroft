@@ -677,8 +677,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'Heavier than it should be, and never quite warm.',
 		image: 'pendant',
 		quest: true,
-		model: null,
-		placeholder: { size: [0.1, 0.03, 0.14], color: 0xb08a3a },
+		model: modelUrl('shared/items/pendant.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 0.2

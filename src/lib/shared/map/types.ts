@@ -87,6 +87,11 @@ export interface PieceDef {
 	extracts: Vec3[];
 	/** Where the rite can be initiated (rite-* markers). */
 	rites: Vec3[];
+	/**
+	 * Where a rite's item is laid on the altar (altar-* markers: the Gloaming Chapel's, for the
+	 * Pendant). Left out in hand-built test pieces.
+	 */
+	altars?: Vec3[];
 	/** Where a loot crate may stand (crate-* markers). The server fills only some of them. */
 	crates: CrateMarker[];
 	/**
