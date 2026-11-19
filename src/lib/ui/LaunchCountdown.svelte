@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { menu } from '#lib/game/input/menus.ts';
 	import { connection, send } from '#lib/game/net/connection.svelte.ts';
+	import { darken } from './descent.svelte.ts';
 
 	/**
 	 * Everyone in the party is ready: the seconds until the descent, over whatever page is open,
@@ -13,6 +14,11 @@
 		now = Date.now();
 		const timer = setInterval(() => (now = Date.now()), 100);
 		return () => clearInterval(timer);
+	});
+
+	// The count ran out: the screen goes dark until the start room fades in (descent.svelte.ts).
+	$effect(() => {
+		if (connection.launchAt !== null && now >= connection.launchAt) darken();
 	});
 
 	const seconds = $derived(

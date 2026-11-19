@@ -16,6 +16,7 @@ A **party** is the group that descends together (one to `PARTY.maxSize` players;
 | Rules (extract time and radius)                  | `src/lib/content/expedition.ts`                                                        |
 | Extraction in the simulation                     | `src/lib/shared/player/simulate.ts` (`updateExtraction`, `nearExtract`)                |
 | Extract points                                   | `CollisionWorld.extracts` (`src/lib/shared/map/collision.ts`)                          |
+| Arriving: dark, then a fade into the start room  | `src/lib/ui/descent.svelte.ts`, `DescentVeil`, `EXPEDITION.arriveFadeSeconds`          |
 | Leaving fade ("Extracting")                      | `src/lib/ui/ExtractFade.svelte`, `EXPEDITION.leaveFadeSeconds`                         |
 | Results screen                                   | `src/lib/ui/ExpeditionResult.svelte`                                                   |
 | Room banner                                      | `src/lib/ui/RoomBanner.svelte`, titles in `MAP_KIT` (`src/lib/content/map/kit.ts`)     |
@@ -47,13 +48,17 @@ All checks are on the server (`Parties`); `allReady` is shared so both sides use
 ## Lifecycle
 
 1. Signing in lands on the Expedition page. The site-wide connection (`src/lib/game/net/connection.svelte.ts`, see [systems.md](systems.md#networking)) sends `hello` with its ticket (see [accounts.md](accounts.md)), lands in a party and gets `party`.
-2. Everyone readies up and the countdown runs out (above). `Parties.descend` creates a `Session` against the party's Affliction (new seed, generated layout), takes each member's loadout from their explorer (see [economy.md](economy.md)) and adds them with it. Each gets `welcome` with the layout: that message means "you are underground now", and the client opens `/play`.
+2. Everyone readies up and the countdown runs out (above). `Parties.descend` creates a `Session` against the party's Affliction (new seed, generated layout), takes each member's loadout from their explorer (see [economy.md](economy.md)) and adds them with it. Each gets `welcome` with the layout: that message means "you are underground now", and the client opens `/play`. See [The descent](#the-descent) for what the screen does meanwhile.
 3. Players explore. The session simulates them and broadcasts `tick` snapshots to the players in it.
 4. A player climbs out (see Extraction), dies, abandons (see Abandoning), or runs out of time (see Deadline). Performing the rite and banishing what it summons (see [rite.md](rite.md)) do not end anything: they still have to climb out. The server sends them `extracted`, `died` (with `lost` when time ran out) or `abandoned` with their `ExpeditionSummary` (see Results) and removes them from the session, so other players stop seeing them. The connection stays open and they stay in the party.
 5. What they carried out goes back to their explorer; if they died or abandoned it is lost (see [economy.md](economy.md)). Leaving alive, the client fades out first (see Leaving); the dead see the results after spectating (see Spectating). Continue on the results goes to the Loadout page. While others are still underground their panes say so, and nobody can launch.
 6. When the session's last player is out (or has disconnected), it stops. The party is back on the surface and can launch again.
 
 `/play` is only the expedition: opened with none to show, it goes back to the dashboard.
+
+## The descent
+
+The moment the countdown runs out, the screen goes black (`darken` in `src/lib/ui/descent.svelte.ts`, drawn by `DescentVeil` in the root layout), so the Expedition page never shows again on the way down. It stays black while `/play` opens and the run loads (the loading bar shows over it), then, once the start room has drawn, fades into it over `EXPEDITION.arriveFadeSeconds` (`reveal`). If no run arrives within `EXPEDITION.descentGiveUpSeconds` of the count running out, the dark lifts on its own.
 
 ## Deadline
 

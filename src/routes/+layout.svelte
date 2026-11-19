@@ -19,6 +19,7 @@
 	import Diagnostics from '#lib/ui/Diagnostics.svelte';
 	import CrashDialog from '#lib/ui/CrashDialog.svelte';
 	import LaunchCountdown from '#lib/ui/LaunchCountdown.svelte';
+	import DescentVeil from '#lib/ui/DescentVeil.svelte';
 	import Alerts from '#lib/ui/Alerts.svelte';
 	import { onAlertSound } from '#lib/game/alerts.svelte.ts';
 	import type { LayoutProps } from './$types';
@@ -192,6 +193,7 @@
 {#if page.route.id !== '/play'}
 	<LaunchCountdown />
 {/if}
+<DescentVeil underLoading={page.route.id === '/play'} />
 
 <!-- Reports, on every page, underground too (docs/dev/reports.md). Only once signed in. -->
 {#if data.account}

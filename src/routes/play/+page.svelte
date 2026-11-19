@@ -81,6 +81,7 @@
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
 	import ExtractFade from '#lib/ui/ExtractFade.svelte';
 	import DescentLoading from '#lib/ui/DescentLoading.svelte';
+	import { holdDark, reveal } from '#lib/ui/descent.svelte.ts';
 	import { preloadRun, type LoadProgress } from '#lib/game/preload.ts';
 	import Hud from '#lib/ui/Hud.svelte';
 	import RitePanel from '#lib/ui/RitePanel.svelte';
@@ -543,6 +544,7 @@
 			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
 			const id = ++loadId;
 			loading = { loaded: 0, total: 0 };
+			if (arrived) holdDark();
 			void Promise.all([
 				preloadRun(layout, audio, (progress) => {
 					if (id === loadId) loading = progress;
@@ -553,6 +555,8 @@
 					if (id !== loadId) return;
 					loading = null;
 					if (arrived) descend();
+					// Out of the dark after the countdown, once the room has drawn a frame or two.
+					requestAnimationFrame(() => requestAnimationFrame(() => reveal()));
 				})
 				.catch((error) => console.error('Map load failed', error));
 			const grid = mapDebugGrid(layout, PIECES, MAP_KIT);
@@ -580,6 +584,7 @@
 			if (freecam) setFreecam(false);
 			loadId++;
 			loading = null;
+			reveal();
 			if (panel === 'menu' || panel === 'crate' || panel === 'map') panel = null;
 			water.reset();
 			underwater = 0;
