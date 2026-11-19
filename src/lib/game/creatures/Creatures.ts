@@ -69,6 +69,7 @@ const MARKER_COLOURS: Record<CreatureState, number> = {
 	investigate: 0xffb020,
 	agro: 0xff3030,
 	attack: 0xff3030,
+	flee: 0x40a0ff,
 	dead: 0x404040
 };
 /** How quickly (1/s) the breathing loop's volume follows the nearest creature. */

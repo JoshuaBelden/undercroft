@@ -142,6 +142,13 @@ export interface CreatureDef {
 	breath?: { range: number };
 	/** How it comes to be in the catacombs. Nothing comes back once killed. */
 	spawn: SpawnRule;
+	/**
+	 * It sits where it is, looking about, until someone sees it (in their view within `seenRange`,
+	 * lit, or right up close): then it gets up and walks off to a corner at least `fleeDistance`
+	 * (along the grid) from everyone, and sits again. A hit sends it running. `turnChance` of them
+	 * are something else: seen or hit, they become a `turnInto` and attack.
+	 */
+	shy?: { seenRange: number; fleeDistance: number; turnChance: number; turnInto: string };
 }
 
 /** Can't get down for squeezes or crawls, and won't go into water. */
@@ -352,6 +359,61 @@ export const CREATURES: Record<string, CreatureDef> = {
 			minDistance: 15,
 			where: 'anywhere'
 		}
+	},
+	dweller: {
+		id: 'dweller',
+		model: modelUrl('shared/creatures/dweller.glb'),
+		yawOffset: Math.PI,
+		height: 1.7,
+		reach: UPRIGHT,
+		dread: false,
+		killWeight: 0,
+		// Sitting, it crouches and looks about; seen, it walks off (running, if hit).
+		animations: {
+			idle: { clip: 'CrouchLookAroundBow' },
+			crouch: { clip: 'CrouchLookAroundBow' },
+			walking: { clip: 'Walking' },
+			running: { clip: 'Running' }
+		},
+		gait: { patrol: 'crouch', alert: 'crouch', stalk: 'walking', burst: 'running' },
+		movement: {
+			...MOVEMENT,
+			stances: { ...MOVEMENT.stances, stand: { ...MOVEMENT.stances.stand, speed: 1.3 } },
+			sprintSpeed: 4.5,
+			acceleration: 30
+		},
+		creepSpeed: 1.3,
+		burstSpeed: 4.5,
+		creepTime: [1, 2],
+		burstTime: [1, 2],
+		patrol: { radius: 0, pause: [1, 1] },
+		alert: { wait: [1, 1], maxWait: 1, linger: 1 },
+		// It never attacks (one that turns uses the witch's).
+		attack: { range: 0, windup: 0, duration: 0, damage: 0, cooldown: 1 },
+		perception: {
+			hear: { sprint: 0, walk: 0, crouch: 0, crawl: 0, creep: 0, swim: 0 },
+			alertRange: 0,
+			agro: { litRange: 0, darkRange: 0 },
+			touch: 0,
+			evadeTime: 0,
+			passive: true
+		},
+		health: [20],
+		stagger: { threshold: 1, seconds: 0.4 },
+		hitRadius: 0.35,
+		corpseTime: 4,
+		visibleBand: [0.04, Infinity],
+		sounds: { step: 'dweller.step', hurt: 'dweller.murmur', die: 'creature.die' },
+		spawn: {
+			kind: 'scatter',
+			groups: [3, 6],
+			size: [1, 1],
+			spread: 0,
+			minDistance: 15,
+			where: 'corner'
+		},
+		// One in five is a witch.
+		shy: { seenRange: 14, fleeDistance: 25, turnChance: 0.2, turnInto: 'witch' }
 	},
 	'giant-spider': {
 		id: 'giant-spider',

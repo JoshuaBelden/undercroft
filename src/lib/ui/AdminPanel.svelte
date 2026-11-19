@@ -471,6 +471,11 @@
 			{@render action('Spawn in front', () =>
 				onadmin({ kind: 'spawnCreature', creature: spawnKind })
 			)}
+			{@render action(
+				'Spawn a dweller that turns',
+				() => onadmin({ kind: 'spawnCreature', creature: 'dweller', fated: true }),
+				'Becomes a witch when you see it.'
+			)}
 			{@render action('Kill all', () => onadmin({ kind: 'killCreatures' }))}
 			{@render action('Remove all', () => onadmin({ kind: 'clearCreatures' }))}
 			<StepperField

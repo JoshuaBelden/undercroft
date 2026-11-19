@@ -26,7 +26,7 @@ export class CreatureSystem implements SessionSystem {
 
 	admin = {
 		spawnCreature: (player, command) =>
-			this.ctx.creatures.spawnNear(player.state, command.creature ?? 'witch'),
+			this.ctx.creatures.spawnNear(player.state, command.creature ?? 'witch', command.fated),
 		clearCreatures: () => this.ctx.creatures.clear(),
 		fillAttraction: (_player, command) => this.ctx.creatures.attraction.fill(command.meter),
 		resetAttraction: () => {

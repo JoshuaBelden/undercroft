@@ -349,6 +349,22 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'a deep hiss'
 	},
+	// Dwellers (placeholders until there are recordings).
+	'dweller.step': {
+		synth: { kind: 'shuffle' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 1.2,
+		variation: 0.15,
+		caption: 'soft footsteps'
+	},
+	'dweller.murmur': {
+		synth: { kind: 'whisper' },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.2,
+		caption: 'a murmur'
+	},
 	// Items and weapons.
 	'revolver.fire': {
 		file: 'revolver.fire',

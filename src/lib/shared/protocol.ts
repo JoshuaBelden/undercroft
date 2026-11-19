@@ -94,8 +94,11 @@ export type AdminCommand =
 	| { kind: 'bossRay' }
 	| { kind: 'bossRush' }
 	| { kind: 'bossVanish' }
-	/** Put a creature (of this kind; the witch if left out) a few metres in front of you. */
-	| { kind: 'spawnCreature'; creature?: string }
+	/**
+	 * Put a creature (of this kind; the witch if left out) a few metres in front of you. `fated`:
+	 * a dweller that turns when seen (or one that never does).
+	 */
+	| { kind: 'spawnCreature'; creature?: string; fated?: boolean }
 	| { kind: 'clearCreatures' }
 	/** Fill one of the party's attraction meters (a witch comes), or empty both. */
 	| { kind: 'fillAttraction'; meter: 'noise' | 'light' }

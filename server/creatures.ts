@@ -7,7 +7,12 @@ import {
 import { MOVEMENT } from '../src/lib/content/player/movement.ts';
 import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import type { CreatureSnapshot, CreatureState } from '../src/lib/shared/creature/types.ts';
-import { bodySamples, lampIllumination } from '../src/lib/shared/creature/visibility.ts';
+import {
+	bodySamples,
+	creatureLight,
+	halfLightVisible,
+	lampIllumination
+} from '../src/lib/shared/creature/visibility.ts';
 import { segmentBlocked, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
 import {
 	findPath,
@@ -101,6 +106,10 @@ interface Creature {
 	statuses: Statuses;
 	/** Seconds since it died. */
 	deadTime: number;
+	/** One that keeps to itself (`def.shy`) but is something else: seen or hit, it turns. */
+	fated: boolean;
+	/** Fleeing at a run (it was hit), not a walk (it was seen). */
+	running: boolean;
 }
 
 /** A creature's body for hit tests. */
@@ -156,6 +165,10 @@ const MARKER_SNAP = 2;
 const SPREAD = 20;
 /** A chase target out of its reach: it heads for the nearest point it can stand within this. */
 const EDGE_RADIUS = 6;
+/** One that keeps to itself is seen within this angle (rad) of where someone looks... */
+const SEEN_HALF_ANGLE = 0.9;
+/** ...lit, or this close (m) in any light. */
+const SEEN_CLOSE = 3;
 
 export class CreatureDirector {
 	private creatures: Creature[] = [];
@@ -224,8 +237,11 @@ export class CreatureDirector {
 		}
 	}
 
-	/** Admin: a creature a few metres in front of a player, facing them. */
-	spawnNear(state: PlayerState, kind = 'witch'): void {
+	/**
+	 * Admin: a creature a few metres in front of a player, facing them. `fated` makes one that keeps
+	 * to itself (a dweller) one that turns.
+	 */
+	spawnNear(state: PlayerState, kind = 'witch', fated?: boolean): void {
 		const def = CREATURES[kind];
 		if (!def) return;
 		const ahead: Vec3 = [
@@ -236,7 +252,8 @@ export class CreatureDirector {
 		const index = nearestPoint(this.nav, ahead, 4, reachFilter(def.reach));
 		if (index < 0) return;
 		const position = this.nav.points[index].position;
-		this.add(def, position, yawTo(position, state.position));
+		const c = this.add(def, position, yawTo(position, state.position));
+		if (fated !== undefined && def.shy) c.fated = fated;
 	}
 
 	/** Where each living creature that's dreadful to see is (for sanity: seeing them). */
@@ -318,8 +335,89 @@ export class CreatureDirector {
 				c.cooldown = c.def.attack.cooldown * 0.5;
 			}
 		}
+		if (c.def.shy) {
+			// One that keeps to itself runs off; one that's something else shows what it is.
+			if (c.fated && from) this.turn(c, from);
+			else if (c.mode !== 'flee' || !c.running) this.flee(c, from ? [from] : [], true);
+			return false;
+		}
 		if (from && c.mode !== 'attack') this.chase(c, from);
 		return false;
+	}
+
+	/** Someone sees it (one that keeps to itself): in their view and range, lit or close, in sight. */
+	private seenBy(c: Creature, targets: Prey[]): Prey | null {
+		const shy = c.def.shy;
+		if (!shy) return null;
+		const b = c.body.position;
+		const mid: Vec3 = [b[0], b[1] + c.def.height * 0.6, b[2]];
+		const states = targets.map((t) => t.state);
+		let light: number | null = null;
+		for (const prey of targets) {
+			const s = prey.state;
+			const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
+			const d: Vec3 = [mid[0] - eye[0], mid[1] - eye[1], mid[2] - eye[2]];
+			const dist = Math.hypot(d[0], d[1], d[2]);
+			if (dist > shy.seenRange || dist < 1e-3) continue;
+			const cp = Math.cos(s.pitch);
+			const look: Vec3 = [-Math.sin(s.yaw) * cp, Math.sin(s.pitch), -Math.cos(s.yaw) * cp];
+			const along = (d[0] * look[0] + d[1] * look[1] + d[2] * look[2]) / dist;
+			if (along < Math.cos(SEEN_HALF_ANGLE)) continue;
+			if (dist > SEEN_CLOSE) {
+				light ??= creatureLight(this.world, states, b, c.def.height);
+				if (!halfLightVisible(light, c.def.visibleBand)) continue;
+			}
+			if (!segmentBlocked(this.world, eye, mid)) return prey;
+		}
+		return null;
+	}
+
+	/** It was something else all along: it becomes its `shy.turnInto` and goes for them. */
+	private turn(c: Creature, prey: Prey): void {
+		const def = c.def.shy && CREATURES[c.def.shy.turnInto];
+		if (!def) return;
+		c.def = def;
+		c.allow = reachFilter(def.reach);
+		c.wounds = 0;
+		c.staggered = 0;
+		c.statuses = {};
+		c.fated = false;
+		c.running = false;
+		c.mode = 'patrol';
+		this.chase(c, prey);
+	}
+
+	/**
+	 * Leave for a corner at least `shy.fleeDistance` (along the grid) from everyone it knows of,
+	 * walking (seen) or running (hit). With nowhere that far, the farthest corner it can find.
+	 */
+	private flee(c: Creature, from: Prey[], running: boolean): void {
+		const shy = c.def.shy;
+		if (!shy) return;
+		const starts = from.map((p) => nearestPoint(this.nav, p.state.position)).filter((i) => i >= 0);
+		if (!starts.length) starts.push(nearestPoint(this.nav, c.body.position, 2, c.allow));
+		const distance = gridDistances(this.nav, starts, false, c.allow);
+		let spots = this.cornerSpots(distance, shy.fleeDistance, c.allow);
+		if (!spots.length) spots = this.cornerSpots(distance, shy.fleeDistance / 2, c.allow);
+		c.mode = 'flee';
+		c.running = running;
+		c.target = null;
+		c.goal = null;
+		this.resetPath(c);
+		if (!spots.length) return;
+		const spot = this.rng.pick(spots);
+		c.goal = spot.position;
+		c.lookYaw = spot.yaw;
+	}
+
+	/** Head for the corner it chose; there, sit again (facing into it). */
+	private fleeing(c: Creature): Vec3 | null {
+		const move = c.goal ? this.steer(c, c.goal, null) : null;
+		if (move) return move;
+		this.startPatrol(c, [...c.body.position]);
+		c.body.yaw = c.lookYaw;
+		c.running = false;
+		return null;
 	}
 
 	/**
@@ -487,6 +585,12 @@ export class CreatureDirector {
 			}
 			c.cooldown = Math.max(0, c.cooldown - TICK_DT);
 			stepStatuses(c.statuses, c.def.statuses ?? {}, TICK_DT);
+			if (c.def.shy && c.mode === 'patrol') {
+				// Sitting, it's seen: it gets up and goes, or shows what it is.
+				const seer = this.seenBy(c, targets);
+				if (seer && c.fated) this.turn(c, seer);
+				else if (seer) this.flee(c, targets, false);
+			}
 			this.perceive(c, targets);
 			if (hasStatus(c.statuses, 'stunned')) {
 				// Stunned: it stands where it is, and an attack not yet landed is lost.
@@ -509,7 +613,12 @@ export class CreatureDirector {
 			let sprint = false;
 			switch (c.mode) {
 				case 'patrol':
-					move = this.patrol(c);
+					// One that keeps to itself sits where it is.
+					move = c.def.shy ? null : this.patrol(c);
+					break;
+				case 'flee':
+					move = this.fleeing(c);
+					sprint = c.running;
 					break;
 				case 'alert':
 					c.alertTime += TICK_DT;
@@ -631,7 +740,9 @@ export class CreatureDirector {
 			wounds: 0,
 			staggered: 0,
 			statuses: {},
-			deadTime: 0
+			deadTime: 0,
+			fated: !!def.shy && this.rng.next() < def.shy.turnChance,
+			running: false
 		};
 		this.startPatrol(c, c.anchor);
 		// Stand a moment before setting off.

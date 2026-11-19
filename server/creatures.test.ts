@@ -377,3 +377,69 @@ describe('spiders', () => {
 		}
 	});
 });
+
+describe('dwellers', () => {
+	const WITCH = CREATURES.witch;
+
+	/** A dweller in front of someone looking at it with their lamp on bright. */
+	function seen(fated: boolean) {
+		const creatures = director();
+		const player = prey('p', map.start, 0);
+		player.state.headlamp = 2;
+		creatures.spawnNear(player.state, 'dweller', fated);
+		return { creatures, player };
+	}
+
+	it('sit in corners, and one that is seen gets up and walks far off', () => {
+		const { creatures, player } = seen(false);
+		const start = [...creatures.hitBodies()[0].position];
+		run(creatures, 0.1, [player]);
+		expect(creatures.snapshots()[0].state).toBe('flee');
+		expect(creatures.snapshots()[0].kind).toBe('dweller');
+		run(creatures, 20, [player]);
+		const at = creatures.hitBodies()[0].position;
+		expect(Math.hypot(at[0] - start[0], at[2] - start[2])).toBeGreaterThan(5);
+		// It never attacks.
+		expect(run(creatures, 5, [player])).toEqual([]);
+	});
+
+	it('left unseen (dark, or looked away from), it stays sat', () => {
+		const { creatures, player } = seen(false);
+		player.state.headlamp = 0;
+		player.state.yaw = Math.PI;
+		run(creatures, 3, [player]);
+		expect(creatures.snapshots()[0].state).toBe('patrol');
+	});
+
+	it('one in five is a witch: seen, it turns, with her health, and comes for them', () => {
+		const { creatures, player } = seen(true);
+		run(creatures, 0.1, [player]);
+		const snap = creatures.snapshots()[0];
+		expect(snap.kind).toBe('witch');
+		expect(['agro', 'attack']).toContain(snap.state);
+		expect(creatures.alive('witch')).toBe(1);
+		const [body] = creatures.hitBodies();
+		expect(creatures.damage(body.id, WITCH.health[0] - 1, player)).toBe(false);
+		expect(creatures.damage(body.id, 1, player)).toBe(true);
+	});
+
+	it('easily killed, and a hit sends one running', () => {
+		const { creatures, player } = seen(false);
+		player.state.yaw = Math.PI;
+		const [body] = creatures.hitBodies();
+		creatures.damage(body.id, 5, player);
+		expect(creatures.snapshots()[0].state).toBe('flee');
+		expect(creatures.damage(body.id, 18, player)).toBe(true);
+	});
+
+	it('about one in five turn', () => {
+		let fated = 0;
+		const n = 400;
+		const creatures = director();
+		for (let i = 0; i < n; i++) creatures.spawnNear(prey('p', map.start, 0).state, 'dweller');
+		for (const snap of creatures.snapshots())
+			if (creatures['creatures'].find((c) => c.id === snap.id)?.fated) fated++;
+		expect(fated / n).toBeGreaterThan(0.12);
+		expect(fated / n).toBeLessThan(0.28);
+	});
+});
