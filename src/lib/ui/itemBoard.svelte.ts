@@ -82,6 +82,15 @@ export class ItemBoard {
 		this.over = null;
 	}
 
+	/**
+	 * A mouse button came up anywhere. While a drag is really going on the browser sends no
+	 * mouseup (it ends with a drop and dragend), so one arriving means the drag died without its
+	 * dragend (an interrupted drag in Firefox): stop showing it, or the slots stay lit.
+	 */
+	released(): void {
+		if (this.dragging) this.endDrag();
+	}
+
 	/** The dragged thing came over a slot (`true`) or left it. */
 	hover(ref: SlotRef, over: boolean): void {
 		if (over) this.over = this.allows(ref) ? ref : null;
