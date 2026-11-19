@@ -75,11 +75,12 @@ const AFFLICTION_SOURCE = path.join(SOURCE_DIR, 'afflictions');
 const LEGACY_DIRS = ['map', 'creatures', 'player', 'items', 'props'];
 /**
  * Props made elsewhere (scanned or generated: heavy, sitting anywhere): stood on the floor,
- * centred on the origin and simplified to `tris`. Props built by scripts/blender/props.py are
- * already in their frame and need no entry.
+ * centred on the origin, scaled by `scale` (to life size) and simplified to `tris`. Props built
+ * by scripts/blender/props.py are already in their frame and need no entry.
  */
-const PROP_FIT: Record<string, { tris: number }> = {
-	corpse: { tris: 12000 }
+const PROP_FIT: Record<string, { tris: number; scale?: number }> = {
+	// The scan came in at about 1.7x life size: 0.6 matches the living explorer.
+	corpse: { tris: 12000, scale: 0.6 }
 };
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'shared', 'map', 'pieces.generated.ts');
 const MODEL_MANIFEST = path.join(ROOT, 'src', 'lib', 'content', 'models.generated.ts');
@@ -607,12 +608,13 @@ async function buildItems(io: NodeIO): Promise<void> {
 	console.log(`  items: ${built.join(', ')}`);
 }
 
-/** Put a prop's lowest point on the floor (y = 0) and its middle over the origin. */
-function standOnFloor(doc: Document, name: string): void {
+/** Scale a prop, then put its lowest point on the floor (y = 0) and its middle over the origin. */
+function standOnFloor(doc: Document, name: string, scale = 1): void {
 	const scene = doc.getRoot().listScenes()[0];
 	const holder = doc.createNode(name);
 	for (const child of scene.listChildren()) holder.addChild(child);
 	scene.addChild(holder);
+	holder.setScale([scale, scale, scale]);
 	const b = getBounds(scene);
 	holder.setTranslation([-(b.min[0] + b.max[0]) / 2, -b.min[1], -(b.min[2] + b.max[2]) / 2]);
 }
@@ -635,7 +637,7 @@ async function buildProps(io: NodeIO): Promise<void> {
 		const id = path.basename(f, '.glb');
 		const fit = PROP_FIT[id];
 		const tris = triangleCount(doc);
-		if (fit) standOnFloor(doc, id);
+		if (fit) standOnFloor(doc, id, fit.scale);
 		await doc.transform(dedup(), weld());
 		if (fit && tris > fit.tris) {
 			await doc.transform(

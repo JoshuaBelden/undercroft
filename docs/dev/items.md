@@ -222,9 +222,9 @@ Most loot is in crates (`CRATES` in `src/lib/content/loot.ts`). A crate has 8 sl
 
 The dead are searched like crates: the same 8 slots, loot tables, reveal and loot screen (titled "Corpse"). They are `layout.crates` entries with `kind: 'corpse'`, so everything about crates applies, except:
 
-- **Where:** once `placeCrates` has chosen the crates, about `CORPSES.share` (a third) of them become corpses instead, picked in their own seeded stream so which markers have crates doesn't change. The body is pushed out from the wall so its back lies where the crate's was, and turned either way round at random. A crate only becomes a corpse if `corpseFits` finds the whole footprint (`CORPSES.size`, tested `CORPSES.inset` inside its edges) clear of walls and columns, on floor all over and out of the water, and `crowds` finds no other crate in it (or corpse within a body's length); otherwise it stays a crate. About 14 crates and 7 corpses a map (in a few maps, one fewer corpse where a body didn't fit).
+- **Where:** once `placeCrates` has chosen the crates, about `CORPSES.share` (a third) of them become corpses instead, picked in their own seeded stream so which markers have crates doesn't change. The body is pushed out from the wall so its back lies where the crate's was, and turned either way round at random. A crate only becomes a corpse if `corpseFits` finds the whole footprint (`CORPSES.size`, tested `CORPSES.inset` inside its edges) clear of walls and columns, on floor all over and out of the water, and `crowds` finds no other crate in it (or corpse within a body's length); otherwise it stays a crate. About 22 crates and 11 corpses a map; a body fits nearly everywhere a crate does, so it rarely stays a crate.
 - **Not solid:** `buildCollisionWorld` skips them, so you step over a body and the nav grid ignores it.
-- **Looked at:** their middle is `CORPSES.lookHeight` (0.35 m) up (`crateCentre`).
+- **Looked at:** their middle is `CORPSES.lookHeight` (0.2 m) up (`crateCentre`).
 - **Searching** has the same prompt as a crate, plays `corpse.search` (the `bag_searching` recording) instead of the lid, and is heard only `CORPSES.noise` (3 m) away. There is no lid.
 - The model is `static/assets/shared/props/corpse.<hash>.glb` (see [asset-pipeline.md](asset-pipeline.md#props)).
 

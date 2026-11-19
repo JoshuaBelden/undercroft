@@ -103,11 +103,11 @@ export const CORPSES = {
 	/** About this share of a map's crates are corpses instead (where a body fits). */
 	share: 1 / 3,
 	/** The built model's footprint: across, high, deep (m). Room it needs, clear of walls. */
-	size: [2.15, 0.9, 1.75] as [number, number, number],
+	size: [1.3, 0.52, 1.05] as [number, number, number],
 	/** How far (m) inside that footprint must be clear of walls: the body doesn't fill its corners. */
-	inset: 0.2,
+	inset: 0.12,
 	/** Height (m) of the middle looked at to search one. */
-	lookHeight: 0.35,
+	lookHeight: 0.2,
 	/** Radius (m) searching one can be heard: quieter than a crate's lid. */
 	noise: 3
 };

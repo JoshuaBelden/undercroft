@@ -270,7 +270,7 @@ Things that stand in the map but aren't part of a piece: the loot crate and the 
 
 `props.export_all()` writes `art/export/props/<name>.glb`. `pnpm asset:build` re-encodes the textures to WebP at 512 px and writes `static/assets/shared/props/<name>.<hash>.glb`, keeping node names (the game looks the lid up by name).
 
-**Props from elsewhere** (scanned or generated, like `corpse.glb`: heavy, sitting anywhere) go in `art/export/props/` as they are, with an entry in `PROP_FIT` in `scripts/build-assets.ts`. The build stands them on the floor (lowest point at y = 0), centres them on the origin and simplifies them to the entry's `tris` (the corpse: 2 million to 12,000 triangles, 64.7 MB to about 600 KB). A static model belongs here, not in `art/export/creatures/` (that pass is for rigged, animated models and simplifies nothing).
+**Props from elsewhere** (scanned or generated, like `corpse.glb`: heavy, sitting anywhere) go in `art/export/props/` as they are, with an entry in `PROP_FIT` in `scripts/build-assets.ts`. The build scales them by the entry's `scale` (to life size: the corpse scan came in about 1.7x too big, so 0.6), stands them on the floor (lowest point at y = 0), centres them on the origin and simplifies them to the entry's `tris` (the corpse: 2 million to 12,000 triangles, 64.7 MB to about 600 KB). A static model belongs here, not in `art/export/creatures/` (that pass is for rigged, animated models and simplifies nothing).
 
 ## Audio
 

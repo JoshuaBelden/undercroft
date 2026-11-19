@@ -43,7 +43,7 @@ export const MODELS = {
 		url: '/assets/shared/player/explorer.bc7919c1.glb',
 		bytes: 1876424
 	},
-	'shared/props/corpse.glb': { url: '/assets/shared/props/corpse.5a51bedd.glb', bytes: 598320 },
+	'shared/props/corpse.glb': { url: '/assets/shared/props/corpse.975b2223.glb', bytes: 598344 },
 	'shared/props/crate.glb': { url: '/assets/shared/props/crate.aef763a7.glb', bytes: 97380 },
 	'shared/props/door-double.glb': {
 		url: '/assets/shared/props/door-double.a9f9a35a.glb',
