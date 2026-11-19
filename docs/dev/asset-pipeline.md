@@ -235,7 +235,9 @@ explorer.export()      # art/export/player/explorer-clips.glb
 
 `pnpm asset:build` merges any `<name>-clips.glb` beside a rigged `<name>.glb` into it by bone name (`mergeClips`, `scripts/clips.ts`). It keeps a clip's rotation channels that move a bone off its rest pose, so a bone the clip leaves alone follows whatever else is playing. Both files must share the skeleton: a bone resting differently stops the build, and so does a clip already in the model.
 
-The same script places items in the hand for their `grip` (`GRIPS`, `show_item`, `grip_numbers`; see [items.md](items.md#data)).
+The rat, spider and moth get theirs the same way, from `scripts/blender/critters.py` (procedural clips keyed from each rig's bones, run with `art/blender/<name>.blend` open) to `art/export/creatures/<name>-clips.glb`. See [creatures.md](creatures.md#clips-for-the-critters).
+
+The explorer script also places items in the hand for their `grip` (`GRIPS`, `show_item`, `grip_numbers`; see [items.md](items.md#data)).
 
 On the client, `loadCharacter` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
 

@@ -239,6 +239,29 @@ function shuffle(ctx: BaseAudioContext): AudioBuffer {
 	});
 }
 
+/** A small animal's squeak: a high chirp that bends, `pitch` Hz at its peak. */
+function squeak(ctx: BaseAudioContext, pitch: number): AudioBuffer {
+	let phase = 0;
+	return buffer(ctx, 0.22, (t) => {
+		const freq = pitch * (0.8 + 0.35 * Math.sin(Math.min(1, t / 0.18) * Math.PI));
+		phase += (2 * Math.PI * freq) / ctx.sampleRate;
+		const env = Math.min(1, t / 0.01) * Math.exp(-t / 0.07);
+		return Math.sin(phase) * env * 0.5;
+	});
+}
+
+/** Tiny claws on stone: a quick run of dry clicks. */
+function skitter(ctx: BaseAudioContext): AudioBuffer {
+	const rand = noise(131);
+	const a = lowpass(5200, ctx.sampleRate);
+	let y = 0;
+	return buffer(ctx, 0.3, (t) => {
+		y += a * (rand() - y);
+		const tick = Math.exp(-((t * 26) % 1) / 0.06);
+		return y * tick * Math.exp(-t / 0.2) * 1.4;
+	});
+}
+
 function rush(ctx: BaseAudioContext): AudioBuffer {
 	const rand = noise(89);
 	const a = lowpass(2400, ctx.sampleRate);
@@ -460,6 +483,10 @@ export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer 
 			return shuffle(ctx);
 		case 'rush':
 			return rush(ctx);
+		case 'squeak':
+			return squeak(ctx, spec.pitch);
+		case 'skitter':
+			return skitter(ctx);
 		case 'snarl':
 			return snarl(ctx);
 		case 'hurt':

@@ -22,6 +22,7 @@ The session is a host. It builds the map, takes players in and out, simulates th
 | `server/systems/marks.ts`      | Chalk marks: drawing, rubbing out, sending ([marks.md](marks.md))                      |
 | `server/systems/ropes.ts`      | Laying, tying, untying and gathering rope ([rope.md](rope.md))                         |
 | `server/systems/survey.ts`     | The explorer's map: sketching and showing ([map.md](map.md))                           |
+| `server/systems/surveyor.ts`   | The surveyor's route, and sharing his map ([creatures.md](creatures.md))               |
 | `server/systems/cheats.ts`     | Admin tools for your own explorer: flags, give, ammo, conditions, teleport             |
 
 The directors and stores the systems use (`CreatureDirector`, `AfflictionDirector`, `RiteDirector`, `WorldItems`, `Crates`, `Doors`, `Marks`, `Ropes`, `Surveys`) stay where they were, in `server/`. They hold a feature's state and rules. A system is the glue between one of them and the expedition: who is holding interact on what, what event goes out, who is told.

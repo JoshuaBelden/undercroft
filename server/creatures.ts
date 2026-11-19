@@ -14,10 +14,20 @@ import {
 	gridDistances,
 	lowerStance,
 	nearestPoint,
+	reachFilter,
+	type NavFilter,
 	type NavGrid
 } from '../src/lib/shared/map/nav.ts';
+import type { ConditionId } from '../src/lib/content/player/conditions.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
-import { createPlayerState, idleFrame, stepPlayer } from '../src/lib/shared/player/simulate.ts';
+import {
+	createPlayerState,
+	eyeHeight,
+	idleFrame,
+	stepPlayer
+} from '../src/lib/shared/player/simulate.ts';
+import { ATTRACTION, byParty, type Movement } from '../src/lib/content/attraction.ts';
+import { Attraction } from './attraction.ts';
 import type { PlayerState } from '../src/lib/shared/player/types.ts';
 import { Rng } from '../src/lib/shared/rng.ts';
 import { STROBE } from '../src/lib/content/statuses.ts';
@@ -41,6 +51,8 @@ import {
 interface Creature {
 	id: string;
 	def: CreatureDef;
+	/** The nav points it may use (its def's reach); undefined for anywhere. */
+	allow: NavFilter | undefined;
 	body: PlayerState;
 	mode: CreatureState;
 	anim: CreatureAnim;
@@ -89,6 +101,15 @@ interface Creature {
 	statuses: Statuses;
 	/** Seconds since it died. */
 	deadTime: number;
+	/** One that keeps to itself (`def.shy`) but is something else: seen or hit, it turns. */
+	fated: boolean;
+	/** Fleeing at a run (it was hit), not a walk (it was seen). */
+	running: boolean;
+	/** A flier (`def.flight`): the player whose lamp it's at, and where it is in its flutter. */
+	follow: string | null;
+	phase: number;
+	/** Flown off and out of the game: removed this tick. */
+	gone: boolean;
 }
 
 /** A creature's body for hit tests. */
@@ -108,6 +129,8 @@ export interface Prey {
 export interface CreatureHit {
 	playerId: string;
 	damage: number;
+	/** A condition the hit gives (a spider's poison). */
+	condition?: { id: ConditionId; seconds?: number };
 }
 
 interface SpawnSpot {
@@ -122,7 +145,8 @@ const REPATH = 0.5;
 const WAYPOINT_REACHED = 0.35;
 /** Seconds a waypoint may go unapproached before re-planning. */
 const STUCK_TIME = 1.5;
-const EYE = 1.5;
+/** Its eyes are this far up its body. */
+const EYE = 0.88;
 /** Seconds motionless before a moving creature's animation settles to idle. */
 const STILL_TIME = 0.6;
 /** Swimmers aim this far above the floor point they're heading for. */
@@ -137,10 +161,10 @@ const TURN_RATE = 4;
 const MIN_PATROL_STEP = 4;
 /** Creature markers snap to a nav point within this distance. */
 const MARKER_SNAP = 2;
-/** Spawned creatures keep at least this far apart. */
+/** Groups of one kind spawned at the start keep at least this far apart. */
 const SPREAD = 20;
-/** Seconds before trying again to bring back a creature that found no spot far enough away. */
-const RESPAWN_RETRY = 5;
+/** A chase target out of its reach: it heads for the nearest point it can stand within this. */
+const EDGE_RADIUS = 6;
 
 export class CreatureDirector {
 	private creatures: Creature[] = [];
@@ -148,8 +172,14 @@ export class CreatureDirector {
 	private nextId = 1;
 	/** Nav points of the map's creature-* markers. */
 	private markers: number[];
-	/** Killed creatures waiting to come back: their kind, and seconds left. */
-	private respawns: { kind: string; left: number }[] = [];
+	/** The level of the map a position is on (from `populate`), for kinds kept to some levels. */
+	private tierOf: ((position: Vec3) => number | null) | null = null;
+	/** The party's noise and light, drawing witches in (server/attraction.ts). */
+	readonly attraction = new Attraction();
+	/**
+	 * Each lamp's fliers, by `<kind>:<player>`: seconds it has been on bright, seconds it has been off, and seconds until the next one arrives.
+	 */
+	private lamps = new Map<string, { bright: number; dark: number; next: number }>();
 
 	constructor(
 		private world: CollisionWorld,
@@ -166,37 +196,57 @@ export class CreatureDirector {
 	}
 
 	/**
-	 * Place this expedition's creatures far (along the grid) from the start: at creature-*
-	 * markers, then in corners if there aren't enough markers.
+	 * Place the creatures a map starts with: every kind that scatters, by its spawn rule, far
+	 * (along the grid) from the start. Kinds drawn in later (the witch) start with none. `tierOf`
+	 * gives the level of the map a position is on, for kinds kept to some levels.
 	 */
-	populate(start: Vec3, kind = 'witch'): void {
-		const def = CREATURES[kind];
-		if (!def) return;
-		const from = nearestPoint(this.nav, start);
+	populate(start: Vec3, tierOf?: (position: Vec3) => number | null): void {
+		this.tierOf = tierOf ?? null;
+		for (const def of Object.values(CREATURES)) {
+			if (def.spawn.kind === 'scatter') this.scatter(def, start);
+		}
+	}
+
+	/** One scattering kind's groups, spread out from each other. */
+	private scatter(def: CreatureDef, start: Vec3): void {
+		const rule = def.spawn;
+		if (rule.kind !== 'scatter') return;
+		if (this.rng.next() >= (rule.chance ?? 1)) return;
+		const allow = reachFilter(def.reach);
+		const from = nearestPoint(this.nav, start, 2, allow);
 		if (from < 0) return;
-		const distance = gridDistances(this.nav, [from], true);
-		const count = this.rng.int(def.spawn.count[0], def.spawn.count[1]);
+		const distance = gridDistances(this.nav, [from], true, allow);
+		const spots = (
+			rule.where === 'corner'
+				? this.cornerSpots(distance, rule.minDistance, allow)
+				: this.openSpots(distance, rule.minDistance, allow)
+		).filter((spot) => this.onTier(def, spot.position));
+		const groups = this.rng.int(rule.groups[0], rule.groups[1]);
 		const placed: Vec3[] = [];
-		for (const spots of [
-			this.markerSpots(distance, def.spawn.minDistance),
-			this.cornerSpots(distance, def.spawn.minDistance)
-		]) {
-			for (let tries = 0; tries < 200 && placed.length < count && spots.length; tries++) {
-				const spot = this.rng.pick(spots);
-				// Spread them out.
-				if (
-					placed.some((p) => Math.hypot(p[0] - spot.position[0], p[2] - spot.position[2]) < SPREAD)
-				) {
-					continue;
-				}
-				placed.push(spot.position);
-				this.add(def, spot.position, spot.yaw);
+		for (let tries = 0; tries < 200 && placed.length < groups && spots.length; tries++) {
+			const spot = this.rng.pick(spots);
+			if (
+				placed.some((p) => Math.hypot(p[0] - spot.position[0], p[2] - spot.position[2]) < SPREAD)
+			) {
+				continue;
+			}
+			placed.push(spot.position);
+			const size = this.rng.int(rule.size[0], rule.size[1]);
+			const anchor = this.add(def, spot.position, spot.yaw);
+			// The rest of the group: open points near the first, where it can go.
+			const near = this.nearby(spot.position, rule.spread, allow);
+			for (let i = 1; i < size && near.length; i++) {
+				const at = this.nav.points[near.splice(this.rng.int(0, near.length - 1), 1)[0]];
+				this.add(def, at.position, this.rng.next() * Math.PI * 2).anchor = [...anchor.anchor];
 			}
 		}
 	}
 
-	/** Admin: a creature a few metres in front of a player, facing them. */
-	spawnNear(state: PlayerState, kind = 'witch'): void {
+	/**
+	 * Admin: a creature a few metres in front of a player, facing them. `fated` makes one that keeps
+	 * to itself (a dweller) one that turns.
+	 */
+	spawnNear(state: PlayerState, kind = 'witch', fated?: boolean, by?: string): void {
 		const def = CREATURES[kind];
 		if (!def) return;
 		const ahead: Vec3 = [
@@ -204,25 +254,69 @@ export class CreatureDirector {
 			state.position[1],
 			state.position[2] - Math.cos(state.yaw) * 4
 		];
-		const index = nearestPoint(this.nav, ahead, 4);
+		const index = nearestPoint(this.nav, ahead, 4, reachFilter(def.reach));
 		if (index < 0) return;
 		const position = this.nav.points[index].position;
-		this.add(def, position, yawTo(position, state.position));
+		const c = this.add(def, position, yawTo(position, state.position));
+		if (kind === ATTRACTION.kind) this.noteWitch('admin');
+		if (fated !== undefined && def.shy) c.fated = fated;
+		// A flier goes to the lamp of whoever brought it.
+		if (def.flight) c.follow = by ?? null;
 	}
 
-	/** Where each living creature is (for sanity: seeing them). */
+	/** Where each living creature that's dreadful to see is (for sanity: seeing them). */
 	bodies(): { kind: string; position: Vec3 }[] {
-		return this.living().map((c) => ({ kind: c.def.id, position: c.body.position }));
+		return this.living()
+			.filter((c) => c.def.dread)
+			.map((c) => ({ kind: c.def.id, position: c.body.position }));
+	}
+
+	/** How many of a kind are alive. */
+	alive(kind: string): number {
+		return this.living().filter((c) => c.def.id === kind).length;
 	}
 
 	/** Living creatures' hit capsules. */
 	hitBodies(): CreatureBody[] {
-		return this.living().map((c) => ({
-			id: c.id,
-			position: c.body.position,
-			height: c.def.height,
-			radius: c.def.hitRadius
-		}));
+		return this.living()
+			.filter((c) => !c.def.invulnerable)
+			.map((c) => ({
+				id: c.id,
+				position: c.body.position,
+				height: c.def.height,
+				radius: c.def.hitRadius
+			}));
+	}
+
+	/** The friendly ones (the surveyor): where each is, for talking to. */
+	friendlies(): (CreatureBody & { kind: string })[] {
+		return this.living()
+			.filter((c) => c.def.friendly)
+			.map((c) => ({
+				id: c.id,
+				kind: c.def.id,
+				position: c.body.position,
+				height: c.def.height,
+				radius: c.def.hitRadius
+			}));
+	}
+
+	/**
+	 * Where one that wanders (the surveyor) has been before anyone arrived: `legs` walks from where
+	 * it stands, each to one of its corners, as the points along them.
+	 */
+	wanderRoute(id: string, legs: number): Vec3[] {
+		const c = this.creatures.find((x) => x.id === id);
+		if (!c || !c.spots.length) return [];
+		const route: Vec3[] = [];
+		let from = nearestPoint(this.nav, c.body.position, 2, c.allow);
+		for (let i = 0; i < legs && from >= 0; i++) {
+			const to = this.rng.pick(c.spots);
+			const path = findPath(this.nav, from, to, undefined, c.allow);
+			if (path) route.push(...path);
+			from = to;
+		}
+		return route;
 	}
 
 	/** Creatures killed this expedition (feeds the Affliction meter). */
@@ -243,24 +337,36 @@ export class CreatureDirector {
 	spawnFar(players: Vec3[], minDistance: number, kind = 'witch'): boolean {
 		const def = CREATURES[kind];
 		if (!def) return false;
+		const allow = reachFilter(def.reach);
 		const starts = players.map((p) => nearestPoint(this.nav, p)).filter((i) => i >= 0);
 		const distance = gridDistances(this.nav, starts);
-		let spots = this.markerSpots(distance, minDistance);
-		if (!spots.length) spots = this.cornerSpots(distance, minDistance);
+		let spots = this.markerSpots(distance, minDistance, allow);
+		if (!spots.length) spots = this.cornerSpots(distance, minDistance, allow);
 		if (!spots.length) return false;
 		const spot = this.rng.pick(spots);
 		this.add(def, spot.position, spot.yaw);
+		// Only the omens spawn far.
+		if (kind === ATTRACTION.kind) this.noteWitch('omen');
 		return true;
+	}
+
+	/**
+	 * Admin: why the last witch came (a meter, an omen, a dweller turning, admin) and seconds
+	 * since, for the attraction bars.
+	 */
+	lastWitch: { cause: string; seconds: number } | null = null;
+
+	private noteWitch(cause: string): void {
+		this.lastWitch = { cause, seconds: 0 };
 	}
 
 	clear(): void {
 		this.creatures = [];
-		this.respawns = [];
 	}
 
 	/** Admin: kill every creature. */
 	killAll(): void {
-		for (const c of this.living()) this.kill(c);
+		for (const c of this.living()) if (!c.def.invulnerable) this.kill(c);
 	}
 
 	/**
@@ -269,7 +375,7 @@ export class CreatureDirector {
 	 */
 	damage(id: string, amount: number, from: Prey | null): boolean {
 		const c = this.creatures.find((x) => x.id === id);
-		if (!c || c.mode === 'dead') return false;
+		if (!c || c.mode === 'dead' || c.def.invulnerable) return false;
 		c.wounds += amount;
 		if (c.wounds >= creatureHealth(c.def, this.party)) {
 			this.kill(c);
@@ -282,8 +388,81 @@ export class CreatureDirector {
 				c.cooldown = c.def.attack.cooldown * 0.5;
 			}
 		}
+		// A flier only dies; it never comes for anyone.
+		if (c.def.flight) return false;
+		if (c.def.shy) {
+			// One that keeps to itself runs off; one that's something else shows what it is.
+			if (c.fated && from) this.turn(c, from);
+			else if (c.mode !== 'flee' || !c.running) this.flee(c, from ? [from] : [], true);
+			return false;
+		}
 		if (from && c.mode !== 'attack') this.chase(c, from);
 		return false;
+	}
+
+	/** Someone is right on top of it (one that keeps to itself): within `seenRange`, in sight. */
+	private seenBy(c: Creature, targets: Prey[]): Prey | null {
+		const shy = c.def.shy;
+		if (!shy) return null;
+		const b = c.body.position;
+		const mid: Vec3 = [b[0], b[1] + c.def.height * 0.6, b[2]];
+		for (const prey of targets) {
+			const s = prey.state;
+			const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
+			const dist = Math.hypot(mid[0] - eye[0], mid[1] - eye[1], mid[2] - eye[2]);
+			if (dist > shy.seenRange) continue;
+			if (!segmentBlocked(this.world, eye, mid)) return prey;
+		}
+		return null;
+	}
+
+	/** It was something else all along: it becomes its `shy.turnInto` and goes for them. */
+	private turn(c: Creature, prey: Prey): void {
+		const def = c.def.shy && CREATURES[c.def.shy.turnInto];
+		if (!def) return;
+		c.def = def;
+		c.allow = reachFilter(def.reach);
+		c.wounds = 0;
+		c.staggered = 0;
+		c.statuses = {};
+		c.fated = false;
+		c.running = false;
+		c.mode = 'patrol';
+		this.chase(c, prey);
+		if (def.id === ATTRACTION.kind) this.noteWitch('a dweller turned');
+	}
+
+	/**
+	 * Leave for a corner at least `shy.fleeDistance` (along the grid) from everyone it knows of,
+	 * walking (seen) or running (hit). With nowhere that far, the farthest corner it can find.
+	 */
+	private flee(c: Creature, from: Prey[], running: boolean): void {
+		const shy = c.def.shy;
+		if (!shy) return;
+		const starts = from.map((p) => nearestPoint(this.nav, p.state.position)).filter((i) => i >= 0);
+		if (!starts.length) starts.push(nearestPoint(this.nav, c.body.position, 2, c.allow));
+		const distance = gridDistances(this.nav, starts, false, c.allow);
+		let spots = this.cornerSpots(distance, shy.fleeDistance, c.allow);
+		if (!spots.length) spots = this.cornerSpots(distance, shy.fleeDistance / 2, c.allow);
+		c.mode = 'flee';
+		c.running = running;
+		c.target = null;
+		c.goal = null;
+		this.resetPath(c);
+		if (!spots.length) return;
+		const spot = this.rng.pick(spots);
+		c.goal = spot.position;
+		c.lookYaw = spot.yaw;
+	}
+
+	/** Head for the corner it chose; there, sit again (facing into it). */
+	private fleeing(c: Creature): Vec3 | null {
+		const move = c.goal ? this.steer(c, c.goal, null) : null;
+		if (move) return move;
+		this.startPatrol(c, [...c.body.position]);
+		c.body.yaw = c.lookYaw;
+		c.running = false;
+		return null;
 	}
 
 	/**
@@ -318,11 +497,15 @@ export class CreatureDirector {
 	 * distant gunfire) it's alerted to the spot, unless it's already chasing someone.
 	 */
 	hear(position: Vec3, radius: number, source: Prey | null): void {
+		// Every noise adds to the party's (server/attraction.ts).
+		this.attraction.heard(radius, position, source?.id ?? null);
 		for (const c of this.living()) {
 			const b = c.body.position;
 			if (Math.abs(position[1] - b[1]) > HEAR_HEIGHT) continue;
 			if (distance3(position, b) > radius) continue;
 			if (c.mode === 'attack') continue;
+			// A passive kind pays noise no mind (it only bites back).
+			if (c.def.perception.passive) continue;
 			if (source) {
 				const near =
 					distance3(source.state.position, b) <= c.def.perception.agro.litRange * this.boldness;
@@ -345,44 +528,123 @@ export class CreatureDirector {
 		c.target = null;
 		c.path = [];
 		c.body.velocity = [0, c.body.velocity[1], 0];
-		this.kills++;
-		this.respawns.push({ kind: c.def.id, left: c.def.spawn.respawnSeconds });
+		this.kills += c.def.killWeight;
 	}
 
 	/**
-	 * Bring back killed creatures whose time is up, far from every player. With nowhere far enough
-	 * just now, try again a little later.
+	 * The party's noise and light this tick. A meter that fills brings a witch to whoever added the
+	 * most, a few metres off, coming to look; with as many about as the party's cap, the nearest
+	 * one goes to look instead. Either way the meter starts again. With nowhere for one to appear,
+	 * it stays full and tries again shortly.
 	 */
-	private respawn(prey: Prey[]): void {
-		if (!this.respawns.length) return;
-		for (const r of this.respawns) r.left -= TICK_DT;
-		const due = this.respawns.filter((r) => r.left <= 0);
-		if (!due.length) return;
-		const players = prey.map((p) => p.state.position);
-		for (const r of due) {
-			const def = CREATURES[r.kind];
-			if (def && players.length && !this.spawnFar(players, def.spawn.minDistance, r.kind)) {
-				r.left = RESPAWN_RETRY;
-				continue;
+	private attract(targets: Prey[]): void {
+		const explorers = targets.map((p) => ({
+			id: p.id,
+			state: p.state,
+			movement: movementNoise(p.state)
+		}));
+		for (const draw of this.attraction.step(explorers, this.boldness)) {
+			const player = targets.find((p) => p.id === draw.player);
+			if (!player) continue;
+			const kind = ATTRACTION.kind;
+			if (this.alive(kind) >= byParty(ATTRACTION.cap, this.attraction.party)) {
+				this.lookNearest(kind, player.state.position);
+				this.attraction.answered(draw.meter);
+				this.noteWitch(`${draw.meter} (at the cap: one went to look)`);
+			} else if (this.summon(kind, player.state)) {
+				this.attraction.answered(draw.meter);
+				this.noteWitch(draw.meter);
+			} else {
+				this.attraction.hold(draw.meter);
 			}
-			this.respawns.splice(this.respawns.indexOf(r), 1);
 		}
+	}
+
+	/**
+	 * Bring a creature to someone: it appears `ATTRACTION.distance` m away along the grid (out of
+	 * their sight if it can) and comes to look where they are. Returns false with nowhere to put it.
+	 */
+	summon(kind: string, state: PlayerState): boolean {
+		const def = CREATURES[kind];
+		if (!def) return false;
+		const allow = reachFilter(def.reach);
+		let from = nearestPoint(this.nav, state.position, 2, allow);
+		if (from < 0) from = nearestPoint(this.nav, state.position, EDGE_RADIUS, allow);
+		if (from < 0) return false;
+		const distance = gridDistances(this.nav, [from], false, allow);
+		const [near, far] = ATTRACTION.distance;
+		const eye: Vec3 = [state.position[0], state.position[1] + eyeHeight(state), state.position[2]];
+		const spots: number[] = [];
+		const hidden: number[] = [];
+		distance.forEach((d, i) => {
+			const point = this.nav.points[i];
+			if (d === undefined || d < near || d > far) return;
+			if (point.water || point.clearance !== 'stand') return;
+			spots.push(i);
+			const p = point.position;
+			if (segmentBlocked(this.world, eye, [p[0], p[1] + def.height * 0.7, p[2]])) hidden.push(i);
+		});
+		const options = hidden.length ? hidden : spots;
+		if (!options.length) return false;
+		const position = this.nav.points[this.rng.pick(options)].position;
+		const c = this.add(def, position, yawTo(position, state.position));
+		this.lookInto(c, state.position);
+		return true;
+	}
+
+	/** The nearest of a kind that isn't hunting someone goes to look at a spot. */
+	private lookNearest(kind: string, point: Vec3): void {
+		let best: Creature | null = null;
+		let bestD = Infinity;
+		for (const c of this.living()) {
+			if (c.def.id !== kind || c.mode === 'agro' || c.mode === 'attack') continue;
+			const d = distance3(c.body.position, point);
+			if (d < bestD) {
+				bestD = d;
+				best = c;
+			}
+		}
+		if (best) this.lookInto(best, point);
+	}
+
+	/** Go and look at a spot now (investigating), without waiting first. */
+	private lookInto(c: Creature, point: Vec3): void {
+		c.mode = 'investigate';
+		c.alertPoint = [...point];
+		c.arrived = false;
+		c.linger = c.def.alert.linger;
+		c.goal = null;
+		c.pause = 0;
+		this.resetPath(c);
 	}
 
 	/** Advance every creature by one server tick. Returns the hits that landed. */
 	step(prey: Prey[]): CreatureHit[] {
 		const hits: CreatureHit[] = [];
-		this.respawn(prey);
 		const targets = prey.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
+		if (this.lastWitch) this.lastWitch.seconds += TICK_DT;
+		this.attract(targets);
+		this.lampFliers(targets);
 		for (const c of this.creatures) {
 			if (c.mode === 'dead') {
+				// It drops where it is (a flier falls).
 				c.deadTime += TICK_DT;
 				this.move(c, null, false);
 				this.animate(c, false);
 				continue;
 			}
+			if (c.def.flight) {
+				this.fly(c, targets);
+				continue;
+			}
 			c.cooldown = Math.max(0, c.cooldown - TICK_DT);
 			stepStatuses(c.statuses, c.def.statuses ?? {}, TICK_DT);
+			if (c.def.shy && c.mode === 'patrol') {
+				// Sitting, it's seen: it gets up and goes, or shows what it is.
+				const seer = this.seenBy(c, targets);
+				if (seer && c.fated) this.turn(c, seer);
+				else if (seer) this.flee(c, targets, false);
+			}
 			this.perceive(c, targets);
 			if (hasStatus(c.statuses, 'stunned')) {
 				// Stunned: it stands where it is, and an attack not yet landed is lost.
@@ -405,7 +667,20 @@ export class CreatureDirector {
 			let sprint = false;
 			switch (c.mode) {
 				case 'patrol':
-					move = this.patrol(c);
+					// One that keeps to itself sits where it is.
+					if (c.def.friendly) {
+						// Someone close: it stops and turns to them.
+						const near = this.nearest(c, targets, c.def.friendly.notice);
+						if (near) {
+							this.turnTo(c, yawTo(c.body.position, near.state.position));
+							break;
+						}
+					}
+					move = c.def.shy ? null : this.patrol(c);
+					break;
+				case 'flee':
+					move = this.fleeing(c);
+					sprint = c.running;
 					break;
 				case 'alert':
 					c.alertTime += TICK_DT;
@@ -453,7 +728,8 @@ export class CreatureDirector {
 					if (!c.attackHit && c.attackTime >= c.def.attack.windup) {
 						c.attackHit = true;
 						if (target && this.inReach(c, target.state, 1.3)) {
-							hits.push({ playerId: target.id, damage: c.def.attack.damage });
+							const { damage, condition } = c.def.attack;
+							hits.push({ playerId: target.id, damage, ...(condition && { condition }) });
 						}
 					}
 					if (c.attackTime >= c.def.attack.duration) {
@@ -468,7 +744,7 @@ export class CreatureDirector {
 			this.animate(c, sprint && move !== null);
 		}
 		this.creatures = this.creatures.filter(
-			(c) => c.mode !== 'dead' || c.deadTime < c.def.corpseTime
+			(c) => !c.gone && (c.mode !== 'dead' || c.deadTime < c.def.corpseTime)
 		);
 		return hits;
 	}
@@ -487,13 +763,14 @@ export class CreatureDirector {
 
 	// --- internals ---
 
-	private add(def: CreatureDef, position: Vec3, yaw: number): void {
+	private add(def: CreatureDef, position: Vec3, yaw: number): Creature {
 		const body = createPlayerState(position, yaw);
 		body.headlamp = 0;
 		body.flags.infiniteStamina = true;
 		const c: Creature = {
 			id: `c${this.nextId++}`,
 			def,
+			allow: reachFilter(def.reach),
 			body,
 			mode: 'patrol',
 			anim: 'idle',
@@ -525,12 +802,150 @@ export class CreatureDirector {
 			wounds: 0,
 			staggered: 0,
 			statuses: {},
-			deadTime: 0
+			deadTime: 0,
+			fated: !!def.shy && this.rng.next() < def.shy.turnChance,
+			running: false,
+			follow: null,
+			phase: this.rng.next() * Math.PI * 2,
+			gone: false
 		};
-		this.startPatrol(c, c.anchor);
+		// A flier has no patrol: it's at a lamp.
+		if (!def.flight) this.startPatrol(c, c.anchor);
 		// Stand a moment before setting off.
 		c.pause = this.between(def.patrol.pause);
 		this.creatures.push(c);
+		return c;
+	}
+
+	// --- fliers (def.flight): moths at the lamps ---
+
+	/**
+	 * Keep each bright lamp's fliers coming: once it has been on bright for `after` seconds, one every
+	 * `arrive` seconds for as long as it stays bright, up to `max`. On low, no more come
+	 * but those there stay. Lamp off for `disperse` seconds, or its owner down or gone: all of them
+	 * leave.
+	 */
+	private lampFliers(targets: Prey[]): void {
+		for (const def of Object.values(CREATURES)) {
+			const flight = def.flight;
+			if (!flight) continue;
+			for (const p of targets) {
+				const s = p.state;
+				const key = `${def.id}:${p.id}`;
+				let lamp = this.lamps.get(key);
+				if (!lamp) {
+					lamp = { bright: 0, dark: 0, next: 0 };
+					this.lamps.set(key, lamp);
+				}
+				const mine = this.living().filter(
+					(c) => c.def === def && c.follow === p.id && c.mode !== 'flee'
+				);
+				const lit = s.headlamp > 0 && s.battery > 0;
+				if (lit) lamp.dark = 0;
+				if (lit && s.headlamp === 2) {
+					if (lamp.bright === 0) lamp.next = 0;
+					lamp.bright += TICK_DT;
+					if (lamp.bright >= flight.after && mine.length < flight.max) {
+						lamp.next -= TICK_DT;
+						if (lamp.next <= 0) {
+							lamp.next = flight.arrive;
+							this.flyIn(def, s, p.id);
+						}
+					}
+				} else {
+					lamp.bright = 0;
+				}
+				if (!lit) {
+					lamp.dark += TICK_DT;
+					if (lamp.dark >= flight.disperse) for (const c of mine) this.flyOff(c);
+				}
+			}
+			for (const c of this.living()) {
+				if (c.def !== def || c.mode === 'flee') continue;
+				if (!targets.some((t) => t.id === c.follow)) this.flyOff(c);
+			}
+		}
+	}
+
+	/** One flies in toward a lamp, from out along the beam (or wherever is open nearest it). */
+	private flyIn(def: CreatureDef, s: PlayerState, follow: string): void {
+		const flight = def.flight;
+		if (!flight) return;
+		const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
+		for (const d of [flight.from, flight.from * 0.6, flight.from * 0.3]) {
+			for (const turn of [0, 0.7, -0.7, 1.5, -1.5, Math.PI]) {
+				const yaw = s.yaw + turn;
+				const at: Vec3 = [eye[0] - Math.sin(yaw) * d, eye[1] + 0.3, eye[2] - Math.cos(yaw) * d];
+				if (segmentBlocked(this.world, eye, at)) continue;
+				const c = this.add(def, at, yawTo(at, eye));
+				c.follow = follow;
+				c.mode = 'patrol';
+				return;
+			}
+		}
+	}
+
+	/** It leaves: off away from the lamp, gone `leave` seconds later. */
+	private flyOff(c: Creature): void {
+		const flight = c.def.flight;
+		if (!flight) return;
+		c.mode = 'flee';
+		c.linger = flight.leave;
+		const b = c.body.position;
+		const away = this.rng.next() * Math.PI * 2;
+		c.goal = [b[0] - Math.sin(away) * 6, b[1] + 1, b[2] - Math.cos(away) * 6];
+	}
+
+	/**
+	 * Flutter about a point out along its lamp's beam (or fly off), at up to `speed`, stopping short
+	 * of anything solid.
+	 */
+	private fly(c: Creature, targets: Prey[]): void {
+		const flight = c.def.flight;
+		if (!flight) return;
+		const b = c.body.position;
+		let goal: Vec3;
+		if (c.mode === 'flee') {
+			c.linger -= TICK_DT;
+			if (c.linger <= 0 || !c.goal) {
+				c.gone = true;
+				return;
+			}
+			goal = c.goal;
+		} else {
+			const owner = targets.find((t) => t.id === c.follow);
+			if (!owner) {
+				this.flyOff(c);
+				return;
+			}
+			const s = owner.state;
+			const cp = Math.cos(s.pitch);
+			const eye = s.position[1] + eyeHeight(s);
+			c.phase += TICK_DT * 2.2;
+			const r = flight.radius;
+			goal = [
+				s.position[0] - Math.sin(s.yaw) * cp * flight.ahead + Math.cos(c.phase) * r,
+				eye + Math.sin(s.pitch) * flight.ahead + Math.sin(c.phase * 1.7) * r * 0.6,
+				s.position[2] - Math.cos(s.yaw) * cp * flight.ahead + Math.sin(c.phase * 1.3) * r
+			];
+		}
+		const d: Vec3 = [goal[0] - b[0], goal[1] - b[1], goal[2] - b[2]];
+		const dist = Math.hypot(d[0], d[1], d[2]);
+		const step = Math.min(dist, flight.speed * TICK_DT);
+		const jitter = () => (this.rng.next() - 0.5) * 0.04;
+		const next: Vec3 =
+			dist > 1e-4
+				? [
+						b[0] + (d[0] / dist) * step + jitter(),
+						b[1] + (d[1] / dist) * step + jitter(),
+						b[2] + (d[2] / dist) * step + jitter()
+					]
+				: [...b];
+		if (!segmentBlocked(this.world, b, next)) {
+			c.body.position = next;
+			if (dist > 0.05) c.body.yaw = Math.atan2(-d[0], -d[2]);
+		}
+		this.setAnim(c, c.mode === 'flee' || dist > 1 ? 'running' : 'walking');
 	}
 
 	/**
@@ -543,6 +958,8 @@ export class CreatureDirector {
 		const bold = this.boldness;
 		const alertRange = p.alertRange * bold;
 		const chasing = c.mode === 'agro' || c.mode === 'attack';
+		// Left alone, a passive kind notices no one.
+		if (p.passive && !chasing) return;
 		let seen: Prey | null = null;
 		let seenD = Infinity;
 		let heard: Prey | null = null;
@@ -581,8 +998,8 @@ export class CreatureDirector {
 				if (followed && target) c.lastKnown = [...target.state.position];
 				c.evade += TICK_DT;
 			}
-			// Someone closer in plain sight takes over (not mid-swing).
-			if (seen && seen.id !== c.target && c.mode === 'agro') {
+			// Someone closer in plain sight takes over (not mid-swing, and not for a passive kind).
+			if (seen && seen.id !== c.target && c.mode === 'agro' && !p.passive) {
 				const current = target ? distance3(target.state.position, c.body.position) : Infinity;
 				if (!tracked || seenD < current) this.chase(c, seen);
 			}
@@ -640,7 +1057,7 @@ export class CreatureDirector {
 	}
 
 	private eye(c: Creature): Vec3 {
-		return [c.body.position[0], c.body.position[1] + EYE, c.body.position[2]];
+		return [c.body.position[0], c.body.position[1] + c.def.height * EYE, c.body.position[2]];
 	}
 
 	/** Chase a player (or switch to them). */
@@ -692,16 +1109,34 @@ export class CreatureDirector {
 		c.pause = 0;
 		c.anchor = anchor;
 		this.resetPath(c);
-		const from = nearestPoint(this.nav, anchor);
-		const distance = gridDistances(this.nav, [from]);
+		const from = nearestPoint(this.nav, anchor, 2, c.allow);
+		const distance = gridDistances(this.nav, [from], false, c.allow);
 		c.spots = [];
 		for (let i = 0; i < this.nav.points.length; i++) {
 			const d = distance[i];
 			const point = this.nav.points[i];
 			if (d === undefined || d > c.def.patrol.radius) continue;
 			if (point.water || point.clearance !== 'stand') continue;
+			// One that wanders goes corner to corner.
+			if (c.def.wanders && point.neighbours.length > 4) continue;
+			// Kept to its levels.
+			if (!this.onTier(c.def, point.position)) continue;
 			c.spots.push(i);
 		}
+	}
+
+	/** The nearest of these players within `range`, if any. */
+	private nearest(c: Creature, targets: Prey[], range: number): Prey | null {
+		let best: Prey | null = null;
+		let bestD = range;
+		for (const t of targets) {
+			const d = distance3(t.state.position, c.body.position);
+			if (d <= bestD) {
+				bestD = d;
+				best = t;
+			}
+		}
+		return best;
 	}
 
 	/** Walk to a random spot near the anchor, pause, repeat. */
@@ -723,6 +1158,8 @@ export class CreatureDirector {
 		}
 		const move = this.steer(c, c.goal, null);
 		if (!move) {
+			// One that wanders carries on from here next time.
+			if (c.def.wanders) this.startPatrol(c, [...c.body.position]);
 			c.goal = null;
 			c.pause = this.between(c.def.patrol.pause);
 		}
@@ -770,8 +1207,8 @@ export class CreatureDirector {
 			return false;
 		return !segmentBlocked(
 			this.world,
-			[b[0], b[1] + 1.2, b[2]],
-			[s.position[0], s.position[1] + 0.8, s.position[2]]
+			[b[0], b[1] + Math.min(1.2, c.def.height * 0.7), b[2]],
+			[s.position[0], s.position[1] + Math.min(0.8, c.def.height * 0.7), s.position[2]]
 		);
 	}
 
@@ -782,13 +1219,16 @@ export class CreatureDirector {
 	 */
 	private steer(c: Creature, goal: Vec3, direct: Vec3 | null): Vec3 | null {
 		const b = c.body.position;
+		// Straight at them only where it may stand.
 		if (
 			direct &&
 			Math.hypot(direct[0] - b[0], direct[2] - b[2]) < 3 &&
-			Math.abs(direct[1] - b[1]) < 0.6
+			Math.abs(direct[1] - b[1]) < 0.6 &&
+			this.mayStand(c, direct)
 		) {
+			const h = Math.min(1, c.def.height * 0.6);
 			if (
-				!segmentBlocked(this.world, [b[0], b[1] + 1, b[2]], [direct[0], direct[1] + 1, direct[2]])
+				!segmentBlocked(this.world, [b[0], b[1] + h, b[2]], [direct[0], direct[1] + h, direct[2]])
 			) {
 				return [direct[0] - b[0], 0, direct[2] - b[2]];
 			}
@@ -796,7 +1236,11 @@ export class CreatureDirector {
 		c.repath -= TICK_DT;
 		if (c.repath <= 0 || c.pathIndex >= c.path.length) {
 			c.repath = REPATH;
-			const path = findPath(this.nav, nearestPoint(this.nav, b), nearestPoint(this.nav, goal));
+			// Somewhere it can't go (a crawl, water): as near as it can get.
+			let to = nearestPoint(this.nav, goal, 2, c.allow);
+			if (to < 0 && c.allow) to = nearestPoint(this.nav, goal, EDGE_RADIUS, c.allow);
+			const from = nearestPoint(this.nav, b, 2, c.allow);
+			const path = findPath(this.nav, from, to, undefined, c.allow);
 			c.path = path ?? [];
 			c.pathIndex = c.path.length > 1 ? 1 : 0;
 			c.bestDistance = Infinity;
@@ -877,6 +1321,11 @@ export class CreatureDirector {
 		else if (c.mode === 'patrol') anim = gait.patrol;
 		else if (c.mode === 'investigate') anim = gait.stalk;
 		else anim = bursting && speed > 2 ? gait.burst : gait.stalk;
+		this.setAnim(c, anim);
+	}
+
+	/** Into an animation slot (from its start), or on through the one it's in. */
+	private setAnim(c: Creature, anim: CreatureAnim): void {
 		if (anim !== c.anim) {
 			c.anim = anim;
 			c.animTime = 0;
@@ -885,30 +1334,81 @@ export class CreatureDirector {
 		}
 	}
 
+	/** On a level of the map this kind keeps to (always, if it isn't kept to any). */
+	private onTier(def: CreatureDef, position: Vec3): boolean {
+		const tiers = def.spawn.kind === 'scatter' ? def.spawn.tiers : undefined;
+		if (!tiers || !this.tierOf) return true;
+		const tier = this.tierOf(position);
+		return tier !== null && tiers.includes(tier);
+	}
+
+	/** Whether the nav point under a position is one it may use. */
+	private mayStand(c: Creature, position: Vec3): boolean {
+		if (!c.allow) return true;
+		const index = nearestPoint(this.nav, position, 1);
+		return index >= 0 && c.allow(this.nav.points[index]);
+	}
+
 	/** Creature markers far enough (along the grid) from `distance`'s origin, facing a random way. */
-	private markerSpots(distance: number[], minDistance: number): SpawnSpot[] {
+	private markerSpots(
+		distance: number[],
+		minDistance: number,
+		allow: NavFilter | undefined
+	): SpawnSpot[] {
 		return this.markers
 			.filter((index) => (distance[index] ?? 0) >= minDistance)
+			.filter((index) => !allow || allow(this.nav.points[index]))
 			.map((index) => ({
 				position: this.nav.points[index].position,
 				yaw: this.rng.next() * Math.PI * 2
 			}));
 	}
 
-	/** Dead-end corners far enough away, facing into the corner. */
-	private cornerSpots(distance: number[], minDistance: number): SpawnSpot[] {
+	/** Dead-end corners far enough away (and where it may go), facing into the corner. */
+	private cornerSpots(
+		distance: number[],
+		minDistance: number,
+		allow: NavFilter | undefined
+	): SpawnSpot[] {
 		const spots: SpawnSpot[] = [];
 		this.nav.points.forEach((point, index) => {
 			if (
 				point.clearance === 'stand' &&
 				!point.water &&
 				point.neighbours.length <= 4 &&
-				(distance[index] ?? 0) >= minDistance
+				(distance[index] ?? 0) >= minDistance &&
+				(!allow || allow(point))
 			) {
 				spots.push({ position: point.position, yaw: this.wallYaw(index) });
 			}
 		});
 		return spots;
+	}
+
+	/** Any dry point far enough away (and where it may go), facing a random way. */
+	private openSpots(
+		distance: number[],
+		minDistance: number,
+		allow: NavFilter | undefined
+	): SpawnSpot[] {
+		const spots: SpawnSpot[] = [];
+		this.nav.points.forEach((point, index) => {
+			if (point.water || (distance[index] ?? 0) < minDistance) return;
+			if (allow && !allow(point)) return;
+			spots.push({ position: point.position, yaw: this.rng.next() * Math.PI * 2 });
+		});
+		return spots;
+	}
+
+	/** Dry points it may use within `radius` (along the grid) of a position. */
+	private nearby(position: Vec3, radius: number, allow: NavFilter | undefined): number[] {
+		const from = nearestPoint(this.nav, position, 2, allow);
+		const distance = gridDistances(this.nav, [from], false, allow);
+		const out: number[] = [];
+		distance.forEach((d, i) => {
+			if (d !== undefined && d > 0 && d <= radius && !this.nav.points[i].water) out.push(i);
+		});
+		return out;
 	}
 
 	/** Facing into the corner: away from the open directions around a point. */
@@ -926,20 +1426,27 @@ export class CreatureDirector {
 	}
 }
 
+/** How a player is moving, for the noise it makes. */
+export function movementNoise(s: PlayerState): Movement {
+	const speed = Math.hypot(s.velocity[0], s.velocity[2]);
+	if (s.mantle) return 'climb';
+	// On a rope: the creak and scrape of climbing, nothing while only hanging there.
+	if (s.climbing) return Math.abs(s.velocity[1]) > 0.05 ? 'climb' : 'still';
+	if (s.swimming) return speed > 0.3 ? 'swim' : 'still';
+	if (speed < 0.3) return 'still';
+	if (s.sneaking) return 'creep';
+	if (speed > MOVEMENT.stances.stand.speed + 0.4) return 'sprint';
+	if (s.stance === 'crawl') return 'crawl';
+	if (s.stance === 'crouch') return 'crouch';
+	return 'walk';
+}
+
 /** How far a player's movement can be heard. */
 function noiseRadius(s: PlayerState, def: CreatureDef): number {
 	const hear = def.perception.hear;
-	const speed = Math.hypot(s.velocity[0], s.velocity[2]);
-	if (s.mantle) return hear.walk;
-	// On a rope: the creak and scrape of climbing, nothing while only hanging there.
-	if (s.climbing) return Math.abs(s.velocity[1]) > 0.05 ? hear.walk : 0;
-	if (s.swimming) return speed > 0.3 ? hear.swim : 0;
-	if (speed < 0.3) return 0;
-	if (s.sneaking) return hear.creep;
-	if (speed > MOVEMENT.stances.stand.speed + 0.4) return hear.sprint;
-	if (s.stance === 'crawl') return hear.crawl;
-	if (s.stance === 'crouch') return hear.crouch;
-	return hear.walk;
+	const movement = movementNoise(s);
+	if (movement === 'still') return 0;
+	return hear[movement === 'climb' ? 'walk' : movement];
 }
 
 function distance3(a: Vec3, b: Vec3): number {

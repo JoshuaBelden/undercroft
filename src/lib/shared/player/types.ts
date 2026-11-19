@@ -144,6 +144,8 @@ export interface PlayerState {
 	sketching: number;
 	/** Seconds spent showing your map to a teammate (server-driven); -1 after, like `sketching`. */
 	sharing: number;
+	/** Seconds spent holding interact on the surveyor, taking his map (server-driven). */
+	consulting: number;
 }
 
 /** What one slot holds. */

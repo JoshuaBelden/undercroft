@@ -29,8 +29,8 @@ It stops at 1, at the last omen stage. **Nothing manifests when it fills:** only
 `stages` are ascending thresholds (Gloaming: 25%, 50%, 75%, 90%). Entering a stage:
 
 - sets the **gloom** baseline for every lamp;
-- sets creature **boldness** (`CreatureDirector.boldness`): perception and hearing radii scale by it, and creep time between bursts shrinks;
-- **spawns** `spawn` extra creatures far from players (`spawnFar`, the manifestation's spawn distance);
+- sets creature **boldness** (`CreatureDirector.boldness`): perception and hearing radii scale by it, creep time between bursts shrinks, and the party's noise and light meters fill faster (so witches are drawn in sooner; see [creatures.md](creatures.md#attraction));
+- **spawns** `spawn` extra witches far from players (`spawnFar`, the manifestation's spawn distance), on top of those the party draws in;
 - sends an `omen` event, and the snapshot's `omen` changes. Clients apply the stage's `ambience`: distant knocks and swells come `knocks`/`swells` times as often, `whispers` per minute play close by, and a low drone loop fades in to `drone`.
 
 ## Gloom (lamp failure)

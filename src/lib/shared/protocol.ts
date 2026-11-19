@@ -94,9 +94,15 @@ export type AdminCommand =
 	| { kind: 'bossRay' }
 	| { kind: 'bossRush' }
 	| { kind: 'bossVanish' }
-	/** Put a creature a few metres in front of you. */
-	| { kind: 'spawnCreature' }
+	/**
+	 * Put a creature (of this kind; the witch if left out) a few metres in front of you. `fated`:
+	 * a dweller that turns when seen (or one that never does).
+	 */
+	| { kind: 'spawnCreature'; creature?: string; fated?: boolean }
 	| { kind: 'clearCreatures' }
+	/** Fill one of the party's attraction meters (a witch comes), or empty both. */
+	| { kind: 'fillAttraction'; meter: 'noise' | 'light' }
+	| { kind: 'resetAttraction' }
 	| { kind: 'setSanity'; value: number }
 	/** Take every condition off you (a hobble). */
 	| { kind: 'clearConditions' }
@@ -178,6 +184,18 @@ export type ServerMessage =
 			doors: string[];
 			/** Doors sealed shut: the final room's, from the rite until it is banished. */
 			sealed: string[];
+			/**
+			 * Dev mode only (the admin bars): how full the party's noise and light meters are, 0..1
+			 * (full for a moment after one brings a witch), how many witches are alive, and why the
+			 * last one came (a meter, an omen, a dweller turning, admin) and how long ago.
+			 * See docs/dev/creatures.md#attraction.
+			 */
+			attraction?: {
+				noise: number;
+				light: number;
+				witches: number;
+				last?: { cause: string; seconds: number };
+			};
 	  }
 	/**
 	 * The loot crate you have open, sent while it is open: its slots, and how far along (0..1) the

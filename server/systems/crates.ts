@@ -91,10 +91,18 @@ export class CrateSystem implements SessionSystem {
 		}
 		const inv = player.state.inventory;
 		const inHand = held(inv);
-		const { dropped } = applyAction(
+		const { result, dropped } = applyAction(
 			{ inventory: inv, stash: crate.slots, sealed: crate.hidden },
 			action
 		);
+		// Rummaging through it is heard: every thing taken out of it (or put in) adds to the noise.
+		const touchesLoot =
+			('from' in action && action.from.area === 'stash') ||
+			('to' in action && action.to.area === 'stash');
+		if (result === 'ok' && touchesLoot) {
+			const noise = crate.kind === 'corpse' ? CORPSES.lootNoise : CRATES.lootNoise;
+			this.ctx.creatures.hear(crate.position, noise, { id: player.id, state: player.state });
+		}
 		this.ctx.systems.pack.afterRequest(player, inHand, dropped);
 	}
 

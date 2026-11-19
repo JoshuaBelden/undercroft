@@ -16,7 +16,7 @@ export type SynthSpec =
 	| { kind: 'splash'; length: number; cutoff: number }
 	/** Stone scrape plus an effort grunt, for climbing. */
 	| { kind: 'scrape' }
-	/** Sharp inhale (starting to push through a squeeze). */
+	/** Sharp inhale (coming out of a squeeze). */
 	| { kind: 'gasp' }
 	/** Water drop plink. */
 	| { kind: 'drip' }
@@ -32,6 +32,10 @@ export type SynthSpec =
 	| { kind: 'shuffle' }
 	/** Rushing scuff of a sudden burst of speed. */
 	| { kind: 'rush' }
+	/** A small animal's high, bending squeak, `pitch` Hz at its peak. */
+	| { kind: 'squeak'; pitch: number }
+	/** Tiny claws on stone (rats, spiders). */
+	| { kind: 'skitter' }
 	/** Rasping snarl with a strike. */
 	| { kind: 'snarl' }
 	/** Short pained breath when hurt. */
@@ -165,7 +169,7 @@ export const SOUNDS = {
 		volume: 0.45,
 		variation: 0.1
 	},
-	// A sharp breath as you start to push through a squeeze (PlayerAudio.updateSqueeze).
+	// A sharp breath as you come out of a squeeze (PlayerAudio.updateSqueeze).
 	gasp: { file: 'gasp', synth: { kind: 'gasp' }, category: 'sfx', volume: 0.8 },
 	// Breathing loops, crossfaded by stamina.
 	'breath.slow': {
@@ -276,6 +280,96 @@ export const SOUNDS = {
 		category: 'sfx',
 		volume: 0.5,
 		caption: 'dying rattle'
+	},
+	// Rats (placeholders until there are recordings).
+	'rat.step': {
+		synth: { kind: 'skitter' },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.2,
+		caption: 'skittering claws'
+	},
+	'rat.squeak': {
+		synth: { kind: 'squeak', pitch: 3200 },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.2,
+		caption: 'squeaking'
+	},
+	'rat.bite': {
+		synth: { kind: 'squeak', pitch: 2400 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.15,
+		caption: 'a rat bites'
+	},
+	'rat.die': {
+		synth: { kind: 'squeak', pitch: 1800 },
+		category: 'sfx',
+		volume: 0.5,
+		caption: 'a squeal cut short'
+	},
+	// Spiders (placeholders until there are recordings).
+	'spider.step': {
+		synth: { kind: 'skitter' },
+		category: 'sfx',
+		volume: 0.35,
+		variation: 0.25,
+		caption: 'many legs'
+	},
+	'spider.hiss': {
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.2,
+		caption: 'a hiss'
+	},
+	'spider.die': {
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.4,
+		variation: 0.2,
+		caption: 'a crunch'
+	},
+	'spider.giant.step': {
+		synth: { kind: 'skitter' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 0.6,
+		variation: 0.15,
+		caption: 'heavy legs on stone'
+	},
+	'spider.giant.hiss': {
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.9,
+		rate: 0.7,
+		variation: 0.1,
+		caption: 'a deep hiss'
+	},
+	// The surveyor sharing his map: paper unfolding (placeholder until there's a recording).
+	'surveyor.share': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.1,
+		caption: 'paper unfolding'
+	},
+	// Dwellers (placeholders until there are recordings).
+	'dweller.step': {
+		synth: { kind: 'shuffle' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 1.2,
+		variation: 0.15,
+		caption: 'soft footsteps'
+	},
+	'dweller.murmur': {
+		synth: { kind: 'whisper' },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.2,
+		caption: 'a murmur'
 	},
 	// Items and weapons.
 	'revolver.fire': {

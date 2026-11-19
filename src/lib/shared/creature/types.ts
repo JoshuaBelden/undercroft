@@ -1,8 +1,12 @@
 import type { CreatureAnim } from '../../content/creatures.ts';
 import type { Vec3 } from '../map/types.ts';
 
-/** What a creature is doing (its AI state). See docs/dev/creatures.md. */
-export type CreatureState = 'patrol' | 'alert' | 'investigate' | 'agro' | 'attack' | 'dead';
+/**
+ * What a creature is doing (its AI state); `flee` is one that keeps to itself (a dweller) leaving
+ * after being seen. See docs/dev/creatures.md.
+ */
+export type CreatureState =
+	'patrol' | 'alert' | 'investigate' | 'agro' | 'attack' | 'flee' | 'dead';
 
 /** A creature's state as broadcast in each server tick. See docs/dev/creatures.md. */
 export interface CreatureSnapshot {

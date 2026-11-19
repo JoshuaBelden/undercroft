@@ -6,6 +6,23 @@ export const MODELS = {
 		url: '/assets/afflictions/gloaming/creatures/gloaming_boss.c655302a.glb',
 		bytes: 1051444
 	},
+	'shared/creatures/dweller.glb': {
+		url: '/assets/shared/creatures/dweller.8727e224.glb',
+		bytes: 2742984
+	},
+	'shared/creatures/moth.glb': {
+		url: '/assets/shared/creatures/moth.f45e1e9a.glb',
+		bytes: 2896568
+	},
+	'shared/creatures/rat.glb': { url: '/assets/shared/creatures/rat.304b227a.glb', bytes: 952676 },
+	'shared/creatures/spider.glb': {
+		url: '/assets/shared/creatures/spider.63998c99.glb',
+		bytes: 2197568
+	},
+	'shared/creatures/surveyor.glb': {
+		url: '/assets/shared/creatures/surveyor.0c5abcc3.glb',
+		bytes: 1048784
+	},
 	'shared/creatures/witch.glb': {
 		url: '/assets/shared/creatures/witch.8441b8f6.glb',
 		bytes: 1266592

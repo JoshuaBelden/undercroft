@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ITEMS, rarityOf } from '../../src/lib/content/items.ts';
 import { CRATES } from '../../src/lib/content/loot.ts';
 import { crateCentre } from '../../src/lib/shared/map/crates.ts';
@@ -57,8 +57,12 @@ describe('crates', () => {
 		const view = diver.socket.last('crate')!;
 		expect(view.slots.every((s) => s !== 'hidden')).toBe(true);
 		const index = view.slots.findIndex((s) => s !== null && s !== 'hidden' && s.item !== 'clue');
+		// Taking it is heard: the party's noise goes up.
+		const quiet = session['creatures'].attraction;
+		const heard = vi.spyOn(quiet, 'heard');
 		session.inventory(diver.id, { kind: 'quick', from: { area: 'stash', index } });
 		expect(crate.slots[index]).toBeNull();
+		expect(heard).toHaveBeenCalledWith(CRATES.lootNoise, crate.position, diver.id);
 		expect(diver.player.stats.crates).toBe(1);
 		expect(diver.socket.last('tick')!.crates.open).toContain(crate.id);
 		session.closeCrate(diver.id);

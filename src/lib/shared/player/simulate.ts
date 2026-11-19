@@ -95,7 +95,8 @@ export function createPlayerState(
 		roping: 0,
 		unbarring: 0,
 		sketching: 0,
-		sharing: 0
+		sharing: 0,
+		consulting: 0
 	};
 }
 

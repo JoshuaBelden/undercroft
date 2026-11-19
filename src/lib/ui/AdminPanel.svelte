@@ -25,6 +25,7 @@
 	import { desktop } from '#lib/desktop.ts';
 	import type { LobbyStatus, SteamStatus } from '#lib/shared/desktop.ts';
 	import { ITEMS } from '#lib/content/items.ts';
+	import { CREATURES } from '#lib/content/creatures.ts';
 	import { raise } from '#lib/game/alerts.svelte.ts';
 	import { GRIP_ITEMS, GRIP_POSES, type GripPose } from '#lib/game/player/GripCheck.ts';
 	import { devMode } from '#lib/dev.ts';
@@ -57,6 +58,8 @@
 		gridView: boolean;
 		/** Creature markers drawn through walls. */
 		markers: boolean;
+		/** The party's attraction meters (and the omens) as bars under the clock. */
+		attraction: boolean;
 		/** Teammates' gamer tags drawn over the rock. */
 		tagsThroughWalls: boolean;
 		/** The Grip check's item (null: off) and what the test explorer does with it. */
@@ -74,6 +77,7 @@
 		/** In the free camera: the camera back to your body, still flying. */
 		oncameratobody: () => void;
 		onmarkers: (enabled: boolean) => void;
+		onattraction: (enabled: boolean) => void;
 		ontagsthroughwalls: (enabled: boolean) => void;
 		ongripcheck: (item: string | null, pose: GripPose) => void;
 	}
@@ -90,6 +94,7 @@
 		freecam,
 		gridView,
 		markers,
+		attraction,
 		tagsThroughWalls,
 		gripItem,
 		gripPose,
@@ -102,6 +107,7 @@
 		onbodytocamera,
 		oncameratobody,
 		onmarkers,
+		onattraction,
 		ontagsthroughwalls,
 		ongripcheck
 	}: Props = $props();
@@ -174,6 +180,14 @@
 	const itemIds = Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'clue');
 	let giveItem = $state('crowbar');
 	let giveCount = $state('1');
+
+	const creatureKinds = Object.keys(CREATURES);
+	let spawnKind = $state('witch');
+
+	function stepKind(by: number): void {
+		const index = creatureKinds.indexOf(spawnKind);
+		spawnKind = creatureKinds[(index + by + creatureKinds.length) % creatureKinds.length];
+	}
 
 	function stepItem(by: number): void {
 		const index = itemIds.indexOf(giveItem);
@@ -453,7 +467,15 @@
 				it.
 			</p>
 		{:else if group === 'Creatures'}
-			{@render action('Spawn in front', () => onadmin({ kind: 'spawnCreature' }))}
+			<StepperField label="Kind" text={spawnKind} onstep={stepKind} />
+			{@render action('Spawn in front', () =>
+				onadmin({ kind: 'spawnCreature', creature: spawnKind })
+			)}
+			{@render action(
+				'Spawn a dweller that turns',
+				() => onadmin({ kind: 'spawnCreature', creature: 'dweller', fated: true }),
+				'Becomes a witch when you see it.'
+			)}
 			{@render action('Kill all', () => onadmin({ kind: 'killCreatures' }))}
 			{@render action('Remove all', () => onadmin({ kind: 'clearCreatures' }))}
 			<StepperField
@@ -462,6 +484,15 @@
 				onstep={() => onmarkers(!markers)}
 				hint="Markers drawn through walls."
 			/>
+			<StepperField
+				label="Show attraction"
+				text={onOff(attraction)}
+				onstep={() => onattraction(!attraction)}
+				hint="Noise, light and omen meters under the clock. A witch comes when noise or light fills."
+			/>
+			{@render action('Fill noise', () => onadmin({ kind: 'fillAttraction', meter: 'noise' }))}
+			{@render action('Fill light', () => onadmin({ kind: 'fillAttraction', meter: 'light' }))}
+			{@render action('Empty both', () => onadmin({ kind: 'resetAttraction' }))}
 		{:else if group === 'Controller'}
 			{@render info('In use', inUse)}
 			{#each pads as pad (pad.index)}
