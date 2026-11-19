@@ -28,6 +28,8 @@ export type CreatureSound = 'step' | 'burst' | 'attack' | 'hurt' | 'die' | 'brea
  */
 export type SpawnRule =
 	| { kind: 'attracted' }
+	/** None at the start: they come to lamps (`flight`). */
+	| { kind: 'lamp' }
 	| {
 			kind: 'scatter';
 			groups: [number, number];
@@ -149,6 +151,23 @@ export interface CreatureDef {
 	 * are something else: seen or hit, they become a `turnInto` and attack.
 	 */
 	shy?: { seenRange: number; fleeDistance: number; turnChance: number; turnInto: string };
+	/**
+	 * It flies, and comes to lamps: each lit headlamp draws `perLamp` of them by its mode (rolled
+	 * when the mode changes), one every `arrive` seconds, flying in from `from` m off. They flutter
+	 * about a point `ahead` m out along the beam, within `radius` m of it, at up to `speed` m/s. A
+	 * lamp off for `disperse` seconds sends its own away; they're gone `leave` seconds later. It
+	 * ignores everything else (no perception, no attack) and falls when killed.
+	 */
+	flight?: {
+		perLamp: { low: [number, number]; bright: [number, number] };
+		arrive: number;
+		from: number;
+		ahead: number;
+		radius: number;
+		speed: number;
+		disperse: number;
+		leave: number;
+	};
 }
 
 /** Can't get down for squeezes or crawls, and won't go into water. */
@@ -414,6 +433,63 @@ export const CREATURES: Record<string, CreatureDef> = {
 		},
 		// One in five is a witch.
 		shy: { seenRange: 14, fleeDistance: 25, turnChance: 0.2, turnInto: 'witch' }
+	},
+	moth: {
+		id: 'moth',
+		model: modelUrl('shared/creatures/moth.glb'),
+		yawOffset: Math.PI,
+		// The model is 3.5 m across, standing on its legs: this one is about 15 cm, centred on
+		// where it flies.
+		scale: 0.045,
+		lift: -0.04,
+		height: 0.08,
+		reach: ANYWHERE,
+		dread: false,
+		killWeight: 0,
+		// Clips keyed by scripts/blender/critters.py: wingbeats at three rates.
+		animations: {
+			idle: { clip: 'Hover' },
+			walking: { clip: 'Fly' },
+			running: { clip: 'Dart' },
+			take_damage: { clip: 'Hurt' },
+			die: { clip: 'Die' }
+		},
+		gait: { patrol: 'walking', alert: 'walking', stalk: 'walking', burst: 'running' },
+		movement: small(1, 3),
+		creepSpeed: 1,
+		burstSpeed: 3,
+		creepTime: [1, 1],
+		burstTime: [1, 1],
+		patrol: { radius: 0, pause: [1, 1] },
+		alert: { wait: [1, 1], maxWait: 1, linger: 1 },
+		// Harmless: only in the way.
+		attack: { range: 0, windup: 0, duration: 0, damage: 0, cooldown: 1 },
+		perception: {
+			hear: { sprint: 0, walk: 0, crouch: 0, crawl: 0, creep: 0, swim: 0 },
+			alertRange: 0,
+			agro: { litRange: 0, darkRange: 0 },
+			touch: 0,
+			evadeTime: 0,
+			passive: true
+		},
+		health: [1],
+		stagger: { threshold: 1, seconds: 0.2 },
+		hitRadius: 0.12,
+		corpseTime: 3,
+		// Seen in the faintest light: they're in the beam.
+		visibleBand: [0.02, Infinity],
+		sounds: { step: 'moth.flutter', hurt: 'moth.flutter', die: 'moth.flutter' },
+		spawn: { kind: 'lamp' },
+		flight: {
+			perLamp: { low: [1, 2], bright: [3, 5] },
+			arrive: 2.5,
+			from: 6,
+			ahead: 1.1,
+			radius: 0.5,
+			speed: 2.5,
+			disperse: 3,
+			leave: 2
+		}
 	},
 	'giant-spider': {
 		id: 'giant-spider',

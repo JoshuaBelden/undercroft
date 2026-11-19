@@ -349,6 +349,14 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'a deep hiss'
 	},
+	// Moths: a soft flutter while they fly (placeholder until there's a recording).
+	'moth.flutter': {
+		synth: { kind: 'flutter', rate: 18 },
+		category: 'sfx',
+		volume: 0.25,
+		variation: 0.2,
+		caption: 'wings flutter'
+	},
 	// Dwellers (placeholders until there are recordings).
 	'dweller.step': {
 		synth: { kind: 'shuffle' },

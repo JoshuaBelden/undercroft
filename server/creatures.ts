@@ -110,6 +110,11 @@ interface Creature {
 	fated: boolean;
 	/** Fleeing at a run (it was hit), not a walk (it was seen). */
 	running: boolean;
+	/** A flier (`def.flight`): the player whose lamp it's at, and where it is in its flutter. */
+	follow: string | null;
+	phase: number;
+	/** Flown off and out of the game: removed this tick. */
+	gone: boolean;
 }
 
 /** A creature's body for hit tests. */
@@ -178,6 +183,11 @@ export class CreatureDirector {
 	private markers: number[];
 	/** The party's noise and light, drawing witches in (server/attraction.ts). */
 	readonly attraction = new Attraction();
+	/**
+	 * Each lamp's fliers, by `<kind>:<player>`: the lamp mode they were rolled for, how many it
+	 * draws, seconds it has been off, and seconds until the next one arrives.
+	 */
+	private lamps = new Map<string, { mode: number; want: number; dark: number; next: number }>();
 
 	constructor(
 		private world: CollisionWorld,
@@ -241,7 +251,7 @@ export class CreatureDirector {
 	 * Admin: a creature a few metres in front of a player, facing them. `fated` makes one that keeps
 	 * to itself (a dweller) one that turns.
 	 */
-	spawnNear(state: PlayerState, kind = 'witch', fated?: boolean): void {
+	spawnNear(state: PlayerState, kind = 'witch', fated?: boolean, by?: string): void {
 		const def = CREATURES[kind];
 		if (!def) return;
 		const ahead: Vec3 = [
@@ -254,6 +264,8 @@ export class CreatureDirector {
 		const position = this.nav.points[index].position;
 		const c = this.add(def, position, yawTo(position, state.position));
 		if (fated !== undefined && def.shy) c.fated = fated;
+		// A flier goes to the lamp of whoever brought it.
+		if (def.flight) c.follow = by ?? null;
 	}
 
 	/** Where each living creature that's dreadful to see is (for sanity: seeing them). */
@@ -335,6 +347,8 @@ export class CreatureDirector {
 				c.cooldown = c.def.attack.cooldown * 0.5;
 			}
 		}
+		// A flier only dies; it never comes for anyone.
+		if (c.def.flight) return false;
 		if (c.def.shy) {
 			// One that keeps to itself runs off; one that's something else shows what it is.
 			if (c.fated && from) this.turn(c, from);
@@ -576,11 +590,17 @@ export class CreatureDirector {
 		const hits: CreatureHit[] = [];
 		const targets = prey.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
 		this.attract(targets);
+		this.lampFliers(targets);
 		for (const c of this.creatures) {
 			if (c.mode === 'dead') {
+				// It drops where it is (a flier falls).
 				c.deadTime += TICK_DT;
 				this.move(c, null, false);
 				this.animate(c, false);
+				continue;
+			}
+			if (c.def.flight) {
+				this.fly(c, targets);
 				continue;
 			}
 			c.cooldown = Math.max(0, c.cooldown - TICK_DT);
@@ -682,7 +702,7 @@ export class CreatureDirector {
 			this.animate(c, sprint && move !== null);
 		}
 		this.creatures = this.creatures.filter(
-			(c) => c.mode !== 'dead' || c.deadTime < c.def.corpseTime
+			(c) => !c.gone && (c.mode !== 'dead' || c.deadTime < c.def.corpseTime)
 		);
 		return hits;
 	}
@@ -742,13 +762,150 @@ export class CreatureDirector {
 			statuses: {},
 			deadTime: 0,
 			fated: !!def.shy && this.rng.next() < def.shy.turnChance,
-			running: false
+			running: false,
+			follow: null,
+			phase: this.rng.next() * Math.PI * 2,
+			gone: false
 		};
-		this.startPatrol(c, c.anchor);
+		// A flier has no patrol: it's at a lamp.
+		if (!def.flight) this.startPatrol(c, c.anchor);
 		// Stand a moment before setting off.
 		c.pause = this.between(def.patrol.pause);
 		this.creatures.push(c);
 		return c;
+	}
+
+	// --- fliers (def.flight): moths at the lamps ---
+
+	/**
+	 * Keep each lit lamp's fliers coming: up to the number its mode draws (rolled when the mode
+	 * changes), one every `arrive` seconds. Lamp low after bright: the extra ones leave. Lamp off
+	 * for `disperse` seconds, or its owner down or gone: all of them leave.
+	 */
+	private lampFliers(targets: Prey[]): void {
+		for (const def of Object.values(CREATURES)) {
+			const flight = def.flight;
+			if (!flight) continue;
+			for (const p of targets) {
+				const s = p.state;
+				const key = `${def.id}:${p.id}`;
+				let lamp = this.lamps.get(key);
+				if (!lamp) {
+					lamp = { mode: 0, want: 0, dark: 0, next: flight.arrive };
+					this.lamps.set(key, lamp);
+				}
+				const mine = this.living().filter(
+					(c) => c.def === def && c.follow === p.id && c.mode !== 'flee'
+				);
+				if (s.headlamp > 0 && s.battery > 0) {
+					lamp.dark = 0;
+					if (s.headlamp !== lamp.mode) {
+						lamp.mode = s.headlamp;
+						const [lo, hi] = s.headlamp === 2 ? flight.perLamp.bright : flight.perLamp.low;
+						lamp.want = this.rng.int(lo, hi);
+					}
+					if (mine.length < lamp.want) {
+						lamp.next -= TICK_DT;
+						if (lamp.next <= 0) {
+							lamp.next = flight.arrive;
+							this.flyIn(def, s, p.id);
+						}
+					} else {
+						lamp.next = flight.arrive;
+						for (const c of mine.slice(lamp.want)) this.flyOff(c);
+					}
+				} else {
+					lamp.mode = 0;
+					lamp.dark += TICK_DT;
+					if (lamp.dark >= flight.disperse) for (const c of mine) this.flyOff(c);
+				}
+			}
+			for (const c of this.living()) {
+				if (c.def !== def || c.mode === 'flee') continue;
+				if (!targets.some((t) => t.id === c.follow)) this.flyOff(c);
+			}
+		}
+	}
+
+	/** One flies in toward a lamp, from out along the beam (or wherever is open nearest it). */
+	private flyIn(def: CreatureDef, s: PlayerState, follow: string): void {
+		const flight = def.flight;
+		if (!flight) return;
+		const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
+		for (const d of [flight.from, flight.from * 0.6, flight.from * 0.3]) {
+			for (const turn of [0, 0.7, -0.7, 1.5, -1.5, Math.PI]) {
+				const yaw = s.yaw + turn;
+				const at: Vec3 = [eye[0] - Math.sin(yaw) * d, eye[1] + 0.3, eye[2] - Math.cos(yaw) * d];
+				if (segmentBlocked(this.world, eye, at)) continue;
+				const c = this.add(def, at, yawTo(at, eye));
+				c.follow = follow;
+				c.mode = 'patrol';
+				return;
+			}
+		}
+	}
+
+	/** It leaves: off away from the lamp, gone `leave` seconds later. */
+	private flyOff(c: Creature): void {
+		const flight = c.def.flight;
+		if (!flight) return;
+		c.mode = 'flee';
+		c.linger = flight.leave;
+		const b = c.body.position;
+		const away = this.rng.next() * Math.PI * 2;
+		c.goal = [b[0] - Math.sin(away) * 6, b[1] + 1, b[2] - Math.cos(away) * 6];
+	}
+
+	/**
+	 * Flutter about a point out along its lamp's beam (or fly off), at up to `speed`, stopping short
+	 * of anything solid.
+	 */
+	private fly(c: Creature, targets: Prey[]): void {
+		const flight = c.def.flight;
+		if (!flight) return;
+		const b = c.body.position;
+		let goal: Vec3;
+		if (c.mode === 'flee') {
+			c.linger -= TICK_DT;
+			if (c.linger <= 0 || !c.goal) {
+				c.gone = true;
+				return;
+			}
+			goal = c.goal;
+		} else {
+			const owner = targets.find((t) => t.id === c.follow);
+			if (!owner) {
+				this.flyOff(c);
+				return;
+			}
+			const s = owner.state;
+			const cp = Math.cos(s.pitch);
+			const eye = s.position[1] + eyeHeight(s);
+			c.phase += TICK_DT * 2.2;
+			const r = flight.radius;
+			goal = [
+				s.position[0] - Math.sin(s.yaw) * cp * flight.ahead + Math.cos(c.phase) * r,
+				eye + Math.sin(s.pitch) * flight.ahead + Math.sin(c.phase * 1.7) * r * 0.6,
+				s.position[2] - Math.cos(s.yaw) * cp * flight.ahead + Math.sin(c.phase * 1.3) * r
+			];
+		}
+		const d: Vec3 = [goal[0] - b[0], goal[1] - b[1], goal[2] - b[2]];
+		const dist = Math.hypot(d[0], d[1], d[2]);
+		const step = Math.min(dist, flight.speed * TICK_DT);
+		const jitter = () => (this.rng.next() - 0.5) * 0.04;
+		const next: Vec3 =
+			dist > 1e-4
+				? [
+						b[0] + (d[0] / dist) * step + jitter(),
+						b[1] + (d[1] / dist) * step + jitter(),
+						b[2] + (d[2] / dist) * step + jitter()
+					]
+				: [...b];
+		if (!segmentBlocked(this.world, b, next)) {
+			c.body.position = next;
+			if (dist > 0.05) c.body.yaw = Math.atan2(-d[0], -d[2]);
+		}
+		this.setAnim(c, c.mode === 'flee' || dist > 1 ? 'running' : 'walking');
 	}
 
 	/**
@@ -1104,6 +1261,11 @@ export class CreatureDirector {
 		else if (c.mode === 'patrol') anim = gait.patrol;
 		else if (c.mode === 'investigate') anim = gait.stalk;
 		else anim = bursting && speed > 2 ? gait.burst : gait.stalk;
+		this.setAnim(c, anim);
+	}
+
+	/** Into an animation slot (from its start), or on through the one it's in. */
+	private setAnim(c: Creature, anim: CreatureAnim): void {
 		if (anim !== c.anim) {
 			c.anim = anim;
 			c.animTime = 0;
