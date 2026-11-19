@@ -856,6 +856,37 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		triangles: 1150
 	},
+	'hall-ledge': {
+		name: 'hall-ledge',
+		url: '/assets/shared/map/hall-ledge.c7d277de.gltf',
+		bytes: 1274005,
+		footprint: [1, 2],
+		levels: 2,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 1, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 1, edge: 's' }
+		],
+		spawns: [],
+		creatures: [],
+		extracts: [],
+		rites: [],
+		crates: [],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 7, 0], halfExtents: [1.5, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.75, 1.8], halfExtents: [1.5, 0.15, 1.8], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.3, 3.8], halfExtents: [1.5, 0.7, 0.2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.3, -2], halfExtents: [1.5, 0.7, 2], rotation: [0, 0, 0, 1] },
+			{ center: [1.25, 4.95, 0], halfExtents: [0.25, 2.05, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-1.25, 4.95, 0], halfExtents: [0.25, 2.05, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 582
+	},
 	'hall-side-room': {
 		name: 'hall-side-room',
 		url: '/assets/shared/map/hall-side-room.c42230a9.gltf',

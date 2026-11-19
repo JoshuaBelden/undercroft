@@ -83,6 +83,7 @@ PIECES = [
     "hall-squeeze",
     "hall-canal",
     "hall-flooded",
+    "hall-ledge",
     "hall-side-room",
     "room-small",
     "room-crypt",
@@ -2276,6 +2277,52 @@ def build_hall_canal(force=False):
     return coll
 
 
+LEDGE_DROP = 1.1  # under MOVEMENT.mantle.maxHeight (1.2 m): climbed with a mantle
+LEDGE_LIP = 0.4  # the shelf at the south end, at socket height
+
+
+def build_hall_ledge(force=False):
+    """1x2 cells: a tall passage with a ledge to climb. The north half is a hall at socket height;
+    the south half's floor is LEDGE_DROP lower, under the same vault, so it stands extra tall,
+    up to a short shelf at the south socket. Either way through you drop down once and mantle up
+    once (Space). The nav grid can't climb it, so the generator keeps it off the main route.
+    Like the canal it declares an extra level below, with its sockets at level 1."""
+    name = "hall-ledge"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 1, 2, levels=2)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    floor = LEVEL
+    low = floor - LEDGE_DROP
+    hall = hall_profile()
+    # The same vault as the hall, its walls carried straight down to the sunken floor.
+    tall = arch_profile(HALL_HALF_W, HALL_SPRING + LEDGE_DROP, HALL_HALF_W)
+    south = -4.0 + LEDGE_LIP
+    mb = MeshBuilder(name + "-mesh")
+    sweep(mb, hall, straight_frames((0, 4.0, floor), (0, 0.0, floor), 8), W, F, jitter=0.15, seed=4.1)
+    sweep(mb, tall, straight_frames((0, 0.0, low), (0, south, low), 8), W, F, jitter=0.15, seed=5.7)
+    sweep(mb, hall, straight_frames((0, south, floor), (0, -4.0, floor), 1), W, F)
+    # The faces of the two ledges, from the sunken floor up to socket height.
+    for y, facing in ((0.0, (0, -1, 0)), (south, (0, 1, 0))):
+        mb.face(
+            [(-HALL_HALF_W, y, low), (HALL_HALF_W, y, low), (HALL_HALF_W, y, floor), (-HALL_HALF_W, y, floor)],
+            W,
+            facing=facing,
+        )
+    mb.finish(coll, root)
+
+    socket(coll, root, "hall", 0, (0, 4, floor))
+    socket(coll, root, "hall", 1, (0, -4, floor))
+    # Collision: the upper floor and the shelf (solid down to below the sunken floor, so their
+    # faces are walls to climb), the sunken floor, the walls the whole way, the vault.
+    col_box(coll, root, "col-upper", (-1.5, 0.0, low - 0.3), (1.5, 4.0, floor))
+    col_box(coll, root, "col-shelf", (-1.5, -4.0, low - 0.3), (1.5, south, floor))
+    col_box(coll, root, "col-low-floor", (-1.5, south, low - 0.3), (1.5, 0.0, low))
+    col_box(coll, root, "col-wall-w", (-1.5, -4.0, low), (-HALL_HALF_W, 4.0, floor + 3.0))
+    col_box(coll, root, "col-wall-e", (HALL_HALF_W, -4.0, low), (1.5, 4.0, floor + 3.0))
+    col_box(coll, root, "col-ceiling", (-1.5, -4.0, floor + 2.8), (1.5, 4.0, floor + 3.2))
+    return coll
+
+
 def build_hall_flooded(force=False):
     """1x2 cells: a sump. The floor slopes 2 m down into a dip where the ceiling drops below the
     water, so you must dive and swim a few metres underwater; slopes either side are shores."""
@@ -3007,6 +3054,7 @@ BUILDERS = {
     "hall-squeeze": build_hall_squeeze,
     "hall-canal": build_hall_canal,
     "hall-flooded": build_hall_flooded,
+    "hall-ledge": build_hall_ledge,
     "hall-side-room": build_hall_side_room,
     "room-small": build_room_small,
     "room-crypt": build_room_crypt,

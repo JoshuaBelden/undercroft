@@ -54,6 +54,8 @@ export const MAP_KIT: MapKit = {
 	'hall-squeeze-long': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'squeeze' },
 	'hall-canal': { role: 'connector', weight: 0.4, sketch: 'water' },
 	'hall-flooded': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'water' },
+	// A tall passage with a 1.1 m ledge to climb (mantle): side branches only, as creatures can't.
+	'hall-ledge': { role: 'connector', weight: 0.5, offRoute: true, sketch: 'ledge' },
 	'hall-stairs-down': { role: 'connector', weight: 0.8, descends: true },
 	// Rope drops (docs/dev/rope.md): 12 m down, only with a rope tied at the top. Never on the main
 	// route: the generator hangs `ropeDrops` of them off it, each with a short way on at its foot.

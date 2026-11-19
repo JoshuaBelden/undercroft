@@ -1,5 +1,6 @@
 import { Rng } from '../rng.ts';
 import { placeDoors } from './doors.ts';
+import { placeWalls } from './walls.ts';
 import {
 	CELL,
 	EDGE_DIR,
@@ -369,6 +370,8 @@ function tryGenerate(
 	const state = new LayoutState(rng, pieces, kit);
 	const connectors = state.role('connector');
 	const flat = connectors.filter((p) => !kit[p.name].descends);
+	// What the main route is made of: no ledges (the nav grid can't climb them).
+	const onRoute = flat.filter((p) => !kit[p.name].offRoute);
 	const ropeDrops = connectors.filter((p) => kit[p.name].needsRope);
 	const ends = state.role('end');
 	const caps = state.role('cap');
@@ -411,14 +414,14 @@ function tryGenerate(
 		for (const room of route[tier]) {
 			const length = rng.int(options.corridor[0], options.corridor[1]);
 			for (let i = 0; i < length; i++) {
-				const next = grow(flat);
+				const next = grow(onRoute);
 				if (!next) throw new GenerationFailed();
 				tips = next;
 			}
 			let next: OpenSocket[] | null = null;
 			for (let stretch = 0; stretch <= options.stretch && !next; stretch++) {
 				if (stretch > 0) {
-					const longer = grow(flat);
+					const longer = grow(onRoute);
 					if (!longer) break;
 					tips = longer;
 				}
@@ -572,6 +575,7 @@ export function generateLayout(
 				doors: []
 			};
 			layout.doors = placeDoors(layout, pieces);
+			layout.walls = placeWalls(layout, pieces, own, seed);
 			return layout;
 		} catch (error) {
 			if (!(error instanceof GenerationFailed)) throw error;
