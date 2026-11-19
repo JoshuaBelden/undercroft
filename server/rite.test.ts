@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { AFFLICTIONS, type RiteSpec } from '../src/lib/content/afflictions.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { addItem, emptyInventory, newStack } from '../src/lib/shared/items/inventory.ts';
+import { rotateXZ } from '../src/lib/shared/map/grid.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { roomPoints } from '../src/lib/shared/map/points.ts';
+import type { Placement, Vec3 } from '../src/lib/shared/map/types.ts';
 import { createPlayerState } from '../src/lib/shared/player/simulate.ts';
 import { Crates } from './crates.ts';
 import { WorldItems } from './items.ts';
@@ -12,6 +14,13 @@ import { mapFixture } from './testing/harness.ts';
 
 const SPEC = AFFLICTIONS.gloaming.rite;
 const map = mapFixture(1);
+
+/** A world point in a placed piece's own frame. */
+function toLocal(placement: Placement, [x, y, z]: Vec3): Vec3 {
+	const [px, py, pz] = placement.position;
+	const [lx, lz] = rotateXZ([x - px, z - pz], 4 - placement.rotation);
+	return [lx, y - py, lz];
+}
 
 /** The map's items and crates, then the rite scattered into them. */
 function scatter(spec: RiteSpec, withheld: string[] = [], crates = map.layout.crates) {
@@ -67,16 +76,26 @@ describe('RiteDirector', () => {
 });
 
 describe('scatterRite', () => {
-	it('puts the crate item in a crate and every hint copy somewhere off the floor', () => {
+	it('lays the Pendant on the altar before the angel, and every hint copy somewhere off the floor', () => {
 		const { inCrates, onFloor } = scatter(SPEC);
-		expect(inCrates('pendant')).toBe(1);
+		expect(inCrates('pendant')).toBe(0);
+		const [pendant] = onFloor('pendant');
+		expect(pendant).toBeDefined();
+		// The altar, in the chapel's own frame: centred on x, its top 1.62 m up, z -9.1 to -10.3.
+		const chapel = map.layout.placements.find((p) => p.piece === SPEC.room)!;
+		const local = toLocal(chapel, pendant.position);
+		expect(Math.abs(local[0])).toBeLessThan(1.35);
+		expect(local[1]).toBeGreaterThan(1.6);
+		expect(local[1]).toBeLessThan(1.8);
+		expect(local[2]).toBeLessThan(-9.1);
+		expect(local[2]).toBeGreaterThan(-10.3);
 		const copies = SPEC.clues.length * SPEC.clueCopies;
 		const hung = onFloor('clue');
 		expect(inCrates('clue') + hung.length).toBe(copies);
 	});
 
 	it('leaves out a withheld quest item', () => {
-		expect(scatter(SPEC, ['pendant']).inCrates('pendant')).toBe(0);
+		expect(scatter(SPEC, ['pendant']).onFloor('pendant')).toHaveLength(0);
 	});
 
 	it('puts a room item in a major room, and a crate item on a floor when there are no crates', () => {

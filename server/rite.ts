@@ -4,7 +4,13 @@ import { carriesAll, revealed, riteSnapshot } from '../src/lib/shared/affliction
 import type { RiteSnapshot } from '../src/lib/shared/affliction/types.ts';
 import { newStack, removeItem } from '../src/lib/shared/items/inventory.ts';
 import type { CollisionWorld } from '../src/lib/shared/map/collision.ts';
-import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '../src/lib/shared/map/grid.ts';
+import {
+	LEVEL_HEIGHT,
+	cellKey,
+	occupiedCells,
+	toWorld,
+	worldCell
+} from '../src/lib/shared/map/grid.ts';
 import { gridDistances, nearestPoint, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import type { MapKit, MapLayout, PieceDef, Vec3 } from '../src/lib/shared/map/types.ts';
 import type { PlayerState } from '../src/lib/shared/player/types.ts';
@@ -126,6 +132,31 @@ export function cellOf(position: Vec3): string {
 	return cellKey(x, z, Math.floor((position[1] + 0.5) / LEVEL_HEIGHT));
 }
 
+/**
+ * The altar of a rite's room: the furniture top (see `furnitureSpots`) within reach of where the
+ * rite is performed (the room's first `rite-<n>` marker), nearest it. Null if the room isn't in
+ * the map or has nothing there to lay a thing on.
+ */
+export function altarSpot(room: string, map: RiteMap, floor: FloorPoint[]): Vec3 | null {
+	const piece = map.pieces[room];
+	const placement = map.layout.placements.find((p) => p.piece === room);
+	const marker = piece?.rites[0];
+	if (!placement || !marker) return null;
+	const at = toWorld(placement, marker);
+	const standing = floor
+		.filter((p) => Math.abs(p.position[1] - at[1]) < 1)
+		.sort((a, b) => flat(a.position, at) - flat(b.position, at))
+		.slice(0, 4);
+	const tops = furnitureSpots(map.world, standing).sort(
+		(a, b) => flat(a.position, at) - flat(b.position, at)
+	);
+	return tops[0]?.position ?? null;
+}
+
+function flat(a: Vec3, b: Vec3): number {
+	return Math.hypot(a[0] - b[0], a[2] - b[2]);
+}
+
 /** Everything `scatterRite` needs to know about the map. */
 export interface RiteMap {
 	layout: MapLayout;
@@ -198,6 +229,13 @@ export function scatterRite(
 	for (const { item, count, place } of wanted) {
 		for (let i = 0; i < count; i++) {
 			if (place === 'crate' && crates.stow(newStack(item), rng)) continue;
+			if (place === 'altar') {
+				const top = altarSpot(spec.room, map, floor);
+				if (top) {
+					items.place(newStack(item), [top[0], top[1] + 0.05, top[2]], rng.next() * Math.PI * 2);
+					continue;
+				}
+			}
 			const cells = majors.length ? cellsOf(layout, pieces, rng.pick(majors)) : null;
 			const inRoom = cells ? floor.filter((p) => cells.has(cellOf(p.position))) : [];
 			const spot = pick(inRoom.length ? inRoom : floor);
