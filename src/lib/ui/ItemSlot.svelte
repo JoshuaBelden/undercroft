@@ -38,10 +38,7 @@
 		}
 		event.dataTransfer?.setData('text/plain', stack.item);
 		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
-		// Just after, not during: the slots restyling (and the tooltip going) while the browser is
-		// still starting the drag can cancel it.
-		const from = stack;
-		setTimeout(() => board.startDrag(ref, from));
+		board.startDrag(ref, stack);
 	}
 
 	/** Entering and moving over a slot that would take what is dragged: say it can be dropped here. */
@@ -70,13 +67,6 @@
 	}
 
 	function click(event: MouseEvent): void {
-		if (stack && event.shiftKey) board.quick(ref);
-	}
-
-	/** Enter and Space do what a click does, as on a button (shift sends it where it belongs). */
-	function key(event: KeyboardEvent): void {
-		if (event.key !== 'Enter' && event.key !== ' ') return;
-		event.preventDefault();
 		if (stack && event.shiftKey) board.quick(ref);
 	}
 
@@ -127,13 +117,8 @@
 	}
 </script>
 
-<!--
-	A div, not a button: Firefox never starts a drag from a <button>, draggable or not. It is
-	focused and pressed like one (tabindex, role, Enter and Space).
--->
-<div
-	role="button"
-	tabindex="0"
+<button
+	type="button"
 	class="item-slot"
 	class:filled={!!stack}
 	class:accepts={target === true}
@@ -149,7 +134,6 @@
 	ondragover={dragOver}
 	ondrop={drop}
 	onclick={click}
-	onkeydown={key}
 	oncontextmenu={menu}
 	onpointerenter={point}
 	onpointerleave={() => board.unpoint()}
@@ -169,7 +153,7 @@
 		quest={stack ? def?.quest : undefined}
 		mark={stack ? slotMark(stack.item) : undefined}
 	/>
-</div>
+</button>
 
 <style>
 	.item-slot {
@@ -180,8 +164,6 @@
 		background: none;
 		color: inherit;
 		cursor: default;
-		/* Picked up whole, even where text selection is on (the dashboard). */
-		user-select: none;
 	}
 
 	.item-slot.filled {
