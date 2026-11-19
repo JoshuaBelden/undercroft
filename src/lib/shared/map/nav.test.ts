@@ -82,11 +82,13 @@ describe('nav grid on real maps', () => {
 				nav.closed.delete(door.id);
 			}
 			// Three ways out: a rope up the shaft at the end of each of the first two levels, and the
-			// chapel's ladder (held interact). None at the start: the stairwell's door is sealed.
-			expect(world.extracts.length).toBe(1);
+			// chapel's ladder (held interact), let down once the Affliction is resolved. None at the
+			// start: the stairwell's door is sealed.
+			expect(world.extracts).toEqual([]);
+			expect(world.sealedExtracts.length).toBe(1);
 			expect(world.ropes.filter((r) => r.exitY !== undefined)).toHaveLength(2);
 			const feet = world.ropes.map((r): Vec3 => [r.top[0], r.bottom, r.top[2]]);
-			for (const extract of [...world.extracts, ...feet]) {
+			for (const extract of [...world.sealedExtracts, ...feet]) {
 				const goal = nearestPoint(nav, extract, 4);
 				expect(goal).toBeGreaterThanOrEqual(0);
 				const path = findPath(nav, start, goal, 200000);

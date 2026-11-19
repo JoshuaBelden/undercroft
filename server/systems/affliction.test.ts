@@ -16,6 +16,10 @@ describe('the manifestation', () => {
 		const m = session['affliction']['manifestation']!;
 		m.state = 'hunting';
 		m.position = [diver.state.position[0] + 0.5, diver.state.position[1], diver.state.position[2]];
+		// Only its swing: no ray, charge or vanishing the test didn't ask for.
+		m.castCooldown = 1e9;
+		m.vanishIn = 1e9;
+		m.rushIn = 1e9;
 		return m;
 	}
 
@@ -53,5 +57,48 @@ describe('the manifestation', () => {
 		const events = diver.socket.all('tick').flatMap((t) => t.events);
 		expect(events.some((e) => e.kind === 'strobe' && e.stunned === 1)).toBe(true);
 		expect(diver.socket.last('tick')!.affliction.manifestation!.stunned).toBe(true);
+	});
+
+	it('its ray puts your lamp out, and it stays out until that wears off', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		const m = face(session, diver);
+		const spec = AFFLICTIONS.gloaming.manifestation;
+		// 2 m ahead, down the room: out of reach, a clear line.
+		const [x, y, z] = diver.state.position;
+		const yaw = diver.state.yaw;
+		m.position = [x - 2 * Math.sin(yaw), y, z - 2 * Math.cos(yaw)];
+		diver.hold({ headlamp: 2 }, 0.1);
+		expect(diver.state.headlamp).toBe(2);
+		session.admin(diver.id, { kind: 'bossRay' });
+		expect(m.casts).toBe(1);
+		diver.hold({ headlamp: 2 }, spec.ray.chargeSeconds + 0.3);
+		const events = diver.socket.all('tick').flatMap((t) => t.events);
+		expect(events.some((e) => e.kind === 'ray' && e.player === diver.id)).toBe(true);
+		expect(diver.state.conditions.map((c) => c.id)).toContain('snuffed');
+		// The blow, and a moment of the dark's own drain with the lamp out.
+		expect(diver.state.sanity).toBeLessThanOrEqual(SANITY.max - spec.ray.damage[0]);
+		expect(diver.state.sanity).toBeGreaterThan(SANITY.max - spec.ray.damage[0] - 1);
+		// Banish it so nothing else happens; the lamp stays out whatever the diver asks.
+		session.admin(diver.id, { kind: 'banish' });
+		diver.hold({ headlamp: 2 }, 1);
+		expect(diver.state.headlamp).toBe(0);
+		diver.hold({ headlamp: 2 }, spec.ray.snuffSeconds);
+		expect(diver.state.conditions).toEqual([]);
+		expect(diver.state.headlamp).toBe(2);
+	});
+
+	it('admin: make it swing, charge and vanish on demand', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		const m = face(session, diver);
+		m.position = [diver.state.position[0] + 5, diver.state.position[1], diver.state.position[2]];
+		session.admin(diver.id, { kind: 'bossStrike' });
+		expect(m.strikes).toBe(1);
+		session.admin(diver.id, { kind: 'bossRush' });
+		expect(m.rushLeft).toBeGreaterThan(0);
+		session.admin(diver.id, { kind: 'bossVanish' });
+		diver.hold({}, 0.1);
+		expect(diver.socket.last('tick')!.affliction.manifestation!.state).toBe('vanished');
 	});
 });

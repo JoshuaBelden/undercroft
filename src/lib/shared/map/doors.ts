@@ -4,7 +4,7 @@ import { LEVEL_HEIGHT, cellKey, occupiedCells, toWorld, worldCell } from './grid
 import type { DoorPlacement, MapLayout, PieceDef, Vec3 } from './types.ts';
 
 /**
- * Doors between levels, and which level of the map a place is on. See
+ * Doors (between levels, and into the final room), and which level of the map a place is on. See
  * docs/dev/map-generation.md#levels and #doors.
  */
 
@@ -17,6 +17,7 @@ export function placeDoors(layout: MapLayout, pieces: Record<string, PieceDef>):
 		for (const marker of pieces[placement.piece]?.doors ?? []) {
 			doors.push({
 				id: `d${doors.length + 1}`,
+				piece: placement.piece,
 				position: toWorld(placement, marker.position).map(round) as Vec3,
 				yaw: round(marker.yaw + (placement.rotation * Math.PI) / 2),
 				tier: placement.tier

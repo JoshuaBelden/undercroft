@@ -109,7 +109,7 @@ Only the dead spectate. Players who left alive see the leaving fade, then the re
 
 There is none at the start: the rope down from the start room (the Angel's Well, see [map-generation.md](map-generation.md#the-start-room)) ends out of reach of the floor, so getting out means going on to the end of the first level at least.
 
-The extraction rooms' way out is a rope going up into the dark (`rope_anchor` in `scripts/blender/kit.py`), hanging down a round shaft through the ceiling (their ladders were taken out: `remove_extraction_ladders`). It is a `rope-0` marker with an `exit`: climb 5.4 m up it, most of the way up the shaft, and you are out (see [rope.md](rope.md)). The chapel's is an `extract-0` marker, the hold below: the chapel's at the foot of a timber ladder (`extraction_ladder`) up to a hatch where the wall meets the vault.
+The extraction rooms' way out is a rope going up into the dark (`rope_anchor` in `scripts/blender/kit.py`), hanging down a round shaft through the ceiling (their ladders were taken out: `remove_extraction_ladders`). It is a `rope-0` marker with an `exit`: climb 5.4 m up it, most of the way up the shaft, and you are out (see [rope.md](rope.md)). The chapel's is an `extract-0` marker, the hold below: the chapel's at the foot of a timber ladder (`extraction_ladder`) up to a hatch high in the west wall of the nave, on the dais.
 
 **How:** it runs in the shared simulation, so the client predicts the progress bar and the server decides.
 

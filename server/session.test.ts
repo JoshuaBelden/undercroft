@@ -2,11 +2,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { SANITY } from '../src/lib/content/player/sanity.ts';
+import { unsealExtracts } from '../src/lib/shared/map/collision.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { entryPoint, roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { config } from './config.ts';
+import type { Session } from './session.ts';
 import { useSessions, kit, Diver, FakeSocket, wait } from './testing/harness.ts';
+
+/** The final room's way out, let down as banishing what the rite summoned would. */
+function wayOut(session: Session): Vec3 {
+	unsealExtracts(session.world);
+	return session.world.extracts[0];
+}
 
 const SEED = 1;
 const RITE = AFFLICTIONS.gloaming.rite;
@@ -199,7 +207,7 @@ describe('getting out', () => {
 		const session = open(SEED, { onPlayerLeft: left });
 		const diver = new Diver(session, 'A', kit(['coins', 7]));
 		session.admin(diver.id, { kind: 'clearCreatures' });
-		const point = session['world'].extracts[0];
+		const point = wayOut(session);
 		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
 		diver.hold({}, 0.5);
 		diver.hold({ interact: true }, 4);
@@ -249,7 +257,7 @@ describe('getting out', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'clearCreatures' });
-		const point = session['world'].extracts[0];
+		const point = wayOut(session);
 		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
 		diver.hold({}, 0.5);
 		diver.hold({ interact: true, reading: true }, 4);
@@ -300,7 +308,7 @@ describe('achievements', () => {
 		const session = open(SEED);
 		const diver = new Diver(session, 'A');
 		session.admin(diver.id, { kind: 'clearCreatures' });
-		const point = session['world'].extracts[0];
+		const point = wayOut(session);
 		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
 		diver.hold({}, 0.5);
 		diver.hold({ interact: true }, 4);

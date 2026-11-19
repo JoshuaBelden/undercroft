@@ -10,7 +10,8 @@ import { keyPrompt } from './prompt.ts';
 
 /**
  * Doors between levels (docs/dev/map-generation.md): drawn barred until the tick says one is
- * open, unbarred by holding interact on it.
+ * open, unbarred by holding interact on it. The final room's slams shut at the rite and can't be
+ * opened until what it summoned is banished.
  */
 export class Doors implements PlayFeature {
 	private models = new DoorModels();
@@ -26,21 +27,31 @@ export class Doors implements PlayFeature {
 	}
 
 	tick(tick: TickMessage): void {
-		this.models.apply(tick.doors);
+		this.models.apply(tick.doors, tick.sealed);
 	}
 
 	event(event: GameEvent): void {
-		if (event.kind !== 'doorOpen') return;
+		const { sounds } = this.ctx;
+		if (event.kind === 'doorSeal') {
+			if (event.open) sounds.playAt('door.slam', event.position, 1, 12);
+			sounds.playAt('door.seal', event.position, 1, 8);
+			return;
+		}
+		if (event.kind !== 'doorOpen' && event.kind !== 'doorRelease') return;
 		// Heard far down the stair and back across the level.
-		this.ctx.sounds.playAt('door.unbar', event.position, 1, 6);
-		this.ctx.sounds.playAt('door.open', event.position, 1, 10);
+		sounds.playAt('door.unbar', event.position, 1, 6);
+		sounds.playAt('door.open', event.position, 1, 10);
 	}
 
 	target(_state: PlayerState, aim: Aim | null, taken: boolean): boolean {
 		const door =
 			aim && !taken
-				? lookedAtDoor(aim.world, aim.origin, aim.direction, this.models.placements, (id) =>
-						this.models.isOpen(id)
+				? lookedAtDoor(
+						aim.world,
+						aim.origin,
+						aim.direction,
+						this.models.placements,
+						(id) => this.models.isOpen(id) || this.models.isSealed(id)
 					)
 				: null;
 		this.aimedAt = door?.id ?? null;

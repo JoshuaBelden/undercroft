@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DOORS } from '#lib/content/doors.ts';
 import { modelUrl } from '#lib/content/models.ts';
 import { loadModel } from '#lib/game/assets.ts';
-import { openDoor, type CollisionWorld } from '#lib/shared/map/collision.ts';
+import { closeDoor, openDoor, type CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { DoorPlacement } from '#lib/shared/map/types.ts';
 
 interface Shown {
@@ -20,17 +20,22 @@ interface Shown {
 const MODEL = modelUrl('shared/props/door-double.glb');
 /** Share of the opening spent lifting the bar before the leaves move. */
 const BAR_SHARE = 0.2;
+/** How much faster a door slams than it swings open. */
+const SLAM = 5;
 
 /**
  * The double doors between levels. Where they stand comes with the map layout; each tick says
- * which are open. An opened door swings open (bar up, then the leaves) and stays open, and the
- * local collision world lets the player through. See docs/dev/map-generation.md#doors.
+ * which are open. An opened door swings open (bar up, then the leaves), and the local collision
+ * world lets the player through. One the tick no longer lists (the final room's, at the rite)
+ * slams shut and is solid again. See docs/dev/map-generation.md#doors.
  */
 export class Doors {
 	readonly root = new THREE.Group();
 	placements: DoorPlacement[] = [];
 	private shown = new Map<string, Shown>();
 	private opened = new Set<string>();
+	/** Sealed shut: not to be opened (from the tick). */
+	private sealed = new Set<string>();
 	private world: CollisionWorld | null = null;
 	private buildId = 0;
 
@@ -71,23 +76,41 @@ export class Doors {
 		}
 	}
 
-	/** The doors open now (from the tick). Newly opened ones stop being solid at once. */
-	apply(open: string[]): void {
-		for (const id of open) {
+	/**
+	 * The doors open now, and sealed (from the tick). Newly opened ones stop being solid at once;
+	 * ones shut again are solid at once.
+	 */
+	apply(open: string[], sealed: string[]): void {
+		const now = new Set(open);
+		for (const id of now) {
 			if (this.opened.has(id)) continue;
 			this.opened.add(id);
 			if (this.world) openDoor(this.world, id);
 		}
+		for (const id of [...this.opened]) {
+			if (now.has(id)) continue;
+			this.opened.delete(id);
+			if (this.world) closeDoor(this.world, id);
+		}
+		this.sealed = new Set(sealed);
 	}
 
 	isOpen(id: string): boolean {
 		return this.opened.has(id);
 	}
 
+	isSealed(id: string): boolean {
+		return this.sealed.has(id);
+	}
+
 	update(delta: number): void {
 		for (const [id, shown] of this.shown) {
-			if (!this.opened.has(id) || shown.open >= 1) continue;
-			shown.open = Math.min(1, shown.open + delta / DOORS.swingSeconds);
+			const want = this.opened.has(id) ? 1 : 0;
+			if (shown.open === want) continue;
+			shown.open =
+				want > shown.open
+					? Math.min(1, shown.open + delta / DOORS.swingSeconds)
+					: Math.max(0, shown.open - (delta * SLAM) / DOORS.swingSeconds);
 			this.pose(shown);
 		}
 	}
@@ -113,6 +136,7 @@ export class Doors {
 		this.shown.clear();
 		this.placements = [];
 		this.opened.clear();
+		this.sealed.clear();
 		this.world = null;
 	}
 

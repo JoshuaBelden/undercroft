@@ -110,7 +110,9 @@ Climbing a rope is its own mode of the simulation (`state.climbing`), entered wi
 
 **Falls.** Landing from the air faster than `FALL.safeSpeed` (9 m/s, about a 2.2 m drop with gravity 18) is a fall that hurts. `stepPlayer` raises a `land` sim event with the speed, and the server takes `(speed - safeSpeed) * FALL.damagePerSpeed` sanity for it (`Session.falls` → `hurt`). That is about 27 for 4 m, and a 12 m drop downs you. It also makes a `fall` game event (`hard` over `FALL.hardSpeed`, for the louder thump), and creatures hear it (`FALL.noise`). Landing in water never hurts. God mode takes no fall.
 
-**Conditions** are something wrong with an explorer for a while. They are data (`CONDITIONS` in `src/lib/content/player/conditions.ts`), and `state.conditions` holds the active ones with the seconds they have left. `stepPlayer` counts them down (`stepConditions`) and applies their effects. A condition's `slow` caps speed at that stance's walking speed whatever your stance, and stops sprinting (`conditionSpeedCap`). Getting one you already have starts it over.
+**Conditions** are something wrong with an explorer for a while. They are data (`CONDITIONS` in `src/lib/content/player/conditions.ts`), and `state.conditions` holds the active ones with the seconds they have left. `stepPlayer` counts them down (`stepConditions`) and applies their effects. A condition's `slow` caps speed at that stance's walking speed whatever your stance, and stops sprinting (`conditionSpeedCap`). A condition's `dark` keeps the headlamp off while it lasts (`lampBlocked`: `stepPlayer` sets `headlamp` to 0 whatever the input), and the client switches its own lamp setting off so the lamp stays off once it wears off. Getting one you already have starts it over (or keeps what is left, if that is longer). `applyCondition` takes the seconds when what caused it says how long.
+
+The conditions: **Hobbled** (`hobble`, 20 s), from a hard fall: no faster than a crawl. **Snuffed** (`snuffed`, `dark`), from the manifestation's bolt for its `bolt.snuffSeconds` (see [affliction.md](affliction.md#the-bolt-it-puts-your-light-out)): the lamp is out.
 
 - **Hobbled** (`hobble`, 20 s, no faster than a crawl): every fall that hurts. The simulation applies it on landing, so the client predicts the slow-down at once. While you move hobbled, the view limps: the eye dips and the head nods on every other step (`LocalPlayer.updateLimp`, `LIMP`), easing in and out, scaled by Settings > Graphics > Camera shake.
 
@@ -126,7 +128,7 @@ To add a condition: an entry in `CONDITIONS` (id, name, seconds, description and
 - **Floors and slopes:** contacts with normal.y > 0.7 count as floor. They resolve vertically, so the player doesn't slide down ramps. The stairs are a single ramp collider.
 - **Ceilings:** contacts facing down stop upward velocity.
 - **Walls:** contacts push out horizontally and remove the velocity going into the wall.
-- **Low ledges:** up to `stepHeight` (0.4 m), stepped onto. `stepUp` checks there's room on top, then binary-searches the ledge height. The chapel dais (0.35 m) steps up; the benches (0.45 m) block.
+- **Low ledges:** up to `stepHeight` (0.4 m), stepped onto. `stepUp` checks there's room on top, then binary-searches the ledge height. The chapel dais's steps (0.25 m each) step up; the Angel's Well benches (0.45 m) and the chapel pews block.
 - **Ground probe:** a sphere just below the feet decides `grounded` when resting exactly on a floor.
 
 Collision boxes must cover everything walkable. Every surface the player can reach needs a box under it, and a piece's boxes must stay inside its declared `levels`, plus its `headroom` if it has one (`pnpm asset:build` checks this).

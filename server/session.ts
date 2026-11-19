@@ -649,7 +649,8 @@ export class Session implements SessionContext {
 				deadline: Math.ceil(this.systems.deadline.seconds)
 			},
 			crates: this.crates.snapshot(),
-			doors: this.doors.snapshot()
+			doors: this.doors.snapshot(),
+			sealed: this.doors.sealedSnapshot()
 		});
 	}
 

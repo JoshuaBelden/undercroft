@@ -38,6 +38,76 @@ export interface ManifestationBody {
 	flinchSeconds: number;
 }
 
+/** How the manifestation moves on its prey (see docs/dev/affliction.md#hunting). */
+export interface ManifestationMovement {
+	/** Seconds ahead of the player it hunts that it aims for: where they are heading, to cut them off. */
+	lead: number;
+	/**
+	 * When its way to them along the floor is this many times the straight distance (something
+	 * between, like a table), it stops following and circles round, one way, to flank them.
+	 */
+	detour: number;
+	/** Between these distances (m) of its prey it may circle round to come at them from the side. */
+	flankRange: [number, number];
+	/** Chance per second, in flank range, that it starts to; and seconds it keeps circling. */
+	flankChance: number;
+	flankSeconds: number;
+	/** Chance after a swing that it backs off or side-steps instead of pressing in. */
+	retreatChance: number;
+	/** How far (m) it backs off, and for how long (s) before it comes on again. */
+	retreatDistance: number;
+	retreatSeconds: number;
+}
+
+/**
+ * The manifestation running its prey down, like a creature's burst: now and then, in range and
+ * with a clear line to them, it charges at them flat out for a moment.
+ */
+export interface ManifestationRush {
+	/** Speed (m/s) while it charges. */
+	speed: number;
+	/** Seconds a charge lasts: a random time in this range (it ends early if it reaches them). */
+	seconds: [number, number];
+	/** Seconds of hunting between charges: a random time in this range. */
+	every: [number, number];
+	/** It charges at prey between these distances (m along the floor). */
+	range: [number, number];
+}
+
+/**
+ * The manifestation's ranged attack: a dark ray. It gathers it for `chargeSeconds` (players see
+ * and hear it building), its aim following its prey until `aimLock` seconds before it fires; then
+ * the ray strikes at once along that line, and whoever is on it is hit. Stepping out of the line
+ * in that last moment, or putting stone between you, is how to dodge it.
+ */
+export interface ManifestationRay {
+	/** It fires at prey between these distances (m along the floor), with a clear line to them. */
+	range: [number, number];
+	/** Seconds it gathers the ray (it stands, and a strobe in that time loses it). */
+	chargeSeconds: number;
+	/** Seconds before it fires that its aim stops following its prey. */
+	aimLock: number;
+	/** How far (m) from the ray's line a player's body can be and still be hit. */
+	width: number;
+	/** Sanity a hit takes (before what is worn absorbs), by party size like `strikeDamage`. */
+	damage: number[];
+	/** Seconds the lamp of whoever it hits stays out (the `snuffed` condition). */
+	snuffSeconds: number;
+	/** Seconds between rays: a random time in this range after each. */
+	cooldown: [number, number];
+}
+/** The manifestation vanishing and coming back from somewhere else. */
+export interface ManifestationVanish {
+	/** Seconds of hunting between vanishings: a random time in this range. */
+	every: [number, number];
+	/** Seconds it stays gone: a random time in this range. */
+	seconds: [number, number];
+	/** It comes back this far (m) from the player it comes for: behind them, out of the light. */
+	distance: [number, number];
+	/** Seconds it stands where it came back before it hunts again. */
+	returnSeconds: number;
+}
+
 export interface ManifestationSpec {
 	/** The figure players see. Without one nothing is drawn (it is only heard). */
 	body?: ManifestationBody;
@@ -70,14 +140,19 @@ export interface ManifestationSpec {
 	vulnerable: StatusSource[];
 	/** How it takes each status: how long it lasts on it, and how long it is immune after. */
 	statuses: StatusReactions;
-	/** Lamp light on its core (lamp units, summed over players) that exposes it. */
-	exposeLight: number;
-	/** Seconds it stays exposed after the light leaves it. */
-	exposeLinger: number;
-	/** Damage it takes while exposed before it's banished. Unexposed, hits only slow it. */
-	health: number;
-	/** Seconds a hit slows it when it isn't exposed. */
-	slowSeconds: number;
+	/**
+	 * Damage it takes before it's banished, by party size (like strikeDamage). Every weapon hit
+	 * counts.
+	 */
+	health: number[];
+	/** How it closes in: cutting players off, circling round to flank, backing off. */
+	movement: ManifestationMovement;
+	/** Now and then it runs its prey down. */
+	rush: ManifestationRush;
+	/** Its ranged attack: a dark ray that puts out the lamp of whoever it hits. */
+	ray: ManifestationRay;
+	/** Now and then it goes, and comes back from somewhere else. */
+	vanish: ManifestationVanish;
 	/**
 	 * The rite summons it in the rite's room. Forced out any other way (an admin), it appears at
 	 * least this far (m, along the grid) from every player.
@@ -193,17 +268,20 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 		],
 		manifestation: {
 			music: 'music.gloaming.fight',
-			// The model has no idle, crouch or crawl clip.
 			body: {
 				model: modelUrl('afflictions/gloaming/creatures/gloaming_boss.glb'),
 				yawOffset: Math.PI,
 				// 1.7 m as exported; this stands it about as tall as its hit capsule (2.2 m).
 				scale: 1.3,
+				// Its own walk is a mincing strut: it walks, charges, idles and casts with the witch's
+				// clips, retargeted onto it at build time (scripts/retarget.ts, Borrowed_*). Its own
+				// Running is unused.
 				animations: {
-					// No idle clip yet: the walk's first frame, held.
-					idle: { clip: 'Walking', speed: 0 },
-					walking: { clip: 'Walking' },
-					running: { clip: 'Running' },
+					idle: { clip: 'Borrowed_Idle' },
+					walking: { clip: 'Borrowed_Walking' },
+					running: { clip: 'Borrowed_Charge' },
+					// The two-handed thrust, cut before it straightens up; stretched to the charge.
+					spell_attack: { clip: 'Borrowed_Cast', end: 1.4 },
 					melee_attack: { clip: 'Charged_Upward_Slash' },
 					take_damage: { clip: 'Face_Punch_Reaction' },
 					die: { clip: 'Shot_and_Fall_Forward' }
@@ -212,8 +290,8 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 				flinchSeconds: 0.7
 			},
 			gatherSeconds: 2,
-			speed: 1.4,
-			unlitSpeed: 2.4,
+			speed: 2.0,
+			unlitSpeed: 2.8,
 			reach: 1.6,
 			// 40 solo, 50 for two, 60 for three or more.
 			strikeDamage: [40, 50, 60],
@@ -222,10 +300,35 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			// A lamp flicked off and on stuns it for 2 s; then it can't be stunned again for 20 s.
 			vulnerable: ['strobe'],
 			statuses: { stunned: { seconds: 2, immunity: 20 } },
-			exposeLight: 0.12,
-			exposeLinger: 2.5,
-			health: 300,
-			slowSeconds: 0.3,
+			// Every hit counts now (no light needed): about 16 revolver shots solo.
+			health: [500, 650, 800],
+			movement: {
+				lead: 1.2,
+				detour: 1.8,
+				flankRange: [3, 12],
+				flankChance: 0.15,
+				flankSeconds: 3,
+				retreatChance: 0.4,
+				retreatDistance: 5,
+				retreatSeconds: 1.6
+			},
+			// Witch-like bursts: as fast as a sprinting explorer, a second or so at a time.
+			rush: { speed: 5.5, seconds: [1.0, 1.8], every: [4, 8], range: [3, 16] },
+			ray: {
+				range: [4, 20],
+				chargeSeconds: 1.3,
+				aimLock: 0.3,
+				width: 0.45,
+				damage: [15, 20, 25],
+				snuffSeconds: 12,
+				cooldown: [7, 12]
+			},
+			vanish: {
+				every: [25, 40],
+				seconds: [3, 6],
+				distance: [5, 9],
+				returnSeconds: 0.8
+			},
 			spawnDistance: 30,
 			hitRadius: 1,
 			hitHeight: 2.2

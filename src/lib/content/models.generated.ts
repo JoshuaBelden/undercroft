@@ -3,8 +3,8 @@
 /** Built models: path in static/assets without the content hash -> URL and size in bytes. */
 export const MODELS = {
 	'afflictions/gloaming/creatures/gloaming_boss.glb': {
-		url: '/assets/afflictions/gloaming/creatures/gloaming_boss.13524df4.glb',
-		bytes: 976920
+		url: '/assets/afflictions/gloaming/creatures/gloaming_boss.c655302a.glb',
+		bytes: 1051444
 	},
 	'shared/creatures/witch.glb': {
 		url: '/assets/shared/creatures/witch.8441b8f6.glb',

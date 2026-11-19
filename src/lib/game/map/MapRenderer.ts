@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { MAP_KIT } from '#lib/content/map/kit.ts';
 import { loadModel } from '#lib/game/assets.ts';
 import { CELL, LEVEL_HEIGHT } from '#lib/shared/map/grid.ts';
 import { PIECES } from '#lib/shared/map/pieces.generated.ts';
@@ -14,23 +15,37 @@ const MARKER_PREFIXES = ['socket-', 'spawn-', 'extract-'];
  */
 const CHUNK = CELL * 3;
 
+/** The final room's way out (`<piece>-ladder`): not there until the Affliction is resolved. */
+const LADDER = '-ladder';
+/** How far above its place (m) it starts, and how long (s) it takes to come down. */
+const LADDER_DROP = 5;
+const LADDER_SECONDS = 2.2;
+
 /**
  * Builds the visible map from a generated layout. Pieces come from the asset cache, then the
  * whole map is merged by material into spatial chunks: one draw call per material per chunk
- * rather than per piece. See docs/dev/map-generation.md.
+ * rather than per piece. The final room's ladder is kept apart, hidden until `lowerLadders`.
+ * See docs/dev/map-generation.md.
  */
 export class MapRenderer {
 	readonly root = new THREE.Group();
 	private buildId = 0;
 	/** Geometry made by merging: ours to dispose (the pieces' own stays in the asset cache). */
 	private merged: THREE.BufferGeometry[] = [];
+	/** The final room's ladders, kept out of the merge: hidden, or coming down. */
+	private ladders = new THREE.Group();
+	/** 0..1 of the way down; null while still hidden. */
+	private lowered: number | null = null;
 
 	constructor() {
 		this.root.name = 'map';
+		this.ladders.name = 'map-ladders';
 	}
 
 	async build(layout: MapLayout): Promise<void> {
 		const id = ++this.buildId;
+		// Up until told otherwise (a tick can say so before the pieces are in).
+		this.lowered = null;
 		const models = await Promise.all(
 			layout.placements.map(async (placement) => {
 				const def = PIECES[placement.piece];
@@ -38,27 +53,84 @@ export class MapRenderer {
 				const model = await loadModel(def.url);
 				model.position.set(...placement.position);
 				model.rotation.y = (placement.rotation * Math.PI) / 2;
-				return model;
+				return { model, final: !!MAP_KIT[placement.piece]?.final };
 			})
 		);
 		// A newer build started while this one was loading.
 		if (id !== this.buildId) return;
 		this.clearMeshes();
-		const { meshes, geometries } = batch(models);
+		const ladders = models.filter((m) => m.final).flatMap((m) => takeLadders(m.model));
+		const { meshes, geometries } = batch(models.map((m) => m.model));
 		this.merged = geometries;
 		this.root.add(...meshes);
+		this.ladders.add(...ladders);
+		this.root.add(this.ladders);
+		this.pose();
+	}
+
+	/** The Affliction is resolved: the final room's ladder comes down (`instant`: it is down). */
+	lowerLadders(instant: boolean): void {
+		if (instant) this.lowered = 1;
+		else this.lowered ??= 0;
+		this.pose();
+	}
+
+	/** Whether there is a ladder to lower, and where (world space) it stands, for its sound. */
+	ladderAt(): THREE.Vector3 | null {
+		const first = this.ladders.children[0];
+		return first ? new THREE.Box3().setFromObject(first).getCenter(new THREE.Vector3()) : null;
+	}
+
+	update(delta: number): void {
+		if (this.lowered === null || this.lowered >= 1) return;
+		this.lowered = Math.min(1, this.lowered + delta / LADDER_SECONDS);
+		this.pose();
+	}
+
+	private pose(): void {
+		this.ladders.visible = this.lowered !== null;
+		const t = this.lowered ?? 0;
+		// Let down fast, then a bump as it lands.
+		const fall = t < 0.85 ? 1 - (t / 0.85) ** 2 : Math.sin(((t - 0.85) / 0.15) * Math.PI) * 0.04;
+		this.ladders.position.y = fall * LADDER_DROP;
 	}
 
 	clear(): void {
 		this.buildId++;
+		this.lowered = null;
 		this.clearMeshes();
 	}
 
 	private clearMeshes(): void {
 		this.root.clear();
+		this.ladders.clear();
 		for (const geometry of this.merged) geometry.dispose();
 		this.merged = [];
 	}
+}
+
+/** Take a piece's ladder meshes out of it, in world space, for drawing apart. */
+function takeLadders(model: THREE.Object3D): THREE.Object3D[] {
+	model.updateMatrixWorld(true);
+	const found: THREE.Object3D[] = [];
+	model.traverse((object) => {
+		if (object.name.endsWith(LADDER) && !found.some((f) => isUnder(object, f))) found.push(object);
+	});
+	return found.map((object) => {
+		const copy = object.clone();
+		object.matrixWorld.decompose(copy.position, copy.quaternion, copy.scale);
+		copy.traverse((node) => {
+			if (node instanceof THREE.Mesh) node.castShadow = node.receiveShadow = true;
+		});
+		// The model is our own clone: drawn apart from here on, not merged.
+		object.removeFromParent();
+		return copy;
+	});
+}
+
+function isUnder(object: THREE.Object3D, ancestor: THREE.Object3D): boolean {
+	for (let o = object.parent; o; o = o.parent) if (o === ancestor) return true;
+	return false;
 }
 
 /** Merge the placed pieces' meshes by chunk, material and vertex layout. */

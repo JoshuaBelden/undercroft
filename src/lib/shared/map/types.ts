@@ -189,14 +189,19 @@ export interface CratePlacement {
 	tier: number;
 }
 
-/** A door between levels (see DOORS). Solid until opened. */
+/**
+ * A double door (see DOORS): between levels, at the top of each long stair, and the way into the
+ * final room. Solid until opened.
+ */
 export interface DoorPlacement {
 	id: string;
+	/** The piece it stands in (stairs-deep, gloaming-chapel). */
+	piece: string;
 	/** Floor centre of the doorway, world space. */
 	position: Vec3;
 	/** Turn about +Y (radians). At 0 the room side is north (-Z) and the leaves swing south. */
 	yaw: number;
-	/** The level of the map it leads down to. */
+	/** The level of the map it is on: for a long stair's, the one it leads down to. */
 	tier: number;
 }
 

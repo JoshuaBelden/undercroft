@@ -162,7 +162,7 @@ A bandage, a medkit or a battery in the hand can be used on a teammate instead o
 - **Defense:** a creature's blow lands on what is in the defense slot first (`absorbBlow`, in `CreatureSystem.step`): its shield takes what it has left, and only the rest is taken off sanity. The blow that uses the last of it tears it apart: it leaves the slot and a `break` event plays `defense.torn`. The client plays `player.shielded` (and a small shake) when its shield drops, and shows the shield as a bar over your health (`PartyMember.shield`, your own only). Darkness, seeing things and the manifestation go straight to sanity.
 - **Throws:** `WorldItems.launch` simulates a projectile with gravity in sim-rate steps. It hits a creature (damage, then it drops there) or lands on the world and becomes a floor item. Landing calls `hear` with no source, so creatures go and search the spot: a lure (a brick's `landNoise` is 8 m, a knife's only 4).
 - **No friendly fire:** shots and swings only test creatures.
-- **The manifestation** is a target too while it's out (`targets()` adds it, `hurt()` routes id `manifestation` to the Affliction). Hits only damage it while light exposes it; otherwise they slow it. See [affliction.md](affliction.md).
+- **The manifestation** is a target too while it's out (`targets()` adds it, `hurt()` routes id `manifestation` to the Affliction). Every hit damages it. See [affliction.md](affliction.md).
 
 Creatures (see [creatures.md](creatures.md)):
 

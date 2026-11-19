@@ -31,9 +31,9 @@ describe('doors between levels', () => {
 		return { door, look, out };
 	}
 
-	it('every level but the deepest ends at a shut door', () => {
+	it('every level but the deepest ends at a shut door, and so does the way into the final room', () => {
 		const session = open(SEED);
-		expect(session.layout.doors.map((d) => d.tier)).toEqual([1, 2]);
+		expect(session.layout.doors.map((d) => d.tier)).toEqual([1, 2, 2]);
 		const diver = new Diver(session);
 		diver.hold({}, 0.1);
 		expect(diver.socket.last('tick')!.doors).toEqual([]);

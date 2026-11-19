@@ -173,10 +173,10 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 - **Room walls** sit 0.25 m inside the footprint. Each opening gets a short throat out to the boundary.
 - **Markers** (empties, kebab-case prefixes):
   - `socket-<type>-<n>`: an opening, at floor level, on the footprint boundary, centred on a cell edge. The edge and cell are derived from the position.
-  - `spawn-<n>`: player start, one per party member: players take them in the order they join, facing the middle of the room (the start room, `angel-well`, has four, `WELL_SPAWNS`). `extract-<n>`: extraction point, at the foot of a ladder made with `extraction_ladder` (see `build_extraction_shaft`, and `add_chapel_extraction`, which added one to the hand-edited chapel without rebuilding it). `rite-<n>`: where the rite is initiated.
+  - `spawn-<n>`: player start, one per party member: players take them in the order they join, facing the middle of the room (the start room, `angel-well`, has four, `WELL_SPAWNS`). `extract-<n>`: extraction point, at the foot of a ladder made with `extraction_ladder` (see `build_extraction_shaft`, and the chapel's in `build_gloaming_chapel`). `rite-<n>`: where the rite is initiated.
   - `rope-<n>`: the top of a rope players climb, hanging straight down. Custom properties: `length` (m it hangs) and, on a way out, `exit` (how far up it you get out). Use `kit.rope_anchor`; `extraction-gate` has one up its shaft (`ropes_for_extractions` put it in the hand-edited .blend, and `build_extraction_gate` builds it). See [rope.md](rope.md).
   - `anchor-<n>`: where a rope can be tied at the top of a drop. On the ledge floor at the edge, turned about Z only, with its local +Y out over the drop. `kit.rope_post` adds one with its post beside it. With a custom property `rope` (m), a rope is tied there for good instead: one of the map's ropes, climbed from the ledge, that nobody unties. It is measured from where a climber's hands reach at the top (0.9 m over the ledge) to where their feet are at its end, and when that is above the floor, it hangs free (the start room's, see [rope.md](rope.md#the-start-rope)).
-  - `door-<n>`: a door, on the floor in the middle of the doorway, its local +Y pointing to the room side (the leaves swing away from it). The game stands `prop-door-double` there and makes it solid until opened (see [map-generation.md](map-generation.md#doors)). Only `stairs-deep` has one.
+  - `door-<n>`: a door, on the floor in the middle of the doorway, its local +Y pointing to the room side (the leaves swing away from it). The game stands `prop-door-double` there and makes it solid until opened (see [map-generation.md](map-generation.md#doors)). `stairs-deep` has one, and so does `gloaming-chapel`, turned so its +Y points out along the way in (the leaves swing into the nave).
   - `rubble-<n>`: a collapsed wall, on the floor at the foot of the fall. Bricks lie only by these, 1 to 3 at each (see [items.md](items.md)).
   - `candle-<n>`: a candle's wick, just over the top of the wax (which is part of the mesh; `kit._candle` adds both). The game draws a flame at each and lights the room with one light (see [map-generation.md](map-generation.md#candles)).
   - `creature-<n>`: where a creature may start, on the floor with standing room (it snaps to the nav grid within 2 m). Markers too close to the start are skipped; with too few, creatures start in dead-end corners instead (see [creatures.md](creatures.md#spawning)).
@@ -195,6 +195,7 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 **Level pieces** (`build_extraction_gate` and `build_stairs_deep` in kit.py):
 
 - `extraction-gate` is a 3×2 room with the shaft in the middle and a rope up it (`rope-0`, the way out), three hall openings, and the `gate` in its north wall framed in marble.
+- `gloaming-chapel` is 9×7 cells and 3 levels, built by `build_gloaming_chapel` (a rebuild with `force=True` replaced the old hand-edited 3×3 chapel): one `hall` socket, the door, the nave, the side halls with their stairs and the balcony. See [map-generation.md](map-generation.md#the-final-room).
 - `stairs-deep` is 1×6 cells and 4 levels: the `gate` at the top (level 3) with the door just inside it, the narrowing, then two 30-riser flights with a landing between, down to a hall at level 0.
 
 **Big rooms:** `room-vault` (3×3, four pillars round a bier, an opening on every side) and `room-gallery` (4×2, niches three high down both long walls, two openings at each end). `hall-squeeze-long` is the squeeze stretched to 3 cells, about 9 m of it tight.
@@ -238,6 +239,17 @@ The same script places items in the hand for their `grip` (`GRIPS`, `show_item`,
 
 On the client, `loadCharacter` clones with SkeletonUtils (a plain `clone` breaks skinned meshes) and strips horizontal root motion from the root bone. See [creatures.md](creatures.md).
 
+### Borrowed clips
+
+A rigged model can borrow clips from another with the same bone names but its own rest pose and size (two Mixamo-style rigs), where `mergeClips` would refuse it. `CLIP_DONORS` in `scripts/retarget.ts` lists who borrows what: a model (its file name), the donor (a path under `art/export`) and each donor clip with the name it goes in under. `pnpm asset:build` retargets them in (`retargetClips`):
+
+- Each frame, every donor bone turns some way off its rest pose in world space; the same bone of the model turns that much off its own rest, and its local rotation is worked back from its parent. The model keeps its own rest shape under the motion, so rest poses that differ (an A-pose and a T-pose) still read.
+- Bones the donor lacks (extra finger joints) stay at rest relative to their parent.
+- The hips' movement (in place: a bob) is scaled by the two hips' heights, so a donor in centimetres works.
+- Linear and step clips; a cubic-spline one stops the build, as does a donor without a listed clip.
+
+The Gloaming's manifestation (`gloaming_boss`) walks, charges, idles and casts with the witch's clips, as `Borrowed_Walking`, `Borrowed_Charge`, `Borrowed_Idle` and `Borrowed_Cast`: its own walk is a mincing strut. Check a new borrowing by eye: write the retargeted model out unoptimised and play the clips in Blender.
+
 ### Item models
 
 Weapons, ammo and consumables are built by `scripts/blender/items.py` in the kit .blend, each in its own `item-<id>` collection under a root empty. As with pieces, building skips existing collections, so hand edits are kept.
@@ -275,7 +287,7 @@ Things that stand in the map but aren't part of a piece: the loot crate and the 
 
 ### Decor
 
-Models from elsewhere that are built into a piece rather than standing in the map on their own, like the angel statue in the start room, go in `art/export/decor/` (tracked in undercroft-art, and never read by `pnpm asset:build`). The piece's builder imports, simplifies and places them: `kit.import_angel` brings in `decor/angel.glb`, welds the vertices the glTF importer split along UV seams (or simplifying tears it apart along them), simplifies it to `ANGEL_TRIS` (14,000) triangles, scales it to `ANGEL_HEIGHT` and stands it on its plinth, keeping its own material (`mat-angel`) and textures. They ship as part of the piece, so its triangle budget covers them.
+Models from elsewhere that are built into a piece rather than standing in the map on their own, like the angel statue in the start room and the Gloaming Chapel, go in `art/export/decor/` (tracked in undercroft-art, and never read by `pnpm asset:build`). The piece's builder imports, simplifies and places them: `kit.import_angel` brings in `decor/angel.glb`, welds the vertices the glTF importer split along UV seams (or simplifying tears it apart along them), simplifies it to `ANGEL_TRIS` (14,000) triangles, scales it to `ANGEL_HEIGHT` (or the height it is given: 2.8 m in the chapel) and stands it on its plinth, keeping its own material (`mat-angel`) and textures. They ship as part of the piece, so its triangle budget covers them.
 
 ## Audio
 

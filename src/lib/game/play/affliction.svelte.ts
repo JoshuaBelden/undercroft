@@ -29,7 +29,8 @@ export class Affliction implements PlayFeature {
 
 	constructor(private ctx: PlayContext) {
 		this.manifestation = new Manifestation(ctx.sounds);
-		ctx.engine.scene.add(this.manifestation.root);
+		// The figure, and its ray beside it (in world space, so not under the figure).
+		ctx.engine.scene.add(this.manifestation.root, this.manifestation.ray.root);
 	}
 
 	tick(tick: TickMessage): void {
@@ -55,6 +56,14 @@ export class Affliction implements PlayFeature {
 				if (event.stunned <= 0) break;
 				if (event.player === client.playerId) sounds.play('strobe.flash');
 				else sounds.playAt('strobe.flash', event.position, 1, 4);
+				break;
+			case 'ray':
+				// Its ray struck: drawn from its hands, heard where it left it and where it struck. On
+				// you, your lamp gutters out.
+				this.manifestation.fire(event.from, event.to);
+				sounds.playAt('manifest.ray', event.from, 1, 6);
+				sounds.playAt('manifest.ray.hit', event.to, 1, 5);
+				if (event.player === client.playerId) sounds.play('lamp.snuffed');
 				break;
 			case 'deadline':
 				ui.banner('Lost in the dark');
@@ -94,6 +103,7 @@ export class Affliction implements PlayFeature {
 	}
 
 	dispose(): void {
+		this.manifestation.ray.root.removeFromParent();
 		this.manifestation.dispose();
 		this.fight?.dispose();
 	}

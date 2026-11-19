@@ -15,6 +15,8 @@ export interface ConditionDef {
 	description: string;
 	/** No faster than this stance's walking speed, whatever the stance; and no sprinting. */
 	slow?: Stance;
+	/** The headlamp can't be on: it goes out, and won't come back on until this wears off. */
+	dark?: boolean;
 }
 
 export const CONDITIONS = {
@@ -24,6 +26,14 @@ export const CONDITIONS = {
 		seconds: 20,
 		description: 'A bad fall: no faster than a crawl, and no running, until it wears off.',
 		slow: 'crawl'
+	},
+	// The Gloaming's ray: how long it lasts is the manifestation's (`ray.snuffSeconds`).
+	snuffed: {
+		id: 'snuffed',
+		name: 'Snuffed',
+		seconds: 12,
+		description: "Something put your lamp out: it won't come back on until this wears off.",
+		dark: true
 	}
 } as const satisfies Record<string, ConditionDef>;
 

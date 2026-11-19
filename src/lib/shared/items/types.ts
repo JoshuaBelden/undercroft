@@ -133,6 +133,10 @@ export type GameEvent =
 	| { kind: 'crateOpen'; id: string; player: string; position: Vec3 }
 	/** A door between levels was opened (it stays open). */
 	| { kind: 'doorOpen'; id: string; player: string; position: Vec3 }
+	/** The rite slammed the final room's door shut and sealed it (`open`: it had stood open). */
+	| { kind: 'doorSeal'; id: string; position: Vec3; open: boolean }
+	/** What the rite summoned was banished: the sealed door opens by itself. */
+	| { kind: 'doorRelease'; id: string; position: Vec3 }
 	/** Someone going through a crate started on the next thing in it. */
 	| { kind: 'rummage'; player: string; position: Vec3 }
 	/** A hint was found: what it says, and the requirements (item ids) and room (piece id) it revealed. */
@@ -173,4 +177,9 @@ export type GameEvent =
 	/** The Affliction reached a new omen stage. */
 	| { kind: 'omen'; stage: number }
 	/** The rite summoned the manifestation (it gathers, then hunts). */
-	| { kind: 'manifest' };
+	| { kind: 'manifest' }
+	/**
+	 * The manifestation fired its ray, from `from` to where it struck (`to`): on `player` (their
+	 * lamp is snuffed), or on the stone (null).
+	 */
+	| { kind: 'ray'; from: Vec3; to: Vec3; player: string | null };
