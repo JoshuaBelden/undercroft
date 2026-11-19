@@ -137,7 +137,7 @@ Climbing wears you out, faster going up than down, and even hanging still tires 
 		category: 'Moving',
 		body: `A short drop does nothing. From much higher than your own height you land hard: it costs you sanity, and from high enough it can put you on the floor for someone to revive.
 
-A fall that hurts leaves you hobbled for 20 seconds: you can go no faster than a crawl, and you can't run. Anything wrong with you like this shows beside your health, at the bottom left, with the seconds until it wears off. Snuffed is another: your lamp was put out, and won't come back on until it wears off.
+A fall that hurts leaves you hobbled for 20 seconds: you can go no faster than a crawl, and you can't run. Anything wrong with you like this shows beside your health, at the bottom left, with the seconds until it wears off. Snuffed is another: your lamp was put out, and won't come back on until it wears off. Poisoned, from a spider's bite, slows you to a crouching pace with no running for a full minute; nothing cures it yet.
 
 Creatures hear a body hit the stone.`
 	},

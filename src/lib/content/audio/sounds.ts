@@ -311,6 +311,44 @@ export const SOUNDS = {
 		volume: 0.5,
 		caption: 'a squeal cut short'
 	},
+	// Spiders (placeholders until there are recordings).
+	'spider.step': {
+		synth: { kind: 'skitter' },
+		category: 'sfx',
+		volume: 0.35,
+		variation: 0.25,
+		caption: 'many legs'
+	},
+	'spider.hiss': {
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.2,
+		caption: 'a hiss'
+	},
+	'spider.die': {
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.4,
+		variation: 0.2,
+		caption: 'a crunch'
+	},
+	'spider.giant.step': {
+		synth: { kind: 'skitter' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 0.6,
+		variation: 0.15,
+		caption: 'heavy legs on stone'
+	},
+	'spider.giant.hiss': {
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.9,
+		rate: 0.7,
+		variation: 0.1,
+		caption: 'a deep hiss'
+	},
 	// Items and weapons.
 	'revolver.fire': {
 		file: 'revolver.fire',

@@ -361,6 +361,8 @@ export class CreatureDirector {
 			if (Math.abs(position[1] - b[1]) > HEAR_HEIGHT) continue;
 			if (distance3(position, b) > radius) continue;
 			if (c.mode === 'attack') continue;
+			// A passive kind pays noise no mind (it only bites back).
+			if (c.def.perception.passive) continue;
 			if (source) {
 				const near =
 					distance3(source.state.position, b) <= c.def.perception.agro.litRange * this.boldness;

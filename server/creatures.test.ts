@@ -342,3 +342,38 @@ describe('rats', () => {
 		expect(creatures.kills).toBe(0);
 	});
 });
+
+describe('spiders', () => {
+	const SPIDER = CREATURES.spider;
+
+	it('ignore a lit, noisy player beside them, but bite back once hit, and the bite poisons', () => {
+		const creatures = director();
+		const player = prey('p', map.start, 0);
+		player.state.headlamp = 2;
+		creatures.spawnNear(player.state, 'spider');
+		const [spider] = creatures.hitBodies();
+		creatures.hear(spider.position, 40, player);
+		expect(run(creatures, 3, [player])).toEqual([]);
+		expect(creatures.snapshots()[0].state).not.toBe('agro');
+		creatures.damage(spider.id, 1, player);
+		const hits = run(creatures, 8, [player]);
+		expect(hits[0]).toEqual({
+			playerId: 'p',
+			damage: SPIDER.attack.damage,
+			condition: { id: 'poisoned' }
+		});
+	});
+
+	it('a giant appears at most once', () => {
+		for (const seed of [1, 2, 3, 4, 5, 6]) {
+			const creatures = new CreatureDirector(
+				map.world,
+				map.nav,
+				creatureSpawns(map.layout, PIECES),
+				seed
+			);
+			creatures.populate(map.start);
+			expect(creatures.alive('giant-spider')).toBeLessThanOrEqual(1);
+		}
+	});
+});

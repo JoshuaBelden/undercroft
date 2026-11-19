@@ -34,6 +34,14 @@ export const CONDITIONS = {
 		seconds: 12,
 		description: "Something put your lamp out: it won't come back on until this wears off.",
 		dark: true
+	},
+	// A spider's bite. Nothing cures it yet; it wears off.
+	poisoned: {
+		id: 'poisoned',
+		name: 'Poisoned',
+		seconds: 60,
+		description: 'A venomous bite: no faster than a crouch, and no running, until it wears off.',
+		slow: 'crouch'
 	}
 } as const satisfies Record<string, ConditionDef>;
 

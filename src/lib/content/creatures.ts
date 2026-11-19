@@ -146,6 +146,16 @@ export interface CreatureDef {
 
 /** Can't get down for squeezes or crawls, and won't go into water. */
 const UPRIGHT: NavReach = { crouch: false, crawl: false, swim: false };
+/** The spider's clips (keyed by scripts/blender/critters.py), for both sizes. */
+const SPIDER_CLIPS: AnimationMap = {
+	idle: { clip: 'Idle' },
+	walking: { clip: 'Walk' },
+	running: { clip: 'Run' },
+	melee_attack: { clip: 'Strike' },
+	take_damage: { clip: 'Hurt' },
+	die: { clip: 'Die' }
+};
+
 /** Goes anywhere: small enough for every squeeze and crawl, and swims. */
 const ANYWHERE: NavReach = { crouch: true, crawl: true, swim: true };
 
@@ -283,6 +293,123 @@ export const CREATURES: Record<string, CreatureDef> = {
 			spread: 3,
 			minDistance: 20,
 			where: 'anywhere'
+		}
+	},
+	spider: {
+		id: 'spider',
+		model: modelUrl('shared/creatures/spider.glb'),
+		yawOffset: Math.PI,
+		// The model is 4 m across: this one is about 40 cm.
+		scale: 0.1,
+		height: 0.2,
+		reach: ANYWHERE,
+		dread: false,
+		killWeight: 0,
+		animations: SPIDER_CLIPS,
+		gait: { patrol: 'walking', alert: 'idle', stalk: 'walking', burst: 'running' },
+		movement: small(1.1, 3.5),
+		creepSpeed: 1.1,
+		burstSpeed: 3.5,
+		creepTime: [0.6, 1.4],
+		burstTime: [0.6, 1.2],
+		patrol: { radius: 4, pause: [2, 8] },
+		alert: { wait: [1, 2], maxWait: 3, linger: 2 },
+		// A minor bite, but it poisons.
+		attack: {
+			range: 0.6,
+			windup: 0.25,
+			duration: 0.6,
+			damage: 4,
+			cooldown: 1.2,
+			condition: { id: 'poisoned' }
+		},
+		perception: {
+			hear: { sprint: 0, walk: 0, crouch: 0, crawl: 0, creep: 0, swim: 0 },
+			alertRange: 8,
+			agro: { litRange: 4, darkRange: 1.5 },
+			touch: 1,
+			evadeTime: 4,
+			// Drawn to nothing: it bites back only once it's been hit.
+			passive: true
+		},
+		health: [10],
+		stagger: { threshold: 1, seconds: 0.3 },
+		hitRadius: 0.2,
+		corpseTime: 4,
+		visibleBand: [0.04, Infinity],
+		sounds: {
+			step: 'spider.step',
+			burst: 'spider.hiss',
+			attack: 'spider.hiss',
+			hurt: 'spider.hiss',
+			die: 'spider.die'
+		},
+		spawn: {
+			kind: 'scatter',
+			groups: [3, 6],
+			size: [1, 5],
+			spread: 3,
+			minDistance: 15,
+			where: 'anywhere'
+		}
+	},
+	'giant-spider': {
+		id: 'giant-spider',
+		model: modelUrl('shared/creatures/spider.glb'),
+		yawOffset: Math.PI,
+		// About 1.6 m across.
+		scale: 0.4,
+		height: 0.7,
+		// Too big for a crawl, and it won't swim; it can squeeze.
+		reach: { crouch: true, crawl: false, swim: false },
+		dread: true,
+		killWeight: 1,
+		animations: SPIDER_CLIPS,
+		gait: { patrol: 'walking', alert: 'idle', stalk: 'walking', burst: 'running' },
+		movement: { ...small(1.2, 5), radius: MOVEMENT.radius },
+		creepSpeed: 1.2,
+		burstSpeed: 5,
+		creepTime: [1, 2.2],
+		burstTime: [0.6, 1.1],
+		patrol: { radius: 12, pause: [3, 8] },
+		alert: { wait: [1.5, 3], maxWait: 6, linger: 4 },
+		attack: {
+			range: 1.2,
+			windup: 0.35,
+			duration: 0.6,
+			damage: 18,
+			cooldown: 1.5,
+			condition: { id: 'poisoned' }
+		},
+		// It hunts: noise and light draw it, and it chases.
+		perception: {
+			hear: { sprint: 10, walk: 5, crouch: 2.5, crawl: 1.5, creep: 1, swim: 5 },
+			alertRange: 12,
+			agro: { litRange: 8, darkRange: 3 },
+			touch: 2,
+			evadeTime: 6
+		},
+		health: [90, 110, 130],
+		stagger: { threshold: 25, seconds: 0.4 },
+		hitRadius: 0.5,
+		corpseTime: 5,
+		visibleBand: [0.04, Infinity],
+		sounds: {
+			step: 'spider.giant.step',
+			burst: 'spider.giant.hiss',
+			attack: 'spider.giant.hiss',
+			hurt: 'spider.giant.hiss',
+			die: 'spider.die'
+		},
+		// Only sometimes, and only ever one, somewhere far off.
+		spawn: {
+			kind: 'scatter',
+			groups: [1, 1],
+			size: [1, 1],
+			spread: 0,
+			minDistance: 30,
+			chance: 0.4,
+			where: 'corner'
 		}
 	}
 };
