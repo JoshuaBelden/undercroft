@@ -650,7 +650,14 @@ export class Session implements SessionContext {
 			},
 			crates: this.crates.snapshot(),
 			doors: this.doors.snapshot(),
-			sealed: this.doors.sealedSnapshot()
+			sealed: this.doors.sealedSnapshot(),
+			// For the admin bars only: never sent outside dev mode.
+			...(config.devMode && {
+				attraction: {
+					noise: round2(this.creatures.attraction.fraction('noise')),
+					light: round2(this.creatures.attraction.fraction('light'))
+				}
+			})
 		});
 	}
 
@@ -782,4 +789,9 @@ export class Session implements SessionContext {
 		if (socket.readyState !== socket.OPEN) return;
 		socket.send(typeof message === 'string' ? message : encode(message));
 	}
+}
+
+/** Two decimal places (the admin bars). */
+function round2(v: number): number {
+	return Math.round(v * 100) / 100;
 }

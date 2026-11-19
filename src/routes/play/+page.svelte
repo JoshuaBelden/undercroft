@@ -87,6 +87,7 @@
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import ExpeditionClock from '#lib/ui/ExpeditionClock.svelte';
+	import AttractionBars from '#lib/ui/AttractionBars.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
 	import type { PartyMember } from '#lib/ui/PartyHealth.svelte';
@@ -130,6 +131,9 @@
 	/** Dev: what the map is made of, for the map view's side panel. */
 	let mapCounts = $state<MapDebugCounts | null>(null);
 	let markers = $state(false);
+	/** Admin: the party's attraction meters (and the omens) as bars under the clock. */
+	let showAttraction = $state(false);
+	let attraction = $state<{ noise: number; light: number } | null>(null);
 	/** Dev: teammates' gamer tags drawn over the rock. */
 	let tagsThroughWalls = $state(false);
 	/** Dev: the Grip check's item (null: off) and what it does with it. */
@@ -424,6 +428,7 @@
 						}
 						remote.apply(message.players, client.playerId, message.serverTime);
 						creatures.apply(message.creatures);
+						if (showAttraction) attraction = message.attraction ?? null;
 						for (const feature of list) feature.tick?.(message);
 						for (const event of message.events) {
 							for (const feature of list) feature.event?.(event);
@@ -1238,6 +1243,13 @@
 	{#if features.affliction.deadline !== null}
 		<ExpeditionClock seconds={features.affliction.deadline} />
 	{/if}
+	{#if devMode && showAttraction}
+		<AttractionBars
+			noise={attraction?.noise ?? null}
+			light={attraction?.light ?? null}
+			omen={features.affliction.meter}
+		/>
+	{/if}
 {/if}
 
 {#if banner && spawned && !mapView && !result}
@@ -1367,6 +1379,7 @@
 		{freecam}
 		{gridView}
 		{markers}
+		attraction={showAttraction}
 		{tagsThroughWalls}
 		{gripItem}
 		{gripPose}
@@ -1389,6 +1402,10 @@
 			capture();
 		}}
 		onmarkers={(enabled) => setMarkers(enabled)}
+		onattraction={(enabled) => {
+			showAttraction = enabled;
+			if (!enabled) attraction = null;
+		}}
 		ontagsthroughwalls={(enabled) => (tagsThroughWalls = enabled)}
 		ongripcheck={(item, pose) => setGripCheck(item, pose)}
 	/>

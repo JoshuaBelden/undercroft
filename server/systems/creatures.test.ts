@@ -93,3 +93,20 @@ describe('fighting', () => {
 		).toBe(true);
 	});
 });
+
+describe('attraction', () => {
+	it('no witch at the start; a full meter brings one, and the admin bars come in the tick', () => {
+		const session = open(SEED);
+		const diver = new Diver(session, 'A', kit());
+		diver.state.flags.godMode = true;
+		diver.descend();
+		expect(session['creatures'].alive('witch')).toBe(0);
+		session.admin(diver.id, { kind: 'fillAttraction', meter: 'light' });
+		diver.hold({}, 0.2);
+		expect(session['creatures'].alive('witch')).toBe(1);
+		const tick = diver.socket.all('tick').at(-1);
+		expect(tick?.attraction).toEqual({ noise: expect.any(Number), light: 0 });
+		session.admin(diver.id, { kind: 'resetAttraction' });
+		expect(session['creatures'].attraction.levels.noise).toBe(0);
+	});
+});

@@ -20,7 +20,14 @@ import {
 } from '../src/lib/shared/map/nav.ts';
 import type { ConditionId } from '../src/lib/content/player/conditions.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
-import { createPlayerState, idleFrame, stepPlayer } from '../src/lib/shared/player/simulate.ts';
+import {
+	createPlayerState,
+	eyeHeight,
+	idleFrame,
+	stepPlayer
+} from '../src/lib/shared/player/simulate.ts';
+import { ATTRACTION, byParty, type Movement } from '../src/lib/content/attraction.ts';
+import { Attraction } from './attraction.ts';
 import type { PlayerState } from '../src/lib/shared/player/types.ts';
 import { Rng } from '../src/lib/shared/rng.ts';
 import { STROBE } from '../src/lib/content/statuses.ts';
@@ -156,6 +163,8 @@ export class CreatureDirector {
 	private nextId = 1;
 	/** Nav points of the map's creature-* markers. */
 	private markers: number[];
+	/** The party's noise and light, drawing witches in (server/attraction.ts). */
+	readonly attraction = new Attraction();
 
 	constructor(
 		private world: CollisionWorld,
@@ -345,6 +354,8 @@ export class CreatureDirector {
 	 * distant gunfire) it's alerted to the spot, unless it's already chasing someone.
 	 */
 	hear(position: Vec3, radius: number, source: Prey | null): void {
+		// Every noise adds to the party's (server/attraction.ts).
+		this.attraction.heard(radius, position, source?.id ?? null);
 		for (const c of this.living()) {
 			const b = c.body.position;
 			if (Math.abs(position[1] - b[1]) > HEAR_HEIGHT) continue;
@@ -375,10 +386,96 @@ export class CreatureDirector {
 		this.kills += c.def.killWeight;
 	}
 
+	/**
+	 * The party's noise and light this tick. A meter that fills brings a witch to whoever added the
+	 * most, a few metres off, coming to look; with as many about as the party's cap, the nearest
+	 * one goes to look instead. Either way the meter starts again. With nowhere for one to appear,
+	 * it stays full and tries again shortly.
+	 */
+	private attract(targets: Prey[]): void {
+		const explorers = targets.map((p) => ({
+			id: p.id,
+			state: p.state,
+			movement: movementNoise(p.state)
+		}));
+		for (const draw of this.attraction.step(explorers, this.boldness)) {
+			const player = targets.find((p) => p.id === draw.player);
+			if (!player) continue;
+			const kind = ATTRACTION.kind;
+			if (this.alive(kind) >= byParty(ATTRACTION.cap, this.attraction.party)) {
+				this.lookNearest(kind, player.state.position);
+				this.attraction.reset(draw.meter);
+			} else if (this.summon(kind, player.state)) {
+				this.attraction.reset(draw.meter);
+			} else {
+				this.attraction.hold(draw.meter);
+			}
+		}
+	}
+
+	/**
+	 * Bring a creature to someone: it appears `ATTRACTION.distance` m away along the grid (out of
+	 * their sight if it can) and comes to look where they are. Returns false with nowhere to put it.
+	 */
+	summon(kind: string, state: PlayerState): boolean {
+		const def = CREATURES[kind];
+		if (!def) return false;
+		const allow = reachFilter(def.reach);
+		let from = nearestPoint(this.nav, state.position, 2, allow);
+		if (from < 0) from = nearestPoint(this.nav, state.position, EDGE_RADIUS, allow);
+		if (from < 0) return false;
+		const distance = gridDistances(this.nav, [from], false, allow);
+		const [near, far] = ATTRACTION.distance;
+		const eye: Vec3 = [state.position[0], state.position[1] + eyeHeight(state), state.position[2]];
+		const spots: number[] = [];
+		const hidden: number[] = [];
+		distance.forEach((d, i) => {
+			const point = this.nav.points[i];
+			if (d === undefined || d < near || d > far) return;
+			if (point.water || point.clearance !== 'stand') return;
+			spots.push(i);
+			const p = point.position;
+			if (segmentBlocked(this.world, eye, [p[0], p[1] + def.height * 0.7, p[2]])) hidden.push(i);
+		});
+		const options = hidden.length ? hidden : spots;
+		if (!options.length) return false;
+		const position = this.nav.points[this.rng.pick(options)].position;
+		const c = this.add(def, position, yawTo(position, state.position));
+		this.lookInto(c, state.position);
+		return true;
+	}
+
+	/** The nearest of a kind that isn't hunting someone goes to look at a spot. */
+	private lookNearest(kind: string, point: Vec3): void {
+		let best: Creature | null = null;
+		let bestD = Infinity;
+		for (const c of this.living()) {
+			if (c.def.id !== kind || c.mode === 'agro' || c.mode === 'attack') continue;
+			const d = distance3(c.body.position, point);
+			if (d < bestD) {
+				bestD = d;
+				best = c;
+			}
+		}
+		if (best) this.lookInto(best, point);
+	}
+
+	/** Go and look at a spot now (investigating), without waiting first. */
+	private lookInto(c: Creature, point: Vec3): void {
+		c.mode = 'investigate';
+		c.alertPoint = [...point];
+		c.arrived = false;
+		c.linger = c.def.alert.linger;
+		c.goal = null;
+		c.pause = 0;
+		this.resetPath(c);
+	}
+
 	/** Advance every creature by one server tick. Returns the hits that landed. */
 	step(prey: Prey[]): CreatureHit[] {
 		const hits: CreatureHit[] = [];
 		const targets = prey.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
+		this.attract(targets);
 		for (const c of this.creatures) {
 			if (c.mode === 'dead') {
 				c.deadTime += TICK_DT;
@@ -986,20 +1083,27 @@ export class CreatureDirector {
 	}
 }
 
+/** How a player is moving, for the noise it makes. */
+export function movementNoise(s: PlayerState): Movement {
+	const speed = Math.hypot(s.velocity[0], s.velocity[2]);
+	if (s.mantle) return 'climb';
+	// On a rope: the creak and scrape of climbing, nothing while only hanging there.
+	if (s.climbing) return Math.abs(s.velocity[1]) > 0.05 ? 'climb' : 'still';
+	if (s.swimming) return speed > 0.3 ? 'swim' : 'still';
+	if (speed < 0.3) return 'still';
+	if (s.sneaking) return 'creep';
+	if (speed > MOVEMENT.stances.stand.speed + 0.4) return 'sprint';
+	if (s.stance === 'crawl') return 'crawl';
+	if (s.stance === 'crouch') return 'crouch';
+	return 'walk';
+}
+
 /** How far a player's movement can be heard. */
 function noiseRadius(s: PlayerState, def: CreatureDef): number {
 	const hear = def.perception.hear;
-	const speed = Math.hypot(s.velocity[0], s.velocity[2]);
-	if (s.mantle) return hear.walk;
-	// On a rope: the creak and scrape of climbing, nothing while only hanging there.
-	if (s.climbing) return Math.abs(s.velocity[1]) > 0.05 ? hear.walk : 0;
-	if (s.swimming) return speed > 0.3 ? hear.swim : 0;
-	if (speed < 0.3) return 0;
-	if (s.sneaking) return hear.creep;
-	if (speed > MOVEMENT.stances.stand.speed + 0.4) return hear.sprint;
-	if (s.stance === 'crawl') return hear.crawl;
-	if (s.stance === 'crouch') return hear.crouch;
-	return hear.walk;
+	const movement = movementNoise(s);
+	if (movement === 'still') return 0;
+	return hear[movement === 'climb' ? 'walk' : movement];
 }
 
 function distance3(a: Vec3, b: Vec3): number {

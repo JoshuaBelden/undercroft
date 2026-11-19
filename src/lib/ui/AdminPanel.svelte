@@ -58,6 +58,8 @@
 		gridView: boolean;
 		/** Creature markers drawn through walls. */
 		markers: boolean;
+		/** The party's attraction meters (and the omens) as bars under the clock. */
+		attraction: boolean;
 		/** Teammates' gamer tags drawn over the rock. */
 		tagsThroughWalls: boolean;
 		/** The Grip check's item (null: off) and what the test explorer does with it. */
@@ -75,6 +77,7 @@
 		/** In the free camera: the camera back to your body, still flying. */
 		oncameratobody: () => void;
 		onmarkers: (enabled: boolean) => void;
+		onattraction: (enabled: boolean) => void;
 		ontagsthroughwalls: (enabled: boolean) => void;
 		ongripcheck: (item: string | null, pose: GripPose) => void;
 	}
@@ -91,6 +94,7 @@
 		freecam,
 		gridView,
 		markers,
+		attraction,
 		tagsThroughWalls,
 		gripItem,
 		gripPose,
@@ -103,6 +107,7 @@
 		onbodytocamera,
 		oncameratobody,
 		onmarkers,
+		onattraction,
 		ontagsthroughwalls,
 		ongripcheck
 	}: Props = $props();
@@ -474,6 +479,15 @@
 				onstep={() => onmarkers(!markers)}
 				hint="Markers drawn through walls."
 			/>
+			<StepperField
+				label="Show attraction"
+				text={onOff(attraction)}
+				onstep={() => onattraction(!attraction)}
+				hint="Noise, light and omen meters under the clock. A witch comes when noise or light fills."
+			/>
+			{@render action('Fill noise', () => onadmin({ kind: 'fillAttraction', meter: 'noise' }))}
+			{@render action('Fill light', () => onadmin({ kind: 'fillAttraction', meter: 'light' }))}
+			{@render action('Empty both', () => onadmin({ kind: 'resetAttraction' }))}
 		{:else if group === 'Controller'}
 			{@render info('In use', inUse)}
 			{#each pads as pad (pad.index)}

@@ -28,6 +28,11 @@ export class CreatureSystem implements SessionSystem {
 		spawnCreature: (player, command) =>
 			this.ctx.creatures.spawnNear(player.state, command.creature ?? 'witch'),
 		clearCreatures: () => this.ctx.creatures.clear(),
+		fillAttraction: (_player, command) => this.ctx.creatures.attraction.fill(command.meter),
+		resetAttraction: () => {
+			this.ctx.creatures.attraction.reset('noise');
+			this.ctx.creatures.attraction.reset('light');
+		},
 		killCreatures: () => this.ctx.creatures.killAll()
 	} satisfies SessionSystem['admin'];
 }
