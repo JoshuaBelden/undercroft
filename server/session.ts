@@ -187,7 +187,7 @@ export class Session implements SessionContext {
 	private populate(): void {
 		// Measured from where the catacombs begin: the foot of the start room's rope.
 		const start = entryPoint(this.world, this.layout, PIECES);
-		this.creatures.populate(start);
+		this.creatures.populate(start, (p) => tierAt(this.tiers, p));
 		const cells = new Set<string>();
 		for (const placement of this.layout.placements) {
 			const piece = PIECES[placement.piece];

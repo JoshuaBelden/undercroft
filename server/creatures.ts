@@ -7,12 +7,7 @@ import {
 import { MOVEMENT } from '../src/lib/content/player/movement.ts';
 import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import type { CreatureSnapshot, CreatureState } from '../src/lib/shared/creature/types.ts';
-import {
-	bodySamples,
-	creatureLight,
-	halfLightVisible,
-	lampIllumination
-} from '../src/lib/shared/creature/visibility.ts';
+import { bodySamples, lampIllumination } from '../src/lib/shared/creature/visibility.ts';
 import { segmentBlocked, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
 import {
 	findPath,
@@ -170,10 +165,6 @@ const MARKER_SNAP = 2;
 const SPREAD = 20;
 /** A chase target out of its reach: it heads for the nearest point it can stand within this. */
 const EDGE_RADIUS = 6;
-/** One that keeps to itself is seen within this angle (rad) of where someone looks... */
-const SEEN_HALF_ANGLE = 0.9;
-/** ...lit, or this close (m) in any light. */
-const SEEN_CLOSE = 3;
 
 export class CreatureDirector {
 	private creatures: Creature[] = [];
@@ -181,13 +172,14 @@ export class CreatureDirector {
 	private nextId = 1;
 	/** Nav points of the map's creature-* markers. */
 	private markers: number[];
+	/** The level of the map a position is on (from `populate`), for kinds kept to some levels. */
+	private tierOf: ((position: Vec3) => number | null) | null = null;
 	/** The party's noise and light, drawing witches in (server/attraction.ts). */
 	readonly attraction = new Attraction();
 	/**
-	 * Each lamp's fliers, by `<kind>:<player>`: seconds it has been on bright, how many that draws,
-	 * seconds it has been off, and seconds until the next one arrives.
+	 * Each lamp's fliers, by `<kind>:<player>`: seconds it has been on bright, seconds it has been off, and seconds until the next one arrives.
 	 */
-	private lamps = new Map<string, { bright: number; want: number; dark: number; next: number }>();
+	private lamps = new Map<string, { bright: number; dark: number; next: number }>();
 
 	constructor(
 		private world: CollisionWorld,
@@ -205,9 +197,11 @@ export class CreatureDirector {
 
 	/**
 	 * Place the creatures a map starts with: every kind that scatters, by its spawn rule, far
-	 * (along the grid) from the start. Kinds drawn in later (the witch) start with none.
+	 * (along the grid) from the start. Kinds drawn in later (the witch) start with none. `tierOf`
+	 * gives the level of the map a position is on, for kinds kept to some levels.
 	 */
-	populate(start: Vec3): void {
+	populate(start: Vec3, tierOf?: (position: Vec3) => number | null): void {
+		this.tierOf = tierOf ?? null;
 		for (const def of Object.values(CREATURES)) {
 			if (def.spawn.kind === 'scatter') this.scatter(def, start);
 		}
@@ -222,10 +216,11 @@ export class CreatureDirector {
 		const from = nearestPoint(this.nav, start, 2, allow);
 		if (from < 0) return;
 		const distance = gridDistances(this.nav, [from], true, allow);
-		const spots =
+		const spots = (
 			rule.where === 'corner'
 				? this.cornerSpots(distance, rule.minDistance, allow)
-				: this.openSpots(distance, rule.minDistance, allow);
+				: this.openSpots(distance, rule.minDistance, allow)
+		).filter((spot) => this.onTier(def, spot.position));
 		const groups = this.rng.int(rule.groups[0], rule.groups[1]);
 		const placed: Vec3[] = [];
 		for (let tries = 0; tries < 200 && placed.length < groups && spots.length; tries++) {
@@ -405,28 +400,17 @@ export class CreatureDirector {
 		return false;
 	}
 
-	/** Someone sees it (one that keeps to itself): in their view and range, lit or close, in sight. */
+	/** Someone is right on top of it (one that keeps to itself): within `seenRange`, in sight. */
 	private seenBy(c: Creature, targets: Prey[]): Prey | null {
 		const shy = c.def.shy;
 		if (!shy) return null;
 		const b = c.body.position;
 		const mid: Vec3 = [b[0], b[1] + c.def.height * 0.6, b[2]];
-		const states = targets.map((t) => t.state);
-		let light: number | null = null;
 		for (const prey of targets) {
 			const s = prey.state;
 			const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
-			const d: Vec3 = [mid[0] - eye[0], mid[1] - eye[1], mid[2] - eye[2]];
-			const dist = Math.hypot(d[0], d[1], d[2]);
-			if (dist > shy.seenRange || dist < 1e-3) continue;
-			const cp = Math.cos(s.pitch);
-			const look: Vec3 = [-Math.sin(s.yaw) * cp, Math.sin(s.pitch), -Math.cos(s.yaw) * cp];
-			const along = (d[0] * look[0] + d[1] * look[1] + d[2] * look[2]) / dist;
-			if (along < Math.cos(SEEN_HALF_ANGLE)) continue;
-			if (dist > SEEN_CLOSE) {
-				light ??= creatureLight(this.world, states, b, c.def.height);
-				if (!halfLightVisible(light, c.def.visibleBand)) continue;
-			}
+			const dist = Math.hypot(mid[0] - eye[0], mid[1] - eye[1], mid[2] - eye[2]);
+			if (dist > shy.seenRange) continue;
 			if (!segmentBlocked(this.world, eye, mid)) return prey;
 		}
 		return null;
@@ -836,8 +820,8 @@ export class CreatureDirector {
 	// --- fliers (def.flight): moths at the lamps ---
 
 	/**
-	 * Keep each bright lamp's fliers coming: once it has been on bright for `after` seconds, up to
-	 * `count` (rolled each time it goes bright), one every `arrive` seconds. On low, no more come
+	 * Keep each bright lamp's fliers coming: once it has been on bright for `after` seconds, one every
+	 * `arrive` seconds for as long as it stays bright, up to `max`. On low, no more come
 	 * but those there stay. Lamp off for `disperse` seconds, or its owner down or gone: all of them
 	 * leave.
 	 */
@@ -850,7 +834,7 @@ export class CreatureDirector {
 				const key = `${def.id}:${p.id}`;
 				let lamp = this.lamps.get(key);
 				if (!lamp) {
-					lamp = { bright: 0, want: 0, dark: 0, next: 0 };
+					lamp = { bright: 0, dark: 0, next: 0 };
 					this.lamps.set(key, lamp);
 				}
 				const mine = this.living().filter(
@@ -859,12 +843,9 @@ export class CreatureDirector {
 				const lit = s.headlamp > 0 && s.battery > 0;
 				if (lit) lamp.dark = 0;
 				if (lit && s.headlamp === 2) {
-					if (lamp.bright === 0) {
-						lamp.want = this.rng.int(flight.count[0], flight.count[1]);
-						lamp.next = 0;
-					}
+					if (lamp.bright === 0) lamp.next = 0;
 					lamp.bright += TICK_DT;
-					if (lamp.bright >= flight.after && mine.length < lamp.want) {
+					if (lamp.bright >= flight.after && mine.length < flight.max) {
 						lamp.next -= TICK_DT;
 						if (lamp.next <= 0) {
 							lamp.next = flight.arrive;
@@ -1138,6 +1119,8 @@ export class CreatureDirector {
 			if (point.water || point.clearance !== 'stand') continue;
 			// One that wanders goes corner to corner.
 			if (c.def.wanders && point.neighbours.length > 4) continue;
+			// Kept to its levels.
+			if (!this.onTier(c.def, point.position)) continue;
 			c.spots.push(i);
 		}
 	}
@@ -1349,6 +1332,14 @@ export class CreatureDirector {
 		} else {
 			c.animTime += TICK_DT;
 		}
+	}
+
+	/** On a level of the map this kind keeps to (always, if it isn't kept to any). */
+	private onTier(def: CreatureDef, position: Vec3): boolean {
+		const tiers = def.spawn.kind === 'scatter' ? def.spawn.tiers : undefined;
+		if (!tiers || !this.tierOf) return true;
+		const tier = this.tierOf(position);
+		return tier !== null && tiers.includes(tier);
 	}
 
 	/** Whether the nav point under a position is one it may use. */

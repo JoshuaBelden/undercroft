@@ -24,7 +24,8 @@ export type CreatureSound = 'step' | 'burst' | 'attack' | 'hurt' | 'die' | 'brea
  * - `scatter`: placed when the map is made, in `groups` of `size`, each group within `spread` m
  *   of its first member, at least `minDistance` (along the grid) from the start. `chance` that
  *   any appear at all (default 1). `where`: anywhere it can stand, or only in corners and dead
- *   ends.
+ *   ends. `tiers`: only on these levels of the map (0 the first, at the top), and it keeps to
+ *   them when it patrols; any level if left out.
  */
 export type SpawnRule =
 	| { kind: 'attracted' }
@@ -38,6 +39,7 @@ export type SpawnRule =
 			minDistance: number;
 			chance?: number;
 			where: 'anywhere' | 'corner';
+			tiers?: number[];
 	  };
 
 export interface CreatureDef {
@@ -147,16 +149,15 @@ export interface CreatureDef {
 	/** How it comes to be in the catacombs. Nothing comes back once killed. */
 	spawn: SpawnRule;
 	/**
-	 * It sits where it is, looking about, until someone sees it (in their view within `seenRange`,
-	 * lit, or right up close): then it gets up and walks off to a corner at least `fleeDistance`
+	 * It sits where it is, looking about, until someone is right on top of it (within `seenRange`,
+	 * in sight, any light, any way they face): then it gets up and walks off to a corner at least `fleeDistance`
 	 * (along the grid) from everyone, and sits again. A hit sends it running. `turnChance` of them
-	 * are something else: seen or hit, they become a `turnInto` and attack.
+	 * are something else: come upon or hit, they become a `turnInto` and attack.
 	 */
 	shy?: { seenRange: number; fleeDistance: number; turnChance: number; turnInto: string };
 	/**
-	 * It flies, and comes to bright lamps: a headlamp on bright for `after` seconds draws `count` of
-	 * them (rolled each time it goes bright), one every `arrive` seconds, flying in from `from` m
-	 * off. On low no more come, but those there stay. They flutter
+	 * It flies, and comes to bright lamps: a headlamp on bright for `after` seconds draws one every
+	 * `arrive` seconds for as long as it stays bright, up to `max`, flying in from `from` m off. On low no more come, but those there stay. They flutter
 	 * about a point `ahead` m out along the beam, within `radius` m of it, at up to `speed` m/s. A
 	 * lamp off for `disperse` seconds sends its own away; they're gone `leave` seconds later. It
 	 * ignores everything else (no perception, no attack) and falls when killed.
@@ -175,7 +176,7 @@ export interface CreatureDef {
 	 */
 	friendly?: { notice: number; range: number; seconds: number; legs: number };
 	flight?: {
-		count: [number, number];
+		max: number;
 		after: number;
 		arrive: number;
 		from: number;
@@ -389,8 +390,8 @@ export const CREATURES: Record<string, CreatureDef> = {
 		},
 		spawn: {
 			kind: 'scatter',
-			groups: [3, 6],
-			size: [1, 5],
+			groups: [6, 10],
+			size: [2, 5],
 			spread: 3,
 			minDistance: 15,
 			where: 'anywhere'
@@ -449,7 +450,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 			where: 'corner'
 		},
 		// One in five is a witch.
-		shy: { seenRange: 14, fleeDistance: 25, turnChance: 0.2, turnInto: 'witch' }
+		shy: { seenRange: 2.5, fleeDistance: 25, turnChance: 0.2, turnInto: 'witch' }
 	},
 	moth: {
 		id: 'moth',
@@ -499,9 +500,10 @@ export const CREATURES: Record<string, CreatureDef> = {
 		spawn: { kind: 'lamp' },
 		flight: {
 			// Only a high beam, and only once it's been on a while.
-			count: [3, 5],
+			// One every few seconds while it stays bright, up to a cloud of them.
+			max: 15,
 			after: 5,
-			arrive: 2,
+			arrive: 3,
 			from: 6,
 			ahead: 1.1,
 			radius: 0.5,
@@ -560,7 +562,9 @@ export const CREATURES: Record<string, CreatureDef> = {
 			size: [1, 1],
 			spread: 0,
 			minDistance: 30,
-			where: 'corner'
+			where: 'corner',
+			// Never on the first level: he's further down.
+			tiers: [1, 2]
 		},
 		invulnerable: true,
 		wanders: true,
@@ -621,7 +625,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 			size: [1, 1],
 			spread: 0,
 			minDistance: 30,
-			chance: 0.4,
+			chance: 0.6,
 			where: 'corner'
 		}
 	}

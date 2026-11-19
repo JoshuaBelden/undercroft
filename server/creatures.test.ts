@@ -3,6 +3,7 @@ import { CREATURES, creatureHealth, type CreatureDef } from '../src/lib/content/
 import { TICK_RATE } from '../src/lib/shared/constants.ts';
 import { gridDistances, nearestPoint, reachFilter } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
+import { tierAt, tierCells } from '../src/lib/shared/map/doors.ts';
 import { creatureSpawns } from '../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { CreatureDirector, type Prey } from './creatures.ts';
@@ -383,7 +384,7 @@ describe('spiders', () => {
 describe('dwellers', () => {
 	const WITCH = CREATURES.witch;
 
-	/** A dweller in front of someone looking at it with their lamp on bright. */
+	/** A dweller a few metres in front of someone, lamp on bright, not yet close. */
 	function seen(fated: boolean) {
 		const creatures = director();
 		const player = prey('p', map.start, 0);
@@ -392,9 +393,25 @@ describe('dwellers', () => {
 		return { creatures, player };
 	}
 
-	it('sit in corners, and one that is seen gets up and walks far off', () => {
+	/** Walk them right up to it (a step away, on its side of where they stood). */
+	function onTopOf(creatures: CreatureDirector, player: Prey): void {
+		const at = creatures.hitBodies()[0].position;
+		const s = player.state.position;
+		const d = Math.hypot(at[0] - s[0], at[2] - s[2]);
+		const k = (d - 1.2) / d;
+		player.state.position = [s[0] + (at[0] - s[0]) * k, at[1], s[2] + (at[2] - s[2]) * k];
+	}
+
+	it('stay crouched while someone looks on from a few metres, even lit', () => {
+		const { creatures, player } = seen(false);
+		run(creatures, 3, [player]);
+		expect(creatures.snapshots()[0].state).toBe('patrol');
+	});
+
+	it('sit in corners, and one that is come upon gets up and walks far off', () => {
 		const { creatures, player } = seen(false);
 		const start = [...creatures.hitBodies()[0].position];
+		onTopOf(creatures, player);
 		run(creatures, 0.1, [player]);
 		expect(creatures.snapshots()[0].state).toBe('flee');
 		expect(creatures.snapshots()[0].kind).toBe('dweller');
@@ -405,16 +422,20 @@ describe('dwellers', () => {
 		expect(run(creatures, 5, [player])).toEqual([]);
 	});
 
-	it('left unseen (dark, or looked away from), it stays sat', () => {
+	it('come upon in the dark, facing away, it still gets up', () => {
 		const { creatures, player } = seen(false);
 		player.state.headlamp = 0;
 		player.state.yaw = Math.PI;
-		run(creatures, 3, [player]);
-		expect(creatures.snapshots()[0].state).toBe('patrol');
+		onTopOf(creatures, player);
+		run(creatures, 0.1, [player]);
+		expect(creatures.snapshots()[0].state).toBe('flee');
 	});
 
-	it('one in five is a witch: seen, it turns, with her health, and comes for them', () => {
+	it('one in five is a witch: come upon, it turns, with her health, and comes for them', () => {
 		const { creatures, player } = seen(true);
+		run(creatures, 1, [player]);
+		expect(creatures.snapshots()[0].kind).toBe('dweller');
+		onTopOf(creatures, player);
 		run(creatures, 0.1, [player]);
 		const snap = creatures.snapshots()[0];
 		expect(snap.kind).toBe('witch');
@@ -471,9 +492,15 @@ describe('moths', () => {
 		player.state.headlamp = 2;
 		run(creatures, 4.5, [player]);
 		expect(at(creatures)).toBe(0);
-		run(creatures, 15, [player]);
-		expect(at(creatures)).toBeGreaterThanOrEqual(3);
-		expect(at(creatures)).toBeLessThanOrEqual(5);
+		// Not all at once: a few, then more for as long as it stays bright, up to 15.
+		run(creatures, 1, [player]);
+		expect(at(creatures)).toBe(1);
+		run(creatures, 10, [player]);
+		const some = at(creatures);
+		expect(some).toBeGreaterThan(1);
+		expect(some).toBeLessThan(15);
+		run(creatures, 60, [player]);
+		expect(at(creatures)).toBe(CREATURES.moth.flight?.max);
 		// Back to low: no more come, but these stay.
 		const there = at(creatures);
 		player.state.headlamp = 1;
@@ -513,5 +540,27 @@ describe('moths', () => {
 		expect(creatures.kills).toBe(0);
 		// The light meter moved with the lamp only (moths don't add to it), and noise didn't move.
 		expect(creatures.attraction.levels.noise).toBe(before.noise);
+	});
+});
+
+describe('kept to some levels', () => {
+	it('the surveyor is never placed on the first level, nor wanders onto it', () => {
+		const tiers = tierCells(map.layout, PIECES);
+		const tierOf = (p: Vec3) => tierAt(tiers, p);
+		for (const seed of [1, 2, 3, 4, 5]) {
+			const creatures = new CreatureDirector(
+				map.world,
+				map.nav,
+				creatureSpawns(map.layout, PIECES),
+				seed
+			);
+			creatures.populate(map.start, tierOf);
+			const [him] = creatures.friendlies();
+			expect(him).toBeDefined();
+			expect(tierOf(him.position)).not.toBe(0);
+			const spots: number[] = creatures['creatures'].find((c) => c.id === him.id)!.spots;
+			expect(spots.length).toBeGreaterThan(0);
+			for (const i of spots) expect(tierOf(map.nav.points[i].position)).not.toBe(0);
+		}
 	});
 });

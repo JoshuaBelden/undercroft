@@ -6,11 +6,11 @@ Things that share the catacombs with the players. In code and docs they are **cr
 | -------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `witch`        | Hunts (patrol, alert, investigate, chase, attack). Won't crawl, squeeze or swim.                | Drawn by the party's noise and light (Attraction), omens, dwellers that turn |
 | `rat`          | Nests in small groups; noise and light draw it; a minor bite.                                   | Scattered at the start: 4-7 groups of 1-4                                    |
-| `spider`       | Ignores everyone until hit (`passive`); its bite poisons.                                       | Scattered: 3-6 groups of 1-5                                                 |
-| `giant-spider` | Hunts like a witch at shorter ranges; its bite poisons. Can't fit a crawl.                      | 40% of maps, one only, in a far corner                                       |
-| `dweller`      | Sits in corners (`shy`); seen, walks off to a far corner; one in five turns into a witch.       | Scattered: 3-6, in corners                                                   |
-| `moth`         | Flutters at headlamps (`flight`); harmless.                                                     | Comes to a high beam on for 5 s: 3-5                                         |
-| `surveyor`     | Friendly and unhurtable (`friendly`, `invulnerable`); wanders corner to corner; shares his map. | Always one, 30 m or more from the start                                      |
+| `spider`       | Ignores everyone until hit (`passive`); its bite poisons.                                       | Scattered: 6-10 groups of 2-5                                                |
+| `giant-spider` | Hunts like a witch at shorter ranges; its bite poisons. Can't fit a crawl.                      | 60% of maps, one only, in a far corner                                       |
+| `dweller`      | Sits in corners (`shy`); come upon, walks off to a far corner; one in five turns into a witch.  | Scattered: 3-6, in corners                                                   |
+| `moth`         | Flutters at headlamps (`flight`); harmless.                                                     | Comes to a high beam on for 5 s: one every 3 s, up to 15                     |
+| `surveyor`     | Friendly and unhurtable (`friendly`, `invulnerable`); wanders corner to corner; shares his map. | Always one, below the first level, 30 m or more from the start               |
 
 ## Files
 
@@ -124,7 +124,7 @@ The idea: a creature can be hidden from. Turn your lamp off, keep still or move 
 Each def's `spawn` rule (`SpawnRule`) says how it gets into the catacombs. Nothing comes back once it's killed.
 
 - **`attracted`** (the witch): none at the start. The party's noise and light draw them in (see Attraction). Omen stages also add one with `spawnFar` (at a `creature-*` marker or a corner far from every player), and a dweller can turn into one.
-- **`scatter`**: `populate(start)` places them when the map is made: `groups` (a [min, max] count), each of `size`, at least `minDistance` along the grid from the start and 20 m from the kind's other groups. The first of a group stands at a spot (`where`: `anywhere` it can go, dry; or `corner`: dead ends and room corners, a standing point with at most 4 neighbours, facing into it); the rest stand within `spread` m of it and share its anchor. `chance` (default 1) that the kind appears at all. The rat, spider, giant spider, dweller and surveyor scatter.
+- **`scatter`**: `populate(start)` places them when the map is made: `groups` (a [min, max] count), each of `size`, at least `minDistance` along the grid from the start and 20 m from the kind's other groups. The first of a group stands at a spot (`where`: `anywhere` it can go, dry; or `corner`: dead ends and room corners, a standing point with at most 4 neighbours, facing into it); the rest stand within `spread` m of it and share its anchor. `chance` (default 1) that the kind appears at all. `tiers` keeps a kind to some levels of the map (0 the first). The rat, spider, giant spider, dweller and surveyor scatter.
 - **`lamp`** (the moth): comes to lit headlamps (see Moths).
 
 A new creature stands for one `patrol.pause`, then patrols with its spawn point as the anchor.
@@ -139,13 +139,13 @@ Chasing someone it can't reach (in a crawl, a squeeze, water), it paths to the n
 
 How witches arrive (`Attraction`, owned by the director; data in `src/lib/content/attraction.ts`). Two meters, **noise** and **light**, add up what the whole party does each tick (explorers not down, dead or out):
 
-| Source                           | Light (per second, each) | Noise (per second, each)                                                      |
-| -------------------------------- | ------------------------ | ----------------------------------------------------------------------------- |
-| Lamp bright (battery left)       | +1                       |                                                                               |
-| Lamp low                         | 0 (holds)                |                                                                               |
-| Lamp off, or a flat battery      | −2                       |                                                                               |
-| Movement (`movementNoise`)       |                          | still or sneaking −2, crouch or crawl 0, walk or climb +1, swim +2, sprint +4 |
-| Every `hear()` (gunshot, crate…) |                          | + its radius × `perNoise` (a gunshot about 35, a crate 6)                     |
+| Source                           | Light (per second, each) | Noise (per second, each)                                                       |
+| -------------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
+| Lamp bright (battery left)       | +1                       |                                                                                |
+| Lamp low                         | 0 (holds)                |                                                                                |
+| Lamp off, or a flat battery      | −2                       |                                                                                |
+| Movement (`movementNoise`)       |                          | still or sneaking −2, crouch or crawl 0, walk or climb +1, swim +2, sprint +4  |
+| Every `hear()` (gunshot, crate…) |                          | + its radius × `perNoise` (a gunshot about 35, a crate 6, each thing looted 4) |
 
 A noise nobody made (a crate, a door) counts to whoever is nearest it. Omen `boldness` multiplies what fills a meter (not what drains it). Neither goes below 0.
 
@@ -209,7 +209,7 @@ Small (`small(speed, sprint)` movement: as quick through a crawl as in the open,
 
 ### Dwellers (`shy`)
 
-A shy creature sits where it is (`patrol` mode, never walking) in its `crouch` slot. Each tick, `seenBy` checks every explorer: it's within `seenRange` (14 m), within 0.9 rad of where they look, in their line of sight, and either lit into its `visibleBand` or within 3 m. Seen:
+A shy creature sits where it is (`patrol` mode, never walking) in its `crouch` slot. Each tick, `seenBy` checks every explorer: someone right on top of it, within `seenRange` (2.5 m) and in its line of sight, whatever the light and whichever way they face. Looked at from further off, lit or not, it stays crouched. Come upon:
 
 - one that's **fated** (rolled at spawn, `turnChance` 0.2) **turns**: its def becomes `turnInto` (`witch`), with fresh wounds, and it chases whoever saw it. The snapshot's `kind` changes and the client swaps the model. A turned dweller counts toward the witch cap;
 - otherwise it **flees** (mode `flee`) to a corner at least `fleeDistance` (25 m) along the grid from everyone, walking, then sits again facing into the corner.
@@ -218,13 +218,13 @@ A hit turns a fated one, and sends any other running (`flee` at a sprint).
 
 ### Moths (`flight`)
 
-Fliers don't use the nav grid or the player simulation while alive. `lampFliers` watches each explorer's lamp. Once it has been on bright for `after` (5) seconds, up to `count` (3-5, rolled each time it goes bright) come, one every `arrive` seconds, placed `from` m out along their look (or nearer, or to the side or behind, wherever is open). On low no more come, and those there stay. Lamp off for `disperse` seconds, or its owner down, dead or out: all theirs leave. Leaving is mode `flee`, flying off for `leave` seconds before they're removed.
+Fliers don't use the nav grid or the player simulation while alive. `lampFliers` watches each explorer's lamp. Once it has been on bright for `after` (5) seconds, one comes every `arrive` (3) seconds for as long as it stays bright, up to `max` (15), placed `from` m out along their look (or nearer, or to the side or behind, wherever is open). On low no more come, and those there stay. Lamp off for `disperse` seconds, or its owner down, dead or out: all theirs leave. Leaving is mode `flee`, flying off for `leave` seconds before they're removed.
 
 `fly` moves each toward a point `ahead` m out along its owner's look, wandering within `radius`, at up to `speed`, with a little jitter. A step that would cross anything solid isn't taken. Animation: `walking` (Fly) while fluttering, `running` (Dart) arriving or leaving. A hit kills one (health 1); dead, it falls with the player simulation like any corpse. Moths are `silent`: no sound at all, not even the shared creature ones. They aren't heard by, and don't add to, the attraction meters.
 
 ### The surveyor (`friendly`, `wanders`, `invulnerable`)
 
-One that `wanders` patrols corner to corner: its patrol spots are only dead ends and room corners within `patrol.radius` (35 m), and each walk re-anchors where the last ended. It pauses `patrol.pause` (6–14 s) at each, in its idle slot (`CrouchLookAroundBow`). `friendly`: with an explorer within `notice` (4 m), it stops and turns to the nearest.
+He is kept off the first level: the scatter rule's `tiers` ([1, 2]) limits where he spawns and every patrol spot (`onTier`, with `populate`'s `tierOf` from the session's tier cells). One that `wanders` patrols corner to corner: its patrol spots are only dead ends and room corners within `patrol.radius` (35 m), and each walk re-anchors where the last ended. It pauses `patrol.pause` (6–14 s) at each, in its idle slot (`CrouchLookAroundBow`). `friendly`: with an explorer within `notice` (4 m), it stops and turns to the nearest.
 
 `SurveyorSystem` keeps its route: every survey cell (`cellAt`) it walks through. On first sight it also adds `legs` (5) walks planned from where it stands (`wanderRoute`), so it has "been" somewhere before anyone arrives. Holding interact on it (`lookedAtFriendly`: within `range` 2.5 m, in sight, no floor item or crate taking interact first) fills `PlayerState.consulting`; at `seconds` (1.5) its route is drawn into that player's map (`SurveySystem.reveal`, which sends the map if it grew) and a `surveyorMap` event goes out. Once per player per surveyor. The client (`play/surveyor.ts`) shows "to look at his map" until he has shared with you, plays `surveyor.share`, and banners what you got. A map needs a notebook to read; the cells are drawn either way.
 

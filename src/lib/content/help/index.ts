@@ -339,7 +339,7 @@ Once one has you, it comes slowly, then all at once. Put your lamp out and get o
 		category: 'Surviving',
 		body: `Rats nest all through the catacombs, a few together. They come for noise and light, and bite whoever they find. In the dark they only notice you right beside them. One bite is nothing much; a few add up. One stab finishes one.
 
-Spiders sit in small clusters and leave you alone unless you hit one, and then they all bite back. Every bite poisons you: for a full minute you can go no faster than a crouch, and you can't run. Nothing cures it yet.
+Spiders sit in clusters all over the catacombs and leave you alone unless you hit one, and then they all bite back. Every bite poisons you: for a full minute you can go no faster than a crouch, and you can't run. Nothing cures it yet.
 
 Sometimes there is a much bigger spider. It hunts like the things in the dark do, its bite poisons, and it takes a lot more killing.`
 	},
@@ -347,21 +347,21 @@ Sometimes there is a much bigger spider. It hunts like the things in the dark do
 		id: 'moths',
 		title: 'Moths',
 		category: 'Surviving',
-		body: `Moths come to a bright headlamp: leave it on bright for more than a few seconds and they start to gather. On low, no more come. They flutter in your beam and get in the way, but they do you no harm. Swat one and it falls. Put your lamp out for a few seconds and they scatter.`
+		body: `Moths come to a bright headlamp: leave it on bright for more than a few seconds and they start to gather, more and more of them for as long as it stays bright, until there's a cloud of them. On low, no more come. They flutter in your beam and get in the way, but they do you no harm. Swat one and it falls. Put your lamp out for a few seconds and they scatter.`
 	},
 	{
 		id: 'figures-in-corners',
 		title: 'Figures in the corners',
 		category: 'Surviving',
-		body: `Some of the shapes crouched in corners and dead ends are only people who live down here. Get your light on one and it gets up and walks away; hit one and it runs.
+		body: `Some of the shapes crouched in corners and dead ends are only people who live down here. They keep still and watch, even with a light on them; come right up to one and it gets up and walks away. Hit one and it runs.
 
-Not all of them are what they look like. Now and then one you see stands up as something else, and comes for you.`
+Not all of them are what they look like. Now and then one you come upon stands up as something else, and comes for you.`
 	},
 	{
 		id: 'the-surveyor',
 		title: 'The surveyor',
 		category: 'Surviving',
-		body: `Somewhere down here a surveyor wanders from corner to corner, mapping as he goes. He means you no harm, and nothing you do hurts him. He stops when you come close.
+		body: `Somewhere below the first level a surveyor wanders from corner to corner, mapping as he goes. He means you no harm, and nothing you do hurts him. He stops when you come close.
 
 Look at him and hold {action:interact} and he shows you his map: everywhere he has been goes into yours (you need a notebook to read it). He does it once for each of you, so show yours to your party (see The map).`
 	},
