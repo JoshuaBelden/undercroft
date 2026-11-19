@@ -180,6 +180,8 @@
 		background: none;
 		color: inherit;
 		cursor: default;
+		/* Picked up whole, even where text selection is on (the dashboard). */
+		user-select: none;
 	}
 
 	.item-slot.filled {
