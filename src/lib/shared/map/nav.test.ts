@@ -72,9 +72,9 @@ describe('nav grid on real maps', () => {
 				openDoor(world, door.id);
 				nav.closed.delete(door.id);
 			}
-			// Four ways out: the stairwell's door and the chapel's ladder (held interact), and a rope up
-			// the shaft at the end of each of the first two levels.
-			expect(world.extracts.length).toBe(2);
+			// Three ways out: a rope up the shaft at the end of each of the first two levels, and the
+			// chapel's ladder (held interact). None at the start: the stairwell's door is sealed.
+			expect(world.extracts.length).toBe(1);
 			expect(world.ropes.filter((r) => r.exitY !== undefined)).toHaveLength(2);
 			const feet = world.ropes.map((r): Vec3 => [r.top[0], r.bottom, r.top[2]]);
 			for (const extract of [...world.extracts, ...feet]) {

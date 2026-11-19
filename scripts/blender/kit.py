@@ -1274,9 +1274,28 @@ def build_room_crypt(force=False):
 # Major rooms
 
 
+# Where the party starts in the stairwell, one spot each (party of up to 4), in the order players
+# join: two by two across the room, clear of the rubble by the door and the crate, facing the way on.
+STAIRWELL_SPAWNS = [(-0.9, 0.75, 0), (-0.9, -0.75, 0), (-2.1, 0.75, 0), (-2.1, -0.75, 0)]
+
+
+def stairwell_spawns():
+    """One-off, for the hand-edited .blend: the stairwell's sealed door stops being a way out
+    (its extract-0 goes), and its one spawn becomes STAIRWELL_SPAWNS. Doesn't rebuild the piece."""
+    coll = bpy.data.collections["stairwell"]
+    root = bpy.data.objects["stairwell"]
+    for o in [o for o in root.children if o.name.split(".")[0].startswith(("spawn-", "extract-"))]:
+        bpy.data.objects.remove(o)
+    for k, loc in enumerate(STAIRWELL_SPAWNS):
+        marker(coll, root, f"spawn-{k}", loc, display="CONE", size=0.4)
+    print(f"stairwell: {len(STAIRWELL_SPAWNS)} spawns, no way out")
+    return coll
+
+
 def build_stairwell(force=False):
-    """Start room: a 2x1 cellar under the surface. The sealed surface door is the extraction point;
-    the single hall opening always leads to a hall-stairs-down (see the generator's kit data)."""
+    """Start room: a 2x1 cellar under the surface. The surface door is sealed: no way out (the
+    first is at the end of level 1). One spawn per party member (STAIRWELL_SPAWNS); the single
+    hall opening always leads to a hall-stairs-down (see the generator's kit data)."""
     name = "stairwell"
     coll = piece_collection(name, force)
     root = root_empty(coll, name, 2, 1)
@@ -1297,8 +1316,8 @@ def build_stairwell(force=False):
             uvs=[(0, 0), (0.6, 0), (0.6, 1.05), (0, 1.05)])
     dm.finish(coll, root)
     socket(coll, root, "hall", 0, (4, 0, 0))
-    marker(coll, root, "spawn-0", (-1.5, 0, 0), display="CONE", size=0.4)
-    marker(coll, root, "extract-0", (-3.2, 0, 0), display="SPHERE", size=0.6)
+    for k, loc in enumerate(STAIRWELL_SPAWNS):
+        marker(coll, root, f"spawn-{k}", loc, display="CONE", size=0.4)
     top = spring + iy
     t = WALL_INSET
     col_box(coll, root, "col-floor", (-4, -2, -0.2), (4, 2, 0))

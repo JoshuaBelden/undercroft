@@ -44,7 +44,7 @@ Look for crates along the walls of rooms and dead ends, and for the dead lying w
 
 You are not alone. Keep quiet, keep your light off what you don't want to see, and listen.
 
-When your pack is full, or the time is running short, go back to the sealed door you started beside and hold {action:interact} to climb out. If you die, everything you carried stays down there.
+The door you start beside is sealed: there is no going back up. The first way out is a rope at the end of the first level, beside the door down to the next. When your pack is full, or the time is running short, make for it. If you die, everything you carried stays down there.
 
 On the surface, open the Loadout page and sell your treasure. Then click your money to open the store, and buy a knife, a bandage and smelling salts before you go deeper.
 
@@ -163,11 +163,11 @@ Flooded passages dip under the water: the ceiling comes down to meet it, and the
 		id: 'extraction',
 		title: 'Getting out',
 		category: 'Expeditions',
-		body: `There are four ways out of the catacombs. The first is the sealed door you started beside, in the cellar at the top of the stairs. At the end of the first and second levels is a shaft with a rope going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
+		body: `There are three ways out of the catacombs, and none is the way you came in: the door in the cellar where you start is sealed. At the end of the first and second levels is a shaft with a rope going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
 
 The deeper ways out save you the long walk back with your haul. Remember where you saw them.
 
-At a rope, look at it and press {action:interact} to take hold of it, then {action:moveForward} to climb: a few metres up, you are out. At the door, or at the foot of the ladder, hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
+At a rope, look at it and press {action:interact} to take hold of it, then {action:moveForward} to climb: a few metres up, you are out. At the foot of the ladder, hold {action:interact} to climb out. It takes a few seconds: moving or letting go starts it over.
 
 Don't stay too long. The time at the top of your view is how long you have left. When it runs out, anyone still down here is lost in the dark: it is as if they had died, and what they carried stays below.
 

@@ -1166,9 +1166,14 @@ export const PIECES: Record<string, PieceDef> = {
 		footprint: [2, 1],
 		levels: 1,
 		sockets: [{ type: 'hall', cell: [1, 0], level: 0, edge: 'e' }],
-		spawns: [[-1.5, 0, 0]],
+		spawns: [
+			[-0.9, 0, -0.75],
+			[-0.9, 0, 0.75],
+			[-2.1, 0, -0.75],
+			[-2.1, 0, 0.75]
+		],
 		creatures: [],
-		extracts: [[-3.2, 0, 0]],
+		extracts: [],
 		rites: [],
 		crates: [{ position: [1, 0, -1.41], yaw: 0 }],
 		doors: [],

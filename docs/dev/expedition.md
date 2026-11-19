@@ -97,17 +97,18 @@ Only the dead spectate. Players who left alive see the leaving fade, then the re
 
 ## Extraction
 
-**Where:** a way out is a door, an `extract-*` marker (the manifest's `extracts`, into `world.extracts`), or a rope, a `rope-*` marker with an `exit` (the manifest's `ropes`, into `world.ropes` with an `exitY`). `buildCollisionWorld` puts both into world space. Every map has four:
+**Where:** a way out is a door, an `extract-*` marker (the manifest's `extracts`, into `world.extracts`), or a rope, a `rope-*` marker with an `exit` (the manifest's `ropes`, into `world.ropes` with an `exitY`). `buildCollisionWorld` puts both into world space. Every map has three:
 
-1. the start room (`stairwell`), at its sealed surface door;
-2. and 3. the extraction rooms (`extraction-gate`, role `extraction`) at the end of levels 1 and 2, beside the double door down to the next level (see [map-generation.md](map-generation.md#levels));
-3. the final room (`gloaming-chapel`) on level 3, at the foot of a ladder on its dais.
+1. and 2. the extraction rooms (`extraction-gate`, role `extraction`) at the end of levels 1 and 2, beside the double door down to the next level (see [map-generation.md](map-generation.md#levels));
+2. the final room (`gloaming-chapel`) on level 3, at the foot of a ladder on its dais.
 
-The extraction rooms' way out is a rope going up into the dark (`rope_anchor` in `scripts/blender/kit.py`), hanging down a round shaft through the ceiling (their ladders were taken out: `remove_extraction_ladders`). It is a `rope-0` marker with an `exit`: climb 5.4 m up it, most of the way up the shaft, and you are out (see [rope.md](rope.md)). The start door and the chapel are `extract-0` markers, the hold below: the chapel's at the foot of a timber ladder (`extraction_ladder`) up to a hatch where the wall meets the vault.
+There is none at the start: the start room's (`stairwell`) surface door is sealed, so getting out means going down at least one level.
+
+The extraction rooms' way out is a rope going up into the dark (`rope_anchor` in `scripts/blender/kit.py`), hanging down a round shaft through the ceiling (their ladders were taken out: `remove_extraction_ladders`). It is a `rope-0` marker with an `exit`: climb 5.4 m up it, most of the way up the shaft, and you are out (see [rope.md](rope.md)). The chapel's is an `extract-0` marker, the hold below: the chapel's at the foot of a timber ladder (`extraction_ladder`) up to a hatch where the wall meets the vault.
 
 **How:** it runs in the shared simulation, so the client predicts the progress bar and the server decides.
 
-- **Up a rope:** take hold with `climb` and climb. When the feet reach the rope's `exitY`, `state.extracted` is set (`stepClimb`). The prompt says "[W] to climb out", its pill filling with how far up you are. A downed player can't climb, so they can only crawl out at the start door.
+- **Up a rope:** take hold with `climb` and climb. When the feet reach the rope's `exitY`, `state.extracted` is set (`stepClimb`). The prompt says "[W] to climb out", its pill filling with how far up you are. A downed player can't climb, so the chapel's ladder is the only way out they can crawl to.
 - **At the door:** holding `interact` (E) while standing still, grounded and not swimming, within `extractRadius` (horizontal) and `extractHeight` of a point, adds to `state.extracting`.
 - Moving, letting go or mantling resets it to 0.
 - At `extractSeconds` (3 s), `state.extracted` is set. The server stops simulating that player and finishes the extraction.

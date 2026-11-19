@@ -278,7 +278,7 @@ export class Session implements SessionContext {
 			owner,
 			name,
 			socket,
-			state: this.spawnState(inventory),
+			state: this.spawnState(inventory, this.players.size),
 			queue: [],
 			ack: -1,
 			processed: 0,
@@ -443,9 +443,9 @@ export class Session implements SessionContext {
 		this.seed = seed;
 		for (const system of this.ordered) system.regenerating?.();
 		this.build(seed);
-		for (const player of this.players.values()) {
+		for (const [index, player] of [...this.players.values()].entries()) {
 			const flags = player.state.flags;
-			player.state = this.spawnState(player.state.inventory);
+			player.state = this.spawnState(player.state.inventory, index);
 			player.state.flags = flags;
 			player.queue = [];
 		}
@@ -463,8 +463,9 @@ export class Session implements SessionContext {
 		return nav;
 	}
 
-	private spawnState(inventory: Inventory): PlayerState {
-		const spawn = spawnPoint(this.layout, PIECES);
+	/** A new body at the start room's spawn `index` (one each, in the order players joined). */
+	private spawnState(inventory: Inventory, index: number): PlayerState {
+		const spawn = spawnPoint(this.layout, PIECES, index);
 		return createPlayerState(this.freeSpot(spawn.position), spawn.yaw, inventory);
 	}
 

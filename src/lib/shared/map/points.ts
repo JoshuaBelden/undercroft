@@ -2,14 +2,19 @@ import { capsuleFits, findFreeSpot, floorHeightAt, type CollisionWorld } from '.
 import { LEVEL_HEIGHT, rotateXZ, toWorld } from './grid.ts';
 import type { MapKit, MapLayout, PieceDef, Vec3 } from './types.ts';
 
-/** Where players appear: the start room's first spawn marker, facing the room's +X (its opening). */
+/**
+ * Where a player appears: the start room's spawn marker `index` (the order players join, so a
+ * party starts side by side; past the last marker it wraps round), facing the room's +X (its
+ * opening).
+ */
 export function spawnPoint(
 	layout: MapLayout,
-	pieces: Record<string, PieceDef>
+	pieces: Record<string, PieceDef>,
+	index = 0
 ): { position: Vec3; yaw: number } {
 	const start = layout.placements[0];
-	const piece = pieces[start.piece];
-	const local = piece?.spawns[0] ?? [0, 0, 0];
+	const spawns = pieces[start.piece]?.spawns ?? [];
+	const local: Vec3 = spawns.length ? spawns[index % spawns.length] : [0, 0, 0];
 	const position = toWorld(start, local);
 	const [dx, dz] = rotateXZ([1, 0], start.rotation);
 	return { position: [position[0], position[1] + 0.05, position[2]], yaw: Math.atan2(-dx, -dz) };

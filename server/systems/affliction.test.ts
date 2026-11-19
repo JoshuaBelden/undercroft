@@ -42,7 +42,10 @@ describe('the manifestation', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);
 		const m = face(session, diver);
-		m.position = [diver.state.position[0], diver.state.position[1], diver.state.position[2] - 2];
+		// 2 m ahead: the diver starts facing down the room, so there's no wall in between.
+		const [x, y, z] = diver.state.position;
+		const yaw = diver.state.yaw;
+		m.position = [x - 2 * Math.sin(yaw), y, z - 2 * Math.cos(yaw)];
 		const look = diver.lookAt([m.position[0], m.position[1] + 1.1, m.position[2]]);
 		diver.hold({ ...look, headlamp: 0 }, 0.1);
 		expect(m.statuses).toEqual({});

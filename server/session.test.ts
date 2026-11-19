@@ -34,6 +34,31 @@ describe('joining and leaving', () => {
 		expect(session.afflictionId).toBe('gloaming');
 	});
 
+	it('a full party starts side by side, each on their own spot, all facing the way on', () => {
+		const session = open(SEED);
+		const divers = [0, 1, 2, 3].map(() => new Diver(session));
+		for (const [i, diver] of divers.entries()) {
+			const spawn = spawnPoint(session.layout, PIECES, i);
+			expect(diver.state.position[0]).toBeCloseTo(spawn.position[0], 1);
+			expect(diver.state.position[2]).toBeCloseTo(spawn.position[2], 1);
+			expect(diver.state.yaw).toBe(divers[0].state.yaw);
+			for (const other of divers.slice(i + 1)) {
+				const apart = Math.hypot(
+					diver.state.position[0] - other.state.position[0],
+					diver.state.position[2] - other.state.position[2]
+				);
+				expect(apart).toBeGreaterThan(1);
+			}
+		}
+	});
+
+	it('the start room is no way out: the nearest is at the end of level 1', () => {
+		const session = open(SEED);
+		const start = session.layout.placements[0];
+		expect(PIECES[start.piece].extracts).toEqual([]);
+		expect(PIECES[start.piece].ropes).toEqual([]);
+	});
+
 	it('falls back to the default Affliction for an unknown one', () => {
 		expect(open(SEED, {}, 'no-such').afflictionId).toBe('gloaming');
 	});
