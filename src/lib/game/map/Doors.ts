@@ -20,6 +20,8 @@ interface Shown {
 const MODEL = modelUrl('shared/props/door-double.glb');
 /** Share of the opening spent lifting the bar before the leaves move. */
 const BAR_SHARE = 0.2;
+/** How far (m) the bar is lifted in that time. */
+const BAR_LIFT = 0.35;
 /** How much faster a door slams than it swings open. */
 const SLAM = 5;
 
@@ -118,8 +120,10 @@ export class Doors {
 	private pose(shown: Shown): void {
 		const bar = Math.min(1, shown.open / BAR_SHARE);
 		if (shown.bar) {
-			shown.bar.position.y = shown.barY + bar * 0.35;
-			shown.bar.visible = shown.open < 1;
+			// Lifted up and off: gone before the leaves move, so it never hangs across the doorway
+			// (at eye height) while they swing.
+			shown.bar.position.y = shown.barY + bar * BAR_LIFT;
+			shown.bar.visible = shown.open < BAR_SHARE;
 		}
 		const t = Math.max(0, (shown.open - BAR_SHARE) / (1 - BAR_SHARE));
 		// Heavy: slow to start, then swinging to rest.

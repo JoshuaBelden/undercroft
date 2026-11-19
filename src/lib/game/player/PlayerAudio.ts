@@ -27,8 +27,8 @@ export class PlayerAudio {
 	private climbY = 0;
 	/** When the rope last creaked (performance.now). */
 	private creakAt = 0;
-	/** performance.now() of the next squeeze grunt; null when not squeezing through. */
-	private nextGrunt: number | null = null;
+	/** Pushing through a squeeze (the grunt has played; the gasp comes on the way out). */
+	private inSqueeze = false;
 	private breathSlow: SoundHandle | null = null;
 	private breathFast: SoundHandle | null = null;
 	private breathStarting = false;
@@ -93,10 +93,7 @@ export class PlayerAudio {
 		this.last = [x, y, z];
 	}
 
-	/**
-	 * Pushing through a squeeze: a gasp as you start to move through it, then a grunt every
-	 * 1.3-2.2 s while you keep going.
-	 */
+	/** Climbing a rope: a creak every so often as you go up or down it. */
 	private updateRope(state: PlayerState): void {
 		if (!state.climbing) {
 			this.climbed = null;
@@ -114,19 +111,18 @@ export class PlayerAudio {
 		}
 	}
 
+	/** Pushing through a squeeze: one grunt as you start to move through it, a gasp on the way out. */
 	private updateSqueeze(state: PlayerState): void {
-		const pushing = state.squeezing && Math.hypot(state.velocity[0], state.velocity[2]) > 0.2;
-		if (!pushing) {
-			this.nextGrunt = null;
+		if (!state.squeezing) {
+			// Out the other side: a breath at last.
+			if (this.inSqueeze) this.sounds.play('gasp');
+			this.inSqueeze = false;
 			return;
 		}
-		const now = performance.now();
-		if (this.nextGrunt === null) {
-			this.sounds.play('gasp');
-			this.nextGrunt = now + 1300 + Math.random() * 900;
-		} else if (now >= this.nextGrunt) {
+		// Starting to push through: one grunt.
+		if (!this.inSqueeze && Math.hypot(state.velocity[0], state.velocity[2]) > 0.2) {
+			this.inSqueeze = true;
 			this.sounds.play('squeeze.grunt');
-			this.nextGrunt = now + 1300 + Math.random() * 900;
 		}
 	}
 

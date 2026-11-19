@@ -16,7 +16,7 @@ export type SynthSpec =
 	| { kind: 'splash'; length: number; cutoff: number }
 	/** Stone scrape plus an effort grunt, for climbing. */
 	| { kind: 'scrape' }
-	/** Sharp inhale (starting to push through a squeeze). */
+	/** Sharp inhale (coming out of a squeeze). */
 	| { kind: 'gasp' }
 	/** Water drop plink. */
 	| { kind: 'drip' }
@@ -169,7 +169,7 @@ export const SOUNDS = {
 		volume: 0.45,
 		variation: 0.1
 	},
-	// A sharp breath as you start to push through a squeeze (PlayerAudio.updateSqueeze).
+	// A sharp breath as you come out of a squeeze (PlayerAudio.updateSqueeze).
 	gasp: { file: 'gasp', synth: { kind: 'gasp' }, category: 'sfx', volume: 0.8 },
 	// Breathing loops, crossfaded by stamina.
 	'breath.slow': {

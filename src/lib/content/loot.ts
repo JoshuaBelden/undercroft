@@ -91,6 +91,8 @@ export const CRATES = {
 	size: [0.94, 0.55, 0.64] as [number, number, number],
 	/** Radius (m) opening one can be heard. */
 	noise: 6,
+	/** Radius (m) each thing taken out of (or put into) one can be heard: rummaging adds up. */
+	lootNoise: 4,
 	/** How far the lid swings open (radians). */
 	lidAngle: 1.9
 };
@@ -109,7 +111,9 @@ export const CORPSES = {
 	/** Height (m) of the middle looked at to search one. */
 	lookHeight: 0.2,
 	/** Radius (m) searching one can be heard: quieter than a crate's lid. */
-	noise: 3
+	noise: 3,
+	/** Radius (m) each thing taken off (or put on) one can be heard. */
+	lootNoise: 3
 };
 
 /** Loot lying loose on the floor: sparse, and nothing better than uncommon. */
