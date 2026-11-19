@@ -24,10 +24,7 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'breath.fast': ['/assets/shared/audio/breath.fast.9966abc6.webm'],
 	gasp: ['/assets/shared/audio/gasp.7abd9c72.webm'],
 	'squeeze.grunt': ['/assets/shared/audio/squeeze.grunt.4447fd0e.webm'],
-	exertion: [
-		'/assets/shared/audio/exertion-1.563eee49.webm',
-		'/assets/shared/audio/exertion-2.0cd1132d.webm'
-	],
+	exertion: ['/assets/shared/audio/exertion.0172ebf9.webm'],
 	'headlamp.on': ['/assets/shared/audio/headlamp.on.0699a334.webm'],
 	'headlamp.off': ['/assets/shared/audio/headlamp.off.738f6bf7.webm'],
 	'water.slosh': ['/assets/shared/audio/water.slosh.dd7f2330.webm'],
@@ -141,8 +138,7 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/breath.fast.9966abc6.webm': 15720,
 	'/assets/shared/audio/gasp.7abd9c72.webm': 3909,
 	'/assets/shared/audio/squeeze.grunt.4447fd0e.webm': 2836,
-	'/assets/shared/audio/exertion-1.563eee49.webm': 6700,
-	'/assets/shared/audio/exertion-2.0cd1132d.webm': 5689,
+	'/assets/shared/audio/exertion.0172ebf9.webm': 3887,
 	'/assets/shared/audio/headlamp.on.0699a334.webm': 1977,
 	'/assets/shared/audio/headlamp.off.738f6bf7.webm': 1838,
 	'/assets/shared/audio/water.slosh.dd7f2330.webm': 8926,

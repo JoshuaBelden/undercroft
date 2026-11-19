@@ -46,8 +46,9 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'gasp', file: 'gasp.wav' },
 	// Pushing through a squeeze.
 	{ id: 'squeeze.grunt', file: 'sfx_grunt.mp3' },
-	// Effort grunts for climbing.
-	{ id: 'exertion', file: 'exertion.mp3', slice: { minGap: 0.6, maxLength: 1.0, threshold: 0.3 } },
+	// The effort grunt for climbing and jumping: only the short grunt at 1.24 s. The recording's
+	// first sound (0 to 1 s) is a retch, not a grunt.
+	{ id: 'exertion', file: 'exertion.mp3', crop: { start: 1.15, length: 0.65 } },
 	{ id: 'headlamp.on', file: 'flashlight_on.wav' },
 	{ id: 'headlamp.off', file: 'flashlight_off.wav' },
 	{ id: 'water.slosh', file: 'liquid_slosh.wav' },
