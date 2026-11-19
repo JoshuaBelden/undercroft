@@ -87,6 +87,11 @@ export interface PieceDef {
 	extracts: Vec3[];
 	/** Where the rite can be initiated (rite-* markers). */
 	rites: Vec3[];
+	/**
+	 * Where a rite's item is laid on the altar (altar-* markers: the Gloaming Chapel's, for the
+	 * Pendant). Left out in hand-built test pieces.
+	 */
+	altars?: Vec3[];
 	/** Where a loot crate may stand (crate-* markers). The server fills only some of them. */
 	crates: CrateMarker[];
 	/**
@@ -132,6 +137,11 @@ export interface KitEntry {
 	 * only off it, so a party without rope can't be stuck; see docs/dev/map-generation.md.
 	 */
 	needsRope?: boolean;
+	/**
+	 * Connectors: never on the main route, only on side branches (a ledge the nav grid can't climb,
+	 * so creatures and the rite's things never need to get past it; map-generation.md).
+	 */
+	offRoute?: boolean;
 	/** Major rooms: placed last on the main route, after a descent, so it is the deepest. */
 	final?: boolean;
 	/**
@@ -158,7 +168,7 @@ export interface KitEntry {
 export type Acoustics = 'tight' | 'tunnel' | 'hall' | 'vast';
 
 /** A passage the explorer's map marks with a symbol: wet, low or tight. */
-export type SketchSymbol = 'water' | 'crawl' | 'squeeze';
+export type SketchSymbol = 'water' | 'crawl' | 'squeeze' | 'ledge';
 
 export type MapKit = Record<string, KitEntry>;
 
@@ -183,8 +193,11 @@ export interface CratePlacement {
 	position: Vec3;
 	/** Turn about +Y (radians). At 0 its back is to the north (-Z) and it opens to the south. */
 	yaw: number;
-	/** A corpse, searched like a crate (see CORPSES); absent for a crate. Corpses are not solid. */
-	kind?: 'corpse';
+	/**
+	 * A corpse, searched like a crate (see CORPSES), or a locked trunk (TRUNKS); absent for a crate.
+	 * Corpses are not solid.
+	 */
+	kind?: 'corpse' | 'trunk';
 	/** The level of the map it is on (its piece's tier): what it can hold depends on it. */
 	tier: number;
 }
@@ -205,6 +218,15 @@ export interface DoorPlacement {
 	tier: number;
 }
 
+/**
+ * A false wall (docs/dev/map-generation.md#false-walls): a cap piece standing in an opening that
+ * does lead on, to a side passage nothing else reaches. Solid until pried down.
+ */
+export interface WallPlacement extends Placement {
+	/** Its id: its collision boxes carry it, like a door's (openDoor takes them away). */
+	id: string;
+}
+
 export interface MapLayout {
 	seed: number;
 	/** The Affliction this map was generated for (its own pieces are in it); null for none. */
@@ -214,4 +236,6 @@ export interface MapLayout {
 	crates: CratePlacement[];
 	/** Doors between levels (see docs/dev/map-generation.md#doors). Solid while shut. */
 	doors: DoorPlacement[];
+	/** False walls (map-generation.md#false-walls); none in a layout made before them. */
+	walls?: WallPlacement[];
 }

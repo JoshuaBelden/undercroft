@@ -42,7 +42,7 @@ Each step:
    - swimming: swims (see Water);
    - noclip: flies.
 6. Resolves collisions.
-7. On land, tries a mantle while `climb` is held.
+7. On land, tries a mantle while `climb` is held, and on a fresh press of `climb` with no ledge, a jump (see Jumping).
 8. Updates stamina (or breath) and battery.
 
 All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, swim and mantle settings, stamina rates, light intensities, drain and flicker.
@@ -81,6 +81,7 @@ With the camera under a water surface (`Underwater.below`: the camera, not the b
 
 - **Fog:** `Underwater` (`src/lib/game/Underwater.ts`) puts a dense, dark green `FogExp2` on the scene, fading in and out over 0.2 s. Things a few metres off are half hidden and nothing past about 9 m shows. Every map material takes fog by default, so a new one needs nothing.
 - **Overlay:** `UnderwaterOverlay.svelte`: a murky green tint, darker toward the edges. Nothing moves in it.
+- **The surface from below:** water (`mat-water`) is one face looking up, so `MapRenderer` draws that material from both sides (`waterBothSides`). Looking up from under it you see the surface, not the passage above.
 - **Sound:** the world is muffled and dry (`Ambience`, as before), under a low `underwater.drone` loop on the ambience bus that follows the fade.
 - Off in the map debug view, which is fully lit.
 
@@ -101,6 +102,15 @@ With the camera under a water surface (`Underwater.below`: the camera, not the b
 **What happens:** a successful find starts `state.mantle`. For `duration` seconds the position follows a fixed path (rise, then move over), input is ignored, and collisions are skipped because the target was already validated. At the end you stand on the ledge in the stance that fit. A mantle costs `staminaCost`.
 
 It's part of the deterministic state, so server and prediction agree. The client dips the camera during a mantle.
+
+## Jumping
+
+A fresh press of `climb` (Space, A on a controller) on firm ground where no ledge can be mantled is a hop straight up (`tryJump`): the vertical velocity is set to `MOVEMENT.jump.speed` (5 m/s, about 0.7 m with gravity 18) and the player leaves the floor, keeping their run. Holding `climb` doesn't jump again: `PlayerState.climbKey` remembers it was down last step, like `interactKey` for ropes. So holding Space walking up to a ledge still mantles, and a press in the open jumps.
+
+- **Not** while wading, swimming, crawling, in a squeeze, exhausted, or with less than `jump.headroom` (0.3 m) clear over the head. It costs `jump.staminaCost`.
+- **The ground probe** in `resolveCollisions` is skipped while rising, so the floor just left doesn't catch the feet again.
+- **Animation:** the `jumping` slot while rising; the explorer has no jump clip yet, so it falls back to the run.
+- **Audio:** `jump` (a short breath, quieter than the mantle's grunt) as the feet leave the floor, and a footstep for the surface on landing (`PlayerAudio.updateJump`).
 
 ## Ropes
 
@@ -291,7 +301,7 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 - **Breathing:** two loops, calm and fast, crossfaded by stamina. Silent until stamina is down to a quarter (`BREATH_BELOW` in `PlayerAudio.ts`; it fades in over the next 5%), panting as it runs out, silent underwater. Running out of stamina makes no gasp.
 - **The headlamp** plays a switch-on click for low and bright, and a switch-off click for off.
 - **Water:** a splash on entering, swim strokes per `swim.stride` (quieter underwater), and splashing footsteps while wading.
-- **Climbing and squeezes:** an exertion grunt (`exertion`, sliced into variants) when a mantle starts, and once as you start to push through a squeeze, with a `gasp` as you come out of it.
+- **Climbing and squeezes:** a grunt (`grunt`, the `sfx_grunt` recording; jumping plays it quieter and higher) when a mantle starts, and once as you start to push through a squeeze, with a `gasp` as you come out of it.
 - **Muffling and reverb:** the sfx and ambience buses pass through a low-pass filter (`AudioManager.setMuffle`) and send to a convolution reverb with a synthetic stone-room impulse (`setReverb`). Music bypasses both.
 - **Acoustics:** each kit entry can set `acoustics` (`tight`, `tunnel` (default), `hall`, `vast`). `ACOUSTICS` in `src/lib/content/audio/ambience.ts` maps each to reverb and muffle. `Ambience` finds the piece the player is in and eases toward its values: crawlspaces and squeezes sound close and damped, the Cistern and the Chapel echo. Underwater forces full muffle and no reverb.
 - **Positional audio:** `AudioManager.playBufferAt` / `SoundBank.playAt` place a sound in 3D (HRTF panning, inverse distance falloff). The page updates the listener from the camera every frame (`setListener`).
@@ -385,15 +395,15 @@ Bandages and smelling salts are quick-use items (see [items.md](items.md)); play
 
 Admin tools are in the admin panel (F10) and need `PUBLIC_DEV_MODE` on the client. The server only accepts the commands when `DEV_MODE=true` (`server/config.ts`).
 
-| Tool                       | Effect                                                                                                                                                                                                                                  |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Noclip                     | Fly through walls; look direction steers (sprint doubles speed).                                                                                                                                                                        |
-| Infinite stamina / battery | No drain.                                                                                                                                                                                                                               |
-| Teleport                   | To the start room (or the foot of its pit) or any major room. Lands on the nearest clear spot with a floor (`findFreeSpot`).                                                                                                            |
-| Regenerate                 | New map, from a given seed or a random one. Everyone respawns; flags are kept.                                                                                                                                                          |
-| Map debug view             | Client-only orbit camera with flat lighting, for inspecting layouts.                                                                                                                                                                    |
-| God mode                   | No sanity loss.                                                                                                                                                                                                                         |
-| Set sanity                 | Sets your sanity (0 downs you; above 0 gets you up if downed).                                                                                                                                                                          |
-| Creatures                  | Spawn one in front of you, remove all, show markers through walls (see creatures.md).                                                                                                                                                   |
-| Gamer tags through walls   | Client only: teammates' tags drawn over the rock (still fading), to find them. See Gamer tags.                                                                                                                                          |
-| Grip check (Items tab)     | Client only: a test explorer 2 m in front of you holding an item, posed to hold, fire, reload or use it (`GripCheck`, `src/lib/game/player/GripCheck.ts`). Step through every item with a `grip`, to check where each sits in the hand. |
+| Tool                       | Effect                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Noclip                     | Fly through walls; look direction steers (sprint doubles speed).                                                                                                                                                                                                                                                                                |
+| Infinite stamina / battery | No drain.                                                                                                                                                                                                                                                                                                                                       |
+| Teleport                   | To the start room (or the foot of its pit), any major room or door, or something to try out (`testPoints`: `ledge-hall`, `false-wall-<n>` on the side it is seen from, `locked-trunk`; and from the server alone, `stuck-crate` and `pendant`, by the altar when it lies there). Lands on the nearest clear spot with a floor (`findFreeSpot`). |
+| Regenerate                 | New map, from a given seed or a random one. Everyone respawns; flags are kept.                                                                                                                                                                                                                                                                  |
+| Map debug view             | Client-only orbit camera with flat lighting, for inspecting layouts.                                                                                                                                                                                                                                                                            |
+| God mode                   | No sanity loss.                                                                                                                                                                                                                                                                                                                                 |
+| Set sanity                 | Sets your sanity (0 downs you; above 0 gets you up if downed).                                                                                                                                                                                                                                                                                  |
+| Creatures                  | Spawn one in front of you, remove all, show markers through walls (see creatures.md).                                                                                                                                                                                                                                                           |
+| Gamer tags through walls   | Client only: teammates' tags drawn over the rock (still fading), to find them. See Gamer tags.                                                                                                                                                                                                                                                  |
+| Grip check (Items tab)     | Client only: a test explorer 2 m in front of you holding an item, posed to hold, fire, reload or use it (`GripCheck`, `src/lib/game/player/GripCheck.ts`). Step through every item with a `grip`, to check where each sits in the hand.                                                                                                         |

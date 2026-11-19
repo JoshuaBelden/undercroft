@@ -12,6 +12,7 @@ import { SanitySystem } from './sanity.ts';
 import { SurveySystem } from './survey.ts';
 import { SurveyorSystem } from './surveyor.ts';
 import { TendSystem } from './tend.ts';
+import { WallSystem } from './walls.ts';
 import type { SessionContext, SessionSystem } from './system.ts';
 
 /**
@@ -29,6 +30,7 @@ export function createSystems(ctx: SessionContext) {
 		deadline: new DeadlineSystem(ctx),
 		crates: new CrateSystem(ctx),
 		doors: new DoorSystem(ctx),
+		walls: new WallSystem(ctx),
 		marks: new MarkSystem(ctx),
 		ropes: new RopeSystem(ctx),
 		survey: new SurveySystem(ctx),

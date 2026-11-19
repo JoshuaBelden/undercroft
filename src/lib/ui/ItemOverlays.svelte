@@ -23,6 +23,9 @@
 	const askingName = $derived(asking ? (ITEMS[asking.stack.item]?.name ?? asking.stack.item) : '');
 </script>
 
+<!-- A drag that died without its dragend is put down on the next mouse release. -->
+<svelte:window onmouseup={() => board.released()} />
+
 {#if board.pointed}
 	<ItemTooltip stack={board.pointed.stack} anchor={board.pointed.rect} />
 {/if}

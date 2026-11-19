@@ -23,11 +23,7 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'breath.slow': ['/assets/shared/audio/breath.slow.b54eeed4.webm'],
 	'breath.fast': ['/assets/shared/audio/breath.fast.9966abc6.webm'],
 	gasp: ['/assets/shared/audio/gasp.7abd9c72.webm'],
-	'squeeze.grunt': ['/assets/shared/audio/squeeze.grunt.4447fd0e.webm'],
-	exertion: [
-		'/assets/shared/audio/exertion-1.563eee49.webm',
-		'/assets/shared/audio/exertion-2.0cd1132d.webm'
-	],
+	grunt: ['/assets/shared/audio/grunt.4447fd0e.webm'],
 	'headlamp.on': ['/assets/shared/audio/headlamp.on.0699a334.webm'],
 	'headlamp.off': ['/assets/shared/audio/headlamp.off.738f6bf7.webm'],
 	'water.slosh': ['/assets/shared/audio/water.slosh.dd7f2330.webm'],
@@ -114,7 +110,11 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'defense.torn': ['/assets/shared/audio/defense.torn.f49422b0.webm'],
 	'creature.hurt': ['/assets/shared/audio/creature.hurt.7f823348.webm'],
 	'rope.tension': ['/assets/shared/audio/rope.tension.a37433b9.webm'],
-	'rope.tie': ['/assets/shared/audio/rope.tie.d484b77c.webm']
+	'rope.tie': ['/assets/shared/audio/rope.tie.d484b77c.webm'],
+	'crowbar.pry': ['/assets/shared/audio/crowbar.pry.1de6e61d.webm'],
+	'crowbar.rocks': ['/assets/shared/audio/crowbar.rocks.d5b148da.webm'],
+	'key.unlock': ['/assets/shared/audio/key.unlock.624f38af.webm'],
+	'map.scribble': ['/assets/shared/audio/map.scribble.bb56d96d.webm']
 };
 
 /** Size in bytes of each built sound file, by URL (preload progress). */
@@ -136,9 +136,7 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/breath.slow.b54eeed4.webm': 8063,
 	'/assets/shared/audio/breath.fast.9966abc6.webm': 15720,
 	'/assets/shared/audio/gasp.7abd9c72.webm': 3909,
-	'/assets/shared/audio/squeeze.grunt.4447fd0e.webm': 2836,
-	'/assets/shared/audio/exertion-1.563eee49.webm': 6700,
-	'/assets/shared/audio/exertion-2.0cd1132d.webm': 5689,
+	'/assets/shared/audio/grunt.4447fd0e.webm': 2836,
 	'/assets/shared/audio/headlamp.on.0699a334.webm': 1977,
 	'/assets/shared/audio/headlamp.off.738f6bf7.webm': 1838,
 	'/assets/shared/audio/water.slosh.dd7f2330.webm': 8926,
@@ -213,7 +211,11 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/defense.torn.f49422b0.webm': 5780,
 	'/assets/shared/audio/creature.hurt.7f823348.webm': 13471,
 	'/assets/shared/audio/rope.tension.a37433b9.webm': 9591,
-	'/assets/shared/audio/rope.tie.d484b77c.webm': 20914
+	'/assets/shared/audio/rope.tie.d484b77c.webm': 20914,
+	'/assets/shared/audio/crowbar.pry.1de6e61d.webm': 63184,
+	'/assets/shared/audio/crowbar.rocks.d5b148da.webm': 23769,
+	'/assets/shared/audio/key.unlock.624f38af.webm': 7605,
+	'/assets/shared/audio/map.scribble.bb56d96d.webm': 8445
 };
 
 /**

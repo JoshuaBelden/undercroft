@@ -379,6 +379,11 @@
 				() => onadmin({ kind: 'openDoors' }),
 				'Every door between levels, for everyone, as if held open.'
 			)}
+			{@render action(
+				'Bring down false walls',
+				() => onadmin({ kind: 'openWalls' }),
+				'Every false wall in the map comes down, as if pried with a crowbar.'
+			)}
 		{:else if group === 'Player'}
 			{#each toggles as toggle (toggle.kind)}
 				<StepperField
@@ -403,7 +408,7 @@
 				hint="Teammates' names drawn over the rock, still fading with distance. For checking where they are."
 			/>
 			{@render action('Clear conditions', () => onadmin({ kind: 'clearConditions' }))}
-			<p class="hint">Teleport to a room:</p>
+			<p class="hint">Teleport to a room, or to something to try out:</p>
 			{#each rooms as room (room)}
 				{@render action(room, () => onadmin({ kind: 'teleport', room }))}
 			{/each}
@@ -419,6 +424,7 @@
 			</form>
 			{@render action('Refill ammo', () => onadmin({ kind: 'refillAmmo' }))}
 			{@render action('Reset crates', () => onadmin({ kind: 'resetCrates' }))}
+			{@render action('Unlock crates', () => onadmin({ kind: 'unlockCrates' }))}
 			{@render action('Clear chalk marks', () => onadmin({ kind: 'clearMarks' }))}
 			<StepperField
 				label="Grip check"

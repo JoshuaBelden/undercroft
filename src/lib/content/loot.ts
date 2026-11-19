@@ -94,7 +94,35 @@ export const CRATES = {
 	/** Radius (m) each thing taken out of (or put into) one can be heard: rummaging adds up. */
 	lootNoise: 4,
 	/** How far the lid swings open (radians). */
-	lidAngle: 1.9
+	lidAngle: 1.9,
+	/**
+	 * Share of the crates (not corpses or trunks) that are jammed: trying one finds it stuck, and it
+	 * takes a crowbar in the hand to pry it open (docs/dev/items.md#jammed-crates).
+	 */
+	jammed: 0.25,
+	/** Seconds interact is held with a crowbar to pry a jammed crate open. */
+	prySeconds: 10,
+	/** Radius (m) prying is heard, again every pryEvery seconds while it goes on. */
+	pryNoise: 10,
+	pryEvery: 2
+};
+
+/**
+ * Locked trunks: rare, only on the third level, in place of some of its crates. Unlocked with a
+ * key (used up), then searched like a crate. Each holds at least one epic or legendary thing
+ * (docs/dev/items.md#locked-trunks).
+ */
+export const TRUNKS = {
+	/** The level of the map (a tier, 0 first) they stand on. */
+	tier: 2,
+	/** Chance that a crate on that level is a trunk instead (about ten crates a level). */
+	chance: 0.15,
+	/** Its collision box: across, high, deep (m), matching the built model (PROP_FIT). */
+	size: [0.9, 0.73, 0.67] as [number, number, number],
+	/** The chance its prize is legendary rather than epic, when it didn't roll one of its own. */
+	legendary: 0.25,
+	/** The item that opens one. A map holds one per trunk, in crates that aren't locked or jammed. */
+	key: 'key'
 };
 
 /**

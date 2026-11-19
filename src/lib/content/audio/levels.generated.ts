@@ -100,19 +100,17 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/water.slosh.dd7f2330.webm']
 	},
 	mantle: {
-		level: -20.3,
-		lufs: -15.8,
-		peak: -1.2,
-		urls: [
-			'/assets/shared/audio/exertion-1.563eee49.webm',
-			'/assets/shared/audio/exertion-2.0cd1132d.webm'
-		]
+		level: -21.2,
+		lufs: -16.8,
+		peak: -1,
+		urls: ['/assets/shared/audio/grunt.4447fd0e.webm']
 	},
+	jump: { level: -27.3, lufs: -16.8, peak: -1, urls: ['/assets/shared/audio/grunt.4447fd0e.webm'] },
 	'squeeze.grunt': {
 		level: -23.7,
 		lufs: -16.8,
 		peak: -1,
-		urls: ['/assets/shared/audio/squeeze.grunt.4447fd0e.webm']
+		urls: ['/assets/shared/audio/grunt.4447fd0e.webm']
 	},
 	gasp: {
 		level: -19.7,
@@ -304,6 +302,24 @@ export const AUDIO_LEVELS: Record<
 			'/assets/shared/audio/inventory.rummage-4.75040aa6.webm'
 		]
 	},
+	'key.unlock': {
+		level: -27,
+		lufs: -23.9,
+		peak: -1.3,
+		urls: ['/assets/shared/audio/key.unlock.624f38af.webm']
+	},
+	'crowbar.pry': {
+		level: -22,
+		lufs: -19.5,
+		peak: -1.4,
+		urls: ['/assets/shared/audio/crowbar.pry.1de6e61d.webm']
+	},
+	'crowbar.rocks': {
+		level: -21.5,
+		lufs: -20.6,
+		peak: -0.4,
+		urls: ['/assets/shared/audio/crowbar.rocks.d5b148da.webm']
+	},
 	'crate.open': {
 		level: -25.3,
 		lufs: -20.9,
@@ -311,6 +327,12 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/crate.open.a51fed17.webm']
 	},
 	'door.open': {
+		level: -21.1,
+		lufs: -21.1,
+		peak: -0.6,
+		urls: ['/assets/shared/audio/door.open.b67a0599.webm']
+	},
+	'door.slam': {
 		level: -21.1,
 		lufs: -21.1,
 		peak: -0.6,
@@ -353,13 +375,16 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/rope.tie.d484b77c.webm']
 	},
 	'condition.hobble': {
-		level: -18.9,
-		lufs: -15.8,
-		peak: -1.2,
-		urls: [
-			'/assets/shared/audio/exertion-1.563eee49.webm',
-			'/assets/shared/audio/exertion-2.0cd1132d.webm'
-		]
+		level: -19.9,
+		lufs: -16.8,
+		peak: -1,
+		urls: ['/assets/shared/audio/grunt.4447fd0e.webm']
+	},
+	'map.sketch': {
+		level: -28.3,
+		lufs: -19.2,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/map.scribble.bb56d96d.webm']
 	},
 	'ui.nav': {
 		level: -31.2,
@@ -444,6 +469,30 @@ export const AUDIO_LEVELS: Record<
 		lufs: -14,
 		peak: -0.7,
 		urls: ['/assets/shared/audio/manifest.stun.e998ceb4.webm']
+	},
+	'manifest.cast': {
+		level: -19.9,
+		lufs: -15.5,
+		peak: -0.7,
+		urls: ['/assets/shared/audio/manifest.attack.5bd8a89f.webm']
+	},
+	'manifest.rush': {
+		level: -21.6,
+		lufs: -19.7,
+		peak: -1.9,
+		urls: ['/assets/shared/audio/creature.burst.92a9df51.webm']
+	},
+	'manifest.return': {
+		level: -20.9,
+		lufs: -14,
+		peak: -0.7,
+		urls: ['/assets/shared/audio/manifest.stun.e998ceb4.webm']
+	},
+	'lamp.snuffed': {
+		level: -33.9,
+		lufs: -33.9,
+		peak: -3.5,
+		urls: ['/assets/shared/audio/headlamp.off.738f6bf7.webm']
 	},
 	'battery.charged': {
 		level: -21.5,

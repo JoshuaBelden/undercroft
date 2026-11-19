@@ -61,6 +61,14 @@ export interface MovementTuning {
 		duration: number;
 		staminaCost: number;
 	};
+	/** A hop on a fresh press of climb, where there is no ledge to mantle. */
+	jump: {
+		/** Upward speed at take-off (m/s). With gravity 18, 5 m/s rises about 0.7 m. */
+		speed: number;
+		/** Clear space needed above the head to jump (m). */
+		headroom: number;
+		staminaCost: number;
+	};
 	/** Horizontal acceleration toward the wanted velocity, per second. */
 	acceleration: number;
 	airAcceleration: number;
@@ -156,6 +164,7 @@ export const MOVEMENT: MovementTuning = {
 		stride: 1.1
 	},
 	mantle: { maxHeight: 1.2, maxFromWater: 0.9, reach: 0.6, duration: 0.7, staminaCost: 10 },
+	jump: { speed: 5, headroom: 0.3, staminaCost: 8 },
 	acceleration: 12,
 	airAcceleration: 2,
 	gravity: 18,

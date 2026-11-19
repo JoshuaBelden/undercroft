@@ -18,6 +18,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -167,8 +168,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'cap-hall': {
 		name: 'cap-hall',
-		url: '/assets/shared/map/cap-hall.603f4847.gltf',
-		bytes: 598732,
+		url: '/assets/shared/map/cap-hall.174c56c5.gltf',
+		bytes: 598768,
 		footprint: [0, 0],
 		levels: 1,
 		sockets: [{ type: 'hall', cell: [0, 0], level: 0, edge: 'n' }],
@@ -176,6 +177,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -184,7 +186,7 @@ export const PIECES: Record<string, PieceDef> = {
 		candles: [],
 		colliders: [{ center: [0, 1.4, 0.2], halfExtents: [1, 1.4, 0.2], rotation: [0, 0, 0, 1] }],
 		volumes: [],
-		triangles: 150
+		triangles: 151
 	},
 	cistern: {
 		name: 'cistern',
@@ -202,6 +204,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -265,6 +268,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [3, 0, 1.1], yaw: -1.571 },
 			{ position: [-3, 0, -0.6], yaw: 1.571 }
@@ -312,6 +316,7 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [-3.2, 0, -3.41], yaw: 0 },
 			{ position: [-5.41, 0, -0.5], yaw: 1.571 },
@@ -364,6 +369,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [[-4.8, 0.5, -6.53]],
 		rites: [[0, 0.5, -8.4]],
+		altars: [[0, 1.62, -9.45]],
 		crates: [
 			{ position: [-17.3, 0, -1], yaw: 1.571 },
 			{ position: [17.3, 0, -1], yaw: -1.571 }
@@ -549,6 +555,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -602,6 +609,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -669,6 +677,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -768,6 +777,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -796,6 +806,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [{ position: [0, 0, 0.836], yaw: 0 }],
 		doors: [],
 		rubble: [[0, 0, -0.2]],
@@ -826,6 +837,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -856,6 +868,38 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		triangles: 1150
 	},
+	'hall-ledge': {
+		name: 'hall-ledge',
+		url: '/assets/shared/map/hall-ledge.c7d277de.gltf',
+		bytes: 1274005,
+		footprint: [1, 2],
+		levels: 2,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 1, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 1, edge: 's' }
+		],
+		spawns: [],
+		creatures: [],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 7, 0], halfExtents: [1.5, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.75, 1.8], halfExtents: [1.5, 0.15, 1.8], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.3, 3.8], halfExtents: [1.5, 0.7, 0.2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.3, -2], halfExtents: [1.5, 0.7, 2], rotation: [0, 0, 0, 1] },
+			{ center: [1.25, 4.95, 0], halfExtents: [0.25, 2.05, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-1.25, 4.95, 0], halfExtents: [0.25, 2.05, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 582
+	},
 	'hall-side-room': {
 		name: 'hall-side-room',
 		url: '/assets/shared/map/hall-side-room.c42230a9.gltf',
@@ -870,6 +914,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [3.06, 0, 0], yaw: -1.571 },
 			{ position: [1.7, 0, -1.06], yaw: 0 },
@@ -911,6 +956,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -985,6 +1031,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -1015,6 +1062,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -1045,6 +1093,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [],
 		rubble: [],
@@ -1079,6 +1128,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [5.41, 0, 1.8], yaw: -1.571 },
 			{ position: [5.41, 0, 0.4], yaw: -1.571 },
@@ -1127,6 +1177,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [3, 0, -1.6], yaw: -1.571 },
 			{ position: [-3, 0, -0.4], yaw: 1.571 }
@@ -1184,6 +1235,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [2, 0, -5.41], yaw: 0 },
 			{ position: [5.41, 0, 0.5], yaw: -1.571 },
@@ -1236,6 +1288,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [-2.5, 0, -3.06], yaw: 0 },
 			{ position: [2.5, 0, 3.06], yaw: -3.142 },
@@ -1290,6 +1343,7 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [-7.41, 0, 0], yaw: 1.571 },
 			{ position: [7.41, 0, 0], yaw: -1.571 },
@@ -1340,6 +1394,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [-1.06, 0, 0], yaw: 1.571 },
 			{ position: [1.06, 0, 0], yaw: -1.571 }
@@ -1383,6 +1438,7 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [
 			{ position: [-1.5, 0, -5.41], yaw: 0 },
 			{ position: [1.8, 0, -5.41], yaw: 0 },
@@ -1438,6 +1494,7 @@ export const PIECES: Record<string, PieceDef> = {
 		creatures: [],
 		extracts: [],
 		rites: [],
+		altars: [],
 		crates: [],
 		doors: [{ position: [0, 12, -11.55], yaw: 0 }],
 		rubble: [],

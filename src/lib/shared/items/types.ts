@@ -65,6 +65,10 @@ export interface MarkSnapshot {
 export interface CratesSnapshot {
 	open: string[];
 	busy: string[];
+	/** Crates someone has tried and found jammed, still shut fast (pry them with a crowbar). */
+	jammed: string[];
+	/** Trunks still locked (a key opens one). */
+	locked: string[];
 }
 
 /** A thrown item in flight. */
@@ -139,6 +143,14 @@ export type GameEvent =
 	| { kind: 'doorRelease'; id: string; position: Vec3 }
 	/** Someone going through a crate started on the next thing in it. */
 	| { kind: 'rummage'; player: string; position: Vec3 }
+	/** Someone tried a crate and found it jammed, or tried a locked trunk with no key. */
+	| { kind: 'crateStuck'; id: string; player: string; position: Vec3 }
+	/** A key turned in a trunk's lock (the key is used up). */
+	| { kind: 'crateUnlock'; id: string; player: string; position: Vec3 }
+	/** Someone started levering at a jammed crate or a wall with a crowbar. */
+	| { kind: 'pry'; target: 'crate' | 'wall'; player: string; position: Vec3 }
+	/** A false wall came down under the crowbar (see map-generation.md#false-walls). */
+	| { kind: 'wallDown'; id: string; player: string; position: Vec3 }
 	/** A hint was found: what it says, and the requirements (item ids) and room (piece id) it revealed. */
 	| {
 			kind: 'clue';

@@ -81,7 +81,10 @@ const LEGACY_DIRS = ['map', 'creatures', 'player', 'items', 'props'];
  */
 const PROP_FIT: Record<string, { tris: number; scale?: number }> = {
 	// The scan came in at about 1.7x life size: 0.6 matches the living explorer.
-	corpse: { tris: 12000, scale: 0.6 }
+	corpse: { tris: 12000, scale: 0.6 },
+	// The locked trunk (docs/dev/items.md#locked-trunks): 1.9 m wide as generated; 0.47 makes it
+	// 0.9 m wide, 0.73 m high and 0.67 m deep (TRUNKS.size), its front to +Z like the crate's.
+	trunk: { tris: 6000, scale: 0.47 }
 };
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'shared', 'map', 'pieces.generated.ts');
 const MODEL_MANIFEST = path.join(ROOT, 'src', 'lib', 'content', 'models.generated.ts');
@@ -107,6 +110,7 @@ const MARKER_PREFIXES = [
 	'creature-',
 	'extract-',
 	'rite-',
+	'altar-',
 	'crate-',
 	'door-',
 	'rubble-',
@@ -275,6 +279,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const creatures: Vec3[] = [];
 	const extracts: Vec3[] = [];
 	const rites: Vec3[] = [];
+	const altars: Vec3[] = [];
 	const crates: CrateMarker[] = [];
 	const doors: CrateMarker[] = [];
 	const rubble: Vec3[] = [];
@@ -298,6 +303,8 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			extracts.push(position);
 		} else if (label.startsWith('rite-')) {
 			rites.push(position);
+		} else if (label.startsWith('altar-')) {
+			altars.push(position);
 		} else if (label.startsWith('rubble-')) {
 			rubble.push(position);
 		} else if (label.startsWith('rope-')) {
@@ -387,6 +394,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		creatures,
 		extracts,
 		rites,
+		altars,
 		crates,
 		doors,
 		rubble,

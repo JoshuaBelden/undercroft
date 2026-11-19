@@ -169,9 +169,11 @@ export interface RiteRequirement {
 	count: number;
 	/**
 	 * Where the map holds it: `crate` in one of the loot crates, `room` on the floor of a major
-	 * room. Left out, it isn't placed at all: players bring it down or find it as loot.
+	 * room, `altar` on the furniture in front of where the rite is performed (the Gloaming
+	 * Chapel's altar, before the angel). Left out, it isn't placed at all: players bring it down or
+	 * find it as loot.
 	 */
-	place?: 'crate' | 'room';
+	place?: 'crate' | 'room' | 'altar';
 }
 
 /** One written hint: what it says, and what it reveals (a requirement's item id, or `room`). */
@@ -333,12 +335,13 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			hitRadius: 1,
 			hitHeight: 2.2
 		},
-		// Candles and chalk are bought or looted; the Pendant is in a crate (unless someone owns it).
+		// Candles and chalk are bought or looted; the Pendant lies on the chapel's altar (unless
+		// someone owns it).
 		rite: {
 			requirements: [
 				{ item: 'candle', count: 5 },
 				{ item: 'chalk', count: 1 },
-				{ item: 'pendant', count: 1, place: 'crate' }
+				{ item: 'pendant', count: 1, place: 'altar' }
 			],
 			room: 'gloaming-chapel',
 			seconds: 5,
@@ -349,7 +352,7 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 					reveals: 'chalk'
 				},
 				{
-					text: 'The robbers threw his pendant in a crate with the rest of the haul.',
+					text: "The robbers never got his pendant out. It still lies on the altar, at the angel's feet.",
 					reveals: 'pendant'
 				},
 				{

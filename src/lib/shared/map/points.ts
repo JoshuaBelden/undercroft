@@ -5,7 +5,7 @@ import {
 	type CollisionWorld,
 	type RopeLine
 } from './collision.ts';
-import { LEVEL_HEIGHT, rotateXZ, toWorld } from './grid.ts';
+import { EDGE_DIR, LEVEL_HEIGHT, rotateEdge, rotateXZ, toWorld } from './grid.ts';
 import type { MapKit, MapLayout, PieceDef, Vec3 } from './types.ts';
 
 /**
@@ -101,6 +101,38 @@ export function roomPoints(
 		});
 	}
 	return points;
+}
+
+/**
+ * Admin teleports for trying things out (docs/dev/admin.md), apart from the rooms (the benchmark
+ * walks those): the first ledge hall, on its upper half; in front of each false wall, on the side
+ * it is seen from; in front of the first locked trunk. The server adds `stuck-crate` and
+ * `pendant`, which only it knows (server/systems/cheats.ts).
+ */
+export function testPoints(
+	layout: MapLayout,
+	pieces: Record<string, PieceDef>
+): { name: string; position: Vec3 }[] {
+	const points: { name: string; position: Vec3 }[] = [];
+	const ledge = layout.placements.find((p) => p.piece === 'hall-ledge');
+	if (ledge && pieces[ledge.piece]) {
+		points.push({ name: 'ledge-hall', position: toWorld(ledge, [0, LEVEL_HEIGHT + 0.05, -2]) });
+	}
+	(layout.walls ?? []).forEach((wall, i) => {
+		// The cap seals its piece's opening on edge dge: stand a step and a half inside that piece.
+		const [ex, ez] = EDGE_DIR[rotateEdge('n', wall.rotation)];
+		const [x, y, z] = wall.position;
+		points.push({ name: `false-wall-${i + 1}`, position: [x - ex * 1.6, y + 0.05, z - ez * 1.6] });
+	});
+	const trunk = layout.crates.find((c) => c.kind === 'trunk');
+	if (trunk) points.push({ name: 'locked-trunk', position: inFront(trunk) });
+	return points;
+}
+
+/** A step in front of a crate (or trunk), facing it: where you stand to open it. */
+export function inFront(crate: { position: Vec3; yaw: number }): Vec3 {
+	const [x, y, z] = crate.position;
+	return [x + Math.sin(crate.yaw) * 1.3, y + 0.05, z + Math.cos(crate.yaw) * 1.3];
 }
 
 /** Collapsed walls: every rubble-* marker in the map, in world space (where bricks lie). */

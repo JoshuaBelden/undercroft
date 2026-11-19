@@ -12,15 +12,20 @@
 		key?: string | null;
 		/** 0..1 hold progress; 0 shows the empty pill. */
 		progress?: number;
+		/** It can't be done yet (a lock with no key, a jam with no crowbar): the pill turns red. */
+		blocked?: boolean;
+		/** Words after the key ("(crate stuck)"). */
+		after?: string | null;
 	}
 
-	let { text, key = null, progress = 0 }: Props = $props();
+	let { text, key = null, progress = 0, blocked = false, after = null }: Props = $props();
 </script>
 
-<div class="pill" class:holding={progress > 0} role="status">
+<div class="pill" class:holding={progress > 0} class:blocked role="status">
 	<div class="fill" style:width="{Math.min(1, Math.max(0, progress)) * 100}%"></div>
 	{#if text}<span class="text">{text}</span>{/if}
 	{#if key}<span class="cap"><KeyCap code={key} size="large" tint="control" /></span>{/if}
+	{#if after}<span class="text">{after}</span>{/if}
 </div>
 
 <style>
@@ -42,6 +47,16 @@
 
 	.pill.holding {
 		border-color: rgb(230 220 203 / 0.85);
+	}
+
+	.pill.blocked {
+		--hint-cap: #e7a397;
+		border-color: rgb(196 72 58 / 0.85);
+		background: rgb(48 10 8 / 0.72);
+	}
+
+	.pill.blocked .text {
+		color: #e7a397;
 	}
 
 	.fill {

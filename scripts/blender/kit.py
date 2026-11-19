@@ -83,6 +83,7 @@ PIECES = [
     "hall-squeeze",
     "hall-canal",
     "hall-flooded",
+    "hall-ledge",
     "hall-side-room",
     "room-small",
     "room-crypt",
@@ -612,14 +613,14 @@ def build_cap_hall(force=False):
     # Collapsed rock face: fan from a point bulging back into the passage to the opening outline.
     hub = Vector((0.1, -0.35, 1.1))
     outline = [Vector((x, 0.0, z)) for x, z in prof]
+    mids = [p.lerp(hub, 0.5) + Vector((0, -0.08 * math.sin(i), 0)) for i, p in enumerate(outline)]
     for i in range(len(outline) - 1):
         a, b = outline[i], outline[i + 1]
-        mid_a = a.lerp(hub, 0.5) + Vector((0, -0.08 * math.sin(i), 0))
-        mid_b = b.lerp(hub, 0.5) + Vector((0, -0.08 * math.sin(i + 1), 0))
-        mb.face([a, b, mid_b, mid_a], "mat-wall-tunnel", facing=(0, -1, 0), smooth=True)
-        mb.face([mid_a, mid_b, hub], "mat-wall-tunnel", facing=(0, -1, 0), smooth=True)
-    # Floor-level closure of the fan
-    mb.face([outline[-1], outline[0], outline[0].lerp(hub, 0.5), outline[-1].lerp(hub, 0.5)], "mat-wall-tunnel", facing=(0, -1, 0))
+        mb.face([a, b, mids[i + 1], mids[i]], "mat-wall-tunnel", facing=(0, -1, 0), smooth=True)
+        mb.face([mids[i], mids[i + 1], hub], "mat-wall-tunnel", facing=(0, -1, 0), smooth=True)
+    # Along the floor, the fan closes the same way, on the same ring, right up to the hub: no hole.
+    mb.face([outline[-1], outline[0], mids[0], mids[-1]], "mat-wall-tunnel", facing=(0, -1, 0))
+    mb.face([mids[-1], mids[0], hub], "mat-wall-tunnel", facing=(0, -1, 0))
     obj = mb.finish(coll, root)
     obj.name = name + "-mesh"
     # Rubble spill
@@ -1765,6 +1766,8 @@ def build_gloaming_chapel(force=False):
     door = marker(coll, root, "door-0", (0, CH_DOOR_Y, 0), display="ARROWS", size=0.6)
     door.rotation_euler = (0, 0, math.pi)  # its +Y to the way in: the leaves swing into the nave
     marker(coll, root, "rite-0", (0, 8.4, dz), display="SPHERE", size=0.6)
+    # Where the rite's item lies on the altar (the Pendant): its top, between the candles.
+    marker(coll, root, "altar-0", (0, 9.45, dz + 1.12), display="SPHERE", size=0.15)
     marker(coll, root, "extract-0", (-NX + 0.7, ly, dz), display="SPHERE", size=0.6)
     # Crates in the side halls, against their outer walls (local +Y at the wall behind).
     for k, sx in enumerate((-1, 1)):
@@ -2273,6 +2276,52 @@ def build_hall_canal(force=False):
         for sx, label in ((-1, "w"), (1, "e")):
             col_segment(coll, root, f"col-taper-{side}-{label}", (sx * hw_wide, sy * mid), (sx * HALL_HALF_W, sy * 3.0), floor, floor + 3.0, 0.4, (sx, 0))
     col_box(coll, root, "col-ceiling-mid", (-2, -2.4, floor + 3.4), (2, 2.4, floor + 3.8))
+    return coll
+
+
+LEDGE_DROP = 1.1  # under MOVEMENT.mantle.maxHeight (1.2 m): climbed with a mantle
+LEDGE_LIP = 0.4  # the shelf at the south end, at socket height
+
+
+def build_hall_ledge(force=False):
+    """1x2 cells: a tall passage with a ledge to climb. The north half is a hall at socket height;
+    the south half's floor is LEDGE_DROP lower, under the same vault, so it stands extra tall,
+    up to a short shelf at the south socket. Either way through you drop down once and mantle up
+    once (Space). The nav grid can't climb it, so the generator keeps it off the main route.
+    Like the canal it declares an extra level below, with its sockets at level 1."""
+    name = "hall-ledge"
+    coll = piece_collection(name, force)
+    root = root_empty(coll, name, 1, 2, levels=2)
+    W, F = "mat-wall-tunnel", "mat-floor-tunnel"
+    floor = LEVEL
+    low = floor - LEDGE_DROP
+    hall = hall_profile()
+    # The same vault as the hall, its walls carried straight down to the sunken floor.
+    tall = arch_profile(HALL_HALF_W, HALL_SPRING + LEDGE_DROP, HALL_HALF_W)
+    south = -4.0 + LEDGE_LIP
+    mb = MeshBuilder(name + "-mesh")
+    sweep(mb, hall, straight_frames((0, 4.0, floor), (0, 0.0, floor), 8), W, F, jitter=0.15, seed=4.1)
+    sweep(mb, tall, straight_frames((0, 0.0, low), (0, south, low), 8), W, F, jitter=0.15, seed=5.7)
+    sweep(mb, hall, straight_frames((0, south, floor), (0, -4.0, floor), 1), W, F)
+    # The faces of the two ledges, from the sunken floor up to socket height.
+    for y, facing in ((0.0, (0, -1, 0)), (south, (0, 1, 0))):
+        mb.face(
+            [(-HALL_HALF_W, y, low), (HALL_HALF_W, y, low), (HALL_HALF_W, y, floor), (-HALL_HALF_W, y, floor)],
+            W,
+            facing=facing,
+        )
+    mb.finish(coll, root)
+
+    socket(coll, root, "hall", 0, (0, 4, floor))
+    socket(coll, root, "hall", 1, (0, -4, floor))
+    # Collision: the upper floor and the shelf (solid down to below the sunken floor, so their
+    # faces are walls to climb), the sunken floor, the walls the whole way, the vault.
+    col_box(coll, root, "col-upper", (-1.5, 0.0, low - 0.3), (1.5, 4.0, floor))
+    col_box(coll, root, "col-shelf", (-1.5, -4.0, low - 0.3), (1.5, south, floor))
+    col_box(coll, root, "col-low-floor", (-1.5, south, low - 0.3), (1.5, 0.0, low))
+    col_box(coll, root, "col-wall-w", (-1.5, -4.0, low), (-HALL_HALF_W, 4.0, floor + 3.0))
+    col_box(coll, root, "col-wall-e", (HALL_HALF_W, -4.0, low), (1.5, 4.0, floor + 3.0))
+    col_box(coll, root, "col-ceiling", (-1.5, -4.0, floor + 2.8), (1.5, 4.0, floor + 3.2))
     return coll
 
 
@@ -3007,6 +3056,7 @@ BUILDERS = {
     "hall-squeeze": build_hall_squeeze,
     "hall-canal": build_hall_canal,
     "hall-flooded": build_hall_flooded,
+    "hall-ledge": build_hall_ledge,
     "hall-side-room": build_hall_side_room,
     "room-small": build_room_small,
     "room-crypt": build_room_crypt,

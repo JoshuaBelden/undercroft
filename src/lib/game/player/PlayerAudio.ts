@@ -22,6 +22,9 @@ export class PlayerAudio {
 	private swimming = false;
 	private underwater = false;
 	private mantling = false;
+	/** On the floor last frame, and in the air from a jump (for the footfall on landing). */
+	private grounded = false;
+	private jumped = false;
 	/** Metres climbed (up or down) since the rope last creaked; null while not on one. */
 	private climbed: number | null = null;
 	private climbY = 0;
@@ -59,6 +62,7 @@ export class PlayerAudio {
 
 		if (state.swimming && !this.swimming) this.sounds.play('water.enter');
 		if (state.mantle && !this.mantling) this.sounds.play('mantle');
+		this.updateJump(state);
 		this.updateRope(state);
 		this.updateSqueeze(state);
 		this.swimming = state.swimming;
@@ -91,6 +95,24 @@ export class PlayerAudio {
 			}
 		}
 		this.last = [x, y, z];
+	}
+
+	/** A jump: a scuff as the feet leave the floor and a footfall as they come down. */
+	private updateJump(state: PlayerState): void {
+		const leaving =
+			this.grounded &&
+			!state.grounded &&
+			!state.mantle &&
+			state.velocity[1] > MOVEMENT.jump.speed / 2;
+		if (leaving) {
+			this.jumped = true;
+			this.sounds.play('jump');
+		} else if (this.jumped && state.grounded) {
+			this.jumped = false;
+			this.sounds.play(this.surface(state), MOVEMENT.stances[state.stance].footstepVolume);
+		}
+		if (state.climbing || state.swimming || state.mantle) this.jumped = false;
+		this.grounded = state.grounded;
 	}
 
 	/** Climbing a rope: a creak every so often as you go up or down it. */

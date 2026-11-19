@@ -9,7 +9,7 @@ The decisions behind it:
 - **Your own:** each player's map is theirs. Showing it to a teammate close by (`SURVEY.shareRange`, both with notebooks) merges the two, both ways.
 - **No live teammates** on the map: you know where they were when they showed you theirs.
 - **The surveyor** (a friendly creature, [creatures.md](creatures.md#the-surveyor-friendly-wanders-invulnerable)) wanders the catacombs, and everywhere he has been is in his map. Holding interact on him draws it into yours once (`SurveySystem.reveal`), notebook or not.
-- Standalone screen for now; it becomes the Map page of the in-game menu (#46) once that lands.
+- It is the Map tab of the in-game menu, beside Pack and Rite ([#102](https://github.com/JoshuaBelden/undercroft/issues/102)).
 
 ## Files
 
@@ -21,9 +21,11 @@ The decisions behind it:
 | `src/lib/shared/map/survey.ts`       | `surveyMap` (what a map can show), `sketchCells` (what one sketch draws), `carriesSurvey`        |
 | `server/survey.ts`                   | `Surveys`: the cells each player has drawn                                                       |
 | `server/systems/survey.ts`           | `SurveySystem`: `step` (the holds), `sketch`, `partner`, `show`, `send`; admin commands          |
-| `src/lib/ui/MapScreen.svelte`        | The map screen: the page, levels, zoom and pan, the Sketch and Show holds                        |
+| `src/lib/ui/MapPane.svelte`          | The Map tab: the page, zoom and pan, the Sketch and Show holds                                   |
+| `src/lib/ui/MapTools.svelte`         | Its buttons in the menu's header: Up, the level, Down, Find me                                   |
+| `src/lib/ui/mapView.svelte.ts`       | `MapView`: where the page looks (level, centre, zoom, following you), shared by the two          |
 | `src/lib/ui/mapSketch.ts`            | Drawing the page on a canvas                                                                     |
-| `src/routes/play/+page.svelte`       | Opening it (`toggle('map')`)                                                                     |
+| `src/routes/play/+page.svelte`       | Opening it (`toggleMap`: the menu on its Map tab)                                                |
 | `src/lib/game/play/survey.svelte.ts` | The `survey` message, the notebook, the screen's view of you (`screenView`) ([play.md](play.md)) |
 
 ## What a map can show (`surveyMap`)
@@ -55,16 +57,18 @@ Known gap: the client has the whole layout ([#35](https://github.com/JoshuaBelde
 
 ## The screen
 
-`MapScreen` is a panel like the pack: opened by the `map` action (M) or the pack's Map button, closed by the same key, Close, B, or going down. It only opens with a notebook in the pack; without one the HUD says "No notebook to draw a map in" for a moment. It opens on your level, centred on you, and follows you until the page is dragged.
+The map is the **Map tab** of the in-game menu (`GameMenu`, see [items.md](items.md#the-in-game-menu)), between Pack and Rite, shown only with a notebook in the pack. The `map` action (M) opens the menu on it (`toggleMap`), and puts the menu away when the Map tab is already showing; the tab pill, or LB/RB, get there from the other tabs. Without a notebook M does nothing but the HUD saying "No notebook to draw a map in" for a moment. Close (a pill at the bottom right of the menu), B, the pack key or going down put it away. Each time the tab shows, a fresh `MapView` opens it on your level, centred on you, and it follows you until the page is dragged. `map.open` and `map.close` play as the tab comes and goes (`mapShowing` in the play page). On the Map tab you stand still (the movement keys don't walk, as they do on the other tabs: sketching needs you still), and `Survey.open` lets the feature work out your place on the page each frame.
+
+The tab's own buttons are pills in the middle of the menu's header (`MapTools`): Up, the level, Down and Find me. The page and the Sketch and Show holds are the tab's pane (`MapPane`); the menu is as big as the map while it shows.
 
 - **Page:** `drawSketch` (`mapSketch.ts`) draws on a canvas, north up: squared paper, the floor washed in, then the walls in pencil that wobbles the same way every time (seeded by position). Passages are 2 m wide down the middle of their cells; rooms fill theirs. A way into a cell not drawn yet trails off as a short stub. Symbols: stair treads with an arrow and "to level N", a ladder in a ring for the way out, waves for water, "crawl", and a pinch for a squeeze. Room names, chalk marks in drawn cells (their strokes, from `MARK_SYMBOLS`), you as a red arrowhead, and a compass.
-- **Levels** are numbered for players from 1 at the start (`levelNumber`). One at a time; LB/RB, PageUp/PageDown or the Up and Down buttons.
+- **Levels** are numbered for players from 1 at the start (`levelNumber`). One at a time; PageUp/PageDown or the Up and Down buttons in the header (on a controller, LB/RB switch the menu's tabs: the D-pad reaches the buttons).
 - **Zoom:** the wheel over the page, `mapZoomIn`/`mapZoomOut` (keys and the triggers), between `SURVEY.zoom.min` and `max` pixels per metre. The last zoom is kept (`settings.interface.mapZoom`). **Pan:** drag the page, or the right stick. Find me brings it back to you.
-- **Holds:** Sketch and Show are buttons held with the mouse, or with `sketchMap` and `showMap` (E and R), or X and Y on a controller (the menu's `holding`, see [controller.md](controller.md#menus)). Whichever is down is sent to the server; the buttons fill as `sketching` and `sharing` come back.
+- **Holds:** Sketch and Show are pill buttons held with the mouse, or with `sketchMap` and `showMap` (E and R), or X and Y on a controller (the menu's `holding`, while the Map tab shows; see [controller.md](controller.md#menus)). Whichever is down is sent to the server; the buttons fill as `sketching` and `sharing` come back.
 
 ## Sounds
 
-`map.open` and `map.close` (the notebook), `map.sketch` (the pencil: your own in your hands, others' where they stand) and `map.show` (pages), in `src/lib/content/audio/sounds.ts`. All synthesized for now.
+`map.open` and `map.close` (the notebook), `map.sketch` (the pencil: your own in your hands, others' where they stand; the `sfx_scribble` recording, `map.scribble`) and `map.show` (pages), in `src/lib/content/audio/sounds.ts`. The others are synthesized for now.
 
 ## Admin
 

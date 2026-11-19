@@ -107,7 +107,7 @@ They are never on the main route. After the side branches, the generator hangs `
 | `rope.tie`                    | Tying, untying, gathering up (`sfx_rope_tying.mp3`, first 3.5 s) |
 | `rope.payout`                 | Every 2 m laid (synth)                                           |
 | `fall.land`, `fall.land.hard` | A fall that hurt (synth)                                         |
-| `condition.hobble`            | Your own hobbling fall (the exertion grunts)                     |
+| `condition.hobble`            | Your own hobbling fall (the grunt)                               |
 
 ## Body animation
 

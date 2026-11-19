@@ -53,5 +53,9 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	// A medical case standing on its edge, longest along X. About 28 cm wide; held by its top.
 	medkit: { forward: '-x', up: '+y', length: 0.28, grip: [0.5, 0.85] },
 	// A field book lying flat on its back cover, longest along X. About 18 cm; held in the middle.
-	notebook: { forward: '-x', up: '+y', length: 0.18, grip: [0.5, 0.5] }
+	notebook: { forward: '-x', up: '+y', length: 0.18, grip: [0.5, 0.5] },
+	// An old iron key lying flat, longest along X. About 12 cm long; held by its bow.
+	key: { forward: '-x', up: '+y', length: 0.12, grip: [0.2, 0.5] },
+	// A round pendant facing +Z (thin along Z): its face is its top, so it lies flat. About 7 cm.
+	pendant: { forward: '+y', up: '+z', length: 0.07, grip: [0.5, 0.5] }
 };

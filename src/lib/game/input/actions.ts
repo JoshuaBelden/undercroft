@@ -19,8 +19,8 @@ export const ACTIONS = {
 		category: 'Movement',
 		defaults: ['KeyC']
 	},
-	// Held while downed, it surrenders.
-	climb: { label: 'Climb / swim up / surrender', category: 'Movement', defaults: ['Space'] },
+	// Pressed on the floor it jumps; held at a ledge it mantles; held while downed, it surrenders.
+	climb: { label: 'Jump / climb / swim up / surrender', category: 'Movement', defaults: ['Space'] },
 	swimDown: { label: 'Swim down', category: 'Movement', defaults: ['KeyX'] },
 	interact: {
 		label: 'Interact / grab a rope / revive (hold)',
@@ -112,8 +112,8 @@ export const PAD_DEFAULTS: Record<Action, readonly string[]> = {
 	prevItem: [],
 	quickUse: ['PadLB'],
 	inventory: ['PadView'],
-	// Every button is taken: on the controller the map opens from the pack screen. On the map
-	// screen X sketches, Y shows and LB/RB change level: menu buttons, fixed like A and B.
+	// Every button is taken: on the controller the map is the in-game menu's Map tab (LB/RB). On
+	// it X sketches and Y shows (menu buttons, fixed like A and B); its Up and Down buttons change level.
 	map: [],
 	sketchMap: [],
 	showMap: [],

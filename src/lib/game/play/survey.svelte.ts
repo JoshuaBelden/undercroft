@@ -32,6 +32,8 @@ export class Survey implements PlayFeature {
 	view = $state<MapView>({ self: null, sketch: 0, share: 0, partner: null });
 	/** Carrying a notebook: there is a map to open. */
 	hasNotebook = false;
+	/** The menu's Map tab is showing (the play page says so each frame). */
+	open = false;
 	/** Until when (ms) the HUD says there is no notebook, after the map key was pressed without one. */
 	private noNotebookUntil = 0;
 
@@ -82,12 +84,10 @@ export class Survey implements PlayFeature {
 	}
 
 	self(state: PlayerState): void {
-		const { ui } = this.ctx;
 		this.hasNotebook = carriesSurvey(state.inventory);
-		if (ui.panel !== 'map') return;
-		// Going down, or the notebook gone from the pack, puts the map away.
-		if (state.downed || !this.hasNotebook) ui.panel = null;
-		else this.view = this.screenView(state);
+		// Going down closes the menu; the notebook gone from the pack takes the Map tab away.
+		if (!this.open || state.downed || !this.hasNotebook) return;
+		this.view = this.screenView(state);
 	}
 
 	private screenView(state: PlayerState): MapView {

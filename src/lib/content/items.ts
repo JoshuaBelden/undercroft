@@ -227,6 +227,13 @@ export interface ItemDef {
 	 * (the surveyor's notebook, see docs/dev/map.md).
 	 */
 	survey?: boolean;
+	/**
+	 * Held in the hand, it pries: jammed crates open, and false walls at the ends of dead ends
+	 * down (the crowbar, see docs/dev/items.md#jammed-crates and map-generation.md#false-walls).
+	 */
+	pry?: boolean;
+	/** Carried anywhere, it unlocks one locked trunk, and is used up (the key, see items.md). */
+	unlocks?: boolean;
 }
 
 /** How many of most things share a slot. Weapons and defense never stack. */
@@ -264,7 +271,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.934, 0.73, 1.052] },
 		maxStack: 1,
 		weight: 2.5,
-		melee: { damage: 40, range: 1.8, arc: 0.6, windup: 0.45, recovery: 0.65, noise: 6 }
+		melee: { damage: 40, range: 1.8, arc: 0.6, windup: 0.45, recovery: 0.65, noise: 6 },
+		pry: true
 	},
 	// Wears with every blow, so each one keeps its own slot.
 	brick: {
@@ -504,6 +512,21 @@ export const ITEMS: Record<string, ItemDef> = {
 		weight: 0.3,
 		survey: true
 	},
+	// Opens one locked trunk on the third level, and is used up (see docs/dev/items.md).
+	key: {
+		id: 'key',
+		name: 'Iron key',
+		kind: 'consumable',
+		category: 'other',
+		flavor: 'Heavy, toothed and black with age. Somewhere down here is the lock it was made for.',
+		image: 'key',
+		model: modelUrl('shared/items/key.glb'),
+		hold: HOLD_RIGHT,
+		maxStack: DEFAULT_STACK,
+		weight: 0.15,
+		rarity: 'rare',
+		unlocks: true
+	},
 	// Unlit. The rite takes five; lighting them comes with light sources.
 	candle: {
 		id: 'candle',
@@ -654,8 +677,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'Heavier than it should be, and never quite warm.',
 		image: 'pendant',
 		quest: true,
-		model: null,
-		placeholder: { size: [0.1, 0.03, 0.14], color: 0xb08a3a },
+		model: modelUrl('shared/items/pendant.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 0.2

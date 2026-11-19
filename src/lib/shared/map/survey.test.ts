@@ -48,7 +48,7 @@ describe('surveyMap', () => {
 		}
 	});
 
-	it('has a way through at each connected entrance and into each dead end, none at caps', () => {
+	it('has a way through at each connected entrance and into each dead end, none at caps or false walls', () => {
 		const layout = realMap(42);
 		const map = surveyMap(layout, PIECES, MAP_KIT);
 		const connected = mapDebugGrid(layout, PIECES, MAP_KIT).entrances.filter(
@@ -58,8 +58,9 @@ describe('surveyMap', () => {
 		const ways = [...map.cells.values()]
 			.flatMap((c) => Object.values(c.sides))
 			.filter((side) => side === 'way');
-		// Each way is counted from both cells beside it.
-		expect(ways.length).toBe((connected + deadEnds) * 2);
+		// Each way is counted from both cells beside it. A false wall is drawn as the wall it looks like.
+		const walls = layout.walls?.length ?? 0;
+		expect(ways.length).toBe((connected + deadEnds - walls) * 2);
 	});
 
 	it('can walk from the start to every cell', () => {

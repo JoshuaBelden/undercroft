@@ -21,7 +21,7 @@ The rite is how an Affliction is resolved ([affliction.md](affliction.md)). Play
 
 `AfflictionDef.rite` is a `RiteSpec`:
 
-- `requirements`: `{ item, count, place? }[]`, what the holder must carry. `place` says where the map holds it: `'crate'` in a loot crate (the Pendant), `'room'` on the floor of a major room. Without `place` it isn't put in the map at all: players buy it or find it as loot (candles, chalk).
+- `requirements`: `{ item, count, place? }[]`, what the holder must carry. `place` says where the map holds it: `'crate'` in a loot crate, `'room'` on the floor of a major room, `'altar'` on the altar of the rite's own room (the Pendant). Without `place` it isn't put in the map at all: players buy it or find it as loot (candles, chalk).
 - `room`: piece id of the room it is performed in (`gloaming-chapel`).
 - `seconds`: how long the holder holds interact.
 - `clues`: the hints, in the order they are learned: `{ text, reveals }[]`. `reveals` is a requirement's item id, or `'room'`. Any number of hints and requirements works; once every hint is found everything is known, even a requirement no hint names (`revealed` in `rite.ts`).
@@ -34,7 +34,7 @@ Changing what a rite needs is a change to this data. A new requirement needs an 
 
 `scatterRite` (called from `Session.populate`, seeded by the map seed) places:
 
-- **Required items** with a `place`. `'crate'`: `Crates.stow` puts it in one of the map's crates, after whatever the crate rolled, so it is the last thing revealed (in a map with no crates it lies in a major room). `'room'`: on a standing, dry nav point in a major room other than the rite's own.
+- **Required items** with a `place`. `'crate'`: `Crates.stow` puts it in one of the map's crates, after whatever the crate rolled, so it is the last thing revealed (in a map with no crates it lies in a major room). `'altar'`: on the room's `altar-0` marker (`altarSpot`; the Gloaming Chapel's is on the altar's top before the angel, between its inner candles), so the Pendant's hint can say exactly where it is. A room without the marker uses the furniture top nearest its `rite-0` marker (`furnitureSpots`), and one with nothing to lay it on a major room's floor. Never a crate or a corpse. `'room'`: on a standing, dry nav point in a major room other than the rite's own.
 - **Withheld items:** a requirement in `Session.withhold` is left out. `Parties.begin` withholds every quest requirement that anyone in the party owns: in their stash or loadout on the surface (`owned` in `belongings.ts`, `itemsOwned` in the explorer store) or in the kit they are taking down. That is checked before anyone arrives, and whatever was already placed is taken out again.
 - **Hints:** `clues.length × clueCopies` hint items. **Never on a floor.** `server/hints.ts` gathers every spot outside the rite's room, of four kinds:
   - `crate` and `corpse`: every loot crate and corpse (`crateSpots`). The hint goes in last (`Crates.stowIn`). A full crate loses its commonest thing to make room, never a hint or quest item, and a refill keeps both.
@@ -50,7 +50,7 @@ A hint is read, never carried (`maxStack: 0`):
 
 Either way `RiteSystem.readClue` (`server/systems/rite.ts`) calls `RiteDirector.find()` and raises the `clue` game event, with the hint's `text` and the requirements and room it revealed, to every player. The hint item is then removed. Once everything is known, the remaining copies are removed from the floor, the walls and the crates (`clearHints`). A copy read when there is nothing left to learn is left alone.
 
-Neither the Pendant nor the hint has a model yet. They are drawn as boxes from `ItemDef.placeholder`: a small brass-coloured block and a pale sheet (standing upright against a wall when mounted).
+The Pendant has its model (`shared/items/pendant.glb`, about 7 cm across, lying flat: its frame is in `scripts/items.config.ts`). The hint has none yet: it is drawn as a pale sheet from `ItemDef.placeholder` (standing upright against a wall when mounted).
 
 ## What clients know
 

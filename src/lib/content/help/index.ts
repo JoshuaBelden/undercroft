@@ -60,7 +60,7 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 
 - {action:moveForward} {action:moveLeft} {action:moveBack} {action:moveRight} move, {action:sprint} run
 - {action:stance} tap to crouch or crawl, hold to creep, let go of a rope
-- {action:climb} climb up a ledge, swim up
+- {action:climb} jump; hold it to climb up a ledge, swim up
 - {action:swimDown} swim down
 - {action:headlamp} tap: headlamp off or on, hold: low or bright
 - {action:interact} pick up, search, open, take hold of a rope, climb out, revive
@@ -91,7 +91,7 @@ In menus, the D-pad or left stick moves between choices and {button:PadA} picks 
 
 In your pack, a crate or the Loadout page, {button:PadA} picks an item up and the slots that would take it light up; {button:PadA} on one puts it down, and {button:PadB} puts it back. {button:PadX} sends an item straight where it belongs, and {button:PadY} opens its menu. In a crate or a corpse, once {button:PadX} has sent an item to your pack you move on to the next one, so you can empty it by pressing {button:PadX} again and again. On the Loadout page {button:PadX} and {button:PadY} act when you let go, so that holding them can do something else (below). Typing, such as a friend's gamer tag, still needs a keyboard.
 
-With a notebook in your pack, your pack has a Map button. On the map, hold {button:PadX} to sketch and {button:PadY} to show your map to a teammate. {button:PadLB} and {button:PadRB} change level, {pad:mapZoomIn} and {pad:mapZoomOut} zoom, and the right stick moves the page. {button:PadB} puts it away.
+With a notebook in your pack, your pack has a Map tab: {button:PadLB} and {button:PadRB} go to it. On the map, hold {button:PadX} to sketch and {button:PadY} to show your map to a teammate. The Up and Down buttons at the top change level, {pad:mapZoomIn} and {pad:mapZoomOut} zoom, and the right stick moves the page. {button:PadB} puts it away.
 
 On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
 
@@ -123,7 +123,9 @@ Run it all the way down and you're spent: you can't sprint, climb or dive again 
 		id: 'climbing',
 		title: 'Climbing',
 		category: 'Moving',
-		body: `Walk up to a ledge or a low wall and hold {action:climb} to pull yourself up onto it, if there's room on top. Climbing costs a little stamina, and you can't do it while you're spent.
+		body: `Walk up to a ledge or a low wall and hold {action:climb} to pull yourself up onto it, if there's room on top. Some tall passages have a ledge across them, chest high: drop down off it, or climb up it the same way. Whatever lives down here can't climb them. Climbing costs a little stamina, and you can't do it while you're spent.
+
+Press {action:climb} anywhere else to jump: a short hop, enough to get over a low obstacle. It costs a little stamina too, and you can't jump while crawling, in a squeeze or in the water.
 
 In the water, swim up to an edge and hold {action:climb} to pull yourself out.
 
@@ -424,6 +426,24 @@ How hard something is to come by shows on the left and bottom edge of its slot: 
 A crate never holds much of the best. Deeper crates hold more.`
 	},
 	{
+		id: 'false-walls',
+		title: 'False walls',
+		category: 'Gear and loot',
+		body: `Not every dead end is one. Here and there a passage has been walled up, and what lies beyond is untouched: nothing goes in there, and the crates are still full.
+
+You can't tell a false wall by looking. Take a crowbar in your hand and walk up to the wall at the end of any dead end: the prompt reads Pry. Hold {action:interact} for five seconds. If it is solid rock, nothing happens. If it is false, it comes down. Either way it is loud, and the wall coming down is louder.`
+	},
+	{
+		id: 'jammed-and-locked',
+		title: 'Jammed crates and locked trunks',
+		category: 'Gear and loot',
+		body: `Some crates won't open: the lid is jammed fast. You only find out by trying one. After that the prompt reads Pry, and anyone can see the crate is stuck.
+
+To pry one open, take a crowbar in your hand, look at the crate and hold {action:interact}. It takes ten seconds and it is loud: anything nearby will hear it and come to look. Let go and you start over. Without a crowbar in your hand the prompt shows in red.
+
+On the third level a few of the crates are iron-bound trunks, locked. Each holds something epic or legendary, among other things. To open one you need a key: somewhere in the map, in an ordinary crate, there is one key for every trunk. Look at the trunk and press {action:interact} to unlock it. The key is used up, and it doesn't need to be in your hand. Then hold {action:interact} to search the trunk like any crate. Without a key the prompt shows in red. A key you carry out is yours to bring down again.`
+	},
+	{
 		id: 'chalk',
 		title: 'Chalk marks',
 		category: 'Gear and loot',
@@ -453,13 +473,13 @@ Some places drop away into the dark, too far to climb down and too far to jump. 
 		category: 'Gear and loot',
 		body: `Nobody knows the way down here, and nobody gives you a map. You draw your own, in a surveyor's notebook from the store. It goes in your pack like anything else, and it is lost with everything else if you die.
 
-With a notebook in your pack, press {action:map} to open your map (on a controller, open your pack and choose Map). It starts blank. The catacombs don't wait while you look at it.
+With a notebook in your pack, press {action:map} to open your map: it is the Map tab of your pack, beside Pack and Rite, and opens on the level you are on (on a controller, open your pack and go to the Map tab). It starts blank. The catacombs don't wait while you look at it.
 
 To draw, stand still with the map open and hold Sketch ({action:sketchMap}). After a moment what you can see from where you stand goes down on the page, a dozen paces at most. Only what you can see: a corner, a pillar or the far end of a big room stay blank until you go and look. Ways on that you haven't drawn yet trail off at the edge of the page. The pencil can be heard.
 
 Your map is yours alone: what your friends draw goes in their notebooks, not yours. When you meet up again, stand close and hold Show ({action:showMap}): you each see the other's map and copy it into your own. They need a notebook of their own.
 
-The map shows passages and rooms, the names of the rooms you have drawn, stairs and where they lead, the ways out, water, crawls and squeezes, and the chalk marks in places you have drawn. It shows you as a red arrow. It shows one level at a time: change level with {action:mapLevelUp} and {action:mapLevelDown}. Zoom with the mouse wheel or {action:mapZoomIn} and {action:mapZoomOut}, and drag the page to look around. Find me brings it back to where you are.`
+The map shows passages and rooms, the names of the rooms you have drawn, stairs and where they lead, the ways out, water, crawls and squeezes, and the chalk marks in places you have drawn. It shows you as a red arrow. It shows one level at a time: change level with the Up and Down buttons at the top, or {action:mapLevelUp} and {action:mapLevelDown}. Zoom with the mouse wheel or {action:mapZoomIn} and {action:mapZoomOut}, and drag the page to look around. Find me brings it back to where you are.`
 	},
 	{
 		id: 'captions',
@@ -515,7 +535,7 @@ At first, nothing is. Scraps of writing were left about the catacombs by those w
 
 The Afflictions page on the surface shows the hints you have found and what the rite needs. A thing is greyed out there until you have enough of it in your stash or loadout. Reset forgets everything you know of an Affliction, if you want to find it all again.
 
-For the Gloaming, the rite needs five candles, a stick of chalk and the Pendant. Candles and chalk can be bought, or found. The Pendant is shut away in one of the crates, and there is only one: things like it are edged in purple and marked with a star in the corner of their slot. If someone in your party already owns it, it isn't down there: bring it.
+For the Gloaming, the rite needs five candles, a stick of chalk and the Pendant. Candles and chalk can be bought, or found. The Pendant lies on the altar in the Gloaming Chapel, at the angel's feet, and there is only one: things like it are edged in purple and marked with a star in the corner of their slot. If someone in your party already owns it, it isn't down there: bring it.
 
 The Gloaming Chapel is the last room of all, on the third level, behind a great double door: hold {action:interact} on it to open it. It is vast, with a hall either side and stairs up to a balcony over the door.
 

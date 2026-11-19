@@ -202,6 +202,11 @@ function symbol(pen: Pen, feature: SurveyFeature): void {
 		case 'crawl':
 			pen.label('crawl', [x, z], INK);
 			break;
+		// A ledge to climb (hall-ledge): a step drawn across, and the word.
+		case 'ledge':
+			pen.line([x - 0.9, z], [x + 0.9, z]);
+			pen.label('ledge', [x, z + 1.2], INK);
+			break;
 		case 'squeeze':
 			pen.line([x - 1, z - 0.6], [x - 0.2, z], INK);
 			pen.line([x - 1, z + 0.6], [x - 0.2, z], INK);

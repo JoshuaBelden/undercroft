@@ -195,6 +195,10 @@ export class PlayerBody {
 		} else if (state.mantle) {
 			anim = 'climb';
 			pace = 1;
+		} else if (!state.grounded && !state.swimming && state.velocity[1] > 0.5) {
+			// On the way up from a jump (no clip yet: falls back to the run).
+			anim = 'jumping';
+			pace = 1;
 		} else if (kneeling(state)) {
 			// Down on one knee at a medkit set on the floor.
 			anim = 'kneel';

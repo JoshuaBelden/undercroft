@@ -109,10 +109,9 @@ describe('the rite', () => {
 
 	it('withholding a quest item takes it out of the map', () => {
 		const session = open(SEED);
-		const inCrates = () =>
-			session['crates'].list().some(({ crate }) => crate.slots.some((s) => s?.item === 'pendant'));
-		expect(inCrates()).toBe(true);
+		const inMap = () => session['items'].snapshots().some((i) => i.item === 'pendant');
+		expect(inMap()).toBe(true);
 		session.withhold(['pendant']);
-		expect(inCrates()).toBe(false);
+		expect(inMap()).toBe(false);
 	});
 });

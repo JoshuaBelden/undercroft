@@ -2,7 +2,7 @@ import { PICKUP } from '../../content/items.ts';
 import { MARKS } from '../../content/marks.ts';
 import { segmentHit, type CollisionWorld } from '../map/collision.ts';
 import { crateCentre } from '../map/crates.ts';
-import type { Vec3 } from '../map/types.ts';
+import type { CratePlacement, Vec3 } from '../map/types.ts';
 
 /**
  * Which item on the floor a player is looking at (within reach, in view, not behind a wall).
@@ -44,7 +44,7 @@ export const CRATE_REACH = { angle: 0.5, leave: PICKUP.range + 0.75 };
  * Which loot crate a player is looking at within reach. Shared so the client prompts for exactly
  * the crate the server will open. A floor item being looked at comes first: check that before.
  */
-export function lookedAtCrate<T extends { position: Vec3; kind?: 'corpse' }>(
+export function lookedAtCrate<T extends { position: Vec3; kind?: CratePlacement['kind'] }>(
 	world: CollisionWorld,
 	eye: Vec3,
 	look: Vec3,
