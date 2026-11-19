@@ -4,7 +4,7 @@ import { openDoor } from './collision.ts';
 import { tierAt, tierCells } from './doors.ts';
 import { buildNav, findPath, gridDistances, lowerStance, nearestPoint, pathLength } from './nav.ts';
 import { PIECES } from './pieces.generated.ts';
-import { spawnPoint } from './points.ts';
+import { entryPoint, spawnPoint } from './points.ts';
 import type { Vec3 } from './types.ts';
 import { MAP_KIT } from '../../content/map/kit.ts';
 import { toWorld } from './grid.ts';
@@ -34,16 +34,25 @@ describe('nav grid on real maps', () => {
 	for (const seed of [11, 22, 33]) {
 		const map = realMap(seed);
 		const world = realWorld(map);
-		const spawn = spawnPoint(map, PIECES).position;
-		const nav = buildNav(world, map, PIECES, spawn);
-		const start = nearestPoint(nav, spawn);
+		const entry = entryPoint(world, map, PIECES);
+		const nav = buildNav(world, map, PIECES, entry);
+		const start = nearestPoint(nav, entry);
 
-		it(`seed ${seed}: the spawn is on the grid`, () => {
+		it(`seed ${seed}: the foot of the start rope is on the grid`, () => {
 			expect(nav.points.length).toBeGreaterThan(100);
 			expect(start).toBeGreaterThanOrEqual(0);
+			expect(nav.points[start].position[1]).toBeCloseTo(entry[1] - 0.05, 0);
 		});
 
-		it(`seed ${seed}: every point is reachable from the spawn, through the doors`, () => {
+		it(`seed ${seed}: the chapel up top is off the grid: nothing walks up there`, () => {
+			const spawn = spawnPoint(map, PIECES).position;
+			expect(spawn[1] - entry[1]).toBeGreaterThan(6);
+			const near = nearestPoint(nav, spawn, 2);
+			const y = near < 0 ? -Infinity : nav.points[near].position[1];
+			expect(spawn[1] - y).toBeGreaterThan(2);
+		});
+
+		it(`seed ${seed}: every point is reachable from the foot of the start rope, through the doors`, () => {
 			const distance = gridDistances(nav, [start], true);
 			const unreachable = nav.points.filter((_, i) => distance[i] === undefined);
 			expect(unreachable).toHaveLength(0);
@@ -67,7 +76,7 @@ describe('nav grid on real maps', () => {
 			});
 		});
 
-		it(`seed ${seed}: with the doors open, a path leads from the spawn to every way out and rope`, () => {
+		it(`seed ${seed}: with the doors open, a path leads from the foot of the start rope to every way out and rope`, () => {
 			for (const door of map.doors) {
 				openDoor(world, door.id);
 				nav.closed.delete(door.id);
@@ -95,8 +104,7 @@ describe('nav grid on real maps', () => {
 			for (const seed of SEEDS) {
 				const map = realMap(seed);
 				const world = realWorld(map);
-				const spawn = spawnPoint(map, PIECES).position;
-				const nav = buildNav(world, map, PIECES, spawn);
+				const nav = buildNav(world, map, PIECES, entryPoint(world, map, PIECES));
 				const drops = map.placements.filter((p) => MAP_KIT[p.piece]?.needsRope);
 				expect(drops.length, `seed ${seed}`).toBeGreaterThan(0);
 				for (const placement of map.placements) {

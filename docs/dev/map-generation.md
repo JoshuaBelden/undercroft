@@ -47,7 +47,7 @@ A map is three **levels** stacked one under the other (`GenerateOptions.tiers`).
 
 | Role         | Meaning                                                                                                                                                                                                                                                                |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `start`      | Expedition start room. `exit` names the piece always attached to its opening (`hall-stairs-down`).                                                                                                                                                                     |
+| `start`      | Expedition start room (`angel-well`, see [The start room](#the-start-room)). An optional `exit` names a piece always attached to its opening.                                                                                                                          |
 | `major`      | Static major room. Every major room is placed on the main route. `final: true` marks the one that goes last and deepest (Gloaming Chapel).                                                                                                                             |
 | `extraction` | A room with a way out and a `gate` (`extraction-gate`). The last room on every level but the deepest, picked by `weight`.                                                                                                                                              |
 | `descent`    | The long stair down to the next level (`stairs-deep`). Attached by its top `gate` to the extraction room's `gate`; its tier is the level it leads down to.                                                                                                             |
@@ -56,6 +56,21 @@ A map is three **levels** stacked one under the other (`GenerateOptions.tiers`).
 | `cap`        | Seals an unused opening without occupying a cell. `seals` names the socket type.                                                                                                                                                                                       |
 
 Any entry can also set `affliction` (a key into `AFFLICTIONS`): the piece is then only generated in maps for that Affliction, and its built files live in `static/assets/afflictions/<id>/`, so other runs never download it. The Gloaming Chapel belongs to the Gloaming. The server passes the chosen Affliction as `GenerateOptions.affliction`, and the layout records it (`MapLayout.affliction`) so the client preloads the right Affliction's models.
+
+## The start room
+
+The Angel's Well (`angel-well`, built by `kit.build_angel_well`) is 2x2 cells and 3 levels. Up top (grid floor 2) is an octagonal chapel: an arched niche in every wall with candles on its sill, stone benches, and an angel on a plinth in the north niche. In its middle a pit falls 8 m to a chamber at its foot (floor 0), whose one `hall` opening is the way on. Its kit entry has no `exit`.
+
+- **Spawns:** four, one per party member, in front of the benches (`WELL_SPAWNS`), facing the pit (`spawnPoint`).
+- **The way down:** a rope tied for good on the pit's south lip (`anchor-0` with `rope`), where the well curb is open. It ends 1.7 m over the floor, so players climb down, drop off its end unhurt, and can't climb back up. See [rope.md](rope.md#the-start-rope).
+- **The catacombs begin at its foot:** `entryPoint` (`points.ts`) is the floor under that rope. The nav grid grows from there (`buildNav`), so the chapel is off it and creatures never go up, and everything laid out by distance from the start (creatures, loot, the rite's items) measures from there too. Without such a rope `entryPoint` is the first spawn.
+- **Admin:** the teleport list has `angel-well` (the first spawn) and `angel-well-foot` (the floor under the pit, to skip the climb).
+
+The old cellar start, `stairwell`, is retired: still in the .blend, out of `MAP_KIT`.
+
+## Candles
+
+A piece can have candles: `candle-<n>` markers at their wicks (the wax is part of its mesh). The play page's `Candles` feature (`src/lib/game/play/candles.ts`, drawing with `src/lib/game/map/Candles.ts`) draws a flame at every wick, all in one `Points` (one draw call), and gives each piece with candles one warm point light hung over the middle of them. It casts no shadows, flickers, and fades out with distance from the camera, and off it doesn't count against the light budget (see [systems.md](systems.md#rendering)). Tuning is `CANDLES` in `src/lib/content/candles.ts`: the light's colour, strength, range and height, the fade distances, the flicker and the flame's size. Only the start room has candles.
 
 ## Doors
 
@@ -80,7 +95,7 @@ A double door stands at the top of every long stair, just behind the extraction 
 
 `generateLayout(seed, PIECES, MAP_KIT, { affliction })` (pieces owned by any other Affliction are dropped from the kit first):
 
-1. **Start:** place the start room with a random rotation, its first cell on world cell `[0, 0]`, then attach its `exit` piece (stairs down) to reach the first level.
+1. **Start:** place the start room with a random rotation, its first cell on world cell `[0, 0]`, then attach its `exit` piece, if it has one. The Angel's Well has none: its opening is at the foot of its pit, on grid floor 0, and the first level grows from there.
 2. **Main route, level by level:** the non-final major rooms are shuffled and shared out evenly between the levels. Each level's route is its major rooms, then an extraction room (or, on the deepest level, the `final` room). Before each room, attach a corridor of `corridor` (4–7) flat connectors. Pieces are tried in weighted random order, each matching socket and rotation is tried, and placements that overlap an occupied cell on any level are rejected. Each step grows from any open socket of the piece before (trying the others when nothing fits); a room that does not fit stretches its corridor by up to `stretch` more pieces. Rooms are entered through a `hall`, never a `gate`. After an extraction room, the `descent` piece goes on its `gate`, and the next level grows from the foot of the stair.
 3. **Branches:** each still-open socket has a chance (`branchChance`) to grow a 2–5 piece side passage, in `branchPasses` passes, so tees and crosses on a branch can branch again. Branches never descend.
 4. **Rope drops:** `ropeDrops` (1) `needsRope` connectors (`drop-hall`, `pit`: 12 m down) are hung off an opening still free, each with `dropBranch` (1–3) connectors on from its foot. They are never on the main route, so a party without rope is never stuck, and the nav grid (which can't step down 12 m) leaves everything below them out. A drop is as tall as the long stair, so its foot is as deep as the next level down, but it stays on the tier it hangs from: joins and loops need the same tier, so it never opens into the level below, and the long stair stays the only way between levels. This pass uses its own RNG stream (`dropRng`, swapped into `LayoutState.rng` for it), so the rest of the map came out as it did before drops existed. See [rope.md](rope.md#rope-drops).

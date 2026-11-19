@@ -3,7 +3,7 @@ import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { SANITY } from '../src/lib/content/player/sanity.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
-import { roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
+import { entryPoint, roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { config } from './config.ts';
 import { useSessions, kit, Diver, FakeSocket, wait } from './testing/harness.ts';
@@ -34,14 +34,20 @@ describe('joining and leaving', () => {
 		expect(session.afflictionId).toBe('gloaming');
 	});
 
-	it('a full party starts side by side, each on their own spot, all facing the way on', () => {
+	it('a full party starts side by side, each on their own spot, facing the pit', () => {
 		const session = open(SEED);
 		const divers = [0, 1, 2, 3].map(() => new Diver(session));
 		for (const [i, diver] of divers.entries()) {
 			const spawn = spawnPoint(session.layout, PIECES, i);
 			expect(diver.state.position[0]).toBeCloseTo(spawn.position[0], 1);
 			expect(diver.state.position[2]).toBeCloseTo(spawn.position[2], 1);
-			expect(diver.state.yaw).toBe(divers[0].state.yaw);
+			expect(diver.state.yaw).toBeCloseTo(spawn.yaw);
+			// Facing the middle of the room: where the pit and its rope are.
+			const start = session.layout.placements[0].position;
+			const ahead = [-Math.sin(spawn.yaw), -Math.cos(spawn.yaw)];
+			const toMiddle = [start[0] - spawn.position[0], start[2] - spawn.position[2]];
+			const along = (ahead[0] * toMiddle[0] + ahead[1] * toMiddle[1]) / Math.hypot(...toMiddle);
+			expect(along).toBeCloseTo(1);
 			for (const other of divers.slice(i + 1)) {
 				const apart = Math.hypot(
 					diver.state.position[0] - other.state.position[0],
@@ -57,6 +63,45 @@ describe('joining and leaving', () => {
 		const start = session.layout.placements[0];
 		expect(PIECES[start.piece].extracts).toEqual([]);
 		expect(PIECES[start.piece].ropes).toEqual([]);
+	});
+
+	it('the way down is the rope on the pit lip: off its end unhurt, and no way back up it', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const rope = session['world'].ropes.find((r) => r.hangsFree)!;
+		expect(rope).toBeDefined();
+		expect(session['world'].anchors.some((a) => a.landing[1] === rope.landing![1])).toBe(false);
+		// From the chapel floor: stand on the landing, look at the rope and take hold.
+		diver.put(rope.landing!);
+		const look = diver.lookAt(rope.top);
+		diver.hold(look, 0.2);
+		diver.press({ ...look, interact: true });
+		expect(diver.state.climbing?.rope).toBe(rope.id);
+		// All the way down, and off the end.
+		for (let i = 0; i < 40 && diver.state.climbing; i++) diver.hold({ moveZ: -1 }, 0.5);
+		diver.hold({}, 1);
+		expect(diver.state.climbing).toBeNull();
+		const foot = entryPoint(session['world'], session.layout, PIECES);
+		expect(diver.state.position[1]).toBeCloseTo(foot[1] - 0.05, 1);
+		expect(diver.state.sanity).toBe(SANITY.max);
+		expect(diver.state.conditions).toEqual([]);
+		// The end hangs out of reach: a press under it takes hold of nothing.
+		const up = diver.lookAt([rope.top[0], rope.bottom + 1, rope.top[2]]);
+		diver.put([rope.top[0] + 0.3, diver.state.position[1], rope.top[2]]);
+		diver.press({ ...up, interact: true });
+		expect(diver.state.climbing).toBeNull();
+	});
+
+	it('admin can teleport to the start room, or skip the climb to the foot of its pit', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		const start = session.layout.placements[0].piece;
+		const foot = entryPoint(session['world'], session.layout, PIECES);
+		session.admin(diver.id, { kind: 'teleport', room: `${start}-foot` });
+		expect(diver.state.position[1]).toBeCloseTo(foot[1], 0);
+		session.admin(diver.id, { kind: 'teleport', room: start });
+		expect(diver.state.position[1]).toBeCloseTo(spawnPoint(session.layout, PIECES).position[1], 0);
 	});
 
 	it('falls back to the default Affliction for an unknown one', () => {
@@ -111,7 +156,8 @@ describe('input', () => {
 		const diver = new Diver(session);
 		diver.hold({}, 0.5);
 		const before = [...diver.state.position];
-		diver.hold({ moveZ: 1 }, 1);
+		// Along the chapel's wall: straight ahead is the well curb, a step away.
+		diver.hold({ moveZ: 1, yaw: diver.state.yaw + Math.PI / 2 }, 1);
 		const moved = Math.hypot(
 			diver.state.position[0] - before[0],
 			diver.state.position[2] - before[2]
@@ -343,7 +389,7 @@ describe('admin commands', () => {
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		const room = roomPoints(session['layout'], PIECES, MAP_KIT).find(
-			(r) => r.name !== 'stairwell'
+			(r) => MAP_KIT[r.name]?.role === 'major'
 		)!;
 		const [x, y, z] = room.position;
 		// The camera a few metres over the room's floor: the eyes go there, then the body falls.

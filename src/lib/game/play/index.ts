@@ -1,4 +1,5 @@
 import { Affliction } from './affliction.svelte.ts';
+import { Candles } from './candles.ts';
 import { Combat } from './combat.ts';
 import { Crates } from './crates.svelte.ts';
 import { Doors } from './doors.ts';
@@ -25,6 +26,7 @@ export function createFeatures(ctx: PlayContext) {
 		pack: new Pack(ctx),
 		crates: new Crates(ctx),
 		doors: new Doors(ctx),
+		candles: new Candles(ctx),
 		marks: new Marks(ctx),
 		ropes: new Ropes(ctx),
 		survey: new Survey(ctx),

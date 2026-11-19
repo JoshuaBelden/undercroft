@@ -2,6 +2,7 @@ import { DOORS } from '../../content/doors.ts';
 import { CRATES } from '../../content/loot.ts';
 import { toWorld } from './grid.ts';
 import type { ColliderBox, MapLayout, PieceDef, Quat, Vec3 } from './types.ts';
+import { CLIMB } from '../../content/player/movement.ts';
 import { ANCHOR } from '../../content/rope.ts';
 
 /**
@@ -23,13 +24,21 @@ export interface WorldVolume extends WorldBox {
 	kind: string;
 }
 
-/** A rope players climb, straight down from `top` to the floor at `bottom`. See docs/dev/rope.md. */
+/**
+ * A rope players climb, straight down from `top` to `bottom`: the floor, or (`hangsFree`) the
+ * lowest a climber's feet get on it. See docs/dev/rope.md.
+ */
 export interface RopeLine {
 	/** `map-<n>` for the map's own ropes; the server's id for one a player tied. */
 	id: string;
 	top: Vec3;
-	/** World y of its foot, on the floor. */
+	/** World y of its foot: the floor, or where a climber's feet are at its end. */
 	bottom: number;
+	/**
+	 * It ends in the air above the floor (the start room's rope): climbing down off the end is a
+	 * drop, and it can't be grabbed from the floor below.
+	 */
+	hangsFree?: boolean;
 	/** An extraction rope: a climber whose feet get this high (world y) is out of the catacomb. */
 	exitY?: number;
 	/** Where a climber steps off at the top (a ledge), and from where they can get on it there. */
@@ -154,7 +163,7 @@ export function buildCollisionWorld(
 		openDoors: new Set()
 	};
 	/** Anchors in world space, without their floor below (that needs the boxes, below). */
-	const anchors: { position: Vec3; out: [number, number]; knot: Vec3 }[] = [];
+	const anchors: { position: Vec3; out: [number, number]; knot: Vec3; rope?: number }[] = [];
 	for (const placement of layout.placements) {
 		const piece = pieces[placement.piece];
 		if (!piece) continue;
@@ -186,7 +195,12 @@ export function buildCollisionWorld(
 				py + ANCHOR.post.knot,
 				pz + Math.sin(anchor.yaw) * ANCHOR.post.side
 			]);
-			anchors.push({ position, out: [ahead[0] - position[0], ahead[2] - position[2]], knot });
+			anchors.push({
+				position,
+				out: [ahead[0] - position[0], ahead[2] - position[2]],
+				knot,
+				rope: anchor.rope
+			});
 		}
 		for (const volume of piece.volumes) {
 			world.volumes.push({
@@ -220,7 +234,8 @@ export function buildCollisionWorld(
 	world.boxes.forEach((box, index) => {
 		indexBox(world, box, index);
 	});
-	world.anchors = anchors.map(({ position, out, knot }, i) => {
+	const tieable: Anchor[] = [];
+	for (const { position, out, knot, rope } of anchors) {
 		const [ox, oz] = out;
 		const top: Vec3 = [
 			position[0] + ox * ANCHOR.overhang,
@@ -240,16 +255,31 @@ export function buildCollisionWorld(
 			position[1] - ANCHOR.deepest
 		);
 		const lip: Vec3 = [position[0] + ox * ANCHOR.lip, position[1], position[2] + oz * ANCHOR.lip];
-		return {
-			id: `anchor-${i}`,
+		if (rope) {
+			// Tied there for good: one of the map's ropes, not a place to tie one.
+			const bottom = top[1] - rope;
+			world.ropes.push({
+				id: `map-${world.ropes.length}`,
+				top,
+				bottom,
+				landing,
+				knot,
+				lip,
+				...(floor !== null && bottom > floor + CLIMB.footClearance && { hangsFree: true })
+			});
+			continue;
+		}
+		tieable.push({
+			id: `anchor-${tieable.length}`,
 			position,
 			top,
 			landing,
 			knot,
 			lip,
 			bottom: floor ?? position[1]
-		};
-	});
+		});
+	}
+	world.anchors = tieable;
 	return world;
 }
 

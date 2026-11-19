@@ -1,10 +1,10 @@
 import { buildCollisionWorld } from '#lib/shared/map/collision.ts';
 import { buildNav, findPath, nearestPoint, pathLength } from '#lib/shared/map/nav.ts';
-import { roomPoints, spawnPoint } from '#lib/shared/map/points.ts';
+import { entryPoint, roomPoints } from '#lib/shared/map/points.ts';
 import type { MapKit, MapLayout, PieceDef, Vec3 } from '#lib/shared/map/types.ts';
 
 /**
- * The benchmark's walk (docs/dev/diagnostics.md): from the start room's spawn through the rooms
+ * The benchmark's walk (docs/dev/diagnostics.md): from the foot of the start room's rope through the rooms
  * in the order the map was built, along the creatures' nav grid, so the camera follows the
  * passages a player would (never through a wall). Floor-level points; `minLength` metres at least
  * when the map has that much.
@@ -16,7 +16,7 @@ export function benchmarkRoute(
 	minLength: number
 ): Vec3[] {
 	const world = buildCollisionWorld(layout, pieces);
-	const spawn = spawnPoint(layout, pieces).position;
+	const spawn = entryPoint(world, layout, pieces);
 	const nav = buildNav(world, layout, pieces, spawn);
 	// Every door open: the walk can go down a level like a party would.
 	nav.closed.clear();

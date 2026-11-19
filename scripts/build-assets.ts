@@ -111,6 +111,7 @@ const MARKER_PREFIXES = [
 	'rubble-',
 	'rope-',
 	'anchor-',
+	'candle-',
 	'col-',
 	'vol-'
 ];
@@ -275,6 +276,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const rubble: Vec3[] = [];
 	const ropes: RopeMarker[] = [];
 	const anchors: AnchorMarker[] = [];
+	const candles: Vec3[] = [];
 	const colliders: ColliderBox[] = [];
 	const volumes: VolumeBox[] = [];
 	const stripped: Node[] = [];
@@ -299,7 +301,11 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		} else if (label.startsWith('anchor-')) {
 			// The empty's local +Y in Blender (-Z here) points out over the drop.
 			const { position, yaw } = crateFromNode(name, label, node, w, d);
-			anchors.push({ position, yaw });
+			// `rope` (m): a rope tied there for good (the start room's way down).
+			const rope = Number((node.getExtras() as Record<string, unknown>).rope ?? 0);
+			anchors.push(rope > 0 ? { position, yaw, rope: round(rope) } : { position, yaw });
+		} else if (label.startsWith('candle-')) {
+			candles.push(position);
 		} else if (label.startsWith('crate-')) {
 			crates.push(crateFromNode(name, label, node, w, d));
 		} else if (label.startsWith('door-')) {
@@ -382,6 +388,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		rubble,
 		ropes,
 		anchors,
+		candles,
 		colliders,
 		volumes,
 		triangles

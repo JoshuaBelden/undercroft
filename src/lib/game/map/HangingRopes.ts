@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { modelUrl } from '#lib/content/models.ts';
+import { MOVEMENT } from '#lib/content/player/movement.ts';
 import { loadModel } from '#lib/game/assets.ts';
 import type { CollisionWorld, RopeLine } from '#lib/shared/map/collision.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
@@ -88,13 +89,14 @@ export class HangingRopes {
 	private add(line: RopeLine): void {
 		// A tied rope hangs from just over the lip; the rest is its lead, drawn fixed.
 		const top: Vec3 = line.lip ? [line.top[0], line.lip[1] - LIP_DROP, line.top[2]] : line.top;
-		const drop = top[1] - line.bottom;
+		const end = ropeEnd(line);
+		const drop = top[1] - end;
 		// Exactly the drop: a chain longer than that would be squashed against the floor and kink.
 		const count = Math.max(2, Math.floor(drop / SPACING) + 1);
 		const now = new Float32Array(count * 3);
 		for (let i = 0; i < count; i++) {
 			now[i * 3] = top[0];
-			now[i * 3 + 1] = Math.max(line.bottom + ROPE_RADIUS, top[1] - i * SPACING);
+			now[i * 3 + 1] = Math.max(end + ROPE_RADIUS, top[1] - i * SPACING);
 			now[i * 3 + 2] = top[2];
 		}
 		// No shadows: a strand this thin, lit by a lamp a step away, threw one onto the stone
@@ -116,6 +118,8 @@ export class HangingRopes {
 			held: 0
 		};
 		this.chains.set(line.id, chain);
+		// A rope that hangs free has no coil at its foot: it ends in the air.
+		if (line.hangsFree) return;
 		void this.heapModel.then((model) => {
 			if (!model || this.disposed || this.chains.get(line.id) !== chain) return;
 			const heap = model.clone();
@@ -184,7 +188,7 @@ export class HangingRopes {
 
 function step(chain: Chain, climbers: readonly RopeClimber[]): void {
 	const { now, before, count, line, top } = chain;
-	const floor = line.bottom + ROPE_RADIUS;
+	const floor = ropeEnd(line) + ROPE_RADIUS;
 	const dt2 = STEP * STEP;
 	// Verlet: carry on as last step, plus gravity, drawn gently back under the top.
 	for (let i = 1; i < count; i++) {
@@ -324,6 +328,14 @@ export function tubeGeometry(count: number): THREE.BufferGeometry {
 	geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 	geometry.setIndex(index);
 	return geometry;
+}
+
+/**
+ * Where a rope's end is drawn: its foot on the floor, or for one that hangs free (the start
+ * room's), the hands of a climber at its lowest, well out of reach of anyone below.
+ */
+function ropeEnd(line: RopeLine): number {
+	return line.hangsFree ? line.bottom + MOVEMENT.stances.stand.height : line.bottom;
 }
 
 /**

@@ -2,6 +2,192 @@
 import type { PieceDef } from './types.ts';
 
 export const PIECES: Record<string, PieceDef> = {
+	'angel-well': {
+		name: 'angel-well',
+		url: '/assets/shared/map/angel-well.2f08f97e.gltf',
+		bytes: 3777319,
+		footprint: [2, 2],
+		levels: 3,
+		sockets: [{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }],
+		spawns: [
+			[2.5, 8, 0],
+			[-2.5, 8, 0],
+			[1.8, 8, 1.8],
+			[-1.8, 8, 1.8]
+		],
+		creatures: [],
+		extracts: [],
+		rites: [],
+		crates: [],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [{ position: [0, 8, 1.15], yaw: 0, rope: 7.2 }],
+		candles: [
+			[3.87, 9.09, -0.26],
+			[3.87, 9.19, 0],
+			[3.87, 9.05, 0.23],
+			[2.553, 9.09, -2.92],
+			[2.737, 9.19, -2.737],
+			[2.899, 9.05, -2.574],
+			[-2.92, 9.09, -2.553],
+			[-2.737, 9.19, -2.737],
+			[-2.574, 9.05, -2.899],
+			[-3.87, 9.09, 0.26],
+			[-3.87, 9.19, 0],
+			[-3.87, 9.05, -0.23],
+			[-2.553, 9.09, 2.92],
+			[-2.737, 9.19, 2.737],
+			[-2.899, 9.05, 2.574],
+			[0.26, 9.09, 3.87],
+			[0, 9.19, 3.87],
+			[-0.23, 9.05, 3.87],
+			[2.92, 9.09, 2.553],
+			[2.737, 9.19, 2.737],
+			[2.574, 9.05, 2.899],
+			[0.62, 8.68, -3.17],
+			[0.46, 8.56, -3.17],
+			[-0.46, 8.58, -3.17],
+			[-0.62, 8.7, -3.17]
+		],
+		colliders: [
+			{
+				center: [0, 9.225, -3.425],
+				halfExtents: [0.325, 1.225, 0.75],
+				rotation: [0, 0.707, 0, 0.707]
+			},
+			{ center: [3.475, 8.225, 0], halfExtents: [0.275, 0.225, 0.95], rotation: [0, 0, 0, 1] },
+			{ center: [-3.475, 8.225, 0], halfExtents: [0.275, 0.225, 0.95], rotation: [0, 1, 0, 0] },
+			{
+				center: [-2.457, 8.225, 2.457],
+				halfExtents: [0.275, 0.225, 0.95],
+				rotation: [0, -0.924, 0, 0.383]
+			},
+			{
+				center: [2.457, 8.225, 2.457],
+				halfExtents: [0.275, 0.225, 0.95],
+				rotation: [0, -0.383, 0, 0.924]
+			},
+			{ center: [0, 11.5, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [1.3, 8.35, 0], halfExtents: [0.15, 0.35, 0.476], rotation: [0, 0, 0, 1] },
+			{
+				center: [0.919, 8.35, -0.919],
+				halfExtents: [0.15, 0.35, 0.476],
+				rotation: [0, 0.383, 0, 0.924]
+			},
+			{ center: [0, 8.35, -1.3], halfExtents: [0.15, 0.35, 0.476], rotation: [0, 0.707, 0, 0.707] },
+			{
+				center: [-0.919, 8.35, -0.919],
+				halfExtents: [0.15, 0.35, 0.476],
+				rotation: [0, 0.924, 0, 0.383]
+			},
+			{ center: [-1.3, 8.35, 0], halfExtents: [0.15, 0.35, 0.476], rotation: [0, 1, 0, 0] },
+			{
+				center: [-0.919, 8.35, 0.919],
+				halfExtents: [0.15, 0.35, 0.476],
+				rotation: [0, -0.924, 0, 0.383]
+			},
+			{
+				center: [0.919, 8.35, 0.919],
+				halfExtents: [0.15, 0.35, 0.476],
+				rotation: [0, -0.383, 0, 0.924]
+			},
+			{ center: [2.575, 7.85, 0], halfExtents: [1.425, 0.15, 1.603], rotation: [0, 0, 0, 1] },
+			{
+				center: [1.821, 7.85, -1.821],
+				halfExtents: [1.425, 0.15, 1.603],
+				rotation: [0, 0.383, 0, 0.924]
+			},
+			{
+				center: [0, 7.85, -2.575],
+				halfExtents: [1.425, 0.15, 1.603],
+				rotation: [0, 0.707, 0, 0.707]
+			},
+			{
+				center: [-1.821, 7.85, -1.821],
+				halfExtents: [1.425, 0.15, 1.603],
+				rotation: [0, 0.924, 0, 0.383]
+			},
+			{ center: [-2.575, 7.85, 0], halfExtents: [1.425, 0.15, 1.603], rotation: [0, 1, 0, 0] },
+			{
+				center: [-1.821, 7.85, 1.821],
+				halfExtents: [1.425, 0.15, 1.603],
+				rotation: [0, -0.924, 0, 0.383]
+			},
+			{
+				center: [0, 7.85, 2.575],
+				halfExtents: [1.425, 0.15, 1.603],
+				rotation: [0, -0.707, 0, 0.707]
+			},
+			{
+				center: [1.821, 7.85, 1.821],
+				halfExtents: [1.425, 0.15, 1.603],
+				rotation: [0, -0.383, 0, 0.924]
+			},
+			{ center: [2.575, 3.6, 0], halfExtents: [1.425, 0.2, 1.15], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.6, -2.575], halfExtents: [4, 0.2, 1.425], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.6, 2.575], halfExtents: [4, 0.2, 1.425], rotation: [0, 0, 0, 1] },
+			{ center: [-2.575, 3.6, 0], halfExtents: [1.425, 0.2, 1.15], rotation: [0, 0, 0, 1] },
+			{ center: [-0.4, 8.5, 1.22], halfExtents: [0.07, 0.5, 0.07], rotation: [0, 0, 0, 1] },
+			{ center: [1.3, 5.55, 0], halfExtents: [0.15, 2.15, 0.476], rotation: [0, 0, 0, 1] },
+			{
+				center: [0.919, 5.55, -0.919],
+				halfExtents: [0.15, 2.15, 0.476],
+				rotation: [0, 0.383, 0, 0.924]
+			},
+			{ center: [0, 5.55, -1.3], halfExtents: [0.15, 2.15, 0.476], rotation: [0, 0.707, 0, 0.707] },
+			{
+				center: [-0.919, 5.55, -0.919],
+				halfExtents: [0.15, 2.15, 0.476],
+				rotation: [0, 0.924, 0, 0.383]
+			},
+			{ center: [-1.3, 5.55, 0], halfExtents: [0.15, 2.15, 0.476], rotation: [0, 1, 0, 0] },
+			{
+				center: [-0.919, 5.55, 0.919],
+				halfExtents: [0.15, 2.15, 0.476],
+				rotation: [0, -0.924, 0, 0.383]
+			},
+			{ center: [0, 5.55, 1.3], halfExtents: [0.15, 2.15, 0.476], rotation: [0, -0.707, 0, 0.707] },
+			{
+				center: [0.919, 5.55, 0.919],
+				halfExtents: [0.15, 2.15, 0.476],
+				rotation: [0, -0.383, 0, 0.924]
+			},
+			{ center: [3.9, 9.65, 0], halfExtents: [0.15, 1.65, 1.553], rotation: [0, 0, 0, 1] },
+			{
+				center: [2.758, 9.65, -2.758],
+				halfExtents: [0.15, 1.65, 1.553],
+				rotation: [0, 0.383, 0, 0.924]
+			},
+			{ center: [0, 9.65, -3.9], halfExtents: [0.15, 1.65, 1.553], rotation: [0, 0.707, 0, 0.707] },
+			{
+				center: [-2.758, 9.65, -2.758],
+				halfExtents: [0.15, 1.65, 1.553],
+				rotation: [0, 0.924, 0, 0.383]
+			},
+			{ center: [-3.9, 9.65, 0], halfExtents: [0.15, 1.65, 1.553], rotation: [0, 1, 0, 0] },
+			{
+				center: [-2.758, 9.65, 2.758],
+				halfExtents: [0.15, 1.65, 1.553],
+				rotation: [0, -0.924, 0, 0.383]
+			},
+			{ center: [0, 9.65, 3.9], halfExtents: [0.15, 1.65, 1.553], rotation: [0, -0.707, 0, 0.707] },
+			{
+				center: [2.758, 9.65, 2.758],
+				halfExtents: [0.15, 1.65, 1.553],
+				rotation: [0, -0.383, 0, 0.924]
+			},
+			{ center: [3.7, 1.7, 0], halfExtents: [0.3, 1.7, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.7, -3.7], halfExtents: [4, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 1.7, 3.7], halfExtents: [0.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 3.1, 3.7], halfExtents: [1, 0.3, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.7, 3.7], halfExtents: [2.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-3.7, 1.7, 0], halfExtents: [0.3, 1.7, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 15278
+	},
 	'cap-hall': {
 		name: 'cap-hall',
 		url: '/assets/shared/map/cap-hall.603f4847.gltf',
@@ -18,6 +204,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [{ center: [0, 1.4, 0.2], halfExtents: [1, 1.4, 0.2], rotation: [0, 0, 0, 1] }],
 		volumes: [],
 		triangles: 150
@@ -43,6 +230,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 1.85, 0], halfExtents: [4.4, 0.15, 2.4], rotation: [0, 0, 0, 1] },
 			{ center: [0.625, 1.975, 1.9], halfExtents: [0.125, 0.275, 0.5], rotation: [0, 0, 0, 1] },
@@ -108,6 +296,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [{ position: [-1.2, 12, -1.5], yaw: -3.142 }],
+		candles: [],
 		colliders: [
 			{ center: [0, 15.6, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
@@ -159,6 +348,7 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		ropes: [{ top: [-0.3, 7.4, 0.3], length: 7.4, exit: 5.4 }],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [3.55, 4, 0], halfExtents: [2.45, 0.2, 1.1], rotation: [0, 0, 0, 1] },
 			{ center: [0, 4, -2.55], halfExtents: [6, 0.2, 1.45], rotation: [0, 0, 0, 1] },
@@ -209,6 +399,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 0.9, -3.4], halfExtents: [1, 0.55, 0.45], rotation: [0, 0, 0, 1] },
 			{ center: [0, 3.875, -5.3], halfExtents: [3.75, 3.875, 0.7], rotation: [0, 0, 0, 1] },
@@ -256,6 +447,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 7.6, 0], halfExtents: [2, 0.2, 2.4], rotation: [0, 0, 0, 1] },
 			{ center: [0, 7, -3.2], halfExtents: [2, 0.2, 0.8], rotation: [0, 0, 0, 1] },
@@ -308,6 +500,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 2], rotation: [0, 0, 0, 1] },
@@ -374,6 +567,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 2.025, 0], halfExtents: [1.5, 0.975, 1.8], rotation: [0, 0, 0, 1] },
 			{ center: [0, 2.166, -1.9], halfExtents: [1.5, 1.234, 0.1], rotation: [0, 0, 0, 1] },
@@ -472,6 +666,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [1.5, 1.5, 1.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
@@ -499,6 +694,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [[0, 0, -0.2]],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 1.5, -1.3], halfExtents: [1.5, 1.5, 0.7], rotation: [0, 0, 0, 1] },
 			{ center: [0, 3, 0.55], halfExtents: [1.5, 0.2, 1.45], rotation: [0, 0, 0, 1] },
@@ -528,6 +724,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 1.85, 0], halfExtents: [1.5, 0.15, 0.8], rotation: [0, 0, 0, 1] },
 			{ center: [0, 7, -3.5], halfExtents: [1.5, 0.2, 0.5], rotation: [0, 0, 0, 1] },
@@ -575,6 +772,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [-2, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [-0.5, 1.5, 1.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
@@ -611,6 +809,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 2.642, -4.793], halfExtents: [1.5, 0.758, 0.093], rotation: [0, 0, 0, 1] },
 			{ center: [0.915, 1.5, -4.793], halfExtents: [0.585, 1.5, 0.093], rotation: [0, 0, 0, 1] },
@@ -684,6 +883,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, -0.15, 3.35], halfExtents: [1.5, 0.15, 0.65], rotation: [0, 0, 0, 1] },
 			{ center: [0, 3.85, -3.5], halfExtents: [1.5, 0.15, 0.5], rotation: [0, 0, 0, 1] },
@@ -713,6 +913,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [1.5, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [1.5, 0.1, 2], rotation: [0, 0, 0, 1] },
@@ -742,6 +943,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 3, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [1.5, 1.5, 1.5], halfExtents: [0.5, 1.5, 0.5], rotation: [0, 0, 0, 1] },
@@ -780,6 +982,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [3.475, 0.725, -3.58], halfExtents: [2.075, 0.725, 0.17], rotation: [0, 0, 0, 1] },
 			{ center: [-3.475, 0.725, -3.58], halfExtents: [2.075, 0.725, 0.17], rotation: [0, 0, 0, 1] },
@@ -825,6 +1028,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [{ position: [0, 12, -1.3], yaw: -3.142 }],
+		candles: [],
 		colliders: [
 			{ center: [0, 15.6, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
@@ -885,6 +1089,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 6.8, 0], halfExtents: [6, 0.2, 6], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 6], rotation: [0, 0, 0, 1] },
@@ -934,6 +1139,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 3.6, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
@@ -990,6 +1196,7 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 3.8, 0], halfExtents: [8, 0.2, 4], rotation: [0, 0, 0, 1] },
 			{ center: [-4, 1.8, 0], halfExtents: [0.42, 1.8, 0.42], rotation: [0, 0, 0, 1] },
@@ -1034,6 +1241,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 3.2, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 2], rotation: [0, 0, 0, 1] },
@@ -1084,6 +1292,7 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 0.4, 0], halfExtents: [1.1, 0.4, 0.6], rotation: [0, 0, 0, 1] },
 			{ center: [0, 5, 0], halfExtents: [6, 0.2, 6], rotation: [0, 0, 0, 1] },
@@ -1127,6 +1336,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders: [
 			{ center: [0, 14.9, -11.37], halfExtents: [2, 0.7, 0.1], rotation: [0, 0, 0, 1] },
 			{ center: [0, 15.4, -11], halfExtents: [2, 0.2, 1], rotation: [0, 0, 0, 1] },
@@ -1158,39 +1368,5 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		volumes: [],
 		triangles: 1688
-	},
-	stairwell: {
-		name: 'stairwell',
-		url: '/assets/shared/map/stairwell.fb86d090.gltf',
-		bytes: 1383406,
-		footprint: [2, 1],
-		levels: 1,
-		sockets: [{ type: 'hall', cell: [1, 0], level: 0, edge: 'e' }],
-		spawns: [
-			[-0.9, 0, -0.75],
-			[-0.9, 0, 0.75],
-			[-2.1, 0, -0.75],
-			[-2.1, 0, 0.75]
-		],
-		creatures: [],
-		extracts: [],
-		rites: [],
-		crates: [{ position: [1, 0, -1.41], yaw: 0 }],
-		doors: [],
-		rubble: [],
-		ropes: [],
-		anchors: [],
-		colliders: [
-			{ center: [0, 3.875, 0], halfExtents: [4, 0.125, 2], rotation: [0, 0, 0, 1] },
-			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 2], rotation: [0, 0, 0, 1] },
-			{ center: [3.875, 1.875, 1.5], halfExtents: [0.125, 1.875, 0.5], rotation: [0, 0, 0, 1] },
-			{ center: [3.875, 3.275, 0], halfExtents: [0.125, 0.475, 1], rotation: [0, 0, 0, 1] },
-			{ center: [3.875, 1.875, -1.5], halfExtents: [0.125, 1.875, 0.5], rotation: [0, 0, 0, 1] },
-			{ center: [0, 1.875, -1.875], halfExtents: [4, 1.875, 0.125], rotation: [0, 0, 0, 1] },
-			{ center: [0, 1.875, 1.875], halfExtents: [4, 1.875, 0.125], rotation: [0, 0, 0, 1] },
-			{ center: [-3.875, 1.875, 0], halfExtents: [0.125, 1.875, 2], rotation: [0, 0, 0, 1] }
-		],
-		volumes: [],
-		triangles: 293
 	}
 };

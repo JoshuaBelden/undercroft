@@ -20,6 +20,7 @@ describe('fighting', () => {
 		const session = open(SEED);
 		const diver = new Diver(session, 'A', kit(['revolver'], ['ammo.revolver', 30]));
 		diver.state.flags.godMode = true;
+		diver.descend();
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		session.admin(diver.id, { kind: 'spawnCreature' });
 		diver.hold({}, 0.5);
@@ -54,6 +55,7 @@ describe('fighting', () => {
 		const session = open(SEED);
 		const diver = new Diver(session, 'A', kit(['knife']));
 		diver.state.flags.godMode = true;
+		diver.descend();
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		session.admin(diver.id, { kind: 'spawnCreature' });
 		const events = () => diver.socket.all('tick').flatMap((t) => t.events);
@@ -82,6 +84,7 @@ describe('fighting', () => {
 	it('creatures attack a player who stands in front of them, and a coat takes the blows', () => {
 		const session = open(SEED);
 		const diver = new Diver(session, 'A', kit(['coat']));
+		diver.descend();
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		session.admin(diver.id, { kind: 'spawnCreature' });
 		diver.hold({}, 12);

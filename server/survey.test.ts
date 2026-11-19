@@ -69,7 +69,8 @@ describe('the map', () => {
 		expect(bare.socket.all('survey')).toHaveLength(1);
 		expect(bare.state.sketching).toBe(0);
 		const walker = diver(session, 'Walker');
-		walker.hold({ survey: 'sketch', moveZ: 1 }, 0.5);
+		// Along the chapel's wall (straight ahead, the well curb would stop them).
+		walker.hold({ survey: 'sketch', moveZ: 1, yaw: walker.state.yaw + Math.PI / 2 }, 0.5);
 		expect(walker.state.sketching).toBe(0);
 		walker.hold({ survey: 'sketch' }, 0.5);
 		expect(walker.state.sketching).toBeGreaterThan(0);
@@ -80,7 +81,9 @@ describe('the map', () => {
 		const a = diver(session, 'A');
 		const b = diver(session, 'B');
 		a.hold({ survey: 'sketch' }, SURVEY.sketchSeconds + 0.2);
-		const far = roomPoints(session.layout, PIECES, MAP_KIT).find((r) => r.name !== 'stairwell')!;
+		const far = roomPoints(session.layout, PIECES, MAP_KIT).find(
+			(r) => MAP_KIT[r.name]?.role === 'major'
+		)!;
 		session.admin(b.id, { kind: 'teleport', room: far.name });
 		b.hold({ survey: 'sketch' }, SURVEY.sketchSeconds + 0.2);
 		const mine = cells(a);

@@ -30,7 +30,7 @@ Flow:
 
 **Graphics settings:** `engine.applyGraphics(settings.graphics)` applies FOV, brightness (tone-mapping exposure), quality (pixel ratio, shadows, shadow map size), the render resolution (`renderScale`, 0.5 to 1, multiplying the quality's pixel ratio) and the frame rate limit (`frameCap`: 30, 60 or 0 for none; the frame loop skips screen refreshes until the next frame is due). Call it again when the settings change. Teammate lamp shadows (`teammateShadows`) go to `RemotePlayers.setShadows` instead ([player.md](player.md#teammate-shadows)).
 
-**Light budget:** `LIGHT_BUDGET` caps active dynamic lights (ambient excluded). The stats overlay shows the count and turns red when over budget. Every candle, headlamp, torch and glow stick counts. Short flashes borrow a light that already exists rather than adding one: a gunshot lights the shooter's headlamp (see [items.md](items.md#client)).
+**Light budget:** `LIGHT_BUDGET` caps active dynamic lights (ambient excluded). The stats overlay shows the count and turns red when over budget. Every candle, headlamp, torch and glow stick counts. The candles standing in the start room share one light, which fades to nothing (and stops counting) once you've gone on (see [map-generation.md](map-generation.md#candles)). Short flashes borrow a light that already exists rather than adding one: a gunshot lights the shooter's headlamp (see [items.md](items.md#client)).
 
 ## Input
 

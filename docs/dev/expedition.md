@@ -102,7 +102,7 @@ Only the dead spectate. Players who left alive see the leaving fade, then the re
 1. and 2. the extraction rooms (`extraction-gate`, role `extraction`) at the end of levels 1 and 2, beside the double door down to the next level (see [map-generation.md](map-generation.md#levels));
 2. the final room (`gloaming-chapel`) on level 3, at the foot of a ladder on its dais.
 
-There is none at the start: the start room's (`stairwell`) surface door is sealed, so getting out means going down at least one level.
+There is none at the start: the rope down from the start room (the Angel's Well, see [map-generation.md](map-generation.md#the-start-room)) ends out of reach of the floor, so getting out means going on to the end of the first level at least.
 
 The extraction rooms' way out is a rope going up into the dark (`rope_anchor` in `scripts/blender/kit.py`), hanging down a round shaft through the ceiling (their ladders were taken out: `remove_extraction_ladders`). It is a `rope-0` marker with an `exit`: climb 5.4 m up it, most of the way up the shaft, and you are out (see [rope.md](rope.md)). The chapel's is an `extract-0` marker, the hold below: the chapel's at the foot of a timber ladder (`extraction_ladder`) up to a hatch where the wall meets the vault.
 

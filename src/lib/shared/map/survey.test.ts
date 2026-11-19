@@ -98,8 +98,10 @@ describe('surveyMap', () => {
 		expect(kinds('extraction')).toHaveLength(
 			placed((piece) => MAP_KIT[piece]?.role === 'extraction')
 		);
-		expect(map.rooms.map((r) => r.title)).toContain('The Stairwell');
-		expect(map.levels[0]).toBe(0);
+		expect(map.rooms.map((r) => r.title)).toContain("The Angel's Well");
+		// The top page is the start room's chapel, up over its pit.
+		const start = PIECES[layout.placements[0].piece];
+		expect(map.levels[0]).toBe(start.levels - 1);
 		expect(map.levels.length).toBeGreaterThan(1);
 	});
 });

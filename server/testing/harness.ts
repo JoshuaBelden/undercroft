@@ -5,7 +5,7 @@ import { addItem, emptyInventory, newStack } from '../../src/lib/shared/items/in
 import type { CollisionWorld } from '../../src/lib/shared/map/collision.ts';
 import { buildNav, type NavGrid } from '../../src/lib/shared/map/nav.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
-import { spawnPoint } from '../../src/lib/shared/map/points.ts';
+import { entryPoint } from '../../src/lib/shared/map/points.ts';
 import type { MapLayout, Vec3 } from '../../src/lib/shared/map/types.ts';
 import { realMap, realWorld } from '../../src/lib/shared/testing/maps.ts';
 import { createPlayerState, eyeHeight, idleFrame } from '../../src/lib/shared/player/simulate.ts';
@@ -157,6 +157,14 @@ export class Diver {
 	}
 
 	/**
+	 * Down in the catacombs, where the start room's rope lets you off (players spawn up in the
+	 * chapel, off the creatures' nav grid).
+	 */
+	descend(): void {
+		this.put(entryPoint(this.session['world'], this.session['layout'], PIECES));
+	}
+
+	/**
 	 * Hold an input for `seconds`: frames go in as a client sends them, and the session ticks.
 	 * Look and stance carry over from the state unless the input sets them.
 	 */
@@ -213,7 +221,7 @@ export function mapFixture(seed: number) {
 	if (!map) {
 		const layout = realMap(seed);
 		const world = realWorld(layout);
-		const start = spawnPoint(layout, PIECES).position;
+		const start = entryPoint(world, layout, PIECES);
 		const nav = buildNav(world, layout, PIECES, start);
 		map = { layout, world, nav, start, seed };
 		maps.set(seed, map);

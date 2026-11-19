@@ -24,7 +24,8 @@ Rope does three things. You **climb** it: the ropes in the ways out, and any rop
 
 A `RopeLine` hangs straight down from `top` to the floor at `bottom`. It is climbable from the floor at its foot. When it has a `landing`, the ledge it hangs from, it can also be got onto from there, and a climber reaching the top hauls over onto it. An extraction rope has `exitY`: a climber whose feet get that high is out of the catacomb.
 
-- **The map's ropes:** a `rope-<n>` empty in a piece marks the top of a rope, with custom properties `length` (m it hangs) and optionally `exit` (how far up it you get out). `buildCollisionWorld` turns them into `map-<n>` lines. The extraction room at the end of the first two levels, `extraction-gate`, has one up its shaft: `kit.ropes_for_extractions` swapped its modelled rope and `extract-0` for it in the hand-edited .blend (as it did for the retired `extraction-shaft`), and `kit.remove_extraction_ladders` took out its ladder. The Gloaming Chapel's ladder is the one hold-interact extract left (the start room's door is sealed).
+- **The map's ropes:** a `rope-<n>` empty in a piece marks the top of a rope, with custom properties `length` (m it hangs) and optionally `exit` (how far up it you get out). `buildCollisionWorld` turns them into `map-<n>` lines. The extraction room at the end of the first two levels, `extraction-gate`, has one up its shaft: `kit.ropes_for_extractions` swapped its modelled rope and `extract-0` for it in the hand-edited .blend (as it did for the retired `extraction-shaft`), and `kit.remove_extraction_ladders` took out its ladder. The Gloaming Chapel's ladder is the one hold-interact extract left.
+- **The start rope:** see [below](#the-start-rope).
 - **Tied ropes:** an `anchor-<n>` empty is where a rope can be tied. It sits on the ledge floor at the edge, turned about Z only, with its local +Y out over the drop. `buildCollisionWorld` works out an `Anchor`:
   - `top`: `ANCHOR.overhang` out (just past the lip; the tie point is on the edge) and `ANCHOR.height` up: as high as a climber's hands reach. The line climbed hangs straight down from there.
   - `knot` and `lip`, for drawing: the knot `ANCHOR.post.knot` up the post, which stands `ANCHOR.post.side` to the anchor's left looking out (where `kit.rope_post` puts it), and where the rope goes over the edge.
@@ -32,6 +33,14 @@ A `RopeLine` hangs straight down from `top` to the floor at `bottom`. It is clim
   - `bottom`: the floor straight below, found with `floorHeightAt` no deeper than `ANCHOR.deepest`.
 
   A rope tied there is the line `tiedRopeLine(anchor)`, id `tied-<anchor id>`. `applyTied` puts the tied ones into `world.ropes`. The server does it on every change, and the client does it on every `ropes` message, so prediction can climb them too.
+
+## The start rope
+
+The start room's way down is a rope tied for good on the pit's lip: an `anchor-<n>` with a `rope` property (m). `buildCollisionWorld` makes it one of the map's ropes (`map-<n>`) with the anchor's `landing`, `knot` and `lip`, not an `Anchor`, so nobody ties or unties anything there. Its `bottom` is the rope's length below its top: where a climber's feet are at its end. When that is above the floor below, it is `hangsFree`:
+
+- Climbing down past its end lets go (`stepClimb`): the drop is short of hurting (the Angel's Well: 1.7 m, `WELL_FOOT_DROP`; a fall hurts from about 2.2 m, `FALL.safeSpeed`).
+- It can't be grabbed from the floor (`ropeToGrab`): its end is out of reach, so there is no climbing back up.
+- It is drawn down to the hands of a climber at its end (`ropeEnd` in `HangingRopes.ts`, 1.75 m above `bottom`), with no heap of rope below it.
 
 ## Climbing
 
@@ -115,4 +124,5 @@ In the admin panel (dev mode):
 ## Adding a rope or a drop
 
 - **A rope to climb in a piece:** a `rope-<n>` empty at its top, with `length` (and `exit` for a way out). Use `kit.rope_anchor`. Leave room beside it (`CLIMB.hold` + the body's radius) on the side players come from.
+- **A rope tied for good** (like the start room's): an `anchor-<n>` with a `rope` property, its post beside it. Make it end in the air, short of a drop that hurts, to make a way down that can't be climbed back up.
 - **A drop:** build the piece with its way in at the top level and its way on at the foot, and an `anchor-<n>` at the edge (`kit.rope_post` adds the anchor and its post). The post sits to one side, so the landing is clear. Then give it `descends: true, needsRope: true` in `MAP_KIT`.

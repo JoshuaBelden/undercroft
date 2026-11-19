@@ -53,6 +53,11 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 				url: 'https://www.meshy.ai'
 			},
 			{
+				name: 'Angel statue',
+				detail: "The statue in the start room, the Angel's Well: source and license to fill in",
+				todo: true
+			},
+			{
 				name: 'Barlow',
 				detail: 'Typeface, by Jeremy Tribby',
 				url: 'https://fonts.google.com/specimen/Barlow',

@@ -270,6 +270,38 @@ describe('falls', () => {
 	});
 });
 
+describe('a rope that hangs free (the start room)', () => {
+	/** Its end is 1.7 m up: climbing off it is a drop that doesn't hurt. */
+	const FREE = { bottom: 1.7, hangsFree: true };
+
+	it('climbing down off its end drops you to the floor, unhurt', () => {
+		const world = ropeWorld(FREE);
+		const events: SimEvent[] = [];
+		const s = createPlayerState([CLIMB.hold, 5, 0], FACE_WEST);
+		s.climbing = { rope: 'r', side: [1, 0] };
+		run(s, world, { moveZ: -1 }, 8, [], events);
+		expect(s.climbing).toBeNull();
+		expect(s.grounded).toBe(true);
+		expect(s.position[1]).toBeCloseTo(0, 1);
+		expect(events.some((e) => e.kind === 'letgo')).toBe(true);
+		expect(events.filter((e) => e.kind === 'land')).toHaveLength(0);
+		expect(s.conditions).toEqual([]);
+		// The drop is short of hurting, with room to spare.
+		expect(Math.sqrt(2 * MOVEMENT.gravity * FREE.bottom)).toBeLessThan(FALL.safeSpeed * 0.9);
+	});
+
+	it("can't be taken hold of from the floor beneath it", () => {
+		const world = ropeWorld(FREE);
+		const s = besideRope(world);
+		expect(ropeToGrab(world, s)).toBeNull();
+		run(s, world, { interact: true }, DT);
+		run(s, world, {}, DT);
+		expect(s.climbing).toBeNull();
+		// Out of reach by more than a grab from the floor allows.
+		expect(FREE.bottom - s.position[1]).toBeGreaterThan(CLIMB.grabFromFloor * 2);
+	});
+});
+
 describe('hobbled', () => {
 	it('is no faster than a crawl, can not sprint, and wears off', () => {
 		const world = worldOf([FLOOR]);

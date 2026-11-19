@@ -22,7 +22,12 @@ import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import { allStacks } from '../src/lib/shared/items/inventory.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { placeCrates } from '../src/lib/shared/map/crates.ts';
-import { creatureSpawns, rubbleSites, spawnPoint } from '../src/lib/shared/map/points.ts';
+import {
+	creatureSpawns,
+	entryPoint,
+	rubbleSites,
+	spawnPoint
+} from '../src/lib/shared/map/points.ts';
 import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
 import { createPlayerState, sanitizeFrame, stepPlayer } from '../src/lib/shared/player/simulate.ts';
@@ -180,7 +185,8 @@ export class Session implements SessionContext {
 
 	/** Creatures and loose items for the current map. */
 	private populate(): void {
-		const start = spawnPoint(this.layout, PIECES).position;
+		// Measured from where the catacombs begin: the foot of the start room's rope.
+		const start = entryPoint(this.world, this.layout, PIECES);
 		this.creatures.populate(start);
 		const cells = new Set<string>();
 		for (const placement of this.layout.placements) {
@@ -456,7 +462,12 @@ export class Session implements SessionContext {
 
 	private buildNav(): NavGrid {
 		const started = performance.now();
-		const nav = buildNav(this.world, this.layout, PIECES, spawnPoint(this.layout, PIECES).position);
+		const nav = buildNav(
+			this.world,
+			this.layout,
+			PIECES,
+			entryPoint(this.world, this.layout, PIECES)
+		);
 		log.info(
 			`Nav grid: ${nav.points.length} points in ${Math.round(performance.now() - started)} ms`
 		);

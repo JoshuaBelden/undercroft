@@ -45,6 +45,7 @@ export function worldOf(colliders: ColliderBox[], volumes: VolumeBox[] = []): Co
 		rubble: [],
 		ropes: [],
 		anchors: [],
+		candles: [],
 		colliders,
 		volumes,
 		triangles: 0

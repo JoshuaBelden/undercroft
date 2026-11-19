@@ -4,15 +4,15 @@
 
 ## Files
 
-| File                                     | What                                                                       |
-| ---------------------------------------- | -------------------------------------------------------------------------- |
-| `src/lib/content/diagnostics.ts`         | `BENCHMARK`: the seed, the stages, timings, pace, party spacing, creatures |
-| `src/lib/shared/diagnostics.ts`          | `BenchmarkResult`; frame statistics, refresh estimate, checking, Markdown  |
-| `src/lib/game/benchmark/Benchmark.ts`    | `runBenchmark`: builds the scene, runs the stages, measures                |
-| `src/lib/game/benchmark/route.ts`        | The walk: nav-grid paths from the spawn through the rooms; `pointAlong`    |
-| `src/lib/game/benchmark/device.ts`       | WebGL limits, compressed texture families, texture memory estimate         |
-| `src/lib/game/benchmark/state.svelte.ts` | `openDiagnostics` / `closeDiagnostics`                                     |
-| `src/lib/ui/Diagnostics.svelte`          | The intro, the full-screen run, the results and Send                       |
+| File                                     | What                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| `src/lib/content/diagnostics.ts`         | `BENCHMARK`: the seed, the stages, timings, pace, party spacing, creatures          |
+| `src/lib/shared/diagnostics.ts`          | `BenchmarkResult`; frame statistics, refresh estimate, checking, Markdown           |
+| `src/lib/game/benchmark/Benchmark.ts`    | `runBenchmark`: builds the scene, runs the stages, measures                         |
+| `src/lib/game/benchmark/route.ts`        | The walk: nav-grid paths from the start rope's foot through the rooms; `pointAlong` |
+| `src/lib/game/benchmark/device.ts`       | WebGL limits, compressed texture families, texture memory estimate                  |
+| `src/lib/game/benchmark/state.svelte.ts` | `openDiagnostics` / `closeDiagnostics`                                              |
+| `src/lib/ui/Diagnostics.svelte`          | The intro, the full-screen run, the results and Send                                |
 
 ## What it runs
 
@@ -26,7 +26,7 @@ The scene is built from the game's own parts, so it costs what play costs:
 - creatures (the first in `CREATURES`) standing on the route, idling;
 - the same near-black ambient light as underground.
 
-The camera walks `benchmarkRoute`: A\* paths on the creatures' nav grid from the spawn through each start, major and extraction room in build order, with every door open. It never goes through a wall, and it's the same route every run. It looks a few metres ahead along the path and turns smoothly, so the nav grid's zigzag doesn't shake the view.
+The camera walks `benchmarkRoute`: A\* paths on the creatures' nav grid from the foot of the start room's rope (`entryPoint`) through each major and extraction room in build order, with every door open. It never goes through a wall, and it's the same route every run. It looks a few metres ahead along the path and turns smoothly, so the nav grid's zigzag doesn't shake the view.
 
 **Stages** (`BENCHMARK.stages`): Low, Medium and High alone, then each again with a party of four. The party stages split what a full party costs: Low with a party has four lamps but no shadows, Medium has the shadows on fewer pixels, High has both. (Results sent before the party stages were split only have High with a party.) Each stage applies its preset through `Engine.applyGraphics` with render scale 1, no frame cap and a 75° field of view (the player's brightness is kept). It settles for `warmup` seconds while shaders compile and shadow maps resize, then measures for `seconds`. Every stage walks the same stretch from the same starting point, so stages compare with each other, and runs on different machines compare too.
 

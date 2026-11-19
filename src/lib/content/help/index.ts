@@ -38,13 +38,15 @@ export const HELP_TOPICS: HelpTopic[] = [
 
 You land on the dashboard's Expedition page. Your party is only you for now; friends can join you from the Social page. First choose the Affliction you go against: the Gloaming, for now. Then press Launch Expedition, confirm your loadout, and the descent begins.
 
-You start with nothing but a headlamp and your hands. Click the screen to take control, and press {action:headlamp} to switch the lamp on. The time at the top of your view is how long you have.
+You start with nothing but a headlamp and your hands, in a candlelit chapel over a pit. Click the screen to take control, and press {action:headlamp} to switch the lamp on. The time at the top of your view is how long you have.
+
+The way down is the rope tied on the pit's edge. Stand where it is tied, look at it and press {action:interact} to take hold, then {action:moveBack} to climb down. It stops short of the floor: at its end you let go and drop the last little way, unhurt.
 
 Look for crates along the walls of rooms and dead ends, and for the dead lying where they fell. Hold {action:interact} on one to search it. What you find takes a moment to turn up; drag it into your pack. Treasure, marked with a small diamond, is what sells.
 
 You are not alone. Keep quiet, keep your light off what you don't want to see, and listen.
 
-The door you start beside is sealed: there is no going back up. The first way out is a rope at the end of the first level, beside the door down to the next. When your pack is full, or the time is running short, make for it. If you die, everything you carried stays down there.
+The rope you came down can't be reached from the floor: there is no going back up it. The first way out is a rope at the end of the first level, beside the door down to the next. When your pack is full, or the time is running short, make for it. If you die, everything you carried stays down there.
 
 On the surface, open the Loadout page and sell your treasure. Then click your money to open the store, and buy a knife, a bandage and smelling salts before you go deeper.
 
@@ -125,7 +127,7 @@ Run it all the way down and you're spent: you can't sprint, climb or dive again 
 
 In the water, swim up to an edge and hold {action:climb} to pull yourself out.
 
-Ropes hang in the ways out, and wherever someone has tied one. Stand beside a rope, look at it and press {action:interact} to take hold of it, then {action:moveForward} to climb up and {action:moveBack} to climb down. Hold {action:sprint} to haul yourself up faster (it tires you quicker) or to slide down. At the bottom you step off; at the top you haul yourself over onto the ledge. A rope can't hold two people at the same height: whoever is on it first is in your way, above or below, until they move.
+Ropes hang in the ways out, and wherever someone has tied one. Stand beside a rope, look at it and press {action:interact} to take hold of it, then {action:moveForward} to climb up and {action:moveBack} to climb down. Hold {action:sprint} to haul yourself up faster (it tires you quicker) or to slide down. At the bottom you step off; at the top you haul yourself over onto the ledge. The rope down from the chapel where you start is the exception: it ends in the air, so climbing down past its end drops you to the floor, and from there it hangs out of reach. A rope can't hold two people at the same height: whoever is on it first is in your way, above or below, until they move.
 
 Climbing wears you out, faster going up than down, and even hanging still tires you a little: you get no breath back until you are off the rope. Run out of stamina and your grip goes. Press {action:stance} to drop off the rope on purpose: a long drop hurts (see Falls).`
 	},
@@ -163,7 +165,7 @@ Flooded passages dip under the water: the ceiling comes down to meet it, and the
 		id: 'extraction',
 		title: 'Getting out',
 		category: 'Expeditions',
-		body: `There are three ways out of the catacombs, and none is the way you came in: the door in the cellar where you start is sealed. At the end of the first and second levels is a shaft with a rope going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
+		body: `There are three ways out of the catacombs, and none is the way you came in: the rope down from the chapel where you start ends out of reach of the floor, so it can't be climbed back up. At the end of the first and second levels is a shaft with a rope going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
 
 The deeper ways out save you the long walk back with your haul. Remember where you saw them.
 

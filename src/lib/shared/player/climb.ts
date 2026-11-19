@@ -67,7 +67,11 @@ export function ropeToGrab(
 		const side = landing
 			? unit(rope.top[0] - landing[0], rope.top[2] - landing[2], s.yaw)
 			: unit(dx, dz, s.yaw);
-		if (Math.abs(y - rope.bottom) <= CLIMB.grabFromFloor && distance <= CLIMB.reach) {
+		if (
+			!rope.hangsFree &&
+			Math.abs(y - rope.bottom) <= CLIMB.grabFromFloor &&
+			distance <= CLIMB.reach
+		) {
 			grab = { rope, y: rope.bottom + CLIMB.footClearance * 3, side };
 		} else if (
 			landing &&
@@ -113,7 +117,8 @@ export function letGo(s: PlayerState, events?: SimEvent[]): void {
  * One step on a rope. Push forward to climb up and back to climb down (at any push, scaled);
  * sprint held climbs faster, or slides down. Stance (C / B) lets go. Stamina never comes back on
  * a rope: climbing spends it, hanging still only slowly, and when it runs out the hands give out. At the foot the climber steps
- * off; at the top they climb onto the landing, or out of the catacomb on an extraction rope.
+ * off (or, at the end of a rope that hangs free, drops); at the top they climb onto the landing,
+ * or out of the catacomb on an extraction rope.
  */
 export function stepClimb(
 	s: PlayerState,
@@ -166,6 +171,11 @@ export function stepClimb(
 		return;
 	}
 	if (push < 0 && y <= rope.bottom + CLIMB.footClearance) {
+		if (rope.hangsFree) {
+			// The end of a rope that doesn't reach the floor: off it, and down.
+			letGo(s, events);
+			return;
+		}
 		// Feet on the floor: step off.
 		s.position[1] = rope.bottom;
 		s.climbing = null;

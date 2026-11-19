@@ -6,12 +6,10 @@ import type { MapKit } from '../../shared/map/types.ts';
  * Connector weights are relative chances. See docs/dev/map-generation.md.
  */
 export const MAP_KIT: MapKit = {
-	stairwell: {
-		role: 'start',
-		exit: 'hall-stairs-down',
-		title: 'The Stairwell',
-		acoustics: 'hall'
-	},
+	// The start room: a candlelit chapel over a pit. The rope tied on its lip is the only way down,
+	// and it stops short of the floor, so nobody climbs back up (docs/dev/rope.md). The way on
+	// leaves the chamber at its foot. (`stairwell`, the old cellar start, is retired.)
+	'angel-well': { role: 'start', title: "The Angel's Well", acoustics: 'hall' },
 
 	'ossuary-hall': { role: 'major', title: 'Ossuary Hall', acoustics: 'hall' },
 	'quarry-gallery': { role: 'major', title: 'Quarry Gallery', acoustics: 'vast' },
