@@ -14,8 +14,11 @@ import {
 	gridDistances,
 	lowerStance,
 	nearestPoint,
+	reachFilter,
+	type NavFilter,
 	type NavGrid
 } from '../src/lib/shared/map/nav.ts';
+import type { ConditionId } from '../src/lib/content/player/conditions.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { createPlayerState, idleFrame, stepPlayer } from '../src/lib/shared/player/simulate.ts';
 import type { PlayerState } from '../src/lib/shared/player/types.ts';
@@ -41,6 +44,8 @@ import {
 interface Creature {
 	id: string;
 	def: CreatureDef;
+	/** The nav points it may use (its def's reach); undefined for anywhere. */
+	allow: NavFilter | undefined;
 	body: PlayerState;
 	mode: CreatureState;
 	anim: CreatureAnim;
@@ -108,6 +113,8 @@ export interface Prey {
 export interface CreatureHit {
 	playerId: string;
 	damage: number;
+	/** A condition the hit gives (a spider's poison). */
+	condition?: { id: ConditionId; seconds?: number };
 }
 
 interface SpawnSpot {
@@ -122,7 +129,8 @@ const REPATH = 0.5;
 const WAYPOINT_REACHED = 0.35;
 /** Seconds a waypoint may go unapproached before re-planning. */
 const STUCK_TIME = 1.5;
-const EYE = 1.5;
+/** Its eyes are this far up its body. */
+const EYE = 0.88;
 /** Seconds motionless before a moving creature's animation settles to idle. */
 const STILL_TIME = 0.6;
 /** Swimmers aim this far above the floor point they're heading for. */
@@ -137,10 +145,10 @@ const TURN_RATE = 4;
 const MIN_PATROL_STEP = 4;
 /** Creature markers snap to a nav point within this distance. */
 const MARKER_SNAP = 2;
-/** Spawned creatures keep at least this far apart. */
+/** Groups of one kind spawned at the start keep at least this far apart. */
 const SPREAD = 20;
-/** Seconds before trying again to bring back a creature that found no spot far enough away. */
-const RESPAWN_RETRY = 5;
+/** A chase target out of its reach: it heads for the nearest point it can stand within this. */
+const EDGE_RADIUS = 6;
 
 export class CreatureDirector {
 	private creatures: Creature[] = [];
@@ -148,8 +156,6 @@ export class CreatureDirector {
 	private nextId = 1;
 	/** Nav points of the map's creature-* markers. */
 	private markers: number[];
-	/** Killed creatures waiting to come back: their kind, and seconds left. */
-	private respawns: { kind: string; left: number }[] = [];
 
 	constructor(
 		private world: CollisionWorld,
@@ -166,31 +172,45 @@ export class CreatureDirector {
 	}
 
 	/**
-	 * Place this expedition's creatures far (along the grid) from the start: at creature-*
-	 * markers, then in corners if there aren't enough markers.
+	 * Place the creatures a map starts with: every kind that scatters, by its spawn rule, far
+	 * (along the grid) from the start. Kinds drawn in later (the witch) start with none.
 	 */
-	populate(start: Vec3, kind = 'witch'): void {
-		const def = CREATURES[kind];
-		if (!def) return;
-		const from = nearestPoint(this.nav, start);
+	populate(start: Vec3): void {
+		for (const def of Object.values(CREATURES)) {
+			if (def.spawn.kind === 'scatter') this.scatter(def, start);
+		}
+	}
+
+	/** One scattering kind's groups, spread out from each other. */
+	private scatter(def: CreatureDef, start: Vec3): void {
+		const rule = def.spawn;
+		if (rule.kind !== 'scatter') return;
+		if (this.rng.next() >= (rule.chance ?? 1)) return;
+		const allow = reachFilter(def.reach);
+		const from = nearestPoint(this.nav, start, 2, allow);
 		if (from < 0) return;
-		const distance = gridDistances(this.nav, [from], true);
-		const count = this.rng.int(def.spawn.count[0], def.spawn.count[1]);
+		const distance = gridDistances(this.nav, [from], true, allow);
+		const spots =
+			rule.where === 'corner'
+				? this.cornerSpots(distance, rule.minDistance, allow)
+				: this.openSpots(distance, rule.minDistance, allow);
+		const groups = this.rng.int(rule.groups[0], rule.groups[1]);
 		const placed: Vec3[] = [];
-		for (const spots of [
-			this.markerSpots(distance, def.spawn.minDistance),
-			this.cornerSpots(distance, def.spawn.minDistance)
-		]) {
-			for (let tries = 0; tries < 200 && placed.length < count && spots.length; tries++) {
-				const spot = this.rng.pick(spots);
-				// Spread them out.
-				if (
-					placed.some((p) => Math.hypot(p[0] - spot.position[0], p[2] - spot.position[2]) < SPREAD)
-				) {
-					continue;
-				}
-				placed.push(spot.position);
-				this.add(def, spot.position, spot.yaw);
+		for (let tries = 0; tries < 200 && placed.length < groups && spots.length; tries++) {
+			const spot = this.rng.pick(spots);
+			if (
+				placed.some((p) => Math.hypot(p[0] - spot.position[0], p[2] - spot.position[2]) < SPREAD)
+			) {
+				continue;
+			}
+			placed.push(spot.position);
+			const size = this.rng.int(rule.size[0], rule.size[1]);
+			const anchor = this.add(def, spot.position, spot.yaw);
+			// The rest of the group: open points near the first, where it can go.
+			const near = this.nearby(spot.position, rule.spread, allow);
+			for (let i = 1; i < size && near.length; i++) {
+				const at = this.nav.points[near.splice(this.rng.int(0, near.length - 1), 1)[0]];
+				this.add(def, at.position, this.rng.next() * Math.PI * 2).anchor = [...anchor.anchor];
 			}
 		}
 	}
@@ -204,15 +224,22 @@ export class CreatureDirector {
 			state.position[1],
 			state.position[2] - Math.cos(state.yaw) * 4
 		];
-		const index = nearestPoint(this.nav, ahead, 4);
+		const index = nearestPoint(this.nav, ahead, 4, reachFilter(def.reach));
 		if (index < 0) return;
 		const position = this.nav.points[index].position;
 		this.add(def, position, yawTo(position, state.position));
 	}
 
-	/** Where each living creature is (for sanity: seeing them). */
+	/** Where each living creature that's dreadful to see is (for sanity: seeing them). */
 	bodies(): { kind: string; position: Vec3 }[] {
-		return this.living().map((c) => ({ kind: c.def.id, position: c.body.position }));
+		return this.living()
+			.filter((c) => c.def.dread)
+			.map((c) => ({ kind: c.def.id, position: c.body.position }));
+	}
+
+	/** How many of a kind are alive. */
+	alive(kind: string): number {
+		return this.living().filter((c) => c.def.id === kind).length;
 	}
 
 	/** Living creatures' hit capsules. */
@@ -243,10 +270,11 @@ export class CreatureDirector {
 	spawnFar(players: Vec3[], minDistance: number, kind = 'witch'): boolean {
 		const def = CREATURES[kind];
 		if (!def) return false;
+		const allow = reachFilter(def.reach);
 		const starts = players.map((p) => nearestPoint(this.nav, p)).filter((i) => i >= 0);
 		const distance = gridDistances(this.nav, starts);
-		let spots = this.markerSpots(distance, minDistance);
-		if (!spots.length) spots = this.cornerSpots(distance, minDistance);
+		let spots = this.markerSpots(distance, minDistance, allow);
+		if (!spots.length) spots = this.cornerSpots(distance, minDistance, allow);
 		if (!spots.length) return false;
 		const spot = this.rng.pick(spots);
 		this.add(def, spot.position, spot.yaw);
@@ -255,7 +283,6 @@ export class CreatureDirector {
 
 	clear(): void {
 		this.creatures = [];
-		this.respawns = [];
 	}
 
 	/** Admin: kill every creature. */
@@ -345,34 +372,12 @@ export class CreatureDirector {
 		c.target = null;
 		c.path = [];
 		c.body.velocity = [0, c.body.velocity[1], 0];
-		this.kills++;
-		this.respawns.push({ kind: c.def.id, left: c.def.spawn.respawnSeconds });
-	}
-
-	/**
-	 * Bring back killed creatures whose time is up, far from every player. With nowhere far enough
-	 * just now, try again a little later.
-	 */
-	private respawn(prey: Prey[]): void {
-		if (!this.respawns.length) return;
-		for (const r of this.respawns) r.left -= TICK_DT;
-		const due = this.respawns.filter((r) => r.left <= 0);
-		if (!due.length) return;
-		const players = prey.map((p) => p.state.position);
-		for (const r of due) {
-			const def = CREATURES[r.kind];
-			if (def && players.length && !this.spawnFar(players, def.spawn.minDistance, r.kind)) {
-				r.left = RESPAWN_RETRY;
-				continue;
-			}
-			this.respawns.splice(this.respawns.indexOf(r), 1);
-		}
+		this.kills += c.def.killWeight;
 	}
 
 	/** Advance every creature by one server tick. Returns the hits that landed. */
 	step(prey: Prey[]): CreatureHit[] {
 		const hits: CreatureHit[] = [];
-		this.respawn(prey);
 		const targets = prey.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
 		for (const c of this.creatures) {
 			if (c.mode === 'dead') {
@@ -453,7 +458,8 @@ export class CreatureDirector {
 					if (!c.attackHit && c.attackTime >= c.def.attack.windup) {
 						c.attackHit = true;
 						if (target && this.inReach(c, target.state, 1.3)) {
-							hits.push({ playerId: target.id, damage: c.def.attack.damage });
+							const { damage, condition } = c.def.attack;
+							hits.push({ playerId: target.id, damage, ...(condition && { condition }) });
 						}
 					}
 					if (c.attackTime >= c.def.attack.duration) {
@@ -487,13 +493,14 @@ export class CreatureDirector {
 
 	// --- internals ---
 
-	private add(def: CreatureDef, position: Vec3, yaw: number): void {
+	private add(def: CreatureDef, position: Vec3, yaw: number): Creature {
 		const body = createPlayerState(position, yaw);
 		body.headlamp = 0;
 		body.flags.infiniteStamina = true;
 		const c: Creature = {
 			id: `c${this.nextId++}`,
 			def,
+			allow: reachFilter(def.reach),
 			body,
 			mode: 'patrol',
 			anim: 'idle',
@@ -531,6 +538,7 @@ export class CreatureDirector {
 		// Stand a moment before setting off.
 		c.pause = this.between(def.patrol.pause);
 		this.creatures.push(c);
+		return c;
 	}
 
 	/**
@@ -543,6 +551,8 @@ export class CreatureDirector {
 		const bold = this.boldness;
 		const alertRange = p.alertRange * bold;
 		const chasing = c.mode === 'agro' || c.mode === 'attack';
+		// Left alone, a passive kind notices no one.
+		if (p.passive && !chasing) return;
 		let seen: Prey | null = null;
 		let seenD = Infinity;
 		let heard: Prey | null = null;
@@ -581,8 +591,8 @@ export class CreatureDirector {
 				if (followed && target) c.lastKnown = [...target.state.position];
 				c.evade += TICK_DT;
 			}
-			// Someone closer in plain sight takes over (not mid-swing).
-			if (seen && seen.id !== c.target && c.mode === 'agro') {
+			// Someone closer in plain sight takes over (not mid-swing, and not for a passive kind).
+			if (seen && seen.id !== c.target && c.mode === 'agro' && !p.passive) {
 				const current = target ? distance3(target.state.position, c.body.position) : Infinity;
 				if (!tracked || seenD < current) this.chase(c, seen);
 			}
@@ -640,7 +650,7 @@ export class CreatureDirector {
 	}
 
 	private eye(c: Creature): Vec3 {
-		return [c.body.position[0], c.body.position[1] + EYE, c.body.position[2]];
+		return [c.body.position[0], c.body.position[1] + c.def.height * EYE, c.body.position[2]];
 	}
 
 	/** Chase a player (or switch to them). */
@@ -692,8 +702,8 @@ export class CreatureDirector {
 		c.pause = 0;
 		c.anchor = anchor;
 		this.resetPath(c);
-		const from = nearestPoint(this.nav, anchor);
-		const distance = gridDistances(this.nav, [from]);
+		const from = nearestPoint(this.nav, anchor, 2, c.allow);
+		const distance = gridDistances(this.nav, [from], false, c.allow);
 		c.spots = [];
 		for (let i = 0; i < this.nav.points.length; i++) {
 			const d = distance[i];
@@ -770,8 +780,8 @@ export class CreatureDirector {
 			return false;
 		return !segmentBlocked(
 			this.world,
-			[b[0], b[1] + 1.2, b[2]],
-			[s.position[0], s.position[1] + 0.8, s.position[2]]
+			[b[0], b[1] + Math.min(1.2, c.def.height * 0.7), b[2]],
+			[s.position[0], s.position[1] + Math.min(0.8, c.def.height * 0.7), s.position[2]]
 		);
 	}
 
@@ -782,13 +792,16 @@ export class CreatureDirector {
 	 */
 	private steer(c: Creature, goal: Vec3, direct: Vec3 | null): Vec3 | null {
 		const b = c.body.position;
+		// Straight at them only where it may stand.
 		if (
 			direct &&
 			Math.hypot(direct[0] - b[0], direct[2] - b[2]) < 3 &&
-			Math.abs(direct[1] - b[1]) < 0.6
+			Math.abs(direct[1] - b[1]) < 0.6 &&
+			this.mayStand(c, direct)
 		) {
+			const h = Math.min(1, c.def.height * 0.6);
 			if (
-				!segmentBlocked(this.world, [b[0], b[1] + 1, b[2]], [direct[0], direct[1] + 1, direct[2]])
+				!segmentBlocked(this.world, [b[0], b[1] + h, b[2]], [direct[0], direct[1] + h, direct[2]])
 			) {
 				return [direct[0] - b[0], 0, direct[2] - b[2]];
 			}
@@ -796,7 +809,11 @@ export class CreatureDirector {
 		c.repath -= TICK_DT;
 		if (c.repath <= 0 || c.pathIndex >= c.path.length) {
 			c.repath = REPATH;
-			const path = findPath(this.nav, nearestPoint(this.nav, b), nearestPoint(this.nav, goal));
+			// Somewhere it can't go (a crawl, water): as near as it can get.
+			let to = nearestPoint(this.nav, goal, 2, c.allow);
+			if (to < 0 && c.allow) to = nearestPoint(this.nav, goal, EDGE_RADIUS, c.allow);
+			const from = nearestPoint(this.nav, b, 2, c.allow);
+			const path = findPath(this.nav, from, to, undefined, c.allow);
 			c.path = path ?? [];
 			c.pathIndex = c.path.length > 1 ? 1 : 0;
 			c.bestDistance = Infinity;
@@ -885,30 +902,73 @@ export class CreatureDirector {
 		}
 	}
 
+	/** Whether the nav point under a position is one it may use. */
+	private mayStand(c: Creature, position: Vec3): boolean {
+		if (!c.allow) return true;
+		const index = nearestPoint(this.nav, position, 1);
+		return index >= 0 && c.allow(this.nav.points[index]);
+	}
+
 	/** Creature markers far enough (along the grid) from `distance`'s origin, facing a random way. */
-	private markerSpots(distance: number[], minDistance: number): SpawnSpot[] {
+	private markerSpots(
+		distance: number[],
+		minDistance: number,
+		allow: NavFilter | undefined
+	): SpawnSpot[] {
 		return this.markers
 			.filter((index) => (distance[index] ?? 0) >= minDistance)
+			.filter((index) => !allow || allow(this.nav.points[index]))
 			.map((index) => ({
 				position: this.nav.points[index].position,
 				yaw: this.rng.next() * Math.PI * 2
 			}));
 	}
 
-	/** Dead-end corners far enough away, facing into the corner. */
-	private cornerSpots(distance: number[], minDistance: number): SpawnSpot[] {
+	/** Dead-end corners far enough away (and where it may go), facing into the corner. */
+	private cornerSpots(
+		distance: number[],
+		minDistance: number,
+		allow: NavFilter | undefined
+	): SpawnSpot[] {
 		const spots: SpawnSpot[] = [];
 		this.nav.points.forEach((point, index) => {
 			if (
 				point.clearance === 'stand' &&
 				!point.water &&
 				point.neighbours.length <= 4 &&
-				(distance[index] ?? 0) >= minDistance
+				(distance[index] ?? 0) >= minDistance &&
+				(!allow || allow(point))
 			) {
 				spots.push({ position: point.position, yaw: this.wallYaw(index) });
 			}
 		});
 		return spots;
+	}
+
+	/** Any dry point far enough away (and where it may go), facing a random way. */
+	private openSpots(
+		distance: number[],
+		minDistance: number,
+		allow: NavFilter | undefined
+	): SpawnSpot[] {
+		const spots: SpawnSpot[] = [];
+		this.nav.points.forEach((point, index) => {
+			if (point.water || (distance[index] ?? 0) < minDistance) return;
+			if (allow && !allow(point)) return;
+			spots.push({ position: point.position, yaw: this.rng.next() * Math.PI * 2 });
+		});
+		return spots;
+	}
+
+	/** Dry points it may use within `radius` (along the grid) of a position. */
+	private nearby(position: Vec3, radius: number, allow: NavFilter | undefined): number[] {
+		const from = nearestPoint(this.nav, position, 2, allow);
+		const distance = gridDistances(this.nav, [from], false, allow);
+		const out: number[] = [];
+		distance.forEach((d, i) => {
+			if (d !== undefined && d > 0 && d <= radius && !this.nav.points[i].water) out.push(i);
+		});
+		return out;
 	}
 
 	/** Facing into the corner: away from the open directions around a point. */

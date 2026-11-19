@@ -1,8 +1,11 @@
 import type { AnimSlot, AnimationMap } from './animations.ts';
+import type { SoundId } from './audio/sounds.ts';
+import type { ConditionId } from './player/conditions.ts';
 import type { MovementTuning } from './player/movement.ts';
 import { MOVEMENT } from './player/movement.ts';
 import { modelUrl } from './models.ts';
 import type { StatusReactions, StatusSource } from './statuses.ts';
+import type { NavReach } from '../shared/map/nav.ts';
 
 /**
  * Creature definitions. "Creature" is the code/doc name; never name them in game text.
@@ -12,13 +15,47 @@ import type { StatusReactions, StatusSource } from './statuses.ts';
 /** The animation slot a creature is in, as the server sends it. See content/animations.ts. */
 export type CreatureAnim = AnimSlot;
 
+/** A creature's sounds; each falls back to the shared `creature.*` one. */
+export type CreatureSound = 'step' | 'burst' | 'attack' | 'hurt' | 'die' | 'breath';
+
+/**
+ * How a kind comes to be in the catacombs.
+ * - `attracted`: none at the start; the party's noise and light bring them (server/attraction.ts).
+ * - `scatter`: placed when the map is made, in `groups` of `size`, each group within `spread` m
+ *   of its first member, at least `minDistance` (along the grid) from the start. `chance` that
+ *   any appear at all (default 1). `where`: anywhere it can stand, or only in corners and dead
+ *   ends.
+ */
+export type SpawnRule =
+	| { kind: 'attracted' }
+	| {
+			kind: 'scatter';
+			groups: [number, number];
+			size: [number, number];
+			spread: number;
+			minDistance: number;
+			chance?: number;
+			where: 'anywhere' | 'corner';
+	  };
+
 export interface CreatureDef {
 	id: string;
 	model: string;
 	/** Model faces +Z in its file; the game faces -Z at yaw 0, so it's turned by this much. */
 	yawOffset: number;
-	/** Body height (m): visibility samples and the client marker. */
+	/** Client: the model is drawn this much bigger (default 1) and raised this far (m). */
+	scale?: number;
+	lift?: number;
+	/** Body height (m): visibility samples, its eyes, its reach, and the client marker. */
 	height: number;
+	/** Where it may go: into squeezes, crawls, water. Left out of its paths and spots otherwise. */
+	reach: NavReach;
+	/** Seeing it wears sanity down (see player.md#sanity). */
+	dread: boolean;
+	/** How much killing one feeds the Affliction meter (one per witch). */
+	killWeight: number;
+	/** Its own sounds, by what it's doing; the rest are the shared creature ones. */
+	sounds?: Partial<Record<CreatureSound, SoundId>>;
 	/** The model's animation map: its clip names by standard slot. */
 	animations: AnimationMap;
 	/**
@@ -48,6 +85,8 @@ export interface CreatureDef {
 		duration: number;
 		damage: number;
 		cooldown: number;
+		/** A condition a landed hit gives (its own seconds, or the condition's). */
+		condition?: { id: ConditionId; seconds?: number };
 	};
 	perception: {
 		/** Hearing radius (m) by how the player moves. */
@@ -70,6 +109,11 @@ export interface CreatureDef {
 		touch: number;
 		/** Seconds without perceiving the one it chases before it gives up and patrols again. */
 		evadeTime: number;
+		/**
+		 * It never notices anyone by itself (no alerts, no chases): only being hit sets it on
+		 * someone, and then it tracks them as usual.
+		 */
+		passive?: boolean;
 	};
 	/**
 	 * Damage it takes to kill, by party size: the first entry for one explorer, the next for two,
@@ -94,15 +138,14 @@ export interface CreatureDef {
 	 * it in full light too (half-light); Infinity means any light above the lower bound shows it.
 	 */
 	visibleBand: [number, number];
-	/** Its breathing is heard within this distance (m), through walls. */
-	breath: { range: number };
-	/**
-	 * How many spawn per expedition, and how far (m, along the nav grid) from the start. They spawn
-	 * at creature-* markers, or in corners where a map has too few. One that is killed comes back
-	 * `respawnSeconds` later, at least `minDistance` from every player.
-	 */
-	spawn: { count: [number, number]; minDistance: number; respawnSeconds: number };
+	/** Its breathing is heard within this distance (m), through walls (none if left out). */
+	breath?: { range: number };
+	/** How it comes to be in the catacombs. Nothing comes back once killed. */
+	spawn: SpawnRule;
 }
+
+/** Can't get down for squeezes or crawls, and won't go into water. */
+const UPRIGHT: NavReach = { crouch: false, crawl: false, swim: false };
 
 export const CREATURES: Record<string, CreatureDef> = {
 	witch: {
@@ -110,6 +153,10 @@ export const CREATURES: Record<string, CreatureDef> = {
 		model: modelUrl('shared/creatures/witch.glb'),
 		yawOffset: Math.PI,
 		height: 1.7,
+		// She never crawls, squeezes or swims: a low or flooded way is a way to lose her.
+		reach: UPRIGHT,
+		dread: true,
+		killWeight: 1,
 		// The model has no melee, jump, dodge, climb or crawl clip; those slots fall back or are
 		// skipped. Its strike is the spell cast, standing in for melee_attack. Also in the file and
 		// unused: 'Standard_Forward_Charge_inplace' (another run).
@@ -138,7 +185,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		burstTime: [0.6, 1.0],
 		patrol: { radius: 15, pause: [2, 6] },
 		alert: { wait: [2.5, 4.5], maxWait: 8, linger: 4 },
-		attack: { range: 1.6, windup: 0.5, duration: 1.4, damage: 30, cooldown: 1.6 },
+		attack: { range: 1.6, windup: 0.5, duration: 1.4, damage: 40, cooldown: 1.6 },
 		perception: {
 			hear: { sprint: 12, walk: 6, crouch: 3, crawl: 2, creep: 1.5, swim: 7 },
 			alertRange: 14,
@@ -146,17 +193,23 @@ export const CREATURES: Record<string, CreatureDef> = {
 			touch: 2.5,
 			evadeTime: 6
 		},
-		// 150 solo, 180 for two, 210 for three or more.
-		health: [150, 180, 210],
+		// 240 solo, 290 for two, 340 for three or more.
+		health: [240, 290, 340],
 		stagger: { threshold: 20, seconds: 0.5 },
 		hitRadius: 0.35,
 		corpseTime: 4,
 		// Seen in any light but the faintest; a bright lamp doesn't hide it.
 		visibleBand: [0.04, Infinity],
 		breath: { range: 6 },
-		spawn: { count: [3, 5], minDistance: 25, respawnSeconds: 300 }
+		// Drawn by the party's noise and light (server/attraction.ts), and by omens.
+		spawn: { kind: 'attracted' }
 	}
 };
+
+/** A creature's sound for what it's doing: its own, or the shared one. */
+export function creatureSound(def: CreatureDef | undefined, which: CreatureSound): SoundId {
+	return def?.sounds?.[which] ?? `creature.${which}`;
+}
 
 export const DEFAULT_CREATURE = CREATURES.witch;
 

@@ -25,6 +25,7 @@
 	import { desktop } from '#lib/desktop.ts';
 	import type { LobbyStatus, SteamStatus } from '#lib/shared/desktop.ts';
 	import { ITEMS } from '#lib/content/items.ts';
+	import { CREATURES } from '#lib/content/creatures.ts';
 	import { raise } from '#lib/game/alerts.svelte.ts';
 	import { GRIP_ITEMS, GRIP_POSES, type GripPose } from '#lib/game/player/GripCheck.ts';
 	import { devMode } from '#lib/dev.ts';
@@ -174,6 +175,14 @@
 	const itemIds = Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'clue');
 	let giveItem = $state('crowbar');
 	let giveCount = $state('1');
+
+	const creatureKinds = Object.keys(CREATURES);
+	let spawnKind = $state('witch');
+
+	function stepKind(by: number): void {
+		const index = creatureKinds.indexOf(spawnKind);
+		spawnKind = creatureKinds[(index + by + creatureKinds.length) % creatureKinds.length];
+	}
 
 	function stepItem(by: number): void {
 		const index = itemIds.indexOf(giveItem);
@@ -453,7 +462,10 @@
 				it.
 			</p>
 		{:else if group === 'Creatures'}
-			{@render action('Spawn in front', () => onadmin({ kind: 'spawnCreature' }))}
+			<StepperField label="Kind" text={spawnKind} onstep={stepKind} />
+			{@render action('Spawn in front', () =>
+				onadmin({ kind: 'spawnCreature', creature: spawnKind })
+			)}
 			{@render action('Kill all', () => onadmin({ kind: 'killCreatures' }))}
 			{@render action('Remove all', () => onadmin({ kind: 'clearCreatures' }))}
 			<StepperField

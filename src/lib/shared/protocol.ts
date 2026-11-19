@@ -94,8 +94,8 @@ export type AdminCommand =
 	| { kind: 'bossRay' }
 	| { kind: 'bossRush' }
 	| { kind: 'bossVanish' }
-	/** Put a creature a few metres in front of you. */
-	| { kind: 'spawnCreature' }
+	/** Put a creature (of this kind; the witch if left out) a few metres in front of you. */
+	| { kind: 'spawnCreature'; creature?: string }
 	| { kind: 'clearCreatures' }
 	| { kind: 'setSanity'; value: number }
 	/** Take every condition off you (a hobble). */

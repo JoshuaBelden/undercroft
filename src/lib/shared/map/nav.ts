@@ -168,6 +168,29 @@ function markDoorways(grid: NavGrid, layout: MapLayout): void {
 	}
 }
 
+/**
+ * Which points a body may use (see `reachFilter`): creatures that don't crawl, squeeze or swim
+ * leave those points out of their paths, spots and distances.
+ */
+export type NavFilter = (point: NavPoint) => boolean;
+
+/** Where a body may go: into squeezes (crouch clearance), crawls, and water. */
+export interface NavReach {
+	crouch: boolean;
+	crawl: boolean;
+	swim: boolean;
+}
+
+/** A filter for a body's reach, or undefined when it may go anywhere. */
+export function reachFilter(reach: NavReach): NavFilter | undefined {
+	if (reach.crouch && reach.crawl && reach.swim) return undefined;
+	return (p) =>
+		(reach.swim || !p.water) &&
+		(p.clearance === 'stand' ||
+			(p.clearance === 'crouch' && reach.crouch) ||
+			(p.clearance === 'crawl' && reach.crawl));
+}
+
 /** True when a path may step onto this point: not in the doorway of a shut door. */
 function passable(grid: NavGrid, index: number): boolean {
 	const door = grid.points[index].door;
@@ -234,8 +257,11 @@ function reachableFrom(grid: NavGrid, start: number): NavGrid {
 	return out;
 }
 
-/** The nav point nearest to a position (searching within `radius` metres), or -1. */
-export function nearestPoint(grid: NavGrid, p: Vec3, radius = 2): number {
+/**
+ * The nav point nearest to a position (searching within `radius` metres), or -1. With `allow`,
+ * only points it allows.
+ */
+export function nearestPoint(grid: NavGrid, p: Vec3, radius = 2, allow?: NavFilter): number {
 	const ix = lattice(p[0]);
 	const iz = lattice(p[2]);
 	const r = Math.ceil(radius / SPACING);
@@ -244,6 +270,7 @@ export function nearestPoint(grid: NavGrid, p: Vec3, radius = 2): number {
 	for (let dx = -r; dx <= r; dx++) {
 		for (let dz = -r; dz <= r; dz++) {
 			for (const i of grid.columns.get(columnKey(ix + dx, iz + dz)) ?? []) {
+				if (allow && !allow(grid.points[i])) continue;
 				const q = grid.points[i].position;
 				// Vertical distance counts extra so we don't snap to the floor above or below.
 				const d = Math.hypot(q[0] - p[0], (q[1] - p[1]) * 3, q[2] - p[2]);
@@ -306,8 +333,17 @@ class OpenSet {
 	}
 }
 
-/** A* over the grid, never through a shut door. Returns the positions from start to goal, or null. */
-export function findPath(grid: NavGrid, from: number, to: number, maxNodes = 20000): Vec3[] | null {
+/**
+ * A* over the grid, never through a shut door (nor, with `allow`, through points it leaves out).
+ * Returns the positions from start to goal, or null.
+ */
+export function findPath(
+	grid: NavGrid,
+	from: number,
+	to: number,
+	maxNodes = 20000,
+	allow?: NavFilter
+): Vec3[] | null {
 	if (from < 0 || to < 0) return null;
 	const goal = grid.points[to].position;
 	const h = (i: number) => {
@@ -336,6 +372,7 @@ export function findPath(grid: NavGrid, from: number, to: number, maxNodes = 200
 		const base = g.get(current) ?? Infinity;
 		for (const n of grid.points[current].neighbours) {
 			if (closed.has(n) || !passable(grid, n)) continue;
+			if (allow && !allow(grid.points[n])) continue;
 			const q = grid.points[n].position;
 			const step = Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]);
 			const tentative = base + (grid.points[n].water ? step * WATER_COST : step);
@@ -352,9 +389,15 @@ export function findPath(grid: NavGrid, from: number, to: number, maxNodes = 200
 /**
  * Distance (m, along the grid) from the nearest of `from` to every point; undefined where
  * unreachable. A breadth-first walk summing horizontal step lengths: close enough for spawning.
- * Shut doors stop it, unless `throughDoors` (laying out the whole map when it is made).
+ * Shut doors stop it, unless `throughDoors` (laying out the whole map when it is made), and so do
+ * points `allow` leaves out.
  */
-export function gridDistances(grid: NavGrid, from: number[], throughDoors = false): number[] {
+export function gridDistances(
+	grid: NavGrid,
+	from: number[],
+	throughDoors = false,
+	allow?: NavFilter
+): number[] {
 	const distance: number[] = new Array(grid.points.length);
 	const queue = from.filter((f) => f >= 0);
 	for (const f of queue) distance[f] = 0;
@@ -363,6 +406,7 @@ export function gridDistances(grid: NavGrid, from: number[], throughDoors = fals
 		const p = grid.points[at].position;
 		for (const n of grid.points[at].neighbours) {
 			if (distance[n] !== undefined || (!throughDoors && !passable(grid, n))) continue;
+			if (allow && !allow(grid.points[n])) continue;
 			const q = grid.points[n].position;
 			distance[n] = distance[at] + Math.hypot(q[0] - p[0], q[2] - p[2]);
 			queue.push(n);

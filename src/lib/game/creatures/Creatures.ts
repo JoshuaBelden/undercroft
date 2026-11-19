@@ -1,5 +1,12 @@
 import * as THREE from 'three';
-import { CREATURES, type CreatureAnim, type CreatureDef } from '#lib/content/creatures.ts';
+import {
+	CREATURES,
+	creatureSound,
+	type CreatureAnim,
+	type CreatureDef,
+	type CreatureSound
+} from '#lib/content/creatures.ts';
+import type { SoundId } from '#lib/content/audio/sounds.ts';
 import { Animator } from '#lib/game/Animator.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
 import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
@@ -100,6 +107,11 @@ export class Creatures {
 			if (!def) continue;
 			seen.add(snap.id);
 			let entry = this.entries.get(snap.id);
+			// A kind that becomes another (a dweller turning) gets the other's model.
+			if (entry && entry.def !== def) {
+				this.remove(entry);
+				entry = undefined;
+			}
 			if (!entry) {
 				entry = this.create(def, snap);
 				this.entries.set(snap.id, entry);
@@ -170,7 +182,7 @@ export class Creatures {
 	listen(delta: number, listener: Vec3): void {
 		let level = 0;
 		for (const entry of this.entries.values()) {
-			if (entry.state === 'dead') continue;
+			if (entry.state === 'dead' || !entry.def.breath) continue;
 			const p = entry.root.position;
 			const d = Math.hypot(listener[0] - p.x, listener[1] - p.y - 1.4, listener[2] - p.z);
 			level = Math.max(level, Math.max(0, 1 - d / entry.def.breath.range) ** 2);
@@ -240,6 +252,8 @@ export class Creatures {
 		void loadCharacter(def.model).then(({ scene, clips }) => {
 			if (!root.parent) return;
 			scene.rotation.y = def.yawOffset;
+			scene.scale.setScalar(def.scale ?? 1);
+			scene.position.y = def.lift ?? 0;
 			scene.traverse((node) => {
 				if (!(node instanceof THREE.Mesh)) return;
 				// Own materials so fading one creature doesn't fade the others.
@@ -287,6 +301,11 @@ export class Creatures {
 		}
 	}
 
+	/** A creature's sound for what it's doing (its own, or the shared one). */
+	soundOf(id: string, which: CreatureSound): SoundId {
+		return creatureSound(this.entries.get(id)?.def, which);
+	}
+
 	/** A creature was hit: flinch. */
 	hit(id: string): void {
 		const entry = this.entries.get(id);
@@ -297,10 +316,10 @@ export class Creatures {
 		const at: [number, number, number] = [entry.target.x, entry.target.y + 1, entry.target.z];
 		const now = performance.now();
 		if (anim === entry.def.gait.burst && now - entry.burstSoundAt > BURST_SOUND_GAP * 1000) {
-			this.sounds.playAt('creature.burst', at, 1, 3);
+			this.sounds.playAt(creatureSound(entry.def, 'burst'), at, 1, 3);
 			entry.burstSoundAt = now;
 		}
-		if (ATTACKS.has(anim)) this.sounds.playAt('creature.attack', at, 1, 3);
+		if (ATTACKS.has(anim)) this.sounds.playAt(creatureSound(entry.def, 'attack'), at, 1, 3);
 		entry.stepTimer = 0;
 	}
 
@@ -310,6 +329,7 @@ export class Creatures {
 		entry.stepTimer -= delta;
 		if (entry.stepTimer > 0) return;
 		entry.stepTimer = interval * (0.85 + Math.random() * 0.3);
-		this.sounds.playAt('creature.step', [position[0], position[1] + 0.1, position[2]], 1, 2);
+		const step = creatureSound(entry.def, 'step');
+		this.sounds.playAt(step, [position[0], position[1] + 0.1, position[2]], 1, 2);
 	}
 }

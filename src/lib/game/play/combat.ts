@@ -144,10 +144,12 @@ export class Combat implements PlayFeature {
 			case 'creatureHit':
 				if (event.id === 'manifestation') break;
 				creatures.hit(event.id);
-				sounds.playAt('creature.hurt', event.position, 1, 4);
+				sounds.playAt(creatures.soundOf(event.id, 'hurt'), event.position, 1, 4);
 				break;
 			case 'creatureDie':
-				if (event.id !== 'manifestation') sounds.playAt('creature.die', event.position, 1, 5);
+				if (event.id !== 'manifestation') {
+					sounds.playAt(creatures.soundOf(event.id, 'die'), event.position, 1, 5);
+				}
 				break;
 		}
 	}
