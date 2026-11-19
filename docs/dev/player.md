@@ -42,7 +42,7 @@ Each step:
    - swimming: swims (see Water);
    - noclip: flies.
 6. Resolves collisions.
-7. On land, tries a mantle while `climb` is held.
+7. On land, tries a mantle while `climb` is held, and on a fresh press of `climb` with no ledge, a jump (see Jumping).
 8. Updates stamina (or breath) and battery.
 
 All tuning is data in `MOVEMENT` and `HEADLAMPS`: speeds, capsule heights, eye heights, stride, swim and mantle settings, stamina rates, light intensities, drain and flicker.
@@ -101,6 +101,15 @@ With the camera under a water surface (`Underwater.below`: the camera, not the b
 **What happens:** a successful find starts `state.mantle`. For `duration` seconds the position follows a fixed path (rise, then move over), input is ignored, and collisions are skipped because the target was already validated. At the end you stand on the ledge in the stance that fit. A mantle costs `staminaCost`.
 
 It's part of the deterministic state, so server and prediction agree. The client dips the camera during a mantle.
+
+## Jumping
+
+A fresh press of `climb` (Space, A on a controller) on firm ground where no ledge can be mantled is a hop straight up (`tryJump`): the vertical velocity is set to `MOVEMENT.jump.speed` (5 m/s, about 0.7 m with gravity 18) and the player leaves the floor, keeping their run. Holding `climb` doesn't jump again: `PlayerState.climbKey` remembers it was down last step, like `interactKey` for ropes. So holding Space walking up to a ledge still mantles, and a press in the open jumps.
+
+- **Not** while wading, swimming, crawling, in a squeeze, exhausted, or with less than `jump.headroom` (0.3 m) clear over the head. It costs `jump.staminaCost`.
+- **The ground probe** in `resolveCollisions` is skipped while rising, so the floor just left doesn't catch the feet again.
+- **Animation:** the `jumping` slot while rising; the explorer has no jump clip yet, so it falls back to the run.
+- **Audio:** `jump` (a short breath, quieter than the mantle's grunt) as the feet leave the floor, and a footstep for the surface on landing (`PlayerAudio.updateJump`).
 
 ## Ropes
 

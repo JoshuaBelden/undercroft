@@ -91,6 +91,8 @@ export interface PlayerState {
 	climbing: Climb | null;
 	/** Interact was held last step: grabbing a rope takes a fresh press. */
 	interactKey: boolean;
+	/** Climb was held last step: a jump takes a fresh press. */
+	climbKey: boolean;
 	/** Hobbled and the like (CONDITIONS), each with the seconds it has left. */
 	conditions: ActiveCondition[];
 	/** Seconds spent holding interact at an extraction point (resets if interrupted). */
@@ -131,6 +133,11 @@ export interface PlayerState {
 	performing: number;
 	/** Seconds spent holding interact to open a loot crate (server-driven). */
 	opening: number;
+	/**
+	 * Seconds spent prying at a dead end's wall with a crowbar (server-driven); -1 once it is done,
+	 * until interact is let go.
+	 */
+	prying: number;
 	/** Seconds spent holding interact to erase your own chalk mark (server-driven). */
 	erasing: number;
 	/** Seconds spent holding interact to tie, untie or gather up a rope (server-driven). */
@@ -230,7 +237,7 @@ export interface InputFrame {
 	sprint: boolean;
 	/** Slow, silent walk (held). */
 	sneak: boolean;
-	/** Climb a ledge on land; swim up in water; surrender while downed (held). */
+	/** Jump (a fresh press) or climb a ledge (held) on land; swim up in water; surrender while downed (held). */
 	climb: boolean;
 	swimDown: boolean;
 	/** Let go of the rope you are on (stance, pressed while climbing). */

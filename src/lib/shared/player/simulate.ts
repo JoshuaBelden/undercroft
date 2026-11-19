@@ -75,6 +75,7 @@ export function createPlayerState(
 		climbing: null,
 		conditions: [],
 		interactKey: false,
+		climbKey: false,
 		extracting: 0,
 		extracted: false,
 		sanity: SANITY.max,
@@ -91,6 +92,7 @@ export function createPlayerState(
 		reviving: 0,
 		performing: 0,
 		opening: 0,
+		prying: 0,
 		erasing: 0,
 		roping: 0,
 		unbarring: 0,
@@ -226,6 +228,9 @@ export function stepPlayer(
 	// Grabbing a rope takes a fresh press, so a held key doesn't grab again on stepping off.
 	const interactPress = input.interact && !s.interactKey;
 	s.interactKey = input.interact;
+	// Jumping takes a fresh press too, so holding climb at a ledge mantles instead of hopping.
+	const climbPress = input.climb && !s.climbKey;
+	s.climbKey = input.climb;
 	if (s.downed) {
 		stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
 		stepDowned(s, input, world, dt, t);
@@ -337,6 +342,7 @@ export function stepPlayer(
 			const y = s.position[1];
 			tryMantle(s, world, t, y + t.stepHeight, y + t.mantle.maxHeight);
 		}
+		if (!grab && climbPress && !s.mantle) tryJump(s, world, t);
 	}
 
 	s.underwater = surface !== null && s.position[1] + eyeHeight(s, t) < surface;
@@ -670,6 +676,21 @@ function tryMantle(
 	s.staminaDelay = t.stamina.regenDelay;
 }
 
+/**
+ * A fresh press of climb on firm ground, with no ledge to mantle: a hop straight up at
+ * jump.speed (about 0.7 m). Not wading, crawling, in a squeeze, exhausted or under a ceiling.
+ */
+function tryJump(s: PlayerState, world: CollisionWorld, t: MovementTuning): void {
+	if (!s.grounded || s.wading || s.swimming || s.squeezing || s.stance === 'crawl') return;
+	if (s.exhausted && !s.flags.infiniteStamina) return;
+	const p = s.position;
+	if (!capsuleFits(world, [p[0], p[1] + t.jump.headroom, p[2]], bodyHeight(s, t), t.radius)) return;
+	s.velocity[1] = t.jump.speed;
+	s.grounded = false;
+	if (!s.flags.infiniteStamina) s.stamina = Math.max(0, s.stamina - t.jump.staminaCost);
+	s.staminaDelay = t.stamina.regenDelay;
+}
+
 /** Follow the climb path: rise first, then move onto the ledge. */
 function advanceMantle(s: PlayerState, dt: number): void {
 	const m = s.mantle;
@@ -778,7 +799,8 @@ function resolveCollisions(s: PlayerState, world: CollisionWorld, t: MovementTun
 	}
 
 	// Ground probe: resting exactly on a floor produces no penetration, so look slightly below.
-	if (!s.grounded) {
+	// Not on the way up from a jump, or the floor just left would catch the feet again.
+	if (!s.grounded && s.velocity[1] <= 0) {
 		for (const box of near) {
 			const c = sphereVsBox([p[0], p[1] + r - 0.06, p[2]], r, box);
 			if (c && c.normal[1] > GROUND_NORMAL) {

@@ -246,6 +246,38 @@ describe('the body and the world', () => {
 		expect(stamina).toBeLessThan(MOVEMENT.stamina.max);
 	});
 
+	it('pressing climb with no ledge jumps, about 0.7 m, and holding it does not jump again', () => {
+		const s = standing(flat);
+		let top = 0;
+		let landed = -1;
+		run(s, { climb: true }, 1);
+		expect(s.stamina).toBe(MOVEMENT.stamina.max - MOVEMENT.jump.staminaCost);
+		for (let i = 1; i < seconds(2); i++) {
+			run(s, { climb: true }, 1);
+			top = Math.max(top, s.position[1]);
+			if (landed < 0 && i > 2 && s.grounded) landed = i;
+		}
+		expect(top).toBeGreaterThan(0.6);
+		expect(top).toBeLessThan(0.8);
+		expect(landed).toBeGreaterThan(0);
+		// Still holding it, back on the floor: no second hop.
+		expect(s.position[1]).toBeLessThan(0.05);
+		run(s, {}, 1);
+		run(s, { climb: true }, seconds(0.2));
+		expect(s.position[1]).toBeGreaterThan(0.3);
+	});
+
+	it('no jump under a low ceiling, crawling, or in water', () => {
+		const low = worldOf([FLOOR, box([0, 1.9, 0], [4, 0.2, 4])]);
+		const s = standing(low);
+		run(s, { climb: true }, seconds(0.3), low);
+		expect(s.position[1]).toBeLessThan(0.05);
+		const crawler = standing(flat);
+		run(crawler, { stance: 'crawl' }, seconds(0.5));
+		run(crawler, { stance: 'crawl', climb: true }, seconds(0.3));
+		expect(crawler.position[1]).toBeLessThan(0.05);
+	});
+
 	it('noclip flies through walls where it looks', () => {
 		const world = worldOf([FLOOR, box([0, 1.5, -2], [4, 3, 0.4])]);
 		const s = standing(world);
