@@ -78,7 +78,6 @@
 	import CrateScreen from '#lib/ui/CrateScreen.svelte';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
 	import GameMenu, { type MenuTab } from '#lib/ui/GameMenu.svelte';
-	import MapScreen from '#lib/ui/MapScreen.svelte';
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
@@ -156,6 +155,7 @@
 		creep: false,
 		prompt: null as string | null,
 		promptKey: null as string | null,
+		promptBlocked: false,
 		progress: 0,
 		sanity: 1,
 		hurt: 0,
@@ -284,25 +284,49 @@
 		// It can't capture the pointer: browsers don't count Esc as a user gesture. A click or a
 		// move key does.
 		if (name === 'settings' && panel && panel !== 'settings') {
-			if (panel === 'map') playUi('map.close');
 			panel = null;
 			return;
 		}
 		const closing = panel === name;
-		// The menu and the map only open down there and on your feet: never while down or dead.
+		// The menu only opens down there and on your feet: never while down or dead.
 		const underground = expedition && spawned && !downed;
-		if ((name === 'menu' || name === 'map') && !closing && !underground) return;
+		if (name === 'menu' && !closing && !underground) return;
 		// The menu always opens on the pack.
 		if (name === 'menu' && !closing) menuTab = 'Pack';
-		// No notebook, no map: the HUD says so for a moment.
-		if (name === 'map' && !closing && !features?.survey.canOpen()) return;
-		const wasMap = panel === 'map';
 		panel = closing ? null : name;
-		if (wasMap !== (panel === 'map')) playUi(wasMap ? 'map.close' : 'map.open');
 		if (panel) document.exitPointerLock();
-		// Putting the menu or the map away goes straight back to play.
-		else if ((name === 'menu' || name === 'map') && expedition) capture();
+		// Putting the menu away goes straight back to play.
+		else if (name === 'menu' && expedition) capture();
 	}
+
+	/**
+	 * The map key: the in-game menu on its Map tab (docs/dev/map.md), or, on the Map tab already,
+	 * put it away. No notebook, no map: the HUD says so for a moment.
+	 */
+	function toggleMap(): void {
+		if (panel === 'menu' && menuTab === 'Map') {
+			toggle('menu');
+			return;
+		}
+		if (panel === 'crate') closeCrate();
+		const underground = expedition && spawned && !downed;
+		if (!underground || !features?.survey.canOpen()) return;
+		if (panel !== 'menu') {
+			panel = 'menu';
+			document.exitPointerLock();
+		}
+		menuTab = 'Map';
+	}
+
+	/** The Map tab showing: the notebook opens and shuts (its sounds) as it comes and goes. */
+	const mapShowing = $derived(panel === 'menu' && menuTab === 'Map');
+	let mapWasShowing = false;
+	$effect(() => {
+		const showing = mapShowing;
+		if (showing === mapWasShowing) return;
+		mapWasShowing = showing;
+		playUi(showing ? 'map.open' : 'map.close');
+	});
 
 	// Alerts down here (docs/dev/alerts.md): an item one opens the pack. A social one goes nowhere,
 	// since the Social page would leave the expedition.
@@ -596,7 +620,7 @@
 			loadId++;
 			loading = null;
 			reveal();
-			if (panel === 'menu' || panel === 'crate' || panel === 'map') panel = null;
+			if (panel === 'menu' || panel === 'crate') panel = null;
 			water.reset();
 			underwater = 0;
 			spectating = null;
@@ -794,11 +818,20 @@
 		function heldPrompt(state: PlayerState): {
 			prompt: string | null;
 			promptKey?: string;
+			promptBlocked: boolean;
 			progress: number;
 		} {
 			const none = { prompt: null, progress: 0 };
 			// The only thing a downed player can still do: climb out.
-			if (state.downed) return extractPrompt(state) ?? none;
+			const shown = state.downed ? (extractPrompt(state) ?? none) : pickPrompt(state, none);
+			const { blocked, ...rest } = shown as Prompt;
+			return { ...rest, promptBlocked: !!blocked };
+		}
+
+		function pickPrompt(
+			state: PlayerState,
+			none: { prompt: null; progress: number }
+		): Prompt | { prompt: null; progress: number } {
 			return (
 				all.survey.prompt() ??
 				all.ropes.climbPrompt(state) ??
@@ -809,6 +842,7 @@
 				all.crates.prompt(state) ??
 				all.pack.prompt(state) ??
 				all.doors.prompt(state) ??
+				all.walls.prompt(state) ??
 				all.surveyor.prompt(state) ??
 				all.marks.prompt(state) ??
 				all.ropes.gearPrompt(state) ??
@@ -940,8 +974,10 @@
 			// Before the player reads the mouse: in the free camera, the mouse is the camera's.
 			if (freecam) flyFreecam(delta);
 			const active = (locked || device.kind === 'pad') && !panel && !mapView && !extracting;
-			// With the menu open the keys still walk, but the hands are on it (docs/dev/items.md).
-			const reading = panel === 'menu' && !mapView && !extracting;
+			// With the menu open the keys still walk, but the hands are on it (docs/dev/items.md). On
+			// the Map tab you stand still, as you need to for sketching (docs/dev/map.md).
+			const reading = panel === 'menu' && menuTab !== 'Map' && !mapView && !extracting;
+			all.survey.open = mapShowing;
 			updateWheel(player.state, active);
 			all.marks.updateWheel(player.state, active);
 			player.update(delta, active, reading);
@@ -1109,7 +1145,7 @@
 					toggle('menu');
 					break;
 				case 'map':
-					toggle('map');
+					toggleMap();
 					break;
 				// Walking away from a loot crate puts it away; moving also leaves the admin screen.
 				case 'moveForward':
@@ -1345,27 +1381,25 @@
 			panel = null;
 			send({ type: 'abandon' });
 		}}
-		onmap={() => toggle('map')}
+		survey={features.survey.map && gameInput
+			? {
+					map: features.survey.map,
+					drawn: features.survey.drawn,
+					self: features.survey.view.self,
+					marks: features.marks.all,
+					input: gameInput,
+					sketch: features.survey.view.sketch,
+					share: features.survey.view.share,
+					partner: features.survey.view.partner,
+					onhold: (hold) => features?.survey.hold(hold)
+				}
+			: null}
 		onclose={() => toggle('menu')}
-	/>
-{:else if panel === 'map' && features?.survey.map && gameInput}
-	<MapScreen
-		map={features.survey.map}
-		drawn={features.survey.drawn}
-		self={features.survey.view.self}
-		marks={features.marks.all}
-		input={gameInput}
-		sketch={features.survey.view.sketch}
-		share={features.survey.view.share}
-		partner={features.survey.view.partner}
-		onhold={(hold) => features?.survey.hold(hold)}
-		onpack={() => toggle('menu')}
-		onclose={() => toggle('map')}
 	/>
 {:else if panel === 'crate' && inventory && features?.crates.open}
 	<CrateScreen
 		{inventory}
-		title={features.crates.open.corpse ? 'Corpse' : 'Crate'}
+		title={features.crates.open.corpse ? 'Corpse' : features.crates.open.trunk ? 'Trunk' : 'Crate'}
 		slots={features.crates.open.slots}
 		reveal={features.crates.open.reveal}
 		moveKeys={(['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)

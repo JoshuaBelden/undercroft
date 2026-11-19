@@ -197,7 +197,7 @@ The icon is drawn in its control's own two colours, swapped, rather than the whi
 | Markup                                      | What                                                                                                                                                            |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `{@attach menu({ back, tabs, key })}`       | A menu. `back` is B, `tabs(by)` is LB (-1) / RB (1), `key` remembers the control used last across openings                                                      |
-| `menu({ holding })`                         | X and Y as held buttons: `holding(button, down)` when one goes down and when it comes up (the map screen)                                                       |
+| `menu({ holding })`                         | X and Y as held buttons: `holding(button, down)` when one goes down and when it comes up (the menu's Map tab)                                                   |
 | `data-pad-stop` with `tabindex="-1"`        | Somewhere the focus can rest that isn't a control, so a grid with gaps still moves as a grid (a crate's sealed slots)                                           |
 | `data-pad-scroll`                           | What the right stick scrolls when nothing around the focus does (a `TabScreen`'s fields, with the focus on its tabs, as in Help)                                |
 | `data-pad-stepper`                          | One stop for a value with buttons either side (and maybe a field between): left and right press its first and last buttons (`StepperField`)                     |

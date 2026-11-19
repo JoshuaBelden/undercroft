@@ -6,6 +6,9 @@ export default defineConfig({
 	test: {
 		include: ['src/**/*.test.ts', 'server/**/*.test.ts', 'desktop/src/**/*.test.ts'],
 		environment: 'node',
+		// Session tests play out seconds of an expedition: alone they take one or two seconds, but a
+		// full parallel run on a busy machine can push some past vitest's 5 s default.
+		testTimeout: 15_000,
 		// Quiets the game server's log (server/testing/setup.ts).
 		setupFiles: ['server/testing/setup.ts'],
 		// `pnpm test:coverage`: only the code meant to be unit tested is counted.

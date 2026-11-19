@@ -63,7 +63,7 @@ Not unit tested: rendering (Three.js), audio, Svelte components, the stores' agg
 - **Seed everything.** Never `Math.random()` in a test: a failure must repeat. Put the seed in the assertion message (`expect(x, \`seed ${seed}\`)`) so it can be reproduced, for example with `pnpm dev:server` and the admin regenerate.
 - **Test the documented behaviour.** If a test fails, check the docs and the code before changing either: the generator's "final room is deepest" means rooms by the level they are entered at, because canal halls and the cistern reach below their floor.
 - **Reach into the server only to set up or look.** Tests may read a session's private parts with bracket access (`session['crates']`, `session['world']`) to find a crate or a wall, or to check the outcome; what they exercise goes through the public API (`addPlayer`, `receiveInput`, `inventory`, `mark`, `admin`) as a client would.
-- **Keep it fast.** The whole suite runs in under a minute. A `Session` takes about half a second to build (the nav grid is the slow part): open one per test, not one per assertion, and use `mapFixture` for the directors.
+- **Keep it fast.** The whole suite runs in under a minute. Tests time out at 15 s (`testTimeout` in `vitest.config.ts`): a session test playing out seconds of an expedition can pass 5 s when the whole suite runs in parallel. A `Session` takes about half a second to build (the nav grid is the slow part): open one per test, not one per assertion, and use `mapFixture` for the directors.
 
 ## Testing new server logic
 
