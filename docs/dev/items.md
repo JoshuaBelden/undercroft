@@ -224,7 +224,7 @@ About `CRATES.jammed` (a quarter) of the crates are jammed ([#25](https://github
 
 - **Found:** holding interact the usual `openSeconds` doesn't open it. It sets `jamFound`, raises `crateStuck` (`crate.stuck`, a rattle) and spends the press (`Player.crateLatch`: interact has to be let go before the next try). From then on the crate is in every tick's `crates.jammed`, so everyone's prompt knows.
 - **Prying:** with an item that has `pry: true` (the crowbar) **in the hand**, holding interact counts `PlayerState.opening` up to `CRATES.prySeconds` (10 s). It raises `pry` as it starts (`crowbar.pry`, the crowbar recording, heard `CRATES.pryNoise` away) and creatures hear it then and every `CRATES.pryEvery` seconds while it goes on, with the pryer as the source. Letting go, looking away or moving off starts it over. When it gives, the lock is gone (`Crates.release`) and the crate opens at once.
-- **Prompt** (`crates.svelte.ts`): "Pry [E]" filling over the ten seconds, or "Jammed: pry [E]" in red with no crowbar in the hand (`Prompt.blocked`, drawn red by `HoldPrompt`).
+- **Prompt** (`crates.svelte.ts`): "Pry [E] (crate stuck)" (the words after the key are `Prompt.after`), filling over the ten seconds; red with no crowbar in the hand (`Prompt.blocked`, drawn red by `HoldPrompt`).
 - Hints never go in jammed (or locked) crates, nor do the trunks' keys.
 
 ### Locked trunks

@@ -37,6 +37,8 @@ export interface Prompt {
 	progress: number;
 	/** It can't be done yet (no key for the lock, no crowbar in the hand): shown in red. */
 	blocked?: boolean;
+	/** Words after the key ("(crate stuck)"). */
+	after?: string;
 }
 
 /** Where the player is looking, for working out what interact would take. */

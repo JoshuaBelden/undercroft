@@ -53,7 +53,7 @@
 	import { loadAccount } from '#lib/account/account.svelte.ts';
 	import { buildCollisionWorld, segmentHit } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
-	import { roomPoints } from '#lib/shared/map/points.ts';
+	import { roomPoints, testPoints } from '#lib/shared/map/points.ts';
 	import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
 	import { nearExtract } from '#lib/shared/player/simulate.ts';
 	import { CONDITIONS, isConditionId } from '#lib/content/player/conditions.ts';
@@ -156,6 +156,7 @@
 		prompt: null as string | null,
 		promptKey: null as string | null,
 		promptBlocked: false,
+		promptAfter: null as string | null,
 		progress: 0,
 		sanity: 1,
 		hurt: 0,
@@ -576,7 +577,13 @@
 					roomIds[cellKey(x, z, level)] = index;
 				}
 			});
-			rooms = roomPoints(layout, PIECES, MAP_KIT).map((room) => room.name);
+			rooms = [
+				...roomPoints(layout, PIECES, MAP_KIT),
+				...testPoints(layout, PIECES),
+				// Only the server knows these (server/systems/cheats.ts).
+				{ name: 'stuck-crate' },
+				{ name: 'pendant' }
+			].map((room) => room.name);
 			const id = ++loadId;
 			loading = { loaded: 0, total: 0 };
 			if (arrived) holdDark();
@@ -819,13 +826,14 @@
 			prompt: string | null;
 			promptKey?: string;
 			promptBlocked: boolean;
+			promptAfter: string | null;
 			progress: number;
 		} {
 			const none = { prompt: null, progress: 0 };
 			// The only thing a downed player can still do: climb out.
 			const shown = state.downed ? (extractPrompt(state) ?? none) : pickPrompt(state, none);
-			const { blocked, ...rest } = shown as Prompt;
-			return { ...rest, promptBlocked: !!blocked };
+			const { blocked, after, ...rest } = shown as Prompt;
+			return { ...rest, promptBlocked: !!blocked, promptAfter: after ?? null };
 		}
 
 		function pickPrompt(

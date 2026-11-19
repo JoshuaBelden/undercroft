@@ -140,8 +140,8 @@ export class Crates implements PlayFeature {
 		if (this.models.isJammed(id)) {
 			// It takes something that pries, in the hand.
 			const bar = !!ITEMS[held(state.inventory)?.item ?? '']?.pry;
-			if (!bar) return { ...keyPrompt('interact', 'Jammed: pry'), blocked: true };
-			return keyPrompt('interact', 'Pry', state.opening / CRATES.prySeconds);
+			const prompt = keyPrompt('interact', 'Pry', bar ? state.opening / CRATES.prySeconds : 0);
+			return { ...prompt, after: '(crate stuck)', blocked: !bar };
 		}
 		// Crates, trunks and bodies alike.
 		return keyPrompt('interact', 'to search', state.opening / CRATES.openSeconds);
