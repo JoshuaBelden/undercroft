@@ -262,18 +262,6 @@ function skitter(ctx: BaseAudioContext): AudioBuffer {
 	});
 }
 
-/** Soft, fast wingbeats: a loop of `rate` beats a second. */
-function flutter(ctx: BaseAudioContext, rate: number): AudioBuffer {
-	const rand = noise(137);
-	const a = lowpass(700, ctx.sampleRate);
-	let y = 0;
-	return buffer(ctx, 1, (t) => {
-		y += a * (rand() - y);
-		const beat = Math.sin(t * rate * Math.PI) ** 2;
-		return y * beat * 1.2;
-	});
-}
-
 function rush(ctx: BaseAudioContext): AudioBuffer {
 	const rand = noise(89);
 	const a = lowpass(2400, ctx.sampleRate);
@@ -499,8 +487,6 @@ export function synthesize(ctx: BaseAudioContext, spec: SynthSpec): AudioBuffer 
 			return squeak(ctx, spec.pitch);
 		case 'skitter':
 			return skitter(ctx);
-		case 'flutter':
-			return flutter(ctx, spec.rate);
 		case 'snarl':
 			return snarl(ctx);
 		case 'hurt':

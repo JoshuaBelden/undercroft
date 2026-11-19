@@ -32,7 +32,13 @@
 	import { mapDebugGrid, type MapDebugCounts } from '#lib/shared/map/debug.ts';
 	import { connection, gameClient, me, start, subscribe } from '#lib/game/net/connection.svelte.ts';
 	import { createFeatures, type Features } from '#lib/game/play/index.ts';
-	import type { PanelName, PlayFeature, PlayUi, Prompt } from '#lib/game/play/feature.ts';
+	import type {
+		PanelName,
+		PlayFeature,
+		PlayUi,
+		Prompt,
+		TickMessage
+	} from '#lib/game/play/feature.ts';
 	import { keyPrompt } from '#lib/game/play/prompt.ts';
 	import { useAlertTargets } from '#lib/game/alerts.svelte.ts';
 	import { Headlamp } from '#lib/game/player/Headlamp.ts';
@@ -133,7 +139,7 @@
 	let markers = $state(false);
 	/** Admin: the party's attraction meters (and the omens) as bars under the clock. */
 	let showAttraction = $state(false);
-	let attraction = $state<{ noise: number; light: number } | null>(null);
+	let attraction = $state<TickMessage['attraction'] | null>(null);
 	/** Dev: teammates' gamer tags drawn over the rock. */
 	let tagsThroughWalls = $state(false);
 	/** Dev: the Grip check's item (null: off) and what it does with it. */
@@ -1249,6 +1255,8 @@
 			noise={attraction?.noise ?? null}
 			light={attraction?.light ?? null}
 			omen={features.affliction.meter}
+			witches={attraction?.witches ?? null}
+			last={attraction?.last ?? null}
 		/>
 	{/if}
 {/if}

@@ -184,10 +184,10 @@ export class CreatureDirector {
 	/** The party's noise and light, drawing witches in (server/attraction.ts). */
 	readonly attraction = new Attraction();
 	/**
-	 * Each lamp's fliers, by `<kind>:<player>`: the lamp mode they were rolled for, how many it
-	 * draws, seconds it has been off, and seconds until the next one arrives.
+	 * Each lamp's fliers, by `<kind>:<player>`: seconds it has been on bright, how many that draws,
+	 * seconds it has been off, and seconds until the next one arrives.
 	 */
-	private lamps = new Map<string, { mode: number; want: number; dark: number; next: number }>();
+	private lamps = new Map<string, { bright: number; want: number; dark: number; next: number }>();
 
 	constructor(
 		private world: CollisionWorld,
@@ -263,6 +263,7 @@ export class CreatureDirector {
 		if (index < 0) return;
 		const position = this.nav.points[index].position;
 		const c = this.add(def, position, yawTo(position, state.position));
+		if (kind === ATTRACTION.kind) this.noteWitch('admin');
 		if (fated !== undefined && def.shy) c.fated = fated;
 		// A flier goes to the lamp of whoever brought it.
 		if (def.flight) c.follow = by ?? null;
@@ -349,7 +350,19 @@ export class CreatureDirector {
 		if (!spots.length) return false;
 		const spot = this.rng.pick(spots);
 		this.add(def, spot.position, spot.yaw);
+		// Only the omens spawn far.
+		if (kind === ATTRACTION.kind) this.noteWitch('omen');
 		return true;
+	}
+
+	/**
+	 * Admin: why the last witch came (a meter, an omen, a dweller turning, admin) and seconds
+	 * since, for the attraction bars.
+	 */
+	lastWitch: { cause: string; seconds: number } | null = null;
+
+	private noteWitch(cause: string): void {
+		this.lastWitch = { cause, seconds: 0 };
 	}
 
 	clear(): void {
@@ -432,6 +445,7 @@ export class CreatureDirector {
 		c.running = false;
 		c.mode = 'patrol';
 		this.chase(c, prey);
+		if (def.id === ATTRACTION.kind) this.noteWitch('a dweller turned');
 	}
 
 	/**
@@ -551,9 +565,11 @@ export class CreatureDirector {
 			const kind = ATTRACTION.kind;
 			if (this.alive(kind) >= byParty(ATTRACTION.cap, this.attraction.party)) {
 				this.lookNearest(kind, player.state.position);
-				this.attraction.reset(draw.meter);
+				this.attraction.answered(draw.meter);
+				this.noteWitch(`${draw.meter} (at the cap: one went to look)`);
 			} else if (this.summon(kind, player.state)) {
-				this.attraction.reset(draw.meter);
+				this.attraction.answered(draw.meter);
+				this.noteWitch(draw.meter);
 			} else {
 				this.attraction.hold(draw.meter);
 			}
@@ -622,6 +638,7 @@ export class CreatureDirector {
 	step(prey: Prey[]): CreatureHit[] {
 		const hits: CreatureHit[] = [];
 		const targets = prey.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
+		if (this.lastWitch) this.lastWitch.seconds += TICK_DT;
 		this.attract(targets);
 		this.lampFliers(targets);
 		for (const c of this.creatures) {
@@ -819,9 +836,10 @@ export class CreatureDirector {
 	// --- fliers (def.flight): moths at the lamps ---
 
 	/**
-	 * Keep each lit lamp's fliers coming: up to the number its mode draws (rolled when the mode
-	 * changes), one every `arrive` seconds. Lamp low after bright: the extra ones leave. Lamp off
-	 * for `disperse` seconds, or its owner down or gone: all of them leave.
+	 * Keep each bright lamp's fliers coming: once it has been on bright for `after` seconds, up to
+	 * `count` (rolled each time it goes bright), one every `arrive` seconds. On low, no more come
+	 * but those there stay. Lamp off for `disperse` seconds, or its owner down or gone: all of them
+	 * leave.
 	 */
 	private lampFliers(targets: Prey[]): void {
 		for (const def of Object.values(CREATURES)) {
@@ -832,31 +850,31 @@ export class CreatureDirector {
 				const key = `${def.id}:${p.id}`;
 				let lamp = this.lamps.get(key);
 				if (!lamp) {
-					lamp = { mode: 0, want: 0, dark: 0, next: flight.arrive };
+					lamp = { bright: 0, want: 0, dark: 0, next: 0 };
 					this.lamps.set(key, lamp);
 				}
 				const mine = this.living().filter(
 					(c) => c.def === def && c.follow === p.id && c.mode !== 'flee'
 				);
-				if (s.headlamp > 0 && s.battery > 0) {
-					lamp.dark = 0;
-					if (s.headlamp !== lamp.mode) {
-						lamp.mode = s.headlamp;
-						const [lo, hi] = s.headlamp === 2 ? flight.perLamp.bright : flight.perLamp.low;
-						lamp.want = this.rng.int(lo, hi);
+				const lit = s.headlamp > 0 && s.battery > 0;
+				if (lit) lamp.dark = 0;
+				if (lit && s.headlamp === 2) {
+					if (lamp.bright === 0) {
+						lamp.want = this.rng.int(flight.count[0], flight.count[1]);
+						lamp.next = 0;
 					}
-					if (mine.length < lamp.want) {
+					lamp.bright += TICK_DT;
+					if (lamp.bright >= flight.after && mine.length < lamp.want) {
 						lamp.next -= TICK_DT;
 						if (lamp.next <= 0) {
 							lamp.next = flight.arrive;
 							this.flyIn(def, s, p.id);
 						}
-					} else {
-						lamp.next = flight.arrive;
-						for (const c of mine.slice(lamp.want)) this.flyOff(c);
 					}
 				} else {
-					lamp.mode = 0;
+					lamp.bright = 0;
+				}
+				if (!lit) {
 					lamp.dark += TICK_DT;
 					if (lamp.dark >= flight.disperse) for (const c of mine) this.flyOff(c);
 				}

@@ -347,7 +347,7 @@ Sometimes there is a much bigger spider. It hunts like the things in the dark do
 		id: 'moths',
 		title: 'Moths',
 		category: 'Surviving',
-		body: `Moths come to your headlamp: one or two to a low lamp, more to a bright one. They flutter in your beam and get in the way, but they do you no harm. Swat one and it falls. Put your lamp out for a few seconds and they scatter.`
+		body: `Moths come to a bright headlamp: leave it on bright for more than a few seconds and they start to gather. On low, no more come. They flutter in your beam and get in the way, but they do you no harm. Swat one and it falls. Put your lamp out for a few seconds and they scatter.`
 	},
 	{
 		id: 'figures-in-corners',

@@ -420,6 +420,8 @@ describe('dwellers', () => {
 		expect(snap.kind).toBe('witch');
 		expect(['agro', 'attack']).toContain(snap.state);
 		expect(creatures.alive('witch')).toBe(1);
+		// The admin bars say why she came.
+		expect(creatures.lastWitch?.cause).toBe('a dweller turned');
 		const [body] = creatures.hitBodies();
 		expect(creatures.damage(body.id, WITCH.health[0] - 1, player)).toBe(false);
 		expect(creatures.damage(body.id, 1, player)).toBe(true);
@@ -453,17 +455,31 @@ describe('moths', () => {
 			(c) => c.def.id === 'moth' && c.follow === id && c.mode !== 'flee' && c.mode !== 'dead'
 		).length;
 
-	it('one or two come to a low lamp, more to a bright one, and they leave once it goes dark', () => {
+	it('none to a low lamp; a high beam on for 5 s draws them; they leave once it goes dark', () => {
 		const creatures = director();
 		const player = prey('p', map.start, 0);
 		player.state.headlamp = 1;
-		run(creatures, 12, [player]);
-		expect(at(creatures)).toBeGreaterThanOrEqual(1);
-		expect(at(creatures)).toBeLessThanOrEqual(2);
-		player.state.headlamp = 2;
 		run(creatures, 20, [player]);
+		expect(at(creatures)).toBe(0);
+		// Bright, but not for long enough.
+		player.state.headlamp = 2;
+		run(creatures, 4.5, [player]);
+		expect(at(creatures)).toBe(0);
+		// Flicked to low and back: the 5 s start again.
+		player.state.headlamp = 1;
+		run(creatures, 0.2, [player]);
+		player.state.headlamp = 2;
+		run(creatures, 4.5, [player]);
+		expect(at(creatures)).toBe(0);
+		run(creatures, 15, [player]);
 		expect(at(creatures)).toBeGreaterThanOrEqual(3);
 		expect(at(creatures)).toBeLessThanOrEqual(5);
+		// Back to low: no more come, but these stay.
+		const there = at(creatures);
+		player.state.headlamp = 1;
+		run(creatures, 5, [player]);
+		expect(at(creatures)).toBe(there);
+		player.state.headlamp = 2;
 		// Off for a moment: they stay.
 		player.state.headlamp = 0;
 		run(creatures, 1, [player]);

@@ -9,9 +9,13 @@
 		noise: number | null;
 		light: number | null;
 		omen: number | null;
+		/** Witches alive now. */
+		witches: number | null;
+		/** Why the last witch came (a meter, an omen, a dweller turning, admin), and when. */
+		last: { cause: string; seconds: number } | null;
 	}
 
-	let { noise, light, omen }: Props = $props();
+	let { noise, light, omen, witches, last }: Props = $props();
 
 	const bars = $derived([
 		{ label: 'Noise', value: noise },
@@ -30,6 +34,10 @@
 			<span class="value">{bar.value === null ? '—' : `${Math.round(bar.value * 100)}%`}</span>
 		</div>
 	{/each}
+	<p class="last">
+		Witches: {witches ?? '—'}
+		{#if last}· last: {last.cause}, {last.seconds}s ago{/if}
+	</p>
 </div>
 
 <style>
@@ -40,7 +48,7 @@
 		transform: translateX(-50%);
 		display: grid;
 		gap: 4px;
-		width: min(240px, calc(100vw - 32px));
+		width: min(300px, calc(100vw - 32px));
 		pointer-events: none;
 		z-index: 6;
 	}
@@ -66,6 +74,14 @@
 		display: block;
 		height: 100%;
 		background: #d9a54a;
+	}
+
+	.last {
+		margin: 0;
+		text-align: center;
+		font: 500 0.7rem var(--font-body, sans-serif);
+		color: var(--text);
+		text-shadow: 0 0 6px rgb(0 0 0 / 0.9);
 	}
 
 	.value {

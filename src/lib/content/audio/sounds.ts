@@ -36,8 +36,6 @@ export type SynthSpec =
 	| { kind: 'squeak'; pitch: number }
 	/** Tiny claws on stone (rats, spiders). */
 	| { kind: 'skitter' }
-	/** Soft wingbeats loop, `rate` beats a second (moths). */
-	| { kind: 'flutter'; rate: number }
 	/** Rasping snarl with a strike. */
 	| { kind: 'snarl' }
 	/** Short pained breath when hurt. */
@@ -348,14 +346,6 @@ export const SOUNDS = {
 		rate: 0.7,
 		variation: 0.1,
 		caption: 'a deep hiss'
-	},
-	// Moths: a soft flutter while they fly (placeholder until there's a recording).
-	'moth.flutter': {
-		synth: { kind: 'flutter', rate: 18 },
-		category: 'sfx',
-		volume: 0.25,
-		variation: 0.2,
-		caption: 'wings flutter'
 	},
 	// The surveyor sharing his map: paper unfolding (placeholder until there's a recording).
 	'surveyor.share': {

@@ -6,7 +6,6 @@ import {
 	type CreatureDef,
 	type CreatureSound
 } from '#lib/content/creatures.ts';
-import type { SoundId } from '#lib/content/audio/sounds.ts';
 import { Animator } from '#lib/game/Animator.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
 import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
@@ -302,9 +301,19 @@ export class Creatures {
 		}
 	}
 
-	/** A creature's sound for what it's doing (its own, or the shared one). */
-	soundOf(id: string, which: CreatureSound): SoundId {
-		return creatureSound(this.entries.get(id)?.def, which);
+	/** Play a creature's sound for what it's doing (its own, or the shared one; none if silent). */
+	soundAt(id: string, which: CreatureSound, at: Vec3, refDistance: number): void {
+		this.voice(this.entries.get(id)?.def, which, at, refDistance);
+	}
+
+	private voice(
+		def: CreatureDef | undefined,
+		which: CreatureSound,
+		at: Vec3,
+		refDistance: number
+	): void {
+		const sound = creatureSound(def, which);
+		if (sound) this.sounds.playAt(sound, at, 1, refDistance);
 	}
 
 	/** A creature was hit: flinch. */
@@ -317,10 +326,10 @@ export class Creatures {
 		const at: [number, number, number] = [entry.target.x, entry.target.y + 1, entry.target.z];
 		const now = performance.now();
 		if (anim === entry.def.gait.burst && now - entry.burstSoundAt > BURST_SOUND_GAP * 1000) {
-			this.sounds.playAt(creatureSound(entry.def, 'burst'), at, 1, 3);
+			this.voice(entry.def, 'burst', at, 3);
 			entry.burstSoundAt = now;
 		}
-		if (ATTACKS.has(anim)) this.sounds.playAt(creatureSound(entry.def, 'attack'), at, 1, 3);
+		if (ATTACKS.has(anim)) this.voice(entry.def, 'attack', at, 3);
 		entry.stepTimer = 0;
 	}
 
@@ -330,7 +339,6 @@ export class Creatures {
 		entry.stepTimer -= delta;
 		if (entry.stepTimer > 0) return;
 		entry.stepTimer = interval * (0.85 + Math.random() * 0.3);
-		const step = creatureSound(entry.def, 'step');
-		this.sounds.playAt(step, [position[0], position[1] + 0.1, position[2]], 1, 2);
+		this.voice(entry.def, 'step', [position[0], position[1] + 0.1, position[2]], 2);
 	}
 }

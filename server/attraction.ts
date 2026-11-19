@@ -34,6 +34,8 @@ export interface Draw {
 
 const TICK_DT = 1 / TICK_RATE;
 const METERS: Meter[] = ['noise', 'light'];
+/** Seconds a meter that brought something shows full on the admin bars. */
+const FLASH = 1.5;
 
 export class Attraction {
 	readonly levels: Record<Meter, number> = { noise: 0, light: 0 };
@@ -45,6 +47,8 @@ export class Attraction {
 	private wait: Record<Meter, number> = { noise: 0, light: 0 };
 	/** Meters that filled: they hold there (nothing drains them) until a draw is answered. */
 	private full = new Set<Meter>();
+	/** Seconds a meter that just brought something shows full (the admin bars), though it's empty. */
+	private flash: Record<Meter, number> = { noise: 0, light: 0 };
 	/** Explorers down here at the last tick (the thresholds scale with it). */
 	party = 1;
 
@@ -62,7 +66,7 @@ export class Attraction {
 
 	/** How full a meter is, 0..1 (the admin bars). */
 	fraction(meter: Meter): number {
-		if (this.full.has(meter)) return 1;
+		if (this.full.has(meter) || this.flash[meter] > 0) return 1;
 		return Math.min(1, this.levels[meter] / this.threshold(meter));
 	}
 
@@ -91,6 +95,7 @@ export class Attraction {
 		const draws: Draw[] = [];
 		for (const meter of METERS) {
 			this.wait[meter] = Math.max(0, this.wait[meter] - TICK_DT);
+			this.flash[meter] = Math.max(0, this.flash[meter] - TICK_DT);
 			if (this.levels[meter] >= this.threshold(meter)) this.full.add(meter);
 			if (this.wait[meter] > 0 || !this.full.has(meter)) continue;
 			const player = this.top(meter, explorers);
@@ -105,6 +110,15 @@ export class Attraction {
 		this.by[meter].clear();
 		this.wait[meter] = 0;
 		this.full.delete(meter);
+	}
+
+	/**
+	 * A draw was answered (something came): the meter starts again, but the admin bars show it
+	 * full for a moment so it's clear what brought it.
+	 */
+	answered(meter: Meter): void {
+		this.reset(meter);
+		this.flash[meter] = FLASH;
 	}
 
 	/** A draw couldn't be answered just now: stay full and try again a little later. */

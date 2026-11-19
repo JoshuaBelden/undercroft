@@ -105,7 +105,15 @@ describe('attraction', () => {
 		diver.hold({}, 0.2);
 		expect(session['creatures'].alive('witch')).toBe(1);
 		const tick = diver.socket.all('tick').at(-1);
-		expect(tick?.attraction).toEqual({ noise: expect.any(Number), light: 0 });
+		// The light bar shows full for a moment after it brings one, with why she came.
+		expect(tick?.attraction).toEqual({
+			noise: expect.any(Number),
+			light: 1,
+			witches: 1,
+			last: { cause: 'light', seconds: 0 }
+		});
+		diver.hold({}, 2);
+		expect(diver.socket.all('tick').at(-1)?.attraction?.light).toBeLessThan(1);
 		session.admin(diver.id, { kind: 'resetAttraction' });
 		expect(session['creatures'].attraction.levels.noise).toBe(0);
 	});

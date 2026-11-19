@@ -655,7 +655,14 @@ export class Session implements SessionContext {
 			...(config.devMode && {
 				attraction: {
 					noise: round2(this.creatures.attraction.fraction('noise')),
-					light: round2(this.creatures.attraction.fraction('light'))
+					light: round2(this.creatures.attraction.fraction('light')),
+					witches: this.creatures.alive('witch'),
+					...(this.creatures.lastWitch && {
+						last: {
+							cause: this.creatures.lastWitch.cause,
+							seconds: Math.floor(this.creatures.lastWitch.seconds)
+						}
+					})
 				}
 			})
 		});

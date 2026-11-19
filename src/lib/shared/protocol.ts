@@ -185,10 +185,17 @@ export type ServerMessage =
 			/** Doors sealed shut: the final room's, from the rite until it is banished. */
 			sealed: string[];
 			/**
-			 * Dev mode only (the admin bars): how full the party's noise and light meters are, 0..1.
+			 * Dev mode only (the admin bars): how full the party's noise and light meters are, 0..1
+			 * (full for a moment after one brings a witch), how many witches are alive, and why the
+			 * last one came (a meter, an omen, a dweller turning, admin) and how long ago.
 			 * See docs/dev/creatures.md#attraction.
 			 */
-			attraction?: { noise: number; light: number };
+			attraction?: {
+				noise: number;
+				light: number;
+				witches: number;
+				last?: { cause: string; seconds: number };
+			};
 	  }
 	/**
 	 * The loot crate you have open, sent while it is open: its slots, and how far along (0..1) the

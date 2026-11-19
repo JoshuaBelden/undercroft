@@ -58,6 +58,8 @@ export interface CreatureDef {
 	killWeight: number;
 	/** Its own sounds, by what it's doing; the rest are the shared creature ones. */
 	sounds?: Partial<Record<CreatureSound, SoundId>>;
+	/** It makes no sound at all (not even the shared ones). */
+	silent?: boolean;
 	/** The model's animation map: its clip names by standard slot. */
 	animations: AnimationMap;
 	/**
@@ -152,8 +154,9 @@ export interface CreatureDef {
 	 */
 	shy?: { seenRange: number; fleeDistance: number; turnChance: number; turnInto: string };
 	/**
-	 * It flies, and comes to lamps: each lit headlamp draws `perLamp` of them by its mode (rolled
-	 * when the mode changes), one every `arrive` seconds, flying in from `from` m off. They flutter
+	 * It flies, and comes to bright lamps: a headlamp on bright for `after` seconds draws `count` of
+	 * them (rolled each time it goes bright), one every `arrive` seconds, flying in from `from` m
+	 * off. On low no more come, but those there stay. They flutter
 	 * about a point `ahead` m out along the beam, within `radius` m of it, at up to `speed` m/s. A
 	 * lamp off for `disperse` seconds sends its own away; they're gone `leave` seconds later. It
 	 * ignores everything else (no perception, no attack) and falls when killed.
@@ -172,7 +175,8 @@ export interface CreatureDef {
 	 */
 	friendly?: { notice: number; range: number; seconds: number; legs: number };
 	flight?: {
-		perLamp: { low: [number, number]; bright: [number, number] };
+		count: [number, number];
+		after: number;
 		arrive: number;
 		from: number;
 		ahead: number;
@@ -491,11 +495,13 @@ export const CREATURES: Record<string, CreatureDef> = {
 		corpseTime: 3,
 		// Seen in the faintest light: they're in the beam.
 		visibleBand: [0.02, Infinity],
-		sounds: { step: 'moth.flutter', hurt: 'moth.flutter', die: 'moth.flutter' },
+		silent: true,
 		spawn: { kind: 'lamp' },
 		flight: {
-			perLamp: { low: [1, 2], bright: [3, 5] },
-			arrive: 2.5,
+			// Only a high beam, and only once it's been on a while.
+			count: [3, 5],
+			after: 5,
+			arrive: 2,
 			from: 6,
 			ahead: 1.1,
 			radius: 0.5,
@@ -622,7 +628,8 @@ export const CREATURES: Record<string, CreatureDef> = {
 };
 
 /** A creature's sound for what it's doing: its own, or the shared one. */
-export function creatureSound(def: CreatureDef | undefined, which: CreatureSound): SoundId {
+export function creatureSound(def: CreatureDef | undefined, which: CreatureSound): SoundId | null {
+	if (def?.silent) return null;
 	return def?.sounds?.[which] ?? `creature.${which}`;
 }
 

@@ -9,7 +9,7 @@ Things that share the catacombs with the players. In code and docs they are **cr
 | `spider`       | Ignores everyone until hit (`passive`); its bite poisons.                                       | Scattered: 3-6 groups of 1-5                                                 |
 | `giant-spider` | Hunts like a witch at shorter ranges; its bite poisons. Can't fit a crawl.                      | 40% of maps, one only, in a far corner                                       |
 | `dweller`      | Sits in corners (`shy`); seen, walks off to a far corner; one in five turns into a witch.       | Scattered: 3-6, in corners                                                   |
-| `moth`         | Flutters at headlamps (`flight`); harmless.                                                     | Comes to lit lamps: 1-2 low, 3-5 bright                                      |
+| `moth`         | Flutters at headlamps (`flight`); harmless.                                                     | Comes to a high beam on for 5 s: 3-5                                         |
 | `surveyor`     | Friendly and unhurtable (`friendly`, `invulnerable`); wanders corner to corner; shares his map. | Always one, 30 m or more from the start                                      |
 
 ## Files
@@ -218,9 +218,9 @@ A hit turns a fated one, and sends any other running (`flee` at a sprint).
 
 ### Moths (`flight`)
 
-Fliers don't use the nav grid or the player simulation while alive. `lampFliers` keeps, for each explorer with a lit lamp, a count rolled from `perLamp` for its mode (re-rolled when the mode changes). Under it, one arrives every `arrive` seconds, placed `from` m out along their look (or nearer, or to the side or behind, wherever is open). Over it (bright to low), the extra ones leave. Lamp off for `disperse` seconds, or its owner down, dead or out: all theirs leave. Leaving is mode `flee`, flying off for `leave` seconds before they're removed.
+Fliers don't use the nav grid or the player simulation while alive. `lampFliers` watches each explorer's lamp. Once it has been on bright for `after` (5) seconds, up to `count` (3-5, rolled each time it goes bright) come, one every `arrive` seconds, placed `from` m out along their look (or nearer, or to the side or behind, wherever is open). On low no more come, and those there stay. Lamp off for `disperse` seconds, or its owner down, dead or out: all theirs leave. Leaving is mode `flee`, flying off for `leave` seconds before they're removed.
 
-`fly` moves each toward a point `ahead` m out along its owner's look, wandering within `radius`, at up to `speed`, with a little jitter. A step that would cross anything solid isn't taken. Animation: `walking` (Fly) while fluttering, `running` (Dart) arriving or leaving. A hit kills one (health 1); dead, it falls with the player simulation like any corpse. They aren't heard by, and don't add to, the attraction meters.
+`fly` moves each toward a point `ahead` m out along its owner's look, wandering within `radius`, at up to `speed`, with a little jitter. A step that would cross anything solid isn't taken. Animation: `walking` (Fly) while fluttering, `running` (Dart) arriving or leaving. A hit kills one (health 1); dead, it falls with the player simulation like any corpse. Moths are `silent`: no sound at all, not even the shared creature ones. They aren't heard by, and don't add to, the attraction meters.
 
 ### The surveyor (`friendly`, `wanders`, `invulnerable`)
 
@@ -273,7 +273,7 @@ It's deterministic from player state. Every client draws the creature with the s
 
 A snapshot whose `kind` changes (a dweller turning) gets the new kind's model. `scale` and `lift` are applied to the model.
 
-Each sound is the def's own (`sounds`) or the shared one (`creatureSound`); `Creatures.soundOf(id, which)` gives the hurt and die sounds for combat events. The rats', spiders', moths', dwellers' and surveyor's are synthesized placeholders (`squeak`, `skitter`, `flutter`, `shuffle`, `whisper`, `hiss`, `rustle`) until there are recordings.
+Each sound is the def's own (`sounds`) or the shared one (`creatureSound`); `Creatures.soundOf(id, which)` gives the hurt and die sounds for combat events. A `silent` def (the moth) plays none. The rats', spiders', dwellers' and surveyor's are synthesized placeholders (`squeak`, `skitter`, `shuffle`, `whisper`, `hiss`, `rustle`) until there are recordings.
 
 The witch's sounds always play, visible or not: `creature.step` while in a moving slot (`sfx_creature_footsteps`, sliced into single steps), `creature.burst` on entering `gait.burst` (the `jump-scare` recording; at most once every `BURST_SOUND_GAP` (8) seconds per creature, since a stalking creature bursts every few seconds and the clip is 5 s long), and `creature.attack` on entering an attack slot (`sfx_witch_attack`). `creature.breath` is the `sfx_witch_breathing` loop; `creature.die` is `sfx_witch_death`; `creature.hurt` is still synthesized.
 
@@ -307,6 +307,6 @@ These need `DEV_MODE`:
 - **Kind** and **Spawn in front**: one of that kind about 4 m ahead, facing you (a moth goes to your lamp). **Spawn a dweller that turns**: one fated to become a witch.
 - **Kill all** (not the surveyor) and **Remove all**.
 - **Show creatures**: wireframe markers drawn through walls (client-only; positions are always sent), coloured by state: grey patrolling, amber alert or investigating, red chasing or attacking, blue fleeing.
-- **Show attraction**: bars for the noise and light meters and the Affliction's (omen) meter under the clock. The tick carries `attraction: { noise, light }` (0..1) only in dev mode.
+- **Show attraction**: bars for the noise and light meters and the Affliction's (omen) meter under the clock, then how many witches are alive and why the last one came (`noise`, `light`, at the cap, `omen`, `a dweller turned`, `admin`; `CreatureDirector.lastWitch`). A meter that brings one shows full for 1.5 s (`Attraction.answered`) though it has started again, so a gunshot that fills it at once still reads. The tick carries `attraction` only in dev mode.
 - **Fill noise**, **Fill light** (a witch comes, or one goes to look at the cap) and **Empty both**.
 - **God mode** and **Set sanity** (player section).
