@@ -321,15 +321,49 @@ Salts only count when they are to hand, in a quick-use slot. At the bottom of yo
 		category: 'Surviving',
 		body: `You are not alone down here.
 
+Noise and light draw them to you. Everything your party does adds up: walking and climbing carry, running carries far, and a gunshot carries furthest of all. A lamp on bright draws them too. Do enough of it and something comes to look, a little way off, and starts searching for you. It doesn't take one crate or a moment of bright light, but it doesn't take long either.
+
+What you've drawn fades if you go quiet: keep still or creep, and put your lamp out. A lamp on low draws nothing more, but doesn't undo what you've already drawn either.
+
 The dark hides them. Get a lamp on one and you'll see it, but it may see your light too.
 
-They wander. When something catches their attention they stop, wait, and come to look.
-
-They hear you. Running is loud; walking carries; creeping, crouching and crawling are quiet. They notice your light when they're facing it. In the dark, keeping still or moving quietly, you can wait one out. Don't stay where it saw your light. Very close, it will find you anyway.
+When something catches their attention they stop, wait, and come to look. They hear you: creeping, crouching and crawling are quiet. They notice your light when they're facing it. In the dark, keeping still or moving quietly, you can wait one out. Don't stay where it saw your light. Very close, it will find you anyway.
 
 Listen for breathing. If you can hear it, it's near.
 
-Once one has you, it comes slowly, then all at once. Put your lamp out and get out of its sight, and it may lose you.`
+Once one has you, it comes slowly, then all at once. Put your lamp out and get out of its sight, and it may lose you. They walk upright: they won't follow you into a squeeze, a crawl or deep water.`
+	},
+	{
+		id: 'vermin',
+		title: 'Rats and spiders',
+		category: 'Surviving',
+		body: `Rats nest all through the catacombs, a few together. They come for noise and light, and bite whoever they find. In the dark they only notice you right beside them. One bite is nothing much; a few add up. One stab finishes one.
+
+Spiders sit in small clusters and leave you alone unless you hit one, and then they all bite back. Every bite poisons you: for a full minute you can go no faster than a crouch, and you can't run. Nothing cures it yet.
+
+Sometimes there is a much bigger spider. It hunts like the things in the dark do, its bite poisons, and it takes a lot more killing.`
+	},
+	{
+		id: 'moths',
+		title: 'Moths',
+		category: 'Surviving',
+		body: `Moths come to your headlamp: one or two to a low lamp, more to a bright one. They flutter in your beam and get in the way, but they do you no harm. Swat one and it falls. Put your lamp out for a few seconds and they scatter.`
+	},
+	{
+		id: 'figures-in-corners',
+		title: 'Figures in the corners',
+		category: 'Surviving',
+		body: `Some of the shapes crouched in corners and dead ends are only people who live down here. Get your light on one and it gets up and walks away; hit one and it runs.
+
+Not all of them are what they look like. Now and then one you see stands up as something else, and comes for you.`
+	},
+	{
+		id: 'the-surveyor',
+		title: 'The surveyor',
+		category: 'Surviving',
+		body: `Somewhere down here a surveyor wanders from corner to corner, mapping as he goes. He means you no harm, and nothing you do hurts him. He stops when you come close.
+
+Look at him and hold {action:interact} and he shows you his map: everywhere he has been goes into yours (you need a notebook to read it). He does it once for each of you, so show yours to your party (see The map).`
 	},
 	{
 		id: 'items',

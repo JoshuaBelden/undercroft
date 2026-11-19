@@ -22,6 +22,7 @@ While it is open the page puts `underground` on `<body>`, and `app.css` turns te
 | `src/lib/game/play/marks.svelte.ts`      | Chalk marks: the chalk wheel, the label, drawing and rubbing out                           |
 | `src/lib/game/play/ropes.ts`             | Hanging and laid ropes, climbing and rope prompts, falls                                   |
 | `src/lib/game/play/survey.svelte.ts`     | Your map: what is drawn, the notebook, the map screen's view                               |
+| `src/lib/game/play/surveyor.ts`          | The surveyor: the prompt to take his map, its sound and banner                             |
 | `src/lib/game/play/rite.svelte.ts`       | What is known of the rite, who carries what, performing it, its banners                    |
 | `src/lib/game/play/affliction.svelte.ts` | The manifestation, meter, omens and their ambience, the clock, the strobe                  |
 

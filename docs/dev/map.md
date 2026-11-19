@@ -8,6 +8,7 @@ The decisions behind it:
 - **Drawn by hand:** walking uncovers nothing. A sketch takes `SURVEY.sketchSeconds` standing still, is heard (`SURVEY.sketchNoise`) and leaves you exposed (nothing pauses).
 - **Your own:** each player's map is theirs. Showing it to a teammate close by (`SURVEY.shareRange`, both with notebooks) merges the two, both ways.
 - **No live teammates** on the map: you know where they were when they showed you theirs.
+- **The surveyor** (a friendly creature, [creatures.md](creatures.md#the-surveyor-friendly-wanders-invulnerable)) wanders the catacombs, and everywhere he has been is in his map. Holding interact on him draws it into yours once (`SurveySystem.reveal`), notebook or not.
 - Standalone screen for now; it becomes the Map page of the in-game menu (#46) once that lands.
 
 ## Files
