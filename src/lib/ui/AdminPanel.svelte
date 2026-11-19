@@ -408,7 +408,7 @@
 				hint="Teammates' names drawn over the rock, still fading with distance. For checking where they are."
 			/>
 			{@render action('Clear conditions', () => onadmin({ kind: 'clearConditions' }))}
-			<p class="hint">Teleport to a room:</p>
+			<p class="hint">Teleport to a room, or to something to try out:</p>
 			{#each rooms as room (room)}
 				{@render action(room, () => onadmin({ kind: 'teleport', room }))}
 			{/each}

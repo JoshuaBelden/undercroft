@@ -3,7 +3,8 @@ import { ITEMS } from '../../src/lib/content/items.ts';
 import { MOVEMENT } from '../../src/lib/content/player/movement.ts';
 import { addItem, newStack } from '../../src/lib/shared/items/inventory.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
-import { dropSpot, roomPoints } from '../../src/lib/shared/map/points.ts';
+import { toWorld } from '../../src/lib/shared/map/grid.ts';
+import { dropSpot, inFront, roomPoints, testPoints } from '../../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import { eyeHeight } from '../../src/lib/shared/player/simulate.ts';
 import type { Player, SessionContext, SessionSystem } from './system.ts';
@@ -40,11 +41,13 @@ export class CheatSystem implements SessionSystem {
 			player.state.conditions = [];
 		},
 		teleport: (player, command) => {
-			const room = roomPoints(this.ctx.layout, PIECES, MAP_KIT).find(
-				(r) => r.name === command.room
-			);
-			if (!room) return false;
-			player.state.position = this.ctx.freeSpot(room.position);
+			const { layout } = this.ctx;
+			const at =
+				[...roomPoints(layout, PIECES, MAP_KIT), ...testPoints(layout, PIECES)].find(
+					(r) => r.name === command.room
+				)?.position ?? this.secretPoint(command.room);
+			if (!at) return false;
+			player.state.position = this.ctx.freeSpot(at);
 			player.state.velocity = [0, 0, 0];
 		},
 		teleportTo: (player, command) => {
@@ -60,6 +63,37 @@ export class CheatSystem implements SessionSystem {
 			player.state.velocity = [0, 0, 0];
 		}
 	} satisfies SessionSystem['admin'];
+
+	/**
+	 * Teleports only the server can work out: `stuck-crate`, in front of the first jammed crate
+	 * (found or not); `pendant`, beside the Pendant wherever it lies (on the floor, or its crate).
+	 */
+	private secretPoint(name: string): Vec3 | null {
+		const { crates, items, layout } = this.ctx;
+		const placement = (id: string) => layout.crates.find((c) => c.id === id);
+		if (name === 'stuck-crate') {
+			const jammed = crates.list().find(({ crate }) => crate.lock === 'jammed')?.crate;
+			const at = jammed && placement(jammed.id);
+			return at ? inFront(at) : null;
+		}
+		if (name === 'pendant') {
+			const lying = items.snapshots().find((i) => i.item === 'pendant');
+			if (lying) {
+				const [x, y, z] = lying.position;
+				// On the altar: where the rite is performed, in front of it. Otherwise right there.
+				const rite = layout.placements
+					.flatMap((p) => (PIECES[p.piece]?.rites ?? []).map((r) => toWorld(p, r)))
+					.find((r) => Math.hypot(r[0] - x, r[2] - z) < 3 && Math.abs(r[1] - y) < 2.5);
+				return rite ?? [x, y + 0.05, z];
+			}
+			const holder = crates
+				.list()
+				.find(({ crate }) => crate.slots.some((s) => s?.item === 'pendant'))?.crate;
+			const at = holder && placement(holder.id);
+			return at ? inFront(at) : null;
+		}
+		return null;
+	}
 
 	private flag(
 		player: Player,
