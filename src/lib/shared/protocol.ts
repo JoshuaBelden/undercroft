@@ -123,6 +123,8 @@ export type AdminCommand =
 	| { kind: 'openDoors' }
 	/** Shut every loot crate and fill them again, hidden. */
 	| { kind: 'resetCrates' }
+	| { kind: 'unlockCrates' }
+	| { kind: 'openWalls' }
 	/** Rub out every chalk mark. */
 	| { kind: 'clearMarks' }
 	/** Take up every rope, laid and tied (anyone on one falls). */
@@ -184,6 +186,8 @@ export type ServerMessage =
 			doors: string[];
 			/** Doors sealed shut: the final room's, from the rite until it is banished. */
 			sealed: string[];
+			/** False walls brought down (where they stood is in the layout). */
+			walls: string[];
 			/**
 			 * Dev mode only (the admin bars): how full the party's noise and light meters are, 0..1
 			 * (full for a moment after one brings a witch), how many witches are alive, and why the

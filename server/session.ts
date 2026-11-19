@@ -294,6 +294,7 @@ export class Session implements SessionContext {
 			stats: { kills: 0, crates: 0, clues: 0 },
 			lastInput: null,
 			crate: null,
+			crateLatch: false,
 			markWheel
 		};
 		this.players.set(player.id, player);
@@ -651,6 +652,7 @@ export class Session implements SessionContext {
 			crates: this.crates.snapshot(),
 			doors: this.doors.snapshot(),
 			sealed: this.doors.sealedSnapshot(),
+			walls: this.systems.walls.snapshot(),
 			// For the admin bars only: never sent outside dev mode.
 			...(config.devMode && {
 				attraction: {

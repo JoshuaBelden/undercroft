@@ -1,5 +1,5 @@
 import { DOORS } from '../../content/doors.ts';
-import { CRATES } from '../../content/loot.ts';
+import { CRATES, TRUNKS } from '../../content/loot.ts';
 import { MAP_KIT } from '../../content/map/kit.ts';
 import { toWorld } from './grid.ts';
 import type { ColliderBox, MapLayout, PieceDef, Quat, Vec3 } from './types.ts';
@@ -220,7 +220,7 @@ export function buildCollisionWorld(
 	// Loot crates are solid: a box each, turned to the crate's yaw. Corpses are not.
 	for (const crate of layout.crates) {
 		if (crate.kind === 'corpse') continue;
-		const [w, h, d] = CRATES.size;
+		const [w, h, d] = crate.kind === 'trunk' ? TRUNKS.size : CRATES.size;
 		const q: Quat = [0, Math.sin(crate.yaw / 2), 0, Math.cos(crate.yaw / 2)];
 		world.boxes.push({
 			center: [crate.position[0], crate.position[1] + h / 2, crate.position[2]],
@@ -238,6 +238,15 @@ export function buildCollisionWorld(
 			axes: [rotate(q, [1, 0, 0]), rotate(q, [0, 1, 0]), rotate(q, [0, 0, 1])],
 			door: door.id
 		});
+	}
+	// False walls are solid until pried down: their cap's boxes carry the wall's id, like a door's.
+	for (const wall of layout.walls ?? []) {
+		for (const box of pieces[wall.piece]?.colliders ?? []) {
+			world.boxes.push({
+				...toWorldBox(box, wall.rotation, toWorld(wall, box.center)),
+				door: wall.id
+			});
+		}
 	}
 	world.boxes.forEach((box, index) => {
 		indexBox(world, box, index);

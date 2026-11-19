@@ -9,6 +9,7 @@ import {
 	cellKey,
 	occupiedCells,
 	placementLevel,
+	rotateEdge,
 	worldSocket
 } from './grid.ts';
 import type { Edge, MapKit, MapLayout, PieceDef, SketchSymbol, Vec3 } from './types.ts';
@@ -115,11 +116,25 @@ export function surveyMap(
 		if (entry?.sketch) features.push({ kind: entry.sketch, piece: index, level: base, at });
 		if (entry?.title) rooms.push({ title: entry.title, piece: index, level: base, at });
 	});
+	// A false wall is drawn as the wall it looks like, so the map gives nothing away. It still leads
+	// on (sight decides what a sketch reaches, and the wall blocks that until it is down).
+	const hidden = new Set<string>();
+	for (const wall of layout.walls ?? []) {
+		const edge = rotateEdge('n', wall.rotation);
+		const [dx, dz] = EDGE_DIR[edge];
+		const x = Math.round(wall.position[0] / CELL - dx / 2);
+		const z = Math.round(wall.position[2] / CELL - dz / 2);
+		hidden.add(sideKey(x, z, placementLevel(wall), x + dx, z + dz));
+	}
 	for (const info of cells.values()) {
 		const [x, z, level] = info.cell;
 		for (const edge of EDGES) {
 			const [dx, dz] = EDGE_DIR[edge];
 			const across = cellKey(x + dx, z + dz, level);
+			if (hidden.has(sideKey(x, z, level, x + dx, z + dz))) {
+				info.next.push(across);
+				continue;
+			}
 			if (owner.get(across) === info.piece) info.sides[edge] = 'open';
 			else if (
 				cells.has(across) &&
