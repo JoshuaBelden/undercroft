@@ -23,7 +23,7 @@ import {
 import { aimRay, idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
 import { grabRope, letGo, ropeToGrab, stepClimb, type ClimberSpot } from './climb.ts';
-import { applyCondition, conditionSpeedCap, stepConditions } from './conditions.ts';
+import { applyCondition, conditionSpeedCap, lampBlocked, stepConditions } from './conditions.ts';
 import { lookedAtTeammate, needs, tendKind, type TeammateSpot } from './tend.ts';
 import type { InputFrame, Inventory, PlayerState, SimEvent, Stance } from './types.ts';
 
@@ -216,7 +216,8 @@ export function stepPlayer(
 ): PlayerState {
 	s.yaw = input.yaw;
 	s.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, input.pitch));
-	s.headlamp = input.headlamp;
+	// Snuffed (the Gloaming's bolt): the lamp stays out whatever the input says.
+	s.headlamp = lampBlocked(s) ? 0 : input.headlamp;
 	s.sneaking = input.sneak && !s.swimming;
 
 	if (s.dead) return s;

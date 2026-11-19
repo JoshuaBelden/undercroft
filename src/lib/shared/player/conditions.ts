@@ -7,11 +7,17 @@ import type { PlayerState } from './types.ts';
  * movement. Part of the player simulation. See docs/dev/player.md#conditions.
  */
 
-/** Give the player a condition for its full time (again from the start if they have it). */
-export function applyCondition(s: PlayerState, id: ConditionId): void {
-	const seconds = CONDITIONS[id].seconds;
+/**
+ * Give the player a condition for its full time, or for seconds when what caused it says how
+ * long (again from the start if they have it, unless they already have longer left).
+ */
+export function applyCondition(
+	s: PlayerState,
+	id: ConditionId,
+	seconds: number = CONDITIONS[id].seconds
+): void {
 	const active = s.conditions.find((c) => c.id === id);
-	if (active) active.remaining = seconds;
+	if (active) active.remaining = Math.max(active.remaining, seconds);
 	else s.conditions.push({ id, remaining: seconds });
 }
 
@@ -24,6 +30,11 @@ export function stepConditions(s: PlayerState, dt: number): void {
 	if (s.conditions.length === 0) return;
 	for (const c of s.conditions) c.remaining -= dt;
 	s.conditions = s.conditions.filter((c) => c.remaining > 0);
+}
+
+/** A condition is keeping the headlamp off (dark). */
+export function lampBlocked(s: PlayerState): boolean {
+	return s.conditions.some((c) => isConditionId(c.id) && 'dark' in CONDITIONS[c.id]);
 }
 
 /** The lowest speed cap the player's conditions put on them (m/s), or null for none. */

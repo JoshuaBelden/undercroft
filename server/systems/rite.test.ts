@@ -37,6 +37,63 @@ describe('the rite', () => {
 		expect(diver.inside).toBe(true);
 	});
 
+	it('shuts its room in until what it summoned is banished; then the door opens and the ladder comes down', () => {
+		const session = open(SEED);
+		const stacks = RITE.requirements.map((r): [string, number] => [r.item, r.count]);
+		const diver = new Diver(session, 'A', kit(...stacks));
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		session.admin(diver.id, { kind: 'openDoors' });
+		session.revealClues(RITE.clues.length);
+		const door = session.layout.doors.find((d) => d.piece === RITE.room)!;
+		expect(door).toBeDefined();
+		// No way out of the final room yet.
+		expect(session.world.extracts).toEqual([]);
+		expect(session.world.sealedExtracts).toHaveLength(1);
+		session.admin(diver.id, { kind: 'teleport', room: RITE.room });
+		diver.hold({}, 0.5);
+		expect(diver.socket.last('tick')!.doors).toContain(door.id);
+		diver.hold({ interact: true }, RITE.seconds + 0.5);
+		// The rite slams it shut and seals it: it can't be opened.
+		let ticks = diver.socket.all('tick');
+		expect(ticks.flatMap((t) => t.events)).toContainEqual(
+			expect.objectContaining({ kind: 'doorSeal', id: door.id, open: true })
+		);
+		let tick = diver.socket.last('tick')!;
+		expect(tick.doors).not.toContain(door.id);
+		expect(tick.sealed).toEqual([door.id]);
+		expect(session.doors.open(door.id)).toBe(false);
+		expect(session.nav.closed.has(door.id)).toBe(true);
+		expect(session.world.extracts).toEqual([]);
+		// Banished: the door opens by itself, and the ladder is a way out.
+		session.admin(diver.id, { kind: 'banish' });
+		diver.hold({}, 0.1);
+		ticks = diver.socket.all('tick');
+		expect(ticks.flatMap((t) => t.events)).toContainEqual(
+			expect.objectContaining({ kind: 'doorRelease', id: door.id })
+		);
+		tick = diver.socket.last('tick')!;
+		expect(tick.doors).toContain(door.id);
+		expect(tick.sealed).toEqual([]);
+		expect(session.world.extracts).toHaveLength(1);
+		expect(session.world.sealedExtracts).toEqual([]);
+	});
+
+	it('summoning it from the admin panel seals the room the same way', () => {
+		const session = open(SEED);
+		const diver = new Diver(session, 'A');
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		session.admin(diver.id, { kind: 'openDoors' });
+		const door = session.layout.doors.find((d) => d.piece === RITE.room)!;
+		session.admin(diver.id, { kind: 'manifest' });
+		diver.hold({}, 0.1);
+		const tick = diver.socket.last('tick')!;
+		expect(tick.doors).not.toContain(door.id);
+		expect(tick.sealed).toEqual([door.id]);
+		session.admin(diver.id, { kind: 'banish' });
+		diver.hold({}, 0.1);
+		expect(diver.socket.last('tick')!.doors).toContain(door.id);
+	});
+
 	it('reading the last hint clears the copies left in the map', () => {
 		const clues = vi.fn();
 		const session = open(SEED, { onClues: clues });

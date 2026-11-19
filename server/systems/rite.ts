@@ -78,6 +78,7 @@ export class RiteSystem implements SessionSystem {
 		},
 		resetRite: () => {
 			this.ctx.rite.reset();
+			this.ctx.doors.release();
 			this.ctx.hooks.onRiteReset?.();
 		}
 	} satisfies SessionSystem['admin'];

@@ -1,6 +1,6 @@
 # Status effects
 
-A status is something that happens to a creature for a while: **stunned** is the first. The system only keeps time: which statuses a creature has, for how long, and how long it is immune after. **A status doesn't define its effect.** How long it lasts on a creature, and how long that creature is immune after, is in that creature's data. What it does to the creature is in that creature's own code.
+A status is something that happens to a creature for a while: **stunned** is the first. (What happens to a player for a while is a condition instead, simulated in the shared player code: see [player.md](player.md#falls-and-conditions).) The system only keeps time: which statuses a creature has, for how long, and how long it is immune after. **A status doesn't define its effect.** How long it lasts on a creature, and how long that creature is immune after, is in that creature's data. What it does to the creature is in that creature's own code.
 
 ## Files
 
@@ -41,7 +41,7 @@ Then it applies `STROBE.causes` by the creature's own reaction. The client plays
 
 ## What stunned does
 
-- **The manifestation:** it stands where it is, and a swing not yet landed is lost. Exposure and weapons work as usual. The snapshot's `stunned` makes the client play `take_damage`, then hold it still, with `manifest.stun`.
+- **The manifestation:** it stands where it is, and a swing or bolt not yet loosed is lost. Weapons work as usual. It can't be stunned while it has vanished. The snapshot's `stunned` makes the client play `take_damage`, then hold it still, with `manifest.stun`.
 - **Creatures:** like a stagger. It stands where it is, an attack not yet landed is cancelled, and its animation is `take_damage`. No creature in the game is vulnerable yet; the tests use a test-only kind.
 
 ## Adding a status or a vulnerability

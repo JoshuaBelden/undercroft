@@ -440,6 +440,10 @@
 			</form>
 			{@render action('Summon manifestation', () => onadmin({ kind: 'manifest' }))}
 			{@render action('Stun it', () => onadmin({ kind: 'stun' }))}
+			{@render action('Make it swing', () => onadmin({ kind: 'bossStrike' }))}
+			{@render action('Make it fire its ray', () => onadmin({ kind: 'bossRay' }))}
+			{@render action('Make it charge', () => onadmin({ kind: 'bossRush' }))}
+			{@render action('Make it vanish', () => onadmin({ kind: 'bossVanish' }))}
 			{@render action('Banish (resolves it)', () => onadmin({ kind: 'banish' }))}
 		{:else if group === 'Rite'}
 			{@render action('Reveal all clues', () => onadmin({ kind: 'revealClues' }))}

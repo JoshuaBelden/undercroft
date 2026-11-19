@@ -23,10 +23,15 @@ function before(index: number, back: number): { eye: Vec3; look: Vec3 } {
 	return { eye, look: [to[0] / d, to[1] / d, to[2] / d] };
 }
 
-describe('doors between levels', () => {
-	it('stand at the top of each long stair, numbered, on the level they lead to', () => {
-		expect(map.doors.map((d) => d.id)).toEqual(['d1', 'd2']);
-		expect(map.doors.map((d) => d.tier)).toEqual([1, 2]);
+describe('doors', () => {
+	it('stand at the top of each long stair, on the level they lead to, and into the final room', () => {
+		expect(map.doors.map((d) => d.id)).toEqual(['d1', 'd2', 'd3']);
+		// Two long stairs (to levels 1 and 2), then the Gloaming Chapel's, on the deepest.
+		expect(map.doors.map((d) => d.tier)).toEqual([1, 2, 2]);
+		const chapel = map.placements.find((p) => p.piece === 'gloaming-chapel')!;
+		expect(map.placements.indexOf(chapel)).toBeGreaterThan(
+			map.placements.findLastIndex((p) => p.piece === 'stairs-deep')
+		);
 	});
 
 	it('are looked at from the room side within reach, and not once open', () => {

@@ -11,6 +11,7 @@ import type { Vec3 } from '#lib/shared/map/types.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import { clonePlayerState, eyeHeight, handsBusy, stepPlayer } from '#lib/shared/player/simulate.ts';
 import type { ClimberSpot } from '#lib/shared/player/climb.ts';
+import { lampBlocked } from '#lib/shared/player/conditions.ts';
 import type { TeammateSpot } from '#lib/shared/player/tend.ts';
 import {
 	HAND,
@@ -531,6 +532,11 @@ export class LocalPlayer {
 		if (!this.gunInHand()) this.aimOn = false;
 		const attacking = input.isDown('attack');
 		if (!attacking) this.wheelAttack = false;
+		// Snuffed: the lamp went out, and stays switched off once it wears off (a tap relights it).
+		if (this.state && lampBlocked(this.state) && this.lamp !== 0) {
+			this.lampOn = this.lamp;
+			this.lamp = 0;
+		}
 		return handsBusy({
 			seq: this.seq++,
 			moveX,

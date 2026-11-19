@@ -105,13 +105,14 @@ There is no holder role. Whoever carries every requirement (in any slot: `carrie
 - the items are used up;
 - `RiteDirector.performed` is set (the snapshot's `performed`): it can't be performed again in this expedition;
 - a `rite` game event plays `rite.perform` and a banner ("Something answers it") for everyone;
-- **it summons the manifestation** into the room (`AfflictionSystem.summon`, see [affliction.md](affliction.md#the-manifestation)). The Affliction is **not** resolved yet.
+- **it summons the manifestation** into the room (`AfflictionSystem.summon`, see [affliction.md](affliction.md#the-manifestation)). The Affliction is **not** resolved yet;
+- **the room is shut in:** its door slams and is sealed (`Doors.seal`, a `doorSeal` event; see [map-generation.md](map-generation.md#doors)). Nobody gets in or out until it is banished, and the room has no way out of its own yet: its ladder only comes down once it is resolved.
 
-**Resolving it:** banishing what the rite summoned resolves the Affliction. Then `RiteDirector.resolved` is set (the snapshot's `resolved`), `resolved` is saved for everyone who went down (`SessionHooks.onResolved`), straight away (dying afterwards doesn't undo it), the Affliction is calmed (no more meter or omens, see [affliction.md](affliction.md#calmed)), and a `resolved` event plays `rite.resolve` and a "Banished" banner. Performing the rite and then dying, or getting out without banishing it, resolves nothing: the next expedition needs the rite again.
+**Resolving it:** banishing what the rite summoned resolves the Affliction. Then `RiteDirector.resolved` is set (the snapshot's `resolved`), `resolved` is saved for everyone who went down (`SessionHooks.onResolved`), straight away (dying afterwards doesn't undo it), the Affliction is calmed (no more meter or omens, see [affliction.md](affliction.md#calmed)), and a `resolved` event plays `rite.resolve` and a "Banished" banner. The sealed door opens by itself (`doorRelease`), and the final room's ladder comes down from its hatch (`unsealExtracts`, `MapRenderer.lowerLadders`; see [map-generation.md](map-generation.md#the-final-room)): it is a way out from then on. Performing the rite and then dying, or getting out without banishing it, resolves nothing: the next expedition needs the rite again.
 
 Nobody is carried out: they still have to extract before the deadline (see [expedition.md](expedition.md#deadline)), past the creatures that are still there. Extracting afterwards shows the results screen with the `resolved` outcome.
 
-The client shows "[E] to perform the rite" under the same conditions, with its progress. Once performed, the rite panel adds a last step under the room: "Banish it" (with how: hold light on it, flick the lamp to stun it), then "Banished" once resolved. The pill says "Resolved" only then.
+The client shows "[E] to perform the rite" under the same conditions, with its progress. Once performed, the rite panel adds a last step under the room: "Banish it" (with how: every hit wears it down, flick the lamp to stun it), then "Banished" once resolved. The pill says "Resolved" only then.
 
 ## Progress across runs
 
@@ -131,4 +132,4 @@ These need `DEV_MODE`:
 - **Reveal all clues** (`revealClues`);
 - **Reset rite progress** (`resetRite`): forgets the hints in this expedition and in the stored progress of everyone in it. It does not put hint items back in the map.
 - **Give** 5 Candles, Chalk and the Pendant, and **teleport** to `gloaming-chapel`, with the existing commands.
-- **Summon manifestation** and **Banish (resolves it)** in the Affliction group, to try the fight or the resolution without performing it.
+- **Summon manifestation**, **Make it swing / cast a bolt / vanish** and **Banish (resolves it)** in the Affliction group, to try the fight or the resolution without performing it.

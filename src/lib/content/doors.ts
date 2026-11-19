@@ -1,6 +1,6 @@
 /**
- * The double doors between levels: one at the top of every long stair (`stairs-deep`), just
- * behind the extraction room's gate. Shut and barred until someone holds interact on it; then it
+ * The double doors: one at the top of every long stair (`stairs-deep`), just behind the
+ * extraction room's gate, and the one way into the final room (`gloaming-chapel`). Shut and barred until someone holds interact on it; then it
  * swings open for everyone and stays open. Until then it is solid, and creatures can't path
  * through it either. See docs/dev/map-generation.md#doors.
  */

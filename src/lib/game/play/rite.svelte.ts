@@ -4,6 +4,7 @@ import { carriesAll } from '#lib/shared/affliction/rite.ts';
 import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
 import { carriedCount } from '#lib/shared/items/inventory.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
+import { unsealExtracts, type CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 import type { PlayContext, PlayFeature, Prompt, TickMessage } from './feature.ts';
 import { keyPrompt } from './prompt.ts';
@@ -18,7 +19,7 @@ export interface RiteCarrier {
 /**
  * The rite (docs/dev/rite.md): what is known of it so far and who carries each requirement (the
  * rite panel and the menu's Rite tab), performing it, and the banners of hints, the rite and
- * banishing.
+ * banishing. Once it is banished the final room's ladder comes down and is a way out.
  */
 export class Rite implements PlayFeature {
 	/** The rite as known so far; null on the surface. */
@@ -27,6 +28,10 @@ export class Rite implements PlayFeature {
 	carriers = $state<RiteCarrier[][]>([]);
 	/** Whether the rite was being performed last frame (to ring its bell once). */
 	private performing = false;
+	/** The player's collision world, to let the final room's way out in once it is resolved. */
+	private world: CollisionWorld | null = null;
+	/** The ladder has been let down (or was down when we got here). */
+	private lowered = false;
 
 	constructor(
 		private ctx: PlayContext,
@@ -34,10 +39,29 @@ export class Rite implements PlayFeature {
 		private afflictionName: () => string
 	) {}
 
+	mapLoaded(_layout: unknown, world: CollisionWorld): void {
+		this.world = world;
+		this.lowered = false;
+	}
+
 	tick(tick: TickMessage): void {
 		if (JSON.stringify(tick.affliction.rite) !== JSON.stringify(this.known)) {
 			this.known = tick.affliction.rite;
 		}
+		// Resolved before we got here (or before the map was in): already down. The resolving tick
+		// itself lets it down in its event, below.
+		const now = tick.events.some((e) => e.kind === 'resolved');
+		if (tick.affliction.rite.resolved && !now) this.lower(true);
+	}
+
+	/** The final room's way out comes down, and counts. */
+	private lower(instant: boolean): void {
+		if (this.lowered || !this.world) return;
+		this.lowered = true;
+		unsealExtracts(this.world);
+		this.ctx.map.lowerLadders(instant);
+		const at = this.ctx.map.ladderAt();
+		if (!instant && at) this.ctx.sounds.playAt('ladder.lower', [at.x, at.y, at.z], 1, 10);
 	}
 
 	event(event: GameEvent): void {
@@ -57,7 +81,11 @@ export class Rite implements PlayFeature {
 			ui.banner('The rite is done', `Something answers it. Banish ${name || 'the Affliction'}.`);
 		} else if (event.kind === 'resolved') {
 			sounds.play('rite.resolve');
-			ui.banner('Banished', `${name || 'The Affliction'} is resolved. Now get out.`);
+			ui.banner(
+				'Banished',
+				`${name || 'The Affliction'} is resolved. The ladder is down: get out.`
+			);
+			this.lower(false);
 		}
 	}
 
@@ -86,7 +114,8 @@ export class Rite implements PlayFeature {
 		this.performing = state.performing > 0;
 	}
 
-	update(): void {
+	update(delta: number): void {
+		this.ctx.map.update(delta);
 		if (!this.known) return;
 		const now = this.whoCarries(this.ctx.player.state);
 		if (JSON.stringify(now) !== JSON.stringify(this.carriers)) this.carriers = now;
@@ -114,5 +143,7 @@ export class Rite implements PlayFeature {
 	clear(): void {
 		this.known = null;
 		this.performing = false;
+		this.world = null;
+		this.lowered = false;
 	}
 }

@@ -61,7 +61,7 @@ const ENTRY_REACH = 8;
  * Floor-level centre of each major and extraction room, for admin teleports. A piece used more
  * than once (extraction rooms) is numbered from the second on: `extraction-gate-2`. The start
  * room is its first spawn, and a start room over a pit also has `<name>-foot`, the floor under
- * the pit (its origin), to skip the climb down. Then the room side of each door between levels.
+ * the pit (its origin), to skip the climb down. Then the room side of each door.
  */
 export function roomPoints(
 	layout: MapLayout,
@@ -91,11 +91,12 @@ export function roomPoints(
 			const foot: Vec3 = [p.position[0], p.position[1] + 0.05, p.position[2]];
 			return [...start, { name: `${name}-foot`, position: foot }];
 		});
-	// The doors between levels: in front of each, on the room side (`level-2-door` leads to level 2).
+	// The doors: in front of each, on the room side. A long stair's is named for the level it leads
+	// to (`level-2-door`), any other for its piece (`gloaming-chapel-door`).
 	for (const door of layout.doors) {
 		const [x, y, z] = door.position;
 		points.push({
-			name: `level-${door.tier + 1}-door`,
+			name: door.piece === 'stairs-deep' ? `level-${door.tier + 1}-door` : `${door.piece}-door`,
 			position: [x - Math.sin(door.yaw) * 1.5, y + 0.05, z - Math.cos(door.yaw) * 1.5]
 		});
 	}

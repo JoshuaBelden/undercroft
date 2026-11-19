@@ -137,7 +137,7 @@ Climbing wears you out, faster going up than down, and even hanging still tires 
 		category: 'Moving',
 		body: `A short drop does nothing. From much higher than your own height you land hard: it costs you sanity, and from high enough it can put you on the floor for someone to revive.
 
-A fall that hurts leaves you hobbled for 20 seconds: you can go no faster than a crawl, and you can't run. Anything wrong with you like this shows beside your health, at the bottom left, with the seconds until it wears off.
+A fall that hurts leaves you hobbled for 20 seconds: you can go no faster than a crawl, and you can't run. Anything wrong with you like this shows beside your health, at the bottom left, with the seconds until it wears off. Snuffed is another: your lamp was put out, and won't come back on until it wears off.
 
 Creatures hear a body hit the stone.`
 	},
@@ -165,7 +165,7 @@ Flooded passages dip under the water: the ceiling comes down to meet it, and the
 		id: 'extraction',
 		title: 'Getting out',
 		category: 'Expeditions',
-		body: `There are three ways out of the catacombs, and none is the way you came in: the rope down from the chapel where you start ends out of reach of the floor, so it can't be climbed back up. At the end of the first and second levels is a shaft with a rope going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level.
+		body: `There are three ways out of the catacombs, and none is the way you came in: the rope down from the chapel where you start ends out of reach of the floor, so it can't be climbed back up. At the end of the first and second levels is a shaft with a rope going up into the dark, beside the door down to the next level. The last is a ladder in the deepest room of all, on the third level, but it only comes down once the Affliction has been banished there.
 
 The deeper ways out save you the long walk back with your haul. Remember where you saw them.
 
@@ -453,9 +453,15 @@ These are warnings. When they come thick and close together, it is time to think
 		category: 'The Gloaming',
 		body: `Perform the rite and the Gloaming answers it. Something vast breathes out through the stone, and it is there in the room with you, in the corner you were told not to look at. The rite alone doesn't end it: you have to banish what it brings.
 
-It comes at whoever is nearest, slower while a lamp is on it and quick when none is. When it reaches you it rears back to strike. That is your moment to get out of reach. A blow that lands is hard: what you wear takes some of it, and two will put you down. It hits harder the more of you there are.
+It comes at whoever is nearest, slower while a lamp is on it and quick when none is. It doesn't just follow you: it heads where you are going, and circles round to come at you from the side, so running round a table won't keep it off. When it reaches you it rears back to strike. That is your moment to get out of reach. A blow that lands is hard: what you wear takes some of it, and two will put you down. It hits harder, and takes more to banish, the more of you there are.
 
-Light is how you fight it. Hold your lamp on it and keep it there: it begins to burn, and when it flares, steel and shot bite. Only while the light holds. Two lamps are better than one.
+And it doesn't always walk. Now and then it shrieks and charges, as fast as you can run.
+
+Keeping your distance isn't safe either. From across a room it stops, and blue smoke gathers at its hands with a low, rising hiss. Then something dark strikes out at you, faster than you can see. It aims where you are until the very last moment: when the smoke is thickest, step out of the line, or put stone between you. If it hits, your lamp goes out, and won't come back on until it wears off (Snuffed, beside your health). Then it's up to you to switch it on again.
+
+Now and then it slips into the dark and is gone. It comes back from somewhere else: behind you, or at whoever has wandered off alone. Stay together.
+
+Steel and shot wear it down, every hit.
 
 Turn your lamp off and back on ({action:headlamp}) with it in the beam, and the flash stuns it: it stands frozen for a moment, and a strike it was winding up is lost. It won't fall for that again for a while.
 
@@ -477,9 +483,11 @@ The Afflictions page on the surface shows the hints you have found and what the 
 
 For the Gloaming, the rite needs five candles, a stick of chalk and the Pendant. Candles and chalk can be bought, or found. The Pendant is shut away in one of the crates, and there is only one: things like it are edged in purple and marked with a star in the corner of their slot. If someone in your party already owns it, it isn't down there: bring it.
 
+The Gloaming Chapel is the last room of all, on the third level, behind a great double door: hold {action:interact} on it to open it. It is vast, with a hall either side and stairs up to a balcony over the door.
+
 One person has to carry everything the rite needs. If it's spread between you, drop things for that person to pick up. If they die, what they carried lies where they fell.
 
-That person goes to the place and holds {action:interact}. Nothing has to be set down. When it's done, the Affliction comes: banish it there and it is resolved. Be ready before you begin.`
+That person goes to the place and holds {action:interact}. Nothing has to be set down. When it's done, the Affliction comes, and the door slams shut behind you: nobody gets in or out until it is banished. Banish it and it is resolved, the door opens, and a ladder comes down from a hatch over the dais: your way out. Be ready before you begin, and bring everyone in first.`
 	},
 	{
 		id: 'account',

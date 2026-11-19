@@ -20,6 +20,7 @@ Conventions (see docs/dev/asset-pipeline.md):
 - Marker empties: socket-<type>-<n>, spawn-<n>, extract-<n>. Collision boxes: col-*.
 """
 
+import itertools
 import math
 import os
 
@@ -1489,96 +1490,356 @@ def build_cistern(force=False):
     return coll
 
 
+# The Gloaming Chapel: the final room, where the rite is performed and the Gloaming fought.
+# 9x7 cells, 3 levels. Piece space (Blender axes, +Y north); the one way in is from the south.
+CH_NX = 5.5  # nave inner half width
+CH_WALL = 1.0  # nave side walls: inner face at CH_NX, outer (side hall) face at CH_SX0
+CH_SX0 = CH_NX + CH_WALL
+CH_SX1 = 18 - WALL_INSET  # side halls' outer walls
+CH_Y0 = -11.0  # south wall (nave and side halls), the door just behind it
+CH_YA = 8.0  # the apse begins here; its radius is CH_NX
+CH_SPRING = 6.3  # nave walls to here, then the barrel vault (apex CH_SPRING + CH_NX = 11.8)
+CH_SIDE_Y1 = 3.0  # the side halls' north walls
+CH_SIDE_H = 8.0  # the side halls' ceiling
+CH_BAL_Z = 4.0  # the balcony and landings: floor height
+CH_BAL_Y = -8.0  # ...and their front edge (they run back to the south wall)
+CH_SLAB = 0.3
+CH_RAIL = 1.0  # parapet height
+CH_OPEN_TOP = 6.8  # the openings from the balcony through the nave walls to the landings
+CH_ARCH_Y = -2.0  # the great arches from the nave into the side halls: centre, and shape
+CH_ARCH = (2.5, 3.0, 1.5)  # half width, springline, rise (apex 4.5)
+CH_STAIR_X = 14.5  # the side halls' stairs: from here out to the wall, climbing south
+CH_STAIR_FOOT = -2.0  # the first riser
+CH_RISE, CH_RUN, CH_RISERS = 0.2, 0.3, 20  # to CH_BAL_Z at CH_BAL_Y
+CH_DOOR_Y = -11.5  # the double door's plane, in the gate-wide end of the way in
+CH_GATE_FROM = -13.6  # the way in widens from a hall (at the socket) to a gate between these
+CH_GATE_TO = -12.4
+CH_DAIS = ((5.0, 0.25), (5.6, 0.5))  # the dais's two steps: front edge and height
+CH_PEWS = 9  # rows each side of the aisle
+CH_PEW_X = (1.1, 4.1)  # each row's ends: the aisle between them, a clear walk along the walls
+CH_SARCOPHAGI = ((8.2, 10.4), (11.2, 13.4))  # in each side hall, before its bone wall: x spans
+CH_SARC_Y = ((0.7, 1.7), (-10.6, -9.6))  # before the bone wall, and under the landing
+CH_SIDE_PILLAR = (10.8, -5.5)  # each side hall's pillar (|x|, y)
+# The cross on the apse wall behind the angel: its upright, standing on the dais, and its arms.
+CROSS = (
+    ((-0.35, 12.92, CH_DAIS[-1][1]), (0.35, 13.3, 7.6)),
+    ((-2.2, 12.82, 5.0), (2.2, 13.0, 5.7)),
+)
+CH_ANGEL_HEIGHT = 2.8
+
+
+def _chapel_stair(mb, sx, F, M):
+    """One side hall's stair, solid to the floor, climbing south to its landing, with a parapet on
+    its open side. sx: 1 east, -1 west."""
+    x_in, x_out = sx * CH_STAIR_X, sx * CH_SX1
+    xa, xb = sorted((x_in, x_out))
+    for k in range(1, CH_RISERS + 1):
+        y_n = CH_STAIR_FOOT - CH_RUN * (k - 1)
+        y_s = y_n - CH_RUN
+        z = CH_RISE * k
+        mb.face([(xa, y_s, z), (xb, y_s, z), (xb, y_n, z), (xa, y_n, z)], F, facing=(0, 0, 1))
+        mb.face([(xa, y_n, z - CH_RISE), (xb, y_n, z - CH_RISE), (xb, y_n, z), (xa, y_n, z)], F, facing=(0, 1, 0))
+    # Parapet along its open side: a slab following the line of the nosings, CH_RAIL above them.
+    t = 0.2
+    xp = x_in - sx * t
+    y_foot = CH_STAIR_FOOT + CH_RUN  # the nosing line meets the floor here
+    y_top = CH_BAL_Y + CH_RUN
+    top = [(y_foot, CH_RAIL), (y_top, CH_BAL_Z + CH_RAIL), (CH_BAL_Y, CH_BAL_Z + CH_RAIL)]
+    for x, facing in ((xp, -sx), (x_in, sx)):
+        pts = [(x, y_foot, 0), (x, CH_BAL_Y, 0)] + [(x, y, z) for y, z in reversed(top)]
+        if x == x_in:
+            # Its inner face stands on the steps: only the part above them shows.
+            pts = [(x, y_foot, 0), (x, y_top, CH_BAL_Z)] + [(x, y, z) for y, z in reversed(top)]
+        mb.face(pts, M, facing=(facing, 0, 0))
+    for (ya, za), (yb, zb) in zip(top, top[1:]):
+        mb.face([(xp, ya, za), (x_in, ya, za), (x_in, yb, zb), (xp, yb, zb)], M, facing=(0, 0, 1))
+    mb.face([(xp, y_foot, 0), (x_in, y_foot, 0), (x_in, y_foot, CH_RAIL), (xp, y_foot, CH_RAIL)], M, facing=(0, 1, 0))
+    # Behind it, under its landing back to the south wall: solid too, faced in the parapet's plane,
+    # so there is no hollow under the stair to look into.
+    mb.face([(xp, CH_BAL_Y, 0), (xp, CH_Y0, 0), (xp, CH_Y0, CH_BAL_Z - CH_SLAB), (xp, CH_BAL_Y, CH_BAL_Z - CH_SLAB)], M, facing=(-sx, 0, 0))
+
+
+def _chapel_stair_cols(coll, root, sx):
+    xa, xb = sorted((sx * CH_STAIR_X, sx * CH_SX1))
+    pa, pb = sorted((sx * (CH_STAIR_X - 0.2), sx * CH_STAIR_X))
+    # The walking surface: a ramp through the nosings, up to the last step.
+    y_foot = CH_STAIR_FOOT + CH_RUN
+    y_top = CH_BAL_Y + CH_RUN
+    run, rise = y_foot - y_top, CH_BAL_Z
+    length = math.hypot(run, rise)
+    # Square to the line of the stair, pointing down (under it).
+    down = Vector((0, -rise / length, -run / length))
+    mid = Vector((0, (y_foot + y_top) / 2, rise / 2))
+    angle = -math.atan2(rise, run)
+    for name, (x0, x1), thick, centre in (
+        ("ramp", (xa, xb), 0.3, mid + down * 0.15),
+        ("rail", (pa, pb), CH_RAIL, mid - down * (CH_RAIL / 2)),
+    ):
+        lo = (x0, centre.y - length / 2, centre.z - thick / 2)
+        hi = (x1, centre.y + length / 2, centre.z + thick / 2)
+        col_box(coll, root, f"col-stair-{name}-{'e' if sx > 0 else 'w'}", lo, hi, rot_x=angle)
+    col_box(coll, root, f"col-stair-top-{'e' if sx > 0 else 'w'}", (xa, CH_BAL_Y, CH_BAL_Z - CH_SLAB), (xb, y_top, CH_BAL_Z))
+    col_box(coll, root, f"col-stair-back-{'e' if sx > 0 else 'w'}", (min(xa, pa), CH_Y0, 0), (max(xb, pb), CH_BAL_Y, CH_BAL_Z - CH_SLAB))
+    # Solid underneath (and under its parapet), kept below the ramp.
+    lo_x = min(xa, pa)
+    hi_x = max(xb, pb)
+    for k in range(2, CH_RISERS + 1, 2):
+        y_n = CH_STAIR_FOOT - CH_RUN * (k - 2)
+        y_s = CH_STAIR_FOOT - CH_RUN * k
+        z = CH_RISE * (k - 1) - 0.45
+        if z > 0.05:
+            col_box(coll, root, f"col-stair-fill-{k}-{'e' if sx > 0 else 'w'}", (lo_x, y_s, 0), (hi_x, y_n, z))
+
+
 def build_gloaming_chapel(force=False):
-    """3x3 cells: the deepest room. A vaulted nave runs north to an apse with a raised dais and the
-    altar where the rite is performed (rite-0). Entrances: south, and west/east near the south end."""
+    """9x7 cells, 3 levels: the deepest room, where the rite is performed. One way in, from the
+    south: a hall that widens to a gate and the double door (door-0). Past it the nave: pews either
+    side of the aisle, a vaulted roof, and to the north the apse with a two-step dais, the altar
+    (rite-0), a lectern, and the angel on its plinth. A great arch on each side opens into a long
+    side hall; in each, a wide stair climbs south to a landing, and through the nave wall the
+    landings join the balcony over the door. The way out is the ladder on the dais (extract-0)."""
     name = "gloaming-chapel"
     coll = piece_collection(name, force)
-    root = root_empty(coll, name, 3, 3, levels=2)  # vault apex 7.75 m
+    root = root_empty(coll, name, 9, 7, levels=3)
     W, F, M = "mat-wall-chapel", "mat-floor-chapel", "mat-trim-marble"
-    hx = 3.75  # nave half width
-    y0 = -6 + WALL_INSET  # south wall
-    ya = 2.0  # apse starts here; apse radius = hx reaches y = 5.75
-    spring, segs = 4.0, 16
-    hall = hall_profile()
+    NX, SX0, SX1, Y0, YA = CH_NX, CH_SX0, CH_SX1, CH_Y0, CH_YA
+    spring, top = CH_SPRING, CH_SPRING + CH_NX
+    bz, by, bs = CH_BAL_Z, CH_BAL_Y, CH_BAL_Z - CH_SLAB
+    segs = 16
+    hall, gate = hall_profile(), gate_profile()
+    arch = arch_profile(*CH_ARCH)
     mb = MeshBuilder(name + "-mesh")
-    # Floor: nave rectangle + apse fan
-    mb.face([(-hx, y0, 0), (hx, y0, 0), (hx, ya, 0), (-hx, ya, 0)], F, facing=(0, 0, 1))
+
+    # The way in: a hall at the socket, widening to the gate, to the door and the nave.
+    frames = straight_frames((0, -14, 0), (0, Y0, 0), 12)
+    profiles = [morph(hall, gate, smoothstep(CH_GATE_FROM, CH_GATE_TO, f[0].y)) for f in frames]
+    sweep(mb, hall, frames, W, F, profiles=profiles)
+    # Stone filling the arch over the door (its leaves are square-topped, to the springline).
+    arch_fill = [(x, z) for x, z in gate if z >= GATE_SPRING - 1e-6]
+    for y, facing in ((CH_DOOR_Y + 0.1, (0, 1, 0)), (CH_DOOR_Y - 0.1, (0, -1, 0))):
+        mb.face([Vector((x, y, z)) for x, z in arch_fill], M, facing=facing)
+
+    # Floors: the nave and its apse, the side halls.
+    mb.face([(-NX, Y0, 0), (NX, Y0, 0), (NX, YA, 0), (-NX, YA, 0)], F, facing=(0, 0, 1))
     apse_n = segs // 2
-    apse = [(hx * math.cos(math.pi * j / apse_n), ya + hx * math.sin(math.pi * j / apse_n)) for j in range(apse_n + 1)]
+    apse = [(NX * math.cos(math.pi * j / apse_n), YA + NX * math.sin(math.pi * j / apse_n)) for j in range(apse_n + 1)]
     for j in range(apse_n):
         (xa, ya_), (xb, yb) = apse[j], apse[j + 1]
-        mb.face([(0, ya, 0), (xa, ya_, 0), (xb, yb, 0)], F, facing=(0, 0, 1))
-    # Nave walls (to the springline) with side entrances at y=-4, south wall with the main entrance
-    s_side = -4 - y0  # distance from the south end along the side walls
-    wall(mb, (-hx, y0), (-hx, ya), 0, spring, W, (1, 0, 0), notches=[(s_side, hall)])
-    wall(mb, (hx, y0), (hx, ya), 0, spring, W, (-1, 0, 0), notches=[(s_side, hall)])
-    arch_top = [(hx + hx * math.cos(math.pi * k / segs), spring + hx * math.sin(math.pi * k / segs)) for k in range(segs + 1)]
-    wall(mb, (-hx, y0), (hx, y0), 0, spring, W, (0, 1, 0), notches=[(hx, hall)], top=arch_top)
-    # Side throats run from the nave wall out to the footprint edge (2.25 m)
-    throat(mb, (-hx, -4), (-1, 0), 0, 6 - hx, hall, W, F)
-    throat(mb, (hx, -4), (1, 0), 0, 6 - hx, hall, W, F)
-    throat(mb, (0, y0), (0, -1), 0, WALL_INSET, hall, W, F)
-    # Barrel vault over the nave (along Y)
-    vault = [(hx * math.cos(math.pi - math.pi * k / segs), hx * math.sin(math.pi - math.pi * k / segs)) for k in range(segs + 1)]
-    steps = 6
-    frames = [(Vector((0, y0 + (ya - y0) * t / steps, spring)), Vector((1, 0, 0)), (ya - y0) * t / steps) for t in range(steps + 1)]
-    sweep(mb, vault, frames, W)
-    # Apse walls and half dome
+        mb.face([(0, YA, 0), (xa, ya_, 0), (xb, yb, 0)], F, facing=(0, 0, 1))
+    for sx in (-1, 1):
+        xa, xb = sorted((sx * SX0, sx * SX1))
+        mb.face([(xa, Y0, 0), (xb, Y0, 0), (xb, CH_SIDE_Y1, 0), (xa, CH_SIDE_Y1, 0)], F, facing=(0, 0, 1))
+
+    # The south wall: the door into the nave, the arch of the vault over it; the side halls' too.
+    arch_top = [(NX + NX * math.cos(math.pi * k / segs), spring + NX * math.sin(math.pi * k / segs)) for k in range(segs + 1)]
+    wall(mb, (-NX, Y0), (NX, Y0), 0, spring, W, (0, 1, 0), notches=[(NX, gate)], top=arch_top)
+    for sx in (-1, 1):
+        wall(mb, (sx * SX0, Y0), (sx * SX1, Y0), 0, CH_SIDE_H, W, (0, 1, 0))
+        # The end of the opening through the nave wall, at the balcony's level.
+        xa, xb = sorted((sx * NX, sx * SX0))
+        mb.face([(xa, Y0, bs), (xb, Y0, bs), (xb, Y0, CH_OPEN_TOP), (xa, Y0, CH_OPEN_TOP)], W, facing=(0, 1, 0))
+
+    # The nave walls, inside and out, with the great arch and the opening to the landing.
+    for sx in (-1, 1):
+        xi, xo = sx * NX, sx * SX0
+        # Beside the balcony: below it, and above the opening.
+        for x, f, z_hi in ((xi, -sx, spring), (xo, sx, CH_SIDE_H)):
+            mb.face([(x, Y0, 0), (x, by, 0), (x, by, bs), (x, Y0, bs)], W, facing=(f, 0, 0))
+            mb.face([(x, Y0, CH_OPEN_TOP), (x, by, CH_OPEN_TOP), (x, by, z_hi), (x, Y0, z_hi)], W, facing=(f, 0, 0))
+        wall(mb, (xi, by), (xi, YA), 0, spring, W, (-sx, 0, 0), notches=[(CH_ARCH_Y - by, arch)])
+        wall(mb, (xo, by), (xo, CH_SIDE_Y1), 0, CH_SIDE_H, W, (sx, 0, 0), notches=[(CH_ARCH_Y - by, arch)])
+        throat(mb, (xi, CH_ARCH_Y), (sx, 0), 0, CH_WALL, arch, W, F)
+        xa, xb = sorted((xi, xo))
+        mb.face([(xa, Y0, CH_OPEN_TOP), (xb, Y0, CH_OPEN_TOP), (xb, by, CH_OPEN_TOP), (xa, by, CH_OPEN_TOP)], W, facing=(0, 0, -1))
+        mb.face([(xa, by, bs), (xb, by, bs), (xb, by, CH_OPEN_TOP), (xa, by, CH_OPEN_TOP)], W, facing=(0, -1, 0))
+        # The side hall: its outer and north walls, and its ceiling.
+        mb.face([(sx * SX1, Y0, 0), (sx * SX1, CH_SIDE_Y1, 0), (sx * SX1, CH_SIDE_Y1, CH_SIDE_H), (sx * SX1, Y0, CH_SIDE_H)], W, facing=(-sx, 0, 0))
+        xa, xb = sorted((sx * SX0, sx * SX1))
+        mb.face([(xa, CH_SIDE_Y1, 0), (xb, CH_SIDE_Y1, 0), (xb, CH_SIDE_Y1, CH_SIDE_H), (xa, CH_SIDE_Y1, CH_SIDE_H)], W, facing=(0, -1, 0))
+        mb.face([(xa, Y0, CH_SIDE_H), (xb, Y0, CH_SIDE_H), (xb, CH_SIDE_Y1, CH_SIDE_H), (xa, CH_SIDE_Y1, CH_SIDE_H)], W, facing=(0, 0, -1))
+
+    # Barrel vault over the nave, the apse's walls and half dome.
+    vault = [(NX * math.cos(math.pi - math.pi * k / segs), NX * math.sin(math.pi - math.pi * k / segs)) for k in range(segs + 1)]
+    steps = 10
+    vframes = [(Vector((0, Y0 + (YA - Y0) * t / steps, spring)), Vector((1, 0, 0)), (YA - Y0) * t / steps) for t in range(steps + 1)]
+    sweep(mb, vault, vframes, W)
     for j in range(apse_n):
         (xa, ya_), (xb, yb) = apse[j], apse[j + 1]
-        wall(mb, (xa, ya_), (xb, yb), 0, spring, W, (-(xa + xb) / 2, ya - (ya_ + yb) / 2, 0))
+        wall(mb, (xa, ya_), (xb, yb), 0, spring, W, (-(xa + xb) / 2, YA - (ya_ + yb) / 2, 0))
     rings = 8
-    centre = Vector((0, ya, spring))
+    centre = Vector((0, YA, spring))
     for r in range(rings):
         p0, p1 = (math.pi / 2) * r / rings, (math.pi / 2) * (r + 1) / rings
         for j in range(apse_n):
             t0, t1 = math.pi * j / apse_n, math.pi * (j + 1) / apse_n
+
             def pt(phi, th):
-                return centre + Vector((hx * math.cos(phi) * math.cos(th), hx * math.cos(phi) * math.sin(th), hx * math.sin(phi)))
+                return centre + Vector((NX * math.cos(phi) * math.cos(th), NX * math.cos(phi) * math.sin(th), NX * math.sin(phi)))
+
             q = [pt(p0, t0), pt(p0, t1), pt(p1, t1), pt(p1, t0)]
             ctr = sum(q, Vector()) / 4
             mb.face(q, W, facing=centre - ctr, smooth=True)
-    # Dais: raised step across the apse, altar on top
-    dais_h, dais_y = 0.35, 1.0
-    dais_outline = [(-hx, dais_y), (hx, dais_y), (hx, ya)] + [apse[j] for j in range(1, apse_n)] + [(-hx, ya)]
-    mb.face([(x, y, dais_h) for x, y in dais_outline], M, facing=(0, 0, 1))
-    mb.face([(-hx, dais_y, 0), (hx, dais_y, 0), (hx, dais_y, dais_h), (-hx, dais_y, dais_h)], M, facing=(0, -1, 0))
-    mb.box((-0.9, 3.0, dais_h), (0.9, 3.8, dais_h + 1.0), M, skip=("-z",))
-    mb.box((-1.0, 2.95, dais_h + 1.0), (1.0, 3.85, dais_h + 1.1), M, skip=())
-    # Pilasters along the nave walls and stone benches
-    for y in (-3.0, -0.5, ya):
+
+    # The balcony over the door, through the nave walls to the side halls' landings.
+    for x0, x1 in ((-SX1, -CH_STAIR_X), (-CH_STAIR_X, CH_STAIR_X), (CH_STAIR_X, SX1)):
+        mb.face([(x0, Y0, bz), (x1, Y0, bz), (x1, by, bz), (x0, by, bz)], F, facing=(0, 0, 1))
+    for x0, x1 in ((-SX1, -SX0), (-NX, NX), (SX0, SX1)):
+        mb.face([(x0, Y0, bs), (x1, Y0, bs), (x1, by, bs), (x0, by, bs)], M, facing=(0, 0, -1))
+    mb.face([(-CH_STAIR_X, by, bs), (CH_STAIR_X, by, bs), (CH_STAIR_X, by, bz), (-CH_STAIR_X, by, bz)], M, facing=(0, 1, 0))
+    # Its parapet, the whole way along (through the openings too), and two columns under it.
+    mb.box((-CH_STAIR_X + 0.2, by - 0.2, bz), (CH_STAIR_X - 0.2, by, bz + CH_RAIL), M, skip=("-z",))
+    columns = [(-2.75, by - 0.25), (2.75, by - 0.25)]
+    for cx, cy in columns:
+        mb.box((cx - 0.25, cy - 0.25, 0), (cx + 0.25, cy + 0.25, bs), M, skip=("-z", "+z"))
+    for sx in (-1, 1):
+        _chapel_stair(mb, sx, F, M)
+
+    # Pilasters along the nave walls.
+    for y in (CH_SIDE_Y1, YA):
         for sx in (-1, 1):
-            x_in = sx * (hx - 0.25)
-            mb.box((min(x_in, sx * hx), y - 0.3, 0), (max(x_in, sx * hx), y + 0.3, spring), M, skip=("-z", "+x" if sx > 0 else "-x"))
-    for row in range(4):
-        y = -4.6 + row * 1.25
+            xa, xb = sorted((sx * (NX - 0.25), sx * NX))
+            mb.box((xa, y - 0.3, 0), (xb, y + 0.3, spring), M, skip=("-z", "+x" if sx > 0 else "-x"))
+
+    # Pews, either side of the aisle, facing the altar: a seat, and a back on its south side.
+    pews = []
+    for row in range(CH_PEWS):
+        y = -6.6 + row * 1.25
         for sx in (-1, 1):
-            xa, xb = sorted((sx * 0.7, sx * 2.9))
-            mb.box((xa, y, 0), (xb, y + 0.45, 0.45), "mat-wall-tunnel", skip=("-z",))
+            xa, xb = sorted((sx * CH_PEW_X[0], sx * CH_PEW_X[1]))
+            mb.box((xa, y, 0), (xb, y + 0.1, 0.95), "mat-prop-planks", skip=("-z",))
+            mb.box((xa, y + 0.1, 0), (xb, y + 0.55, 0.45), "mat-prop-planks", skip=("-z", "-y"))
+            pews.append(((xa, y, 0), (xb, y + 0.55, 0.95)))
+
+    # The dais across the apse, in two steps; the altar, the lectern, and the angel on its plinth.
+    for front, h in CH_DAIS:
+        outline = [(-NX, front), (NX, front), (NX, YA)] + [apse[j] for j in range(1, apse_n)] + [(-NX, YA)]
+        mb.face([(x, y, h) for x, y in outline], M, facing=(0, 0, 1))
+        mb.face([(-NX, front, h - 0.25), (NX, front, h - 0.25), (NX, front, h), (-NX, front, h)], M, facing=(0, -1, 0))
+    dz = CH_DAIS[-1][1]
+    altar = ((-1.2, 9.2, dz), (1.2, 10.2, dz + 1.0))
+    mb.box(altar[0], altar[1], M, skip=("-z",))
+    mb.box((-1.35, 9.1, dz + 1.0), (1.35, 10.3, dz + 1.12), M)
+    lectern = ((3.0, 5.95, dz), (3.8, 6.55, dz + 1.15))
+    mb.box(lectern[0], lectern[1], M, skip=("-z",))
+    mb.box((2.85, 5.85, dz + 1.15), (3.95, 6.65, dz + 1.25), "mat-prop-planks")
+    plinth = ((-0.95, 11.5, dz), (0.95, 12.9, dz + 0.5))
+    mb.box(plinth[0], plinth[1], M, skip=("-z",))
+    import_angel(coll, root, Vector((0, 12.3, dz + 0.5)), height=CH_ANGEL_HEIGHT, name=name + "-angel")
+    candles = 0
+    for x in (-1.0, -0.6, 0.6, 1.0):
+        _candle(mb, coll, root, candles, x, 9.45, dz + 1.12, 0.22 + 0.08 * abs(x))
+        candles += 1
+    for x in (-0.75, 0.75):
+        _candle(mb, coll, root, candles, x, 11.65, dz + 0.5, 0.3)
+        candles += 1
+    # A great timber cross on the apse wall behind the angel, standing on the dais.
+    for lo, hi in CROSS:
+        mb.box(lo, hi, "mat-prop-planks", skip=("+y",))
+
+    # The side halls: a wall of stacked bones along the north wall, sarcophagi laid before it and
+    # under the landing, and a pillar to the vault.
+    for sx in (-1, 1):
+        xa, xb = sorted((sx * (SX0 + 0.6), sx * (CH_STAIR_X - 0.8)))
+        _bone_stack(mb, xa, xb, CH_SIDE_Y1, 0.5, 1.2, -1, seed=3 + sx)
+        for (s0, s1), (y0, y1) in itertools.product(CH_SARCOPHAGI, CH_SARC_Y):
+            x0, x1 = sorted((sx * s0, sx * s1))
+            mb.box((x0, y0, 0), (x1, y1, 0.75), M, skip=("-z",))
+            mb.box((x0 - 0.06, y0 - 0.06, 0.75), (x1 + 0.06, y1 + 0.06, 0.88), M)
+            mb.box((x0 + 0.3, y0 + 0.2, 0.88), (x1 - 0.3, y1 - 0.2, 0.98), M, skip=("-z",))
+        _pillar(mb, sx * CH_SIDE_PILLAR[0], CH_SIDE_PILLAR[1], 0.4, CH_SIDE_H, W)
+
+    # The way out (once the Affliction is resolved): a dark hatch high on the west nave wall, and
+    # the ladder the game lets down from it onto the dais (its own object, `<piece>-ladder`).
+    ly0, ly1 = 6.2, 6.86
+    ly = (ly0 + ly1) / 2
+    mb.face([(-NX + 0.015, ly0, 4.4), (-NX + 0.015, ly1, 4.4), (-NX + 0.015, ly1, 5.8), (-NX + 0.015, ly0, 5.8)], "mat-shaft-dark", facing=(1, 0, 0))
+    mb.box((-NX, ly0 - 0.1, 5.8), (-NX + 0.16, ly1 + 0.1, 5.95), "mat-prop-planks", skip=("-x",))
+    for y in (ly0 - 0.1, ly1):
+        mb.box((-NX, y, 4.3), (-NX + 0.14, y + 0.1, 5.8), "mat-prop-planks", skip=("-x",))
     mb.finish(coll, root)
-    socket(coll, root, "hall", 0, (0, -6, 0))
-    socket(coll, root, "hall", 1, (-6, -4, 0))
-    socket(coll, root, "hall", 2, (6, -4, 0))
-    marker(coll, root, "rite-0", (0, 2.4, dais_h), display="SPHERE", size=0.6)
-    top = spring + hx
-    t = WALL_INSET
-    col_box(coll, root, "col-floor", (-6, -6, -0.2), (6, 6, 0))
-    col_box(coll, root, "col-ceiling", (-6, -6, top), (6, 6, min(top + 0.4, 2 * LEVEL)))  # stay inside the piece's 2 levels
-    wall_cols(coll, root, "wall-s", (-6, y0), (6, y0), 0, top, t, (0, -1), openings=[(6.0, 1.0, 2.8)])
-    col_box(coll, root, "col-side-w", (-6, -6, 0), (-hx, -5, top))
-    col_box(coll, root, "col-side-w2", (-6, -3, 0), (-hx, 6, top))
-    col_box(coll, root, "col-side-e", (hx, -6, 0), (6, -5, top))
-    col_box(coll, root, "col-side-e2", (hx, -3, 0), (6, 6, top))
-    col_box(coll, root, "col-side-w-lintel", (-6, -5, 2.8), (-hx, -3, top))
-    col_box(coll, root, "col-side-e-lintel", (hx, -5, 2.8), (6, -3, top))
-    col_box(coll, root, "col-apse", (-hx, ya + 2.6, 0), (hx, 6, top))
-    col_box(coll, root, "col-dais", (-hx, dais_y, 0), (hx, ya + 2.6, dais_h))
-    col_box(coll, root, "col-altar", (-1.0, 2.95, dais_h), (1.0, 3.85, dais_h + 1.1))
-    for row in range(4):
-        y = -4.6 + row * 1.25
-        col_box(coll, root, f"col-bench-{row}-w", (-2.9, y, 0), (-0.7, y + 0.45, 0.45))
-        col_box(coll, root, f"col-bench-{row}-e", (0.7, y, 0), (2.9, y + 0.45, 0.45))
+    xm = MeshBuilder(name + "-ladder")
+    extraction_ladder(xm, -NX + 0.14, ly, dz, 5.0, axis="y", half_w=0.22)
+    xm.finish(coll, root)
+
+    socket(coll, root, "hall", 0, (0, -14, 0))
+    door = marker(coll, root, "door-0", (0, CH_DOOR_Y, 0), display="ARROWS", size=0.6)
+    door.rotation_euler = (0, 0, math.pi)  # its +Y to the way in: the leaves swing into the nave
+    marker(coll, root, "rite-0", (0, 8.4, dz), display="SPHERE", size=0.6)
+    marker(coll, root, "extract-0", (-NX + 0.7, ly, dz), display="SPHERE", size=0.6)
+    # Crates in the side halls, against their outer walls (local +Y at the wall behind).
+    for k, sx in enumerate((-1, 1)):
+        c = marker(coll, root, f"crate-{k}", (sx * (SX1 - 0.45), 1.0, 0), display="ARROWS", size=0.45)
+        c.rotation_euler = (0, 0, sx * -math.pi / 2)
+
+    # Collision.
+    H = 3 * LEVEL
+    col_box(coll, root, "col-floor", (-18, -14, -0.2), (18, 14, 0))
+    # The way in, its walls stepping out from a hall to the gate, and its roof.
+    slices = [(-14, CH_GATE_FROM)] + [(CH_GATE_FROM + (CH_GATE_TO - CH_GATE_FROM) * k / 4, CH_GATE_FROM + (CH_GATE_TO - CH_GATE_FROM) * (k + 1) / 4) for k in range(4)] + [(CH_GATE_TO, Y0)]
+    for k, (ya, yb) in enumerate(slices):
+        f = smoothstep(CH_GATE_FROM, CH_GATE_TO, ya)  # the narrower end of the slice
+        half = HALL_HALF_W + (GATE_HALF_W - HALL_HALF_W) * f - 0.02
+        apex = 2.8 + 0.4 * f
+        col_box(coll, root, f"col-way-{k}-w", (-2.4, ya, 0), (-half, yb, apex + 0.6))
+        col_box(coll, root, f"col-way-{k}-e", (half, ya, 0), (2.4, yb, apex + 0.6))
+        col_box(coll, root, f"col-way-{k}-roof", (-2.4, ya, apex), (2.4, yb, apex + 0.6))
+    col_box(coll, root, "col-arch-fill", (-GATE_HALF_W, CH_DOOR_Y - 0.1, GATE_SPRING), (GATE_HALF_W, CH_DOOR_Y + 0.1, 3.4))
+    col_box(coll, root, "col-south-w", (-18, -14, 0), (-2.4, Y0, H))
+    col_box(coll, root, "col-south-e", (2.4, -14, 0), (18, Y0, H))
+    col_box(coll, root, "col-south-over", (-2.4, -12.0, 3.4), (2.4, Y0, H))
+    for sx in (-1, 1):
+        s = "e" if sx > 0 else "w"
+        xa, xb = sorted((sx * NX, sx * SX0))
+        # The nave wall: under the balcony and over its opening; then solid, but for the great arch.
+        col_box(coll, root, f"col-nave-{s}-0", (xa, Y0, 0), (xb, by, bs))
+        col_box(coll, root, f"col-nave-{s}-1", (xa, Y0, CH_OPEN_TOP), (xb, by, H))
+        a0, a1 = CH_ARCH_Y - CH_ARCH[0], CH_ARCH_Y + CH_ARCH[0]
+        col_box(coll, root, f"col-nave-{s}-2", (xa, by, 0), (xb, a0, H))
+        col_box(coll, root, f"col-nave-{s}-3", (xa, a0, CH_ARCH[1] + 0.6), (xb, a1, H))
+        col_box(coll, root, f"col-nave-{s}-4", (xa, a1, 0), (xb, CH_SIDE_Y1, H))
+        # Beyond the side hall: solid to the footprint's edge; and its outer wall and ceiling.
+        xa, xb = sorted((sx * NX, sx * 18))
+        col_box(coll, root, f"col-beyond-{s}", (xa, CH_SIDE_Y1, 0), (xb, 14, H))
+        xa, xb = sorted((sx * SX1, sx * 18))
+        col_box(coll, root, f"col-side-wall-{s}", (xa, Y0, 0), (xb, CH_SIDE_Y1, H))
+        xa, xb = sorted((sx * SX0, sx * SX1))
+        col_box(coll, root, f"col-side-ceiling-{s}", (xa, Y0, CH_SIDE_H), (xb, CH_SIDE_Y1, CH_SIDE_H + 0.4))
+        # Its landing, and the stair up to it.
+        xa, xb = sorted((sx * SX0, sx * SX1))
+        col_box(coll, root, f"col-landing-{s}", (xa, Y0, bs), (xb, by, bz))
+        _chapel_stair_cols(coll, root, sx)
+        # Pilasters.
+        xa, xb = sorted((sx * (NX - 0.25), sx * NX))
+        for k, y in enumerate((CH_SIDE_Y1, YA)):
+            col_box(coll, root, f"col-pilaster-{s}-{k}", (xa, y - 0.3, 0), (xb, y + 0.3, spring))
+    col_box(coll, root, "col-balcony", (-SX0, Y0, bs), (SX0, by, bz))
+    col_box(coll, root, "col-parapet", (-CH_STAIR_X + 0.2, by - 0.2, bz), (CH_STAIR_X - 0.2, by, bz + CH_RAIL))
+    for k, (cx, cy) in enumerate(columns):
+        col_box(coll, root, f"col-column-{k}", (cx - 0.25, cy - 0.25, 0), (cx + 0.25, cy + 0.25, bs))
+    col_box(coll, root, "col-vault", (-NX, Y0, top), (NX, 14, H))
+    for j in range(apse_n):
+        (xa, ya_), (xb, yb) = apse[j], apse[j + 1]
+        col_segment(coll, root, f"col-apse-{j}", (xa, ya_), (xb, yb), 0, H, 0.3, ((xa + xb) / 2, (ya_ + yb) / 2 - YA))
+    for k, (lo, hi) in enumerate(pews):
+        col_box(coll, root, f"col-pew-{k}", lo, hi)
+    for k, (front, h) in enumerate(CH_DAIS):
+        col_box(coll, root, f"col-dais-{k}", (-NX, front, 0), (NX, YA + NX, h))
+    col_box(coll, root, "col-altar", (-1.35, 9.1, dz), (1.35, 10.3, dz + 1.12))
+    col_box(coll, root, "col-lectern", (2.85, 5.85, dz), (3.95, 6.65, dz + 1.25))
+    col_box(coll, root, "col-angel", (plinth[0][0], plinth[0][1], dz), (plinth[1][0], plinth[1][1], dz + 0.5 + CH_ANGEL_HEIGHT))
+    col_box(coll, root, "col-ladder", (-NX, ly0 + 0.08, dz), (-NX + 0.19, ly1 - 0.08, 5.0))
+    for k, (lo, hi) in enumerate(CROSS):
+        col_box(coll, root, f"col-cross-{k}", lo, hi)
+    for sx in (-1, 1):
+        s = "e" if sx > 0 else "w"
+        xa, xb = sorted((sx * (SX0 + 0.6), sx * (CH_STAIR_X - 0.8)))
+        col_box(coll, root, f"col-bones-n-{s}", (xa, CH_SIDE_Y1 - 0.5, 0), (xb, CH_SIDE_Y1, 1.2))
+        for k, ((s0, s1), (y0, y1)) in enumerate(itertools.product(CH_SARCOPHAGI, CH_SARC_Y)):
+            x0, x1 = sorted((sx * s0, sx * s1))
+            col_box(coll, root, f"col-sarcophagus-{s}-{k}", (x0 - 0.06, y0 - 0.06, 0), (x1 + 0.06, y1 + 0.06, 0.98))
+        px, py = sx * CH_SIDE_PILLAR[0], CH_SIDE_PILLAR[1]
+        col_box(coll, root, f"col-side-pillar-{s}", (px - 0.52, py - 0.52, 0), (px + 0.52, py + 0.52, CH_SIDE_H))
+    print(f"{name}: {candles} candles")
     return coll
 
 
@@ -1697,39 +1958,6 @@ def build_extraction_shaft(force=False):
     return coll
 
 
-def add_chapel_extraction():
-    """Give the (hand-edited) Gloaming Chapel a way out, without rebuilding it: a ladder on the
-    dais against the west nave wall, up to a dark hatch where the wall meets the vault, and
-    extract-0 at its foot. The chapel is the one way out by ladder (hold interact at its foot);
-    the extraction rooms have ropes. Only adds objects; does nothing if the chapel has them."""
-    name = "gloaming-chapel"
-    coll = bpy.data.collections[name]
-    root = bpy.data.objects[name]
-    if any(o.name.split(".")[0] == "extract-0" for o in root.children):
-        print("gloaming-chapel already has its way out")
-        return coll
-    hx, spring, dais_h = 3.75, 4.0, 0.35
-    y0, y1 = 1.02, 1.68  # between the dais edge (y=1) and the pilaster at the apse (y=1.7)
-    cy = (y0 + y1) / 2
-    xm = MeshBuilder(name + "-way-out")
-    # Hatch: a dark patch hugging the wall, then the vault, just proud of the surface.
-    def surface_x(z):
-        return -hx if z <= spring else -math.sqrt(max(0.0, hx * hx - (z - spring) ** 2))
-    zs = [2.9 + 0.25 * k for k in range(11)]  # 2.9 .. 5.4
-    for za, zb in zip(zs, zs[1:]):
-        xa, xb = surface_x(za) + 0.015, surface_x(zb) + 0.015
-        xm.face([(xa, y0, za), (xa, y1, za), (xb, y1, zb), (xb, y0, zb)], "mat-shaft-dark", facing=(1, 0, -0.3))
-    # Timber frame round the hatch mouth and a lintel beam
-    xm.box((-hx + 0.01, y0 - 0.1, 2.75), (-hx + 0.16, y1 + 0.1, 2.9), "mat-prop-planks", skip=("-x",))
-    for y in (y0 - 0.1, y1):
-        xm.box((-hx + 0.01, y, 2.75), (-hx + 0.14, y + 0.1, spring), "mat-prop-planks", skip=("-x",))
-    extraction_ladder(xm, -hx + 0.14, cy, dais_h, 4.6, axis="y", half_w=0.22)
-    xm.finish(coll, root)
-    marker(coll, root, "extract-0", (-3.05, cy, dais_h), display="SPHERE", size=0.6)
-    col_box(coll, root, "col-ladder", (-hx, y0 + 0.08, dais_h), (-hx + 0.19, y1 - 0.08, 4.6))
-    return coll
-
-
 # Where the extraction shaft's rope hangs from (piece space, Blender axes), and how far up it a
 # climber gets out. It hangs near the middle, so a climber beside it stays clear of the shaft
 # wall, and you climb most of the way up the shaft (head just under the hatch).
@@ -1803,31 +2031,6 @@ def remove_extraction_ladders():
         for o in [o for o in root.children if o.name.startswith("col-ladder")]:
             bpy.data.objects.remove(o)
         print(f"{name}: {len(gone)} ladder faces removed")
-
-
-def restore_chapel_ladder():
-    """One-off: give the Gloaming Chapel its ladder way out back (a rope briefly replaced it):
-    the ladder as its own mesh, its col-ladder box, and extract-0 at its foot in place of rope-0.
-    Each part is only added if it is missing."""
-    name = "gloaming-chapel"
-    coll = bpy.data.collections[name]
-    root = bpy.data.objects[name]
-    kids = {o.name.split(".")[0]: o for o in root.children}
-    hx, dais_h = 3.75, 0.35
-    y0, y1 = 1.02, 1.68
-    cy = (y0 + y1) / 2
-    if "col-ladder" not in kids and name + "-ladder" not in kids:
-        mb = MeshBuilder(name + "-ladder")
-        extraction_ladder(mb, -hx + 0.14, cy, dais_h, 4.6, axis="y", half_w=0.22)
-        mb.finish(coll, root)
-        col_box(coll, root, "col-ladder", (-hx, y0 + 0.08, dais_h), (-hx + 0.19, y1 - 0.08, 4.6))
-        print("gloaming-chapel: ladder back")
-    if "rope-0" in kids:
-        bpy.data.objects.remove(kids["rope-0"])
-        print("gloaming-chapel: rope-0 gone")
-    if "extract-0" not in kids:
-        marker(coll, root, "extract-0", (-3.05, cy, dais_h), display="SPHERE", size=0.6)
-        print("gloaming-chapel: extract-0 at the ladder's foot")
 
 
 # ---------------------------------------------------------------------------
@@ -2565,10 +2768,10 @@ def _niche(mb, k, z0, half_w, spring, rise, depth, wall_mat, sill_mat):
     return profile
 
 
-def import_angel(coll, root, base, height=ANGEL_HEIGHT, tris=ANGEL_TRIS):
+def import_angel(coll, root, base, height=ANGEL_HEIGHT, tris=ANGEL_TRIS, name="angel-well-angel"):
     """The angel statue (art/export/decor/angel.glb), simplified to about `tris` triangles, scaled
     to `height` and stood with its feet at `base` (piece space), facing -Y (into the room from
-    the north wall). Its own material and textures come with it."""
+    the north wall). Its own material and textures come with it. `name` names the object."""
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=ANGEL_SOURCE)
     new = [o for o in bpy.data.objects if o not in before]
@@ -2613,7 +2816,7 @@ def import_angel(coll, root, base, height=ANGEL_HEIGHT, tris=ANGEL_TRIS):
     s = height / (hi.z - lo.z)
     mid = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
     obj.data.transform(Matrix.Translation(Vector(base)) @ Matrix.Scale(s, 4) @ Matrix.Translation(-mid))
-    obj.name = obj.data.name = "angel-well-angel"
+    obj.name = obj.data.name = name
     for m in obj.data.materials:
         if m:
             m.name = "mat-angel"

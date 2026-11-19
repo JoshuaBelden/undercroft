@@ -439,6 +439,35 @@ export const SOUNDS = {
 		caption: 'a great door groans open',
 		captionOthers: true
 	},
+	// The rite slams the final room's door shut and bars it, until what it summoned is banished.
+	'door.slam': {
+		file: 'door.open',
+		synth: { kind: 'thud', cutoff: 400 },
+		category: 'sfx',
+		volume: 1,
+		rate: 1.6,
+		variation: 0.05,
+		caption: 'the door slams shut',
+		captionOthers: true
+	},
+	'door.seal': {
+		synth: { kind: 'thud', cutoff: 500 },
+		category: 'sfx',
+		volume: 1,
+		variation: 0.05,
+		caption: 'a bar drops across the door',
+		captionOthers: true
+	},
+	// The final room's way out, let down once the Affliction is resolved.
+	'ladder.lower': {
+		synth: { kind: 'groan' },
+		category: 'sfx',
+		volume: 0.9,
+		rate: 1.3,
+		variation: 0.05,
+		caption: 'a ladder rattles down',
+		captionOthers: true
+	},
 	// Turning over a corpse to search it, the first time.
 	'corpse.search': {
 		file: 'corpse.search',
@@ -672,6 +701,66 @@ export const SOUNDS = {
 		category: 'sfx',
 		volume: 0.5,
 		caption: 'it shrieks, dazzled'
+	},
+	// Its ray gathering at its hands: lower and slower than its swing, building to the strike.
+	'manifest.cast': {
+		file: 'manifest.attack',
+		synth: { kind: 'snarl' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 0.7,
+		caption: 'a low, gathering hiss'
+	},
+	// Its ray striking: a dark rush of air where it left it...
+	'manifest.ray': {
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 0.45,
+		caption: 'something dark tears through the air'
+	},
+	// ...and a cold crack where it struck, on stone or on someone.
+	'manifest.ray.hit': {
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 0.6,
+		variation: 0.1,
+		caption: 'a cold crack'
+	},
+	// It breaks into a charge, running someone down: the witch's burst, deeper.
+	'manifest.rush': {
+		file: 'creature.burst',
+		synth: { kind: 'rush' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 0.75,
+		caption: 'it shrieks and charges'
+	},
+	// It goes into the dark, and comes back from it somewhere else.
+	'manifest.vanish': {
+		synth: { kind: 'whisper' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.6,
+		caption: 'it slips into the dark'
+	},
+	'manifest.return': {
+		file: 'manifest.stun',
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 0.75,
+		caption: 'something breathes, close behind'
+	},
+	// Its ray hit you: your lamp gutters out, and won't come back on for a while.
+	'lamp.snuffed': {
+		file: 'headlamp.off',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 1,
+		rate: 0.55,
+		caption: 'your lamp gutters out'
 	},
 	// A lamp flicked on in something's face, and it was stunned.
 	'strobe.flash': {

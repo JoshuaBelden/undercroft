@@ -4,6 +4,7 @@ import type { ManifestationBody, ManifestationSpec } from '#lib/content/afflicti
 import { Animator } from '#lib/game/Animator.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
 import type { SoundBank } from '#lib/game/audio/SoundBank.ts';
+import { RayEffects } from './RayEffects.ts';
 import type { ManifestationSnapshot } from '#lib/shared/affliction/types.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
 
@@ -13,6 +14,8 @@ interface Figure {
 	scene: THREE.Object3D;
 	materials: THREE.Material[];
 	animator: Animator;
+	/** Its hand bones, where the ray gathers. */
+	hands: THREE.Object3D[];
 }
 
 /** Seconds it takes to fade away when banished. */
@@ -21,21 +24,22 @@ const DISSOLVE = 3;
 const APPEAR = 3;
 /** Below this speed (m/s) it stands. */
 const STILL = 0.15;
-/** The colour it burns with as lamp light takes hold of it. */
-const BURN = new THREE.Color(0xffd9a0);
-/** Emissive strength while light builds on it, and while it is exposed (pulsing about this). */
-const BURN_CHARGE = 0.35;
-const BURN_EXPOSED = 0.9;
+/** Seconds it takes to go when it vanishes, and to come back. */
+const VANISH = 0.6;
+/** Where its hands are when it has no figure to find them on: ahead of it, chest high (m). */
+const HANDS_AHEAD = 0.55;
+const HANDS_UP = 1.45;
+const scratch = new THREE.Vector3();
 /** Seconds into the stun when it stops reeling and stands frozen. */
 const STUN_REEL = 0.35;
 
 /**
  * An Affliction's manifestation: the figure the rite summons (the manifestation's `body`). It
- * walks where the server moves it, winds up and strikes, reels when it's hit, burns brighter as
- * lamp light takes hold of it and flares when that exposes it, stands frozen when a strobe stuns
- * it, and falls when banished. The fight music (play/affliction) says it's here. The server
- * simulates a point with a hit capsule; the figure is drawn here only. See
- * docs/dev/affliction.md.
+ * walks where the server moves it and charges when it runs someone down, winds up and strikes,
+ * gathers its ray at its hands and fires it (RayEffects), reels when it's hit, stands frozen when
+ * a strobe stuns it, fades out when it vanishes and back in where it returns, and falls when
+ * banished. The fight music (play/affliction) says it's here. The server simulates a point with a
+ * hit capsule; the figure is drawn here only. See docs/dev/affliction.md.
  */
 export class Manifestation {
 	readonly root = new THREE.Group();
@@ -47,10 +51,17 @@ export class Manifestation {
 	private last = new THREE.Vector3();
 	private active = false;
 	private state: ManifestationSnapshot['state'] = 'gathering';
-	private exposed = false;
-	/** 0..1, how near lamp light is to exposing it (1 while exposed); smoothed for the burn. */
+	/** 0..1: how far it has faded out, vanishing (back to 0 as it returns). */
+	private gone = 0;
+	private casts = 0;
+	/** 0..1, the ray it is gathering (from the snapshot), and where it aims it. */
 	private charge = 0;
-	private burn = 0;
+	private aim: THREE.Vector3 | null = null;
+	/** Seconds left of the cast animation. */
+	private casting = 0;
+	private rushing = false;
+	/** Its ray: the charge at its hands and the ray once fired. In world space, beside the figure. */
+	readonly ray = new RayEffects();
 	private stunned = false;
 	/** Seconds it has been stunned. */
 	private stunTime = 0;
@@ -91,10 +102,32 @@ export class Manifestation {
 			this.speed = 0;
 			this.striking = 0;
 			this.flinching = 0;
-			this.burn = 0;
+			this.gone = snap.state === 'vanished' ? 1 : 0;
 			this.stunned = false;
 			this.strikes = snap.strikes;
+			this.casts = snap.casts;
+			this.casting = 0;
+			this.rushing = snap.rushing;
 		}
+		if (snap.state === 'vanished' && this.state !== 'vanished') {
+			this.sounds.playAt('manifest.vanish', this.corePoint(), 1, 6);
+		} else if (snap.state !== 'vanished' && this.state === 'vanished') {
+			// Back from somewhere else: it is there at once, not walked over from where it went.
+			this.root.position.copy(this.target);
+			this.last.copy(this.target);
+			this.sounds.playAt('manifest.return', this.corePoint(), 1, 6);
+		}
+		if (snap.casts > this.casts) {
+			// It gathers its ray: seen at its hands and heard building before it strikes.
+			this.casting = this.spec?.ray.chargeSeconds ?? 0;
+			this.striking = 0;
+			this.sounds.playAt('manifest.cast', this.corePoint(), 1, 6);
+		}
+		this.casts = snap.casts;
+		this.charge = snap.charge;
+		this.aim = snap.aim ? (this.aim ?? new THREE.Vector3()).set(...snap.aim) : null;
+		if (snap.rushing && !this.rushing) this.sounds.playAt('manifest.rush', this.corePoint(), 1, 6);
+		this.rushing = snap.rushing;
 		if (snap.strikes > this.strikes) {
 			// A swing begins: the wind-up is heard before the blow lands.
 			this.striking = this.spec?.body?.strikeSeconds ?? 0;
@@ -105,10 +138,9 @@ export class Manifestation {
 			this.sounds.playAt('manifest.stun', this.corePoint(), 1, 6);
 			this.stunTime = 0;
 			this.striking = 0;
+			this.casting = 0;
 		}
 		this.stunned = snap.stunned;
-		this.charge = snap.charge;
-		this.exposed = snap.exposed;
 		this.state = snap.state;
 	}
 
@@ -117,16 +149,30 @@ export class Manifestation {
 		this.flinching = this.spec?.body?.flinchSeconds ?? 0;
 	}
 
+	/** Its ray struck, from its core (`from`, the server's) to `to`: drawn from its hands. */
+	fire(from: Vec3, to: Vec3): void {
+		this.casting = Math.min(this.casting, 0.25);
+		this.charge = 0;
+		const start = this.active ? this.hands(scratch) : scratch.set(...from);
+		this.ray.fire(start.clone(), new THREE.Vector3(...to));
+	}
+
 	clear(): void {
 		this.active = false;
 		this.root.visible = false;
+		this.ray.clear();
 	}
 
 	update(delta: number): void {
+		this.ray.update(delta);
 		if (!this.active) return;
 		this.root.position.lerp(this.target, Math.min(1, delta * 6));
 		if (this.state === 'banished') this.dissolve = Math.min(1, this.dissolve + delta / DISSOLVE);
+		const going = this.state === 'vanished' ? 1 : -1;
+		this.gone = Math.max(0, Math.min(1, this.gone + (going * delta) / VANISH));
 		this.updateFigure(delta);
+		const charging = this.charge > 0 && this.state === 'hunting' && !this.stunned;
+		this.ray.charge(this.hands(scratch), charging ? this.charge : 0);
 		if (this.dissolve >= 1) this.clear();
 	}
 
@@ -135,9 +181,24 @@ export class Manifestation {
 		this.figure?.animator.dispose();
 		for (const material of this.figure?.materials ?? []) material.dispose();
 		this.figure = null;
+		this.ray.dispose();
 		this.root.clear();
 	}
 
+	/** Where its hands are (world space): between its two hand bones, or a guess without them. */
+	private hands(out: THREE.Vector3): THREE.Vector3 {
+		const bones = this.figure?.hands;
+		if (bones && bones.length === 2) {
+			const a = bones[0].getWorldPosition(new THREE.Vector3());
+			return out.copy(bones[1].getWorldPosition(new THREE.Vector3())).add(a).multiplyScalar(0.5);
+		}
+		const yaw = this.root.rotation.y;
+		return out.set(
+			this.root.position.x - Math.sin(yaw) * HANDS_AHEAD,
+			this.root.position.y + HANDS_UP,
+			this.root.position.z - Math.cos(yaw) * HANDS_AHEAD
+		);
+	}
 	private loadFigure(def: ManifestationBody): void {
 		this.figureModel = def.model;
 		void loadCharacter(def.model).then(({ scene, clips }) => {
@@ -157,8 +218,12 @@ export class Manifestation {
 			});
 			const animator = new Animator(scene, clips, def.animations);
 			animator.setDuration('melee_attack', def.strikeSeconds);
+			if (this.spec) animator.setDuration('spell_attack', this.spec.ray.chargeSeconds);
+			const hands = ['LeftHand', 'RightHand']
+				.map((name) => scene.getObjectByName(`mixamorig${name}`))
+				.filter((bone): bone is THREE.Object3D => !!bone);
 			this.root.add(scene);
-			this.figure = { def, scene, materials, animator };
+			this.figure = { def, scene, materials, animator, hands };
 		});
 	}
 
@@ -172,13 +237,22 @@ export class Manifestation {
 		this.last.copy(p);
 		const moved = Math.hypot(dx, dz);
 		if (delta > 0) this.speed += (moved / delta - this.speed) * Math.min(1, delta * 5);
-		if (moved > 1e-4 && this.state === 'hunting') {
-			const turn = Math.atan2(-dx, -dz) - this.root.rotation.y;
-			this.root.rotation.y += Math.atan2(Math.sin(turn), Math.cos(turn)) * Math.min(1, delta * 6);
+		// Facing: toward the aim while it gathers its ray, else the way it's going.
+		let face: number | null = null;
+		if (this.aim && this.charge > 0) {
+			face = Math.atan2(-(this.aim.x - p.x), -(this.aim.z - p.z));
+		} else if (moved > 1e-4 && this.state === 'hunting') {
+			face = Math.atan2(-dx, -dz);
+		}
+		if (face !== null) {
+			const turn = face - this.root.rotation.y;
+			this.root.rotation.y += Math.atan2(Math.sin(turn), Math.cos(turn)) * Math.min(1, delta * 8);
 		}
 		// A strike that has just begun (this frame) starts the swing, even straight after another.
 		const begun = this.striking > 0 && this.striking === this.spec?.body?.strikeSeconds;
+		const castBegun = this.casting > 0 && this.casting === this.spec?.ray.chargeSeconds;
 		this.striking = Math.max(0, this.striking - delta);
+		this.casting = Math.max(0, this.casting - delta);
 		this.flinching = Math.max(0, this.flinching - delta);
 
 		const figure = this.figure;
@@ -195,29 +269,21 @@ export class Manifestation {
 			if (this.stunTime > STUN_REEL) rate = 0;
 		} else if (this.striking > 0) {
 			anim = 'melee_attack';
+		} else if (this.casting > 0) {
+			anim = 'spell_attack';
 		} else if (this.flinching > 0) {
 			anim = 'take_damage';
 		} else if (this.state === 'hunting' && this.speed > STILL && spec) {
-			// Unlit, it comes on at a run.
-			const running = this.speed > (spec.speed + spec.unlitSpeed) / 2;
-			anim = running ? 'running' : 'walking';
-			rate = Math.max(0.3, Math.min(1.5, this.speed / (running ? spec.unlitSpeed : spec.speed)));
+			// Running someone down, it charges; otherwise it walks, quicker unlit.
+			anim = this.rushing ? 'running' : 'walking';
+			const pace = this.rushing ? spec.rush.speed : spec.speed;
+			rate = Math.max(0.3, Math.min(1.6, this.speed / pace));
 		}
-		figure.animator.play(anim, 0, begun);
+		figure.animator.play(anim, 0, begun || (anim === 'spell_attack' && castBegun));
 		figure.animator.setRate(rate);
 		figure.animator.update(delta);
 
-		// It burns as lamp light takes hold of it, and flares, flickering, while exposed.
-		const flicker = 0.8 + 0.2 * Math.sin(this.age * 23) * Math.sin(this.age * 7);
-		const burn =
-			this.state === 'banished'
-				? 0
-				: this.exposed
-					? BURN_EXPOSED * flicker
-					: this.charge * BURN_CHARGE;
-		this.burn += (burn - this.burn) * Math.min(1, delta * 10);
-
-		const opacity = Math.min(1, this.age / APPEAR) * (1 - this.dissolve);
+		const opacity = Math.min(1, this.age / APPEAR) * (1 - this.dissolve) * (1 - this.gone);
 		const solid = opacity >= 0.99;
 		figure.scene.visible = opacity > 0.01;
 		for (const material of figure.materials) {
@@ -227,10 +293,6 @@ export class Manifestation {
 			}
 			material.opacity = opacity;
 			material.depthWrite = solid;
-			if (material instanceof THREE.MeshStandardMaterial) {
-				material.emissive.copy(BURN);
-				material.emissiveIntensity = this.burn;
-			}
 		}
 	}
 

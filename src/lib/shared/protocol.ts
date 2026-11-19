@@ -89,6 +89,11 @@ export type AdminCommand =
 	| { kind: 'banish' }
 	/** Stun it (immunity still applies). */
 	| { kind: 'stun' }
+	/** Make it swing, fire its ray, charge, or vanish now, at whoever is nearest. */
+	| { kind: 'bossStrike' }
+	| { kind: 'bossRay' }
+	| { kind: 'bossRush' }
+	| { kind: 'bossVanish' }
 	/** Put a creature a few metres in front of you. */
 	| { kind: 'spawnCreature' }
 	| { kind: 'clearCreatures' }
@@ -171,6 +176,8 @@ export type ServerMessage =
 			crates: CratesSnapshot;
 			/** Doors between levels that have been opened (where they stand is in the layout). */
 			doors: string[];
+			/** Doors sealed shut: the final room's, from the rite until it is banished. */
+			sealed: string[];
 	  }
 	/**
 	 * The loot crate you have open, sent while it is open: its slots, and how far along (0..1) the

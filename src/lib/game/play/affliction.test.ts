@@ -6,6 +6,7 @@ import type { PlayContext, TickMessage } from './feature.ts';
 vi.mock('#lib/game/affliction/Manifestation.ts', () => ({
 	Manifestation: class {
 		root = {};
+		ray = { root: { removeFromParent(): void {} } };
 		apply(): void {}
 		update(): void {}
 		hit(): void {}
@@ -53,7 +54,16 @@ function tick(state: ManifestationSnapshot['state'] | null): TickMessage {
 			calmed: state === 'banished',
 			deadline: null,
 			manifestation: state
-				? { position: [0, 0, 0], state, exposed: false, charge: 0, stunned: false, strikes: 0 }
+				? {
+						position: [0, 0, 0],
+						state,
+						stunned: false,
+						strikes: 0,
+						casts: 0,
+						charge: 0,
+						aim: null,
+						rushing: false
+					}
 				: null
 		}
 	} as unknown as TickMessage;

@@ -1,5 +1,6 @@
 import { DOORS } from '../../content/doors.ts';
 import { CRATES } from '../../content/loot.ts';
+import { MAP_KIT } from '../../content/map/kit.ts';
 import { toWorld } from './grid.ts';
 import type { ColliderBox, MapLayout, PieceDef, Quat, Vec3 } from './types.ts';
 import { CLIMB } from '../../content/player/movement.ts';
@@ -74,6 +75,11 @@ export interface CollisionWorld {
 	volumes: WorldVolume[];
 	/** Extraction points (extract-* markers) in world space. */
 	extracts: Vec3[];
+	/**
+	 * The final room's way out, not there yet: it comes down once the Affliction is resolved
+	 * (`unsealExtracts`). See docs/dev/rite.md#banishing-it.
+	 */
+	sealedExtracts: Vec3[];
 	/** Ropes to climb: the map's (rope-* markers), and ones players tie at anchors. */
 	ropes: RopeLine[];
 	/** Where a rope can be tied at the top of a drop (anchor-* markers). */
@@ -157,6 +163,7 @@ export function buildCollisionWorld(
 		boxes: [],
 		volumes: [],
 		extracts: [],
+		sealedExtracts: [],
 		ropes: [],
 		anchors: [],
 		grid: new Map(),
@@ -170,7 +177,8 @@ export function buildCollisionWorld(
 		for (const box of piece.colliders) {
 			world.boxes.push(toWorldBox(box, placement.rotation, toWorld(placement, box.center)));
 		}
-		for (const point of piece.extracts) world.extracts.push(toWorld(placement, point));
+		const ways = MAP_KIT[placement.piece]?.final ? world.sealedExtracts : world.extracts;
+		for (const point of piece.extracts) ways.push(toWorld(placement, point));
 		for (const rope of piece.ropes) {
 			const top = toWorld(placement, rope.top);
 			world.ropes.push({
@@ -298,9 +306,20 @@ function indexBox(world: CollisionWorld, box: WorldBox, index: number): void {
 	}
 }
 
-/** A door opens: its box stops counting, for good. */
+/** A door opens: its box stops counting (until `closeDoor`). */
 export function openDoor(world: CollisionWorld, id: string): void {
 	world.openDoors.add(id);
+}
+
+/** A door shuts again: solid once more (the final room's, while what the rite summoned is loose). */
+export function closeDoor(world: CollisionWorld, id: string): void {
+	world.openDoors.delete(id);
+}
+
+/** The Affliction was resolved: the final room's way out comes down, and counts from now on. */
+export function unsealExtracts(world: CollisionWorld): void {
+	world.extracts.push(...world.sealedExtracts);
+	world.sealedExtracts = [];
 }
 
 /** Boxes whose buckets overlap the given bounds (an opened door's left out). */

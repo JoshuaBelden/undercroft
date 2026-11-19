@@ -31,6 +31,7 @@ import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer
 import * as prettier from 'prettier';
 import sharp from 'sharp';
 import { mergeClips } from './clips.ts';
+import { CLIP_DONORS, retargetClips } from './retarget.ts';
 import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
@@ -486,7 +487,8 @@ async function writeModel(io: NodeIO, doc: Document, dir: string, name: string):
  * Rigged models (creatures, the explorer) keep their skin and animations; textures are
  * re-encoded to WebP and the file is written as a single self-contained .glb. A
  * `<name>-clips.glb` beside `<name>.glb` holds more clips for it, made apart (the explorer's,
- * from scripts/blender/explorer.py): they are merged in by bone name (`mergeClips`).
+ * from scripts/blender/explorer.py): they are merged in by bone name (`mergeClips`). A model in
+ * `CLIP_DONORS` also borrows clips from another rig, retargeted (`retargetClips`).
  */
 async function buildCharacters(
 	io: NodeIO,
@@ -503,6 +505,9 @@ async function buildCharacters(
 		for (const s of doc.getRoot().listScenes()) s.setExtras({});
 		const clips = path.join(source, path.basename(f, '.glb') + CLIPS_SUFFIX);
 		if (existsSync(clips)) mergeClips(doc, await io.read(clips));
+		// Clips borrowed from another model with the same bones (scripts/retarget.ts).
+		const donor = CLIP_DONORS[path.basename(f, '.glb')];
+		if (donor) retargetClips(doc, await io.read(path.join(SOURCE_DIR, donor.from)), donor.clips);
 		const animations = doc
 			.getRoot()
 			.listAnimations()

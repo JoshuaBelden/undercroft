@@ -105,7 +105,7 @@
 						<span class="who"
 							>{rite.resolved
 								? 'Now get out.'
-								: 'Hold your light on it to wound it. Flick your lamp off and on to stun it.'}</span
+								: 'Every hit wears it down. Flick your lamp off and on to stun it.'}</span
 						>
 					</span>
 				</li>

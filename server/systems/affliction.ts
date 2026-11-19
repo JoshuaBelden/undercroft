@@ -1,13 +1,17 @@
 import { achievementsForBanishing } from '../../src/lib/content/achievements.ts';
 import { absorbBlow } from '../../src/lib/shared/items/inventory.ts';
+import { unsealExtracts } from '../../src/lib/shared/map/collision.ts';
+import { doorBox } from '../../src/lib/shared/map/doors.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
+import { applyCondition } from '../../src/lib/shared/player/conditions.ts';
 import { headlampOutput } from '../../src/lib/shared/player/headlamp.ts';
 import { log } from '../log.ts';
 import type { Player, SessionContext, SessionSystem, SimulatedFrame } from './system.ts';
 
 /**
- * The meter, omens and the manifestation (docs/dev/affliction.md). Its blows land on what is
- * worn first, like a creature's. Banishing what the rite summoned resolves the Affliction.
+ * The meter, omens and the manifestation (docs/dev/affliction.md). Its blows and its ray land on
+ * what is worn first, like a creature's; the ray also snuffs the lamp it hits. Banishing what the
+ * rite summoned resolves the Affliction: the final room's door opens and its ladder comes down.
  */
 export class AfflictionSystem implements SessionSystem {
 	/** The omen stage clients were last told of (an `omen` event goes out when it changes). */
@@ -28,8 +32,14 @@ export class AfflictionSystem implements SessionSystem {
 			if (s.flags.godMode || s.downed || s.dead) continue;
 			const { through, torn } = absorbBlow(s.inventory, hit.amount);
 			if (torn) ctx.events.push({ kind: 'break', item: torn, position: [...s.position] });
+			// Its ray puts their lamp out, and it stays out a while.
+			if (hit.snuff) applyCondition(s, 'snuffed', hit.snuff);
 			ctx.hurt(player, through);
 		}
+		for (const shot of ctx.affliction.shots) {
+			ctx.events.push({ kind: 'ray', from: [...shot.from], to: [...shot.to], player: shot.player });
+		}
+		ctx.affliction.shots = [];
 		// Banished by a weapon or an admin earlier this tick.
 		if (ctx.affliction.defeated) this.resolve();
 		if (ctx.affliction.stage !== this.omen) {
@@ -57,7 +67,31 @@ export class AfflictionSystem implements SessionSystem {
 		if (!ctx.affliction.manifested) return;
 		this.manifestedAt ??= Date.now();
 		ctx.events.push({ kind: 'manifest' });
+		this.seal();
 		log.info(`Session ${ctx.id.slice(0, 8)}: the Affliction manifests`);
+	}
+
+	/**
+	 * The rite's room is shut in with what was summoned: its doors slam and are barred until it is
+	 * banished (`resolve` lets them go). Whoever is outside stays out.
+	 */
+	private seal(): void {
+		const ctx = this.ctx;
+		const room = ctx.affliction.def.rite.room;
+		const open = new Set(ctx.doors.seal(room).map((door) => door.id));
+		for (const door of ctx.doors.placements) {
+			if (door.piece !== room) continue;
+			ctx.events.push({
+				kind: 'doorSeal',
+				id: door.id,
+				position: doorBox(door).center,
+				open: open.has(door.id)
+			});
+		}
+	}
+
+	private prey() {
+		return [...this.ctx.players.values()].map((p) => ({ id: p.id, state: p.state }));
 	}
 
 	/**
@@ -70,6 +104,11 @@ export class AfflictionSystem implements SessionSystem {
 		ctx.rite.resolved = true;
 		const at = ctx.affliction.snapshot().manifestation?.position ?? [0, 0, 0];
 		ctx.events.push({ kind: 'resolved', position: [...at] });
+		// The doors it was shut in behind open, and the way out comes down.
+		for (const door of ctx.doors.release()) {
+			ctx.events.push({ kind: 'doorRelease', id: door.id, position: doorBox(door).center });
+		}
+		unsealExtracts(ctx.world);
 		ctx.hooks.onResolved?.();
 		ctx.awardEveryoneDown(achievementsForBanishing());
 		log.info(`The Affliction was resolved in ${ctx.id.slice(0, 8)}`);
@@ -82,6 +121,10 @@ export class AfflictionSystem implements SessionSystem {
 		},
 		manifest: (player) => this.summon(player.state.position),
 		banish: () => this.ctx.affliction.banish(),
-		stun: () => this.ctx.affliction.stun()
+		stun: () => this.ctx.affliction.stun(),
+		bossStrike: () => this.ctx.affliction.forceStrike(this.prey()),
+		bossRay: () => this.ctx.affliction.forceRay(this.prey()),
+		bossRush: () => this.ctx.affliction.forceRush(this.prey()),
+		bossVanish: () => this.ctx.affliction.forceVanish()
 	} satisfies SessionSystem['admin'];
 }

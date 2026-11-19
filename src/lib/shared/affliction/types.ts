@@ -4,12 +4,11 @@ import type { Vec3 } from '../map/types.ts';
 export interface ManifestationSnapshot {
 	/** Floor point under its core. */
 	position: Vec3;
-	/** Gathering (standing where it appeared), hunting, or banished (fading away). */
-	state: 'gathering' | 'hunting' | 'banished';
-	/** Light is on it: weapons hurt it now. */
-	exposed: boolean;
-	/** 0..1: how near the light held on it is to exposing it (1 while exposed). */
-	charge: number;
+	/**
+	 * Gathering (standing where it appeared, or came back), hunting, vanished (gone for a while,
+	 * to come back from somewhere else), or banished (fading away).
+	 */
+	state: 'gathering' | 'hunting' | 'vanished' | 'banished';
 	/** Stunned (a strobe): it stands still and can't strike. */
 	stunned: boolean;
 	/**
@@ -17,6 +16,14 @@ export interface ManifestationSnapshot {
 	 * The blow lands partway through (`strikeAt`).
 	 */
 	strikes: number;
+	/** How many rays it has begun to gather: each new one is a charge to show (`ray.chargeSeconds`). */
+	casts: number;
+	/** 0..1: how far it has gathered the ray it is charging (0 when it isn't). */
+	charge: number;
+	/** Where it aims the ray it is charging (it turns to face it), or null. */
+	aim: Vec3 | null;
+	/** Running its prey down (`rush`): it charges flat out. */
+	rushing: boolean;
 }
 
 /**
