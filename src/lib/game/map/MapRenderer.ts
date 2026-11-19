@@ -21,6 +21,23 @@ const LADDER = '-ladder';
 const LADDER_DROP = 5;
 const LADDER_SECONDS = 2.2;
 
+/** Water surfaces (`mat-water`). */
+const WATER = 'mat-water';
+
+/**
+ * Water is drawn from below as well as above. Its surface is one face looking up (single-sided,
+ * like every material in the kit), so with your eyes under it you would see straight through to
+ * the passage above.
+ */
+function waterBothSides(model: THREE.Object3D): void {
+	model.traverse((node) => {
+		if (!(node instanceof THREE.Mesh)) return;
+		for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
+			if (material.name === WATER) material.side = THREE.DoubleSide;
+		}
+	});
+}
+
 /**
  * Builds the visible map from a generated layout. Pieces come from the asset cache, then the
  * whole map is merged by material into spatial chunks: one draw call per material per chunk
@@ -51,6 +68,7 @@ export class MapRenderer {
 				const def = PIECES[placement.piece];
 				if (!def) throw new Error(`Unknown map piece "${placement.piece}"`);
 				const model = await loadModel(def.url);
+				waterBothSides(model);
 				model.position.set(...placement.position);
 				model.rotation.y = (placement.rotation * Math.PI) / 2;
 				return { model, final: !!MAP_KIT[placement.piece]?.final };

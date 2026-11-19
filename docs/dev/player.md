@@ -81,6 +81,7 @@ With the camera under a water surface (`Underwater.below`: the camera, not the b
 
 - **Fog:** `Underwater` (`src/lib/game/Underwater.ts`) puts a dense, dark green `FogExp2` on the scene, fading in and out over 0.2 s. Things a few metres off are half hidden and nothing past about 9 m shows. Every map material takes fog by default, so a new one needs nothing.
 - **Overlay:** `UnderwaterOverlay.svelte`: a murky green tint, darker toward the edges. Nothing moves in it.
+- **The surface from below:** water (`mat-water`) is one face looking up, so `MapRenderer` draws that material from both sides (`waterBothSides`). Looking up from under it you see the surface, not the passage above.
 - **Sound:** the world is muffled and dry (`Ambience`, as before), under a low `underwater.drone` loop on the ambience bus that follows the fade.
 - Off in the map debug view, which is fully lit.
 
