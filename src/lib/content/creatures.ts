@@ -158,6 +158,19 @@ export interface CreatureDef {
 	 * lamp off for `disperse` seconds sends its own away; they're gone `leave` seconds later. It
 	 * ignores everything else (no perception, no attack) and falls when killed.
 	 */
+	/** Can't be hurt: hits pass through it (it has no hit capsule). */
+	invulnerable?: boolean;
+	/**
+	 * Patrols from corner to corner (dead ends and room corners within `patrol.radius`), starting
+	 * each walk from where the last ended, and pauses there.
+	 */
+	wanders?: boolean;
+	/**
+	 * Friendly (the surveyor): it stops and faces anyone within `notice` m. Holding interact on it
+	 * from within `range` m for `seconds` draws everywhere it has been into your map, once each.
+	 * It "has been" `legs` walks' worth of the map before anyone arrives.
+	 */
+	friendly?: { notice: number; range: number; seconds: number; legs: number };
 	flight?: {
 		perLamp: { low: [number, number]; bright: [number, number] };
 		arrive: number;
@@ -490,6 +503,62 @@ export const CREATURES: Record<string, CreatureDef> = {
 			disperse: 3,
 			leave: 2
 		}
+	},
+	surveyor: {
+		id: 'surveyor',
+		model: modelUrl('shared/creatures/surveyor.glb'),
+		yawOffset: Math.PI,
+		height: 1.7,
+		reach: UPRIGHT,
+		dread: false,
+		killWeight: 0,
+		// He walks from corner to corner, crouching to look about at each.
+		animations: {
+			idle: { clip: 'CrouchLookAroundBow' },
+			crouch: { clip: 'CrouchLookAroundBow' },
+			walking: { clip: 'Walking' },
+			running: { clip: 'Running' }
+		},
+		gait: { patrol: 'walking', alert: 'idle', stalk: 'walking', burst: 'running' },
+		movement: {
+			...MOVEMENT,
+			stances: { ...MOVEMENT.stances, stand: { ...MOVEMENT.stances.stand, speed: 1.2 } },
+			sprintSpeed: 4,
+			acceleration: 30
+		},
+		creepSpeed: 1.2,
+		burstSpeed: 4,
+		creepTime: [1, 2],
+		burstTime: [1, 2],
+		patrol: { radius: 35, pause: [6, 14] },
+		alert: { wait: [1, 1], maxWait: 1, linger: 1 },
+		attack: { range: 0, windup: 0, duration: 0, damage: 0, cooldown: 1 },
+		perception: {
+			hear: { sprint: 0, walk: 0, crouch: 0, crawl: 0, creep: 0, swim: 0 },
+			alertRange: 0,
+			agro: { litRange: 0, darkRange: 0 },
+			touch: 0,
+			evadeTime: 0,
+			passive: true
+		},
+		health: [1],
+		stagger: { threshold: Infinity, seconds: 0 },
+		hitRadius: 0.35,
+		corpseTime: 4,
+		visibleBand: [0.04, Infinity],
+		sounds: { step: 'dweller.step' },
+		// Always one, somewhere off from the start.
+		spawn: {
+			kind: 'scatter',
+			groups: [1, 1],
+			size: [1, 1],
+			spread: 0,
+			minDistance: 30,
+			where: 'corner'
+		},
+		invulnerable: true,
+		wanders: true,
+		friendly: { notice: 4, range: 2.5, seconds: 1.5, legs: 5 }
 	},
 	'giant-spider': {
 		id: 'giant-spider',

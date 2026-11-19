@@ -103,6 +103,16 @@ export class SurveySystem implements SessionSystem {
 		log.info(`${player.name} showed their map to ${partner.name} in ${this.ctx.id.slice(0, 8)}`);
 	}
 
+	/**
+	 * Draw these cells into a player's map (the surveyor's, shared with them) and send it if it
+	 * grew. Returns how many were new to them.
+	 */
+	reveal(player: Player, cells: Iterable<string>): number {
+		const added = this.surveys.draw(player.id, [...cells]);
+		if (added > 0) this.send(player);
+		return added;
+	}
+
 	private send(player: Player): void {
 		this.ctx.send(player, { type: 'survey', cells: this.surveys.snapshot(player.id) });
 	}

@@ -803,6 +803,7 @@
 				all.crates.prompt(state) ??
 				all.pack.prompt(state) ??
 				all.doors.prompt(state) ??
+				all.surveyor.prompt(state) ??
 				all.marks.prompt(state) ??
 				all.ropes.gearPrompt(state) ??
 				none

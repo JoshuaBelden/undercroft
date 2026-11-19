@@ -357,6 +357,14 @@ export const SOUNDS = {
 		variation: 0.2,
 		caption: 'wings flutter'
 	},
+	// The surveyor sharing his map: paper unfolding (placeholder until there's a recording).
+	'surveyor.share': {
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.1,
+		caption: 'paper unfolding'
+	},
 	// Dwellers (placeholders until there are recordings).
 	'dweller.step': {
 		synth: { kind: 'shuffle' },

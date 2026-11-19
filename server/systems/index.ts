@@ -10,6 +10,7 @@ import { RiteSystem } from './rite.ts';
 import { RopeSystem } from './ropes.ts';
 import { SanitySystem } from './sanity.ts';
 import { SurveySystem } from './survey.ts';
+import { SurveyorSystem } from './surveyor.ts';
 import { TendSystem } from './tend.ts';
 import type { SessionContext, SessionSystem } from './system.ts';
 
@@ -31,6 +32,7 @@ export function createSystems(ctx: SessionContext) {
 		marks: new MarkSystem(ctx),
 		ropes: new RopeSystem(ctx),
 		survey: new SurveySystem(ctx),
+		surveyor: new SurveyorSystem(ctx),
 		cheats: new CheatSystem(ctx)
 	} satisfies Record<string, SessionSystem>;
 }

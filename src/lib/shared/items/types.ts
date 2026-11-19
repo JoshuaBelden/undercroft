@@ -172,6 +172,11 @@ export type GameEvent =
 	/** A player finished sketching into their map, or showing it to a teammate (`with`). */
 	| { kind: 'sketch'; player: string; position: Vec3 }
 	| { kind: 'showMap'; player: string; with: string; position: Vec3 }
+	/**
+	 * The surveyor (`creature`) shared his map with a player: `cells` new ones drawn into theirs
+	 * (none if they'd already seen everywhere he has).
+	 */
+	| { kind: 'surveyorMap'; player: string; creature: string; cells: number; position: Vec3 }
 	/** A player used what was in their hand on a teammate (`patient`): a bandage, a battery. */
 	| { kind: 'tend'; player: string; patient: string; item: string; position: Vec3 }
 	/** The Affliction reached a new omen stage. */

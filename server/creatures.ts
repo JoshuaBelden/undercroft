@@ -282,12 +282,45 @@ export class CreatureDirector {
 
 	/** Living creatures' hit capsules. */
 	hitBodies(): CreatureBody[] {
-		return this.living().map((c) => ({
-			id: c.id,
-			position: c.body.position,
-			height: c.def.height,
-			radius: c.def.hitRadius
-		}));
+		return this.living()
+			.filter((c) => !c.def.invulnerable)
+			.map((c) => ({
+				id: c.id,
+				position: c.body.position,
+				height: c.def.height,
+				radius: c.def.hitRadius
+			}));
+	}
+
+	/** The friendly ones (the surveyor): where each is, for talking to. */
+	friendlies(): (CreatureBody & { kind: string })[] {
+		return this.living()
+			.filter((c) => c.def.friendly)
+			.map((c) => ({
+				id: c.id,
+				kind: c.def.id,
+				position: c.body.position,
+				height: c.def.height,
+				radius: c.def.hitRadius
+			}));
+	}
+
+	/**
+	 * Where one that wanders (the surveyor) has been before anyone arrived: `legs` walks from where
+	 * it stands, each to one of its corners, as the points along them.
+	 */
+	wanderRoute(id: string, legs: number): Vec3[] {
+		const c = this.creatures.find((x) => x.id === id);
+		if (!c || !c.spots.length) return [];
+		const route: Vec3[] = [];
+		let from = nearestPoint(this.nav, c.body.position, 2, c.allow);
+		for (let i = 0; i < legs && from >= 0; i++) {
+			const to = this.rng.pick(c.spots);
+			const path = findPath(this.nav, from, to, undefined, c.allow);
+			if (path) route.push(...path);
+			from = to;
+		}
+		return route;
 	}
 
 	/** Creatures killed this expedition (feeds the Affliction meter). */
@@ -325,7 +358,7 @@ export class CreatureDirector {
 
 	/** Admin: kill every creature. */
 	killAll(): void {
-		for (const c of this.living()) this.kill(c);
+		for (const c of this.living()) if (!c.def.invulnerable) this.kill(c);
 	}
 
 	/**
@@ -334,7 +367,7 @@ export class CreatureDirector {
 	 */
 	damage(id: string, amount: number, from: Prey | null): boolean {
 		const c = this.creatures.find((x) => x.id === id);
-		if (!c || c.mode === 'dead') return false;
+		if (!c || c.mode === 'dead' || c.def.invulnerable) return false;
 		c.wounds += amount;
 		if (c.wounds >= creatureHealth(c.def, this.party)) {
 			this.kill(c);
@@ -634,6 +667,14 @@ export class CreatureDirector {
 			switch (c.mode) {
 				case 'patrol':
 					// One that keeps to itself sits where it is.
+					if (c.def.friendly) {
+						// Someone close: it stops and turns to them.
+						const near = this.nearest(c, targets, c.def.friendly.notice);
+						if (near) {
+							this.turnTo(c, yawTo(c.body.position, near.state.position));
+							break;
+						}
+					}
 					move = c.def.shy ? null : this.patrol(c);
 					break;
 				case 'flee':
@@ -1077,8 +1118,24 @@ export class CreatureDirector {
 			const point = this.nav.points[i];
 			if (d === undefined || d > c.def.patrol.radius) continue;
 			if (point.water || point.clearance !== 'stand') continue;
+			// One that wanders goes corner to corner.
+			if (c.def.wanders && point.neighbours.length > 4) continue;
 			c.spots.push(i);
 		}
+	}
+
+	/** The nearest of these players within `range`, if any. */
+	private nearest(c: Creature, targets: Prey[], range: number): Prey | null {
+		let best: Prey | null = null;
+		let bestD = range;
+		for (const t of targets) {
+			const d = distance3(t.state.position, c.body.position);
+			if (d <= bestD) {
+				bestD = d;
+				best = t;
+			}
+		}
+		return best;
 	}
 
 	/** Walk to a random spot near the anchor, pause, repeat. */
@@ -1100,6 +1157,8 @@ export class CreatureDirector {
 		}
 		const move = this.steer(c, c.goal, null);
 		if (!move) {
+			// One that wanders carries on from here next time.
+			if (c.def.wanders) this.startPatrol(c, [...c.body.position]);
 			c.goal = null;
 			c.pause = this.between(c.def.patrol.pause);
 		}
