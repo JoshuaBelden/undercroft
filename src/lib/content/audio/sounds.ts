@@ -156,7 +156,7 @@ export const SOUNDS = {
 		variation: 0.05
 	},
 	mantle: {
-		file: 'exertion',
+		file: 'grunt',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.6,
@@ -164,7 +164,7 @@ export const SOUNDS = {
 	},
 	// Leaving the floor in a jump (PlayerAudio.updateJump): a short breath out, quieter than a mantle.
 	jump: {
-		file: 'exertion',
+		file: 'grunt',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.3,
@@ -172,7 +172,7 @@ export const SOUNDS = {
 		variation: 0.08
 	},
 	'squeeze.grunt': {
-		file: 'squeeze.grunt',
+		file: 'grunt',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.45,
@@ -704,7 +704,7 @@ export const SOUNDS = {
 	},
 	/** A hobbling fall: the grunt of it. */
 	'condition.hobble': {
-		file: 'exertion',
+		file: 'grunt',
 		synth: { kind: 'hurt' },
 		category: 'sfx',
 		volume: 0.7,

@@ -100,22 +100,17 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/water.slosh.dd7f2330.webm']
 	},
 	mantle: {
-		level: -21.5,
-		lufs: -17.1,
+		level: -21.2,
+		lufs: -16.8,
 		peak: -1,
-		urls: ['/assets/shared/audio/exertion.0172ebf9.webm']
+		urls: ['/assets/shared/audio/grunt.4447fd0e.webm']
 	},
-	jump: {
-		level: -27.6,
-		lufs: -17.1,
-		peak: -1,
-		urls: ['/assets/shared/audio/exertion.0172ebf9.webm']
-	},
+	jump: { level: -27.3, lufs: -16.8, peak: -1, urls: ['/assets/shared/audio/grunt.4447fd0e.webm'] },
 	'squeeze.grunt': {
 		level: -23.7,
 		lufs: -16.8,
 		peak: -1,
-		urls: ['/assets/shared/audio/squeeze.grunt.4447fd0e.webm']
+		urls: ['/assets/shared/audio/grunt.4447fd0e.webm']
 	},
 	gasp: {
 		level: -19.7,
@@ -380,10 +375,10 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/rope.tie.d484b77c.webm']
 	},
 	'condition.hobble': {
-		level: -20.2,
-		lufs: -17.1,
+		level: -19.9,
+		lufs: -16.8,
 		peak: -1,
-		urls: ['/assets/shared/audio/exertion.0172ebf9.webm']
+		urls: ['/assets/shared/audio/grunt.4447fd0e.webm']
 	},
 	'map.sketch': {
 		level: -28.3,
