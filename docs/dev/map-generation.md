@@ -59,10 +59,10 @@ Any entry can also set `affliction` (a key into `AFFLICTIONS`): the piece is the
 
 ## The start room
 
-The Angel's Well (`angel-well`, built by `kit.build_angel_well`) is 2x2 cells and 3 levels. Up top (grid floor 2) is an octagonal chapel: an arched niche in every wall with candles on its sill, stone benches, and an angel on a plinth in the north niche. In its middle a pit falls 8 m to a chamber at its foot (floor 0), whose one `hall` opening is the way on. Its kit entry has no `exit`.
+The Angel's Well (`angel-well`, built by `kit.build_angel_well`) is 2x2 cells and 3 levels. Up top (grid floor 2) is an octagonal chapel under a dome: an arched niche in every wall with candles on its sill, stone benches, and an angel on a plinth in the north niche. The dome rises 2.6 m over the walls, above the piece's three levels (its root's `headroom`; nothing is ever built above the start room). In its middle an open pit, with nothing round its mouth, falls 8 m to a chamber at its foot (floor 0), whose one `hall` opening is the way on. Its kit entry has no `exit`.
 
 - **Spawns:** four, one per party member, in front of the benches (`WELL_SPAWNS`), facing the pit (`spawnPoint`).
-- **The way down:** a rope tied for good on the pit's south lip (`anchor-0` with `rope`), where the well curb is open. It ends 1.7 m over the floor, so players climb down, drop off its end unhurt, and can't climb back up. See [rope.md](rope.md#the-start-rope).
+- **The way down:** a rope tied for good on the pit's south lip (`anchor-0` with `rope`). It ends 1.7 m over the floor, so players climb down, drop off its end unhurt, and can't climb back up. See [rope.md](rope.md#the-start-rope).
 - **The catacombs begin at its foot:** `entryPoint` (`points.ts`) is the floor under that rope. The nav grid grows from there (`buildNav`), so the chapel is off it and creatures never go up, and everything laid out by distance from the start (creatures, loot, the rite's items) measures from there too. Without such a rope `entryPoint` is the first spawn.
 - **Admin:** the teleport list has `angel-well` (the first spawn) and `angel-well-foot` (the floor under the pit, to skip the climb).
 

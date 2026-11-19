@@ -69,7 +69,7 @@ describe('the map', () => {
 		expect(bare.socket.all('survey')).toHaveLength(1);
 		expect(bare.state.sketching).toBe(0);
 		const walker = diver(session, 'Walker');
-		// Along the chapel's wall (straight ahead, the well curb would stop them).
+		// Along the chapel's wall (straight ahead is the pit).
 		walker.hold({ survey: 'sketch', moveZ: 1, yaw: walker.state.yaw + Math.PI / 2 }, 0.5);
 		expect(walker.state.sketching).toBe(0);
 		walker.hold({ survey: 'sketch' }, 0.5);

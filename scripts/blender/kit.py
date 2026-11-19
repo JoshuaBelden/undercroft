@@ -2493,14 +2493,15 @@ def build_room_gallery(force=False):
 WELL_TOP = 2 * LEVEL  # the chapel's floor, 8 m over the floor of the chamber at the pit's foot
 WELL_SIDE = 3.75  # the octagon's walls, this far from its middle
 WELL_PIT = 1.15  # the pit's octagon
-WELL_CURB = (0.3, 0.7)  # the well curb round the pit: thick, high
-WELL_WALL = 3.3  # walls up to here above the chapel floor, then a low octagonal dome
-WELL_DOME = 0.55
+WELL_WALL = 3.3  # walls up to here above the chapel floor, then the dome
+WELL_DOME = 2.6  # the dome's rise over the tops of the walls (it stands above the piece's 3 levels)
+WELL_DOME_RINGS = 9
+WELL_OCULUS = 0.45  # the boss closing the dome's crown, this far from the middle
 WELL_LOW = 3.4  # the foot chamber's ceiling
 WELL_FOOT_DROP = 1.7  # feet this far over the floor at the rope's end: a drop that doesn't hurt
 WELL_ANCHOR_HEIGHT = 0.9  # ANCHOR.height: hands at the top, over the lip
 WELL_ROPE = WELL_TOP + WELL_ANCHOR_HEIGHT - WELL_FOOT_DROP
-WELL_ROPE_SIDE = 6  # the curb is open on the south side (k = 6), where the rope is tied
+WELL_ROPE_SIDE = 6  # the rope is tied on the pit's south side (k = 6)
 WELL_BENCHES = (0, 4, 5, 7)  # east, west, south-west, south-east
 WELL_ANGEL_SIDE = 2  # north
 # One spawn per party member (in the order they join), each in front of a bench.
@@ -2586,6 +2587,13 @@ def import_angel(coll, root, base, height=ANGEL_HEIGHT, tris=ANGEL_TRIS):
     for c in list(obj.users_collection):
         c.objects.unlink(obj)
     coll.objects.link(obj)
+    # glTF splits every vertex on a UV seam: weld them back (each corner keeps its own UVs), or
+    # simplifying tears the statue apart along its seams.
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+    bm.to_mesh(obj.data)
+    bm.free()
     count = sum(len(p.vertices) - 2 for p in obj.data.polygons)
     if count > tris:
         mod = obj.modifiers.new("simplify", "DECIMATE")
@@ -2622,7 +2630,8 @@ def build_angel_well(force=False):
     per party member (WELL_SPAWNS)."""
     name = "angel-well"
     coll = piece_collection(name, force)
-    root = root_empty(coll, name, 2, 2, levels=3)
+    # The dome rises over the piece's three levels: nothing is built above the start room.
+    root = root_empty(coll, name, 2, 2, levels=3, headroom=2.0)
     W, F, T = "mat-wall-chapel", "mat-floor-ossuary", "mat-trim-marble"
     TW, TF = "mat-wall-tunnel", "mat-floor-tunnel"
     top, A, P = WELL_TOP, WELL_SIDE, WELL_PIT
@@ -2656,11 +2665,37 @@ def build_angel_well(force=False):
             _candle(mb, coll, root, candles, p.x, p.y, top + sill, h)
             candles += 1
 
-    # The dome: from the tops of the walls up to a boss in the middle.
-    apex = Vector((0, 0, H + WELL_DOME))
+    # A cornice round the tops of the walls, then the dome: an eight-sided vault rising from it
+    # (each ring an octagon, r = R cos a, z = H + WELL_DOME sin a), closed by a boss at the crown.
+    lip, band = 0.12, 0.18
     for k in range(8):
-        mb.face([_oct_corner(A, k - 1) + Vector((0, 0, H)), _oct_corner(A, k) + Vector((0, 0, H)), apex], W,
+        n, _t = _oct_side(k)
+        a, b = _oct_corner(A, k - 1), _oct_corner(A, k)
+        ia, ib = _oct_corner(A - lip, k - 1), _oct_corner(A - lip, k)
+        z0, z1 = H - band, H
+        mb.face([a + Vector((0, 0, z0)), b + Vector((0, 0, z0)), ib + Vector((0, 0, z0)), ia + Vector((0, 0, z0))], T,
                 facing=down)
+        mb.face([ia + Vector((0, 0, z0)), ib + Vector((0, 0, z0)), ib + Vector((0, 0, z1)), ia + Vector((0, 0, z1))], T,
+                facing=-n)
+    R = A - lip
+    crown = math.acos(WELL_OCULUS / R)
+    rings = [(R * math.cos(crown * j / WELL_DOME_RINGS), H + WELL_DOME * math.sin(crown * j / WELL_DOME_RINGS))
+             for j in range(WELL_DOME_RINGS + 1)]
+    middle = Vector((0, 0, H))
+    for (r0, z0), (r1, z1) in zip(rings, rings[1:]):
+        for k in range(8):
+            quad = [_oct_corner(r0, k - 1) + Vector((0, 0, z0)), _oct_corner(r0, k) + Vector((0, 0, z0)),
+                    _oct_corner(r1, k) + Vector((0, 0, z1)), _oct_corner(r1, k - 1) + Vector((0, 0, z1))]
+            mb.face(quad, W, facing=middle - sum(quad, Vector()) / 4)
+    # The boss: a short drum hanging from the crown, its face carved flat.
+    r_top, z_top = rings[-1]
+    boss = z_top - 0.12
+    for k in range(8):
+        n, _t = _oct_side(k)
+        a, b = _oct_corner(r_top, k - 1), _oct_corner(r_top, k)
+        mb.face([a + Vector((0, 0, boss)), b + Vector((0, 0, boss)), b + Vector((0, 0, z_top)), a + Vector((0, 0, z_top))],
+                T, facing=-n)
+    mb.face([_oct_corner(r_top, k) + Vector((0, 0, boss)) for k in range(8)], T, facing=down)
 
     # Stone benches against the walls.
     for k in WELL_BENCHES:
@@ -2679,28 +2714,12 @@ def build_angel_well(force=False):
         _candle(mb, coll, root, candles, p.x, p.y, top + 0.35, h)
         candles += 1
 
-    # The pit: its shaft down to the foot chamber's ceiling, and the curb round its mouth (open on
-    # the rope's side).
-    c0, c1 = WELL_CURB
+    # The pit: an open shaft down to the foot chamber's ceiling, nothing round its mouth.
     for k in range(8):
         n, _t = _oct_side(k)
         a, b = _oct_corner(P, k - 1), _oct_corner(P, k)
-        ztop = top if k == WELL_ROPE_SIDE else top + c1
-        mb.face([a + Vector((0, 0, WELL_LOW)), b + Vector((0, 0, WELL_LOW)), b + Vector((0, 0, ztop)),
-                 a + Vector((0, 0, ztop))], TW, facing=-n)
-        if k == WELL_ROPE_SIDE:
-            continue
-        oa, ob = _oct_corner(P + c0, k - 1), _oct_corner(P + c0, k)
-        mb.face([oa + Vector((0, 0, top)), ob + Vector((0, 0, top)), ob + Vector((0, 0, top + c1)),
-                 oa + Vector((0, 0, top + c1))], T, facing=n)
-        mb.face([a + Vector((0, 0, top + c1)), b + Vector((0, 0, top + c1)), ob + Vector((0, 0, top + c1)),
-                 oa + Vector((0, 0, top + c1))], T, facing=up)
-    # The curb's two ends, either side of the opening.
-    gap_mid = _oct_side(WELL_ROPE_SIDE)[0] * P
-    for c in (WELL_ROPE_SIDE - 1, WELL_ROPE_SIDE):
-        a, b = _oct_corner(P, c), _oct_corner(P + c0, c)
-        mb.face([a + Vector((0, 0, top)), b + Vector((0, 0, top)), b + Vector((0, 0, top + c1)),
-                 a + Vector((0, 0, top + c1))], T, facing=gap_mid - a)
+        mb.face([a + Vector((0, 0, WELL_LOW)), b + Vector((0, 0, WELL_LOW)), b + Vector((0, 0, top)),
+                 a + Vector((0, 0, top))], TW, facing=-n)
 
     # The rope's post and anchor on the south lip; the rope hangs out over the pit (+Y).
     n, t = _oct_side(WELL_ROPE_SIDE)
@@ -2752,8 +2771,6 @@ def build_angel_well(force=False):
         col_segment(coll, root, f"col-wall-{k}", a, b, top, H, 0.3, (n.x, n.y))
         pa, pb = _oct_corner(P, k - 1), _oct_corner(P, k)
         col_segment(coll, root, f"col-shaft-{k}", pa, pb, low, top - 0.3, 0.3, (n.x, n.y))
-        if k != WELL_ROPE_SIDE:
-            col_segment(coll, root, f"col-curb-{k}", pa, pb, top, top + c1, c0, (n.x, n.y))
     for k in WELL_BENCHES:
         n, t = _oct_side(k)
         col_segment(coll, root, f"col-bench-{k}", n * A - t * 0.95, n * A + t * 0.95, top, top + 0.45, 0.55,

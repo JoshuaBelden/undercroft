@@ -261,6 +261,9 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const w = Number(extras.footprint_w);
 	const d = Number(extras.footprint_d);
 	const levels = Number(extras.levels ?? 1);
+	// Metres a piece may rise over its top level: only for one nothing is ever built over (the
+	// start room's dome; the map grows down from it).
+	const headroom = Number(extras.headroom ?? 0);
 	if (!Number.isInteger(w) || !Number.isInteger(d)) {
 		throw new PieceError(`${name}: root needs integer footprint_w / footprint_d properties`);
 	}
@@ -333,7 +336,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 
 	// The generator reserves `levels` grid levels; geometry outside them would intrude on other pieces.
 	const bounds = getBounds(root);
-	const ceiling = levels * LEVEL_HEIGHT;
+	const ceiling = levels * LEVEL_HEIGHT + headroom;
 	for (const box of [...colliders, ...volumes]) {
 		const [lo, hi] = boxYRange(box);
 		bounds.min[1] = Math.min(bounds.min[1], lo);
@@ -342,7 +345,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	// Floor colliders may sit up to FLOOR_SLACK below the origin (they are slabs under the floor).
 	if (bounds.max[1] > ceiling + EPS || bounds.min[1] < -FLOOR_SLACK) {
 		throw new PieceError(
-			`${name}: geometry spans y ${round(bounds.min[1])}..${round(bounds.max[1])} but levels=${levels} allows 0..${ceiling}; raise the root's levels property`
+			`${name}: geometry spans y ${round(bounds.min[1])}..${round(bounds.max[1])} but levels=${levels}${headroom ? ` (headroom ${headroom})` : ''} allows 0..${ceiling}; raise the root's levels property`
 		);
 	}
 

@@ -4,8 +4,8 @@ import type { PieceDef } from './types.ts';
 export const PIECES: Record<string, PieceDef> = {
 	'angel-well': {
 		name: 'angel-well',
-		url: '/assets/shared/map/angel-well.2f08f97e.gltf',
-		bytes: 3777319,
+		url: '/assets/shared/map/angel-well.cf027cbd.gltf',
+		bytes: 3713285,
 		footprint: [2, 2],
 		levels: 3,
 		sockets: [{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }],
@@ -69,29 +69,6 @@ export const PIECES: Record<string, PieceDef> = {
 				rotation: [0, -0.383, 0, 0.924]
 			},
 			{ center: [0, 11.5, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
-			{ center: [1.3, 8.35, 0], halfExtents: [0.15, 0.35, 0.476], rotation: [0, 0, 0, 1] },
-			{
-				center: [0.919, 8.35, -0.919],
-				halfExtents: [0.15, 0.35, 0.476],
-				rotation: [0, 0.383, 0, 0.924]
-			},
-			{ center: [0, 8.35, -1.3], halfExtents: [0.15, 0.35, 0.476], rotation: [0, 0.707, 0, 0.707] },
-			{
-				center: [-0.919, 8.35, -0.919],
-				halfExtents: [0.15, 0.35, 0.476],
-				rotation: [0, 0.924, 0, 0.383]
-			},
-			{ center: [-1.3, 8.35, 0], halfExtents: [0.15, 0.35, 0.476], rotation: [0, 1, 0, 0] },
-			{
-				center: [-0.919, 8.35, 0.919],
-				halfExtents: [0.15, 0.35, 0.476],
-				rotation: [0, -0.924, 0, 0.383]
-			},
-			{
-				center: [0.919, 8.35, 0.919],
-				halfExtents: [0.15, 0.35, 0.476],
-				rotation: [0, -0.383, 0, 0.924]
-			},
 			{ center: [2.575, 7.85, 0], halfExtents: [1.425, 0.15, 1.603], rotation: [0, 0, 0, 1] },
 			{
 				center: [1.821, 7.85, -1.821],
@@ -186,7 +163,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [-3.7, 1.7, 0], halfExtents: [0.3, 1.7, 4], rotation: [0, 0, 0, 1] }
 		],
 		volumes: [],
-		triangles: 15278
+		triangles: 15436
 	},
 	'cap-hall': {
 		name: 'cap-hall',

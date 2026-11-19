@@ -156,7 +156,7 @@ describe('input', () => {
 		const diver = new Diver(session);
 		diver.hold({}, 0.5);
 		const before = [...diver.state.position];
-		// Along the chapel's wall: straight ahead is the well curb, a step away.
+		// Along the chapel's wall: straight ahead is the pit, a step away.
 		diver.hold({ moveZ: 1, yaw: diver.state.yaw + Math.PI / 2 }, 1);
 		const moved = Math.hypot(
 			diver.state.position[0] - before[0],

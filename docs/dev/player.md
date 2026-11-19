@@ -129,7 +129,7 @@ To add a condition: an entry in `CONDITIONS` (id, name, seconds, description and
 - **Low ledges:** up to `stepHeight` (0.4 m), stepped onto. `stepUp` checks there's room on top, then binary-searches the ledge height. The chapel dais (0.35 m) steps up; the benches (0.45 m) block.
 - **Ground probe:** a sphere just below the feet decides `grounded` when resting exactly on a floor.
 
-Collision boxes must cover everything walkable. Every surface the player can reach needs a box under it, and a piece's boxes must stay inside its declared `levels` (`pnpm asset:build` checks this).
+Collision boxes must cover everything walkable. Every surface the player can reach needs a box under it, and a piece's boxes must stay inside its declared `levels`, plus its `headroom` if it has one (`pnpm asset:build` checks this).
 
 ## Networking
 

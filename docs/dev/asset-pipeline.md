@@ -166,7 +166,7 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 ## Conventions
 
 - **Grid:** 4 m cells, 4 m levels. Blender **+Y is north** (it becomes -Z in glTF and Three.js).
-- **Root:** an empty named after the piece (`hall-straight`) at the origin. All other objects are parented to it. Custom properties: `footprint_w`, `footprint_d` (cells along X and Y), `levels`, and optionally `max_texture` (default 1024).
+- **Root:** an empty named after the piece (`hall-straight`) at the origin. All other objects are parented to it. Custom properties: `footprint_w`, `footprint_d` (cells along X and Y), `levels`, and optionally `max_texture` (default 1024) and `headroom` (m the piece may rise over its top level, only for a piece nothing is ever built over: the start room's dome).
 - **Origin:** floor of the lowest level, centred on the footprint.
 - **Standard `hall` opening:** 2 m wide, vertical sides to 1.8 m, semicircular arch to 2.8 m, centred on a cell edge. Use `kit.hall_profile()`, and the `gauge-opening-hall` in the `_reference` collection to check by eye. Hall passages sweep the same profile, so seams match.
 - **`gate` opening:** the double door between levels: 3.2 m wide, sides to 2.2 m, arch to 3.2 m (`kit.gate_profile()`, `GATE_HALF_W`, `GATE_SPRING`). It has the same point count as the hall profile, so a passage can `morph` from one to the other. Behind the door, `stairs-deep` narrows from gate to hall before the stairs begin.
@@ -275,7 +275,7 @@ Things that stand in the map but aren't part of a piece: the loot crate and the 
 
 ### Decor
 
-Models from elsewhere that are built into a piece rather than standing in the map on their own, like the angel statue in the start room, go in `art/export/decor/` (tracked in undercroft-art, and never read by `pnpm asset:build`). The piece's builder imports, simplifies and places them: `kit.import_angel` brings in `decor/angel.glb`, simplifies it to `ANGEL_TRIS` (14,000) triangles, scales it to `ANGEL_HEIGHT` and stands it on its plinth, keeping its own material (`mat-angel`) and textures. They ship as part of the piece, so its triangle budget covers them.
+Models from elsewhere that are built into a piece rather than standing in the map on their own, like the angel statue in the start room, go in `art/export/decor/` (tracked in undercroft-art, and never read by `pnpm asset:build`). The piece's builder imports, simplifies and places them: `kit.import_angel` brings in `decor/angel.glb`, welds the vertices the glTF importer split along UV seams (or simplifying tears it apart along them), simplifies it to `ANGEL_TRIS` (14,000) triangles, scales it to `ANGEL_HEIGHT` and stands it on its plinth, keeping its own material (`mat-angel`) and textures. They ship as part of the piece, so its triangle budget covers them.
 
 ## Audio
 
