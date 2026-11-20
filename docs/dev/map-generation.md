@@ -38,6 +38,8 @@ A map is three **levels** stacked one under the other (`GenerateOptions.tiers`).
 - Every level but the deepest ends in an extraction room. Its `gate` opens onto the long stair (role `descent`): a double door (see [Doors](#doors)), then two flights dropping three grid floors to the next level's first corridor. It is the only way between levels.
 - Each level is on its own grid floor, three below the one above, so nothing else can join them: loops and joins only ever connect sockets on the same tier and floor.
 - The major rooms are shared out evenly between the levels. The final room (the Gloaming Chapel, where the rite is done) is always last on the deepest level.
+- **`levels`:** a kit entry can say which levels a piece may appear on, counted from 1 as players see them (`levels: [2, 3]`). Left out, any level. Every placement checks it (`onLevel`: `attach` and the loops' `placeHall`), and the route gives each major room one of its allowed levels, the emptiest of them, the most restricted rooms first (`planRoute`). A map with fewer levels than a room's leaves it out. The crypt is on levels 2 and 3; most of the new rooms say theirs.
+- **The level on the banner:** a room's banner shows its name, the level it is on ("Level 2") and its own `banner` line, if the kit entry has one ("Where the priests made ready"). The first time a player reaches a level of the map, a banner names the level itself (`checkRoom` in the play page, from each cell's tier).
 - The other openings of an extraction room lead back into its own level.
 - Loot depends on the level: see [items.md](items.md#loot-crates).
 
@@ -101,7 +103,8 @@ The final room's door is the exception: the manifestation appearing (the rite, o
 - **Nav:** `buildNav` builds the grid with every door open, so the levels below are in it, then tags the points in each doorway (`NavPoint.door`). `NavGrid.closed` holds the doors still shut: `findPath` and `gridDistances` don't step onto their doorways, so creatures can't path through. `Doors.open` takes the id out. Laying out the map (creatures, loot, the rite's items) measures through the doors (`gridDistances(..., true)`).
 - **Protocol:** each `tick` lists the open doors (`doors`) and the sealed ones (`sealed`), which also covers a reconnect. Opening one is a `doorOpen` event (the bar dropping and the hinges groaning: `door.unbar`, `door.open`); the rite sealing one is `doorSeal` (`door.slam` if it stood open, then `door.seal`), and banishing letting it go is `doorRelease` (heard like opening).
 - **Prompt:** looking at a shut door in reach shows "[E] to open the door", filling as `PlayerState.unbarring` grows. A floor item or a crate in the way comes first.
-- **Admin:** the F10 Map group has **Open the doors** (`openDoors`: sealed ones too), and the teleport list has `level-2-door` and `level-3-door` (the long stairs', named for the level they lead to) and `gloaming-chapel-door`, each on the room side of its door. A door records the piece it stands in (`DoorPlacement.piece`).
+- **Gates:** a `gate-<n>` marker is a door with a lock (`kind: 'gate'`, the Family Mausoleum's): a key or lockpicks open it. See [world.md](world.md#gates).
+- **Admin:** the F10 Map group has **Open the doors** (`openDoors`: sealed ones and gates too), and the teleport list has `level-2-door` and `level-3-door` (the long stairs', named for the level they lead to) and `gloaming-chapel-door`, each on the room side of its door. A door records the piece it stands in (`DoorPlacement.piece`).
 
 ## False walls
 
@@ -121,6 +124,7 @@ A few dead ends are false: a wall standing in an opening that leads on, to a sid
 - **On the wire:** the layout carries `walls`; each tick lists the ones brought down (`walls`), so a reconnect or a late arrival sees them gone. The client hides the model and opens the wall in the player's collision world.
 - **The map:** `surveyMap` draws a false wall's side as a wall (no stub giving it away), but a sketch reaches through it once it's down: what a sketch draws is decided by sight.
 - **Admin:** **Bring down false walls** (`openWalls`, Map group). The debug grid shows a false wall as a green (connected) entrance.
+- **Rubble walls and webs** are kinds of wall (`WallPlacement.kind`), placed after the false walls from the passages left: seen, not hidden, and brought down by a pickaxe or by blades and fire. See [world.md](world.md#rubble-walls-and-webs).
 
 ## Algorithm
 
@@ -129,8 +133,8 @@ A few dead ends are false: a wall standing in an opening that leads on, to a sid
 1. **Start:** place the start room with a random rotation, its first cell on world cell `[0, 0]`, then attach its `exit` piece, if it has one. The Angel's Well has none: its opening is at the foot of its pit, on grid floor 0, and the first level grows from there.
 2. **Main route, level by level:** the non-final major rooms are shuffled and shared out evenly between the levels. Each level's route is its major rooms, then an extraction room (or, on the deepest level, the `final` room). Before each room, attach a corridor of `corridor` (4–7) flat connectors (never an `offRoute` one). Pieces are tried in weighted random order, each matching socket and rotation is tried, and placements that overlap an occupied cell on any level are rejected. Each step grows from any open socket of the piece before (trying the others when nothing fits); a room that does not fit stretches its corridor by up to `stretch` more pieces. Rooms are entered through a `hall`, never a `gate`. After an extraction room, the `descent` piece goes on its `gate`, and the next level grows from the foot of the stair.
 3. **Branches:** each still-open socket has a chance (`branchChance`) to grow a 2–5 piece side passage, in `branchPasses` passes, so tees and crosses on a branch can branch again. Branches never descend.
-4. **Rope drops:** `ropeDrops` (1) `needsRope` connectors (`drop-hall`, `pit`: 12 m down) are hung off an opening still free, each with `dropBranch` (1–3) connectors on from its foot. They are never on the main route, so a party without rope is never stuck, and the nav grid (which can't step down 12 m) leaves everything below them out. A drop is as tall as the long stair, so its foot is as deep as the next level down, but it stays on the tier it hangs from: joins and loops need the same tier, so it never opens into the level below, and the long stair stays the only way between levels. This pass uses its own RNG stream (`dropRng`, swapped into `LayoutState.rng` for it), so the rest of the map came out as it did before drops existed. See [rope.md](rope.md#rope-drops).
-5. **Loops:** for up to `loops` (8) open sockets, find the nearest _joinable_ open socket that a breadth-first search can reach through free cells (at most `loopMaxCells`). The path becomes straight and corner halls, joining the two sockets.
+4. **Rope drops:** `ropeDrops` (1) `needsRope` connectors (`drop-hall` and `pit`, 12 m down; `sinkhole`, 8 m; `broken-stair`, a stair that stops 4 m above the floor; `sunken-ossuary`, a hall over a grate with a sealed chamber 8 m below) are hung off an opening still free, each with `dropBranch` (1–3) connectors on from its foot. They are never on the main route, so a party without rope is never stuck, and the nav grid (which can't step down 12 m) leaves everything below them out. A drop is as tall as the long stair, so its foot is as deep as the next level down, but it stays on the tier it hangs from: joins and loops need the same tier, so it never opens into the level below, and the long stair stays the only way between levels. This pass uses its own RNG stream (`dropRng`, swapped into `LayoutState.rng` for it), so the rest of the map came out as it did before drops existed. See [rope.md](rope.md#rope-drops).
+5. **Loops:** for up to `loops` (8) open sockets, find the nearest _joinable_ open socket that a breadth-first search can reach through free cells (at most `loopMaxCells`). The path becomes straight and corner halls, joining the two sockets: only plain 1x1 halls whose openings are on their ground floor and that need no rope (never the Sunken Ossuary, whose hall is two floors up).
 6. **Seal:** joinable open sockets facing each other are joined. Each remaining one gets a dead end (`deadEndChance`, 0.55, if it fits) or a cap. Dead ends are the collapsed walls where bricks lie; a map has about 19.
 7. If any step fails, retry with a new RNG stream derived from the seed (up to `attempts`).
 
@@ -142,15 +146,19 @@ Tunables are `GenerateOptions` in `generate.ts`. Maps come out at roughly 145–
 
 After that the server chooses which of the pieces' crate markers have a loot crate (`placeCrates` in `src/lib/shared/map/crates.ts`, seeded by the same seed) and puts them in `layout.crates`. They are part of the layout because they are solid: both sides build them into the collision world. See [items.md](items.md#loot-crates).
 
+## Training maps
+
+An Affliction with `training` (Rumors) gets a map of its own: the start room, its walk and its vault, every other opening a dead end, and a web and rubble off the vault (`tryTraining`, `trainingWalls`). See [rumors.md](rumors.md#the-map). Pieces owned by an Affliction (`affliction` on the kit entry) are left out of every other's maps. `spot-<name>` markers name places in a piece for it (`PieceDef.spots`).
+
 ## Rendering
 
 `MapRenderer.build` places each piece from the asset cache, then merges the whole map, which doesn't move, into chunks: one mesh per material per 12 m chunk (`CHUNK`, three cells) and level, in world space. A typical map is about 190 pieces and 95,000 triangles. Drawn piece by piece that's several hundred draw calls, and again in every lamp's shadow pass. Merged, it's a few dozen, and the camera and each lamp still skip the chunks outside their view. Merging decodes the quantized (meshopt) vertex data into floats, so the merged map takes more memory than the cached pieces. Raycasts against `MapRenderer.root` (chalk marks, footstep surfaces) see the merged meshes. Their materials are the pieces' own, so the material names still tell the surface. A mesh with several materials isn't merged.
 
 ## Adding a piece
 
-1. Build it in Blender following the kit conventions and export it to `art/export/`.
+1. Build it in Blender following the kit conventions and export it to `art/export/`. The rooms of the gear, crafting and loot round are built by `scripts/blender/rooms.py` (a `Room` helper: a flat-ceilinged room of w x d cells with hall openings where it says, its sockets and colliders), headless with `blender --background art/blender/catacomb-kit.blend --python scripts/blender/build_rooms.py`, which builds the ones not in the .blend yet, places their lootable markers and saves it (`-- --force <name>...` builds those again). Keep the way between a room's doors clear of anything solid: the nav grid (and creatures) need it, and the lootable search keeps solid kinds off it.
 2. Run `pnpm asset:build`.
-3. Add it to `MAP_KIT` with a role (and a weight for connectors). Caps must have a single socket of the type they seal. Pieces that change level need `descends: true`; a drop that takes a rope also `needsRope: true` and an `anchor-<n>` at its top. `pnpm asset:build` only ships pieces listed in `MAP_KIT`, so a retired piece (`extraction-shaft`, `hall-squeeze`) can stay in the .blend and `art/export/`.
+3. Add it to `MAP_KIT` with a role (and a weight for connectors), its `levels` if it belongs only on some, and a `title` and `banner` line if it is a room with a name. Caps must have a single socket of the type they seal. Pieces that change level need `descends: true`; a drop that takes a rope also `needsRope: true` and an `anchor-<n>` at its top. `pnpm asset:build` only ships pieces listed in `MAP_KIT`, so a retired piece (`extraction-shaft`, `hall-squeeze`) can stay in the .blend and `art/export/`.
 
 ## Debug grid
 

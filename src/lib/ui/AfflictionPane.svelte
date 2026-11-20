@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
+	import { AFFLICTIONS, afflictionLocked } from '#lib/content/afflictions.ts';
 	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { MAP_KIT } from '#lib/content/map/kit.ts';
@@ -21,6 +21,8 @@
 		onselect?: () => void;
 		/** It is the one chosen. */
 		selected?: boolean;
+		/** Just unlocked: it starts as an unknown pane and fades into itself (once, the first time). */
+		reveal?: boolean;
 		/** Given, a known pane has a Join Expedition button that calls this. */
 		onjoin?: () => void;
 		/** Why joining is not possible right now; the button is disabled and says so. */
@@ -30,10 +32,6 @@
 		 * is greyed until they own enough of it.
 		 */
 		owned?: Record<string, number>;
-		/** Given, a known pane with any progress has a Reset button that calls this. */
-		onreset?: () => void;
-		/** Why resetting is not possible right now; the button is disabled and says so. */
-		resetBlocked?: string;
 	}
 
 	let {
@@ -41,19 +39,22 @@
 		progress,
 		onselect,
 		selected = false,
+		reveal = false,
 		onjoin,
 		joinBlocked,
-		owned,
-		onreset,
-		resetBlocked
+		owned
 	}: Props = $props();
 
-	/** Question-mark slots on an unknown pane. */
-	const UNKNOWN_SLOTS = 3;
 	/** The picture behind an unknown pane (static/assets/ui/images). */
 	const UNKNOWN_IMAGE = 'affliction-unknown-banner';
 
-	const def = $derived(id === null ? null : (AFFLICTIONS[id] ?? null));
+	const real = $derived(id === null ? null : (AFFLICTIONS[id] ?? null));
+	/** Still locked: what it requires isn't done yet (the Gloaming before Rumors). */
+	const locked = $derived(
+		!!real && afflictionLocked(real.id, (id) => progress.some((p) => p.id === id && p.resolved))
+	);
+	/** What the pane shows: a locked one is not yet discovered, like one with no id. */
+	const def = $derived(locked ? null : real);
 	const known = $derived(progress.find((entry) => entry.id === id));
 	const rite = $derived(def ? riteSnapshot(def.rite, known?.clues ?? 0) : null);
 	/**
@@ -76,12 +77,12 @@
 						needed: requirement.count
 					}));
 				})
-			: Array.from({ length: UNKNOWN_SLOTS }, () => null)
+			: []
 	);
 	const room = $derived(rite?.room ? (MAP_KIT[rite.room]?.title ?? rite.room) : null);
 	const resolved = $derived(known?.resolved ?? false);
-	/** Anything to forget: hints found, or resolved. */
-	const started = $derived((known?.clues ?? 0) > 0 || resolved);
+	/** A training ground (Rumors): no rite to learn; done once you have got out of it. */
+	const training = $derived(!!def?.training);
 
 	/** What a requirement's slot says on hover. */
 	function describe(slot: (typeof slots)[number]): string {
@@ -96,47 +97,50 @@
 	class:unknown={def === null}
 	class:selectable={onselect !== undefined}
 	class:selected
+	class:revealing={reveal && def !== null}
+	style:--unknown-art="url('{imageUrl(UNKNOWN_IMAGE)}')"
 	style:--art="url('{imageUrl(def?.image ?? UNKNOWN_IMAGE)}')"
 >
 	<header>
 		<h2>{def?.name ?? 'Unknown'}</h2>
 		{#if def}
-			<span class="status" class:resolved>{resolved ? 'Resolved' : 'Unresolved'}</span>
+			<span class="status" class:resolved>
+				{#if training}{resolved ? 'Done' : 'Start here'}{:else}{resolved
+						? 'Resolved'
+						: 'Unresolved'}{/if}
+			</span>
 		{/if}
 	</header>
 
 	<div class="content">
-		<p class="flavor">{def?.flavor ?? 'Nothing is written of this one. Not yet.'}</p>
+		<p class="flavor">{def?.flavor ?? 'Not yet discovered.'}</p>
 
-		<h3>Banishment</h3>
-		{#if rite?.hints.length}
-			<ol class="hints">
-				{#each rite.hints as hint, index (index)}
-					<li>“{hint}”</li>
+		{#if !def}
+			<!-- Not yet discovered: nothing more to say about it. -->
+		{:else if training}
+			<h3>A training ground</h3>
+			<p class="room">
+				A short way in, step by step, and a vault to try your gear. Nothing down there wants you.
+			</p>
+		{:else}
+			<h3>Banishment</h3>
+			{#if rite?.hints.length}
+				<ol class="hints">
+					{#each rite.hints as hint, index (index)}
+						<li>“{hint}”</li>
+					{/each}
+				</ol>
+			{/if}
+			<ul class="slots">
+				{#each slots as slot, index (index)}
+					<li class:lacking={slot?.lacking} title={describe(slot)}>
+						<Slot name={slot?.name ?? null} image={slot?.image} quest={slot?.quest} />
+					</li>
 				{/each}
-			</ol>
-		{/if}
-		<ul class="slots">
-			{#each slots as slot, index (index)}
-				<li class:lacking={slot?.lacking} title={describe(slot)}>
-					<Slot name={slot?.name ?? null} image={slot?.image} quest={slot?.quest} />
-				</li>
-			{/each}
-		</ul>
+			</ul>
 
-		<h3>Location</h3>
-		<p class="room" class:hidden={!room}>{room ?? 'Unknown'}</p>
-
-		{#if onreset && def && started}
-			<button
-				type="button"
-				class="reset"
-				disabled={resetBlocked !== undefined}
-				title={resetBlocked ?? 'Forget every hint: it is unresolved again'}
-				onclick={onreset}
-			>
-				Reset
-			</button>
+			<h3>Location</h3>
+			<p class="room" class:hidden={!room}>{room ?? 'Unknown'}</p>
 		{/if}
 
 		{#if onjoin && def}
@@ -151,6 +155,14 @@
 			</button>
 		{/if}
 	</div>
+
+	{#if reveal && def}
+		<!-- What it looked like until now, fading away to show what it is. -->
+		<div class="veil" aria-hidden="true">
+			<header><h2>Unknown</h2></header>
+			<div class="content"><p class="flavor">Not yet discovered.</p></div>
+		</div>
+	{/if}
 
 	{#if onselect && def}
 		<!-- Over the whole pane: clicking anywhere on it chooses it. -->
@@ -271,32 +283,6 @@
 		line-height: 1.45;
 	}
 
-	/* Above Join Expedition, quieter. */
-	.reset {
-		align-self: center;
-		margin-top: auto;
-		padding: 6px 14px;
-		border-radius: 999px;
-		font-size: 0.75rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--muted);
-	}
-
-	.reset:hover:not(:disabled),
-	.reset:focus-visible {
-		color: var(--text);
-	}
-
-	.reset:disabled {
-		opacity: 0.45;
-		cursor: not-allowed;
-	}
-
-	.reset + .join {
-		margin-top: 12px;
-	}
-
 	.room {
 		margin: 0;
 	}
@@ -330,8 +316,42 @@
 	}
 
 	.pane.unknown h2,
-	.pane.unknown .flavor {
+	.pane.unknown .flavor,
+	.veil h2,
+	.veil .flavor {
 		color: var(--muted);
+	}
+
+	/* An Affliction just unlocked: the unknown pane over it, fading away. */
+	.pane.revealing {
+		position: relative;
+	}
+
+	.veil {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		pointer-events: none;
+		background:
+			var(--unknown-art) top center / 100% auto no-repeat,
+			linear-gradient(rgb(33 28 24), rgb(10 9 8) 70%);
+		animation: unveil 1.6s ease-in-out 0.8s forwards;
+	}
+
+	@keyframes unveil {
+		to {
+			opacity: 0;
+			visibility: hidden;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.veil {
+			animation-duration: 0.01s;
+			animation-delay: 0s;
+		}
 	}
 
 	.pane.selectable {

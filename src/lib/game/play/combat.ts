@@ -38,6 +38,8 @@ export class Combat implements PlayFeature {
 				if (gun) player.kick(gun.recoil.pitch, (Math.random() * 2 - 1) * gun.recoil.yaw);
 				const heavy = (gun?.pellets ?? 1) > 1;
 				rumble(heavy ? 'heavyShot' : 'shot');
+				// A bow or a sling has no flash and no smoke: only powder does.
+				if (!gun || gun.projectile) continue;
 				// First person, the flare is on the gun in your hands; over the shoulder, at the
 				// barrel of the gun your body holds; otherwise just in front of your eyes.
 				const drawn = viewModel.flash(heavy);
@@ -67,7 +69,9 @@ export class Combat implements PlayFeature {
 				const gun = ITEMS[held(state.inventory)?.item ?? '']?.firearm;
 				if (gun) sounds.play(gun.reloadSound);
 			}
-			if (action === 'swing') sounds.play('melee.swing');
+			if (action === 'swing') {
+				sounds.play(ITEMS[held(state.inventory)?.item ?? '']?.melee?.sound?.swing ?? 'melee.swing');
+			}
 			this.lastAction = action;
 		}
 	}
@@ -97,6 +101,7 @@ export class Combat implements PlayFeature {
 					// From the barrel of the gun in their hands; until it is drawn, out in front of
 					// their eyes, near where it would be.
 					const length = Math.hypot(...toward) || 1;
+					if (gun?.projectile) break;
 					const barrel = remote.muzzle(event.player, this.muzzle);
 					const at: Vec3 = barrel
 						? [barrel.x, barrel.y, barrel.z]
@@ -112,11 +117,18 @@ export class Combat implements PlayFeature {
 				if (!event.creature) sounds.playAt('bullet.impact', event.end, 1, 2);
 				break;
 			}
-			case 'swing':
-				if (event.hit === 'creature') sounds.playAt('melee.hit.creature', event.origin, 1, 3);
-				else if (event.hit === 'wall') sounds.playAt('melee.hit', event.origin, 1, 3);
-				else if (event.player !== self) sounds.playAt('melee.swing', event.origin, 1, 3);
+			case 'swing': {
+				// A weapon's own swing and hit (a hatchet, a sledgehammer), else the usual ones.
+				const own = ITEMS[event.item]?.melee?.sound;
+				if (event.hit === 'creature') {
+					sounds.playAt(own?.hit ?? 'melee.hit.creature', event.origin, 1, 3);
+				} else if (event.hit === 'wall') {
+					sounds.playAt(own?.hit ?? 'melee.hit', event.origin, 1, 3);
+				} else if (event.player !== self) {
+					sounds.playAt(own?.swing ?? 'melee.swing', event.origin, 1, 3);
+				}
 				break;
+			}
 			case 'throw': {
 				const spec = ITEMS[event.item]?.throwable;
 				if (spec && event.player !== self) sounds.playAt(spec.sound, event.origin, 1, 3);
@@ -127,11 +139,14 @@ export class Combat implements PlayFeature {
 				if (spec) sounds.playAt(spec.land, event.position, 1, 4);
 				break;
 			}
-			case 'break':
-				// A coat torn through, or a brick or crowbar worn out.
-				if (ITEMS[event.item]?.defense) sounds.playAt('defense.torn', event.position, 1, 3);
-				else sounds.playAt('brick.break', event.position, 1, 3);
+			case 'break': {
+				// A coat torn through, a brick used up, or a weapon worn out (broken now).
+				const def = ITEMS[event.item];
+				if (def?.defense) sounds.playAt('defense.torn', event.position, 1, 3);
+				else if (def?.melee?.breaksAfter) sounds.playAt('brick.break', event.position, 1, 3);
+				else sounds.playAt('item.break', event.position, 1, 3);
 				break;
+			}
 			case 'reload': {
 				const gun = ITEMS[event.item]?.firearm;
 				if (gun && event.player !== self) sounds.playAt(gun.reloadSound, event.position, 1, 3);

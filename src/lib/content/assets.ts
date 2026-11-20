@@ -52,6 +52,8 @@ export interface AssetRow {
 	level?: { lufs: number; peak: number; stale: boolean } | null;
 	/** Animations: every standard slot. */
 	slots?: SlotUse[];
+	/** Art not made yet (content/planned.ts): the first phase of the handoff that needs it. */
+	planned?: number;
 }
 
 export interface AssetCatalog {

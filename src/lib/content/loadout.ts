@@ -7,4 +7,9 @@
  * Bricks lie only by collapsed walls (rubble-* markers in the pieces): `perRubble` of them at
  * each, fewest and most, within `radius` (m) of it.
  */
-export const BRICKS = { perRubble: [1, 3] as [number, number], radius: 1.8 };
+export const BRICKS = {
+	perRubble: [1, 3] as [number, number],
+	radius: 1.8,
+	/** A handful of pebbles (slingshot shot) lies with the bricks, at this share of the rubble. */
+	pebbles: { chance: 0.5, count: [3, 8] as [number, number] }
+};

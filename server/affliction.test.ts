@@ -11,7 +11,7 @@ import { CreatureDirector, type Prey } from './creatures.ts';
 import { mapFixture, prey } from './testing/harness.ts';
 
 const DEF = AFFLICTIONS.gloaming;
-const m = DEF.manifestation;
+const m = DEF.manifestation!;
 const map = mapFixture(1);
 const STUN = m.statuses.stunned!;
 
@@ -56,20 +56,20 @@ function still(p: Prey): Prey {
  * line between its core and a player's chest there (or, `blocked`, a wall between; null, either).
  */
 function sightLine(min: number, max: number, blocked: boolean | null): [Vec3, Vec3] {
-	const from = map.nav.points.reduce((best, p) =>
-		Math.hypot(p.position[0] - map.start[0], p.position[2] - map.start[2]) <
-		Math.hypot(best.position[0] - map.start[0], best.position[2] - map.start[2])
-			? p
-			: best
-	).position;
-	for (const point of map.nav.points) {
-		const to = point.position;
-		const d = Math.hypot(to[0] - from[0], to[2] - from[2]);
-		if (d < min || d > max || Math.abs(to[1] - from[1]) > 0.3) continue;
-		const core: Vec3 = [from[0], from[1] + m.hitHeight / 2, from[2]];
-		const chest: Vec3 = [to[0], to[1] + 1.2, to[2]];
-		if (blocked === null || segmentBlocked(map.world, core, chest) === blocked) {
-			return [[...from], [...to]];
+	// From the points nearest the start first (whatever room it opens into), the first that has one.
+	const fromStart = (p: { position: Vec3 }) =>
+		Math.hypot(p.position[0] - map.start[0], p.position[2] - map.start[2]);
+	const froms = [...map.nav.points].sort((a, b) => fromStart(a) - fromStart(b)).slice(0, 400);
+	for (const { position: from } of froms) {
+		for (const point of map.nav.points) {
+			const to = point.position;
+			const d = Math.hypot(to[0] - from[0], to[2] - from[2]);
+			if (d < min || d > max || Math.abs(to[1] - from[1]) > 0.3) continue;
+			const core: Vec3 = [from[0], from[1] + m.hitHeight / 2, from[2]];
+			const chest: Vec3 = [to[0], to[1] + 1.2, to[2]];
+			if (blocked === null || segmentBlocked(map.world, core, chest) === blocked) {
+				return [[...from], [...to]];
+			}
 		}
 	}
 	throw new Error('no such line in the fixture map');

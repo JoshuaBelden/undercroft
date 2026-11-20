@@ -52,6 +52,16 @@ export function applyUpdate(doc: Doc, update: Doc, inserting: boolean): void {
 				case '$pull': {
 					const current = getPath(doc, path);
 					if (!Array.isArray(current)) break;
+					// { $in: [...] }: every one of those goes.
+					if (isPlainObject(value) && Array.isArray(value.$in)) {
+						const out = value.$in as unknown[];
+						setPath(
+							doc,
+							path,
+							current.filter((item) => !out.some((o) => equal(o, item)))
+						);
+						break;
+					}
 					const keep = current.filter((item) =>
 						isPlainObject(value) &&
 						isPlainObject(item) &&

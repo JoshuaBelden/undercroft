@@ -1,4 +1,5 @@
 import { CLIMB, MOVEMENT, type MovementTuning } from '../../content/player/movement.ts';
+import { climbFactor } from '../items/gear.ts';
 import type { CollisionWorld, RopeLine } from '../map/collision.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { InputFrame, PlayerState, SimEvent } from './types.ts';
@@ -143,10 +144,11 @@ export function stepClimb(
 	}
 	const push = Math.max(-1, Math.min(1, input.moveZ));
 	const fast = input.sprint;
+	// Gloves take the burn out of it.
 	const speed =
-		push > 0
+		(push > 0
 			? push * (fast ? CLIMB.fastUpSpeed : CLIMB.upSpeed)
-			: push * (fast ? CLIMB.slideSpeed : CLIMB.downSpeed);
+			: push * (fast ? CLIMB.slideSpeed : CLIMB.downSpeed)) * climbFactor(s.inventory);
 	let y = s.position[1] + speed * dt;
 
 	// Nobody climbs past anyone: stop short of the nearest climber above and below. Someone

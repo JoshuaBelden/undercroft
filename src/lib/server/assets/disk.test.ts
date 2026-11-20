@@ -71,7 +71,9 @@ describe('the repository', () => {
 		const catalog = buildCatalog(await readAssetDisk(repositoryRoot()));
 		const missing = catalog.rows.filter(
 			(r) =>
-				r.status === 'missing' && (r.kind === 'model' || r.kind === 'piece' || r.kind === 'sound')
+				r.status === 'missing' &&
+				r.planned === undefined &&
+				(r.kind === 'model' || r.kind === 'piece' || r.kind === 'sound')
 		);
 		expect(missing.map((r) => `${r.kind} ${r.id}: ${r.note}`)).toEqual([]);
 	});

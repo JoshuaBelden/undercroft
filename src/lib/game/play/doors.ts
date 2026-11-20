@@ -1,4 +1,5 @@
 import { DOORS } from '#lib/content/doors.ts';
+import { gateSeconds } from '#lib/shared/items/lootables.ts';
 import { Doors as DoorModels } from '#lib/game/map/Doors.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
 import type { CollisionWorld } from '#lib/shared/map/collision.ts';
@@ -17,6 +18,8 @@ export class Doors implements PlayFeature {
 	private models = new DoorModels();
 	/** The shut door interact would open, if any (floor items and crates first). */
 	private aimedAt: string | null = null;
+	/** Whether that is a locked gate. */
+	private gate = false;
 
 	constructor(private ctx: PlayContext) {
 		ctx.engine.scene.add(this.models.root);
@@ -55,11 +58,23 @@ export class Doors implements PlayFeature {
 					)
 				: null;
 		this.aimedAt = door?.id ?? null;
+		this.gate = door?.kind === 'gate';
 		return !!this.aimedAt;
 	}
 
 	prompt(state: PlayerState): Prompt | null {
 		if (!this.aimedAt) return null;
+		if (this.gate) {
+			const seconds = gateSeconds(state.inventory);
+			if (seconds === null) {
+				return {
+					...keyPrompt('interact', 'to unlock the gate'),
+					after: '(needs a key or lockpicks)',
+					blocked: true
+				};
+			}
+			return keyPrompt('interact', 'to unlock the gate', state.unbarring / seconds);
+		}
 		return keyPrompt('interact', 'to open the door', state.unbarring / DOORS.openSeconds);
 	}
 

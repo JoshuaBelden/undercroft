@@ -1,6 +1,11 @@
 import { ITEMS } from '../../content/items.ts';
-import { ANCHOR, ROPE } from '../../content/rope.ts';
-import type { Anchor, CollisionWorld, RopeLine } from '../map/collision.ts';
+import { ANCHOR, PITONS, ROPE } from '../../content/rope.ts';
+import {
+	floorHeightAt,
+	type Anchor,
+	type CollisionWorld,
+	type RopeLine
+} from '../map/collision.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { ItemStack, PlayerState } from '../player/types.ts';
 import { held } from './inventory.ts';
@@ -47,6 +52,66 @@ export function applyTied(world: CollisionWorld, tied: readonly TiedRopeSnapshot
 		return anchor ? [tiedRopeLine(anchor)] : [];
 	});
 	world.ropes = [...world.ropes.filter((r) => !r.id.startsWith('tied-')), ...lines];
+}
+
+/** Pitons hammered in (sent with the ropes): anchors like the map's, from then on. */
+export function applyPitons(world: CollisionWorld, pitons: readonly Anchor[]): void {
+	world.anchors = [...world.anchors.filter((a) => !a.id.startsWith('piton-')), ...pitons];
+}
+
+/**
+ * Where a piton would go in for a player standing at `feet` and facing `direction`: an anchor
+ * just in front of them, at the edge of a drop at least PITONS.minDrop deep, away from any other
+ * anchor; null if there is no such edge.
+ */
+export function pitonAnchor(
+	world: CollisionWorld,
+	feet: Vec3,
+	direction: Vec3,
+	id: string
+): Anchor | null {
+	const flat = Math.hypot(direction[0], direction[2]);
+	if (flat < 1e-6) return null;
+	const out: [number, number] = [direction[0] / flat, direction[2] / flat];
+	const [ox, oz] = out;
+	// The landing is where they stand: the tie point is ANCHOR.stand in front, on the edge.
+	const position: Vec3 = [feet[0] + ox * ANCHOR.stand, feet[1], feet[2] + oz * ANCHOR.stand];
+	// Still floor there (the lip), and none just past it.
+	const here = floorHeightAt(world, position[0], position[2], feet[1] + 0.4, feet[1] - 0.4);
+	if (here === null) return null;
+	position[1] = here;
+	const top: Vec3 = [
+		position[0] + ox * ANCHOR.overhang,
+		here + ANCHOR.height,
+		position[2] + oz * ANCHOR.overhang
+	];
+	const past = ANCHOR.overhang + 0.25;
+	const below = floorHeightAt(
+		world,
+		position[0] + ox * past,
+		position[2] + oz * past,
+		here - 0.5,
+		here - ANCHOR.deepest
+	);
+	if (below === null || here - below < PITONS.minDrop) return null;
+	if (
+		world.anchors.some(
+			(a) =>
+				Math.hypot(a.position[0] - position[0], a.position[2] - position[2]) < PITONS.apart &&
+				Math.abs(a.position[1] - here) < 1
+		)
+	) {
+		return null;
+	}
+	return {
+		id,
+		position,
+		top,
+		landing: [position[0] - ox * ANCHOR.stand, here, position[2] - oz * ANCHOR.stand],
+		knot: [position[0], here + 0.08, position[2]],
+		lip: [position[0] + ox * ANCHOR.lip, here, position[2] + oz * ANCHOR.lip],
+		bottom: below
+	};
 }
 
 /** The anchor whose landing the player stands on, if any. */

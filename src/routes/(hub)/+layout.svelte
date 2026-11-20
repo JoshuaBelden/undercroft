@@ -14,6 +14,7 @@
 	import AccountMenu from '#lib/ui/AccountMenu.svelte';
 	import ButtonHint from '#lib/ui/ButtonHint.svelte';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
+	import { launch } from '#lib/ui/launch.svelte.ts';
 	import { parallax } from '#lib/ui/parallax.ts';
 	import type { LayoutProps } from './$types';
 
@@ -42,7 +43,9 @@
 	const TABS = [
 		{ path: '/(hub)', label: 'Expedition' },
 		{ path: '/(hub)/loadout', label: 'Loadout' },
-		{ path: '/(hub)/afflictions', label: 'Afflictions' }
+		{ path: '/(hub)/afflictions', label: 'Afflictions' },
+		{ path: '/(hub)/workshop', label: 'Workshop' },
+		{ path: '/(hub)/library', label: 'Library' }
 	] as const;
 
 	/** The controller's B: back to the Expedition page. */
@@ -144,11 +147,11 @@
 					aria-label="Store: you have {money(explorer.money)}"
 					aria-current={store ? 'page' : undefined}
 					title="Store"
-					data-pad-hold={store ? undefined : 'y'}
+					data-pad-hold={store || launch.free ? undefined : 'y'}
 				>
 					<span class="sign" aria-hidden="true">＄</span>
 					<span aria-hidden="true">{explorer.money}</span>
-					{#if !store}
+					{#if !store && !launch.free}
 						<ButtonHint code="PadY" hold />
 					{/if}
 				</a>

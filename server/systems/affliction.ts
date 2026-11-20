@@ -30,8 +30,8 @@ export class AfflictionSystem implements SessionSystem {
 			if (!player) continue;
 			const s = player.state;
 			if (s.flags.godMode || s.downed || s.dead) continue;
-			const { through, torn } = absorbBlow(s.inventory, hit.amount);
-			if (torn) ctx.events.push({ kind: 'break', item: torn, position: [...s.position] });
+			const { through, broke } = absorbBlow(s.inventory, hit.amount);
+			if (broke) ctx.events.push({ kind: 'break', item: broke, position: [...s.position] });
 			// Its ray puts their lamp out, and it stays out a while.
 			if (hit.snuff) applyCondition(s, 'snuffed', hit.snuff);
 			ctx.hurt(player, through);

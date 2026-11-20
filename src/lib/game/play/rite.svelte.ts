@@ -1,8 +1,7 @@
 import { ITEMS } from '#lib/content/items.ts';
 import { MAP_KIT } from '#lib/content/map/kit.ts';
-import { carriesAll } from '#lib/shared/affliction/rite.ts';
+import { carriesAll, riteCount } from '#lib/shared/affliction/rite.ts';
 import type { RiteSnapshot } from '#lib/shared/affliction/types.ts';
-import { carriedCount } from '#lib/shared/items/inventory.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
 import { unsealExtracts, type CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
@@ -133,7 +132,7 @@ export class Rite implements PlayFeature {
 						.map((one) => ({
 							name: one.name,
 							self: one.self,
-							count: carriedCount(one.state.inventory, requirement.item)
+							count: riteCount(one.state.inventory, requirement.item)
 						}))
 						.filter((carrier) => carrier.count > 0)
 				: []

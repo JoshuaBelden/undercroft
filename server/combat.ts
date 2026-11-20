@@ -1,5 +1,5 @@
 import { ITEMS } from '../src/lib/content/items.ts';
-import { held, spendHeld } from '../src/lib/shared/items/inventory.ts';
+import { wearHeld } from '../src/lib/shared/items/inventory.ts';
 import { pelletDirections } from '../src/lib/shared/items/weapons.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { rayVsCapsule, segmentHit, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
@@ -49,6 +49,28 @@ export function resolve(ctx: CombatContext, player: Prey, events: SimEvent[]): v
 					position: [...player.state.position]
 				});
 				break;
+			case 'broke':
+				broke(ctx, player, event.item);
+				break;
+			case 'dose':
+				ctx.out.push({
+					kind: 'dosed',
+					player: player.id,
+					item: event.item,
+					position: [...player.state.position]
+				});
+				break;
+			case 'whistle': {
+				const spec = ITEMS[event.item]?.whistle;
+				if (!spec) break;
+				const position: Vec3 = [...player.state.position];
+				ctx.creatures.hear(position, spec.noise, player);
+				ctx.out.push({ kind: 'whistle', player: player.id, position, seconds: spec.seconds });
+				break;
+			}
+			case 'winded':
+				ctx.out.push({ kind: 'winded', player: player.id, position: [...player.state.position] });
+				break;
 			case 'empty':
 				ctx.out.push({
 					kind: 'empty',
@@ -77,9 +99,32 @@ function rayCreature(
 }
 
 function shoot(ctx: CombatContext, player: Prey, event: Extract<SimEvent, { kind: 'shot' }>): void {
-	const gun = ITEMS[event.item]?.firearm;
+	const def = ITEMS[event.item];
+	const gun = def?.firearm;
 	if (!gun) return;
 	const spread = event.aimed ? gun.spread.aimed : gun.spread.hip;
+	if (gun.projectile) {
+		// A round in flight (a bolt, a pebble): it hits (or lands) when it gets there.
+		const [dir] = pelletDirections(event.direction, spread, 1, event.seed);
+		ctx.items.launch({ item: event.round ?? gun.ammo, count: 1 }, event.origin, dir, player.id, {
+			speed: gun.projectile.speed,
+			lift: 0,
+			damage: gun.damage,
+			landNoise: gun.projectile.landNoise,
+			breakChance: gun.projectile.breakChance ?? 0,
+			usedUp: false
+		});
+		ctx.out.push({
+			kind: 'shot',
+			player: player.id,
+			item: event.item,
+			origin: event.origin,
+			end: event.origin,
+			creature: false
+		});
+		if (!def.silent) ctx.creatures.hear(event.origin, gun.noise, player);
+		return;
+	}
 	const bodies = targets(ctx);
 	const maxRange = gun.range * OVERRANGE;
 	const damage = new Map<string, number>();
@@ -93,12 +138,16 @@ function shoot(ctx: CombatContext, player: Prey, event: Extract<SimEvent, { kind
 		];
 		const wall = segmentHit(ctx.world, event.origin, far);
 		const wallDistance = wall === null ? maxRange : wall * maxRange;
-		const hit = rayCreature(bodies, event.origin, dir, wallDistance);
-		const distance = hit ? hit.distance : wallDistance;
-		if (hit) {
+		// A piercing round goes through everything in its line to the wall; others stop at the first.
+		const hits = gun.pierce
+			? rayCreatures(bodies, event.origin, dir, wallDistance)
+			: [rayCreature(bodies, event.origin, dir, wallDistance)].filter((h) => h !== null);
+		const hit = hits[0] ?? null;
+		const distance = hit && !gun.pierce ? hit.distance : wallDistance;
+		for (const each of hits) {
 			// Full damage up close, losing `falloff` of it by the end of the effective range.
-			const falloff = 1 - gun.falloff * Math.min(1, hit.distance / gun.range);
-			damage.set(hit.body.id, (damage.get(hit.body.id) ?? 0) + gun.damage * falloff);
+			const falloff = 1 - gun.falloff * Math.min(1, each.distance / gun.range);
+			damage.set(each.body.id, (damage.get(each.body.id) ?? 0) + gun.damage * falloff);
 		}
 		if (!firstEnd) {
 			firstEnd = [
@@ -118,8 +167,23 @@ function shoot(ctx: CombatContext, player: Prey, event: Extract<SimEvent, { kind
 		end: firstEnd ?? event.origin,
 		creature: firstCreature
 	});
-	// Gunfire: everything nearby comes for the shooter.
-	ctx.creatures.hear(event.origin, gun.noise, player);
+	// Gunfire: everything nearby comes for the shooter (but for a silent weapon's).
+	if (!def.silent) ctx.creatures.hear(event.origin, gun.noise, player);
+}
+
+/** Every creature a ray hits before `limit` metres, nearest first. */
+function rayCreatures(
+	bodies: CreatureBody[],
+	origin: Vec3,
+	direction: Vec3,
+	limit: number
+): { body: CreatureBody; distance: number }[] {
+	const hits: { body: CreatureBody; distance: number }[] = [];
+	for (const body of bodies) {
+		const d = rayVsCapsule(origin, direction, limit, body.position, body.height, body.radius);
+		if (d !== null) hits.push({ body, distance: d });
+	}
+	return hits.sort((a, b) => a.distance - b.distance);
 }
 
 function swing(
@@ -133,6 +197,8 @@ function swing(
 	const [ox, oy, oz] = event.origin;
 	let target: CreatureBody | null = null;
 	let targetDistance = Infinity;
+	// A sweep hits every creature in its arc; a swing, the nearest.
+	const swept: CreatureBody[] = [];
 	for (const body of bodies) {
 		// Nearest point on the body's axis to the eye.
 		const cy = Math.max(
@@ -150,6 +216,7 @@ function swing(
 		if (Math.acos(Math.min(1, along)) > arc) continue;
 		if (segmentHit(ctx.world, event.origin, [body.position[0], cy, body.position[2]]) !== null)
 			continue;
+		swept.push(body);
 		if (d < targetDistance) {
 			target = body;
 			targetDistance = d;
@@ -157,8 +224,33 @@ function swing(
 	}
 	let hit: 'creature' | 'wall' | null = null;
 	if (target) {
-		hurt(ctx, target.id, melee.damage, player, bodies);
+		for (const body of melee.sweep ? swept : [target]) {
+			hurt(ctx, body.id, melee.damage, player, bodies);
+			if (melee.stagger) ctx.creatures.stagger(body.id, melee.stagger);
+			// A wound that bleeds (a nail-studded club): it goes on hurting.
+			if (
+				melee.bleed &&
+				body.id !== MANIFESTATION_ID &&
+				ctx.creatures.bleed(body.id, melee.bleed.dps, melee.bleed.seconds, player)
+			) {
+				ctx.out.push({
+					kind: 'bleed',
+					id: body.id,
+					position: [body.position[0], body.position[1] + 1, body.position[2]]
+				});
+			}
+		}
 		hit = 'creature';
+		// It can snag on what it hit, and won't swing for a moment.
+		if (melee.snag && Math.random() < melee.snag.chance) {
+			player.state.weapon.snag = melee.snag.seconds;
+			ctx.out.push({
+				kind: 'snag',
+				player: player.id,
+				item: event.item,
+				position: [...player.state.position]
+			});
+		}
 	} else {
 		const reach: Vec3 = [
 			ox + event.direction[0] * melee.range,
@@ -170,20 +262,14 @@ function swing(
 	ctx.out.push({ kind: 'swing', player: player.id, item: event.item, origin: event.origin, hit });
 	if (!hit) return;
 	ctx.creatures.hear(event.origin, melee.noise, player);
-	// Breakable weapons wear out on every hit.
-	if (melee.breaksAfter) wear(ctx, player, event.item, melee.breaksAfter);
+	// Every hit wears what made it: a brick is used up at the last, anything else breaks.
+	const result = wearHeld(player.state.inventory, event.item);
+	if (result === 'broke' || result === 'usedUp') broke(ctx, player, event.item);
 }
 
-function wear(ctx: CombatContext, player: Prey, item: string, breaksAfter: number): void {
-	// A swing is made with what is in the hand.
-	const inv = player.state.inventory;
-	const stack = held(inv);
-	if (stack?.item !== item) return;
-	stack.uses = (stack.uses ?? 0) + 1;
-	if (stack.uses >= breaksAfter) {
-		spendHeld(inv, true);
-		ctx.out.push({ kind: 'break', item, position: [...player.state.position] });
-	}
+/** Tell everyone something of a player's broke (or was used up): the sound of it giving way. */
+function broke(ctx: CombatContext, player: Prey, item: string): void {
+	ctx.out.push({ kind: 'break', item, position: [...player.state.position] });
 }
 
 /** Damage a creature and report it (and its death) to clients. */

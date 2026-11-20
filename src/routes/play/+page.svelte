@@ -50,7 +50,7 @@
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { loadAccount } from '#lib/account/account.svelte.ts';
+	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { buildCollisionWorld, segmentHit } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 	import { roomPoints, testPoints } from '#lib/shared/map/points.ts';
@@ -59,7 +59,7 @@
 	import { CONDITIONS, isConditionId } from '#lib/content/player/conditions.ts';
 	import { EXPEDITION } from '#lib/content/expedition.ts';
 	import { bindingLabel, type Action } from '#lib/game/input/actions.ts';
-	import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
+	import type { MapLayout, Placement, Vec3 } from '#lib/shared/map/types.ts';
 	import {
 		HAND,
 		type Inventory,
@@ -81,6 +81,9 @@
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
+	import Bearings from '#lib/ui/Bearings.svelte';
+	import TrainingOverlay from '#lib/ui/TrainingOverlay.svelte';
+	import { discoveries, knowDiscoveries } from '#lib/game/discoveries.svelte.ts';
 	import { wheelChoice } from '#lib/ui/wheel.ts';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
@@ -203,7 +206,9 @@
 	let spectateNext = (): void => {};
 	let spectateStop = (): void => {};
 	/** Room banner currently showing; `key` restarts the animation for each new room. */
-	let banner = $state<{ title: string; subtitle?: string; key: number } | null>(null);
+	let banner = $state<{ title: string; subtitle?: string; level?: string; key: number } | null>(
+		null
+	);
 	/** Down in the catacombs (between `welcome` and extracting, dying or abandoning). */
 	let expedition = $state(false);
 	/** The run's assets are still loading (see src/lib/game/preload.ts): the loading bar shows. */
@@ -329,6 +334,9 @@
 		playUi(showing ? 'map.open' : 'map.close');
 	});
 
+	// What they have discovered so far (the Craft tab): the account's, then what they find below.
+	onMount(() => knowDiscoveries(Object.keys(session.account?.explorer.discovered ?? {})));
+
 	// Alerts down here (docs/dev/alerts.md): an item one opens the pack. A social one goes nowhere,
 	// since the Social page would leave the expedition.
 	onMount(() =>
@@ -336,7 +344,9 @@
 			item: () => {
 				if (panel !== 'menu') toggle('menu');
 			},
-			social: () => {}
+			social: () => {},
+			note: () => {},
+			discovery: () => {}
 		})
 	);
 
@@ -495,6 +505,12 @@
 		let roomCells: Record<string, string> = {};
 		/** World cell + level -> which titled room (its placement index), so two alike are told apart. */
 		let roomIds: Record<string, number> = {};
+		/** The level of the map (a tier, 0 first) each occupied cell is on: every piece, not only rooms. */
+		let cellTiers: Record<string, number> = {};
+		/** The levels the player has reached this expedition: reaching a new one shows its banner. */
+		let levelsSeen: number[] = [];
+		/** The pieces of the map that is loaded, for the room banners. */
+		let placements: Placement[] = [];
 		/** The titled room the player was last in; null in the passages between. */
 		let inRoom: number | null = null;
 		/** Its title, for bug reports. */
@@ -567,10 +583,18 @@
 			seed = layout.seed;
 			roomCells = {};
 			roomIds = {};
+			cellTiers = {};
+			levelsSeen = [0];
+			placements = layout.placements;
 			inRoom = null;
 			layout.placements.forEach((placement, index) => {
 				const title = MAP_KIT[placement.piece]?.title;
 				const piece = PIECES[placement.piece];
+				if (piece) {
+					for (const [x, z, level] of occupiedCells(piece, placement)) {
+						cellTiers[cellKey(x, z, level)] = placement.tier;
+					}
+				}
 				if (!title || !piece) return;
 				for (const [x, z, level] of occupiedCells(piece, placement)) {
 					roomCells[cellKey(x, z, level)] = title;
@@ -715,15 +739,35 @@
 			endExpedition();
 		};
 
-		/** Show a room's banner every time the player walks into it. */
+		/**
+		 * Show a room's banner every time the player walks into it: its name, the level it is on and
+		 * its own line. The first time they reach a new level of the map, that level's banner instead.
+		 */
 		function checkRoom(position: Vec3): void {
 			const key = cellOf(position);
+			const tier = cellTiers[key];
+			if (tier !== undefined && !levelsSeen.includes(tier)) {
+				levelsSeen.push(tier);
+				banner = { title: levelName(tier), key: (banner?.key ?? 0) + 1 };
+			}
 			const room = roomIds[key] ?? null;
 			if (room === inRoom) return;
 			inRoom = room;
 			const title = roomCells[key];
 			roomName = room !== null ? (title ?? null) : null;
-			if (room !== null && title) banner = { title, key: (banner?.key ?? 0) + 1 };
+			if (room === null || !title) return;
+			const placement = placements[room];
+			banner = {
+				title,
+				subtitle: placement ? MAP_KIT[placement.piece]?.banner : undefined,
+				level: placement ? levelName(placement.tier) : undefined,
+				key: (banner?.key ?? 0) + 1
+			};
+		}
+
+		/** "Level 2": a level of the map (a tier, 0 first) as players count it. */
+		function levelName(tier: number): string {
+			return `Level ${tier + 1}`;
 		}
 
 		/** What a bug report says about the expedition (docs/dev/reports.md). */
@@ -1255,6 +1299,11 @@
 	/>
 {/if}
 
+{#if features && spawned && !panel && !mapView && !result}
+	<Bearings bearing={features.bearings.bearing} pings={features.bearings.pings} />
+	<TrainingOverlay numbers={features.training.numbers} />
+{/if}
+
 {#if features?.marks.label && spawned && !panel && !mapView && !result}
 	<MarkLabel
 		name={features.marks.label.name}
@@ -1307,7 +1356,7 @@
 
 {#if banner && spawned && !mapView && !result}
 	{#key banner.key}
-		<RoomBanner title={banner.title} subtitle={banner.subtitle} />
+		<RoomBanner title={banner.title} subtitle={banner.subtitle} level={banner.level} />
 	{/key}
 {/if}
 
@@ -1385,6 +1434,11 @@
 		carriers={features.rite.carriers}
 		interactKey={promptCode('interact')}
 		onaction={(action) => sendInventory(action)}
+		discovered={discoveries}
+		oncraft={(change) => {
+			panel = null;
+			send({ type: 'craft', ...change });
+		}}
 		onabandon={() => {
 			panel = null;
 			send({ type: 'abandon' });
@@ -1407,7 +1461,8 @@
 {:else if panel === 'crate' && inventory && features?.crates.open}
 	<CrateScreen
 		{inventory}
-		title={features.crates.open.corpse ? 'Corpse' : features.crates.open.trunk ? 'Trunk' : 'Crate'}
+		title={features.crates.open.name}
+		flavor={features.crates.open.flavor}
 		slots={features.crates.open.slots}
 		reveal={features.crates.open.reveal}
 		moveKeys={(['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)

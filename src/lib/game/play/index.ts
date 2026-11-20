@@ -1,9 +1,11 @@
 import { Affliction } from './affliction.svelte.ts';
+import { Bearings } from './bearings.svelte.ts';
 import { Candles } from './candles.ts';
 import { Combat } from './combat.ts';
 import { Crates } from './crates.svelte.ts';
 import { Doors } from './doors.ts';
 import type { PlayContext, PlayFeature } from './feature.ts';
+import { Hazards } from './hazards.ts';
 import { Marks } from './marks.svelte.ts';
 import { Pack } from './pack.ts';
 import { Rite } from './rite.svelte.ts';
@@ -11,6 +13,7 @@ import { Ropes } from './ropes.ts';
 import { Survey } from './survey.svelte.ts';
 import { Surveyor } from './surveyor.ts';
 import { Tend } from './tend.ts';
+import { Training } from './training.svelte.ts';
 import { Vitals } from './vitals.ts';
 import { Walls } from './walls.ts';
 
@@ -21,10 +24,12 @@ import { Walls } from './walls.ts';
  */
 export function createFeatures(ctx: PlayContext) {
 	const affliction = new Affliction(ctx);
+	const rite = new Rite(ctx, () => affliction.name);
 	return {
 		vitals: new Vitals(ctx),
 		tend: new Tend(ctx),
 		combat: new Combat(ctx),
+		hazards: new Hazards(ctx),
 		pack: new Pack(ctx),
 		crates: new Crates(ctx),
 		doors: new Doors(ctx),
@@ -34,7 +39,9 @@ export function createFeatures(ctx: PlayContext) {
 		marks: new Marks(ctx),
 		ropes: new Ropes(ctx),
 		survey: new Survey(ctx),
-		rite: new Rite(ctx, () => affliction.name),
+		rite,
+		training: new Training(ctx),
+		bearings: new Bearings(ctx, () => rite.known?.room ?? null),
 		affliction
 	} satisfies Record<string, PlayFeature>;
 }

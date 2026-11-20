@@ -130,6 +130,8 @@ The HUD shows each one as a chip under your bars in the party panel, with its na
 
 To add a condition: an entry in `CONDITIONS` (id, name, seconds, description and its effects), a way to get it (`applyCondition` in the simulation, or on the server), and a line in the "Falls and conditions" help topic. A new kind of effect goes where movement or the hands read it (`conditionSpeedCap` is the pattern).
 
+Items give conditions too: `laudanum` (calm: no sanity lost to darkness or sights, `speed` 0.9, `sway` of the aim) and `buried` (grave dirt: `unseen`, creatures can't find you). `calmed`, `unseen`, `conditionSpeedFactor` and `aimSway` in `src/lib/shared/player/conditions.ts` read them.
+
 ## Collision
 
 `buildCollisionWorld(layout, PIECES)` turns every piece's `col-*` boxes (exported from Blender, stored in the manifest) into world-space oriented boxes and buckets them in a 4 m spatial hash.

@@ -1,3 +1,4 @@
+import type { StoreTier } from '../../content/economy.ts';
 import type { Slots } from '../items/inventory.ts';
 import type { Inventory } from '../player/types.ts';
 
@@ -41,4 +42,12 @@ export interface ExplorerView {
 	markWheel: string[];
 	/** Rite progress per Affliction (only those with any). */
 	afflictions: { id: string; clues: number; resolved: boolean }[];
+	/** Discovered items, each with the lootable kinds it has been seen in. */
+	discovered: Record<string, string[]>;
+	/** Discovered and not yet looked at (their slots shimmer). */
+	fresh: string[];
+	/** Coin sold to the store, in all: the merchant's trust. */
+	sold: number;
+	/** The store's tiers open to them. */
+	tiers: StoreTier[];
 }

@@ -108,6 +108,8 @@ export interface Settings {
 		quickSlots: boolean;
 		/** "Press E to pick up ..." prompts for things on the floor. */
 		itemPrompts: boolean;
+		/** While a throw is drawn back, its arc and where it will land (docs/dev/combat.md). */
+		throwPreview: boolean;
 		/**
 		 * Underground, the rite down the left. Off, only the Affliction's name stays, in a pill
 		 * (docs/dev/rite.md). The party's health shows either way.
@@ -137,6 +139,7 @@ function defaults(): Settings {
 			showStats: false,
 			quickSlots: true,
 			itemPrompts: true,
+			throwPreview: true,
 			ritePanel: true,
 			gamerTags: true,
 			mapZoom: SURVEY.zoom.initial,

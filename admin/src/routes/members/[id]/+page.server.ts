@@ -17,6 +17,8 @@ import {
 	markWheel,
 	MARK_SYMBOLS,
 	resetMarkWheel,
+	resetExplorer,
+	EXPLORER_ERRORS,
 	listFeedback,
 	listIdeas,
 	listReports,
@@ -141,6 +143,22 @@ export const actions: Actions = {
 		for (const explorer of explorers) await resetMarkWheel(db, explorer._id);
 		await audit(db, admin, 'resetMarkWheel', account._id);
 		return { notice: 'Chalk wheel back to the default (from their next descent)' };
+	},
+
+	resetExplorer: async ({ params, request, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const form = await request.formData();
+		if (String(form.get('confirmTag') ?? '').trim() !== account.gamerTag) {
+			return fail(400, { error: `Type the gamer tag, ${account.gamerTag}, to reset them` });
+		}
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) {
+			const result = await resetExplorer(db, explorer._id);
+			if ('error' in result) return fail(400, { error: EXPLORER_ERRORS[result.error] });
+		}
+		await audit(db, admin, 'resetExplorer', account._id, account.gamerTag);
+		return { notice: `${account.gamerTag} starts again from nothing, as a new player` };
 	},
 
 	sendReset: async ({ params, locals }) => {

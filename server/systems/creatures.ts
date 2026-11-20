@@ -17,10 +17,20 @@ export class CreatureSystem implements SessionSystem {
 			if (!player) continue;
 			const s = player.state;
 			if (s.flags.godMode || s.downed || s.dead) continue;
-			const { through, torn } = absorbBlow(s.inventory, hit.damage);
-			if (torn) ctx.events.push({ kind: 'break', item: torn, position: [...s.position] });
+			const { through, broke } = absorbBlow(s.inventory, hit.damage);
+			if (broke) ctx.events.push({ kind: 'break', item: broke, position: [...s.position] });
 			ctx.hurt(player, through);
 			if (hit.condition && !s.dead) applyCondition(s, hit.condition.id, hit.condition.seconds);
+		}
+		// A training dummy hit (its damage shown), or whole again.
+		const { struck, reset } = ctx.creatures.takeStruck();
+		for (const { id, amount, position } of struck) {
+			ctx.events.push({ kind: 'dummyHit', id, amount: Math.round(amount * 10) / 10, position });
+		}
+		for (const { id, position } of reset) ctx.events.push({ kind: 'dummyReset', id, position });
+		// Bled to death: told like any other kill, to whoever opened the wound.
+		for (const { id, by, position } of ctx.creatures.takeBled()) {
+			ctx.events.push({ kind: 'creatureDie', id, position, by });
 		}
 	}
 

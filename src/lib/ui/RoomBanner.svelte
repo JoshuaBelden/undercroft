@@ -1,11 +1,13 @@
 <script lang="ts">
 	interface Props {
 		title: string;
-		/** A line under it, in ordinary case and wrapping (a hint's words). */
+		/** A line under it, in ordinary case and wrapping (a hint's words, a room's own line). */
 		subtitle?: string;
+		/** Which level of the map it is on ("Level 2"), small, under the title. */
+		level?: string;
 	}
 
-	let { title, subtitle }: Props = $props();
+	let { title, subtitle, level }: Props = $props();
 </script>
 
 <div class="banner" aria-live="polite">
@@ -14,6 +16,9 @@
 		<h2>{title}</h2>
 		<span class="rule"></span>
 	</div>
+	{#if level}
+		<span class="level">{level}</span>
+	{/if}
 	{#if subtitle}
 		<p>{subtitle}</p>
 	{/if}
@@ -60,6 +65,15 @@
 		text-align: center;
 		color: #e6dccb;
 		text-shadow: 0 0 14px rgb(0 0 0 / 0.95);
+	}
+
+	.level {
+		margin-top: -6px;
+		font: 400 0.8rem var(--font-ui);
+		letter-spacing: 0.32em;
+		text-transform: uppercase;
+		color: rgb(230 220 203 / 0.7);
+		text-shadow: 0 0 12px rgb(0 0 0 / 0.95);
 	}
 
 	.rule {

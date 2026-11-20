@@ -17,3 +17,20 @@ export const DOORS = {
 	swing: Math.PI * 0.47,
 	swingSeconds: 1.6
 };
+
+/**
+ * Locked iron gates (gate-* markers: the Family Mausoleum's). A door that a key opens (carried,
+ * used up: one is hidden in the map for every gate, as for every locked trunk), or lockpicks in the
+ * hand, quietly, each lock a chance to snap one. See docs/dev/world.md#gates.
+ */
+export const GATES = {
+	/** Its collision box: across, high, deep (m). */
+	size: [2.0, 2.5, 0.12] as [number, number, number],
+	/** Seconds interact is held with a key, or with lockpicks in the hand. */
+	keySeconds: 1.5,
+	picksSeconds: 6,
+	/** Chance a pick snaps (one is used up) on each lock picked. */
+	snap: 0.25,
+	/** Radius (m) the gate swinging open is heard; picking it is silent. */
+	noise: 8
+};

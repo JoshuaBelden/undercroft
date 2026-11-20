@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { BACKPACKS, DEFAULT_BACKPACK } from '#lib/content/carry.ts';
-	import { HAND, type Inventory } from '#lib/shared/player/types.ts';
+	import { GEAR_SLOTS, HAND, type Inventory } from '#lib/shared/player/types.ts';
 	import type { ItemBoard } from './itemBoard.svelte.ts';
 	import ItemSlot from './ItemSlot.svelte';
 
 	/**
-	 * An inventory as slots: EQUIPMENT (two weapons, large, and the defense slot under them),
+	 * An inventory as slots: EQUIPMENT (two weapons, large, and under them the defense slot and
+	 * the three gear slots),
 	 * BACKPACK and, to its right, QUICK USE. The Loadout page shows an explorer's
 	 * loadout with it and the pack screen what you carry underground.
 	 */
@@ -46,13 +47,24 @@
 					label="Secondary weapon"
 				/>
 			</div>
-			<ItemSlot
-				{board}
-				ref={{ area: 'equipment', slot: 'defense' }}
-				stack={inventory.equipment.defense}
-				hint="Defense"
-				label="Defense"
-			/>
+			<div class="worn">
+				<ItemSlot
+					{board}
+					ref={{ area: 'equipment', slot: 'defense' }}
+					stack={inventory.equipment.defense ?? null}
+					hint="Defense"
+					label="Defense"
+				/>
+				{#each GEAR_SLOTS as slot, index (slot)}
+					<ItemSlot
+						{board}
+						ref={{ area: 'equipment', slot }}
+						stack={inventory.equipment[slot] ?? null}
+						hint="Gear"
+						label="Gear slot {index + 1}"
+					/>
+				{/each}
+			</div>
 		</div>
 	</section>
 
@@ -107,6 +119,13 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
+		gap: 8px;
+	}
+
+	/* Defense and the three gear slots, two by two: as wide as a weapon slot. */
+	.worn {
+		display: grid;
+		grid-template-columns: repeat(2, auto);
 		gap: 8px;
 	}
 

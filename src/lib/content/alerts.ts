@@ -5,6 +5,8 @@ import { ITEMS } from './items.ts';
 export const ALERT = {
 	/** How long one shows before it slides away (paused while the pointer or focus is on it). */
 	seconds: 3,
+	/** A tutorial step's alert (Rumors) is up this long, or until it is clicked away. */
+	tutorialSeconds: 20,
 	/** Most shown at once: a new one past this pushes the oldest out. */
 	max: 5
 };
@@ -31,7 +33,8 @@ export const ITEM_ALERTS: Record<ItemAlertSource, (from: string) => string> = {
 	store: () => 'Bought',
 	grant: () => 'Granted',
 	pickup: () => 'Picked up',
-	gift: (from) => `Gift from ${from}`
+	gift: (from) => `Gift from ${from}`,
+	craft: () => 'Made'
 };
 
 /**
@@ -59,6 +62,15 @@ export function alertText(alert: Alert): { title: string; line: string } {
 	if (alert.kind === 'social') {
 		const text = SOCIAL_ALERTS[alert.event];
 		return { title: text.title, line: text.line(alert.person.name) };
+	}
+	if (alert.kind === 'note') return { title: alert.title, line: alert.line };
+	if (alert.kind === 'discovery') {
+		const name = ITEMS[alert.item]?.name.toLowerCase() ?? alert.item;
+		const uses =
+			alert.recipes === 0
+				? 'Used in no recipe yet.'
+				: `Used in ${alert.recipes} recipe${alert.recipes === 1 ? '' : 's'}.`;
+		return { title: `Discovered: ${name}`, line: uses };
 	}
 	return {
 		title: ITEM_ALERTS[alert.source](alert.from?.name ?? 'someone'),

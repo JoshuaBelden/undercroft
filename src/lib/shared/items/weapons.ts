@@ -1,6 +1,10 @@
 import { ITEMS } from '../../content/items.ts';
+import { MOVEMENT } from '../../content/player/movement.ts';
 import type { Vec3 } from '../map/types.ts';
-import type { InputFrame, PlayerState, SimEvent, WeaponState } from '../player/types.ts';
+import type { FirearmSpec } from '../../content/items.ts';
+import { aimSway, applyCondition } from '../player/conditions.ts';
+import type { InputFrame, Inventory, PlayerState, SimEvent, WeaponState } from '../player/types.ts';
+import { addWear, isBroken } from './durability.ts';
 import { carriedCount, handRef, held, removeItem, spendHeld } from './inventory.ts';
 
 /**
@@ -27,7 +31,9 @@ export function idleWeapon(): WeaponState {
 		done: false,
 		aiming: false,
 		shots: 0,
-		prev: { attack: false, reload: false }
+		prev: { attack: false, reload: false },
+		snag: 0,
+		putDown: false
 	};
 }
 
@@ -65,7 +71,8 @@ export function stepWeapon(
 	};
 	w.prev = { attack: input.attack, reload: input.reload };
 	const emit = (event: SimEvent) => events?.push(event);
-	const ray = () => aimRay(s, eye);
+	// Where it goes: where they look, give or take laudanum's sway.
+	const ray = () => swayed(s, aimRay(s, eye));
 
 	// Switching items always works (even mid-action), except while downed.
 	if (!s.downed && input.select !== inv.selected && handRef(inv, input.select)) {
@@ -75,6 +82,8 @@ export function stepWeapon(
 
 	const stack = held(inv);
 	const def = stack ? ITEMS[stack.item] : undefined;
+	w.snag = Math.max(0, (w.snag ?? 0) - dt);
+	if (!input.attack) w.putDown = false;
 	w.aiming = able && !!def?.firearm && input.aim && w.action !== 'reload';
 	if (!able) {
 		if (w.action !== 'equip') start(w, 'none');
@@ -112,18 +121,46 @@ export function stepWeapon(
 					break;
 				}
 				if (w.time >= gun.reloadTime) {
-					const want = gun.magazine - (stack.loaded ?? 0);
-					stack.loaded = (stack.loaded ?? 0) + removeItem(inv, gun.ammo, want);
+					// What is in it already decides what goes in; empty, the first rounds it can take.
+					const round = (stack.loaded ?? 0) > 0 ? (stack.ammo ?? gun.ammo) : ammoFor(inv, gun);
+					const want = gun.single ? 1 : gun.magazine - (stack.loaded ?? 0);
+					stack.loaded = (stack.loaded ?? 0) + (round ? removeItem(inv, round, want) : 0);
+					if (round && round !== gun.ammo) stack.ammo = round;
+					else delete stack.ammo;
 					emit({ kind: 'reloaded', item: stack.item });
+					// One at a time (a rifle): on to the next, until it is full or attack is pressed.
+					const more =
+						gun.single &&
+						!input.attack &&
+						stack.loaded < gun.magazine &&
+						carriedCount(inv, stack.ammo ?? gun.ammo) > 0;
+					start(w, more ? 'reload' : 'none');
+				}
+				break;
+			}
+			case 'dose': {
+				const dose = def?.dose;
+				// Let go, moved, or the menu opened: it isn't taken.
+				if (!dose || !stack || !input.attack || input.reading || moving(input)) {
 					start(w, 'none');
+					break;
+				}
+				if (w.time >= dose.seconds) {
+					applyCondition(s, dose.condition);
+					spendHeld(inv);
+					emit({ kind: 'dose', item: stack.item });
+					start(w, 'equip');
+					w.prev.attack = true;
 				}
 				break;
 			}
 			case 'draw': {
 				const spec = def?.throwable;
-				// Opening the menu puts it down: neither a swing nor a throw.
-				if (!spec || !stack || input.reading) {
+				// Opening the menu, or aim, puts it down: neither a swing nor a throw, and nothing
+				// more until attack is let go.
+				if (!spec || !stack || input.reading || input.aim) {
 					start(w, 'none');
+					w.putDown = true;
 					break;
 				}
 				if (input.attack) break;
@@ -139,7 +176,7 @@ export function stepWeapon(
 						stack: { ...stack, count: 1 }
 					});
 					start(w, 'throw');
-				} else if (def.melee) {
+				} else if (def.melee && payStamina(s, def.melee.stamina ?? 0, true, stack.item, emit)) {
 					// Let go early: a swing, already as far into its wind-up as the draw got.
 					const time = Math.min(w.time, def.melee.windup);
 					start(w, 'swing');
@@ -153,18 +190,42 @@ export function stepWeapon(
 				// Whatever is in the hand now (the next one, or the weapon) comes up after.
 				if (w.time >= THROW_FOLLOW) start(w, 'equip');
 				break;
+			case 'place': {
+				const spec = def?.place;
+				// Let go, moved, or the menu opened: it isn't set down.
+				if (!spec || !stack || !input.attack || input.reading || moving(input)) {
+					start(w, 'none');
+					break;
+				}
+				if (w.time >= spec.seconds) {
+					const { origin, direction } = ray();
+					spendHeld(inv);
+					emit({ kind: 'place', item: stack.item, origin, direction });
+					// Whatever is in the hand now comes up; a fresh press for the next.
+					start(w, 'equip');
+					w.prev.attack = true;
+				}
+				break;
+			}
 		}
 	}
-	if (w.action !== 'none' || !stack || !def) return;
+	if (w.action !== 'none' || !stack || !def || w.putDown) return;
 
-	// Start something new.
+	// Start something new. Broken, it is in the hand but does nothing: a gun only dry-clicks.
+	if (isBroken(stack)) {
+		if (def.firearm && pressed.attack) emit({ kind: 'empty', item: stack.item });
+		return;
+	}
 	if (def.firearm) {
 		const gun = def.firearm;
 		const loaded = stack.loaded ?? 0;
-		const canReload = loaded < gun.magazine && carriedCount(inv, gun.ammo) > 0;
+		const inIt = loaded > 0 ? (stack.ammo ?? gun.ammo) : ammoFor(inv, gun);
+		const canReload = loaded < gun.magazine && !!inIt && carriedCount(inv, inIt) > 0;
 		if (pressed.attack) {
 			if (loaded > 0) {
 				if (!s.flags.infiniteAmmo) stack.loaded = loaded - 1;
+				// Every shot wears the gun; the one that breaks it still goes off.
+				if (addWear(stack) === 'broke') emit({ kind: 'broke', item: stack.item });
 				w.shots++;
 				const { origin, direction } = ray();
 				emit({
@@ -173,8 +234,10 @@ export function stepWeapon(
 					origin,
 					direction,
 					seed: w.shots,
-					aimed: w.aiming
+					aimed: w.aiming,
+					round: stack.ammo ?? gun.ammo
 				});
+				if ((stack.loaded ?? 0) === 0) delete stack.ammo;
 				start(w, 'shot');
 			} else {
 				emit({ kind: 'empty', item: stack.item });
@@ -185,9 +248,91 @@ export function stepWeapon(
 		}
 		return;
 	}
+	// Held, something to take is taken, standing still (laudanum, grave dirt).
+	if (def.dose && pressed.attack && !moving(input)) {
+		start(w, 'dose');
+		return;
+	}
+	// A whistle: blown at once, then a moment before the next.
+	if (def.whistle && pressed.attack) {
+		emit({ kind: 'whistle', item: stack.item, origin: ray().origin });
+		start(w, 'equip');
+		return;
+	}
+	// Held, something to set down is set down, standing still.
+	if (def.place && pressed.attack && !moving(input)) {
+		start(w, 'place');
+		return;
+	}
 	// Held, a throwable draws back; held, anything else swings again and again.
 	if (def.throwable && input.attack) start(w, 'draw');
-	else if (def.melee && input.attack) start(w, 'swing');
+	else if (def.melee && input.attack) {
+		// Snagged: it won't come free yet.
+		if (w.snag > 0) return;
+		if (payStamina(s, def.melee.stamina ?? 0, pressed.attack, stack.item, emit)) start(w, 'swing');
+	}
+}
+
+/**
+ * Pay a swing's stamina. With too little left (or worn out), no swing: a gasp instead, once a
+ * press (`gasp`). Returns whether it swings.
+ */
+function payStamina(
+	s: PlayerState,
+	cost: number,
+	gasp: boolean,
+	item: string,
+	emit: (event: SimEvent) => void
+): boolean {
+	if (cost <= 0 || s.flags.infiniteStamina) return true;
+	if (s.stamina < cost || s.exhausted) {
+		if (gasp) emit({ kind: 'winded', item });
+		return false;
+	}
+	s.stamina -= cost;
+	s.staminaDelay = MOVEMENT.stamina.regenDelay;
+	return true;
+}
+
+/** Walking (any movement input): setting something down needs standing still. */
+function moving(input: InputFrame): boolean {
+	return Math.abs(input.moveX) > 0.01 || Math.abs(input.moveZ) > 0.01;
+}
+
+/**
+ * Whether the held item can be used in this state at all: most things need room (not crawling or
+ * in a squeeze) and being on your feet; `cramped` items work crawling and squeezed, `downed`
+ * ones while down. `roomy` is the rest of what using anything needs (not swimming, mantling...).
+ */
+export function canUseHeld(s: PlayerState, roomy: boolean, cramped: boolean): boolean {
+	const def = ITEMS[held(s.inventory)?.item ?? ''];
+	if (s.downed) return !!def?.downed;
+	if (!roomy) return false;
+	return !cramped || !!def?.cramped;
+}
+
+/** The rounds a gun would load now: its own, else the first it also fires that is carried. */
+export function ammoFor(inv: Inventory, gun: FirearmSpec): string | null {
+	for (const round of [gun.ammo, ...(gun.alsoFires ?? [])]) {
+		if (carriedCount(inv, round) > 0) return round;
+	}
+	return null;
+}
+
+/** An aim ray turned by laudanum's sway (or as it was). */
+function swayed(
+	s: PlayerState,
+	ray: { origin: Vec3; direction: Vec3 }
+): { origin: Vec3; direction: Vec3 } {
+	const [dy, dp] = aimSway(s);
+	if (dy === 0 && dp === 0) return ray;
+	const yaw = s.yaw + dy;
+	const pitch = s.pitch + dp;
+	const cp = Math.cos(pitch);
+	return {
+		origin: ray.origin,
+		direction: [-Math.sin(yaw) * cp, Math.sin(pitch), -Math.cos(yaw) * cp]
+	};
 }
 
 function start(w: WeaponState, action: WeaponState['action']): void {

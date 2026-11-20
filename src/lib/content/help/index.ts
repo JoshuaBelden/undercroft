@@ -93,7 +93,7 @@ In your pack, a crate or the Loadout page, {button:PadA} picks an item up and th
 
 With a notebook in your pack, your pack has a Map tab: {button:PadLB} and {button:PadRB} go to it. On the map, hold {button:PadX} to sketch and {button:PadY} to show your map to a teammate. The Up and Down buttons at the top change level, {pad:mapZoomIn} and {pad:mapZoomOut} zoom, and the right stick moves the page. {button:PadB} puts it away.
 
-On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
+On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready; while you confirm an empty loadout, holding it takes the free loadout instead), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
 
 Settings > Controller has look sensitivity, invert Y, the dead zone, vibration, sprint (toggle or hold) and the button icons. A controller the game doesn't recognise has to be mapped to the standard layout in your system's or Steam's own controller settings.`
 	},
@@ -185,11 +185,15 @@ You can also give up from anywhere, as long as you're on your feet: press {actio
 		category: 'Expeditions',
 		body: `The catacombs go down in three levels, one under the other. Each is a maze of its own: passages, junctions, burial rooms and dead ends.
 
+When you walk into a room with a name, its name comes up, with the level you are on. The first time you reach a new level, its number comes up instead.
+
 At the far end of the first and second levels is a room with a shaft up to the surface, and a great double door. Behind the door a long stair leads down to the next level. It is the only way down.
 
 The doors are barred. Hold {action:interact} on one to throw off the bar and push it open. It stays open for good, for everyone, and the sound carries: whatever is down there, or behind you, will hear it, and once it's open they can come through too.
 
-The deeper you go, the better the finds. The first two levels hold everyday things; anything rare or precious lies on the third, where the rite is done.`
+Some rooms are only found on the deeper levels: crypts and mausoleums, the plague pit, the drowned chapel, and rarest of all a saints' crypt. Some places can only be reached on a rope: a sinkhole, a stair that ends in the air, a chamber under a grate.
+
+The deeper you go, the better the finds. Most of what lies on the first two levels is everyday, though the dead were buried with fine things wherever they lie; the rarest of all lies on the third, where the rite is done.`
 	},
 	{
 		id: 'parties',
@@ -215,17 +219,19 @@ If your connection drops underground, your place is held for a minute. You're st
 		id: 'the-surface',
 		title: 'What you keep',
 		category: 'The surface',
-		body: `You start with nothing: a headlamp and your hands.
+		body: `You start with a headlamp, your hands and 100 coin for the store.
+
+Nothing to take down? When your loadout is empty, Use free loadout (beside Confirm loadout, or hold {button:PadY}) takes you down with a crowbar, a padded coat and 3 bandages instead. You keep them if you get out, but they sell for nothing and can't be salvaged.
 
 Whatever you carry out of the catacombs is yours. You come back to your loadout packed the way you carried it, with what you found still in your backpack. Move it to your stash, or sell it, before the next descent.
 
 The dashboard is where you land when you sign in. Its "Loadout" page shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
 
-The loadout has a place for everything. Two weapons, and one thing worn for protection: it takes the blows of whatever catches you before you do, until it is torn apart. The pale bar over your health underground is what it has left, and the wear stays on it when you come back up. A backpack that takes anything. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
+The loadout has a place for everything. Two weapons, and one thing worn for protection: it takes the blows of whatever catches you before you do, until it is worn through. The pale bar over your health underground is what it has left, and the wear stays on it when you come back up. Three gear slots, for things you wear that help just by being worn. A backpack that takes anything, materials included. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
 
-Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to equip it, split a stack, sell it or drop it. Dropping something on the surface throws it away for good.
+Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to inspect it, equip it, split a stack, sell it or drop it. Inspect shows everything about it: damage, range, how fast it fires, how far it is heard, how long it lasts. Dropping something on the surface throws it away for good.
 
-Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
+Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, gear, materials, treasure, quest items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
 
 What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the omens close in.
 
@@ -243,7 +249,45 @@ What you buy goes to your stash, which only has so many slots: open "Loadout" to
 
 Selling is done on the "Loadout" page: right-click something and choose Sell. What you find down there is what sells: treasure, marked with a small diamond in the corner of its slot. "Sell all treasure", under the stash, sells every piece of treasure in your stash at once (not what is in your loadout). Gear you bought can be sold back, for less than you paid. Some things nobody wants.
 
-A first descent with nothing is a short one. Bring out what a crate or two holds, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
+A first descent with nothing is a short one. Bring out what a crate or two holds, and buy a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.
+
+The store doesn't sell everything. Some things are only found below or made: the knife, the hatchet, the crossbow, snares and more.
+
+At first the store sells only the basics. The more you sell to the merchant, the more he trusts you, and the more he offers: a second tier once you have sold him a thousand coin's worth, a third at five thousand. Resolving the Gloaming opens another.`
+	},
+	{
+		id: 'discovery',
+		title: 'Discovery and the Library',
+		category: 'The surface',
+		body: `You learn what things are by finding them. Everything you see in a crate, a dead explorer, a tomb or anything else you open below is discovered: the first time, a chime and a note say so, and how many recipes it goes into. Everyone in your party who looks in discovers what is there. Buying something, or breaking something down into it, doesn't count: you have to find it.
+
+The Library, on the dashboard, lists everything you have discovered and where you saw it. It also lists every recipe you know any part of: what it makes, and what goes into it, with a ? for each part you haven't found yet. When every part is known, the recipe is yours.
+
+Now and then you find a recipe fragment: a torn page of someone's notes. Read it where it lies and it tells you one thing you haven't found yet for a recipe you have started.
+
+Newly discovered things shimmer in your stash and loadout until you look at them.`
+	},
+	{
+		id: 'the-workshop',
+		title: 'The Workshop',
+		category: 'The surface',
+		body: `The Workshop, on the dashboard, is where things are made and mended.
+
+Craft: any recipe you know, made at once from what is in your stash. Each thing it takes is a slot: dim with none on hand, the count red with too few. Choosing a recipe you can make in the Library brings you here with it. Something you made sells only for what went into it.
+
+Repair: mend something worn or broken. It takes a few materials from your stash and some coin, more the more worn it is. You can also choose Repair from anything's menu on the Loadout page.
+
+Salvage, in anything's menu in your stash or loadout (right-click it): break it down into the materials it was made from, into your stash. Salvaging never teaches you anything new: only finding things does.
+
+Guns and rounds are never made. They are mended, and broken down.`
+	},
+	{
+		id: 'field-crafting',
+		title: 'Crafting below',
+		category: 'Gear and loot',
+		body: `With the field crafting kit worn in a gear slot, some recipes can be made down there: bandages, candles, snares, oil bottles, bolts and more. Open the menu ({action:inventory}) and choose the Craft tab. Pick something you have the materials for and you kneel over it for a few seconds. You need your lamp lit, it makes a little noise, and moving stops it. What you make goes in your pack.
+
+The Craft tab can also mend something you carry a little of the way, with its materials. Each thing made or mended wears the kit.`
 	},
 	{
 		id: 'alerts',
@@ -368,6 +412,18 @@ Not all of them are what they look like. Now and then one you come upon stands u
 Look at him and hold {action:interact} and he shows you his map: everywhere he has been goes into yours (you need a notebook to read it). He does it once for each of you, so show yours to your party (see The map).`
 	},
 	{
+		id: 'searching',
+		title: 'Searching',
+		category: 'Gear and loot',
+		body: `Crates are not the only things down here worth going through. The dead were buried with what they owned, and the living left things behind.
+
+Look at something and hold {action:interact} to search it. The prompt says how: some open in a moment, a bone pile takes a while to rummage through, a rat nest is a reach into the dark. Some need something in your hand. A crowbar pries a jammed crate, a sealed niche, a stone lid or a smuggler's brick. A blade cuts a cocoon open faster than your fingers can. A locked trunk takes a key, and a key can be anywhere in your pack. When the prompt is red, it says what you need.
+
+What you find depends on where you look. Wall niches and sarcophagi hold what the dead were laid to rest with. Tool chests and lockers hold the things workmen used. The dead explorers carry rounds and supplies. The deeper you go, the better it gets.
+
+Searching makes noise. Prying, smashing and digging through bones carry far. Every thing you take out is heard too.`
+	},
+	{
 		id: 'items',
 		title: 'Items',
 		category: 'Gear and loot',
@@ -382,14 +438,26 @@ Look at something on the floor and press {action:interact} to pick it up. It goe
 If you die down here, everything you carried stays where you fell. Someone else might find it.`
 	},
 	{
+		id: 'wear',
+		title: 'Wear and broken things',
+		category: 'Gear and loot',
+		body: `Your gear wears out. A gun wears with every shot, a blade or a crowbar with every blow that lands, a coat with every blow it takes for you. Hold the cursor over something to see how much it has left: the bar under its name, and the percent.
+
+When it runs out it breaks. A broken thing keeps its place and looks the same, under a red shade with a crack in the corner of its slot, but it does nothing. A broken gun only clicks. A broken blade won't swing. A broken coat takes nothing, and every blow goes straight to you. A broken crowbar won't pry. You can still carry it, and equip it, until it can be mended.
+
+Worn things sell for less, and broken things for nothing. A brick is different: it is only good for a few blows, and then it crumbles away.
+
+Some things wear by the minute instead. Kneepads wear while you crawl, felt overshoes while you walk, an incense censer while you hold it. Gloves wear a little every time they keep a bite or a sting off you.`
+	},
+	{
 		id: 'pack',
 		title: 'Your pack',
 		category: 'Gear and loot',
 		body: `Press {action:inventory} to open your pack. It is the first tab of the menu; the Rite tab beside it shows what you know of the rite. You can't open the menu while you're down. The catacombs don't wait while you look through it, and your hands are full: you can walk, but not fight, use or pick up anything, or run. With a controller you stand still.
 
-It is laid out like your loadout on the surface. Equipment: two weapons, and what you wear for protection. The backpack, which takes anything. And the quick-use slots, which are what the wheel offers. The slot in your hand is outlined.
+It is laid out like your loadout on the surface. Equipment: two weapons, what you wear for protection, and three gear slots. The backpack, which takes anything. And the quick-use slots, which are what the wheel offers. The slot in your hand is outlined.
 
-Drag things between slots. Hold Shift and click to send something between the backpack and the slot it belongs in. Right-click to equip it, split a stack or drop it. Things of a kind share a slot, up to a few of each; drop one stack on another to join them. To hand something to someone, drop it and let them pick it up.
+Drag things between slots. Hold Shift and click to send something between the backpack and the slot it belongs in. Right-click to inspect it, equip it, split a stack or drop it. Things of a kind share a slot, up to a few of each; drop one stack on another to join them. To hand something to someone, drop it and let them pick it up.
 
 Everything weighs something, and the weight you carry is shown beside the title. Once it turns blue you have started to slow down, and the more you carry the slower you get. There's a limit to what you can lift at all: when the game says something is too heavy, you'll have to leave something else behind.`
 	},
@@ -398,6 +466,10 @@ Everything weighs something, and the weight you carry is shown beside the title.
 		title: 'Fighting back',
 		category: 'Surviving',
 		body: `Press {action:attack} to swing or fire. Hold {action:aim} to aim a gun: you move slowly, but your shots go where you look. Press {action:reload} to reload.
+
+Every swing takes stamina, more for heavy weapons. Out of breath, you can't swing until you get it back.
+
+Hold {action:attack} with something you can throw to draw it back: a faint arc shows where it will land (you can turn that off in the settings, under Interface). Let go to throw it, or press {action:aim} to put it down again.
 
 A knife is quick and quiet. A crowbar is slow but hits hard enough to stop something mid-swing. Bricks are everywhere; they break after a few blows.
 
@@ -426,6 +498,50 @@ How hard something is to come by shows on the left and bottom edge of its slot: 
 A crate never holds much of the best. Deeper crates hold more.`
 	},
 	{
+		id: 'weapons',
+		title: 'Weapons',
+		category: 'Gear and loot',
+		body: `Every weapon has its way. Hold the cursor over one and choose Inspect from its menu to see all of it: how hard it hits, how far, how loud, how long it lasts.
+
+A hatchet cuts webs in one blow, and can be thrown and picked up again. A trench spade hits everything in front of you, a little less each. A short spear reaches far but only straight ahead, and it is the one weapon that works while you crawl. A nail-studded club leaves things bleeding, but it can snag. A pickaxe breaks through rubble. A sledgehammer staggers anything it hits and smashes trunks open, but you can't run with it in your hand.
+
+The bolt-action rifle's round goes through everything in a line; it loads one round at a time. The derringer fires from the floor, crawling or downed, and takes revolver rounds. The crossbow makes no sound at all, but its bolt takes its time and drops. A slingshot won't kill anything; it makes a noise a long way off, and fires pebbles or old coins.
+
+An oil bottle bursts into fire where it lands. Firecrackers go off a few seconds after they land, loudly, somewhere you are not. Throwing knives come three to a lot: go and get them back.`
+	},
+	{
+		id: 'gear',
+		title: 'Gear',
+		category: 'Gear and loot',
+		body: `Gear is worn, not used: three gear slots in your loadout, and each thing works while it is there.
+
+Kneepads make crawling faster and quieter. Felt overshoes soften your footsteps. Gloves keep a rat nest's teeth and a cocoon's poison off your hands, and make rope easier to climb. A pocket compass shows, at the top of the screen, which way the nearest way out is and how far; once you know where the rite is held, it points there instead. The field crafting kit lets you make things below.
+
+A leather jerkin takes more than a padded coat before it gives, but you run a little slower in it.`
+	},
+	{
+		id: 'tools-and-tricks',
+		title: 'Tools and tricks',
+		category: 'Gear and loot',
+		body: `Most of these are used from the quick-use wheel: take one in your hand and hold {action:attack}.
+
+Laudanum: for a minute, nothing the dark or the things in it do costs you sanity, but your aim sways and you move a little slower. Grave dirt: whatever is hunting you loses you for a few seconds. A whistle: everyone in your party sees where you are, for a moment, and so does everything nearby that hears it.
+
+Thrown: a glow stick lights where it lands for a few minutes, and moths come to it. Bait draws rats to it, and off you. Set down: a snare holds the first thing through it. A line of blessed salt is not crossed while it lasts. A tripwire bell rings when something crosses it, and your party is told; it sets itself again a few times.
+
+Held: an incense censer keeps moths, rats and spiders away while it smokes, and makes a little noise as it swings. Lockpicks open locks without a sound, but a pick can snap.
+
+Bait doesn't keep: whatever you bring back up is gone.`
+	},
+	{
+		id: 'curious-treasure',
+		title: 'Curious treasure',
+		category: 'Gear and loot',
+		body: `Most treasure is only worth what it sells for. A few pieces are worth more than that, if you dare.
+
+Carry a tarot deck down and you draw a card as you arrive: a small blessing, or a small curse. The black candle counts as all five candles the rite needs. The custodian's key ring opens any one lock, and is gone. The porcelain doll sells for a great deal, but it is cursed. And an apothecary jar or a sealed reliquary jar won't survive a hard fall.`
+	},
+	{
 		id: 'false-walls',
 		title: 'False walls',
 		category: 'Gear and loot',
@@ -441,7 +557,63 @@ You can't tell a false wall by looking. Take a crowbar in your hand and walk up 
 
 To pry one open, take a crowbar in your hand, look at the crate and hold {action:interact}. It takes ten seconds and it is loud: anything nearby will hear it and come to look. Let go and you start over. Without a crowbar in your hand the prompt shows in red.
 
-On the third level a few of the crates are iron-bound trunks, locked. Each holds something epic or legendary, among other things. To open one you need a key: somewhere in the map, in an ordinary crate, there is one key for every trunk. Look at the trunk and press {action:interact} to unlock it. The key is used up, and it doesn't need to be in your hand. Then hold {action:interact} to search the trunk like any crate. Without a key the prompt shows in red. A key you carry out is yours to bring down again.`
+Deeper down a few of the lootables are iron-bound trunks, locked. Each holds something epic or legendary, among other things. To open one you need a key: somewhere in the map, in something you can open by hand, there is one key for every trunk and every locked gate. Look at the trunk and press {action:interact} to unlock it. The key is used up, and it doesn't need to be in your hand. Then hold {action:interact} to search the trunk like any crate. Without a key the prompt shows in red. A key you carry out is yours to bring down again.`
+	},
+	{
+		id: 'webs-and-rubble',
+		title: 'Webs and rubble',
+		category: 'Gear and loot',
+		body: `Some side passages are blocked by things you can see. They lead somewhere worth going.
+
+A sheet of web tears if you hit it: a few blows of anything you swing. A blade made for cutting, like a hatchet, goes through in one. Fire burns it away, so an oil bottle thrown near it clears it too.
+
+A fall of rubble needs a pickaxe. Take it in your hand, look at the rubble and hold {action:interact}. It takes a few seconds and it is loud. A crowbar does nothing to rubble.`
+	},
+	{
+		id: 'gates',
+		title: 'Locked gates',
+		category: 'Gear and loot',
+		body: `A family mausoleum keeps its dead behind an iron gate, locked. There is a key for every gate somewhere in the map, in something you can open by hand. Carry it, look at the gate and hold {action:interact}: the key is used up and the gate swings open, for everyone.
+
+Lockpicks work too, held in your hand. Picking the lock takes longer but makes no sound, and each lock you pick may snap one of your picks.`
+	},
+	{
+		id: 'what-bites',
+		title: 'What bites back',
+		category: 'Gear and loot',
+		body: `Not everything you reach into is glad of it. A rat nest bites the hand that goes in. A webbed cocoon is poisoned, and spiders are rarely far. Gloves, worn in a gear slot, keep both off.
+
+Disturb a bone pile and the rats under it may come boiling out. Lift a sarcophagus lid and you may find what the spiders left in it. Taking a saint's relic from a reliquary alcove does not go unnoticed by what haunts the place. And there are rooms where searching among the dead wears at you, whatever you find.
+
+A sarcophagus lid is heavy. Lever it with a crowbar, or get a friend to push it with you: both of you look at it and hold {action:interact}.`
+	},
+	{
+		id: 'fragile-and-cursed',
+		title: 'Fragile and cursed things',
+		category: 'Gear and loot',
+		body: `Some treasure is fragile: a jar breaks if you take a hard fall carrying it. Smash a box open rather than pick it and something fragile inside may break too.
+
+Some treasure is cursed. It sells well, but carrying it wears at your sanity, and whatever it is whispers to you, close by, when nobody else can hear.`
+	},
+	{
+		id: 'fonts',
+		title: 'Fonts',
+		category: 'Gear and loot',
+		body: `Chapels and vestries have fonts of still, cold water. Carry an empty glass bottle, look at the font and hold {action:interact} to fill it with holy water. Each font has only a few fills before it runs dry.`
+	},
+	{
+		id: 'stashes',
+		title: "Smugglers' stashes",
+		category: 'Gear and loot',
+		body: `Smugglers used these tunnels long before you. They hid their goods behind loose bricks and marked the spot in chalk only another smuggler would know.
+
+You won't find a stash by walking past it. Get close to a wall and look properly: when you notice a chalk mark, the brick beside it is loose. Then it is there for anyone, and a crowbar pries it out.`
+	},
+	{
+		id: 'pitons',
+		title: 'Climbing pitons',
+		category: 'Gear and loot',
+		body: `A piton is a rope anchor you carry. Where there is a drop and nothing to tie a rope to, stand at the edge facing over it, take a piton in your hand and hold {action:attack} to hammer it in. It is loud. From then on it is an anchor like any other: anyone can tie a rope there and climb down. If there is no drop in front of you, the piton isn't used.`
 	},
 	{
 		id: 'chalk',
@@ -500,6 +672,18 @@ Captions tell you what a sound is like, not what made it.`
 Listen. Knocking that comes more often. Whispers where no one is. A low hum under everything. Lamps that won't hold steady, that dim and fail for no reason.
 
 These are warnings. When they come thick and close together, it is time to think about the way out.`
+	},
+	{
+		id: 'rumors',
+		title: 'Rumors',
+		category: 'The Gloaming',
+		body: `Everyone starts with Rumors: a short way into the catacombs, and an old vault where the keepers trained. Nothing down there wants you, and nobody goes down, though things still hurt.
+
+On the way in you are shown, a step at a time, what you need: the rope and your lamp, opening a crate, discovering what is in it, making a bandage with the field crafting kit, the Library, chalk. The first time through, the crates and the kit are there for you, and what you take comes out with you.
+
+The vault has training dummies at 5, 10, 20 and 40 metres, one running along a track, bricks by the door, a web across one arch and rubble in the other. Every hit on a dummy shows how hard it was. Everything works as it does anywhere else: rounds are spent, things wear out, what you use is gone.
+
+Climb the ladder at the far end to get out. Once you have, the Gloaming is open to you. Rumors stays open after, as a place to train.`
 	},
 	{
 		id: 'the-gloaming',

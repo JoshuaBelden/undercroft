@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { ROPE } from '../src/lib/content/rope.ts';
-import { floorHeightAt, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
+import {
+	floorHeightAt,
+	type Anchor,
+	type CollisionWorld
+} from '../src/lib/shared/map/collision.ts';
 import { LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import type { LaidRopeSnapshot, TiedRopeSnapshot } from '../src/lib/shared/items/types.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
@@ -27,11 +31,15 @@ export class Ropes {
 		return this.tied;
 	}
 
+	/** Pitons hammered in: anchors from then on (docs/dev/rope.md#pitons). */
+	readonly pitons: Anchor[] = [];
+
 	/** Everything, as sent to clients. */
-	snapshot(): { laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[] } {
+	snapshot(): { laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[]; pitons: Anchor[] } {
 		return {
 			laid: this.laid.map((r) => ({ ...r, points: r.points.map((p): Vec3 => [...p]) })),
-			tied: this.tied.map((t) => ({ ...t }))
+			tied: this.tied.map((t) => ({ ...t })),
+			pitons: this.pitons.map((a) => ({ ...a }))
 		};
 	}
 
@@ -139,6 +147,7 @@ export class Ropes {
 	clear(): void {
 		this.laid = [];
 		this.tied = [];
+		this.pitons.length = 0;
 		this.laying.clear();
 		this.grown.clear();
 	}

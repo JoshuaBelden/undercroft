@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Db } from 'mongodb';
 import { LocalDb } from '../localdb/LocalDb.ts';
-import { addItem, allStacks, emptyInventory, newStack } from '../../shared/items/inventory.ts';
+import { ECONOMY, sellPrice } from '../../content/economy.ts';
+import { salvageOf } from '../../shared/items/crafting.ts';
+import {
+	addItem,
+	allStacks,
+	applyAction,
+	emptyInventory,
+	newStack
+} from '../../shared/items/inventory.ts';
 import { createAccount, ensureIndexes, explorerFor, type ExplorerDoc } from './accounts.ts';
 import {
 	changeExplorer,
@@ -35,6 +43,57 @@ beforeEach(async () => {
 });
 
 const read = async (): Promise<ExplorerDoc> => explorerFor(db, explorer.account);
+
+describe('a new explorer', () => {
+	it('starts with the starting coin', () => {
+		expect(explorer.money).toBe(ECONOMY.startingMoney);
+		expect(ECONOMY.startingMoney).toBe(100);
+	});
+});
+
+describe('the free loadout', () => {
+	const empty = async (): Promise<void> => {
+		await changeExplorer(db, explorer._id, (doc) => {
+			doc.loadout = emptyInventory();
+			return null;
+		});
+	};
+
+	it('is a crowbar, a padded coat and 3 bandages, all free, for an empty loadout', async () => {
+		await empty();
+		const kit = await takeLoadout(db, explorer._id, 's', true);
+		expect(kit.equipment.primary).toEqual({ ...newStack('crowbar'), free: true });
+		expect(kit.equipment.defense).toEqual({ ...newStack('coat'), free: true });
+		expect(kit.quick[0]).toEqual({ ...newStack('bandage', 3), free: true });
+		expect(allStacks(kit)).toHaveLength(3);
+		expect((await read()).underground).toBe('s');
+	});
+
+	it('is not given over a loadout of their own: that goes down instead', async () => {
+		const kit = await takeLoadout(db, explorer._id, 's', true);
+		expect(allStacks(kit).map((stack) => stack.item)).toEqual(['knife']);
+	});
+
+	it('is never coin: it sells for nothing, salvages to nothing, and keeps apart', async () => {
+		await empty();
+		const kit = await takeLoadout(db, explorer._id, 's', true);
+		const coat = kit.equipment.defense!;
+		expect(sellPrice(coat.item, coat)).toBe(0);
+		expect(sellPrice('coat', newStack('coat'))).toBeGreaterThan(0);
+		expect(salvageOf(coat)).toEqual([]);
+		// Free bandages and bought ones don't merge.
+		kit.quick[1] = newStack('bandage', 2);
+		applyAction(
+			{ inventory: kit },
+			{ kind: 'move', from: { area: 'quick', index: 1 }, to: { area: 'quick', index: 0 } }
+		);
+		const bandages = allStacks(kit).filter((stack) => stack.item === 'bandage');
+		expect(bandages.map((stack) => [stack.count, !!stack.free]).sort()).toEqual([
+			[2, false],
+			[3, true]
+		]);
+	});
+});
 
 describe('an expedition', () => {
 	it('takes the loadout down and marks them underground, once', async () => {

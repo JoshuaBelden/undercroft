@@ -117,7 +117,8 @@ describe('nav grid on real maps', () => {
 				}
 				// ...and the foot of each drop is beyond walking: nobody gets there without rope.
 				for (const anchor of world.anchors) {
-					expect(anchor.top[1] - anchor.bottom).toBeGreaterThan(12);
+					// The Drop and the Pit fall 12 m, the Sinkhole 8; the Broken Stair's last stretch 4.
+					expect(anchor.top[1] - anchor.bottom).toBeGreaterThan(3.5);
 					const near = nearestPoint(nav, [anchor.top[0], anchor.bottom, anchor.top[2]], 1.5);
 					// Any point found there is up on the ledge, not down at the foot.
 					const y = near < 0 ? Infinity : nav.points[near].position[1];

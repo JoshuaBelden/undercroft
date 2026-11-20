@@ -1,5 +1,5 @@
 import type { Db } from 'mongodb';
-import { SHOP, sellPrice } from '../../content/economy.ts';
+import { ECONOMY, forSale, openTiers, sellPrice, type StoreTier } from '../../content/economy.ts';
 import { ITEMS, SLOTS } from '../../content/items.ts';
 import {
 	addToSlots,
@@ -22,7 +22,7 @@ export interface LedgerDoc {
 	explorer: string;
 	at: Date;
 	/** What happened: a purchase, a sale, something thrown away, an admin grant or reset. */
-	kind: 'buy' | 'sell' | 'discard' | 'grant' | 'reset';
+	kind: 'buy' | 'sell' | 'discard' | 'grant' | 'reset' | 'craft' | 'repair' | 'salvage';
 	item?: string;
 	count?: number;
 	/** Money gained (negative: spent). */
@@ -47,7 +47,7 @@ function stock(explorer: ExplorerDoc, item: string, count: number): boolean {
 
 /** Buy `lots` lots of a shop item into the stash. */
 export async function buy(db: Db, explorerId: string, item: unknown, lots: unknown): Result {
-	const entry = SHOP.find((e) => e.item === item);
+	const entry = forSale(await tiersOf(db, explorerId)).find((e) => e.item === item);
 	const wanted = typeof lots === 'number' && Number.isInteger(lots) ? lots : 1;
 	if (!entry || !ITEMS[entry.item] || wanted < 1 || wanted > 99) return { error: 'unsold' };
 	const cost = entry.price * wanted;
@@ -78,16 +78,41 @@ export async function sell(db: Db, explorerId: string, from: unknown, count: unk
 		if (!at || wanted < 1) return 'missing';
 		const stack = takeStack({ inventory: explorer.loadout, stash: explorer.stash }, at, wanted);
 		if (!stack) return 'missing';
-		const each = sellPrice(stack.item);
+		const each = sellPrice(stack.item, stack);
 		if (each <= 0) return 'worthless';
-		explorer.money += each * stack.count;
-		sold = { item: stack.item, count: stack.count, money: each * stack.count };
+		// A whole stack at once: nails are worth a tenth each, a lot of ten a coin.
+		const total = Math.floor(each * stack.count + 1e-9);
+		if (total <= 0) return 'worthless';
+		explorer.money += total;
+		sold = { item: stack.item, count: stack.count, money: total };
 		return null;
 	});
 	if ('explorer' in result) {
+		await trust(db, explorerId, sold.money);
 		await log(db, { explorer: explorerId, kind: 'sell', ...sold, balance: result.explorer.money });
 	}
 	return result;
+}
+
+/** What was sold adds to the merchant's trust. */
+async function trust(db: Db, explorerId: string, money: number): Promise<void> {
+	if (money <= 0) return;
+	await db
+		.collection<ExplorerDoc>('explorers')
+		.updateOne({ _id: explorerId }, { $inc: { sold: money } });
+}
+
+/** The store tiers open to an explorer: by what they have sold, and the Afflictions they resolved. */
+export async function tiersOf(db: Db, explorerId: string): Promise<StoreTier[]> {
+	const explorer = await db.collection<ExplorerDoc>('explorers').findOne({ _id: explorerId });
+	const resolved = await db
+		.collection<{ player: string; affliction: string; resolved?: boolean }>('progress')
+		.find({ player: explorerId, resolved: true })
+		.toArray();
+	return openTiers(
+		explorer?.sold ?? 0,
+		resolved.map((doc) => doc.affliction)
+	);
 }
 
 /** Sell every stack of treasure in the stash (not the loadout), one ledger line per item. */
@@ -97,7 +122,7 @@ export async function sellTreasure(db: Db, explorerId: string): Result {
 		sold = [];
 		explorer.stash = explorer.stash.map((stack) => {
 			if (!stack || !ITEMS[stack.item]?.treasure) return stack;
-			const each = sellPrice(stack.item);
+			const each = sellPrice(stack.item, stack);
 			if (each <= 0) return stack;
 			const line = sold.find((entry) => entry.item === stack.item);
 			if (line) {
@@ -118,6 +143,11 @@ export async function sellTreasure(db: Db, explorerId: string): Result {
 			balance += entry.money;
 			await log(db, { explorer: explorerId, kind: 'sell', ...entry, balance });
 		}
+		await trust(
+			db,
+			explorerId,
+			sold.reduce((sum, entry) => sum + entry.money, 0)
+		);
 	}
 	return result;
 }
@@ -154,14 +184,24 @@ export async function grant(
 /** Admin: back to a new explorer: no money, nothing owned, nothing learned. */
 export async function resetExplorer(db: Db, explorerId: string): Result {
 	const result = await changeExplorer(db, explorerId, (explorer) => {
-		explorer.money = 0;
+		explorer.money = ECONOMY.startingMoney;
 		explorer.stash = emptySlots(SLOTS.stash);
 		explorer.loadout = emptyInventory();
 		return null;
 	});
 	if ('explorer' in result) {
+		// As if they had just signed up: nothing discovered, no trust, no Affliction progress
+		// (Rumors to do again, the Gloaming locked until then). Their chalk wheel is a preference.
+		await db
+			.collection<ExplorerDoc>('explorers')
+			.updateOne({ _id: explorerId }, { $set: { discovered: {}, fresh: [], sold: 0 } });
 		await db.collection('progress').deleteMany({ player: explorerId });
-		await log(db, { explorer: explorerId, kind: 'reset', money: 0, balance: 0 });
+		await log(db, {
+			explorer: explorerId,
+			kind: 'reset',
+			money: ECONOMY.startingMoney,
+			balance: ECONOMY.startingMoney
+		});
 	}
 	return result;
 }

@@ -9,13 +9,16 @@ import type {
 	CrateSlot,
 	CratesSnapshot,
 	GameEvent,
+	HazardsSnapshot,
 	InventoryAction,
 	LaidRopeSnapshot,
 	MarkSnapshot,
 	ProjectileSnapshot,
 	TiedRopeSnapshot,
-	WorldItemSnapshot
+	WorldItemSnapshot,
+	SlotRef
 } from './items/types.ts';
+import type { Anchor } from './map/collision.ts';
 import type { MapLayout, Vec3 } from './map/types.ts';
 import type { PartyState } from './party/types.ts';
 import type { InputFrame, Inventory, ItemStack, PlayerSnapshot } from './player/types.ts';
@@ -42,7 +45,8 @@ export type ClientMessage =
 	 * Ready to descend (the loadout is confirmed), or not after all. Needs an Affliction chosen.
 	 * Once everyone is ready the descent counts down and starts by itself.
 	 */
-	| { type: 'ready'; ready: boolean }
+	/** `free`: going down with the free loadout (only given with an empty one: docs/dev/economy.md). */
+	| { type: 'ready'; ready: boolean; free?: boolean }
 	/** Party host: choose the Affliction the expedition is against. Everyone becomes not ready. */
 	| { type: 'affliction'; id: string }
 	/** Friends and party invites (see docs/dev/social.md). */
@@ -57,6 +61,12 @@ export type ClientMessage =
 	| { type: 'inventory'; action: InventoryAction }
 	/** Done with the loot crate that is open. */
 	| { type: 'closeCrate' }
+	/**
+	 * Make a field recipe, or mend a carried thing a little (`repair`: its slot), kneeling, with the
+	 * field crafting kit worn (docs/dev/crafting.md#field-crafting). `stopCraft` gives up.
+	 */
+	| { type: 'craft'; recipe?: string; repair?: SlotRef }
+	| { type: 'stopCraft' }
 	/**
 	 * Draw a chalk mark with the chalk in the hand: a symbol on the player's wheel, where their
 	 * view meets the stone (`normal` out of it). The server checks it (see docs/dev/marks.md).
@@ -80,6 +90,14 @@ export type AdminCommand =
 	| { kind: 'give'; item: string; count: number }
 	/** Fill your guns and add spare ammo. */
 	| { kind: 'refillAmmo' }
+	/**
+	 * Wear what is in your hand (else what you wear for defense) by a quarter of its durability, or
+	 * break it outright.
+	 */
+	| { kind: 'wearHeld' }
+	| { kind: 'breakHeld' }
+	/** Everything you carry as good as new. */
+	| { kind: 'repairAll' }
 	| { kind: 'killCreatures' }
 	/** Set the Affliction meter (0..1). */
 	| { kind: 'setMeter'; value: number }
@@ -188,6 +206,8 @@ export type ServerMessage =
 			sealed: string[];
 			/** False walls brought down (where they stood is in the layout). */
 			walls: string[];
+			/** Fires burning, snares set, lines of salt (server/systems/hazards.ts). */
+			hazards: HazardsSnapshot;
 			/**
 			 * Dev mode only (the admin bars): how full the party's noise and light meters are, 0..1
 			 * (full for a moment after one brings a witch), how many witches are alive, and why the
@@ -215,7 +235,18 @@ export type ServerMessage =
 	 * Every rope: laid along the floor, and tied at anchors. Sent like `marks`, whenever one is
 	 * started, stopped, gathered up, tied or untied (see docs/dev/rope.md).
 	 */
-	| { type: 'ropes'; laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[] }
+	| { type: 'ropes'; laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[]; pitons: Anchor[] }
+	/**
+	 * In a training ground (Rumors): whether its tutorial's crates and things are stocked this
+	 * time (anyone's first time through), so the steps about them are told only then.
+	 */
+	| { type: 'tutorial'; firstTime: boolean }
+	/** You made something below (`count`), or mended it (`count` 0). */
+	| { type: 'crafted'; item: string; count: number }
+	/** You discovered an item (docs/dev/crafting.md#discovery): it is used in `recipes` recipes. */
+	| { type: 'discovered'; item: string; recipes: number }
+	/** You read a recipe fragment: what it taught you (an ingredient now discovered), or nothing. */
+	| { type: 'fragment'; item: string | null }
 	/** Points added to ropes being laid since the last tick. */
 	| { type: 'ropeGrow'; ropes: { id: string; points: Vec3[] }[] }
 	/**
@@ -288,50 +319,62 @@ export function decodeServer(raw: string): ServerMessage | null {
 	return decode(raw, SERVER_TYPES) as ServerMessage | null;
 }
 
-const CLIENT_TYPES = new Set<string>([
-	'hello',
-	'ping',
-	'input',
-	'admin',
-	'leaveParty',
-	'kick',
-	'ready',
-	'affliction',
-	'social',
-	'profile',
-	'stopSpectating',
-	'abandon',
-	'inventory',
-	'closeCrate',
-	'mark',
-	'resetAffliction',
-	'vault'
-]);
-const SERVER_TYPES = new Set<string>([
-	'party',
-	'partyError',
-	'social',
-	'socialSearch',
-	'alert',
-	'welcome',
-	'reject',
-	'pong',
-	'tick',
-	'crate',
-	'marks',
-	'ropes',
-	'ropeGrow',
-	'survey',
-	'map',
-	'extracted',
-	'died',
-	'abandoned',
-	'spectateEnd',
-	'afflictionReset',
-	'serverError',
-	'achievement',
-	'vault'
-]);
+/**
+ * Every message type each side may send. Keyed by the union's own types, so a new message that
+ * isn't added here doesn't compile (an unknown type is dropped on arrival).
+ */
+const CLIENT_TYPE_TABLE: Record<ClientMessage['type'], true> = {
+	hello: true,
+	ping: true,
+	input: true,
+	admin: true,
+	leaveParty: true,
+	kick: true,
+	ready: true,
+	affliction: true,
+	social: true,
+	profile: true,
+	stopSpectating: true,
+	abandon: true,
+	inventory: true,
+	closeCrate: true,
+	craft: true,
+	stopCraft: true,
+	mark: true,
+	resetAffliction: true,
+	vault: true
+};
+const SERVER_TYPE_TABLE: Record<ServerMessage['type'], true> = {
+	party: true,
+	partyError: true,
+	social: true,
+	socialSearch: true,
+	alert: true,
+	welcome: true,
+	reject: true,
+	pong: true,
+	tick: true,
+	crate: true,
+	marks: true,
+	ropes: true,
+	ropeGrow: true,
+	survey: true,
+	map: true,
+	extracted: true,
+	died: true,
+	abandoned: true,
+	spectateEnd: true,
+	afflictionReset: true,
+	serverError: true,
+	achievement: true,
+	vault: true,
+	discovered: true,
+	fragment: true,
+	crafted: true,
+	tutorial: true
+};
+const CLIENT_TYPES = new Set<string>(Object.keys(CLIENT_TYPE_TABLE));
+const SERVER_TYPES = new Set<string>(Object.keys(SERVER_TYPE_TABLE));
 
 function decode(raw: string, allowed: Set<string>): unknown {
 	try {

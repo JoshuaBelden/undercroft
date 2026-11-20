@@ -16,6 +16,7 @@ While it is open the page puts `underground` on `<body>`, and `app.css` turns te
 | `src/lib/game/play/prompt.ts`            | `keyPrompt`: a HUD prompt with the action's key as a keycap                                |
 | `src/lib/game/play/vitals.ts`            | Heartbeat, hurt shake, whispers, battery and bandage sounds; heal, battery, revive prompts |
 | `src/lib/game/play/combat.ts`            | Shots, swings, throws and hits: sound, recoil, rumble, flashes and impacts                 |
+| `src/lib/game/play/hazards.ts`           | Fires, snares and lines of salt; their sounds; the throw arc ([combat.md](combat.md))      |
 | `src/lib/game/play/pack.ts`              | Items on the floor and in flight; picking up and dropping                                  |
 | `src/lib/game/play/crates.svelte.ts`     | Loot crates and corpses: searching, the crate screen's state                               |
 | `src/lib/game/play/doors.ts`             | Doors between levels                                                                       |

@@ -8,9 +8,10 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import kit  # noqa: E402
+import rooms  # noqa: E402
 
 exported, missing = [], []
-for name in kit.PIECES:
+for name in kit.PIECES + rooms.ROOMS:
     if name in bpy.data.collections and name in bpy.data.objects:
         print("  " + os.path.relpath(kit.export_piece(name), kit.REPO))
         exported.append(name)

@@ -1,4 +1,5 @@
 import { error, json } from '@sveltejs/kit';
+import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 import { devMode } from '#lib/dev.ts';
 import { database } from '#lib/server/db.ts';
 import {
@@ -9,6 +10,7 @@ import {
 	setPassword
 } from '#lib/server/store/accounts.ts';
 import { EXPLORER_ERRORS } from '#lib/server/store/explorers.ts';
+import { discoverAll, resetDiscoveries, setTrust } from '#lib/server/store/discoveries.ts';
 import { grant, resetExplorer } from '#lib/server/store/shop.ts';
 import type { RequestHandler } from './$types';
 
@@ -18,6 +20,10 @@ import type { RequestHandler } from './$types';
  * - `{ action: 'grantMoney', amount }`, `{ action: 'grantItem', item, count }`: to your own explorer
  * - `{ action: 'resetExplorer' }`: your own explorer back to nothing
  * - `{ action: 'resetPassword', email, password }`: any account
+ * - `{ action: 'discoverAll' }`, `{ action: 'resetDiscoveries' }`: your own discoveries
+ * - `{ action: 'setTrust', sold }`: the merchant's trust (coin sold), which opens store tiers
+ * - `{ action: 'completeTraining' }`: Rumors done (the Gloaming unlocked)
+ * - `{ action: 'forgetAfflictions' }`: no progress against any Affliction (Rumors to do again)
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!devMode) error(404, 'Not found');
@@ -33,6 +39,35 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const explorer = await explorerFor(db, account._id);
+	if (body.action === 'discoverAll' || body.action === 'resetDiscoveries') {
+		if (body.action === 'discoverAll') await discoverAll(db, explorer._id);
+		else await resetDiscoveries(db, explorer._id);
+		return json(await accountView(db, account));
+	}
+	if (body.action === 'completeTraining') {
+		for (const def of Object.values(AFFLICTIONS)) {
+			if (!def.training) continue;
+			await db
+				.collection<{ _id: string; player: string; affliction: string; resolved?: boolean }>(
+					'progress'
+				)
+				.updateOne(
+					{ _id: `${explorer._id}:${def.id}` },
+					{ $set: { player: explorer._id, affliction: def.id, resolved: true } },
+					{ upsert: true }
+				);
+		}
+		return json(await accountView(db, account));
+	}
+	if (body.action === 'forgetAfflictions') {
+		await db.collection('progress').deleteMany({ player: explorer._id });
+		return json(await accountView(db, account));
+	}
+	if (body.action === 'setTrust') {
+		if (typeof body.sold !== 'number' || !Number.isFinite(body.sold)) error(400, 'Bad request');
+		await setTrust(db, explorer._id, body.sold);
+		return json(await accountView(db, account));
+	}
 	let result;
 	if (body.action === 'grantMoney') result = await grant(db, explorer._id, { money: body.amount });
 	else if (body.action === 'grantItem') {

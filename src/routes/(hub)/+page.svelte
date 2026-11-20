@@ -63,8 +63,6 @@
 			<h2>Affliction</h2>
 			{#if affliction}
 				<div class="chosen" style:--art="url('{imageUrl(affliction.image)}')">
-					<!-- Dark blue smoke drifting around it, behind the card. -->
-					<div class="smoke" aria-hidden="true"><span></span><span></span><span></span></div>
 					<!-- Its picture, slowly drifting in and out. -->
 					<div class="art" aria-hidden="true"></div>
 					<span class="name">{affliction.name}</span>
@@ -200,15 +198,12 @@
 	}
 
 	/*
-	 * The chosen Affliction: its name over a strip of its picture, which moves with the cursor,
-	 * wreathed in smoke the cyan of the accent (as "Resolved" is). Both hold still for people who
-	 * ask for reduced motion. Only translate, transform and opacity change, and nothing that moves
-	 * is blurred, so the browser moves layers on the GPU instead of repainting each frame.
+	 * The chosen Affliction: its name over a strip of its picture, which moves with the cursor (and
+	 * holds still for people who ask for reduced motion), in a thin light border. Only translate
+	 * changes, so the browser moves a layer on the GPU instead of repainting each frame.
 	 */
 	.chosen {
-		/* The smoke's colour, at full strength: mixed down below for each layer. */
-		--smoke: var(--accent);
-		/* Its own stacking context: the smoke goes behind the card, not behind the panel. */
+		/* Its own stacking context: the picture stays inside the card. */
 		position: relative;
 		isolation: isolate;
 		display: flex;
@@ -220,7 +215,8 @@
 		text-align: center;
 		text-shadow: 0 2px 12px rgb(0 0 0 / 0.9);
 		background: #211c18;
-		box-shadow: 0 0 22px color-mix(in srgb, var(--smoke) 45%, transparent);
+		/* A thin light border: nothing glowing round it. */
+		border: 1px solid rgb(230 220 203 / 0.35);
 	}
 
 	.art {
@@ -247,80 +243,6 @@
 		translate: calc(var(--parallax-x, 0) * -5%) calc(var(--parallax-y, 0) * -5%);
 		transition: translate 0.25s ease-out;
 		will-change: translate;
-	}
-
-	/* The cyan glow at its edges, over the picture. */
-	.art::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-		box-shadow: inset 0 0 26px color-mix(in srgb, var(--smoke) 55%, transparent);
-	}
-
-	.smoke {
-		position: absolute;
-		inset: -30px -26px;
-		z-index: -1;
-		pointer-events: none;
-	}
-
-	/* Soft from the gradients alone: a blur here would be repainted every frame. */
-	.smoke span {
-		position: absolute;
-		inset: 0;
-		border-radius: 50%;
-		background: radial-gradient(
-			closest-side,
-			color-mix(in srgb, var(--smoke) 55%, transparent),
-			color-mix(in srgb, var(--smoke) 30%, transparent) 45%,
-			color-mix(in srgb, var(--smoke) 10%, transparent) 75%,
-			transparent
-		);
-		will-change: transform, opacity;
-		animation: smoke 10s ease-in-out infinite alternate;
-	}
-
-	.smoke span:nth-child(2) {
-		inset: 15% -12% -10% 30%;
-		background: radial-gradient(
-			closest-side,
-			color-mix(in srgb, var(--smoke) 45%, transparent),
-			color-mix(in srgb, var(--smoke) 12%, transparent) 65%,
-			transparent
-		);
-		animation-duration: 13s;
-		animation-delay: -5s;
-	}
-
-	.smoke span:nth-child(3) {
-		inset: -15% 30% 20% -12%;
-		background: radial-gradient(
-			closest-side,
-			color-mix(in srgb, var(--smoke) 40%, transparent),
-			color-mix(in srgb, var(--smoke) 10%, transparent) 65%,
-			transparent
-		);
-		animation-duration: 16s;
-		animation-delay: -9s;
-	}
-
-	@keyframes smoke {
-		from {
-			transform: translate(-5%, 3%) rotate(0deg) scale(0.94);
-			opacity: 0.7;
-		}
-		to {
-			transform: translate(6%, -4%) rotate(14deg) scale(1.1);
-			opacity: 1;
-		}
-	}
-
-	/* The picture needs nothing here: parallax.ts doesn't report the cursor then. */
-	@media (prefers-reduced-motion: reduce) {
-		.smoke span {
-			animation: none;
-		}
 	}
 
 	.chosen .name,

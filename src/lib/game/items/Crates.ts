@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { CRATES } from '#lib/content/loot.ts';
-import { modelUrl } from '#lib/content/models.ts';
+import { LOOTABLES, type LootableDef } from '#lib/content/lootables.ts';
 import { loadModel } from '#lib/game/assets.ts';
 import type { CratesSnapshot } from '#lib/shared/items/types.ts';
 import type { CratePlacement } from '#lib/shared/map/types.ts';
 
 interface Shown {
 	root: THREE.Object3D;
-	/** The lid: its origin is the hinge, and it turns about its X axis. */
+	/** The lid: its origin is the hinge, and it turns about its X axis by `angle`. */
 	lid: THREE.Object3D | null;
+	angle: number;
 	/** How far the lid is open, 0..1. */
 	open: number;
 	highlighted: boolean;
@@ -16,19 +16,15 @@ interface Shown {
 	materials: Map<THREE.Mesh, THREE.Material | THREE.Material[]>;
 }
 
-const MODEL = modelUrl('shared/props/crate.glb');
-const CORPSE_MODEL = modelUrl('shared/props/corpse.glb');
-const TRUNK_MODEL = modelUrl('shared/props/trunk.glb');
-const LID = 'crate-lid';
 const HIGHLIGHT = new THREE.Color(0x2a2418);
 /** Seconds the lid takes to swing up. */
 const LID_TIME = 0.5;
 
 /**
- * Loot crates, and the corpses searched like them. Where they lie comes with the map layout; each
- * tick says which have been opened (crate lids stay up) and which someone is going through. The
- * one you'd open glows faintly.
- * See docs/dev/items.md.
+ * Lootables: crates, corpses, trunks and the rest (LOOTABLES). Where they lie comes with the map
+ * layout; each tick says which have been opened (crate lids stay up) and which someone is going
+ * through. One with no model yet is a box of its size and colour. The one you'd open glows faintly.
+ * See docs/dev/lootables.md.
  */
 export class Crates {
 	readonly root = new THREE.Group();
@@ -45,19 +41,15 @@ export class Crates {
 		this.root.name = 'crates';
 	}
 
-	/** Put a crate (or a corpse) at each place in the layout. */
+	/** Put the lootable at each place in the layout. */
 	build(placements: CratePlacement[]): void {
 		this.clear();
 		this.placements = placements;
 		const id = this.buildId;
 		for (const placement of placements) {
-			const url =
-				placement.kind === 'corpse'
-					? CORPSE_MODEL
-					: placement.kind === 'trunk'
-						? TRUNK_MODEL
-						: MODEL;
-			void loadModel(url).then((model) => {
+			const def = LOOTABLES[placement.kind ?? 'crate'];
+			const loaded = def.model ? loadModel(def.model) : Promise.resolve(placeholder(def));
+			void loaded.then((model) => {
 				// A newer map was loaded while this one was on its way.
 				if (id !== this.buildId) return;
 				model.position.set(...placement.position);
@@ -71,7 +63,8 @@ export class Crates {
 				this.root.add(model);
 				this.shown.set(placement.id, {
 					root: model,
-					lid: model.getObjectByName(LID) ?? null,
+					lid: def.lid ? (model.getObjectByName(def.lid.part) ?? null) : null,
+					angle: def.lid?.angle ?? 0,
 					// One that was opened before we got here is already up.
 					open: this.opened.has(placement.id) ? 1 : 0,
 					highlighted: false,
@@ -129,7 +122,7 @@ export class Crates {
 					: Math.max(target, shown.open - step);
 			// Ease out: quick off the catch, slow to rest.
 			const eased = 1 - (1 - shown.open) * (1 - shown.open);
-			if (shown.lid) shown.lid.rotation.x = -eased * CRATES.lidAngle;
+			if (shown.lid) shown.lid.rotation.x = -eased * shown.angle;
 		}
 	}
 
@@ -138,6 +131,14 @@ export class Crates {
 		for (const shown of this.shown.values()) {
 			this.glow(shown, false);
 			shown.root.removeFromParent();
+			// A placeholder box is this map's own; a model is shared from the cache.
+			if (shown.root.name.startsWith('placeholder-')) {
+				shown.root.traverse((node) => {
+					if (!(node instanceof THREE.Mesh)) return;
+					node.geometry.dispose();
+					(node.material as THREE.Material).dispose();
+				});
+			}
 		}
 		this.shown.clear();
 		this.placements = [];
@@ -174,4 +175,30 @@ export class Crates {
 			}
 		});
 	}
+}
+
+/** A lootable with no model yet: a box of its size and colour, standing on the floor. */
+function placeholder(def: LootableDef): THREE.Object3D {
+	const [w, h, d] = def.size;
+	const box = new THREE.Mesh(
+		new THREE.BoxGeometry(w, h, d),
+		new THREE.MeshStandardMaterial({ color: def.color, roughness: 0.9 })
+	);
+	box.position.y = h / 2;
+	const root = new THREE.Group();
+	root.name = `placeholder-${def.id}`;
+	root.add(box);
+	// A hidden one's sign (a smuggler's chalk mark, planned as a decal): a pale cross above it.
+	if (def.hidden) {
+		const chalk = new THREE.MeshBasicMaterial({ color: 0xd9d4c4, transparent: true, opacity: 0.7 });
+		for (const turn of [Math.PI / 4, -Math.PI / 4]) {
+			for (const face of [1, -1]) {
+				const stroke = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.025), chalk);
+				stroke.position.set(0, h + 0.18, face * (d / 2 + 0.01));
+				stroke.rotation.set(0, face < 0 ? Math.PI : 0, turn);
+				root.add(stroke);
+			}
+		}
+	}
+	return root;
 }

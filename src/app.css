@@ -29,6 +29,8 @@
 	--rarity-legendary: #e3b92c;
 	/* Quest items (one of a kind, needed for a rite): the same edge, and their mark, in purple. */
 	--quest: #a45fd8;
+	/* A broken item (worn out, inert until repaired): the shade over its slot and its mark. */
+	--broken: #e0473b;
 	/* Dark yellow: the button that launches an expedition (and confirms the loadout for it). */
 	--launch: #b08a1e;
 	--launch-bright: #cda42a;

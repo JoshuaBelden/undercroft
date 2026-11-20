@@ -5,6 +5,12 @@ import { SIM_RATE, TICK_RATE } from '../src/lib/shared/constants.ts';
 import { addItem, newStack } from '../src/lib/shared/items/inventory.ts';
 import { rollLoose } from '../src/lib/shared/items/loot.ts';
 import { lookedAtItem } from '../src/lib/shared/items/pickup.ts';
+import {
+	FLIGHT,
+	flightStep,
+	launch as launchFrom,
+	restingAt
+} from '../src/lib/shared/items/projectile.ts';
 import type { ProjectileSnapshot, WorldItemSnapshot } from '../src/lib/shared/items/types.ts';
 import {
 	floorHeightAt,
@@ -34,25 +40,57 @@ interface WorldItem {
 	normal?: Vec3;
 }
 
+/** How something in flight behaves: a throw's own numbers, or a round's (a bolt, a pebble). */
+export interface Flight {
+	speed: number;
+	/** Extra upward speed: a throw is lobbed; a shot isn't. */
+	lift: number;
+	damage: number;
+	/** Radius (m) its landing is heard. */
+	landNoise: number;
+	/** Chance it breaks when it hits a creature (gone, not dropped). */
+	breakChance: number;
+	/** Gone when it lands or hits (a fuse goes off, a bottle bursts): nothing is left to pick up. */
+	usedUp: boolean;
+}
+
 interface Projectile {
 	id: string;
 	stack: ItemStack;
 	position: Vec3;
 	velocity: Vec3;
-	/** Player who threw it. */
+	/** Player who threw (or shot) it. */
 	thrower: string;
+	flight: Flight;
 }
 
 /** What a projectile did this tick. */
 export type ProjectileResult =
-	| { kind: 'hitCreature'; creature: string; damage: number; thrower: string; position: Vec3 }
-	| { kind: 'land'; item: string; position: Vec3; noise: number };
+	| {
+			kind: 'hitCreature';
+			creature: string;
+			damage: number;
+			thrower: string;
+			position: Vec3;
+			item: string;
+	  }
+	| { kind: 'land'; item: string; position: Vec3; noise: number; thrower: string };
 
-const GRAVITY = 9.8;
 const SUBSTEPS = Math.round(SIM_RATE / TICK_RATE);
 const DT = 1 / SIM_RATE;
-/** Throws start a little in front of the eye and arc upward. */
-const THROW_LIFT = 1.5;
+
+/** How a thrown item flies, from its `throwable`. */
+export function thrownFlight(item: string): Flight {
+	const spec = ITEMS[item]?.throwable;
+	return {
+		speed: spec?.speed ?? 10,
+		lift: FLIGHT.lift,
+		damage: spec?.damage ?? 0,
+		landNoise: spec?.landNoise ?? 0,
+		breakChance: 0,
+		usedUp: !!spec?.fuse || !!spec?.fire || !!spec?.glow || !!spec?.lure
+	};
+}
 
 export class WorldItems {
 	private items = new Map<string, WorldItem>();
@@ -88,6 +126,20 @@ export class WorldItems {
 					rng.next() * Math.PI * 2
 				);
 			}
+		}
+		// Pebbles by some of them, in their own stream so the bricks lie where they did.
+		const stones = new Rng(seed ^ 0x9eb1);
+		for (const site of rubble) {
+			if (Math.hypot(site[0] - start[0], site[2] - start[2]) <= 6) continue;
+			if (stones.next() >= BRICKS.pebbles.chance) continue;
+			const near = nearestPoint(nav, site, BRICKS.radius);
+			if (near < 0) continue;
+			const count = stones.int(BRICKS.pebbles.count[0], BRICKS.pebbles.count[1]);
+			this.place(
+				newStack('pebbles', count),
+				[...nav.points[near].position],
+				stones.next() * Math.PI * 2
+			);
 		}
 	}
 
@@ -187,6 +239,16 @@ export class WorldItems {
 		for (const [id, entry] of this.items) if (entry.stack.item === item) this.items.delete(id);
 	}
 
+	/** Take away any of an item lying within half a metre of a spot (a tutorial thing put back). */
+	removeAt(item: string, at: Vec3): void {
+		for (const [id, entry] of this.items) {
+			const p = entry.position;
+			if (entry.stack.item === item && Math.hypot(p[0] - at[0], p[1] - at[1], p[2] - at[2]) < 0.5) {
+				this.items.delete(id);
+			}
+		}
+	}
+
 	/** Drop in front of a player (from their eye and look direction): out of the pack. */
 	drop(stack: ItemStack, origin: Vec3, direction: Vec3): void {
 		const ahead: Vec3 = [origin[0] + direction[0] * 0.7, origin[1], origin[2] + direction[2] * 0.7];
@@ -223,19 +285,22 @@ export class WorldItems {
 		return { item: item.stack.item, count: before - left };
 	}
 
-	/** Launch a thrown item. */
-	launch(stack: ItemStack, origin: Vec3, direction: Vec3, thrower: string): void {
-		const speed = ITEMS[stack.item]?.throwable?.speed ?? 10;
+	/** Launch something: a thrown item (its own `throwable`), or a round with its `flight`. */
+	launch(
+		stack: ItemStack,
+		origin: Vec3,
+		direction: Vec3,
+		thrower: string,
+		flight: Flight = thrownFlight(stack.item)
+	): void {
+		const start = launchFrom(origin, direction, flight.speed, flight.lift);
 		this.projectiles.push({
 			id: `p${this.nextId++}`,
 			stack: { ...stack },
-			position: [
-				origin[0] + direction[0] * 0.3,
-				origin[1] + direction[1] * 0.3,
-				origin[2] + direction[2] * 0.3
-			],
-			velocity: [direction[0] * speed, direction[1] * speed + THROW_LIFT, direction[2] * speed],
-			thrower
+			position: start.position,
+			velocity: start.velocity,
+			thrower,
+			flight
 		});
 	}
 
@@ -244,15 +309,10 @@ export class WorldItems {
 		const results: ProjectileResult[] = [];
 		const flying: Projectile[] = [];
 		for (const p of this.projectiles) {
-			const spec = ITEMS[p.stack.item]?.throwable;
+			const f = p.flight;
 			let alive = true;
 			for (let i = 0; i < SUBSTEPS && alive; i++) {
-				p.velocity[1] -= GRAVITY * DT;
-				const next: Vec3 = [
-					p.position[0] + p.velocity[0] * DT,
-					p.position[1] + p.velocity[1] * DT,
-					p.position[2] + p.velocity[2] * DT
-				];
+				const { next, hit: t } = flightStep(this.world, p.position, p.velocity, DT);
 				const step = Math.hypot(
 					next[0] - p.position[0],
 					next[1] - p.position[1],
@@ -269,36 +329,36 @@ export class WorldItems {
 					results.push({
 						kind: 'hitCreature',
 						creature: c.id,
-						damage: spec?.damage ?? 0,
+						damage: f.damage,
 						thrower: p.thrower,
-						position: [...p.position]
+						position: [...p.position],
+						item: p.stack.item
 					});
-					// It drops at the creature's feet.
-					this.place(p.stack, [p.position[0], p.position[1], p.position[2]], 0);
+					// It drops at the creature's feet, unless it broke (or is used up).
+					const broke = f.breakChance > 0 && Math.random() < f.breakChance;
+					if (!broke && !f.usedUp)
+						this.place(p.stack, [p.position[0], p.position[1], p.position[2]], 0);
 					results.push({
 						kind: 'land',
 						item: p.stack.item,
 						position: [...p.position],
-						noise: spec?.landNoise ?? 0
+						noise: f.landNoise,
+						thrower: p.thrower
 					});
 					alive = false;
 					break;
 				}
 				if (!alive) break;
-				const t = segmentHit(this.world, p.position, next);
 				if (t !== null) {
 					// Back off the surface a little, then settle on the floor below.
-					const at: Vec3 = [
-						p.position[0] + (next[0] - p.position[0]) * Math.max(0, t - 0.05),
-						p.position[1] + (next[1] - p.position[1]) * Math.max(0, t - 0.05),
-						p.position[2] + (next[2] - p.position[2]) * Math.max(0, t - 0.05)
-					];
-					this.place(p.stack, at, Math.atan2(-p.velocity[0], -p.velocity[2]));
+					const at = restingAt(p.position, next, t);
+					if (!f.usedUp) this.place(p.stack, at, Math.atan2(-p.velocity[0], -p.velocity[2]));
 					results.push({
 						kind: 'land',
 						item: p.stack.item,
 						position: at,
-						noise: spec?.landNoise ?? 0
+						noise: f.landNoise,
+						thrower: p.thrower
 					});
 					alive = false;
 					break;

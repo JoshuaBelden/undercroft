@@ -5,6 +5,8 @@
  * Distances are metres. The grid is CELL x CELL horizontally and LEVEL_HEIGHT vertically.
  */
 
+import type { LootableId } from '../../content/lootables.ts';
+
 export type Vec3 = [number, number, number];
 export type Quat = [number, number, number, number];
 
@@ -43,6 +45,11 @@ export interface CrateMarker {
 	position: Vec3;
 	/** Turn about +Y (radians). At 0 the crate's back is to the north (-Z). */
 	yaw: number;
+}
+
+/** A lootable-<type>-<n> marker: a crate marker for one kind of lootable (docs/dev/lootables.md). */
+export interface LootableMarker extends CrateMarker {
+	type: LootableId;
 }
 
 /** A rope hanging straight down from `top` (rope-* markers), in piece space. See docs/dev/rope.md. */
@@ -95,10 +102,19 @@ export interface PieceDef {
 	/** Where a loot crate may stand (crate-* markers). The server fills only some of them. */
 	crates: CrateMarker[];
 	/**
+	 * Where a lootable of a kind may stand (lootable-<type>-<n> markers), filled like crate markers.
+	 * Left out of pieces that have none.
+	 */
+	lootables?: LootableMarker[];
+	/**
 	 * Doors (door-* markers): floor centre of the doorway. At yaw 0 the room side is north (-Z);
 	 * the leaves swing away from it. Every one is a door between levels (see DOORS).
 	 */
 	doors: CrateMarker[];
+	/** Locked iron gates (gate-* markers), placed like doors (see GATES). */
+	gates?: CrateMarker[];
+	/** Named places (spot-<name> markers): where Rumors puts things and tells its steps. */
+	spots?: SpotMarker[];
 	/** Collapsed walls (rubble-* markers): the only places bricks lie, a few at each. */
 	rubble: Vec3[];
 	/** Ropes to climb (rope-* markers): the extraction ropes. */
@@ -156,8 +172,23 @@ export interface KitEntry {
 	sketch?: SketchSymbol;
 	/** Name shown in the room banner when a player first enters it. */
 	title?: string;
+	/** A line under the title in its banner ("Where the priests made ready"). */
+	banner?: string;
+	/**
+	 * The levels of a map it may appear on, counted from 1 as players see them (`[2, 3]`). Left
+	 * out: any level. A level a map doesn't have (a map of one level) doesn't count.
+	 */
+	levels?: number[];
 	/** How the space sounds (reverb, damping); default 'tunnel'. See src/lib/content/audio/ambience.ts. */
 	acoustics?: Acoustics;
+	/**
+	 * Until its piece has lootable-* markers: what its crate markers hold, by relative weight
+	 * (`crate` among them keeps some crates). A type nothing can open yet is left out. See
+	 * docs/dev/lootables.md#rooms.
+	 */
+	lootables?: Partial<Record<LootableId, number>>;
+	/** Opening a lootable here takes this much sanity off whoever opens it (the plague pit). */
+	searchSanity?: number;
 	/**
 	 * Owned by one Affliction (key into AFFLICTIONS): only generated in its maps, and its model
 	 * lives in static/assets/afflictions/<id>/. Unset: shared by every map.
@@ -194,10 +225,12 @@ export interface CratePlacement {
 	/** Turn about +Y (radians). At 0 its back is to the north (-Z) and it opens to the south. */
 	yaw: number;
 	/**
-	 * A corpse, searched like a crate (see CORPSES), or a locked trunk (TRUNKS); absent for a crate.
-	 * Corpses are not solid.
+	 * What kind of lootable it is (LOOTABLES: a corpse, a locked trunk, a wall niche...); absent
+	 * for a crate. Only the solid ones are in the collision world.
 	 */
-	kind?: 'corpse' | 'trunk';
+	kind?: Exclude<LootableId, 'crate'>;
+	/** The piece it stands in (what its room makes searching it cost). */
+	piece?: string;
 	/** The level of the map it is on (its piece's tier): what it can hold depends on it. */
 	tier: number;
 }
@@ -216,6 +249,8 @@ export interface DoorPlacement {
 	yaw: number;
 	/** The level of the map it is on: for a long stair's, the one it leads down to. */
 	tier: number;
+	/** A locked iron gate (a gate-* marker): a key or lockpicks open it (see GATES). */
+	kind?: 'gate';
 }
 
 /**
@@ -225,6 +260,16 @@ export interface DoorPlacement {
 export interface WallPlacement extends Placement {
 	/** Its id: its collision boxes carry it, like a door's (openDoor takes them away). */
 	id: string;
+	/**
+	 * What it is: left out, a false wall (hidden, a crowbar brings it down); `rubble` (seen, a
+	 * pickaxe breaks it); `web` (seen, torn by blows, cut by a blade, burned by fire).
+	 */
+	kind?: 'rubble' | 'web';
+}
+
+/** A named place in a piece (a spot-<name> marker). */
+export interface SpotMarker extends CrateMarker {
+	name: string;
 }
 
 export interface MapLayout {

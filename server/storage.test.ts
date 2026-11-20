@@ -138,6 +138,10 @@ describe('with a database', () => {
 		store.returnFromExpedition.mockResolvedValue(undefined);
 		store.clearUnderground.mockResolvedValue(2);
 		expect(await takeKit('exp', 's')).toBe(kit);
+		expect(store.takeLoadout).toHaveBeenLastCalledWith(db.current, 'exp', 's', false);
+		// Asked for the free loadout: the store decides (only for an empty loadout).
+		await takeKit('exp', 's', true);
+		expect(store.takeLoadout).toHaveBeenLastCalledWith(db.current, 'exp', 's', true);
 		expect(await owned(['exp'])).toEqual(new Set(['pendant']));
 		expect(await owned([])).toEqual(new Set());
 		giveBack('exp', 's', kit);

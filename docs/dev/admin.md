@@ -61,6 +61,7 @@ Search by email, gamer tag or Discord name (a case-insensitive substring); witho
 - **Change the gamer tag**: for a name that shouldn't be one. Other players see the new one from their next connection.
 - **Remove picture**: their uploaded avatar, for a picture that shouldn't be one (`removeAvatar`). The page shows it, or their Discord avatar, which can't be removed here. Other players see it gone from their next connection. See [accounts.md](accounts.md#avatars).
 - **Make admin**, **Remove admin**.
+- **Reset to a new player**: after typing the gamer tag, everything they own and have learned goes, as if they had just signed up: no money (a new explorer has none), nothing in the stash or loadout, nothing discovered, no trust with the merchant, and no progress against any Affliction (Rumors to do again, the Gloaming locked until then). The account, its friends, settings and chalk wheel stay. Refused while they are underground or ready to descend (`resetExplorer` in `src/lib/server/store/shop.ts`, audited as `resetExplorer`).
 - **Delete account**: for good, after typing the gamer tag; not your own. Then back to the member list. What goes and what stays: [accounts.md](accounts.md#deleting-an-account).
 
 ### Suspending
@@ -100,6 +101,8 @@ The Art & Assets page (`/assets`) is a working checklist for art and audio: ever
 | Unused files | Anything under `static/assets` no row above covers                                                                                                                |
 
 Statuses: **OK** (used and there), **Missing** (named but no file, or a clip the file lacks), **Placeholder** (a box for a model, a held pose for a clip), **Synthesized** (no recording: made in code), **Unused** (a file nothing uses). The counts of everything that isn't OK are at the top; filter by kind, status or a search. Pictures show a thumbnail and sounds a play button. Both load from the admin app itself (`/assets/file/<path>`, behind its sign-in; `assetFile` keeps the path inside the assets folder), so they work without the game site running.
+
+**Planned art.** Art that is planned but not made yet is named in `src/lib/content/planned.ts` (`PLANNED_ASSETS`: its kind, the name it will have, what it is, its group and the first phase of [the gear, crafting and loot handoff](../handoff-gear-crafting-loot.md#art-assets) that needs it). Each is a row of its own, used by "Planned: <group> (phase n)": a model as a **Placeholder** (drawn as a box), a clip as a **Placeholder** (a held pose), a picture, sound or map piece as **Missing**. A planned row drops off by itself once the real thing is there under that name (a built picture, a model in the manifest, a map piece, a sound in `SOUNDS`, a clip in one of the explorer's glTFs); then take its line out of `planned.ts`. Search "Planned" for what is left to make. Planned rows carry `planned` (the phase), and `disk.test.ts` doesn't count them as missing files.
 
 **Levels** are the ones `pnpm asset:levels` last wrote to `src/lib/content/audio/levels.generated.ts`, with the files it measured: a sound whose files have changed since says "out of date". Run it after `pnpm asset:audio` and commit the file.
 

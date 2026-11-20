@@ -9,8 +9,11 @@ export interface FrameStats {
 	lights: number;
 }
 
-/** Max dynamic lights active at once. Candles, headlamps, torches and glow sticks all count. */
-export const LIGHT_BUDGET = 8;
+/**
+ * Max dynamic lights active at once. Candles, headlamps, torches and glow sticks all count; it
+ * went up from 8 to make room for glow sticks (tuned in play).
+ */
+export const LIGHT_BUDGET = 12;
 
 /** Per-quality render settings. */
 const QUALITY = {

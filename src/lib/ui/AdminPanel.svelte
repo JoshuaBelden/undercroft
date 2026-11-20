@@ -171,6 +171,7 @@
 
 	let seedInput = $state('');
 	let moneyInput = $state('100');
+	let trustInput = $state('1000');
 	let sanityInput = $state('100');
 	let meterInput = $state('70');
 	let deadlineInput = $state('10');
@@ -377,12 +378,12 @@
 			{@render action(
 				'Open the doors',
 				() => onadmin({ kind: 'openDoors' }),
-				'Every door between levels, for everyone, as if held open.'
+				'Every door between levels and every locked gate, for everyone, as if held open.'
 			)}
 			{@render action(
 				'Bring down false walls',
 				() => onadmin({ kind: 'openWalls' }),
-				'Every false wall in the map comes down, as if pried with a crowbar.'
+				'Every false wall, rubble wall and web in the map comes down, as if pried, broken or cut.'
 			)}
 		{:else if group === 'Player'}
 			{#each toggles as toggle (toggle.kind)}
@@ -423,8 +424,15 @@
 				<p class="hint">Firearms come loaded.</p>
 			</form>
 			{@render action('Refill ammo', () => onadmin({ kind: 'refillAmmo' }))}
+			{@render action('Wear held item', () => onadmin({ kind: 'wearHeld' }))}
+			{@render action('Break held item', () => onadmin({ kind: 'breakHeld' }))}
+			{@render action('Repair everything', () => onadmin({ kind: 'repairAll' }))}
 			{@render action('Reset crates', () => onadmin({ kind: 'resetCrates' }))}
-			{@render action('Unlock crates', () => onadmin({ kind: 'unlockCrates' }))}
+			{@render action(
+				'Unlock crates',
+				() => onadmin({ kind: 'unlockCrates' }),
+				"Unjams and unlocks every lootable, finds every smuggler's stash and fills every font."
+			)}
 			{@render action('Clear chalk marks', () => onadmin({ kind: 'clearMarks' }))}
 			<StepperField
 				label="Grip check"
@@ -617,6 +625,35 @@
 				'The item and count chosen under Items.'
 			)}
 			{@render action('Reset explorer', () => void account({ action: 'resetExplorer' }))}
+			{@render action(
+				'Discover everything',
+				() => void account({ action: 'discoverAll' }),
+				'Every item there is to discover, as if seen; every recipe in the Library and Workshop.'
+			)}
+			{@render action('Forget discoveries', () => void account({ action: 'resetDiscoveries' }))}
+			{@render action(
+				'Rumors done',
+				() => void account({ action: 'completeTraining' }),
+				'As if you had got out of Rumors: the Gloaming opens.'
+			)}
+			{@render action(
+				'Forget Afflictions',
+				() => void account({ action: 'forgetAfflictions' }),
+				'Every hint and resolution forgotten: Rumors to do again, the Gloaming locked.'
+			)}
+			<form
+				class="setting"
+				onsubmit={(event) => {
+					event.preventDefault();
+					void account({ action: 'setTrust', sold: Number(trustInput) || 0 });
+				}}
+			>
+				<label class="pill">
+					<span class="name">Trust (coin sold)</span>
+					<input type="text" inputmode="numeric" autocomplete="off" bind:value={trustInput} />
+				</label>
+				<button type="submit">Set</button>
+			</form>
 			<p class="hint" role="status">
 				{accountMessage || 'These work on the surface and are refused while underground.'}
 			</p>

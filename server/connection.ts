@@ -79,13 +79,13 @@ export function serve(
 				parties.leave(member);
 				break;
 			case 'ready':
-				void parties.setReady(member, message.ready === true);
+				void parties.setReady(member, message.ready === true, message.free === true);
 				break;
 			case 'kick':
 				parties.kick(member, message.member);
 				break;
 			case 'affliction':
-				parties.setAffliction(member, message.id);
+				void parties.setAffliction(member, message.id);
 				break;
 			case 'resetAffliction':
 				void parties.resetAffliction(member, message.id);
@@ -131,6 +131,16 @@ export function serve(
 			case 'closeCrate': {
 				const e = parties.expedition(member);
 				if (e) e.session.closeCrate(e.playerId);
+				break;
+			}
+			case 'craft': {
+				const e = parties.expedition(member);
+				if (e) e.session.craft(e.playerId, message);
+				break;
+			}
+			case 'stopCraft': {
+				const e = parties.expedition(member);
+				if (e) e.session.stopCraft(e.playerId);
 				break;
 			}
 			case 'admin': {

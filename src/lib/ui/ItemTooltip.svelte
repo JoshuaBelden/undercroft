@@ -2,18 +2,19 @@
 	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS, RARITIES, rarityOf } from '#lib/content/items.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
-	import { categoryLabel, COIN_SIGN, itemStats } from './items.ts';
+	import { categoryLabel, stackCondition } from './items.ts';
 
 	/**
-	 * What an item is, shown beside the slot it sits in: its picture, name, a line about it and
-	 * the figures that matter. Give it the stack and where the slot is on the screen; it goes to
-	 * the right of the slot, or to the left when there is no room there.
+	 * What an item is, shown beside the slot it sits in: its picture, name, rarity and type, a line
+	 * about it and, for things that wear, its durability as a bar and a percent. Every figure is in
+	 * the Inspect panel (right-click), not here. Give it the stack and where the slot is on the
+	 * screen; it goes to the right of the slot, or to the left when there is no room there.
 	 */
 	interface Props {
 		stack: ItemStack;
 		/** The slot's place on the screen (`getBoundingClientRect`). */
 		anchor: DOMRect;
-		/** It is for sale in the store, not owned: what it holds, not what is in it now. */
+		/** It is for sale in the store, not owned: new, whatever wear is on the stack. */
 		forSale?: boolean;
 	}
 
@@ -25,7 +26,8 @@
 	let height = $state(0);
 
 	const def = $derived(ITEMS[stack.item]);
-	const stats = $derived(itemStats(stack, forSale));
+	const wear = $derived(forSale ? null : stackCondition(stack));
+	const lasts = $derived(forSale && stackCondition(stack) !== null);
 	const rarity = $derived(rarityOf(stack.item));
 	const rarityName = $derived(RARITIES.find((r) => r.id === rarity)?.name ?? '');
 	const left = $derived(
@@ -68,14 +70,25 @@
 	{#if def?.flavor}
 		<p class="flavor">{def.flavor}</p>
 	{/if}
-	<dl>
-		{#each stats as stat (stat.label + stat.value)}
-			<dt>{stat.label}</dt>
-			<dd>
-				{#if stat.coins}<span class="sign" aria-hidden="true">{COIN_SIGN}</span>{/if}{stat.value}
-			</dd>
-		{/each}
-	</dl>
+	{#if wear}
+		<div class="durability" class:broken={wear.broken}>
+			<span class="label">{wear.broken ? 'Broken' : 'Durability'}</span>
+			<span class="percent">{wear.percent}%</span>
+			<span class="bar" aria-hidden="true"><span style:width="{wear.left * 100}%"></span></span>
+		</div>
+		{#if wear.broken}
+			<p class="note">It does nothing until it is repaired.</p>
+		{/if}
+	{:else if lasts}
+		<div class="durability">
+			<span class="label">Durability</span>
+			<span class="percent">New</span>
+			<span class="bar" aria-hidden="true"><span style:width="100%"></span></span>
+		</div>
+	{/if}
+	{#if stack.free && !forSale}
+		<p class="note">From the free loadout: it sells for nothing.</p>
+	{/if}
 </div>
 
 <style>
@@ -175,29 +188,48 @@
 		color: var(--muted);
 	}
 
-	dl {
+	/* Durability: the label and percent above a thin bar of what is left. Red when broken. */
+	.durability {
 		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: 4px 14px;
-		margin: 12px 0 0;
+		grid-template-columns: 1fr auto;
+		gap: 6px;
+		margin-top: 12px;
 		padding-top: 10px;
 		border-top: 1px solid var(--border);
 		font-family: var(--font-ui);
 		font-size: 0.85rem;
 	}
 
-	dt {
+	.durability .label {
 		color: var(--muted);
 	}
 
-	dd {
-		margin: 0;
-		text-align: right;
+	.durability .percent {
 		font-variant-numeric: tabular-nums;
 	}
 
-	/* The full-width coin sign carries its own space: pull the value in, as in the top bar. */
-	.sign {
-		margin-right: -0.12em;
+	.bar {
+		grid-column: 1 / -1;
+		height: 4px;
+		border-radius: 2px;
+		background: rgb(255 255 255 / 0.1);
+		overflow: hidden;
+	}
+
+	.bar span {
+		display: block;
+		height: 100%;
+		background: var(--text);
+	}
+
+	.durability.broken .label,
+	.durability.broken .percent {
+		color: var(--broken);
+	}
+
+	.note {
+		margin-top: 6px;
+		font-size: 0.85rem;
+		color: var(--broken);
 	}
 </style>

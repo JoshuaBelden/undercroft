@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import { ApiError, trade } from '#lib/account/account.svelte.ts';
-	import { SHOP, money, type ShopEntry } from '#lib/content/economy.ts';
+	import { forSale, money, type ShopEntry } from '#lib/content/economy.ts';
 	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import { menu } from '#lib/game/input/menus.ts';
@@ -59,14 +59,15 @@
 		if (pointed?.item === ware.item) pointed = null;
 	}
 
-	const shown = $derived(SHOP.filter((entry) => matchesFilter(entry.item, filter)));
+	const wares = $derived(forSale(explorer.tiers));
+	const shown = $derived(wares.filter((entry) => matchesFilter(entry.item, filter)));
 	/** The pointed ware, while the filter still shows it and its details aren't open. */
 	const tip = $derived(
 		pointed && pointed.item !== selected
 			? (shown.find((ware) => ware.item === pointed?.item) ?? null)
 			: null
 	);
-	const entry = $derived(SHOP.find((e) => e.item === selected) ?? null);
+	const entry = $derived(wares.find((e) => e.item === selected) ?? null);
 	const def = $derived(entry ? ITEMS[entry.item] : undefined);
 	const lots = $derived(Math.min(MAX_LOTS, Math.max(1, Math.floor(quantity ?? 1))));
 	const total = $derived(entry ? entry.price * lots : 0);

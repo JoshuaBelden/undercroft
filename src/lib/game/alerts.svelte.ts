@@ -16,11 +16,17 @@ export const alerts: { list: { id: number; alert: Alert }[] } = $state({ list: [
 export interface AlertTargets {
 	item: () => void;
 	social: () => void;
+	/** A note goes nowhere: clicking it only dismisses it. */
+	note: () => void;
+	/** A discovery: the Library. */
+	discovery: () => void;
 }
 
 const SITE_TARGETS: AlertTargets = {
 	item: () => void goto(resolve('/(hub)/loadout')),
-	social: () => void goto(resolve('/(hub)/social'))
+	social: () => void goto(resolve('/(hub)/social')),
+	note: () => {},
+	discovery: () => void goto(resolve('/(hub)/library'))
 };
 let targets: AlertTargets = SITE_TARGETS;
 let sound: () => void = () => {};
@@ -56,7 +62,9 @@ export function hold(id: number, held: boolean): void {
 	clearTimeout(timers[id]);
 	delete timers[id];
 	if (held) return;
-	timers[id] = setTimeout(() => dismiss(id), ALERT.seconds * 1000);
+	const entry = alerts.list.find((other) => other.id === id);
+	const seconds = (entry?.alert.kind === 'note' && entry.alert.seconds) || ALERT.seconds;
+	timers[id] = setTimeout(() => dismiss(id), seconds * 1000);
 }
 
 /** An alert was clicked: go where it is about, and take it away. */

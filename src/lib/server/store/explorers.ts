@@ -1,5 +1,6 @@
 import type { Collection, Db } from 'mongodb';
-import { allStacks, applyAction, emptyInventory } from '../../shared/items/inventory.ts';
+import { FREE_LOADOUT } from '../../content/economy.ts';
+import { allStacks, applyAction, emptyInventory, newStack } from '../../shared/items/inventory.ts';
 import type { InventoryAction } from '../../shared/items/types.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
 import type { ExplorerDoc } from './accounts.ts';
@@ -21,7 +22,12 @@ export type ExplorerError =
 	| 'busy'
 	| 'money'
 	| 'worthless'
-	| 'unsold';
+	| 'unsold'
+	| 'unknownRecipe'
+	| 'undiscovered'
+	| 'materials'
+	| 'unrepairable'
+	| 'unsalvageable';
 
 export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	underground: "You can't do that while you're underground",
@@ -33,7 +39,12 @@ export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	busy: 'Something else changed at the same time. Try again',
 	money: "You can't afford that",
 	worthless: 'No one will buy that',
-	unsold: "The shop doesn't sell that"
+	unsold: "The shop doesn't sell that",
+	unknownRecipe: 'There is no such recipe',
+	undiscovered: "You haven't discovered everything that goes into that yet",
+	materials: "You don't have the materials for that in your stash",
+	unrepairable: "That can't be mended, or doesn't need it",
+	unsalvageable: "That can't be broken down into anything"
 };
 
 const explorers = (db: Db): Collection<ExplorerDoc> => db.collection<ExplorerDoc>('explorers');
@@ -97,14 +108,37 @@ export async function arrange(
  * Descent: the loadout leaves the explorer and they are marked as underground in this
  * expedition. Returns what they carry down (nothing, if the explorer is missing or already
  * marked: that should not happen, and they go down empty-handed rather than with a copy).
+ * `free`: they asked for the free loadout, which they get if their own is empty (otherwise they
+ * take their own, as if they hadn't).
  */
-export async function takeLoadout(db: Db, explorerId: string, session: string): Promise<Inventory> {
+export async function takeLoadout(
+	db: Db,
+	explorerId: string,
+	session: string,
+	free = false
+): Promise<Inventory> {
 	const before = await explorers(db).findOneAndUpdate(
 		{ _id: explorerId, underground: null },
 		{ $set: { underground: session, ready: false, loadout: emptyInventory() } },
 		{ returnDocument: 'before' }
 	);
-	return before?.loadout ?? emptyInventory();
+	if (!before) return emptyInventory();
+	const own = before.loadout ?? emptyInventory();
+	return free && allStacks(own).length === 0 ? freeLoadout() : own;
+}
+
+/** The free loadout (FREE_LOADOUT), every stack of it marked `free`. */
+export function freeLoadout(): Inventory {
+	const kit = emptyInventory();
+	let pack = 0;
+	let quick = 0;
+	for (const { item, count, slot } of FREE_LOADOUT) {
+		const stack = { ...newStack(item, count), free: true };
+		if (slot === 'backpack') kit.backpack[pack++] = stack;
+		else if (slot === 'quick') kit.quick[quick++] = stack;
+		else kit.equipment[slot] = stack;
+	}
+	return kit;
 }
 
 /**

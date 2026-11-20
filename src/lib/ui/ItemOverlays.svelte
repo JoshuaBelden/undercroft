@@ -1,16 +1,18 @@
 <script lang="ts">
+	import { salvageOf } from '#lib/shared/items/crafting.ts';
 	import { sellPrice } from '#lib/content/economy.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import Dialog from './Dialog.svelte';
 	import type { ItemBoard } from './itemBoard.svelte.ts';
+	import ItemInspect from './ItemInspect.svelte';
 	import ItemMenu from './ItemMenu.svelte';
 	import ItemTooltip from './ItemTooltip.svelte';
 	import { stackLabel } from './items.ts';
 	import QuantityDialog from './QuantityDialog.svelte';
 
 	/**
-	 * Everything a screen of item slots shows on top of them: the tooltip, the alternate menu and
-	 * the dialogs (how many to split or sell, whether to really drop). Put one beside the slots,
+	 * Everything a screen of item slots shows on top of them: the tooltip, the alternate menu, the
+	 * Inspect panel and the dialogs (how many to split or sell, whether to really drop). Put one beside the slots,
 	 * with the screen's `ItemBoard`.
 	 */
 	interface Props {
@@ -42,6 +44,10 @@
 	/>
 {/if}
 
+{#if board.inspected}
+	<ItemInspect stack={board.inspected} onclose={() => board.closeInspect()} />
+{/if}
+
 {#if asking?.kind === 'split'}
 	<QuantityDialog
 		title="Split"
@@ -57,11 +63,24 @@
 		name={askingName}
 		max={asking.stack.count}
 		confirm="Sell"
-		each={sellPrice(asking.stack.item)}
+		each={sellPrice(asking.stack.item, asking.stack)}
 		price={(amount) => board.price(amount)}
 		onconfirm={(count) => board.answer(count)}
 		onclose={() => board.cancel()}
 	/>
+{:else if asking?.kind === 'salvage'}
+	<Dialog title="Salvage" onclose={() => board.cancel()}>
+		<p>Break <strong>{stackLabel(asking.stack)}</strong> down?</p>
+		<p>
+			It gives {salvageOf(asking.stack)
+				.map((m) => `${ITEMS[m.item]?.name ?? m.item}${m.count > 1 ? ` ×${m.count}` : ''}`)
+				.join(', ')}, into your stash. The {askingName.toLowerCase()} is gone.
+		</p>
+		{#snippet footer()}
+			<button type="button" onclick={() => board.cancel()}>Keep it</button>
+			<button type="button" class="primary" onclick={() => board.answer(1)}>Salvage</button>
+		{/snippet}
+	</Dialog>
 {:else if asking?.kind === 'drop'}
 	<Dialog title="Drop" onclose={() => board.cancel()}>
 		<p>Drop <strong>{stackLabel(asking.stack)}</strong>?</p>

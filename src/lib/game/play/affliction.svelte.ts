@@ -37,7 +37,7 @@ export class Affliction implements PlayFeature {
 		const { affliction } = tick;
 		const def = AFFLICTIONS[affliction.id];
 		this.manifestation.apply(affliction.manifestation, def?.manifestation);
-		this.fightMusic(def?.manifestation.music, affliction.manifestation?.state);
+		this.fightMusic(def?.manifestation?.music, affliction.manifestation?.state);
 		this.name = def?.name ?? '';
 		this.omen = affliction.omen;
 		this.meter = affliction.meter;

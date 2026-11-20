@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
+	import { AFFLICTION_ORDER, afflictionLocked } from '#lib/content/afflictions.ts';
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import AfflictionPane from './AfflictionPane.svelte';
@@ -19,6 +19,13 @@
 	}
 
 	let { progress, selected, onselect, onclose }: Props = $props();
+
+	/** Only what can be chosen: a locked one (the Gloaming before Rumors) isn't offered at all. */
+	const open = $derived(
+		AFFLICTION_ORDER.filter(
+			(id) => !afflictionLocked(id, (done) => progress.some((p) => p.id === done && p.resolved))
+		)
+	);
 
 	/** Opens it as a modal, and keeps its key presses from reaching the game's input map. */
 	function modal(dialog: HTMLDialogElement): () => void {
@@ -49,7 +56,7 @@
 		<button type="button" class="back" onclick={onclose}>Back</button>
 	</header>
 	<div class="track" use:dragScroll>
-		{#each Object.keys(AFFLICTIONS) as id (id)}
+		{#each open as id (id)}
 			<AfflictionPane {id} {progress} selected={id === selected} onselect={() => onselect(id)} />
 		{/each}
 	</div>

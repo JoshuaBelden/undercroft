@@ -1,5 +1,11 @@
 import type { SoundId } from './audio/sounds.ts';
+import { GEAR } from './items/gear.ts';
+import { MATERIALS } from './items/materials.ts';
+import { QUICK } from './items/quick.ts';
+import { TREASURE } from './items/treasure.ts';
+import { WEAPONS } from './items/weapons.ts';
 import { modelUrl } from './models.ts';
+import type { ConditionId } from './player/conditions.ts';
 import { SANITY } from './player/sanity.ts';
 
 /**
@@ -9,7 +15,17 @@ import { SANITY } from './player/sanity.ts';
  */
 
 export type ItemKind =
-	'melee' | 'firearm' | 'throwable' | 'ammo' | 'consumable' | 'defense' | 'rite' | 'clue' | 'loot';
+	| 'melee'
+	| 'firearm'
+	| 'throwable'
+	| 'ammo'
+	| 'consumable'
+	| 'defense'
+	| 'gear'
+	| 'material'
+	| 'rite'
+	| 'clue'
+	| 'loot';
 
 /** How hard an item is to come by, commonest first. Shown on its slot and in its tooltip. */
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
@@ -23,8 +39,12 @@ export const RARITIES: { id: Rarity; name: string }[] = [
 	{ id: 'legendary', name: 'Legendary' }
 ];
 
-/** Which slots take an item, and the stash filter it is listed under. */
-export type ItemCategory = 'weapon' | 'defense' | 'quick' | 'other';
+/**
+ * Which slots take an item, and the stash filter it is listed under. Gear goes in the gear slots
+ * (worn, not used: it works while it is there); materials only ever sit in the backpack or the
+ * stash, never in a quick-use slot.
+ */
+export type ItemCategory = 'weapon' | 'defense' | 'quick' | 'gear' | 'material' | 'other';
 
 export interface MeleeSpec {
 	damage: number;
@@ -40,6 +60,21 @@ export interface MeleeSpec {
 	noise: number;
 	/** Hits before it breaks (bricks); omit for unbreakable. */
 	breaksAfter?: number;
+	/**
+	 * Stamina each swing costs. With too little left it won't swing at all (and the explorer gasps):
+	 * heavy weapons empty it in a few blows.
+	 */
+	stamina?: number;
+	/** It hits every creature in its arc, each for `damage`, not just the nearest (a trench spade). */
+	sweep?: boolean;
+	/** A hit sets the creature bleeding: `dps` damage a second for `seconds` (a nail-studded club). */
+	bleed?: { dps: number; seconds: number };
+	/** A hit can snag: with this chance, it is stuck for `seconds` and won't swing (the club). */
+	snag?: { chance: number; seconds: number };
+	/** A hit staggers it this long (s), however hard it took it (a sledgehammer). */
+	stagger?: number;
+	/** Its own swing and hit, in place of `melee.swing` and `melee.hit`. */
+	sound?: { swing: SoundId; hit: SoundId };
 }
 
 export interface FirearmSpec {
@@ -67,6 +102,20 @@ export interface FirearmSpec {
 	/** Aiming down the sights narrows the view to this fraction of the field of view (and slows the mouse to match). */
 	zoom: number;
 	recoil: RecoilSpec;
+	/** Each pellet passes through every creature in its line, to the first wall (a rifle). */
+	pierce?: boolean;
+	/**
+	 * It doesn't hit at once: each shot is a round in flight, at `speed` m/s, falling as it goes (a
+	 * crossbow's bolt, a slingshot's pebble). It lands where it stops, heard `landNoise` away, and
+	 * can be picked up again, unless it breaks on a hit (`breakChance`).
+	 */
+	projectile?: { speed: number; landNoise: number; breakChance?: number };
+	/** It loads one round at a time, each reload a round (a bolt-action rifle). */
+	single?: boolean;
+	/** Reloading it, no faster than a crawl (cranking a crossbow). */
+	reloadSlow?: boolean;
+	/** Other rounds it fires when it has none of its `ammo` (old coins in a slingshot). */
+	alsoFires?: string[];
 }
 
 /** What firing does to your aim and to the gun in your hands. */
@@ -95,6 +144,49 @@ export interface ThrowSpec {
 	sound: SoundId;
 	/** Sound where it lands. */
 	land: SoundId;
+	/**
+	 * A lure on a fuse (firecrackers): `seconds` after it lands it goes off, heard `noise` away,
+	 * hissing (`hiss`) till then and banging (`bang`) when it does. Used up when it does.
+	 */
+	fuse?: { seconds: number; noise: number; hiss: SoundId; bang: SoundId };
+	/**
+	 * It bursts into a fire where it lands (an oil bottle): `radius` m across it, `dps` damage a
+	 * second to every creature (and explorer) in it, for `seconds`; it lights its patch while it
+	 * burns. Used up when it lands. `sound`: the burst; the burning is `fire.burn`.
+	 */
+	fire?: { radius: number; dps: number; seconds: number; sound: SoundId };
+	/**
+	 * A light where it lands (a glow stick): `range` m, for `seconds`, fading at the end. It counts
+	 * toward the light budget, and moths come to it.
+	 */
+	glow?: { seconds: number; range: number; color: number };
+	/** Creatures of a kind within `radius` go to it and stay, for `seconds` (bait: rats). */
+	lure?: { creature: string; radius: number; seconds: number };
+}
+
+/**
+ * Set down on the floor in front, holding attack for `seconds` (a snare, a line of salt). It stays
+ * there: see docs/dev/combat.md#placed-things.
+ */
+export interface PlaceSpec {
+	/** Seconds attack is held to set it down, standing still. */
+	seconds: number;
+	/** Played as it is set down. */
+	sound: SoundId;
+	/** A snare: holds the first creature that steps within `radius` m for `hold` seconds, once. */
+	snare?: { hold: number; radius: number };
+	/** A line creatures won't cross, `length` m long across the way, for `seconds` (blessed salt). */
+	ward?: { length: number; seconds: number };
+	/**
+	 * A rope anchor, hammered in at the edge of a drop the player faces (a climbing piton): a rope
+	 * can be tied there from then on. Nowhere to hammer it, it isn't used up. See PITONS.
+	 */
+	anchor?: boolean;
+	/**
+	 * A line across the way (a tripwire bell): when a creature crosses it, it rings, heard `noise`
+	 * away, and the party is told. It sets itself again, a use of its wear each time.
+	 */
+	tripwire?: { length: number; noise: number };
 }
 
 export interface HealSpec {
@@ -132,10 +224,29 @@ export interface RopeSpec {
 
 export interface DefenseSpec {
 	/**
-	 * Points of a creature's blow it takes before the wearer does. The points it has taken are kept
-	 * on the stack (`ItemStack.worn`); when they are all used up it is torn apart and gone.
+	 * Points of a creature's blow it takes before the wearer does. The points it has taken are its
+	 * wear (`ItemStack.worn`, in `point`s: its `durability.max` is this shield). When they are all
+	 * used up it is broken: it stays in the slot and takes nothing until it is repaired.
 	 */
 	shield: number;
+}
+
+/**
+ * What one unit of an item's wear is: a hit it lands (melee), a shot it fires, a point of a blow
+ * it takes (defense), a use (crafts, searches, resets) or a second of being worn (gear).
+ */
+export type WearUnit = 'hit' | 'shot' | 'point' | 'use' | 'second';
+
+/**
+ * How much wear an item takes before it is broken. The wear taken is on the stack
+ * (`ItemStack.worn`), so it lasts through extraction and the stash. A broken item keeps its slot
+ * and its looks, and can still be equipped, but does nothing until it is repaired (see
+ * src/lib/shared/items/durability.ts and docs/dev/items.md#durability).
+ */
+export interface DurabilitySpec {
+	/** Wear, in `per`, from new to broken. */
+	max: number;
+	per: WearUnit;
 }
 
 /**
@@ -193,7 +304,13 @@ export interface ItemDef {
 	maxStack: number;
 	/** Weight of one, in kg: everything carried counts toward the load (see CARRY). */
 	weight: number;
-	/** What one sells for on the surface (loot). */
+	/**
+	 * What one is worth new, in coin: the store sells it at this (`SHOP`), and selling it back and
+	 * repairs are worked out from it. Things the store doesn't sell have one too. Left out for what
+	 * has no price: treasure (it has a `value`), quest items and clues.
+	 */
+	price?: number;
+	/** What one sells for on the surface (loot): sold at this, not at a share of `price`. */
 	value?: number;
 	/**
 	 * Treasure: good for nothing but its value. Listed under its own stash filter and marked with
@@ -222,6 +339,8 @@ export interface ItemDef {
 	rope?: RopeSpec;
 	/** Worn in the defense slot. */
 	defense?: DefenseSpec;
+	/** It wears out with use and breaks (see DurabilitySpec). Without one it never wears. */
+	durability?: DurabilitySpec;
 	/**
 	 * Carried anywhere, it lets you open your map, sketch into it and show it to a teammate
 	 * (the surveyor's notebook, see docs/dev/map.md).
@@ -232,14 +351,155 @@ export interface ItemDef {
 	 * down (the crowbar, see docs/dev/items.md#jammed-crates and map-generation.md#false-walls).
 	 */
 	pry?: boolean;
+	/**
+	 * Held in the hand, it cuts these: lootables by id (a cocoon, `cocoon`) and, later, things in
+	 * the way (`web`). See docs/dev/lootables.md.
+	 */
+	cuts?: string[];
+	/** Held in the hand, it picks locks: trunks and offering boxes, quietly (lockpicks). */
+	picks?: boolean;
+	/** Held in the hand, it smashes trunks and boxes open, loudly (a sledgehammer). */
+	smash?: boolean;
 	/** Carried anywhere, it unlocks one locked trunk, and is used up (the key, see items.md). */
 	unlocks?: boolean;
+	/** Its shots make no sound: nothing hears them, and they add nothing to the noise (a crossbow). */
+	silent?: boolean;
+	/** It can be used while crawling, where nothing else can (a short spear, a derringer). */
+	cramped?: boolean;
+	/** It can be used while downed (a derringer). */
+	downed?: boolean;
+	/** In the hand, it is too heavy to sprint with (a sledgehammer). */
+	noSprint?: boolean;
+	/** Set down on the floor from the quick-use slot (see PlaceSpec). */
+	place?: PlaceSpec;
+	/** Held in the hand, it breaks these: `rubble` (a rubble wall: a pickaxe). */
+	breaks?: string[];
+	/** Worn (gear), it keeps these off: `bites` (a rat nest's), `poison` (a cocoon's). Gloves. */
+	protects?: string[];
+	/** It breaks on a hard fall (and may, inside something smashed open): gone. A jar. */
+	fragile?: boolean;
+	/**
+	 * Cursed: while it is carried, it takes `sanity` a second and whispers round its carrier (the
+	 * porcelain doll). See docs/dev/world.md#cursed-loot.
+	 */
+	cursed?: { sanity: number };
+	/**
+	 * Held in the hand, attack takes it (laudanum, grave dirt): `seconds` standing still, then the
+	 * condition, and it is used up.
+	 */
+	dose?: { condition: ConditionId; seconds: number; sound: SoundId };
+	/** Worn (defense), it slows a sprint to this share (a leather jerkin). */
+	sprint?: number;
+	/** Worn (gear), crafting below is possible (the field crafting kit). */
+	crafting?: boolean;
+	/** Worn (gear), crawling is this much faster and its sound this share as loud (kneepads). */
+	crawl?: { speed: number; quiet: number };
+	/** Worn (gear), footsteps are this share as loud (felt overshoes). */
+	steps?: { quiet: number };
+	/** Worn (gear), climbing a rope is this much faster (gloves). */
+	climb?: number;
+	/** Worn (gear), a bearing on the HUD to the nearest way out (a pocket compass). */
+	compass?: boolean;
+	/**
+	 * Held in the hand, its smoke keeps creatures of these kinds `radius` m away, and adds `noise`
+	 * to the noise meter; it wears by the second while held (an incense censer).
+	 */
+	censer?: { radius: number; repels: string[]; noise: number };
+	/** Held, attack blows it: heard `noise` away, the party shown where for `seconds` (a whistle). */
+	whistle?: { noise: number; seconds: number };
+	/** It doesn't keep: whatever is left of it is gone after the run (bait). */
+	spoils?: boolean;
+	/** Carried down, a card is drawn at the start of a run: a small blessing or curse (a tarot deck). */
+	tarot?: boolean;
+	/**
+	 * A recipe fragment: read where it lies, never carried (like a clue). Reading it discovers an
+	 * ingredient (see `fragmentFinds`, docs/dev/crafting.md#fragments).
+	 */
+	fragment?: boolean;
+	/**
+	 * For the rite, it counts as `count` of another item (the black candle: five candles). The
+	 * rite takes the real ones first, and this only for what is still wanting.
+	 */
+	countsAs?: { item: string; count: number };
 }
 
 /** How many of most things share a slot. Weapons and defense never stack. */
 export const DEFAULT_STACK = 5;
 
 const HOLD_RIGHT: ItemDef['hold'] = { offset: [0.22, -0.22, -0.42], scale: 1 };
+
+/**
+ * The pictures (static/assets/ui/images, built from art/images by `pnpm asset:images`) of the
+ * round's items, by item id: the art's file names, which mostly follow the ids.
+ */
+const PICTURES: Record<string, string> = {
+	'recipe-fragment': 'recipe_fragment',
+	hatchet: 'hatchet',
+	'trench-spade': 'trench_spade',
+	'short-spear': 'short_spear',
+	'nail-club': 'nail_club',
+	pickaxe: 'pickaxe',
+	sledgehammer: 'sledgehammer',
+	'throwing-knives': 'throwing_knives',
+	rifle: 'bolt_action_rifle',
+	derringer: 'derringer',
+	crossbow: 'crossbow',
+	slingshot: 'slingshot',
+	'oil-bottle': 'oil_bottle',
+	'ammo.rifle': 'rifle_rounds',
+	bolts: 'crossbow_bolts',
+	jerkin: 'leather_jerkin',
+	'crafting-kit': 'field_crafting_kit',
+	kneepads: 'kneepads',
+	overshoes: 'felt_overshoes',
+	gloves: 'gloves',
+	compass: 'pocket_compass',
+	laudanum: 'laudanum',
+	'glow-sticks': 'glow_sticks',
+	pitons: 'climbing_pitons',
+	lockpicks: 'lockpicks',
+	snare: 'snare',
+	'tripwire-bell': 'tripwire_bell',
+	'blessed-salt': 'blessed_salt',
+	firecrackers: 'firecrackers',
+	bait: 'bait',
+	'grave-dirt': 'grave_dirt',
+	censer: 'incense_censer',
+	whistle: 'whistle',
+	'lamp-oil': 'lamp_oil',
+	'rock-salt': 'rock_salt',
+	'holy-water': 'holy_water',
+	bone: 'bone',
+	'gun-oil': 'gun_oil',
+	'gun-parts': 'gun_parts',
+	pebbles: 'pebbles',
+	'silver-snuffbox': 'silver_snuffbox',
+	'jet-rosary': 'jet_rosary',
+	'cameo-brooch': 'cameo_brooch',
+	'funeral-coin': 'funeral_coin',
+	'apothecary-jar': 'apothecary_jar',
+	medal: 'military_medal',
+	tarot: 'tarot_deck',
+	garnet: 'uncut_garnet',
+	'black-candle': 'black_candle',
+	'key-ring': 'key_ring',
+	'saints-icon': 'saints_icon',
+	ledger: 'keepers_ledger',
+	astrolabe: 'brass_astrolabe',
+	doll: 'porcelain_doll',
+	'crozier-head': 'crozier_head',
+	'sealed-reliquary-jar': 'sealed_reliquary_jar'
+};
+
+/** Item defs with their pictures from PICTURES (one a def names itself wins). */
+function pictured(defs: Record<string, ItemDef>): Record<string, ItemDef> {
+	return Object.fromEntries(
+		Object.entries(defs).map(([id, def]) => [
+			id,
+			def.image || !PICTURES[id] ? def : { ...def, image: PICTURES[id] }
+		])
+	);
+}
 
 export const ITEMS: Record<string, ItemDef> = {
 	knife: {
@@ -255,7 +515,12 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.665, 0.232, 1.181] },
 		maxStack: 1,
 		weight: 0.3,
-		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2 },
+		// Never sold now: found or crafted (it sells for 2).
+		price: 5,
+		durability: { max: 150, per: 'hit' },
+		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2, stamina: 4 },
+		// It cuts a cocoon open in a few seconds, where bare hands take longer.
+		cuts: ['cocoon'],
 		// Faster and flatter than a brick, and quieter where it lands: no lure.
 		throwable: { speed: 18, damage: 30, landNoise: 4, sound: 'knife.throw', land: 'knife.land' }
 	},
@@ -271,7 +536,17 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.934, 0.73, 1.052] },
 		maxStack: 1,
 		weight: 2.5,
-		melee: { damage: 40, range: 1.8, arc: 0.6, windup: 0.45, recovery: 0.65, noise: 6 },
+		price: 60,
+		durability: { max: 200, per: 'hit' },
+		melee: {
+			damage: 40,
+			range: 1.8,
+			arc: 0.6,
+			windup: 0.45,
+			recovery: 0.65,
+			noise: 6,
+			stamina: 10
+		},
 		pry: true
 	},
 	// Wears with every blow, so each one keeps its own slot.
@@ -288,6 +563,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.0148, 0.08, -0.0372], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 2.5,
+		// Found by rubble; worth nothing.
+		value: 0,
 		melee: {
 			damage: 25,
 			range: 1.5,
@@ -295,7 +572,8 @@ export const ITEMS: Record<string, ItemDef> = {
 			windup: 0.3,
 			recovery: 0.5,
 			noise: 5,
-			breaksAfter: 3
+			breaksAfter: 3,
+			stamina: 8
 		},
 		throwable: { speed: 14, damage: 30, landNoise: 8, sound: 'brick.throw', land: 'brick.land' }
 	},
@@ -312,6 +590,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.025, 0.07, -0.0223], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 1.1,
+		price: 150,
+		durability: { max: 400, per: 'shot' },
 		firearm: {
 			damage: 32,
 			pellets: 1,
@@ -346,6 +626,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'twoHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 3.2,
+		price: 250,
+		durability: { max: 250, per: 'shot' },
 		firearm: {
 			damage: 9,
 			pellets: 8,
@@ -374,7 +656,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: modelUrl('shared/items/ammo-revolver.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 30,
-		weight: 0.015
+		weight: 0.015,
+		price: 2
 	},
 	'ammo.shotgun': {
 		id: 'ammo.shotgun',
@@ -386,7 +669,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: modelUrl('shared/items/ammo-shotgun.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 20,
-		weight: 0.045
+		weight: 0.045,
+		price: 4
 	},
 	bandage: {
 		id: 'bandage',
@@ -400,6 +684,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0166, 0.075, -0.0418], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
+		price: 15,
 		heal: { amount: 25, seconds: 3 }
 	},
 	// Rare: everything a bandage does and more, all at once (a full refill of sanity).
@@ -416,6 +701,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [0, -2.763, -1.571] },
 		maxStack: 2,
 		weight: 0.6,
+		price: 60,
 		rarity: 'rare',
 		heal: { amount: SANITY.max, seconds: 5, kneel: true }
 	},
@@ -432,7 +718,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0129, 0.075, -0.0325], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.15,
-		value: 20,
+		price: 20,
 		rarity: 'uncommon',
 		charge: { volts: 12, seconds: 2 }
 	},
@@ -448,6 +734,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0092, 0.075, -0.0232], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
+		price: 40,
 		revive: true
 	},
 	// One mark a stick (see docs/dev/marks.md), and the rite takes one.
@@ -463,6 +750,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0166, 0.09, -0.0418], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.01,
+		price: 5,
 		chalk: { marks: 1 }
 	},
 	// Rope (docs/dev/rope.md). The store sells packs; bundles are only found below, and rope picked
@@ -480,6 +768,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0296, 0.08, -0.0743], rotation: [1.571, 0, 2.763] },
 		maxStack: 1,
 		weight: 4,
+		price: 50,
 		rope: { length: 100 }
 	},
 	'rope-bundle': {
@@ -494,6 +783,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0296, 0.08, -0.0743], rotation: [1.571, 0, 2.763] },
 		maxStack: 1,
 		weight: 1.6,
+		// Never sold: found, or made from rope lengths.
+		value: 15,
 		rarity: 'rare',
 		rope: { length: 40 }
 	},
@@ -510,6 +801,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 0.3,
+		price: 35,
 		survey: true
 	},
 	// Opens one locked trunk on the third level, and is used up (see docs/dev/items.md).
@@ -539,7 +831,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		placeholder: { size: [0.03, 0.15, 0.03], color: 0xd8cba0 },
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
-		weight: 0.08
+		weight: 0.08,
+		price: 4
 	},
 	// Defense: a stand-in until there is real protection to find (see docs/dev/items.md).
 	coat: {
@@ -554,6 +847,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 2,
+		price: 90,
+		durability: { max: 40, per: 'point' },
 		defense: { shield: 40 }
 	},
 	// Loot: what is carried out and sold (see docs/dev/economy.md). None has a model yet.
@@ -648,7 +943,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 1.8,
-		value: 260,
+		value: 300,
 		rarity: 'epic'
 	},
 	relic: {
@@ -665,7 +960,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 3,
-		value: 600,
+		value: 800,
 		rarity: 'legendary'
 	},
 	// Rite items (see docs/dev/rite.md).
@@ -695,7 +990,27 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 0,
 		weight: 0
-	}
+	},
+	// Read where it lies (docs/dev/crafting.md#fragments): a torn manual page, a gunsmith's notes.
+	'recipe-fragment': {
+		id: 'recipe-fragment',
+		name: 'Recipe fragment',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'A torn page of notes: how someone down here made do.',
+		image: 'recipe_fragment',
+		model: null,
+		placeholder: { size: [0.2, 0.01, 0.28], color: 0xc8bc9c },
+		hold: HOLD_RIGHT,
+		maxStack: 0,
+		weight: 0,
+		fragment: true
+	},
+	...pictured(WEAPONS),
+	...pictured(GEAR),
+	...pictured(QUICK),
+	...pictured(MATERIALS),
+	...pictured(TREASURE)
 };
 
 /** How hard an item is to come by. */

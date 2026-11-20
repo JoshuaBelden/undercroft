@@ -6,4 +6,6 @@
 export const launch: {
 	/** The Loadout page is asking for the loadout to be confirmed. */
 	confirming: boolean;
-} = $state({ confirming: false });
+	/** It offers the free loadout (held Y): the store link gives up its held Y meanwhile. */
+	free: boolean;
+} = $state({ confirming: false, free: false });

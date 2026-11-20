@@ -1,5 +1,6 @@
 import type { RiteSpec } from '../../content/afflictions.ts';
-import { carriedCount } from '../items/inventory.ts';
+import { ITEMS } from '../../content/items.ts';
+import { allStacks, carriedCount, removeItem } from '../items/inventory.ts';
 import type { Inventory } from '../player/types.ts';
 import type { RiteSnapshot } from './types.ts';
 
@@ -49,5 +50,31 @@ export function carriesAll(
 	inv: Inventory,
 	requirements: readonly ({ item: string; count: number } | null)[]
 ): boolean {
-	return requirements.every((r) => r !== null && carriedCount(inv, r.item) >= r.count);
+	return requirements.every((r) => r !== null && riteCount(inv, r.item) >= r.count);
+}
+
+/** How many of an item the rite counts as carried: the item, and what counts as it (`countsAs`). */
+export function riteCount(inv: Inventory, item: string): number {
+	let n = carriedCount(inv, item);
+	for (const stack of allStacks(inv)) {
+		const as = ITEMS[stack.item]?.countsAs;
+		if (as?.item === item) n += as.count * stack.count;
+	}
+	return n;
+}
+
+/**
+ * Use up `count` of an item for the rite: the item itself first, then as few of what counts as it
+ * (a black candle) as make up the rest.
+ */
+export function takeForRite(inv: Inventory, item: string, count: number): void {
+	let wanting = count - removeItem(inv, item, count);
+	for (const stack of allStacks(inv)) {
+		if (wanting <= 0) break;
+		const as = ITEMS[stack.item]?.countsAs;
+		if (as?.item !== item) continue;
+		const need = Math.min(stack.count, Math.ceil(wanting / as.count));
+		removeItem(inv, stack.item, need);
+		wanting -= need * as.count;
+	}
 }

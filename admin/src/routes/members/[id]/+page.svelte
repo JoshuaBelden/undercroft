@@ -223,6 +223,29 @@
 	{:else}
 		<p class="muted">No explorer yet.</p>
 	{/each}
+	{#if data.explorers.length}
+		<h3>Start again</h3>
+		<p>
+			Back to how a new player starts: no money, nothing in the stash or loadout, nothing
+			discovered, no trust with the merchant, and no progress against any Affliction (Rumors to do
+			again). The account, its friends and its settings stay. Not while they are underground or
+			ready to descend.
+		</p>
+		<Action
+			action="resetExplorer"
+			label="Reset to a new player"
+			danger
+			confirm="Reset {member.gamerTag} to a new player? Everything they own and have learned goes."
+		>
+			<input
+				name="confirmTag"
+				required
+				autocomplete="off"
+				placeholder="Type {member.gamerTag}"
+				aria-label="Type the gamer tag to confirm"
+			/>
+		</Action>
+	{/if}
 	<h3>Ledger</h3>
 	{#if data.ledger.length === 0}
 		<p class="muted">Nothing bought or sold yet.</p>

@@ -166,6 +166,65 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 15436
 	},
+	'broken-stair': {
+		name: 'broken-stair',
+		url: '/assets/shared/map/broken-stair.a6a3441c.gltf',
+		bytes: 1667340,
+		footprint: [2, 2],
+		levels: 3,
+		sockets: [
+			{ type: 'hall', cell: [1, 0], level: 2, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }
+		],
+		spawns: [],
+		creatures: [
+			[-2, 0, 2],
+			[2, 0, 0]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [{ position: [2, 0, -3.05], yaw: 0 }],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [{ position: [2.1, 4, 2.2], yaw: -3.142 }],
+		candles: [],
+		colliders: [
+			{ center: [0, 11.6, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 3.85, 1.96], halfExtents: [1.1, 0.15, 0.4], rotation: [0, 0, 0, 1] },
+			{ center: [2.5, 4.5, 2.13], halfExtents: [0.07, 0.5, 0.07], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7.8, -2.5], halfExtents: [4, 0.2, 1.5], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 7.6, -0.92], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 7.35, -0.76], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 7.1, -0.6], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 6.85, -0.44], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 6.6, -0.28], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 6.35, -0.12], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 6.1, 0.04], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 5.85, 0.2], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 5.6, 0.36], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 5.35, 0.52], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 5.1, 0.68], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 4.85, 0.84], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 4.6, 1], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 4.35, 1.16], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 4.1, 1.32], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 3.85, 1.48], halfExtents: [1.1, 0.15, 0.08], rotation: [0, 0, 0, 1] },
+			{ center: [3.7, 5.7, 0], halfExtents: [0.3, 5.7, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 9.7, -3.7], halfExtents: [2.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [2, 11.1, -3.7], halfExtents: [1, 0.3, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 9.7, -3.7], halfExtents: [0.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.8, -3.7], halfExtents: [4, 3.8, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 5.7, 3.7], halfExtents: [0.5, 5.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 7.1, 3.7], halfExtents: [1, 4.3, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 5.7, 3.7], halfExtents: [2.5, 5.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-3.7, 5.7, 0], halfExtents: [0.3, 5.7, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 334
+	},
 	'cap-hall': {
 		name: 'cap-hall',
 		url: '/assets/shared/map/cap-hall.174c56c5.gltf',
@@ -273,6 +332,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [3, 0, 1.1], yaw: -1.571 },
 			{ position: [-3, 0, -0.6], yaw: 1.571 }
 		],
+		lootables: [{ type: 'corpse', position: [0.5, 0, -2.845], yaw: 0 }],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -295,6 +355,115 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		volumes: [],
 		triangles: 212
+	},
+	'drowned-chapel': {
+		name: 'drowned-chapel',
+		url: '/assets/shared/map/drowned-chapel.ea564e28.gltf',
+		bytes: 1370172,
+		footprint: [2, 2],
+		levels: 2,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 1, edge: 'n' },
+			{ type: 'hall', cell: [1, 1], level: 1, edge: 's' }
+		],
+		spawns: [],
+		creatures: [
+			[-2.6, 4, -3],
+			[2.6, 4, 3]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		lootables: [
+			{ type: 'font', position: [-1, 4, 3.37], yaw: 3.142 },
+			{ type: 'offeringBox', position: [3.57, 4, -3.5], yaw: -1.571 },
+			{ type: 'satchel', position: [2.02, 2.4, 0], yaw: -1.571 },
+			{ type: 'satchel', position: [-3.57, 4, 3], yaw: 1.571 },
+			{ type: 'satchel', position: [-3.57, 4, -0.5], yaw: 1.571 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0.725, 2.3, 0], halfExtents: [3.025, 0.1, 2.2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7.8, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [2.75, 3.65, 0], halfExtents: [0.55, 1.25, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 3.9, 0], halfExtents: [0.125, 0.1, 2.2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.9, -3.1], halfExtents: [4, 0.1, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.9, 3.1], halfExtents: [4, 0.1, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [-3.15, 3.9, 0], halfExtents: [0.85, 0.1, 2.2], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 5.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 5.8, -3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 7.2, -3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 5.8, -3.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 5.8, 3.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [2, 7.2, 3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 5.8, 3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 5.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [
+			{
+				kind: 'water',
+				center: [0.725, 3.075, 0],
+				halfExtents: [3.025, 0.675, 2.2],
+				rotation: [0, 0, 0, 1]
+			}
+		],
+		triangles: 180
+	},
+	'explorers-camp': {
+		name: 'explorers-camp',
+		url: '/assets/shared/map/explorers-camp.52526924.gltf',
+		bytes: 1670781,
+		footprint: [2, 2],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'n' },
+			{ type: 'hall', cell: [1, 1], level: 0, edge: 's' },
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 'w' }
+		],
+		spawns: [],
+		creatures: [
+			[-1.8, 0, 1.8],
+			[2.2, 0, -1.2]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [
+			{ position: [0.5, 0, -3.4], yaw: 0 },
+			{ position: [3.4, 0, 3], yaw: -1.571 }
+		],
+		lootables: [
+			{ type: 'corpse', position: [3.195, 0, -1.5], yaw: -1.571 },
+			{ type: 'corpse', position: [-1, 0, 3.195], yaw: 3.142 },
+			{ type: 'locker', position: [3.47, 0, 1.5], yaw: -1.571 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.4, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-2.9, 0.35, 3], halfExtents: [0.5, 0.35, 0.4], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.6, 0], halfExtents: [0.125, 1.6, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 1.6, -3.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 3, -3.875], halfExtents: [1, 0.2, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.6, -3.875], halfExtents: [2.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.6, 3.875], halfExtents: [2.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [2, 3, 3.875], halfExtents: [1, 0.2, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 1.6, 3.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.6, 3.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 3, 2], halfExtents: [0.125, 0.2, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.6, -1.5], halfExtents: [0.125, 1.6, 2.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 389
 	},
 	'extraction-gate': {
 		name: 'extraction-gate',
@@ -322,6 +491,11 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, -0.5], yaw: 1.571 },
 			{ position: [5.41, 0, 1], yaw: -1.571 },
 			{ position: [1.6, 0, 3.41], yaw: -3.142 }
+		],
+		lootables: [
+			{ type: 'locker', position: [-2.5, 0, 3.47], yaw: 3.142 },
+			{ type: 'locker', position: [3, 0, -3.47], yaw: 0 },
+			{ type: 'locker', position: [-0.5, 0, 3.47], yaw: 3.142 }
 		],
 		doors: [],
 		rubble: [
@@ -358,6 +532,55 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 668
 	},
+	'family-mausoleum': {
+		name: 'family-mausoleum',
+		url: '/assets/shared/map/family-mausoleum.77bedfae.gltf',
+		bytes: 974318,
+		footprint: [2, 2],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' },
+			{ type: 'hall', cell: [1, 1], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [
+			[0, 0, 2.2],
+			[-2, 0, -2]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		lootables: [
+			{ type: 'sarcophagus', position: [-0.5, 0, -3.27], yaw: 0 },
+			{ type: 'sarcophagus', position: [-2.5, 0, 0.48], yaw: 0 },
+			{ type: 'sarcophagus', position: [-3.27, 0, -2.5], yaw: 1.571 },
+			{ type: 'trunk', position: [3.385, 0, -2], yaw: -1.571 }
+		],
+		doors: [],
+		gates: [{ position: [0, 0, -0.15], yaw: 0 }],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.8, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.1, -0.15], halfExtents: [1, 0.5, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [-2.375, 1.8, -0.15], halfExtents: [1.375, 1.8, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [2.375, 1.8, -0.15], halfExtents: [1.375, 1.8, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.8, 3.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 3.2, 2], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.8, -1.5], halfExtents: [0.125, 1.8, 2.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.8, -3.875], halfExtents: [4, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 1.8, 3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 3.2, 3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.8, 3.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 144
+	},
 	'gloaming-chapel': {
 		name: 'gloaming-chapel',
 		url: '/assets/afflictions/gloaming/map/gloaming-chapel.af4768bc.gltf',
@@ -373,6 +596,16 @@ export const PIECES: Record<string, PieceDef> = {
 		crates: [
 			{ position: [-17.3, 0, -1], yaw: 1.571 },
 			{ position: [17.3, 0, -1], yaw: -1.571 }
+		],
+		lootables: [
+			{ type: 'alcove', position: [-6.73, 0, 5.5], yaw: -1.571 },
+			{ type: 'font', position: [-12.5, 0, -0.26], yaw: 0 },
+			{ type: 'offeringBox', position: [-11, 0, 6.2], yaw: 0 },
+			{ type: 'offeringBox', position: [5.32, 0, 6], yaw: -1.571 },
+			{ type: 'sarcophagus', position: [-6.98, 0, 9.5], yaw: -1.571 },
+			{ type: 'sarcophagus', position: [4, 0, 10.52], yaw: 3.142 },
+			{ type: 'vestryCabinet', position: [-14.02, 0, 9.5], yaw: 1.571 },
+			{ type: 'vestryCabinet', position: [-5.22, 0, -4], yaw: 1.571 }
 		],
 		doors: [{ position: [0, 0, 11.5], yaw: -3.142 }],
 		rubble: [],
@@ -808,6 +1041,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rites: [],
 		altars: [],
 		crates: [{ position: [0, 0, 0.836], yaw: 0 }],
+		lootables: [{ type: 'stash', position: [-0.5, 0, 0.019], yaw: 0 }],
 		doors: [],
 		rubble: [[0, 0, -0.2]],
 		ropes: [],
@@ -919,6 +1153,11 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [3.06, 0, 0], yaw: -1.571 },
 			{ position: [1.7, 0, -1.06], yaw: 0 },
 			{ position: [1.7, 0, 1.06], yaw: -3.142 }
+		],
+		lootables: [
+			{ type: 'niche', position: [-2.795, 0, 0], yaw: 1.571 },
+			{ type: 'niche', position: [-0.5, 0, -0.795], yaw: 0 },
+			{ type: 'stash', position: [-0.5, 0, 0.82], yaw: 3.142 }
 		],
 		doors: [],
 		rubble: [],
@@ -1135,6 +1374,16 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, -1.8], yaw: 1.571 },
 			{ position: [-5.41, 0, -0.4], yaw: 1.571 }
 		],
+		lootables: [
+			{ type: 'bonePile', position: [0, 0, 0.78], yaw: 0 },
+			{ type: 'bonePile', position: [2.5, 0, 2.97], yaw: 3.142 },
+			{ type: 'bonePile', position: [0, 0, -0.78], yaw: 3.142 },
+			{ type: 'niche', position: [3, 0, -3.201], yaw: 0 },
+			{ type: 'niche', position: [-3, 0, 3.199], yaw: 3.142 },
+			{ type: 'niche', position: [-4.5, 0, -3.198], yaw: 0 },
+			{ type: 'niche', position: [4.5, 0, 3.197], yaw: 3.142 },
+			{ type: 'ratNest', position: [-2.5, 0, -2.968], yaw: 0 }
+		],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -1182,6 +1431,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [3, 0, -1.6], yaw: -1.571 },
 			{ position: [-3, 0, -0.4], yaw: 1.571 }
 		],
+		lootables: [{ type: 'corpse', position: [1.5, 0, 2.845], yaw: 3.142 }],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -1219,6 +1469,105 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 276
 	},
+	'plague-pit': {
+		name: 'plague-pit',
+		url: '/assets/shared/map/plague-pit.756646b0.gltf',
+		bytes: 605060,
+		footprint: [2, 2],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [1, 0], level: 0, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }
+		],
+		spawns: [],
+		creatures: [
+			[-2.4, 0, 0],
+			[2.4, 0, -0.4]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [{ position: [-3.4, 0, -1.5], yaw: 1.571 }],
+		lootables: [
+			{ type: 'bonePile', position: [-2, 0, -3.32], yaw: 0 },
+			{ type: 'bonePile', position: [2, 0, 3.32], yaw: 3.142 },
+			{ type: 'bonePile', position: [-3.32, 0, 1], yaw: 1.571 },
+			{ type: 'bonePile', position: [3.32, 0, -1], yaw: -1.571 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.8, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 0.25, 0], halfExtents: [1.3, 0.25, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.8, -3.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [2, 3.2, -3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 1.8, -3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 1.8, 3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 3.2, 3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.8, 3.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 354
+	},
+	'pump-room': {
+		name: 'pump-room',
+		url: '/assets/shared/map/pump-room.7f6a7954.gltf',
+		bytes: 1805959,
+		footprint: [2, 2],
+		levels: 2,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 1, edge: 'n' },
+			{ type: 'hall', cell: [1, 1], level: 1, edge: 's' }
+		],
+		spawns: [],
+		creatures: [
+			[-3, 4, -2.6],
+			[3, 4, 2.6]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		lootables: [
+			{ type: 'locker', position: [-3.47, 4, 0.5], yaw: 1.571 },
+			{ type: 'locker', position: [-1.5, 4, 3.47], yaw: 3.142 },
+			{ type: 'satchel', position: [3.57, 4, -0.5], yaw: -1.571 },
+			{ type: 'satchel', position: [1.5, 4, -3.57], yaw: 0 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 2.4, 0], halfExtents: [2.2, 0.1, 1.6], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7.8, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [3.2, 4.7, -3.2], halfExtents: [0.35, 0.7, 0.35], rotation: [0, 0, 0, 1] },
+			{ center: [-3.2, 4.7, 3.2], halfExtents: [0.35, 0.7, 0.35], rotation: [0, 0, 0, 1] },
+			{ center: [3.1, 3.9, 0], halfExtents: [0.9, 0.1, 1.6], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.9, -2.8], halfExtents: [4, 0.1, 1.2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.9, 2.8], halfExtents: [4, 0.1, 1.2], rotation: [0, 0, 0, 1] },
+			{ center: [-3.1, 3.9, 0], halfExtents: [0.9, 0.1, 1.6], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 5.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 5.8, -3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 7.2, -3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 5.8, -3.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 5.8, 3.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [2, 7.2, 3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 5.8, 3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 5.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [
+			{ kind: 'water', center: [0, 3.1, 0], halfExtents: [2.2, 0.6, 1.6], rotation: [0, 0, 0, 1] }
+		],
+		triangles: 168
+	},
 	'quarry-gallery': {
 		name: 'quarry-gallery',
 		url: '/assets/shared/map/quarry-gallery.9de9de9a.gltf',
@@ -1243,6 +1592,14 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, -2], yaw: 1.571 },
 			{ position: [-5.41, 0, 3.5], yaw: 1.571 },
 			{ position: [-2, 0, 5.41], yaw: -3.142 }
+		],
+		lootables: [
+			{ type: 'corpse', position: [1, 0, 5.195], yaw: 3.142 },
+			{ type: 'toolChest', position: [-1.595, 0, 2], yaw: 1.571 },
+			{ type: 'toolChest', position: [-1.174, 0, -3], yaw: 1.571 },
+			{ type: 'toolChest', position: [3, 0, 3.605], yaw: 0 },
+			{ type: 'toolChest', position: [-0.5, 0, -5.445], yaw: 0 },
+			{ type: 'toolChest', position: [4.5, 0, -5.445], yaw: 0 }
 		],
 		doors: [],
 		rubble: [],
@@ -1272,6 +1629,196 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 1022
 	},
+	'quarry-lodge': {
+		name: 'quarry-lodge',
+		url: '/assets/shared/map/quarry-lodge.9c42d8bb.gltf',
+		bytes: 987364,
+		footprint: [2, 2],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [1, 0], level: 0, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' },
+			{ type: 'hall', cell: [1, 0], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [
+			[-2.5, 0, 2.5],
+			[1.5, 0, -2.5]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [{ position: [-3.4, 0, 2.5], yaw: 1.571 }],
+		lootables: [
+			{ type: 'locker', position: [2, 0, 3.47], yaw: 3.142 },
+			{ type: 'locker', position: [-1, 0, -3.47], yaw: 0 },
+			{ type: 'toolChest', position: [-3.445, 0, -2], yaw: 1.571 },
+			{ type: 'toolChest', position: [3.445, 0, 1], yaw: -1.571 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.6, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-3.3, 0.225, 0.3], halfExtents: [0.25, 0.225, 1.3], rotation: [0, 0, 0, 1] },
+			{ center: [-2.3, 0.225, 0.3], halfExtents: [0.25, 0.225, 1.3], rotation: [0, 0, 0, 1] },
+			{ center: [2.9, 0.45, 2.9], halfExtents: [0.5, 0.45, 0.4], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.7, 1.5], halfExtents: [0.125, 1.7, 2.5], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 3.1, -2], halfExtents: [0.125, 0.3, 1], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.7, -3.5], halfExtents: [0.125, 1.7, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.7, -3.875], halfExtents: [2.5, 1.7, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [2, 3.1, -3.875], halfExtents: [1, 0.3, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 1.7, -3.875], halfExtents: [0.5, 1.7, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 1.7, 3.875], halfExtents: [0.5, 1.7, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 3.1, 3.875], halfExtents: [1, 0.3, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.7, 3.875], halfExtents: [2.5, 1.7, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.7, 0], halfExtents: [0.125, 1.7, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 323
+	},
+	'rat-warren': {
+		name: 'rat-warren',
+		url: '/assets/shared/map/rat-warren.ec3b7c20.gltf',
+		bytes: 1273338,
+		footprint: [1, 2],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }
+		],
+		spawns: [],
+		creatures: [
+			[0, 0, 1.2],
+			[0.3, 0, -1.4]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		lootables: [
+			{ type: 'ratNest', position: [-1.07, 0, 0], yaw: 1.571 },
+			{ type: 'ratNest', position: [1.07, 0, 1.5], yaw: -1.571 },
+			{ type: 'ratNest', position: [1.07, 0, -1.5], yaw: -1.571 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 2.259, -2.1], halfExtents: [1.5, 1.141, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.464, 1.5, -2.1], halfExtents: [0.036, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.464, 1.5, -2.1], halfExtents: [0.036, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.293, -2.3], halfExtents: [1.5, 1.107, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.453, 1.5, -2.3], halfExtents: [0.047, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.453, 1.5, -2.3], halfExtents: [0.047, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.379, -2.5], halfExtents: [1.5, 1.021, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.422, 1.5, -2.5], halfExtents: [0.078, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.422, 1.5, -2.5], halfExtents: [0.078, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.5, -2.7], halfExtents: [1.5, 0.9, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.379, 1.5, -2.7], halfExtents: [0.121, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.379, 1.5, -2.7], halfExtents: [0.121, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.553, -2.9], halfExtents: [1.5, 0.847, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.353, 1.5, -2.9], halfExtents: [0.147, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.353, 1.5, -2.9], halfExtents: [0.147, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.675, -3.1], halfExtents: [1.5, 0.725, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.305, 1.5, -3.1], halfExtents: [0.195, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.305, 1.5, -3.1], halfExtents: [0.195, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.872, -3.3], halfExtents: [1.5, 0.528, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.266, 1.5, -3.3], halfExtents: [0.234, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.266, 1.5, -3.3], halfExtents: [0.234, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.935, -3.5], halfExtents: [1.5, 0.465, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.243, 1.5, -3.5], halfExtents: [0.257, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.243, 1.5, -3.5], halfExtents: [0.257, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.944, -3.7], halfExtents: [1.5, 0.456, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.24, 1.5, -3.7], halfExtents: [0.26, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.24, 1.5, -3.7], halfExtents: [0.26, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.944, -3.9], halfExtents: [1.5, 0.456, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.24, 1.5, -3.9], halfExtents: [0.26, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.24, 1.5, -3.9], halfExtents: [0.26, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, -3], halfExtents: [1.5, 0.1, 1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.259, 2.1], halfExtents: [1.5, 1.141, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.464, 1.5, 2.1], halfExtents: [0.036, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.464, 1.5, 2.1], halfExtents: [0.036, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.293, 2.3], halfExtents: [1.5, 1.107, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.453, 1.5, 2.3], halfExtents: [0.047, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.453, 1.5, 2.3], halfExtents: [0.047, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.379, 2.5], halfExtents: [1.5, 1.021, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.422, 1.5, 2.5], halfExtents: [0.078, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.422, 1.5, 2.5], halfExtents: [0.078, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.5, 2.7], halfExtents: [1.5, 0.9, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.379, 1.5, 2.7], halfExtents: [0.121, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.379, 1.5, 2.7], halfExtents: [0.121, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.553, 2.9], halfExtents: [1.5, 0.847, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.353, 1.5, 2.9], halfExtents: [0.147, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.353, 1.5, 2.9], halfExtents: [0.147, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.675, 3.1], halfExtents: [1.5, 0.725, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.305, 1.5, 3.1], halfExtents: [0.195, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.305, 1.5, 3.1], halfExtents: [0.195, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.872, 3.3], halfExtents: [1.5, 0.528, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.266, 1.5, 3.3], halfExtents: [0.234, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.266, 1.5, 3.3], halfExtents: [0.234, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.935, 3.5], halfExtents: [1.5, 0.465, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.243, 1.5, 3.5], halfExtents: [0.257, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.243, 1.5, 3.5], halfExtents: [0.257, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.944, 3.7], halfExtents: [1.5, 0.456, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.24, 1.5, 3.7], halfExtents: [0.26, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.24, 1.5, 3.7], halfExtents: [0.26, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.944, 3.9], halfExtents: [1.5, 0.456, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [1.24, 1.5, 3.9], halfExtents: [0.26, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [-1.24, 1.5, 3.9], halfExtents: [0.26, 1.5, 0.1], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 3], halfExtents: [1.5, 0.1, 1], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.15, 0], halfExtents: [2, 0.85, 2], rotation: [0, 0, 0, 1] },
+			{ center: [1.75, 0.65, 0], halfExtents: [0.25, 0.65, 2], rotation: [0, 0, 0, 1] },
+			{ center: [-1.75, 0.65, 0], halfExtents: [0.25, 0.65, 2], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 544
+	},
+	rockfall: {
+		name: 'rockfall',
+		url: '/assets/shared/map/rockfall.35a0fc00.gltf',
+		bytes: 1272366,
+		footprint: [1, 2],
+		levels: 1,
+		sockets: [{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }],
+		spawns: [],
+		creatures: [[0, 0, 2]],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		lootables: [
+			{ type: 'corpse', position: [1.195, 0, 1], yaw: -1.571 },
+			{ type: 'stash', position: [-1.57, 0, 0], yaw: 1.571 }
+		],
+		doors: [],
+		rubble: [
+			[0, 0, -2.15],
+			[-1, 0, -1.55]
+		],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.2, 0], halfExtents: [2, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 0.6, -3.25], halfExtents: [1.75, 0.6, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [1.875, 1.5, 0], halfExtents: [0.125, 1.5, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.5, -3.875], halfExtents: [2, 1.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.5, 3.875], halfExtents: [0.5, 1.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.9, 3.875], halfExtents: [1, 0.1, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.5, 3.875], halfExtents: [0.5, 1.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.875, 1.5, 0], halfExtents: [0.125, 1.5, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 214
+	},
 	'room-crypt': {
 		name: 'room-crypt',
 		url: '/assets/shared/map/room-crypt.12e752fe.gltf',
@@ -1294,6 +1841,13 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [2.5, 0, 3.06], yaw: -3.142 },
 			{ position: [3.06, 0, -1.8], yaw: -1.571 },
 			{ position: [-3.06, 0, 1.8], yaw: 1.571 }
+		],
+		lootables: [
+			{ type: 'niche', position: [0, 0, -0.705], yaw: 3.142 },
+			{ type: 'niche', position: [-2, 0, 1.355], yaw: 0 },
+			{ type: 'niche', position: [2, 0, -1.355], yaw: 3.142 },
+			{ type: 'sarcophagus', position: [0, 0, 2.92], yaw: 3.142 },
+			{ type: 'sarcophagus', position: [0, 0, -2.92], yaw: 0 }
 		],
 		doors: [],
 		rubble: [],
@@ -1350,6 +1904,13 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-2, 0, -3.41], yaw: 0 },
 			{ position: [2, 0, 3.41], yaw: -3.142 }
 		],
+		lootables: [
+			{ type: 'niche', position: [-3.5, 0, 3.545], yaw: 3.142 },
+			{ type: 'niche', position: [2.5, 0, -3.545], yaw: 0 },
+			{ type: 'niche', position: [-0.625, 0, 0], yaw: -1.571 },
+			{ type: 'niche', position: [3.375, 0, 0], yaw: -1.571 },
+			{ type: 'niche', position: [-4, 0, -0.625], yaw: 3.142 }
+		],
 		doors: [],
 		rubble: [
 			[-6.8, 0, -2.9],
@@ -1399,6 +1960,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-1.06, 0, 0], yaw: 1.571 },
 			{ position: [1.06, 0, 0], yaw: -1.571 }
 		],
+		lootables: [{ type: 'offeringBox', position: [-1.22, 0, 1.5], yaw: 1.571 }],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -1447,6 +2009,13 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, -1.5], yaw: 1.571 },
 			{ position: [5.41, 0, -1.6], yaw: -1.571 }
 		],
+		lootables: [
+			{ type: 'bonePile', position: [-1.53, 0, 0], yaw: -1.571 },
+			{ type: 'bonePile', position: [-5.32, 0, 1.5], yaw: 1.571 },
+			{ type: 'bonePile', position: [-3.5, 0, 5.32], yaw: 3.142 },
+			{ type: 'cocoon', position: [0, 0, 0.93], yaw: 0 },
+			{ type: 'ratNest', position: [1.6, 0, 2.5], yaw: -1.571 }
+		],
 		doors: [],
 		rubble: [
 			[-4.9, 0, 4.8],
@@ -1479,6 +2048,241 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		volumes: [],
 		triangles: 962
+	},
+	'rumors-vault': {
+		name: 'rumors-vault',
+		url: '/assets/afflictions/rumors/map/rumors-vault.db0c644a.gltf',
+		bytes: 1371511,
+		footprint: [3, 12],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 11], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [2, 11], level: 0, edge: 'e' },
+			{ type: 'vault', cell: [1, 11], level: 0, edge: 's' }
+		],
+		spawns: [],
+		creatures: [],
+		extracts: [[0, 0, -23.05]],
+		rites: [],
+		altars: [],
+		crates: [],
+		doors: [],
+		spots: [
+			{ name: 'dummy-5', position: [-2, 0, 15.25], yaw: -3.142 },
+			{ name: 'dummy-10', position: [-2, 0, 10.25], yaw: -3.142 },
+			{ name: 'dummy-20', position: [-2, 0, 0.25], yaw: -3.142 },
+			{ name: 'dummy-40', position: [-2, 0, -19.75], yaw: -3.142 },
+			{ name: 'range', position: [0, 0, 20.25], yaw: 0 },
+			{ name: 'step-out', position: [0, 0, -20.75], yaw: 0 },
+			{ name: 'step-vault', position: [0, 0, 22.25], yaw: 0 },
+			{ name: 'track', position: [3, 0, 5.25], yaw: -3.142 }
+		],
+		rubble: [
+			[-4.75, 0, 22.55],
+			[-4.15, 0, 21.75]
+		],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.8, 0], halfExtents: [6, 0.2, 24], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 24], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 1.8, 23.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 3.2, 22], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 1.8, -1.5], halfExtents: [0.125, 1.8, 22.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.8, -23.875], halfExtents: [6, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 1.8, 23.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.2, 23.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 1.8, 23.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 1.8, 23.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 3.2, 22], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 1.8, -1.5], halfExtents: [0.125, 1.8, 22.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 333
+	},
+	'rumors-walk': {
+		name: 'rumors-walk',
+		url: '/assets/afflictions/rumors/map/rumors-walk.43b5a496.gltf',
+		bytes: 1269512,
+		footprint: [1, 4],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 3], level: 0, edge: 's' },
+			{ type: 'vault', cell: [0, 0], level: 0, edge: 'n' }
+		],
+		spawns: [],
+		creatures: [],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [
+			{ position: [1.42, 0, 4.75], yaw: -1.571 },
+			{ position: [1.42, 0, -1.25], yaw: -1.571 }
+		],
+		doors: [],
+		spots: [
+			{ name: 'chalk', position: [-1.25, 0, -4.25], yaw: 0 },
+			{ name: 'kit', position: [-1.25, 0, 1.75], yaw: 0 },
+			{ name: 'step-chalk', position: [0, 0, -3.85], yaw: 0 },
+			{ name: 'step-crate', position: [0, 0, 5.35], yaw: 0 },
+			{ name: 'step-kit', position: [0, 0, 2.15], yaw: 0 },
+			{ name: 'step-recipe', position: [0, 0, -0.65], yaw: 0 }
+		],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.4, 0], halfExtents: [2, 0.2, 8], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 8], rotation: [0, 0, 0, 1] },
+			{ center: [1.875, 1.6, 0], halfExtents: [0.125, 1.6, 8], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.6, -7.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3, -7.875], halfExtents: [1, 0.2, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.6, -7.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.6, 7.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3, 7.875], halfExtents: [1, 0.2, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.6, 7.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.875, 1.6, 0], halfExtents: [0.125, 1.6, 8], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 114
+	},
+	'saints-crypt': {
+		name: 'saints-crypt',
+		url: '/assets/shared/map/saints-crypt.45f13d55.gltf',
+		bytes: 357660,
+		footprint: [2, 1],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [1, 0], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [[-2.6, 0, -0.4]],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [{ position: [2, 0, -1.4], yaw: 0 }],
+		lootables: [{ type: 'alcove', position: [0, 0, 1.52], yaw: 3.142 }],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.6, 0], halfExtents: [4, 0.2, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 2], rotation: [0, 0, 0, 1] },
+			{ center: [2.8, 1.7, 1.2], halfExtents: [0.34, 1.7, 0.34], rotation: [0, 0, 0, 1] },
+			{ center: [-2.8, 1.7, 1.2], halfExtents: [0.34, 1.7, 0.34], rotation: [0, 0, 0, 1] },
+			{ center: [0, 0.45, -1.05], halfExtents: [1.1, 0.45, 0.45], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.7, 1.5], halfExtents: [0.125, 1.7, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 3.1, 0], halfExtents: [0.125, 0.3, 1], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.7, -1.5], halfExtents: [0.125, 1.7, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.7, -1.875], halfExtents: [4, 1.7, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.7, 1.875], halfExtents: [4, 1.7, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.7, 1.5], halfExtents: [0.125, 1.7, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 3.1, 0], halfExtents: [0.125, 0.3, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.7, -1.5], halfExtents: [0.125, 1.7, 0.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 190
+	},
+	sinkhole: {
+		name: 'sinkhole',
+		url: '/assets/shared/map/sinkhole.5c41754e.gltf',
+		bytes: 1671764,
+		footprint: [2, 2],
+		levels: 3,
+		sockets: [
+			{ type: 'hall', cell: [1, 0], level: 2, edge: 'n' },
+			{ type: 'hall', cell: [0, 1], level: 0, edge: 's' }
+		],
+		spawns: [],
+		creatures: [
+			[-2, 0, 2],
+			[2, 0, 0]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [{ position: [3, 0, 2.2], yaw: -1.571 }],
+		lootables: [{ type: 'corpse', position: [2.845, 0, -2.5], yaw: -1.571 }],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [{ position: [0, 8, -1.3], yaw: -3.142 }],
+		candles: [],
+		colliders: [
+			{ center: [0, 11.6, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0.2, 0.3, -0.6], halfExtents: [0.7, 0.3, 0.6], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 4], rotation: [0, 0, 0, 1] },
+			{ center: [0.4, 8.5, -1.37], halfExtents: [0.07, 0.5, 0.07], rotation: [0, 0, 0, 1] },
+			{ center: [2.8, 7.8, 0.4], halfExtents: [1.2, 0.2, 1.6], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7.8, -2.6], halfExtents: [4, 0.2, 1.4], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7.8, 3], halfExtents: [4, 0.2, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-2.8, 7.8, 0.4], halfExtents: [1.2, 0.2, 1.6], rotation: [0, 0, 0, 1] },
+			{ center: [3.7, 5.7, 0], halfExtents: [0.3, 5.7, 4], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 9.7, -3.7], halfExtents: [2.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [2, 11.1, -3.7], halfExtents: [1, 0.3, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 9.7, -3.7], halfExtents: [0.5, 1.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.8, -3.7], halfExtents: [4, 3.8, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 5.7, 3.7], halfExtents: [0.5, 5.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-2, 7.1, 3.7], halfExtents: [1, 4.3, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 5.7, 3.7], halfExtents: [2.5, 5.7, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [-3.7, 5.7, 0], halfExtents: [0.3, 5.7, 4], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 450
+	},
+	'smugglers-cellar': {
+		name: 'smugglers-cellar',
+		url: '/assets/shared/map/smugglers-cellar.f4d80233.gltf',
+		bytes: 1612990,
+		footprint: [2, 1],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [1, 0], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [
+			[-2.8, 0, 0.6],
+			[2.6, 0, 0.8]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [{ position: [2.5, 0, 1.4], yaw: 3.142 }],
+		lootables: [
+			{ type: 'corpse', position: [-1.5, 0, -0.695], yaw: 0 },
+			{ type: 'stash', position: [0, 0, 1.57], yaw: 3.142 },
+			{ type: 'stash', position: [1, 0, -1.57], yaw: 0 },
+			{ type: 'stash', position: [-2.5, 0, 1.57], yaw: 3.142 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [1.6, 0.425, -1.2], halfExtents: [0.3, 0.425, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [2.3, 0.425, -1.2], halfExtents: [0.3, 0.425, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [3, 0.425, -1], halfExtents: [0.3, 0.425, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.1, 0], halfExtents: [4, 0.2, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 2], rotation: [0, 0, 0, 1] },
+			{ center: [-1.9, 1, -1.5], halfExtents: [1.5, 1, 0.25], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.45, 1.5], halfExtents: [0.125, 1.45, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 2.85, 0], halfExtents: [0.125, 0.05, 1], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.45, -1.5], halfExtents: [0.125, 1.45, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.45, -1.875], halfExtents: [4, 1.45, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.45, 1.875], halfExtents: [4, 1.45, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.45, 1.5], halfExtents: [0.125, 1.45, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 2.85, 0], halfExtents: [0.125, 0.05, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.45, -1.5], halfExtents: [0.125, 1.45, 0.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 190
 	},
 	'stairs-deep': {
 		name: 'stairs-deep',
@@ -1532,5 +2336,182 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		volumes: [],
 		triangles: 1688
+	},
+	'sunken-ossuary': {
+		name: 'sunken-ossuary',
+		url: '/assets/shared/map/sunken-ossuary.3bb72828.gltf',
+		bytes: 1625270,
+		footprint: [1, 1],
+		levels: 3,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 2, edge: 'n' },
+			{ type: 'hall', cell: [0, 0], level: 2, edge: 's' }
+		],
+		spawns: [],
+		creatures: [[0, 0, 1]],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		lootables: [
+			{ type: 'niche', position: [-1.545, 0, 1], yaw: 1.571 },
+			{ type: 'niche', position: [-1, 0, -1.545], yaw: 0 },
+			{ type: 'niche', position: [0.5, 0, 1.545], yaw: 3.142 },
+			{ type: 'sarcophagus', position: [1.27, 0, -0.5], yaw: -1.571 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [{ position: [0, 8, -0.8], yaw: -3.142 }],
+		candles: [],
+		colliders: [
+			{ center: [1.35, 3.4, 0.65], halfExtents: [0.65, 0.2, 1.35], rotation: [0, 0, 0, 1] },
+			{ center: [0.65, 3.4, -1.35], halfExtents: [1.35, 0.2, 0.65], rotation: [0, 0, 0, 1] },
+			{ center: [-0.65, 3.4, 1.35], halfExtents: [1.35, 0.2, 0.65], rotation: [0, 0, 0, 1] },
+			{ center: [-1.35, 3.4, -0.65], halfExtents: [0.65, 0.2, 1.35], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 11, 0], halfExtents: [1.5, 0.2, 2], rotation: [0, 0, 0, 1] },
+			{ center: [1.25, 9.5, 0], halfExtents: [0.25, 1.5, 2], rotation: [0, 0, 0, 1] },
+			{ center: [-1.25, 9.5, 0], halfExtents: [0.25, 1.5, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0.4, 8.5, -0.87], halfExtents: [0.07, 0.5, 0.07], rotation: [0, 0, 0, 1] },
+			{ center: [0.85, 5.45, 0], halfExtents: [0.15, 2.25, 0.7], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5.45, -0.85], halfExtents: [1, 2.25, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5.45, 0.85], halfExtents: [1, 2.25, 0.15], rotation: [0, 0, 0, 1] },
+			{ center: [-0.85, 5.45, 0], halfExtents: [0.15, 2.25, 0.7], rotation: [0, 0, 0, 1] },
+			{ center: [1.1, 7.85, 0], halfExtents: [0.4, 0.15, 0.7], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7.85, -1.35], halfExtents: [1.5, 0.15, 0.65], rotation: [0, 0, 0, 1] },
+			{ center: [0, 7.85, 1.35], halfExtents: [1.5, 0.15, 0.65], rotation: [0, 0, 0, 1] },
+			{ center: [-1.1, 7.85, 0], halfExtents: [0.4, 0.15, 0.7], rotation: [0, 0, 0, 1] },
+			{ center: [1.875, 1.6, 0], halfExtents: [0.125, 1.6, 1.75], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.6, -1.875], halfExtents: [2, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.6, 1.875], halfExtents: [2, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.875, 1.6, 0], halfExtents: [0.125, 1.6, 1.75], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 944
+	},
+	'survey-station': {
+		name: 'survey-station',
+		url: '/assets/shared/map/survey-station.035e24eb.gltf',
+		bytes: 1665116,
+		footprint: [1, 1],
+		levels: 1,
+		sockets: [{ type: 'hall', cell: [0, 0], level: 0, edge: 's' }],
+		spawns: [],
+		creatures: [[0, 0, 0.8]],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		lootables: [{ type: 'cache', position: [-1.5, 0, -1.545], yaw: 0 }],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.2, 0], halfExtents: [2, 0.2, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 0.4, -0.8], halfExtents: [0.8, 0.4, 0.4], rotation: [0, 0, 0, 1] },
+			{ center: [1.875, 1.5, 0], halfExtents: [0.125, 1.5, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.5, -1.875], halfExtents: [2, 1.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.5, 1.875], halfExtents: [0.5, 1.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.9, 1.875], halfExtents: [1, 0.1, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.5, 1.875], halfExtents: [0.5, 1.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.875, 1.5, 0], halfExtents: [0.125, 1.5, 2], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 145
+	},
+	vestry: {
+		name: 'vestry',
+		url: '/assets/shared/map/vestry.5476387e.gltf',
+		bytes: 1371452,
+		footprint: [2, 1],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [1, 0], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [
+			[-2.5, 0, 0],
+			[2.5, 0, -0.6]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [{ position: [2.5, 0, -1.4], yaw: 0 }],
+		lootables: [
+			{ type: 'font', position: [-3, 0, -1.37], yaw: 0 },
+			{ type: 'offeringBox', position: [1.5, 0, 1.57], yaw: 3.142 },
+			{ type: 'vestryCabinet', position: [0, 0, -1.47], yaw: 0 },
+			{ type: 'vestryCabinet', position: [-1.5, 0, 1.47], yaw: 3.142 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.4, 0], halfExtents: [4, 0.2, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [4, 0.1, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 0.425, 1.45], halfExtents: [0.9, 0.425, 0.3], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.6, 1.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 3, 0], halfExtents: [0.125, 0.2, 1], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 1.6, -1.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.6, -1.875], halfExtents: [4, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.6, 1.875], halfExtents: [4, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.6, 1.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 3, 0], halfExtents: [0.125, 0.2, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-3.875, 1.6, -1.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 266
+	},
+	'webbed-gallery': {
+		name: 'webbed-gallery',
+		url: '/assets/shared/map/webbed-gallery.3ded6b18.gltf',
+		bytes: 1293749,
+		footprint: [3, 1],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 0], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [2, 0], level: 0, edge: 'e' }
+		],
+		spawns: [],
+		creatures: [
+			[-4, 0, 0],
+			[4, 0, 0]
+		],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [],
+		lootables: [
+			{ type: 'cocoon', position: [-1.5, 0, -1.42], yaw: 0 },
+			{ type: 'cocoon', position: [1.5, 0, 1.42], yaw: 3.142 },
+			{ type: 'cocoon', position: [3, 0, -1.42], yaw: 0 },
+			{ type: 'corpse', position: [-3, 0, 1.195], yaw: 3.142 }
+		],
+		doors: [],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.4, 0], halfExtents: [6, 0.2, 2], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 2], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 1.6, 1.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 3, 0], halfExtents: [0.125, 0.2, 1], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 1.6, -1.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.6, -1.875], halfExtents: [6, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.6, 1.875], halfExtents: [6, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 1.6, 1.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 3, 0], halfExtents: [0.125, 0.2, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 1.6, -1.5], halfExtents: [0.125, 1.6, 0.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 1431
 	}
 };

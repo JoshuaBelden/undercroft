@@ -20,10 +20,17 @@ import {
 	speedFactor,
 	spendHeld
 } from '../items/inventory.ts';
-import { aimRay, idleWeapon, stepWeapon } from '../items/weapons.ts';
+import { aimRay, canUseHeld, idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
 import { grabRope, letGo, ropeToGrab, stepClimb, type ClimberSpot } from './climb.ts';
-import { applyCondition, conditionSpeedCap, lampBlocked, stepConditions } from './conditions.ts';
+import {
+	applyCondition,
+	conditionSpeedCap,
+	conditionSpeedFactor,
+	lampBlocked,
+	stepConditions
+} from './conditions.ts';
+import { crawlFactor, sprintFactor } from '../items/gear.ts';
 import { lookedAtTeammate, needs, tendKind, type TeammateSpot } from './tend.ts';
 import type { InputFrame, Inventory, PlayerState, SimEvent, Stance } from './types.ts';
 
@@ -93,6 +100,8 @@ export function createPlayerState(
 		performing: 0,
 		opening: 0,
 		prying: 0,
+		crafting: 0,
+		craftingItem: null,
 		erasing: 0,
 		roping: 0,
 		unbarring: 0,
@@ -232,7 +241,8 @@ export function stepPlayer(
 	const climbPress = input.climb && !s.climbKey;
 	s.climbKey = input.climb;
 	if (s.downed) {
-		stepWeapon(s, input, dt, false, eyeHeight(s, t), events);
+		// Down, only something made for it works (a derringer).
+		stepWeapon(s, input, dt, canUseHeld(s, false, false), eyeHeight(s, t), events);
 		stepDowned(s, input, world, dt, t);
 		updateBattery(s, dt, lamp);
 		return s;
@@ -288,6 +298,8 @@ export function stepPlayer(
 	const sprinting =
 		slowed === null &&
 		!s.squeezing &&
+		// Something too heavy to run with in the hand (a sledgehammer).
+		!ITEMS[held(s.inventory)?.item ?? '']?.noSprint &&
 		input.sprint &&
 		!input.sneak &&
 		moving &&
@@ -312,8 +324,15 @@ export function stepPlayer(
 	} else if (s.swimming && surface !== null) {
 		swim(s, input, world, dt, t, surface, sprinting);
 	} else {
-		let speed = sprinting ? t.sprintSpeed : t.stances[s.stance].speed;
+		let speed = sprinting
+			? t.sprintSpeed * sprintFactor(s.inventory)
+			: t.stances[s.stance].speed * (s.stance === 'crawl' ? crawlFactor(s.inventory) : 1);
 		if (s.weapon.aiming) speed = Math.min(speed, t.aimSpeed);
+		// Cranking a crossbow back: no faster than a crawl.
+		if (s.weapon.action === 'reload' && ITEMS[held(s.inventory)?.item ?? '']?.firearm?.reloadSlow) {
+			speed = Math.min(speed, t.stances.crawl.speed);
+		}
+		speed *= conditionSpeedFactor(s);
 		if (input.sneak) speed = Math.min(speed, t.sneakSpeed);
 		if (s.squeezing) speed = Math.min(speed, t.squeezeSpeed);
 		if (s.wading) speed *= t.wadeSpeed;
@@ -350,16 +369,16 @@ export function stepPlayer(
 	updateBandage(s, input, moving);
 	updateCharge(s, input, moving);
 	updateTend(s, input, moving, world, teammates, t);
-	// No room to swing, aim or throw while pushing through a squeeze.
-	const able =
+	// No room to swing, aim or throw crawling or pushing through a squeeze, but for things made
+	// for it (`cramped`: a short spear, a derringer).
+	const roomy =
 		!s.swimming &&
 		!s.mantle &&
-		!s.squeezing &&
-		s.stance !== 'crawl' &&
 		s.bandaging === 0 &&
 		s.charging === 0 &&
 		s.tending === 0 &&
 		s.reviving === 0;
+	const able = canUseHeld(s, roomy, s.squeezing || s.stance === 'crawl');
 	stepWeapon(s, input, dt, able, eyeHeight(s, t), events);
 	const heal = healing(s);
 	if (s.bandaging > 0) s.bandaging += dt;
@@ -442,7 +461,8 @@ function stepDowned(
  * crouch for it, and stand back up when it is done or let go.
  */
 export function kneeling(s: PlayerState): boolean {
-	return s.bandaging > 0 && !!healing(s)?.kneel;
+	// Crafting below (the field crafting kit): kneeling over the work.
+	return (s.bandaging > 0 && !!healing(s)?.kneel) || s.crafting > 0;
 }
 
 /** The healing spec of what is in the hand (a bandage), if it heals. */

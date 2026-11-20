@@ -57,7 +57,7 @@
 	]);
 	/** What the haul would fetch if all of it were sold. */
 	const worth = $derived(
-		(carried ?? []).reduce((sum, stack) => sum + sellPrice(stack.item) * stack.count, 0)
+		(carried ?? []).reduce((sum, stack) => sum + sellPrice(stack.item, stack) * stack.count, 0)
 	);
 </script>
 

@@ -9,7 +9,15 @@ import { allReady, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import type { FriendStatus } from '../src/lib/shared/social/types.ts';
 import type { Identity, Profile } from './accounts.ts';
-import { giveBack, lockKit, markWheels, owned, takeKit } from './belongings.ts';
+import {
+	discoveries,
+	giveBack,
+	lockKit,
+	markWheels,
+	owned,
+	recordFind,
+	takeKit
+} from './belongings.ts';
 import { forgetGuest } from './guests.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
@@ -31,6 +39,8 @@ export interface Member {
 	ready: boolean;
 	/** What they last asked for; `ready` follows once their loadout is locked. */
 	wantReady: boolean;
+	/** Ready with the free loadout (given at descent if their own is empty). */
+	free: boolean;
 	/** False while the connection is down and their place is held. */
 	connected: boolean;
 	/** Runs out when a dropped member has been gone too long. */
@@ -116,6 +126,7 @@ export class Parties {
 			socket,
 			ready: false,
 			wantReady: false,
+			free: false,
 			connected: true,
 			dropTimer: null,
 			party: this.create(),
@@ -227,15 +238,28 @@ export class Parties {
 		log.info(`${member.name} reset their progress on ${id}`);
 	}
 
+	/**
+	 * Why a member can't go against an Affliction yet: one it `requires` they haven't done (the
+	 * Gloaming until they have got out of Rumors). Null if they can.
+	 */
+	async locked(member: Member, id: string): Promise<string | null> {
+		const requires = AFFLICTIONS[id]?.requires;
+		if (!requires) return null;
+		const done = await this.progress.of(member.explorer, requires);
+		if (done.resolved) return null;
+		return `Go on a ${AFFLICTIONS[requires]?.name ?? requires} expedition first`;
+	}
+
 	/** The host chooses what the expedition is against. Everyone confirms again after a change. */
-	setAffliction(member: Member, id: unknown): void {
+	async setAffliction(member: Member, id: unknown): Promise<void> {
 		const party = member.party;
-		let problem: string | null = null;
+		let problem: string | null;
 		if (party.leader !== member.id) problem = 'Only the host chooses the Affliction';
 		else if (party.session) problem = 'An expedition is already under way';
 		else if (typeof id !== 'string' || !Object.hasOwn(AFFLICTIONS, id)) {
 			problem = 'No such Affliction';
-		}
+		} else if (AFFLICTIONS[id].requires) problem = await this.locked(member, id);
+		else problem = null;
 		if (problem !== null || typeof id !== 'string') {
 			this.send(member, { type: 'partyError', reason: problem ?? 'No such Affliction' });
 			return;
@@ -251,7 +275,7 @@ export class Parties {
 	 * refuses changes to it), so what they confirmed is what goes down; only then do the others
 	 * see them as ready.
 	 */
-	async setReady(member: Member, ready: boolean): Promise<void> {
+	async setReady(member: Member, ready: boolean, free = false): Promise<void> {
 		const party = member.party;
 		if (!ready) {
 			if (!member.ready && !member.wantReady) return;
@@ -260,14 +284,18 @@ export class Parties {
 			return;
 		}
 		if (member.wantReady || this.expedition(member)) return;
-		let problem: string | null = null;
+		let problem: string | null;
 		if (party.session) problem = 'An expedition is already under way';
 		else if (!party.affliction) problem = 'No Affliction has been chosen yet';
+		else if (AFFLICTIONS[party.affliction]?.requires) {
+			problem = await this.locked(member, party.affliction);
+		} else problem = null;
 		if (problem) {
 			this.send(member, { type: 'partyError', reason: problem });
 			return;
 		}
 		member.wantReady = true;
+		member.free = free;
 		await lockKit(member.explorer, true);
 		// They changed their mind, left or dropped meanwhile: `unready` has unlocked it again.
 		if (!member.wantReady || member.ready) return;
@@ -295,6 +323,10 @@ export class Parties {
 			onClues: (clues) => this.progress.record(descended(), session.afflictionId, { clues }),
 			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
 			onRiteReset: () => void this.progress.reset(descended(), session.afflictionId),
+			onDiscovered: (explorer, item, source) => recordFind(explorer, item, source),
+			// Out of a training ground (Rumors): done, which opens what it unlocks.
+			onTrained: (explorer) =>
+				this.progress.record([explorer], session.afflictionId, { resolved: true }),
 			onPlayerLeft: (explorer, carried) => {
 				giveBack(explorer, session.id, carried);
 				this.sweep(party);
@@ -329,11 +361,15 @@ export class Parties {
 	 */
 	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
 		const going = [...party.members];
-		const [kits, onSurface, wheels] = await Promise.all([
-			Promise.all(going.map((m) => takeKit(m.explorer, session.id))),
+		const [kits, onSurface, wheels, known, done] = await Promise.all([
+			Promise.all(going.map((m) => takeKit(m.explorer, session.id, m.free))),
 			owned(going.map((m) => m.explorer)),
-			markWheels(going.map((m) => m.explorer))
+			markWheels(going.map((m) => m.explorer)),
+			discoveries(going.map((m) => m.explorer)),
+			Promise.all(going.map((m) => this.progress.of(m.explorer, session.afflictionId)))
 		]);
+		// A training ground's tutorial holds its lessons for anyone's first time through.
+		session.tutorial(done.some((d) => !d.resolved));
 		// A quest item someone already owns (kept on the surface, or brought down) isn't put in the map.
 		const quest =
 			AFFLICTIONS[session.afflictionId]?.rite.requirements
@@ -348,7 +384,14 @@ export class Parties {
 				return;
 			}
 			const wheel = markWheel(wheels.get(m.explorer));
-			m.playerId = session.addPlayer(m.socket, m.name, m.explorer, kits[i], wheel).id;
+			m.playerId = session.addPlayer(
+				m.socket,
+				m.name,
+				m.explorer,
+				kits[i],
+				wheel,
+				known.get(m.explorer)
+			).id;
 		});
 		if (party.session !== session) return;
 		if (session.playerCount === 0) {
@@ -462,6 +505,7 @@ export class Parties {
 		if (!member.ready && !member.wantReady) return;
 		member.ready = false;
 		member.wantReady = false;
+		member.free = false;
 		void lockKit(member.explorer, false);
 	}
 

@@ -1,11 +1,13 @@
 import { MAP_KIT } from '../../src/lib/content/map/kit.ts';
 import { ITEMS } from '../../src/lib/content/items.ts';
 import { MOVEMENT } from '../../src/lib/content/player/movement.ts';
-import { addItem, newStack } from '../../src/lib/shared/items/inventory.ts';
+import { addWear, lasting, mend, wreck } from '../../src/lib/shared/items/durability.ts';
+import { addItem, allStacksLive, held, newStack } from '../../src/lib/shared/items/inventory.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
 import { toWorld } from '../../src/lib/shared/map/grid.ts';
 import { dropSpot, inFront, roomPoints, testPoints } from '../../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
+import type { ItemStack } from '../../src/lib/shared/player/types.ts';
 import { eyeHeight } from '../../src/lib/shared/player/simulate.ts';
 import type { Player, SessionContext, SessionSystem } from './system.ts';
 
@@ -37,6 +39,20 @@ export class CheatSystem implements SessionSystem {
 				addItem(player.state.inventory, newStack(gun.ammo, gun.magazine * 4));
 			}
 		},
+		wearHeld: (player) => {
+			const stack = this.wearable(player);
+			const last = stack ? lasting(ITEMS[stack.item]) : null;
+			if (!stack || !last) return false;
+			addWear(stack, Math.ceil(last.max / 4));
+		},
+		breakHeld: (player) => {
+			const stack = this.wearable(player);
+			if (!stack) return false;
+			wreck(stack);
+		},
+		repairAll: (player) => {
+			for (const stack of allStacksLive(player.state.inventory)) mend(stack);
+		},
 		clearConditions: (player) => {
 			player.state.conditions = [];
 		},
@@ -63,6 +79,15 @@ export class CheatSystem implements SessionSystem {
 			player.state.velocity = [0, 0, 0];
 		}
 	} satisfies SessionSystem['admin'];
+
+	/** What the wear tools work on: what is in the hand if it wears, else what is worn for defense. */
+	private wearable(player: Player): ItemStack | null {
+		const inv = player.state.inventory;
+		return (
+			[held(inv), inv.equipment.defense].find((stack) => !!stack && !!lasting(ITEMS[stack.item])) ??
+			null
+		);
+	}
 
 	/**
 	 * Teleports only the server can work out: `stuck-crate`, in front of the first jammed crate

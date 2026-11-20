@@ -6,7 +6,7 @@ import { pieceLinks } from './debug.ts';
 import { generateLayout } from './generate.ts';
 import { cellKey, occupiedCells, placementLevel } from './grid.ts';
 import { PIECES } from './pieces.generated.ts';
-import type { MapLayout, Placement } from './types.ts';
+import type { MapKit, MapLayout, Placement } from './types.ts';
 
 /** Pieces (not caps) that can't be walked to from the start room. */
 function unreached(map: MapLayout, links: Set<number>[]): string[] {
@@ -34,7 +34,8 @@ function onFoot(map: MapLayout, links: Set<number>[]): Set<number> {
 }
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => (i * 2654435761) >>> 0);
-const AFFLICTION_IDS = Object.keys(AFFLICTIONS);
+// Generated maps: a training ground (Rumors) has its own small one (training.test.ts).
+const AFFLICTION_IDS = Object.keys(AFFLICTIONS).filter((id) => !AFFLICTIONS[id].training);
 
 describe('generateLayout', () => {
 	it('gives the same layout for the same seed', () => {
@@ -185,5 +186,39 @@ describe('generateLayout', () => {
 
 	it('throws on a kit it cannot build anything from', () => {
 		expect(() => generateLayout(1, PIECES, {}, { attempts: 2 })).toThrow();
+	});
+});
+
+describe('levels', () => {
+	it('puts every piece only on the levels its kit entry allows', () => {
+		for (let seed = 1; seed <= 20; seed++) {
+			for (const placement of realMap(seed).placements) {
+				const levels = MAP_KIT[placement.piece]?.levels;
+				if (levels) expect(levels, `${seed}: ${placement.piece}`).toContain(placement.tier + 1);
+			}
+		}
+	});
+
+	it('a major room kept to the deepest level always lands there', () => {
+		const kit: MapKit = {
+			...MAP_KIT,
+			'ossuary-hall': { ...MAP_KIT['ossuary-hall'], levels: [3] },
+			'quarry-gallery': { ...MAP_KIT['quarry-gallery'], levels: [1] }
+		};
+		for (let seed = 1; seed <= 10; seed++) {
+			const layout = generateLayout(seed, PIECES, kit);
+			const tierOf = (piece: string) => layout.placements.find((p) => p.piece === piece)?.tier;
+			expect(tierOf('ossuary-hall'), `seed ${seed}`).toBe(2);
+			expect(tierOf('quarry-gallery'), `seed ${seed}`).toBe(0);
+		}
+	});
+
+	it('a connector kept off a level never appears on it', () => {
+		const kit: MapKit = { ...MAP_KIT, 'room-vault': { ...MAP_KIT['room-vault'], levels: [1] } };
+		for (let seed = 1; seed <= 10; seed++) {
+			for (const p of generateLayout(seed, PIECES, kit).placements) {
+				if (p.piece === 'room-vault') expect(p.tier).toBe(0);
+			}
+		}
 	});
 });

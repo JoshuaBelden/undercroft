@@ -203,6 +203,35 @@ export interface RiteSpec {
 	atStart: boolean;
 }
 
+/**
+ * A training ground in place of an Affliction (Rumors, docs/dev/rumors.md): its own small map,
+ * no threat, and a tutorial walked step by step. Everything used there follows the usual rules.
+ */
+export interface TrainingSpec {
+	/** The walk in (its crate markers and spots hold the tutorial) and the vault at its end. */
+	walk: string;
+	vault: string;
+	/** What each of the walk's crate markers holds, in order: the first time only. */
+	crates: { item: string; count: number }[][];
+	/** Things lying at spots: `firstTime` ones only the first time, the rest always. */
+	floor: { spot: string; item: string; count: number; firstTime?: boolean }[];
+	/** Training dummies at the vault's spots; `track`: metres it runs side to side. */
+	dummies: { spot: string; track?: number }[];
+	/**
+	 * The tutorial: each step told once, when a player comes within `radius` of its spot (null:
+	 * on arriving). `help` is the help topic it points to.
+	 */
+	steps: {
+		spot: string | null;
+		radius: number;
+		title: string;
+		line: string;
+		help?: string;
+		/** About what is only there the first time (the stocked crates, the kit): told only then. */
+		firstTime?: boolean;
+	}[];
+}
+
 export interface AfflictionDef {
 	id: string;
 	/** Player-facing name (results screen, help). */
@@ -223,13 +252,120 @@ export interface AfflictionDef {
 	expeditionSeconds: number;
 	/** Omen stages, ascending by `at`. Stage 0 (no omens) is implicit below the first. */
 	stages: OmenStage[];
-	manifestation: ManifestationSpec;
+	/** What the rite summons; none for a training ground. */
+	manifestation?: ManifestationSpec;
 	rite: RiteSpec;
+	/** A training ground (Rumors): no meter, no creatures, nobody goes down; a tutorial. */
+	training?: TrainingSpec;
+	/** It stays locked until this Affliction has been done (resolved, or for training: got out of). */
+	requires?: string;
+	/** The order shown on the Afflictions page. */
+	order: number;
 }
 
 export const AFFLICTIONS: Record<string, AfflictionDef> = {
+	// The first, and a place to train after (docs/dev/rumors.md).
+	rumors: {
+		id: 'rumors',
+		name: 'Rumors',
+		order: 0,
+		flavor:
+			'Everyone in the village has a story about the catacombs, and none of them agree. Go down and see for yourself: a short way in, an old vault where the keepers trained, and back out. Nothing down there wants you. Yet.',
+		image: 'affliction-rumors-banner',
+		meter: { seconds: Infinity, perKill: 0, perLoot: 0 },
+		expeditionSeconds: 3600,
+		stages: [],
+		rite: {
+			requirements: [],
+			room: 'rumors-vault',
+			seconds: 0,
+			clues: [],
+			clueCopies: 0,
+			atStart: false
+		},
+		training: {
+			walk: 'rumors-walk',
+			vault: 'rumors-vault',
+			crates: [[{ item: 'rags', count: 3 }], [{ item: 'wax', count: 2 }]],
+			floor: [
+				{ spot: 'kit', item: 'crafting-kit', count: 1, firstTime: true },
+				{ spot: 'chalk', item: 'chalk', count: 2, firstTime: true }
+			],
+			dummies: [
+				{ spot: 'dummy-5' },
+				{ spot: 'dummy-10' },
+				{ spot: 'dummy-20' },
+				{ spot: 'dummy-40' },
+				{ spot: 'track', track: 6 }
+			],
+			steps: [
+				{
+					spot: null,
+					radius: 0,
+					title: 'The way down',
+					line: 'Climb down the rope. Your headlamp turns low and bright: brighter shows more, and is seen further.',
+					help: 'headlamp'
+				},
+				{
+					spot: 'step-crate',
+					radius: 2.5,
+					title: 'A crate',
+					line: 'Look at it and hold interact to open it. Whatever you see inside is discovered: rags, here, and a bandage needs only rags.',
+					help: 'discovery',
+					firstTime: true
+				},
+				{
+					spot: 'step-kit',
+					radius: 2.5,
+					title: 'A field crafting kit',
+					line: 'Pick it up and wear it in a gear slot. Then open the menu, choose Craft, and make a bandage from the rags.',
+					help: 'field-crafting',
+					firstTime: true
+				},
+				{
+					spot: 'step-recipe',
+					radius: 2.5,
+					title: 'Another crate',
+					line: 'Open this one too. It holds wax but no twine: the candle recipe goes into your Library with one part still unknown, to find later.',
+					help: 'discovery',
+					firstTime: true
+				},
+				{
+					spot: 'step-chalk',
+					radius: 2.5,
+					title: 'Chalk',
+					line: 'Take the chalk in your hand and mark the wall. Marks are the only way back out.',
+					help: 'chalk',
+					firstTime: true
+				},
+				{
+					spot: 'step-vault',
+					radius: 7,
+					title: 'The rite',
+					line: 'Every Affliction ends with a rite: bring what it asks for to the room where it is done, and perform it there. Its pane says what is known; clues found below tell the rest. Rumors has none: getting out is enough.',
+					help: 'the-rite'
+				},
+				{
+					spot: 'step-vault',
+					radius: 3,
+					title: 'The training vault',
+					line: 'Dummies at 5, 10, 20 and 40 m, one on a track. A web and a fall of rubble in the arches. Bricks by the door. Try what you brought.',
+					help: 'fighting-back'
+				},
+				{
+					spot: 'step-out',
+					radius: 3,
+					title: 'The way out',
+					line: 'Climb the ladder to get out. After this, the Gloaming is open to you.',
+					help: 'extraction'
+				}
+			]
+		}
+	},
 	gloaming: {
 		id: 'gloaming',
+		order: 1,
+		requires: 'rumors',
 		name: 'The Gloaming',
 		flavor:
 			'Long ago, the keepers of the dead held back the dusk each evening with a rite. It worked for as long as anyone remembered how to say it. The last keeper died with the rite unspoken, and the robbers who broke into his grave took more than they knew. What he had kept shut away came down into the dark with them.',
@@ -367,3 +503,17 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 };
 
 export const DEFAULT_AFFLICTION = AFFLICTIONS.gloaming;
+
+/** Every Affliction's id, in the order the Afflictions page shows them (Rumors first). */
+export const AFFLICTION_ORDER: string[] = Object.values(AFFLICTIONS)
+	.sort((a, b) => a.order - b.order)
+	.map((def) => def.id);
+
+/**
+ * Whether an Affliction is still locked for someone, by what they have done (their progress):
+ * one it `requires` they haven't (the Gloaming until they have got out of Rumors).
+ */
+export function afflictionLocked(id: string, done: (id: string) => boolean): boolean {
+	const requires = AFFLICTIONS[id]?.requires;
+	return !!requires && !done(requires);
+}

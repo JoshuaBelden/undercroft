@@ -76,7 +76,9 @@ export class PackSystem implements SessionSystem {
 			} else {
 				this.ctx.events.push({ kind: 'land', item: result.item, position: result.position });
 				// No source: creatures go and look where it landed (a lure).
-				this.ctx.creatures.hear(result.position, result.noise, null);
+				if (result.noise > 0) this.ctx.creatures.hear(result.position, result.noise, null);
+				// A fuse lit, a fire bursting.
+				this.ctx.systems.hazards.landed(result);
 			}
 		}
 	}

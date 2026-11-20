@@ -69,6 +69,26 @@ export interface CratesSnapshot {
 	jammed: string[];
 	/** Trunks still locked (a key opens one). */
 	locked: string[];
+	/** Hidden ones (a smuggler's stash) someone has noticed: everyone can open them now. */
+	noticed: string[];
+	/** Ones filled from (a font) that have run dry. */
+	dry: string[];
+}
+
+/**
+ * What has been set down or set off in the map (server/systems/hazards.ts): fires burning, snares
+ * set and lines of salt. Every client draws them. See docs/dev/combat.md.
+ */
+export interface HazardsSnapshot {
+	fires: { id: string; position: Vec3; radius: number }[];
+	snares: { id: string; item: string; position: Vec3; yaw: number }[];
+	wards: { id: string; item: string; a: Vec3; b: Vec3 }[];
+	/** Glow sticks lying lit: `left` of `seconds` (they fade at the end). */
+	glows: { id: string; item: string; position: Vec3; left: number; seconds: number }[];
+	/** Bait lying where it landed. */
+	baits: { id: string; item: string; position: Vec3 }[];
+	/** Tripwire bells set across the way. */
+	tripwires: { id: string; item: string; a: Vec3; b: Vec3 }[];
 }
 
 /** A thrown item in flight. */
@@ -149,6 +169,10 @@ export type GameEvent =
 	| { kind: 'crateUnlock'; id: string; player: string; position: Vec3 }
 	/** Someone started levering at a jammed crate or a wall with a crowbar. */
 	| { kind: 'pry'; target: 'crate' | 'wall'; player: string; position: Vec3 }
+	/** Someone started breaking at a rubble wall (a pickaxe). */
+	| { kind: 'dig'; id: string; player: string; position: Vec3 }
+	/** A web took a blow (`down`: it is torn through), or burned away. */
+	| { kind: 'webHit'; id: string; position: Vec3; down: boolean; burned: boolean }
 	/** A false wall came down under the crowbar (see map-generation.md#false-walls). */
 	| { kind: 'wallDown'; id: string; player: string; position: Vec3 }
 	/** A hint was found: what it says, and the requirements (item ids) and room (piece id) it revealed. */
@@ -164,6 +188,45 @@ export type GameEvent =
 	| { kind: 'rite'; player: string; position: Vec3 }
 	/** The manifestation the rite summoned was banished: the Affliction is resolved and calmed. */
 	| { kind: 'resolved'; position: Vec3 }
+	/** A player tried to swing with too little stamina: a gasp. */
+	| { kind: 'winded'; player: string; position: Vec3 }
+	/** A hit set a creature bleeding. */
+	| { kind: 'bleed'; id: string; position: Vec3 }
+	/** A player's weapon snagged on a hit (it won't swing for a moment). */
+	| { kind: 'snag'; player: string; item: string; position: Vec3 }
+	/** Something reached into bit a player (a rat nest), or stung them (a cocoon). */
+	| { kind: 'bitten'; player: string; position: Vec3 }
+	/** A player drew a tarot card coming down (TAROT): its blessing or curse is on them. */
+	| { kind: 'tarot'; player: string; card: string }
+	/** A tripwire bell rang: something crossed it. Everyone is told (the party hears where). */
+	| { kind: 'tripwire'; id: string; item: string; position: Vec3 }
+	/** A training dummy took a hit (its damage, for the numbers), or came whole again. */
+	| { kind: 'dummyHit'; id: string; amount: number; position: Vec3 }
+	| { kind: 'dummyReset'; id: string; position: Vec3 }
+	/** A player knelt to make or mend something below. */
+	| { kind: 'crafting'; player: string; position: Vec3 }
+	/** A player took something (laudanum, grave dirt). */
+	| { kind: 'dosed'; player: string; item: string; position: Vec3 }
+	/** A player blew a whistle: the party is shown where, for `seconds`. */
+	| { kind: 'whistle'; player: string; position: Vec3; seconds: number }
+	/** A piton hammered in at an edge (an anchor from now on); or no edge there to take one. */
+	| { kind: 'piton'; player: string; position: Vec3 }
+	| { kind: 'pitonFailed'; player: string }
+	/** A player filled something at a font (a bottle of holy water). */
+	| { kind: 'filled'; crate: string; player: string; item: string; position: Vec3 }
+	/** A player noticed a hidden lootable's sign (a smuggler's chalk mark). */
+	| { kind: 'noticed'; crate: string; player: string; position: Vec3 }
+	/** Something fragile broke (a fall, a box smashed open). */
+	| { kind: 'shatter'; item: string; position: Vec3 }
+	/** A player set something down (a snare, a line of salt). */
+	| { kind: 'placed'; player: string; item: string; position: Vec3 }
+	/** A snare caught a creature (it is held for a while; the snare is spent). */
+	| { kind: 'snared'; id: string; item: string; position: Vec3 }
+	/** Something on a fuse landed and is hissing; then it went off. */
+	| { kind: 'fuseLit'; item: string; position: Vec3 }
+	| { kind: 'fuseBang'; item: string; position: Vec3 }
+	/** Something burst into a fire (an oil bottle). */
+	| { kind: 'fire'; item: string; position: Vec3 }
 	/** A lamp was turned on from off: a flash that stuns what is vulnerable to it, if lit. */
 	| { kind: 'strobe'; player: string; position: Vec3; stunned: number }
 	/** Time ran out: everyone still underground is lost. */

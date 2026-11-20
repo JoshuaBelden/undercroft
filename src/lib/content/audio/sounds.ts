@@ -473,6 +473,437 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'brick shatters'
 	},
+	// Combat (docs/dev/combat.md): placeholders in code until each is recorded.
+	// Too little stamina left to swing.
+	'player.winded': {
+		file: 'player.winded',
+		synth: { kind: 'gasp' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.85,
+		variation: 0.08,
+		caption: 'a gasp',
+		captionOthers: true
+	},
+	// A weapon caught on what it hit (`melee.snag`).
+	'club.snag': {
+		file: 'club.snag',
+		synth: { kind: 'thud', cutoff: 380 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.1,
+		caption: 'a weapon snags'
+	},
+	// A creature set bleeding.
+	'creature.bleed': {
+		file: 'creature.bleed',
+		synth: { kind: 'drip' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 0.7,
+		variation: 0.1,
+		caption: 'something bleeds'
+	},
+	// A snare springing shut on what stepped in it.
+	'snare.spring': {
+		file: 'snare.spring',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.9,
+		rate: 0.6,
+		variation: 0.08,
+		caption: 'a snare snaps shut'
+	},
+	// The round's weapons and items (docs/handoff-gear-crafting-loot.md), synthesized until recorded.
+	'hatchet.swing': {
+		file: 'hatchet.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 1.2,
+		variation: 0.15
+	},
+	'hatchet.hit': {
+		file: 'hatchet.hit',
+		synth: { kind: 'thud', cutoff: 2600 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.1
+	},
+	'spade.swing': {
+		file: 'spade.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 0.8,
+		variation: 0.12
+	},
+	'spade.hit': {
+		file: 'spade.hit',
+		synth: { kind: 'thud', cutoff: 2000 },
+		category: 'sfx',
+		volume: 0.75,
+		variation: 0.1
+	},
+	'spear.thrust': {
+		file: 'spear.thrust',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.5,
+		variation: 0.1
+	},
+	'spear.hit': {
+		file: 'spear.hit',
+		synth: { kind: 'thud', cutoff: 2400 },
+		category: 'sfx',
+		volume: 0.65,
+		variation: 0.1
+	},
+	'club.swing': {
+		file: 'club.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 0.95,
+		variation: 0.15
+	},
+	'club.hit': {
+		file: 'club.hit',
+		synth: { kind: 'thud', cutoff: 1500 },
+		category: 'sfx',
+		volume: 0.75,
+		variation: 0.1
+	},
+	'pickaxe.swing': {
+		file: 'pickaxe.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 0.7,
+		variation: 0.1
+	},
+	'pickaxe.hit': {
+		file: 'pickaxe.hit',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.85,
+		variation: 0.1,
+		caption: 'iron on stone',
+		captionOthers: true
+	},
+	'sledge.swing': {
+		file: 'sledge.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.65,
+		rate: 0.55,
+		variation: 0.1
+	},
+	'sledge.hit': {
+		file: 'sledge.hit',
+		synth: { kind: 'thud', cutoff: 900 },
+		category: 'sfx',
+		volume: 1,
+		variation: 0.08,
+		caption: 'a heavy blow',
+		captionOthers: true
+	},
+	'rifle.shot': {
+		file: 'rifle.shot',
+		synth: { kind: 'gunshot', boom: 110, length: 2.4, bright: 5200 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.04,
+		caption: 'rifle shot',
+		captionOthers: true
+	},
+	'rifle.bolt': {
+		file: 'rifle.bolt',
+		synth: { kind: 'reload' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.6
+	},
+	'rifle.load': {
+		file: 'rifle.load',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 0.9,
+		variation: 0.1
+	},
+	'derringer.shot': {
+		file: 'derringer.shot',
+		synth: { kind: 'gunshot', boom: 80, length: 1.2, bright: 3600 },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.05,
+		caption: 'gunshot',
+		captionOthers: true
+	},
+	'derringer.reload': {
+		file: 'derringer.reload',
+		synth: { kind: 'reload' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.1
+	},
+	'crossbow.shot': {
+		file: 'crossbow.shot',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 0.5,
+		variation: 0.08
+	},
+	'crossbow.crank': {
+		file: 'crossbow.crank',
+		synth: { kind: 'reload' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 0.7
+	},
+	'crossbow.hit': {
+		file: 'crossbow.hit',
+		synth: { kind: 'thud', cutoff: 2800 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.1
+	},
+	'slingshot.shot': {
+		file: 'slingshot.shot',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.4,
+		variation: 0.1
+	},
+	'pebble.land': {
+		file: 'pebble.land',
+		synth: { kind: 'thud', cutoff: 4200 },
+		category: 'sfx',
+		volume: 0.55,
+		variation: 0.15,
+		caption: 'a pebble clatters',
+		captionOthers: true
+	},
+	'firecrackers.fuse': {
+		file: 'firecrackers.fuse',
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.05,
+		caption: 'a fuse hisses',
+		captionOthers: true
+	},
+	'firecrackers.bang': {
+		file: 'firecrackers.bang',
+		synth: { kind: 'gunshot', boom: 60, length: 0.6, bright: 6000 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.2,
+		caption: 'firecrackers',
+		captionOthers: true
+	},
+	'salt.pour': {
+		file: 'salt.pour',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.4,
+		variation: 0.1,
+		caption: 'salt pours'
+	},
+	'glowstick.crack': {
+		file: 'glowstick.crack',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.6,
+		variation: 0.1
+	},
+	'whistle.blow': {
+		file: 'whistle.blow',
+		synth: { kind: 'bell', pitch: 2400, length: 0.9 },
+		category: 'sfx',
+		volume: 0.8,
+		variation: 0.02,
+		caption: 'a whistle',
+		captionOthers: true
+	},
+	'tripwire.ring': {
+		file: 'tripwire.ring',
+		synth: { kind: 'bell', pitch: 1800, length: 1.2 },
+		category: 'sfx',
+		volume: 0.75,
+		variation: 0.05,
+		caption: 'a bell rings',
+		captionOthers: true
+	},
+	'censer.swing': {
+		file: 'censer.swing',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.25,
+		rate: 0.6,
+		variation: 0.1
+	},
+	'laudanum.drink': {
+		file: 'laudanum.drink',
+		synth: { kind: 'gasp' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 0.8
+	},
+	'compass.open': {
+		file: 'compass.open',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.2
+	},
+	'tarot.draw': {
+		file: 'tarot.draw',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.3,
+		caption: 'a card is drawn'
+	},
+	// The Workshop and the store (docs/dev/crafting.md), synthesized until recorded.
+	'workshop.craft': {
+		file: 'workshop.craft',
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 1.2,
+		variation: 0.1
+	},
+	'workshop.repair': {
+		file: 'workshop.repair',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.1,
+		variation: 0.1
+	},
+	'workshop.salvage': {
+		file: 'workshop.salvage',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.1
+	},
+	'store.tier': {
+		file: 'store.tier',
+		synth: { kind: 'bell', pitch: 660, length: 0.9 },
+		category: 'sfx',
+		volume: 0.4
+	},
+	// Making something below, kneeling (loops while it goes on).
+	'craft.field': {
+		file: 'craft.field',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 0.9,
+		variation: 0.15,
+		caption: 'tinkering'
+	},
+	// Rumors' training dummies (docs/dev/rumors.md), synthesized until recorded.
+	'dummy.hit': {
+		file: 'dummy.hit',
+		synth: { kind: 'thud', cutoff: 900 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.12,
+		caption: 'a dummy is hit'
+	},
+	'dummy.reset': {
+		file: 'dummy.reset',
+		synth: { kind: 'groan' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.6,
+		variation: 0.1
+	},
+	'dummy.track': {
+		file: 'dummy.track',
+		synth: { kind: 'scrape' },
+		category: 'ambience',
+		volume: 0.25,
+		rate: 0.6
+	},
+	// A climbing piton hammered into the rock (docs/dev/rope.md#pitons).
+	'piton.hammer': {
+		file: 'piton.hammer',
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 1.5,
+		variation: 0.1,
+		caption: 'iron rings on rock',
+		captionOthers: true
+	},
+	// You noticed a smuggler's chalk sign: the brick beside it is loose (docs/dev/world.md).
+	'stash.notice': {
+		file: 'stash.notice',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.6,
+		variation: 0.1,
+		caption: 'a loose brick'
+	},
+	// Breaking at a rubble wall (a pickaxe), and webs torn or burned (docs/dev/world.md).
+	'rubble.break': {
+		file: 'rubble.break',
+		synth: { kind: 'rockfall' },
+		category: 'sfx',
+		volume: 0.8,
+		variation: 0.1,
+		caption: 'rock breaks',
+		captionOthers: true
+	},
+	'web.tear': {
+		file: 'web.tear',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.3,
+		variation: 0.12,
+		caption: 'webbing tears'
+	},
+	'web.burn': {
+		file: 'web.burn',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.5,
+		variation: 0.1,
+		caption: 'webbing burns'
+	},
+	// A fire catching and burning (an oil bottle's).
+	'fire.burn': {
+		file: 'fire.burn',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.75,
+		rate: 0.6,
+		variation: 0.1,
+		caption: 'fire crackles'
+	},
+	// A weapon or tool giving way: it is broken now, and does nothing until it is repaired.
+	'item.break': {
+		file: 'item.break',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.8,
+		variation: 0.08,
+		caption: 'something breaks'
+	},
 	'item.pickup': {
 		file: 'item.pickup',
 		synth: { kind: 'rustle' },
@@ -617,6 +1048,140 @@ export const SOUNDS = {
 		volume: 0.6,
 		variation: 0.1,
 		caption: 'someone rummages through a pack',
+		captionOthers: true
+	},
+	// Lootables opening (docs/dev/lootables.md): placeholders in code until each is recorded.
+	'lootable.niche': {
+		file: 'lootable.niche',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.1,
+		caption: 'stone shifts in a wall',
+		captionOthers: true
+	},
+	'lootable.bones': {
+		file: 'lootable.bones',
+		synth: { kind: 'rockfall' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 1.6,
+		variation: 0.1,
+		caption: 'bones clatter',
+		captionOthers: true
+	},
+	'lootable.lid': {
+		file: 'lootable.lid',
+		synth: { kind: 'groan' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 1.4,
+		variation: 0.08,
+		caption: 'a stone lid grinds aside',
+		captionOthers: true
+	},
+	'lootable.chest': {
+		file: 'lootable.chest',
+		synth: { kind: 'thud', cutoff: 420 },
+		category: 'sfx',
+		volume: 0.65,
+		variation: 0.1,
+		caption: 'a chest is forced open',
+		captionOthers: true
+	},
+	'lootable.locker': {
+		file: 'lootable.locker',
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.8,
+		variation: 0.1,
+		caption: 'a metal door creaks',
+		captionOthers: true
+	},
+	'lootable.satchel': {
+		file: 'lootable.satchel',
+		synth: { kind: 'splash', length: 0.4, cutoff: 900 },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.1,
+		caption: 'something is pulled from the water',
+		captionOthers: true
+	},
+	'lootable.offering.pick': {
+		file: 'lootable.offering.pick',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.4,
+		variation: 0.1
+	},
+	'lootable.cabinet': {
+		file: 'lootable.cabinet',
+		synth: { kind: 'thud', cutoff: 650 },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 1.2,
+		variation: 0.1,
+		caption: 'a cabinet door swings open',
+		captionOthers: true
+	},
+	'lootable.nest': {
+		file: 'lootable.nest',
+		synth: { kind: 'squeak', pitch: 2600 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.15,
+		caption: 'rats squeal',
+		captionOthers: true
+	},
+	'lootable.cocoon': {
+		file: 'lootable.cocoon',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 0.8,
+		variation: 0.1,
+		caption: 'webbing tears',
+		captionOthers: true
+	},
+	'lootable.brick': {
+		file: 'lootable.brick',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 1.3,
+		variation: 0.1,
+		caption: 'a brick scrapes loose',
+		captionOthers: true
+	},
+	'lootable.cache': {
+		file: 'lootable.cache',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 1.2,
+		variation: 0.1,
+		caption: 'paper rustles',
+		captionOthers: true
+	},
+	// Filling a bottle at a font (docs/dev/world.md#fonts).
+	'lootable.font': {
+		file: 'lootable.font',
+		synth: { kind: 'splash', length: 0.8, cutoff: 1400 },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.4,
+		variation: 0.1,
+		caption: 'water pours'
+	},
+	'lootable.alcove': {
+		file: 'lootable.alcove',
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.65,
+		rate: 0.9,
+		variation: 0.08,
+		caption: 'an iron grille gives way',
 		captionOthers: true
 	},
 	// Chalk on stone: a mark drawn, or rubbed out by whoever drew it.

@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { ApiError, api, loadAccount, session } from '#lib/account/account.svelte.ts';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { ApiError, api, loadAccount, markSeen, session } from '#lib/account/account.svelte.ts';
 	import { money, sellPrice } from '#lib/content/economy.ts';
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import type { AccountView, ExplorerView } from '#lib/shared/account/types.ts';
@@ -9,6 +12,7 @@
 	import ChalkWheelDialog from './ChalkWheelDialog.svelte';
 	import Dialog from './Dialog.svelte';
 	import { ItemBoard } from './itemBoard.svelte.ts';
+	import { workshopAsk } from './workshop.svelte.ts';
 	import { matchesFilter, type ItemFilter } from './items.ts';
 	import ItemFilters from './ItemFilters.svelte';
 	import ItemOverlays from './ItemOverlays.svelte';
@@ -28,7 +32,7 @@
 		/** Ready to descend with the party: nothing can be changed until they cancel. */
 		ready?: boolean;
 		/** Something was moved, sold or dropped (for a sound). */
-		onchange?: (kind: 'move' | 'sell' | 'drop') => void;
+		onchange?: (kind: 'move' | 'sell' | 'drop' | 'salvage') => void;
 	}
 
 	let { explorer, ready = false, onchange }: Props = $props();
@@ -56,7 +60,7 @@
 		for (const stack of explorer.stash) {
 			if (!stack || !ITEMS[stack.item]?.treasure) continue;
 			count += stack.count;
-			worth += sellPrice(stack.item) * stack.count;
+			worth += sellPrice(stack.item, stack) * stack.count;
 		}
 		return { count, worth };
 	});
@@ -140,10 +144,30 @@
 		send('/api/shop', { action: 'sellTreasure' });
 	}
 
+	/** Fresh discoveries looked at already, while the server hears of it. */
+	const looked = new SvelteSet<string>();
+
+	/** Off to the Workshop, with this one chosen to mend. */
+	function repair(at: SlotRef): void {
+		workshopAsk.repair = at;
+		void goto(resolve('/(hub)/workshop'));
+	}
+
 	const board = new ItemBoard({
 		belongings: () => ({ inventory: explorer.loadout, stash: explorer.stash }),
 		act: arrange,
 		sell,
+		repair,
+		salvage: (at) => {
+			error = '';
+			onchange?.('salvage');
+			send('/api/explorer/workshop', { action: 'salvage', at });
+		},
+		fresh: (item) => explorer.fresh.includes(item) && !looked.has(item),
+		seen: (item) => {
+			looked.add(item);
+			void markSeen([item]).catch(() => looked.delete(item));
+		},
 		locked: () => explorer.underground || ready,
 		price: money,
 		confirmDrop: true

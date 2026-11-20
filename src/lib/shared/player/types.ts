@@ -133,6 +133,10 @@ export interface PlayerState {
 	performing: number;
 	/** Seconds spent holding interact to open a loot crate (server-driven). */
 	opening: number;
+	/** Seconds kneeling over something being made or mended below (server-driven). */
+	crafting: number;
+	/** What is being made or mended (an item id), while `crafting`. */
+	craftingItem: string | null;
 	/**
 	 * Seconds spent prying at a dead end's wall with a crowbar (server-driven); -1 once it is done,
 	 * until interact is let go.
@@ -162,20 +166,38 @@ export interface ItemStack {
 	count: number;
 	/** Rounds in a firearm. */
 	loaded?: number;
-	/** Hits taken by a breakable melee item; marks drawn with the stick in use (chalk). */
+	/** What it is loaded with, when not its own rounds (old coins in a slingshot). */
+	ammo?: string;
+	/** Made, not found or bought: it sells for its materials (docs/dev/crafting.md#selling). */
+	crafted?: boolean;
+	/** From the free loadout: it sells for nothing and can't be salvaged (docs/dev/economy.md). */
+	free?: boolean;
+	/** Hits taken by a breakable melee item (a brick: gone at the last); marks drawn with chalk. */
 	uses?: number;
-	/** Shield points a defense item has used up taking blows. */
+	/**
+	 * Wear an item with `durability` has taken (hits, shots, shield points...): broken when it
+	 * reaches the most it takes. See src/lib/shared/items/durability.ts.
+	 */
 	worn?: number;
 }
 
-export type EquipmentSlot = 'primary' | 'secondary' | 'defense';
+/** The gear slot holds three things: one equipment slot each. */
+export const GEAR_SLOTS = ['gear1', 'gear2', 'gear3'] as const;
+
+export type GearSlot = (typeof GEAR_SLOTS)[number];
+
+export type EquipmentSlot = 'primary' | 'secondary' | 'defense' | GearSlot;
 
 /**
  * What a player carries, and an explorer's loadout on the surface: the same thing. Every place is
  * a slot holding one stack or nothing. See docs/dev/items.md.
  */
 export interface Inventory {
-	/** Two weapons (only items in the weapon category) and what is worn (the defense category). */
+	/**
+	 * Two weapons (only items in the weapon category), what is worn for defense (the defense
+	 * category) and the three gear slots (the gear category). A loadout saved before the gear slots
+	 * existed has no gear keys: read a slot with `getSlot`, which takes a missing one as empty.
+	 */
 	equipment: Record<EquipmentSlot, ItemStack | null>;
 	/** Anything; as many slots as the pack has (BACKPACKS). */
 	backpack: (ItemStack | null)[];
@@ -191,7 +213,18 @@ export interface Inventory {
  * `draw`: attack held with a throwable in the hand, drawing it back to throw (see `stepWeapon`).
  * `throw`: it has left the hand, and the arm comes through.
  */
-export type WeaponAction = 'none' | 'equip' | 'swing' | 'shot' | 'reload' | 'draw' | 'throw';
+export type WeaponAction =
+	| 'none'
+	| 'equip'
+	| 'swing'
+	| 'shot'
+	| 'reload'
+	| 'draw'
+	| 'throw'
+	/** Holding attack with something to set down (a snare, salt): `ItemDef.place`. */
+	| 'place'
+	/** Holding attack with something to take (laudanum, grave dirt): `ItemDef.dose`. */
+	| 'dose';
 
 /** `Inventory.selected` for the weapons; quick-use slot `i` is `HAND.quick + i`. */
 export const HAND = { primary: 0, secondary: 1, quick: 2 } as const;
@@ -208,12 +241,29 @@ export interface WeaponState {
 	shots: number;
 	/** Previous frame's buttons, for press edges. */
 	prev: { attack: boolean; reload: boolean };
+	/** Seconds the weapon in the hand is still snagged (`melee.snag`): it won't swing. */
+	snag: number;
+	/** A throw was put down (aim, the menu): nothing more until attack is let go. */
+	putDown: boolean;
 }
 
 /** Something the simulation did that the server resolves (hits, noise) and clients show. */
 export type SimEvent =
 	| { kind: 'swing'; item: string; origin: Vec3; direction: Vec3 }
-	| { kind: 'shot'; item: string; origin: Vec3; direction: Vec3; seed: number; aimed: boolean }
+	| {
+			kind: 'shot';
+			item: string;
+			origin: Vec3;
+			direction: Vec3;
+			seed: number;
+			aimed: boolean;
+			/** What was fired (its own rounds, or old coins from a slingshot). */
+			round?: string;
+	  }
+	/** Something taken (laudanum, grave dirt): its condition is on them now. */
+	| { kind: 'dose'; item: string }
+	/** A whistle blown. */
+	| { kind: 'whistle'; item: string; origin: Vec3 }
 	| { kind: 'throw'; item: string; origin: Vec3; direction: Vec3; stack: ItemStack }
 	| { kind: 'reloaded'; item: string }
 	/** Hit the floor faster than FALL.safeSpeed (m/s): the server takes sanity for it. */
@@ -222,6 +272,12 @@ export type SimEvent =
 	/** Let go of a rope or slipped off it (out of stamina). Not stepping off at either end. */
 	| { kind: 'letgo'; rope: string }
 	| { kind: 'empty'; item: string }
+	/** Too little stamina to swing (`melee.stamina`): a gasp, and no swing. */
+	| { kind: 'winded'; item: string }
+	/** Something was set down on the floor in front (`ItemDef.place`): one of it is spent. */
+	| { kind: 'place'; item: string; origin: Vec3; direction: Vec3 }
+	/** What was in the hand just broke (a gun's last shot): it stays there, and does nothing. */
+	| { kind: 'broke'; item: string }
 	/** Used the item in the hand on a teammate (one of it is spent): the server applies it to them. */
 	| { kind: 'tend'; patient: string; item: string };
 

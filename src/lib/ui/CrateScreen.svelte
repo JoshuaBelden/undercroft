@@ -14,7 +14,7 @@
 	import LoadoutPanel from './LoadoutPanel.svelte';
 
 	/**
-	 * The loot screen: the crate you have open beside what you carry. Things go both ways with
+	 * The loot screen: the lootable you have open (a crate, a body, a niche...) beside what you carry. Things go both ways with
 	 * the same slot mechanics as the pack screen (drag, shift-click, the alternate menu).
 	 *
 	 * What is in the crate is revealed by the server a slot at a time. Until then a slot shows
@@ -22,8 +22,10 @@
 	 */
 	interface Props {
 		inventory: Inventory;
-		/** What is being gone through: "Crate" or "Corpse". */
+		/** What is being gone through: "Crate", "Dead explorer", "Wall niche". */
 		title: string;
+		/** A line about it, under the title. */
+		flavor?: string;
 		/** The crate's slots as the server tells them: `'hidden'` is something not revealed yet. */
 		slots: CrateSlot[];
 		/** How far along (0..1) the first hidden slot is to being revealed. */
@@ -34,7 +36,7 @@
 		onclose: () => void;
 	}
 
-	let { inventory, title, slots, reveal, moveKeys, onaction, onclose }: Props = $props();
+	let { inventory, title, flavor, slots, reveal, moveKeys, onaction, onclose }: Props = $props();
 
 	/** The slot being revealed now: the first hidden one. */
 	const revealing = $derived(slots.indexOf('hidden'));
@@ -88,6 +90,7 @@
 		<header>
 			<div class="title">
 				<h2 id="crate-title">{title}</h2>
+				{#if flavor}<p class="flavor">{flavor}</p>{/if}
 				<p class="status" role="status">
 					{left > 0 ? 'Searching...' : 'Searched'}
 				</p>
@@ -179,6 +182,14 @@
 		align-items: center;
 		gap: 20px;
 		margin-bottom: 22px;
+	}
+
+	.flavor {
+		margin: 4px 0 0;
+		max-width: 52ch;
+		font-style: italic;
+		font-size: 0.9rem;
+		color: var(--muted);
 	}
 
 	.title {

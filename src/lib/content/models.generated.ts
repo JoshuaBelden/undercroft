@@ -6,6 +6,10 @@ export const MODELS = {
 		url: '/assets/afflictions/gloaming/creatures/gloaming_boss.c655302a.glb',
 		bytes: 1051444
 	},
+	'shared/creatures/dummy.glb': {
+		url: '/assets/shared/creatures/dummy.926c257c.glb',
+		bytes: 17756
+	},
 	'shared/creatures/dweller.glb': {
 		url: '/assets/shared/creatures/dweller.8727e224.glb',
 		bytes: 2742984
@@ -35,17 +39,37 @@ export const MODELS = {
 		url: '/assets/shared/items/ammo-shotgun.e325a7a3.glb',
 		bytes: 2116
 	},
+	'shared/items/bait.glb': { url: '/assets/shared/items/bait.013bd0ac.glb', bytes: 250804 },
 	'shared/items/bandage.glb': { url: '/assets/shared/items/bandage.b2e18a60.glb', bytes: 513268 },
 	'shared/items/battery.glb': { url: '/assets/shared/items/battery.ad35751b.glb', bytes: 211712 },
 	'shared/items/brick.glb': { url: '/assets/shared/items/brick.ae689e8c.glb', bytes: 139748 },
 	'shared/items/chalk.glb': { url: '/assets/shared/items/chalk.0a8b2783.glb', bytes: 174972 },
+	'shared/items/crossbow.glb': { url: '/assets/shared/items/crossbow.2fd9a481.glb', bytes: 228444 },
 	'shared/items/crowbar.glb': { url: '/assets/shared/items/crowbar.4eb24c2a.glb', bytes: 178840 },
+	'shared/items/firecrackers.glb': {
+		url: '/assets/shared/items/firecrackers.2a44a99c.glb',
+		bytes: 204524
+	},
+	'shared/items/hatchet.glb': { url: '/assets/shared/items/hatchet.c58fca51.glb', bytes: 185668 },
 	'shared/items/key.glb': { url: '/assets/shared/items/key.26f3dc9c.glb', bytes: 195592 },
 	'shared/items/knife.glb': { url: '/assets/shared/items/knife.1a50d07f.glb', bytes: 205208 },
 	'shared/items/medkit.glb': { url: '/assets/shared/items/medkit.922e63e8.glb', bytes: 251004 },
+	'shared/items/nail_club.glb': {
+		url: '/assets/shared/items/nail_club.dbef8c04.glb',
+		bytes: 183344
+	},
 	'shared/items/note.glb': { url: '/assets/shared/items/note.387d1475.glb', bytes: 209852 },
-	'shared/items/notebook.glb': { url: '/assets/shared/items/notebook.7ae4b2a4.glb', bytes: 358292 },
+	'shared/items/notebook.glb': { url: '/assets/shared/items/notebook.473493c6.glb', bytes: 341384 },
+	'shared/items/oil_bottle.glb': {
+		url: '/assets/shared/items/oil_bottle.cead2f43.glb',
+		bytes: 210152
+	},
 	'shared/items/pendant.glb': { url: '/assets/shared/items/pendant.8cde11ff.glb', bytes: 247972 },
+	'shared/items/pickaxe.glb': { url: '/assets/shared/items/pickaxe.2c37ad84.glb', bytes: 219772 },
+	'shared/items/pocket_compass.glb': {
+		url: '/assets/shared/items/pocket_compass.b6ddc0ae.glb',
+		bytes: 244160
+	},
 	'shared/items/revolver.glb': { url: '/assets/shared/items/revolver.fb05cf75.glb', bytes: 224000 },
 	'shared/items/rope_bundle.glb': {
 		url: '/assets/shared/items/rope_bundle.f36da324.glb',
@@ -56,7 +80,33 @@ export const MODELS = {
 		bytes: 304096
 	},
 	'shared/items/salts.glb': { url: '/assets/shared/items/salts.403717e9.glb', bytes: 192152 },
+	'shared/items/short_spear.glb': {
+		url: '/assets/shared/items/short_spear.60733341.glb',
+		bytes: 172916
+	},
 	'shared/items/shotgun.glb': { url: '/assets/shared/items/shotgun.a17b7485.glb', bytes: 226472 },
+	'shared/items/sledgehammer.glb': {
+		url: '/assets/shared/items/sledgehammer.f792eed9.glb',
+		bytes: 186268
+	},
+	'shared/items/slingshot.glb': {
+		url: '/assets/shared/items/slingshot.c9804d03.glb',
+		bytes: 236956
+	},
+	'shared/items/snare.glb': { url: '/assets/shared/items/snare.524aafdc.glb', bytes: 202744 },
+	'shared/items/throwing_knives.glb': {
+		url: '/assets/shared/items/throwing_knives.10c6569b.glb',
+		bytes: 169008
+	},
+	'shared/items/trench_spade.glb': {
+		url: '/assets/shared/items/trench_spade.db5481fd.glb',
+		bytes: 199168
+	},
+	'shared/items/tripwire_bell.glb': {
+		url: '/assets/shared/items/tripwire_bell.41180ede.glb',
+		bytes: 279828
+	},
+	'shared/items/whistle.glb': { url: '/assets/shared/items/whistle.bee5bc38.glb', bytes: 217548 },
 	'shared/player/explorer.glb': {
 		url: '/assets/shared/player/explorer.bc7919c1.glb',
 		bytes: 1876424

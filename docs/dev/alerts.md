@@ -23,6 +23,8 @@ Alerts are **live only**. Nothing is stored, and a player who isn't connected wh
 - `{ kind: 'social', event, person }`: something between you and another player (`person`, with their gamer tag). `event` is a `SocialAlertEvent`: `friendRequest`, `friendRequestSent`, `friendAccepted`, `partyInvite`, `partyInviteSent`, `partyJoined`, `partyInviteDeclined`. Clicking opens the Social page.
 - `{ kind: 'item', item, count, source, from? }`: `count` of an item came to you. `source` is `store` (bought), `grant` (dev admin tools), `pickup` (picked up underground) or `gift` (another player, `from`, gave it). It shows the item in a small slot (`Slot.svelte`) on the left. Clicking opens the Loadout page, or underground the in-game menu on its Pack tab.
 
+A `note` alert is a title and a line (and its own `seconds` up, if it says: a tutorial step's 20), for what happens underground and has nothing to open (a tripwire bell rang, a tarot card drawn): clicking it only dismisses it.
+
 ## Where they come from
 
 - **The game server** sends `alert { alert }` (`ServerMessage`) through `Alerts.send(account, alert)`. It reaches that account's connection on any page or underground, and returns false when they aren't connected. `server/social.ts` sends them once a request or invite has gone through (never for a refusal, which is still a `partyError`):

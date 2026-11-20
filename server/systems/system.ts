@@ -56,6 +56,10 @@ export interface Player {
 	crateLatch: boolean;
 	/** The chalk symbols on their wheel: the only ones they may draw. */
 	markWheel: readonly string[];
+	/** What they have discovered (read at descent, added to as they go). */
+	discovered: Set<string>;
+	/** Where they have seen things this run: `item:lootable`, so each is recorded once. */
+	seenIn: Set<string>;
 }
 
 /** One input frame a player's movement was just simulated for (`SessionSystem.simulated`). */
@@ -98,6 +102,11 @@ export interface SessionContext {
 	broadcast(message: ServerMessage): void;
 	/** Take sanity off a player (not in god mode, not if already down); at 0 they go down. */
 	hurt(player: Player, amount: number): void;
+	/**
+	 * A player saw an item in a lootable (`source`: its kind, or `fragment`): discovered, if
+	 * it can be and they hadn't, and where it was seen is kept (docs/dev/crafting.md#discovery).
+	 */
+	discover(player: Player, item: string, source: string): void;
 	down(player: Player): void;
 	revive(player: Player): void;
 	/** Not down, not in water, not climbing, not busy with something else in the hands. */

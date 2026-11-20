@@ -17,6 +17,14 @@ export interface ConditionDef {
 	slow?: Stance;
 	/** The headlamp can't be on: it goes out, and won't come back on until this wears off. */
 	dark?: boolean;
+	/** No sanity lost to darkness or to what is seen (laudanum). */
+	calm?: boolean;
+	/** Moving this share as fast (laudanum). */
+	speed?: number;
+	/** The aim drifts, this many radians at most (laudanum). */
+	sway?: number;
+	/** Creatures hunting you lose track of you, and can't find you again until it wears off. */
+	unseen?: boolean;
 }
 
 export const CONDITIONS = {
@@ -42,6 +50,23 @@ export const CONDITIONS = {
 		seconds: 60,
 		description: 'A venomous bite: no faster than a crouch, and no running, until it wears off.',
 		slow: 'crouch'
+	},
+	laudanum: {
+		id: 'laudanum',
+		name: 'Laudanum',
+		seconds: 60,
+		description:
+			'Nothing the dark or the things in it do costs you sanity. Your aim sways, and you move a little slower.',
+		calm: true,
+		speed: 0.9,
+		sway: 0.02
+	},
+	buried: {
+		id: 'buried',
+		name: 'Grave dirt',
+		seconds: 8,
+		description: 'You smell of the grave: whatever was hunting you has lost you.',
+		unseen: true
 	}
 } as const satisfies Record<string, ConditionDef>;
 
