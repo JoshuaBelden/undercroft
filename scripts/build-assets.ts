@@ -34,12 +34,14 @@ import { mergeClips } from './clips.ts';
 import { CLIP_DONORS, retargetClips } from './retarget.ts';
 import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
+import { LOOTABLES, type LootableId } from '../src/lib/content/lootables.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { CELL, LEVEL_HEIGHT } from '../src/lib/shared/map/grid.ts';
 import type {
 	ColliderBox,
 	CrateMarker,
 	Edge,
+	LootableMarker,
 	PieceDef,
 	PieceSocket,
 	RopeMarker,
@@ -83,7 +85,7 @@ const PROP_FIT: Record<string, { tris: number; scale?: number }> = {
 	// The scan came in at about 1.7x life size: 0.6 matches the living explorer.
 	corpse: { tris: 12000, scale: 0.6 },
 	// The locked trunk (docs/dev/items.md#locked-trunks): 1.9 m wide as generated; 0.47 makes it
-	// 0.9 m wide, 0.73 m high and 0.67 m deep (TRUNKS.size), its front to +Z like the crate's.
+	// 0.9 m wide, 0.73 m high and 0.67 m deep (LOOTABLES.trunk.size), its front to +Z like the crate's.
 	trunk: { tris: 6000, scale: 0.47 }
 };
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'shared', 'map', 'pieces.generated.ts');
@@ -112,6 +114,7 @@ const MARKER_PREFIXES = [
 	'rite-',
 	'altar-',
 	'crate-',
+	'lootable-',
 	'door-',
 	'rubble-',
 	'rope-',
@@ -281,6 +284,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const rites: Vec3[] = [];
 	const altars: Vec3[] = [];
 	const crates: CrateMarker[] = [];
+	const lootables: LootableMarker[] = [];
 	const doors: CrateMarker[] = [];
 	const rubble: Vec3[] = [];
 	const ropes: RopeMarker[] = [];
@@ -319,6 +323,15 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			candles.push(position);
 		} else if (label.startsWith('crate-')) {
 			crates.push(crateFromNode(name, label, node, w, d));
+		} else if (label.startsWith('lootable-')) {
+			// lootable-<type>-<n>: a crate marker for one kind (docs/dev/lootables.md), at its centre.
+			const type = label.split('-')[1];
+			if (!Object.hasOwn(LOOTABLES, type)) {
+				throw new PieceError(
+					`${name}: ${label} names no lootable (${Object.keys(LOOTABLES).join(', ')})`
+				);
+			}
+			lootables.push({ type: type as LootableId, ...crateFromNode(name, label, node, w, d) });
 		} else if (label.startsWith('door-')) {
 			doors.push(crateFromNode(name, label, node, w, d));
 		} else if (label.startsWith('col-')) {
@@ -396,6 +409,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		rites,
 		altars,
 		crates,
+		...(lootables.length ? { lootables } : {}),
 		doors,
 		rubble,
 		ropes,

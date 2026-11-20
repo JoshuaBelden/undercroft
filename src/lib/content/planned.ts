@@ -248,21 +248,8 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		['item.salvage', 'An item salvaged into materials']
 	]),
 	...group('sound', 'Lootables', 2, [
-		['lootable.niche', 'Wall niche: the slab'],
-		['lootable.bones', 'Bone pile shifting'],
-		['lootable.lid', 'A stone lid grinding'],
-		['lootable.chest', 'A tool chest pried open'],
-		['lootable.locker', 'A locker door (metal)'],
-		['lootable.satchel', 'A sunken satchel'],
-		['lootable.offering.pick', 'An offering box picked'],
 		['lootable.offering.smash', 'An offering box smashed'],
-		['lootable.cabinet', 'A vestry cabinet'],
 		['lootable.font', 'Filling a bottle at a font'],
-		['lootable.nest', 'Reaching into a rat nest (squeals)'],
-		['lootable.cocoon', 'Cutting a cocoon'],
-		['lootable.brick', "A smuggler's brick pulled"],
-		['lootable.cache', "The Surveyor's cache"],
-		['lootable.alcove', 'A reliquary grille'],
 		['gate.mausoleum', 'The mausoleum gate']
 	]),
 	...group('sound', 'Melee', 4, [

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ITEMS, rarityOf } from '../../src/lib/content/items.ts';
 import { CRATES } from '../../src/lib/content/loot.ts';
+import { LOOTABLES } from '../../src/lib/content/lootables.ts';
 import { crateCentre } from '../../src/lib/shared/map/crates.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
 import { spawnPoint } from '../../src/lib/shared/map/points.ts';
@@ -13,6 +14,8 @@ import { useSessions, Diver, kit } from '../testing/harness.ts';
 
 const SEED = 1;
 const open = useSessions();
+const OPEN_SECONDS = LOOTABLES.crate.open[0].seconds;
+const PRY_SECONDS = LOOTABLES.crate.sealed!.open[0].seconds;
 
 /**
  * Stand a diver in front of a crate they can open, looking at it: by default a plain crate (not a
@@ -58,7 +61,7 @@ describe('crates', () => {
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		const { crate, look } = atCrate(session, diver);
-		diver.hold({ ...look, interact: true }, CRATES.openSeconds + 0.2);
+		diver.hold({ ...look, interact: true }, OPEN_SECONDS + 0.2);
 		expect(diver.player.crate).toBe(crate.id);
 		const opened = diver.socket.last('crate')!;
 		expect(opened.id).toBe(crate.id);
@@ -72,7 +75,7 @@ describe('crates', () => {
 		const heard = vi.spyOn(quiet, 'heard');
 		session.inventory(diver.id, { kind: 'quick', from: { area: 'stash', index } });
 		expect(crate.slots[index]).toBeNull();
-		expect(heard).toHaveBeenCalledWith(CRATES.lootNoise, crate.position, diver.id);
+		expect(heard).toHaveBeenCalledWith(LOOTABLES.crate.lootNoise, crate.position, diver.id);
 		expect(diver.player.stats.crates).toBe(1);
 		expect(diver.socket.last('tick')!.crates.open).toContain(crate.id);
 		session.closeCrate(diver.id);
@@ -88,7 +91,7 @@ describe('crates', () => {
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		const { look } = atCrate(session, diver);
-		diver.hold({ ...look, interact: true }, CRATES.openSeconds + 0.2);
+		diver.hold({ ...look, interact: true }, OPEN_SECONDS + 0.2);
 		expect(diver.player.crate).not.toBeNull();
 		diver.put(spawnPoint(session.layout, PIECES).position);
 		diver.hold({}, 0.2);
@@ -119,7 +122,7 @@ describe('crates', () => {
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		const { look } = atCrate(session, diver);
-		diver.hold({ ...look, interact: true }, CRATES.openSeconds + 0.2);
+		diver.hold({ ...look, interact: true }, OPEN_SECONDS + 0.2);
 		session.admin(diver.id, { kind: 'resetCrates' });
 		expect(diver.player.crate).toBeNull();
 		expect(session['crates'].snapshot().open).toEqual([]);
@@ -129,8 +132,10 @@ describe('crates', () => {
 		const session = open(SEED);
 		session.admin('x', { kind: 'clearCreatures' });
 		const diver = new Diver(session, 'A', kit(['crowbar', 1]));
-		const { crate, look } = atCrate(session, diver, (c) => c.lock === 'jammed');
-		diver.hold({ ...look, interact: true }, CRATES.openSeconds + 0.2);
+		const { crate, look } = atCrate(session, diver);
+		// A crate stuck fast (few maps have one in reach of a test: make this one).
+		crate.lock = 'jammed';
+		diver.hold({ ...look, interact: true }, OPEN_SECONDS + 0.2);
 		expect(diver.player.crate).toBeNull();
 		expect(crate.jamFound).toBe(true);
 		expect(diver.socket.last('tick')!.crates.jammed).toContain(crate.id);
@@ -141,10 +146,10 @@ describe('crates', () => {
 		const slot = HAND.primary;
 		diver.hold({ ...look, select: slot }, 1);
 		const noise = vi.spyOn(session['creatures'], 'hear');
-		diver.hold({ ...look, interact: true }, CRATES.prySeconds / 2);
+		diver.hold({ ...look, interact: true }, PRY_SECONDS / 2);
 		expect(diver.player.crate).toBeNull();
 		expect(noise).toHaveBeenCalled();
-		diver.hold({ ...look, interact: true }, CRATES.prySeconds / 2 + 0.3);
+		diver.hold({ ...look, interact: true }, PRY_SECONDS / 2 + 0.3);
 		expect(crate.lock).toBeNull();
 		expect(diver.player.crate).toBe(crate.id);
 	});
@@ -153,9 +158,11 @@ describe('crates', () => {
 		const session = open(SEED);
 		session.admin('x', { kind: 'clearCreatures' });
 		const diver = new Diver(session);
-		const { crate, look } = atCrate(session, diver, (c) => c.lock === 'jammed');
+		const { crate, look } = atCrate(session, diver);
+		// A crate stuck fast (few maps have one in reach of a test: make this one).
+		crate.lock = 'jammed';
 		crate.jamFound = true;
-		diver.hold({ ...look, interact: true }, CRATES.prySeconds + 1);
+		diver.hold({ ...look, interact: true }, PRY_SECONDS + 1);
 		expect(crate.lock).toBe('jammed');
 		expect(diver.player.crate).toBeNull();
 	});
@@ -165,13 +172,13 @@ describe('crates', () => {
 		const diver = new Diver(session, 'A', kit(['key', 2]));
 		const { crate, look } = atCrate(session, diver, (c) => c.kind === 'trunk');
 		expect(crate.lock).toBe('locked');
-		diver.hold({ ...look, interact: true }, CRATES.openSeconds + 0.5);
+		diver.hold({ ...look, interact: true }, OPEN_SECONDS + 0.5);
 		expect(crate.lock).toBeNull();
 		expect(carriedCount(diver.state.inventory, 'key')).toBe(1);
 		// The press turned the key: no opening until it is let go and held again.
 		expect(diver.player.crate).toBeNull();
 		diver.hold(look, 0.1);
-		diver.hold({ ...look, interact: true }, CRATES.openSeconds + 0.2);
+		diver.hold({ ...look, interact: true }, OPEN_SECONDS + 0.2);
 		expect(diver.player.crate).toBe(crate.id);
 		// Something epic or legendary in it, among the rest.
 		const rarities = crate.slots.flatMap((s) => (s ? [rarityOf(s.item)] : []));
@@ -182,7 +189,7 @@ describe('crates', () => {
 		const session = openWithTrunk();
 		const diver = new Diver(session);
 		const { crate, look } = atCrate(session, diver, (c) => c.kind === 'trunk');
-		diver.hold({ ...look, interact: true }, CRATES.openSeconds * 3);
+		diver.hold({ ...look, interact: true }, OPEN_SECONDS * 3);
 		expect(crate.lock).toBe('locked');
 		expect(diver.player.crate).toBeNull();
 		expect(diver.socket.last('tick')!.crates.locked).toContain(crate.id);

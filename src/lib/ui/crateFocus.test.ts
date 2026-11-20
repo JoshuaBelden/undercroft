@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ITEMS } from '../content/items.ts';
 import { CRATES } from '../content/loot.ts';
+import { LOOTABLES } from '../content/lootables.ts';
 import { applyAction, emptyInventory, maxStack, newStack } from '../shared/items/inventory.ts';
 import type { CrateSlot } from '../shared/items/types.ts';
 import type { Inventory } from '../shared/player/types.ts';
@@ -18,7 +19,7 @@ const OTHER_LOOT = itemWhere((id) => ITEMS[id].kind === 'loot' && id !== LOOT);
 
 /** A crate's slots as the client is told them: `'hidden'` is still sealed, null is empty. */
 function crate(...slots: CrateSlot[]): CrateSlot[] {
-	return [...slots, ...new Array<CrateSlot>(CRATES.slots - slots.length).fill(null)];
+	return [...slots, ...new Array<CrateSlot>(LOOTABLES.crate.slots - slots.length).fill(null)];
 }
 
 /** A pack with every backpack slot taken by something else. */
@@ -44,7 +45,7 @@ function pressX(focus: CrateFocus, inventory: Inventory, slots: CrateSlot[], ind
 
 describe('the next stop in a crate', () => {
 	it('is the next slot to the right, then the start of the next row', () => {
-		const slots = crate(...new Array<CrateSlot>(CRATES.slots).fill(newStack(LOOT)));
+		const slots = crate(...new Array<CrateSlot>(LOOTABLES.crate.slots).fill(newStack(LOOT)));
 		expect(nextStop(slots, 0)).toBe(1);
 		expect(nextStop(slots, CRATES.columns - 1)).toBe(CRATES.columns);
 	});
@@ -58,7 +59,7 @@ describe('the next stop in a crate', () => {
 	it('is nowhere after the last thing in the crate: no wrapping back to the top', () => {
 		const slots = crate(newStack(LOOT), newStack(LOOT));
 		expect(nextStop(slots, 1)).toBeNull();
-		expect(nextStop(slots, CRATES.slots - 1)).toBeNull();
+		expect(nextStop(slots, LOOTABLES.crate.slots - 1)).toBeNull();
 	});
 });
 

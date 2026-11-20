@@ -5,6 +5,8 @@
  * Distances are metres. The grid is CELL x CELL horizontally and LEVEL_HEIGHT vertically.
  */
 
+import type { LootableId } from '../../content/lootables.ts';
+
 export type Vec3 = [number, number, number];
 export type Quat = [number, number, number, number];
 
@@ -43,6 +45,11 @@ export interface CrateMarker {
 	position: Vec3;
 	/** Turn about +Y (radians). At 0 the crate's back is to the north (-Z). */
 	yaw: number;
+}
+
+/** A lootable-<type>-<n> marker: a crate marker for one kind of lootable (docs/dev/lootables.md). */
+export interface LootableMarker extends CrateMarker {
+	type: LootableId;
 }
 
 /** A rope hanging straight down from `top` (rope-* markers), in piece space. See docs/dev/rope.md. */
@@ -94,6 +101,11 @@ export interface PieceDef {
 	altars?: Vec3[];
 	/** Where a loot crate may stand (crate-* markers). The server fills only some of them. */
 	crates: CrateMarker[];
+	/**
+	 * Where a lootable of a kind may stand (lootable-<type>-<n> markers), filled like crate markers.
+	 * Left out of pieces that have none.
+	 */
+	lootables?: LootableMarker[];
 	/**
 	 * Doors (door-* markers): floor centre of the doorway. At yaw 0 the room side is north (-Z);
 	 * the leaves swing away from it. Every one is a door between levels (see DOORS).
@@ -159,6 +171,12 @@ export interface KitEntry {
 	/** How the space sounds (reverb, damping); default 'tunnel'. See src/lib/content/audio/ambience.ts. */
 	acoustics?: Acoustics;
 	/**
+	 * Until its piece has lootable-* markers: what its crate markers hold, by relative weight
+	 * (`crate` among them keeps some crates). A type nothing can open yet is left out. See
+	 * docs/dev/lootables.md#rooms.
+	 */
+	lootables?: Partial<Record<LootableId, number>>;
+	/**
 	 * Owned by one Affliction (key into AFFLICTIONS): only generated in its maps, and its model
 	 * lives in static/assets/afflictions/<id>/. Unset: shared by every map.
 	 */
@@ -194,10 +212,10 @@ export interface CratePlacement {
 	/** Turn about +Y (radians). At 0 its back is to the north (-Z) and it opens to the south. */
 	yaw: number;
 	/**
-	 * A corpse, searched like a crate (see CORPSES), or a locked trunk (TRUNKS); absent for a crate.
-	 * Corpses are not solid.
+	 * What kind of lootable it is (LOOTABLES: a corpse, a locked trunk, a wall niche...); absent
+	 * for a crate. Only the solid ones are in the collision world.
 	 */
-	kind?: 'corpse' | 'trunk';
+	kind?: Exclude<LootableId, 'crate'>;
 	/** The level of the map it is on (its piece's tier): what it can hold depends on it. */
 	tier: number;
 }

@@ -12,6 +12,7 @@ Between expeditions an explorer owns a **stash** (kept on the surface) and a **l
 | `src/lib/ui/Outfit.svelte`          | Stash and loadout (the dashboard's Loadout page)               |
 | `src/lib/shared/items/inventory.ts` | The slot rules, shared with the game server                    |
 | `src/lib/content/economy.ts`        | Shop stock and prices, sell-back rate, the currency's name     |
+| `src/lib/content/lootables.ts`      | Every lootable's table and rarity counts, the budget per level |
 | `src/lib/content/loot.ts`           | Loot tables: what crates hold, by rarity and depth             |
 | `src/lib/shared/items/loot.ts`      | Rolling a crate's contents and loose loot from the tables      |
 | `src/lib/server/store/shop.ts`      | Buying, selling, admin grants, the ledger                      |
@@ -111,29 +112,29 @@ Every item has a rarity (`ItemDef.rarity`, `rarityOf(item)`): `common` (when lef
 
 ### Tables
 
-All of it is data in `src/lib/content/loot.ts`. There is no editor: change the file.
+All of it is data, in `src/lib/content/lootables.ts`: each kind of lootable (crate, corpse, trunk, niche, sarcophagus...) has its own table and its own rarity counts for each level of the map. See [lootables.md](lootables.md#what-they-hold). There is no editor: change the file.
 
-- `CRATE_LOOT`: everything a crate can hold, each with a `count` range (how many come together) and a `weight` near the start and at the far end of the map. Supplies (bandages, rounds, salts, chalk, candles) are in it as common things.
-- `CRATE_RARITY`: how many things of each rarity a crate holds, as a fewest and a most: 1 to 4 common, 0 to 2 uncommon, 0 or 1 rare, 0 or 1 epic, 0 or 1 legendary. With `CRATES.fill` at 0.22 a map has about 30 crates, ten on each level, holding about 2 things each. There are a couple of rares, an epic in about half of maps and a legendary in about one in five, all on the third level. Each one above the fewest is there with probability `chance`, which also runs from a value near the start to one at the far end. A crate never has more than the most.
-- `LEVEL_LOOT`: which rarities a crate can hold, by the level of the map it stands on. The first two levels have common and uncommon things only; rare, epic and legendary are all on the third, where the rite is done. A crate knows its level (`CratePlacement.tier`, from its piece). Rarities a level leaves out are still rolled and then dropped, so the everyday things in a crate don't depend on its level.
-- `LOOSE_LOOT`: the little that lies on the floor.
+- `loot` on each lootable: what it can hold, each with a `count` range (how many come together) and a `weight` near the start and at the far end of its level. The crate's is the mixed table (supplies, rounds, treasure); others are themed (burial goods in niches and sarcophagi, materials in tool chests, ammunition on the dead).
+- `rarity` on each lootable, by level: how many things of each rarity it holds, as a fewest and a most, each one above the fewest there with a `chance` that runs from near the start to the far end. A crate holds 1 to 4 common and 0 to 2 uncommon things on the first two levels, and on the third 0 or 1 rare, epic and legendary too: a couple of rares a map, an epic in about half of maps, a legendary in about one in five. A lootable knows its level (`CratePlacement.tier`, from its piece).
+- `LOOT_BUDGET`: the most treasure each level holds, all of it together; what rolls past it is taken out again.
+- `LOOSE_LOOT` (`src/lib/content/loot.ts`): the little that lies on the floor.
 
-**Depth** is one number from 0 to 1. For a crate, it is how far into its own level it stands: its distance along the floor from the start (`gridDistances`, through the doors), from the level's nearest crate (0) to its farthest (1). For loose loot, it is the distance divided by the farthest reachable point's. Every weight and chance slides between its two values by it.
+**Depth** is one number from 0 to 1. For a lootable, it is how far into its own level it stands: its distance along the floor from the start (`gridDistances`, through the doors), from the level's nearest lootable (0) to its farthest (1). For loose loot, it is the distance divided by the farthest reachable point's. Every weight and chance slides between its two values by it.
 
-`rollCrate(depth, rng, rarities)` (`src/lib/shared/items/loot.ts`) fills a crate:
+`rollLootable(def, tier, depth, rng, sealed)` (`src/lib/shared/items/loot.ts`) fills one:
 
-1. Roll how many of each rarity; none of the rarities its level leaves out.
-2. If both an epic and a legendary came up, drop one of them (a coin toss).
-3. For each, draw an item of that rarity from `CRATE_LOOT` by weight. What is drawn leaves the pool, so a crate never holds the same thing twice (if a rarity runs out of things, it gets fewer).
-4. If that is more than the crate's 8 slots, leave out the commonest.
+1. Roll how many of each rarity, from its counts for its level (better ones when it is sealed).
+2. If both an epic and a legendary came up, drop one of them (a coin toss). With a `prize` (a trunk, an alcove), add an epic or legendary if it rolled neither.
+3. For each, draw an item of that rarity from its table by weight (only items in the game: lines for ones still to come are skipped). What is drawn leaves the pool, so it never holds the same thing twice (if a rarity runs out of things, it gets fewer).
+4. If that is more than its slots, leave out the commonest.
 5. Lay them out from the first slot, commonest first, so the best is revealed last.
 
-It is seeded by the map seed, so a seed gives the same crates with the same things in them.
+Then `trimToBudget` keeps each level within `LOOT_BUDGET`. It is all seeded by the map seed, so a seed gives the same lootables with the same things in them.
 
 ### Where it is
 
-- **Crates** hold most of it. See [items.md](items.md#loot-crates).
-- **Loose:** `WorldItems.scatterLoot` (`server/items.ts`), seeded by the map seed, driven by `LOOSE_LOOT`: about `perCell` per map cell, on standing dry nav points by walls, none within `minDistance` of the start, `spacing` apart. A spot is used with probability (its depth) to the power `depthBias`, so most of it lies far in. Each is one draw from the `CRATE_LOOT` entries of the rarities in `LOOSE_LOOT.rarities` (common and uncommon).
+- **Lootables** hold most of it: crates, the dead, trunks, niches and the rest. See [lootables.md](lootables.md) and [items.md](items.md#loot-crates).
+- **Loose:** `WorldItems.scatterLoot` (`server/items.ts`), seeded by the map seed, driven by `LOOSE_LOOT`: about `perCell` per map cell, on standing dry nav points by walls, none within `minDistance` of the start, `spacing` apart. A spot is used with probability (its depth) to the power `depthBias`, so most of it lies far in. Each is one draw from the crate's table, of the rarities in `LOOSE_LOOT.rarities` (common and uncommon).
 
 ### Carrying it
 
@@ -141,7 +142,7 @@ It is seeded by the map seed, so a seed gives the same crates with the same thin
 - **The meter:** loot carried hastens the Affliction. Each tick the meter gains `meter.perLoot` × the value all players carry between them (`lootValue`) × the tick length. See [affliction.md](affliction.md).
 - **Coming back:** loot stays in the loadout's backpack (see above); the player moves it to the stash or sells it.
 
-To add a loot item, add an `ItemDef` with `kind: 'loot'`, a `value`, a `rarity` and `treasure: true`, and an entry in `CRATE_LOOT`. A rarity with nothing in `CRATE_LOOT` simply never turns up.
+To add a loot item, add an `ItemDef` with `kind: 'loot'`, a `value`, a `rarity` and `treasure: true`, and lines for it in the tables of the lootables it is found in (if they already name it, take it out of `PENDING_ITEMS`). A rarity with nothing in a lootable's table simply never turns up in it.
 
 ## Money and the shop
 
@@ -155,7 +156,7 @@ Everything to tune is in `src/lib/content/economy.ts`:
 - `sellPrice(item, stack?)`: loot sells for its `value`; anything else for the sell-back of its `price`, or nothing (it can't be sold). Given the stack, a worn thing sells for what is left of it (its condition, see [items.md](items.md#durability)), and a broken one for nothing. Every caller that has the stack passes it: the store's sell, the menu's Sell price, the expedition result and the stash's worth.
 - `ECONOMY.currency`: what money is called.
 
-Loot values are on the items (`value` in `src/lib/content/items.ts`), and how much loot there is to find is `CRATE_RARITY`, `CRATES.fill` and `LOOSE_LOOT` in `src/lib/content/loot.ts`.
+Loot values are on the items (`value` in `src/lib/content/items.ts`), and how much loot there is to find is each lootable's `rarity` and `LOOT_BUDGET` (`src/lib/content/lootables.ts`), `CRATES.fill` and `LOOSE_LOOT` (`src/lib/content/loot.ts`).
 
 `POST /api/shop` returns the `AccountView` afterwards:
 

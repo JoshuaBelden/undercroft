@@ -273,6 +273,15 @@ export interface ItemDef {
 	 * down (the crowbar, see docs/dev/items.md#jammed-crates and map-generation.md#false-walls).
 	 */
 	pry?: boolean;
+	/**
+	 * Held in the hand, it cuts these: lootables by id (a cocoon, `cocoon`) and, later, things in
+	 * the way (`web`). See docs/dev/lootables.md.
+	 */
+	cuts?: string[];
+	/** Held in the hand, it picks locks: trunks and offering boxes, quietly (lockpicks). */
+	picks?: boolean;
+	/** Held in the hand, it smashes trunks and boxes open, loudly (a sledgehammer). */
+	smash?: boolean;
 	/** Carried anywhere, it unlocks one locked trunk, and is used up (the key, see items.md). */
 	unlocks?: boolean;
 }
@@ -299,6 +308,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		price: 20,
 		durability: { max: 150, per: 'hit' },
 		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2 },
+		// It cuts a cocoon open in a few seconds, where bare hands take longer.
+		cuts: ['cocoon'],
 		// Faster and flatter than a brick, and quieter where it lands: no lure.
 		throwable: { speed: 18, damage: 30, landNoise: 4, sound: 'knife.throw', land: 'knife.land' }
 	},

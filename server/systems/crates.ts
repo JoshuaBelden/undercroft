@@ -1,13 +1,13 @@
 import { ITEMS } from '../../src/lib/content/items.ts';
-import { CORPSES, CRATES } from '../../src/lib/content/loot.ts';
+import type { OpenWay } from '../../src/lib/content/lootables.ts';
 import {
 	allStacks,
 	applyAction,
 	held,
-	heldWorking,
 	removeItem,
 	sanitizeAction
 } from '../../src/lib/shared/items/inventory.ts';
+import { bestWay, lootableOf, waysFor } from '../../src/lib/shared/items/lootables.ts';
 import { CRATE_REACH } from '../../src/lib/shared/items/pickup.ts';
 import { aimRay } from '../../src/lib/shared/items/weapons.ts';
 import { crateCentre } from '../../src/lib/shared/map/crates.ts';
@@ -17,9 +17,11 @@ import { log } from '../log.ts';
 import { TICK_DT, type Player, type SessionContext, type SessionSystem } from './system.ts';
 
 /**
- * Loot crates and corpses (docs/dev/items.md): holding interact on one nobody is using opens it
- * for that player. While they have it open, what is in it is revealed a slot at a time and they
- * are told what they can see. It shuts when they walk away, go down or lose their connection.
+ * Lootables (docs/dev/lootables.md): holding interact on one nobody is using opens it for that
+ * player, the fastest way they can (bare hands, a tool in the hand, a key carried: `bestWay`).
+ * A sealed one opens only its sealed ways; a hidden seal (a jammed crate) is found by trying it.
+ * While they have it open, what is in it is revealed a slot at a time and they are told what
+ * they can see. It shuts when they walk away, go down or lose their connection.
  */
 export class CrateSystem implements SessionSystem {
 	constructor(private ctx: SessionContext) {}
@@ -54,28 +56,29 @@ export class CrateSystem implements SessionSystem {
 				s.opening = 0;
 				continue;
 			}
-			if (crate.lock === 'locked') {
+			const def = lootableOf(crate);
+			// Sealed and known (a locked trunk, a sealed niche, a jam someone found): only its sealed ways.
+			const sealed = crate.lock === 'locked' || (crate.lock === 'jammed' && crate.jamFound);
+			const way = bestWay(waysFor(def, sealed), s.inventory, def.id);
+			if (!way) {
+				// Nothing to open it with: it only rattles.
+				this.stuck(player, crate);
+				continue;
+			}
+			if (way.key) {
 				this.unlock(player, crate);
 				continue;
 			}
-			if (crate.lock === 'jammed' && crate.jamFound) {
-				if (!this.pry(player, crate)) continue;
-			} else {
-				s.opening += TICK_DT;
-				if (s.opening < CRATES.openSeconds) continue;
-				s.opening = 0;
-				if (crate.lock === 'jammed') {
-					// Stuck fast: now everyone knows, and it takes a crowbar.
-					crate.jamFound = true;
-					player.crateLatch = true;
-					ctx.events.push({
-						kind: 'crateStuck',
-						id: crate.id,
-						player: player.id,
-						position: crateCentre(crate)
-					});
-					continue;
-				}
+			if (!this.work(player, crate, way)) continue;
+			if (sealed) {
+				// It gives: open at once.
+				ctx.crates.release(crate);
+				log.info(`${player.name} forced ${def.id} ${crate.id} open in ${ctx.id.slice(0, 8)}`);
+			} else if (crate.lock === 'jammed') {
+				// Stuck fast: now everyone knows, and it takes a crowbar.
+				crate.jamFound = true;
+				this.stuck(player, crate);
+				continue;
 			}
 			player.crate = crate.id;
 			if (ctx.crates.open(crate, player.id)) {
@@ -86,10 +89,9 @@ export class CrateSystem implements SessionSystem {
 					position: crateCentre(crate)
 				});
 				// No source: creatures that hear the lid (or, more quietly, a body turned over) go and look.
-				const noise = crate.kind === 'corpse' ? CORPSES.noise : CRATES.noise;
-				ctx.creatures.hear(crate.position, noise, null);
+				if (def.noise > 0) ctx.creatures.hear(crate.position, def.noise, null);
 			}
-			log.info(`${player.name} opened crate ${crate.id} in ${ctx.id.slice(0, 8)}`);
+			log.info(`${player.name} opened ${def.id} ${crate.id} in ${ctx.id.slice(0, 8)}`);
 		}
 		for (const crate of ctx.crates.step(TICK_DT)) {
 			if (!crate.user) continue;
@@ -102,8 +104,23 @@ export class CrateSystem implements SessionSystem {
 	}
 
 	/**
-	 * A press on a locked trunk: a key carried anywhere turns in the lock and is used up. Without
-	 * one it only rattles. Either way the press is spent: opening it takes a hold after.
+	 * Tried with nothing that opens it (or found jammed): it rattles, for everyone near. The press
+	 * is spent: interact has to be let go before the next try.
+	 */
+	private stuck(player: Player, crate: Crate): void {
+		player.state.opening = 0;
+		player.crateLatch = true;
+		this.ctx.events.push({
+			kind: 'crateStuck',
+			id: crate.id,
+			player: player.id,
+			position: crateCentre(crate)
+		});
+	}
+
+	/**
+	 * A press on something locked, with a key carried anywhere: it turns in the lock and is used
+	 * up. The press is spent: opening it takes a hold after.
 	 */
 	private unlock(player: Player, crate: Crate): void {
 		const ctx = this.ctx;
@@ -112,10 +129,7 @@ export class CrateSystem implements SessionSystem {
 		player.crateLatch = true;
 		const key = allStacks(inv).find((stack) => ITEMS[stack.item]?.unlocks);
 		const position = crateCentre(crate);
-		if (!key) {
-			ctx.events.push({ kind: 'crateStuck', id: crate.id, player: player.id, position });
-			return;
-		}
+		if (!key) return;
 		removeItem(inv, key.item, 1);
 		ctx.crates.release(crate);
 		ctx.events.push({ kind: 'crateUnlock', id: crate.id, player: player.id, position });
@@ -123,19 +137,16 @@ export class CrateSystem implements SessionSystem {
 	}
 
 	/**
-	 * Holding interact on a jammed crate with something that pries in the hand: `opening` counts
-	 * to `CRATES.prySeconds`, loudly. Returns true once it gives (it then opens like any crate).
+	 * Holding interact on it, one way: `opening` counts to the way's seconds. A way with noise is
+	 * heard as it starts and every `every` seconds while it goes on (prying, smashing), with the
+	 * player as the source; a crowbar at work raises `pry`. Returns true once it is done.
 	 */
-	private pry(player: Player, crate: Crate): boolean {
+	private work(player: Player, crate: Crate, way: OpenWay): boolean {
 		const ctx = this.ctx;
 		const s = player.state;
-		if (!heldWorking(s.inventory, 'pry')) {
-			s.opening = 0;
-			return false;
-		}
 		const before = s.opening;
 		s.opening += TICK_DT;
-		if (before === 0) {
+		if (before === 0 && way.tool === 'pry') {
 			ctx.events.push({
 				kind: 'pry',
 				target: 'crate',
@@ -143,17 +154,14 @@ export class CrateSystem implements SessionSystem {
 				position: crateCentre(crate)
 			});
 		}
-		// Heard as it starts, and again every so often while it goes on.
-		if (
-			Math.floor(s.opening / CRATES.pryEvery) !== Math.floor(before / CRATES.pryEvery) ||
-			before === 0
-		) {
-			ctx.creatures.hear(crate.position, CRATES.pryNoise, { id: player.id, state: s });
+		const every = way.every ?? Infinity;
+		const again =
+			Number.isFinite(every) && Math.floor(s.opening / every) !== Math.floor(before / every);
+		if (way.noise && (before === 0 || again)) {
+			ctx.creatures.hear(crate.position, way.noise, { id: player.id, state: s });
 		}
-		if (s.opening < CRATES.prySeconds) return false;
+		if (s.opening < way.seconds) return false;
 		s.opening = 0;
-		ctx.crates.release(crate);
-		log.info(`${player.name} pried crate ${crate.id} open in ${ctx.id.slice(0, 8)}`);
 		return true;
 	}
 
@@ -185,8 +193,8 @@ export class CrateSystem implements SessionSystem {
 		const touchesLoot =
 			('from' in action && action.from.area === 'stash') ||
 			('to' in action && action.to.area === 'stash');
-		if (result === 'ok' && touchesLoot) {
-			const noise = crate.kind === 'corpse' ? CORPSES.lootNoise : CRATES.lootNoise;
+		const noise = lootableOf(crate).lootNoise;
+		if (result === 'ok' && touchesLoot && noise > 0) {
 			this.ctx.creatures.hear(crate.position, noise, { id: player.id, state: player.state });
 		}
 		this.ctx.systems.pack.afterRequest(player, inHand, dropped);

@@ -22,11 +22,16 @@ describe('admin teleports to things to try out', () => {
 		expect(names).toContain('false-wall-1');
 		for (const { name, position } of points) {
 			session.admin(diver.id, { kind: 'teleport', room: name });
-			expect(flat(diver.state.position, position), name).toBeLessThan(1.5);
+			// In front of a lootable, freeSpot may step it aside a little (a body lies out from the wall).
+			expect(flat(diver.state.position, position), name).toBeLessThan(
+				name.startsWith('lootable-') ? 2 : 1.5
+			);
 		}
 
-		session.admin(diver.id, { kind: 'teleport', room: 'stuck-crate' });
+		// Few crates in a map are plain crates now: make sure one is stuck.
+		session['crates'].list().find(({ crate }) => !crate.kind)!.crate.lock = 'jammed';
 		const jammed = session['crates'].list().find(({ crate }) => crate.lock === 'jammed')!.crate;
+		session.admin(diver.id, { kind: 'teleport', room: 'stuck-crate' });
 		expect(flat(diver.state.position, jammed.position)).toBeLessThan(2.5);
 
 		// The Pendant lies on the chapel's altar: in front of it, where the rite is performed.

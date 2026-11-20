@@ -1,5 +1,6 @@
 import { HINTS, type HintSpotKind } from '../src/lib/content/hints.ts';
 import { newStack } from '../src/lib/shared/items/inventory.ts';
+import { lootableOf } from '../src/lib/shared/items/lootables.ts';
 import {
 	boxesNear,
 	boxTop,
@@ -38,11 +39,20 @@ const DIRECTIONS: Vec3[] = [
 	[0, 0, -1]
 ];
 
-/** Crates and corpses (those `allowed`), with their distance from the start. */
+/**
+ * Lootables (those `allowed`), with their distance from the start: only ones opened by hand that
+ * are neither jammed nor locked, so a hint never needs a key or a tool to get at.
+ */
 export function crateSpots(crates: Crates, allowed: (position: Vec3) => boolean): HintSpot[] {
 	return crates
 		.list()
-		.filter(({ crate, fromStart }) => Number.isFinite(fromStart) && allowed(crate.position))
+		.filter(
+			({ crate, fromStart }) =>
+				Number.isFinite(fromStart) &&
+				allowed(crate.position) &&
+				crate.lock === null &&
+				lootableOf(crate).open.some((way) => !way.tool && !way.key)
+		)
 		.map(({ crate, fromStart }) => ({
 			kind: crate.kind === 'corpse' ? 'corpse' : 'crate',
 			crate: crate.id,

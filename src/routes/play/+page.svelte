@@ -1407,7 +1407,8 @@
 {:else if panel === 'crate' && inventory && features?.crates.open}
 	<CrateScreen
 		{inventory}
-		title={features.crates.open.corpse ? 'Corpse' : features.crates.open.trunk ? 'Trunk' : 'Crate'}
+		title={features.crates.open.name}
+		flavor={features.crates.open.flavor}
 		slots={features.crates.open.slots}
 		reveal={features.crates.open.reveal}
 		moveKeys={(['moveForward', 'moveLeft', 'moveBack', 'moveRight'] as const)

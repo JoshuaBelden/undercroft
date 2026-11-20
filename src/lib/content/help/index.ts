@@ -368,6 +368,18 @@ Not all of them are what they look like. Now and then one you come upon stands u
 Look at him and hold {action:interact} and he shows you his map: everywhere he has been goes into yours (you need a notebook to read it). He does it once for each of you, so show yours to your party (see The map).`
 	},
 	{
+		id: 'searching',
+		title: 'Searching',
+		category: 'Gear and loot',
+		body: `Crates are not the only things down here worth going through. The dead were buried with what they owned, and the living left things behind.
+
+Look at something and hold {action:interact} to search it. The prompt says how: some open in a moment, a bone pile takes a while to rummage through, a rat nest is a reach into the dark. Some need something in your hand. A crowbar pries a jammed crate, a sealed niche, a stone lid or a smuggler's brick. A blade cuts a cocoon open faster than your fingers can. A locked trunk takes a key, and a key can be anywhere in your pack. When the prompt is red, it says what you need.
+
+What you find depends on where you look. Wall niches and sarcophagi hold what the dead were laid to rest with. Tool chests and lockers hold the things workmen used. The dead explorers carry rounds and supplies. The deeper you go, the better it gets.
+
+Searching makes noise. Prying, smashing and digging through bones carry far. Every thing you take out is heard too.`
+	},
+	{
 		id: 'items',
 		title: 'Items',
 		category: 'Gear and loot',

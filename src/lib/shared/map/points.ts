@@ -106,7 +106,8 @@ export function roomPoints(
 /**
  * Admin teleports for trying things out (docs/dev/admin.md), apart from the rooms (the benchmark
  * walks those): the first ledge hall, on its upper half; in front of each false wall, on the side
- * it is seen from; in front of the first locked trunk. The server adds `stuck-crate` and
+ * it is seen from; in front of the first locked trunk, and of the first of each other kind of
+ * lootable (`lootable-<kind>`). The server adds `stuck-crate` and
  * `pendant`, which only it knows (server/systems/cheats.ts).
  */
 export function testPoints(
@@ -126,6 +127,13 @@ export function testPoints(
 	});
 	const trunk = layout.crates.find((c) => c.kind === 'trunk');
 	if (trunk) points.push({ name: 'locked-trunk', position: inFront(trunk) });
+	// In front of the first of each other kind of lootable in the map (docs/dev/lootables.md).
+	const seen = new Set<string>(['trunk']);
+	for (const crate of layout.crates) {
+		if (!crate.kind || seen.has(crate.kind)) continue;
+		seen.add(crate.kind);
+		points.push({ name: `lootable-${crate.kind}`, position: inFront(crate) });
+	}
 	return points;
 }
 

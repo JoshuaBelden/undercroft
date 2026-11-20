@@ -1,5 +1,5 @@
 import { DOORS } from '../../content/doors.ts';
-import { CRATES, TRUNKS } from '../../content/loot.ts';
+import { LOOTABLES } from '../../content/lootables.ts';
 import { MAP_KIT } from '../../content/map/kit.ts';
 import { toWorld } from './grid.ts';
 import type { ColliderBox, MapLayout, PieceDef, Quat, Vec3 } from './types.ts';
@@ -217,10 +217,12 @@ export function buildCollisionWorld(
 			});
 		}
 	}
-	// Loot crates are solid: a box each, turned to the crate's yaw. Corpses are not.
+	// Solid lootables (crates, trunks, chests...) are a box each, turned to their yaw. Corpses,
+	// bone piles and the like are stepped over.
 	for (const crate of layout.crates) {
-		if (crate.kind === 'corpse') continue;
-		const [w, h, d] = crate.kind === 'trunk' ? TRUNKS.size : CRATES.size;
+		const def = LOOTABLES[crate.kind ?? 'crate'];
+		if (!def.solid) continue;
+		const [w, h, d] = def.size;
 		const q: Quat = [0, Math.sin(crate.yaw / 2), 0, Math.cos(crate.yaw / 2)];
 		world.boxes.push({
 			center: [crate.position[0], crate.position[1] + h / 2, crate.position[2]],

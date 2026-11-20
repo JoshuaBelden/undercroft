@@ -4,6 +4,9 @@ import type { MapKit } from '../../shared/map/types.ts';
  * Gameplay roles for map pieces. Geometry, sockets and colliders come from the Blender
  * exports (`src/lib/shared/map/pieces.generated.ts`); this file says how the generator uses them.
  * Connector weights are relative chances. See docs/dev/map-generation.md.
+ *
+ * `lootables`: until a piece has lootable-* markers of its own, what its crate markers hold, by
+ * weight (docs/dev/lootables.md#rooms). Take a piece's line out once its markers are in.
  */
 export const MAP_KIT: MapKit = {
 	// The start room: a candlelit chapel over a pit. The rope tied on its lip is the only way down,
@@ -11,20 +14,36 @@ export const MAP_KIT: MapKit = {
 	// leaves the chamber at its foot. (`stairwell`, the old cellar start, is retired.)
 	'angel-well': { role: 'start', title: "The Angel's Well", acoustics: 'hall' },
 
-	'ossuary-hall': { role: 'major', title: 'Ossuary Hall', acoustics: 'hall' },
-	'quarry-gallery': { role: 'major', title: 'Quarry Gallery', acoustics: 'vast' },
+	'ossuary-hall': {
+		role: 'major',
+		title: 'Ossuary Hall',
+		acoustics: 'hall',
+		lootables: { bonePile: 3, niche: 3, ratNest: 1, crate: 1 }
+	},
+	'quarry-gallery': {
+		role: 'major',
+		title: 'Quarry Gallery',
+		acoustics: 'vast',
+		lootables: { toolChest: 4, corpse: 1, crate: 1 }
+	},
 	cistern: { role: 'major', title: 'The Cistern', acoustics: 'vast' },
 	'gloaming-chapel': {
 		role: 'major',
 		final: true,
 		affliction: 'gloaming',
 		title: 'Gloaming Chapel',
-		acoustics: 'vast'
+		acoustics: 'vast',
+		lootables: { vestryCabinet: 2, sarcophagus: 2, offeringBox: 1, alcove: 1 }
 	},
 
 	// The end of a level: a way up to the surface, and the double door to the long stair down to
 	// the next level (its `gate` socket). Placed last on every level but the deepest.
-	'extraction-gate': { role: 'extraction', title: 'The Shaft', acoustics: 'hall' },
+	'extraction-gate': {
+		role: 'extraction',
+		title: 'The Shaft',
+		acoustics: 'hall',
+		lootables: { locker: 3, crate: 1 }
+	},
 	// The only way between levels, behind the extraction room's double door.
 	'stairs-deep': { role: 'descent', title: 'The Long Stair', acoustics: 'hall' },
 
@@ -33,22 +52,39 @@ export const MAP_KIT: MapKit = {
 	'hall-corner': { role: 'connector', weight: 3 },
 	'hall-tee': { role: 'connector', weight: 3 },
 	'hall-cross': { role: 'connector', weight: 1.5 },
-	'hall-side-room': { role: 'connector', weight: 1 },
-	'room-small': { role: 'connector', weight: 1, room: true },
-	'room-crypt': { role: 'connector', weight: 0.5, room: true, acoustics: 'hall' },
+	'hall-side-room': {
+		role: 'connector',
+		weight: 1,
+		lootables: { niche: 2, stash: 1, crate: 1 }
+	},
+	'room-small': {
+		role: 'connector',
+		weight: 1,
+		room: true,
+		lootables: { niche: 2, offeringBox: 1, crate: 1 }
+	},
+	'room-crypt': {
+		role: 'connector',
+		weight: 0.5,
+		room: true,
+		acoustics: 'hall',
+		lootables: { sarcophagus: 2, niche: 2 }
+	},
 	'room-vault': {
 		role: 'connector',
 		weight: 1,
 		room: true,
 		title: 'Charnel Vault',
-		acoustics: 'vast'
+		acoustics: 'vast',
+		lootables: { bonePile: 2, ratNest: 1, cocoon: 1, crate: 1 }
 	},
 	'room-gallery': {
 		role: 'connector',
 		weight: 0.8,
 		room: true,
 		title: 'Burial Gallery',
-		acoustics: 'hall'
+		acoustics: 'hall',
+		lootables: { niche: 3, sarcophagus: 1 }
 	},
 	'hall-crawl': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'crawl' },
 	'hall-squeeze-long': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'squeeze' },
@@ -65,7 +101,8 @@ export const MAP_KIT: MapKit = {
 		needsRope: true,
 		room: true,
 		title: 'The Drop',
-		acoustics: 'vast'
+		acoustics: 'vast',
+		lootables: { corpse: 1 }
 	},
 	pit: {
 		role: 'connector',
@@ -73,9 +110,10 @@ export const MAP_KIT: MapKit = {
 		needsRope: true,
 		room: true,
 		title: 'The Pit',
-		acoustics: 'hall'
+		acoustics: 'hall',
+		lootables: { corpse: 1 }
 	},
 
-	'hall-dead-end': { role: 'end' },
+	'hall-dead-end': { role: 'end', lootables: { stash: 1, cache: 1 } },
 	'cap-hall': { role: 'cap', seals: 'hall' }
 };

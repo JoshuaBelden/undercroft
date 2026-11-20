@@ -629,6 +629,130 @@ export const SOUNDS = {
 		caption: 'someone rummages through a pack',
 		captionOthers: true
 	},
+	// Lootables opening (docs/dev/lootables.md): placeholders in code until each is recorded.
+	'lootable.niche': {
+		file: 'lootable.niche',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.1,
+		caption: 'stone shifts in a wall',
+		captionOthers: true
+	},
+	'lootable.bones': {
+		file: 'lootable.bones',
+		synth: { kind: 'rockfall' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 1.6,
+		variation: 0.1,
+		caption: 'bones clatter',
+		captionOthers: true
+	},
+	'lootable.lid': {
+		file: 'lootable.lid',
+		synth: { kind: 'groan' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 1.4,
+		variation: 0.08,
+		caption: 'a stone lid grinds aside',
+		captionOthers: true
+	},
+	'lootable.chest': {
+		file: 'lootable.chest',
+		synth: { kind: 'thud', cutoff: 420 },
+		category: 'sfx',
+		volume: 0.65,
+		variation: 0.1,
+		caption: 'a chest is forced open',
+		captionOthers: true
+	},
+	'lootable.locker': {
+		file: 'lootable.locker',
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.8,
+		variation: 0.1,
+		caption: 'a metal door creaks',
+		captionOthers: true
+	},
+	'lootable.satchel': {
+		file: 'lootable.satchel',
+		synth: { kind: 'splash', length: 0.4, cutoff: 900 },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.1,
+		caption: 'something is pulled from the water',
+		captionOthers: true
+	},
+	'lootable.offering.pick': {
+		file: 'lootable.offering.pick',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.4,
+		variation: 0.1
+	},
+	'lootable.cabinet': {
+		file: 'lootable.cabinet',
+		synth: { kind: 'thud', cutoff: 650 },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 1.2,
+		variation: 0.1,
+		caption: 'a cabinet door swings open',
+		captionOthers: true
+	},
+	'lootable.nest': {
+		file: 'lootable.nest',
+		synth: { kind: 'squeak', pitch: 2600 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.15,
+		caption: 'rats squeal',
+		captionOthers: true
+	},
+	'lootable.cocoon': {
+		file: 'lootable.cocoon',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 0.8,
+		variation: 0.1,
+		caption: 'webbing tears',
+		captionOthers: true
+	},
+	'lootable.brick': {
+		file: 'lootable.brick',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 1.3,
+		variation: 0.1,
+		caption: 'a brick scrapes loose',
+		captionOthers: true
+	},
+	'lootable.cache': {
+		file: 'lootable.cache',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 1.2,
+		variation: 0.1,
+		caption: 'paper rustles',
+		captionOthers: true
+	},
+	'lootable.alcove': {
+		file: 'lootable.alcove',
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.65,
+		rate: 0.9,
+		variation: 0.08,
+		caption: 'an iron grille gives way',
+		captionOthers: true
+	},
 	// Chalk on stone: a mark drawn, or rubbed out by whoever drew it.
 	'chalk.draw': {
 		file: 'chalk',

@@ -563,7 +563,17 @@ Built, and moved into `docs/dev/`: [items.md](dev/items.md) (gear slots, materia
 - **UI:** tooltip durability, the right-click menu (Inspect; Repair appears once the Workshop exists), the Inspect panel.
 - **Placeholders:** every asset in the art list below named in the content data with a placeholder, so all of it appears on the Art & Assets page. Items can be defined as data with placeholder art here, without their behaviour.
 
-### Phase 2: lootables and loot spawning
+### Phase 2: lootables and loot spawning (Done)
+
+Built, and moved into [lootables.md](dev/lootables.md). What it settled:
+
+- **Room mixes for now:** until the existing pieces have `lootable-*` markers, each kit entry says what its crate markers hold (`lootables` in `src/lib/content/map/kit.ts`). The markers are still on the art list.
+- **Corpses and trunks first:** they are placed before any room's mix, so the dead lie anywhere (about 10 a map).
+- **Tables for items still to come:** tables already name items that don't exist yet. Their lines are skipped until each is added (`PENDING_ITEMS`).
+- **Unopenable kinds wait:** kinds nothing can open yet are left out of maps. That's the offering box, until lockpicks or a sledgehammer exist.
+- **The budget caps:** `LOOT_BUDGET` caps each level's treasure just above what most maps roll.
+- **Hints:** they now never go behind a lock or a tool.
+- **Waiting for Phase 5:** the catches (bites, poison, the alcove's meter cost, sanity drain), two players on a sarcophagus lid and fonts.
 
 Lootable types as data, `lootable-*` markers (in the existing pieces first), per-lootable tables, rarities per level and flavor text, the value budget per level, and keys for trunks and gates.
 

@@ -1,8 +1,7 @@
-import { ITEMS } from '#lib/content/items.ts';
-import { CRATES } from '#lib/content/loot.ts';
+import { LOOTABLES } from '#lib/content/lootables.ts';
 import { Crates as CrateModels } from '#lib/game/items/Crates.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
-import { allStacks, heldWorking } from '#lib/shared/items/inventory.ts';
+import { bestWay, flavorOf, lootableOf, wayNeeds, waysFor } from '#lib/shared/items/lootables.ts';
 import { lookedAtCrate } from '#lib/shared/items/pickup.ts';
 import type { CrateSlot, GameEvent } from '#lib/shared/items/types.ts';
 import type { MapLayout } from '#lib/shared/map/types.ts';
@@ -12,19 +11,20 @@ import type { Aim, PlayContext, PlayFeature, Prompt, TickMessage } from './featu
 import { prize } from './pack.ts';
 import { keyPrompt } from './prompt.ts';
 
-/** A loot crate (or corpse) that is open, as the server tells it (the `crate` message). */
+/** A lootable that is open, as the server tells it (the `crate` message). */
 export interface OpenCrate {
 	id: string;
 	slots: CrateSlot[];
 	reveal: number;
-	corpse: boolean;
-	/** A locked trunk (now unlocked): its screen says so. */
-	trunk: boolean;
+	/** What it is called (the screen's title), and its line of flavor. */
+	name: string;
+	flavor: string;
 }
 
 /**
- * Loot crates and corpses (docs/dev/items.md#loot-crates): drawn where the layout puts them,
- * searched by holding interact, and the crate screen while one is open.
+ * Lootables (docs/dev/lootables.md): drawn where the layout puts them, opened by holding interact
+ * (the prompt says how, with the same rule as the server: `bestWay`), and the loot screen while
+ * one is open.
  */
 export class Crates implements PlayFeature {
 	/** The crate that is open; the page shows the crate screen for it. */
@@ -63,12 +63,13 @@ export class Crates implements PlayFeature {
 			this.open = null;
 		} else if (ui.expedition && !this.leaving) {
 			// Sent every tick while it is open: only what changed is worth redrawing.
+			const def = LOOTABLES[this.models.kind(message.id) ?? 'crate'];
 			const next = {
 				id: message.id,
 				slots: message.slots,
 				reveal: message.reveal,
-				corpse: this.models.kind(message.id) === 'corpse',
-				trunk: this.models.kind(message.id) === 'trunk'
+				name: def.name,
+				flavor: flavorOf(def, message.id)
 			};
 			// Something special just revealed (not one seen before the crate was opened).
 			const before = this.open?.id === next.id ? this.open.slots : null;
@@ -102,15 +103,14 @@ export class Crates implements PlayFeature {
 	event(event: GameEvent): void {
 		const { sounds, client } = this.ctx;
 		if (event.kind === 'crateOpen') {
-			if (this.models.kind(event.id) === 'corpse') {
-				sounds.playAt('corpse.search', event.position, 1, 3);
-			} else sounds.playAt('crate.open', event.position, 1, 4);
+			const def = LOOTABLES[this.models.kind(event.id) ?? 'crate'];
+			sounds.playAt(def.sound, event.position, 1, Math.max(3, def.noise / 2));
 		} else if (event.kind === 'crateStuck') {
 			sounds.playAt('crate.stuck', event.position, 1, 4);
 		} else if (event.kind === 'crateUnlock') {
 			sounds.playAt('key.unlock', event.position, 1, 4);
 		} else if (event.kind === 'pry' && event.target === 'crate') {
-			sounds.playAt('crowbar.pry', event.position, 1, CRATES.pryNoise);
+			sounds.playAt('crowbar.pry', event.position, 1, 10);
 		} else if (event.kind === 'rummage') {
 			// Your own hands are right there; someone else's are heard from where they are.
 			if (event.player === client.playerId) sounds.play('inventory.rummage');
@@ -132,19 +132,25 @@ export class Crates implements PlayFeature {
 		if (this.models.inUse(this.aimedAt))
 			return { prompt: 'Someone is going through it', progress: 0 };
 		const id = this.aimedAt;
-		if (this.models.isLocked(id)) {
-			// A key anywhere in the pack turns it; without one the prompt is red.
-			const key = allStacks(state.inventory).some((stack) => ITEMS[stack.item]?.unlocks);
-			return { ...keyPrompt('interact', 'Unlock'), blocked: !key };
+		const def = lootableOf({ kind: this.models.kind(id) });
+		// Sealed and known (locked, or a jam someone found): only its sealed ways.
+		const sealed = this.models.isLocked(id) || this.models.isJammed(id);
+		const ways = waysFor(def, sealed);
+		const after = sealed && def.sealed ? `(${def.sealed.note})` : undefined;
+		const way = bestWay(ways, state.inventory, def.id);
+		if (!way) {
+			// Nothing to open it with: say how it would be opened, in red, and what that takes.
+			const first = ways[0];
+			if (!first) return null;
+			const needs = wayNeeds(first);
+			return {
+				...keyPrompt('interact', first.verb),
+				after: [after, needs ? `(needs ${needs})` : ''].filter(Boolean).join(' ') || undefined,
+				blocked: true
+			};
 		}
-		if (this.models.isJammed(id)) {
-			// It takes something that pries, in the hand.
-			const bar = !!heldWorking(state.inventory, 'pry');
-			const prompt = keyPrompt('interact', 'Pry', bar ? state.opening / CRATES.prySeconds : 0);
-			return { ...prompt, after: '(crate stuck)', blocked: !bar };
-		}
-		// Crates, trunks and bodies alike.
-		return keyPrompt('interact', 'to search', state.opening / CRATES.openSeconds);
+		const progress = way.seconds > 0 ? state.opening / way.seconds : 0;
+		return { ...keyPrompt('interact', way.verb, progress), after };
 	}
 
 	update(delta: number): void {
