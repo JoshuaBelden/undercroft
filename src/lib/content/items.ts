@@ -428,6 +428,79 @@ export const DEFAULT_STACK = 5;
 
 const HOLD_RIGHT: ItemDef['hold'] = { offset: [0.22, -0.22, -0.42], scale: 1 };
 
+/**
+ * The pictures (static/assets/ui/images, built from art/images by `pnpm asset:images`) of the
+ * round's items, by item id: the art's file names, which mostly follow the ids.
+ */
+const PICTURES: Record<string, string> = {
+	'recipe-fragment': 'recipe_fragment',
+	hatchet: 'hatchet',
+	'trench-spade': 'trench_spade',
+	'short-spear': 'short_spear',
+	'nail-club': 'nail_club',
+	pickaxe: 'pickaxe',
+	sledgehammer: 'sledgehammer',
+	'throwing-knives': 'throwing_knives',
+	rifle: 'bolt_action_rifle',
+	derringer: 'derringer',
+	crossbow: 'crossbow',
+	slingshot: 'slingshot',
+	'oil-bottle': 'oil_bottle',
+	'ammo.rifle': 'rifle_rounds',
+	bolts: 'crossbow_bolts',
+	jerkin: 'leather_jerkin',
+	'crafting-kit': 'field_crafting_kit',
+	kneepads: 'kneepads',
+	overshoes: 'felt_overshoes',
+	gloves: 'gloves',
+	compass: 'pocket_compass',
+	laudanum: 'laudanum',
+	'glow-sticks': 'glow_sticks',
+	pitons: 'climbing_pitons',
+	lockpicks: 'lockpicks',
+	snare: 'snare',
+	'tripwire-bell': 'tripwire_bell',
+	'blessed-salt': 'blessed_salt',
+	firecrackers: 'firecrackers',
+	bait: 'bait',
+	'grave-dirt': 'grave_dirt',
+	censer: 'incense_censer',
+	whistle: 'whistle',
+	'lamp-oil': 'lamp_oil',
+	'rock-salt': 'rock_salt',
+	'holy-water': 'holy_water',
+	bone: 'bone',
+	'gun-oil': 'gun_oil',
+	'gun-parts': 'gun_parts',
+	pebbles: 'pebbles',
+	'silver-snuffbox': 'silver_snuffbox',
+	'jet-rosary': 'jet_rosary',
+	'cameo-brooch': 'cameo_brooch',
+	'funeral-coin': 'funeral_coin',
+	'apothecary-jar': 'apothecary_jar',
+	medal: 'military_medal',
+	tarot: 'tarot_deck',
+	garnet: 'uncut_garnet',
+	'black-candle': 'black_candle',
+	'key-ring': 'key_ring',
+	'saints-icon': 'saints_icon',
+	ledger: 'keepers_ledger',
+	astrolabe: 'brass_astrolabe',
+	doll: 'porcelain_doll',
+	'crozier-head': 'crozier_head',
+	'sealed-reliquary-jar': 'sealed_reliquary_jar'
+};
+
+/** Item defs with their pictures from PICTURES (one a def names itself wins). */
+function pictured(defs: Record<string, ItemDef>): Record<string, ItemDef> {
+	return Object.fromEntries(
+		Object.entries(defs).map(([id, def]) => [
+			id,
+			def.image || !PICTURES[id] ? def : { ...def, image: PICTURES[id] }
+		])
+	);
+}
+
 export const ITEMS: Record<string, ItemDef> = {
 	knife: {
 		id: 'knife',
@@ -925,6 +998,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'loot',
 		category: 'other',
 		flavor: 'A torn page of notes: how someone down here made do.',
+		image: 'recipe_fragment',
 		model: null,
 		placeholder: { size: [0.2, 0.01, 0.28], color: 0xc8bc9c },
 		hold: HOLD_RIGHT,
@@ -932,11 +1006,11 @@ export const ITEMS: Record<string, ItemDef> = {
 		weight: 0,
 		fragment: true
 	},
-	...WEAPONS,
-	...GEAR,
-	...QUICK,
-	...MATERIALS,
-	...TREASURE
+	...pictured(WEAPONS),
+	...pictured(GEAR),
+	...pictured(QUICK),
+	...pictured(MATERIALS),
+	...pictured(TREASURE)
 };
 
 /** How hard an item is to come by. */

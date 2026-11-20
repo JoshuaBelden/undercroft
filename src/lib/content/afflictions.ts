@@ -263,7 +263,7 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 		order: 0,
 		flavor:
 			'Everyone in the village has a story about the catacombs, and none of them agree. Go down and see for yourself: a short way in, an old vault where the keepers trained, and back out. Nothing down there wants you. Yet.',
-		image: 'affliction-gloaming-banner',
+		image: 'affliction-rumors-banner',
 		meter: { seconds: Infinity, perKill: 0, perLoot: 0 },
 		expeditionSeconds: 3600,
 		stages: [],
