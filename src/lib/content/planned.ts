@@ -217,13 +217,6 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 	...group('sound', 'Utility', 4, []),
 	...group('sound', 'World', 5, [['brick.scrape', "A smuggler's brick scraping"]]),
 	...group('sound', 'Items with a use', 6, [['doll.phantom', "The doll's phantom sounds"]]),
-	...group('sound', 'Hub', 7, [
-		['workshop.repair', 'Workshop: repair'],
-		['workshop.craft', 'Workshop: craft'],
-		['workshop.salvage', 'Workshop: salvage'],
-		['store.tier', 'A store tier unlocked']
-	]),
-	...group('sound', 'Crafting', 7, [['craft.field', 'Field crafting (loop)']]),
 	...group('sound', 'Rumors', 8, [
 		['dummy.hit', 'Training dummy hit'],
 		['dummy.reset', 'Training dummy resets'],

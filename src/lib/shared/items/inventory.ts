@@ -356,7 +356,7 @@ function put(b: Belongings, into: SlotRef[], stack: ItemStack, count: number): n
 		for (const ref of into) {
 			if (left <= 0) break;
 			const there = getSlot(b, ref);
-			if (!there || there.item !== stack.item) continue;
+			if (!there || !sameKind(there, stack)) continue;
 			const added = Math.min(limit - there.count, left);
 			if (added <= 0) continue;
 			there.count += added;
@@ -440,7 +440,7 @@ export function moveStack(b: Belongings, from: SlotRef, to: SlotRef, count?: num
 	const weight = ITEMS[moving.item]?.weight ?? 0;
 	const taking = from.area === 'stash' && to.area !== 'stash';
 
-	if (there && (there.item !== moving.item || maxStack(moving.item) <= 1)) {
+	if (there && (!sameKind(there, moving) || maxStack(moving.item) <= 1)) {
 		// Swap: the whole stack, and what comes back has to be allowed where this one was.
 		if (n !== moving.count || !accepts(from, there.item)) return 'refused';
 		// Across the line between the stash and the loadout, the load changes by the difference.
@@ -608,6 +608,11 @@ export function sanitizeAction(raw: unknown, stash = false): InventoryAction | n
 	}
 }
 
+/** Two stacks that may be one: the same item, both made or both found (crafted sells differently). */
+function sameKind(a: ItemStack, b: ItemStack): boolean {
+	return a.item === b.item && !!a.crafted === !!b.crafted;
+}
+
 /** Check an untrusted stack: a known item, a count it allows, sensible wear and rounds. */
 export function sanitizeStack(raw: unknown): ItemStack | null {
 	if (typeof raw !== 'object' || raw === null) return null;
@@ -621,6 +626,7 @@ export function sanitizeStack(raw: unknown): ItemStack | null {
 	if (whole(s.loaded)) stack.loaded = Math.min(s.loaded, def.firearm?.magazine ?? 0);
 	if (whole(s.uses)) stack.uses = s.uses;
 	if (whole(s.worn)) stack.worn = s.worn;
+	if (s.crafted === true) stack.crafted = true;
 	return stack;
 }
 

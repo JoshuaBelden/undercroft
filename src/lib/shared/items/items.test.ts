@@ -120,6 +120,7 @@ const NAMED = [
 	'pendant',
 	'key',
 	'clue',
+	'recipe-fragment',
 	// Treasure
 	'coins',
 	'rosary',
@@ -151,8 +152,8 @@ describe('the item list', () => {
 		const game = Object.keys(ITEMS).filter((id) => !id.startsWith('test.'));
 		expect(game.filter((id) => !NAMED.includes(id))).toEqual([]);
 		expect(NAMED.filter((id) => !ITEMS[id])).toEqual([]);
-		// The recipe fragment waits for the Workshop's discovery.
-		expect([...PENDING_ITEMS]).toEqual(['recipe-fragment']);
+		// Nothing waits for its item any more.
+		expect([...PENDING_ITEMS]).toEqual([]);
 	});
 
 	it('the store sells what the handoff says, tier by tier, and none of what is never sold', () => {
@@ -209,7 +210,7 @@ describe('the item list', () => {
 
 	it('everything has a worth, and the prices the handoff gives', () => {
 		for (const def of Object.values(ITEMS)) {
-			if (def.quest || def.kind === 'clue' || def.id === 'key') continue;
+			if (def.quest || def.kind === 'clue' || def.fragment || def.id === 'key') continue;
 			expect(def.price !== undefined || def.value !== undefined, def.id).toBe(true);
 		}
 		expect(ITEMS.medkit.price).toBe(60);

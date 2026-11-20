@@ -167,7 +167,7 @@ The client only says what to buy or sell. Prices are looked up on the server, an
 
 ### Store tiers
 
-Every `SHOP` line has a `tier`: `start`, `trusted` (coin sold, in all), `gloaming` (resolving the Gloaming) and `valued`, as the handoff's table. `forSale(tiers)` is what can be bought; until the merchant's trust is kept, `OPEN_TIERS` is the start tier only. What is never sold (the knife, the hatchet, the crossbow, snares...) has a price all the same, its worth.
+Every `SHOP` line has a `tier`: `start`, `trusted` (coin sold, in all), `gloaming` (resolving the Gloaming) and `valued`, as the handoff's table. `forSale(tiers)` is what can be bought. `openTiers(sold, resolved)` says which are open: the merchant's trust (`ExplorerDoc.sold`, every coin the store has paid them, added by `sell` and `sellTreasure`) against `STORE_TIERS` (Trusted at 1,000, Valued at 5,000), and the Afflictions they resolved (Gloaming). The account view carries `tiers` and `sold`; the store shows only what is open, and `buy` refuses the rest. Selling past a tier raises a note. Admin: **Trust (coin sold)** sets it. What is never sold (the knife, the hatchet, the crossbow, snares...) has a price all the same, its worth.
 
 ### The Store page
 

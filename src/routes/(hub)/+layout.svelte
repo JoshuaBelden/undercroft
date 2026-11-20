@@ -42,7 +42,9 @@
 	const TABS = [
 		{ path: '/(hub)', label: 'Expedition' },
 		{ path: '/(hub)/loadout', label: 'Loadout' },
-		{ path: '/(hub)/afflictions', label: 'Afflictions' }
+		{ path: '/(hub)/afflictions', label: 'Afflictions' },
+		{ path: '/(hub)/workshop', label: 'Workshop' },
+		{ path: '/(hub)/library', label: 'Library' }
 	] as const;
 
 	/** The controller's B: back to the Expedition page. */

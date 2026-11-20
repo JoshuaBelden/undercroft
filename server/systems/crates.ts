@@ -9,6 +9,7 @@ import {
 	removeItem,
 	sanitizeAction
 } from '../../src/lib/shared/items/inventory.ts';
+import { fragmentFinds } from '../../src/lib/shared/items/crafting.ts';
 import { bestWay, lootableOf, waysFor, firstKey } from '../../src/lib/shared/items/lootables.ts';
 import { MAP_KIT } from '../../src/lib/content/map/kit.ts';
 import { addWear } from '../../src/lib/shared/items/durability.ts';
@@ -117,7 +118,12 @@ export class CrateSystem implements SessionSystem {
 		}
 		for (const player of ctx.players.values()) {
 			const crate = player.crate ? ctx.crates.get(player.crate) : null;
-			if (crate) ctx.send(player, { type: 'crate', id: crate.id, ...ctx.crates.view(crate) });
+			if (!crate) continue;
+			ctx.send(player, { type: 'crate', id: crate.id, ...ctx.crates.view(crate) });
+			const source = lootableOf(crate).id;
+			crate.slots.forEach((stack, index) => {
+				if (stack && !crate.hidden.has(index)) ctx.discover(player, stack.item, source);
+			});
 		}
 	}
 
@@ -186,6 +192,7 @@ export class CrateSystem implements SessionSystem {
 		const left = addItem(s.inventory, newStack(fill.makes));
 		if (left > 0) ctx.items.dropAll([newStack(fill.makes, left)], s.position);
 		crate.fills--;
+		ctx.discover(player, fill.makes, lootableOf(crate).id);
 		ctx.events.push({
 			kind: 'filled',
 			crate: crate.id,
@@ -322,10 +329,15 @@ export class CrateSystem implements SessionSystem {
 	loot(player: Player, crate: Crate, raw: unknown): void {
 		const action = sanitizeAction(raw, true);
 		if (!action) return;
-		// A hint is read where it lies, never carried.
+		// A hint is read where it lies, never carried; so is a recipe fragment.
 		const from = 'from' in action ? action.from : null;
 		if (from?.area === 'stash' && !crate.hidden.has(from.index)) {
 			const stack = crate.slots[from.index];
+			if (stack && ITEMS[stack.item]?.fragment) {
+				this.readFragment(player);
+				this.ctx.crates.clear(crate, from.index);
+				return;
+			}
 			if (stack && ITEMS[stack.item]?.kind === 'clue') {
 				if (this.ctx.systems.rite.readClue(player, crate.position)) {
 					this.ctx.crates.clear(crate, from.index);
@@ -348,6 +360,17 @@ export class CrateSystem implements SessionSystem {
 			this.ctx.creatures.hear(crate.position, noise, { id: player.id, state: player.state });
 		}
 		this.ctx.systems.pack.afterRequest(player, inHand, dropped);
+	}
+
+	/**
+	 * A recipe fragment read (docs/dev/crafting.md#fragments): it discovers an ingredient they
+	 * haven't seen of a recipe they have started, or of any recipe if none; or it is only a note.
+	 */
+	private readFragment(player: Player): void {
+		const pick = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length)];
+		const item = fragmentFinds(player.discovered, pick);
+		if (item) this.ctx.discover(player, item, 'fragment');
+		this.ctx.send(player, { type: 'fragment', item });
 	}
 
 	/** The player is done with the loot crate they had open. */

@@ -32,11 +32,15 @@ export type ItemAlertSource =
 	| 'grant'
 	/** Picked up underground. */
 	| 'pickup'
+	/** Made below, with the field crafting kit. */
+	| 'craft'
 	/** Given by another player (`from`). */
 	| 'gift';
 
 export type Alert =
 	| { kind: 'social'; event: SocialAlertEvent; person: Person }
+	/** An item discovered (docs/dev/crafting.md#discovery): used in `recipes` recipes. */
+	| { kind: 'discovery'; item: string; recipes: number }
 	/** Something to say underground (a tripwire bell rang, a tarot card drawn). */
 	| { kind: 'note'; title: string; line: string }
 	| {

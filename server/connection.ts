@@ -133,6 +133,16 @@ export function serve(
 				if (e) e.session.closeCrate(e.playerId);
 				break;
 			}
+			case 'craft': {
+				const e = parties.expedition(member);
+				if (e) e.session.craft(e.playerId, message);
+				break;
+			}
+			case 'stopCraft': {
+				const e = parties.expedition(member);
+				if (e) e.session.stopCraft(e.playerId);
+				break;
+			}
 			case 'admin': {
 				const e = parties.expedition(member);
 				if (e && typeof message.command === 'object' && message.command !== null)

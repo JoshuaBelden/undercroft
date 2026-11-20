@@ -43,9 +43,14 @@ describe('the loot tables', () => {
 	});
 
 	it('leaves the lines for items still to come out of the roll', () => {
-		const live = liveEntries(LOOTABLES.cache.loot);
+		// A line for something not in the game yet is left out.
+		const lines = [
+			...LOOTABLES.cache.loot,
+			{ item: 'not-yet', count: [1, 1] as [number, number], weight: [1, 1] as [number, number] }
+		];
+		const live = liveEntries(lines);
 		expect(live.every((e) => Object.hasOwn(ITEMS, e.item))).toBe(true);
-		expect(live.length).toBeLessThan(LOOTABLES.cache.loot.length);
+		expect(live.length).toBe(lines.length - 1);
 	});
 });
 

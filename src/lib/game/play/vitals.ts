@@ -1,4 +1,6 @@
 import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
+import { ITEMS } from '#lib/content/items.ts';
+import { CRAFT } from '#lib/content/recipes.ts';
 import { SANITY } from '#lib/content/player/sanity.ts';
 import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 import { rumble } from '#lib/game/input/gamepad.ts';
@@ -115,6 +117,13 @@ export class Vitals implements PlayFeature {
 		const charge = charging(state);
 		if (charge && state.charging > 0) {
 			return { prompt: 'Changing the battery...', progress: state.charging / charge.seconds };
+		}
+		if (state.crafting > 0) {
+			const name = ITEMS[state.craftingItem ?? '']?.name ?? 'something';
+			return {
+				prompt: `Working on ${name.toLowerCase()}...`,
+				progress: state.crafting / CRAFT.field.seconds
+			};
 		}
 		if (this.downedNearby(state)) {
 			if (quickWith(state.inventory, 'revive') < 0) {

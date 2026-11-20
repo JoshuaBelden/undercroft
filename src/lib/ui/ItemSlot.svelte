@@ -156,6 +156,7 @@
 		quest={stack ? def?.quest : undefined}
 		mark={stack ? slotMark(stack.item) : undefined}
 		broken={isBroken(stack)}
+		fresh={board.isFresh(stack)}
 	/>
 </button>
 

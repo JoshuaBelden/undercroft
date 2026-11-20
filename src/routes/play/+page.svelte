@@ -50,7 +50,7 @@
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { loadAccount } from '#lib/account/account.svelte.ts';
+	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { buildCollisionWorld, segmentHit } from '#lib/shared/map/collision.ts';
 	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 	import { roomPoints, testPoints } from '#lib/shared/map/points.ts';
@@ -82,6 +82,7 @@
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
 	import Bearings from '#lib/ui/Bearings.svelte';
+	import { discoveries, knowDiscoveries } from '#lib/game/discoveries.svelte.ts';
 	import { wheelChoice } from '#lib/ui/wheel.ts';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
@@ -332,6 +333,9 @@
 		playUi(showing ? 'map.open' : 'map.close');
 	});
 
+	// What they have discovered so far (the Craft tab): the account's, then what they find below.
+	onMount(() => knowDiscoveries(Object.keys(session.account?.explorer.discovered ?? {})));
+
 	// Alerts down here (docs/dev/alerts.md): an item one opens the pack. A social one goes nowhere,
 	// since the Social page would leave the expedition.
 	onMount(() =>
@@ -340,7 +344,8 @@
 				if (panel !== 'menu') toggle('menu');
 			},
 			social: () => {},
-			note: () => {}
+			note: () => {},
+			discovery: () => {}
 		})
 	);
 
@@ -1427,6 +1432,11 @@
 		carriers={features.rite.carriers}
 		interactKey={promptCode('interact')}
 		onaction={(action) => sendInventory(action)}
+		discovered={discoveries}
+		oncraft={(change) => {
+			panel = null;
+			send({ type: 'craft', ...change });
+		}}
 		onabandon={() => {
 			panel = null;
 			send({ type: 'abandon' });

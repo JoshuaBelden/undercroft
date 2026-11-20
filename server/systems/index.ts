@@ -1,5 +1,6 @@
 import { AfflictionSystem } from './affliction.ts';
 import { CheatSystem } from './cheats.ts';
+import { CraftSystem } from './craft.ts';
 import { CrateSystem } from './crates.ts';
 import { CreatureSystem } from './creatures.ts';
 import { DeadlineSystem } from './deadline.ts';
@@ -34,6 +35,7 @@ export function createSystems(ctx: SessionContext) {
 		rite: new RiteSystem(ctx),
 		deadline: new DeadlineSystem(ctx),
 		crates: new CrateSystem(ctx),
+		craft: new CraftSystem(ctx),
 		doors: new DoorSystem(ctx),
 		walls: new WallSystem(ctx),
 		marks: new MarkSystem(ctx),

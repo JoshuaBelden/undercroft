@@ -1,12 +1,13 @@
 import { sellPrice } from '#lib/content/economy.ts';
 import { ITEMS } from '#lib/content/items.ts';
+import { repairCost } from '#lib/shared/items/crafting.ts';
 import { accepts, canEquip, getSlot, type Belongings } from '#lib/shared/items/inventory.ts';
 import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
 import type { ItemStack } from '#lib/shared/player/types.ts';
 
 /** One line of the alternate menu. */
 export interface MenuEntry {
-	id: 'read' | 'inspect' | 'equip' | 'unequip' | 'split' | 'sell' | 'drop';
+	id: 'read' | 'inspect' | 'equip' | 'unequip' | 'split' | 'sell' | 'repair' | 'drop';
 	label: string;
 	/** Shown to the right (the price). */
 	note?: string;
@@ -21,6 +22,11 @@ export interface BoardOptions {
 	act: (action: InventoryAction) => void;
 	/** Sell from a slot. Leave out where nothing can be sold (underground). */
 	sell?: (from: SlotRef, count: number) => void;
+	/** Mend a worn thing (off to the Workshop with it). Leave out where nothing is mended. */
+	repair?: (at: SlotRef) => void;
+	/** Newly discovered: its slot shimmers until hovered (`seen` is told). */
+	fresh?: (item: string) => boolean;
+	seen?: (item: string) => void;
 	/** Nothing can be changed right now (the explorer is underground, a request is in flight). */
 	locked?: () => boolean;
 	/** What a price reads as, e.g. "25 coin". */
@@ -160,6 +166,14 @@ export class ItemBoard {
 		if (!this.dragging && !this.menu) {
 			this.pointing = { ref, rect: element.getBoundingClientRect() };
 		}
+		// Looked at: a fresh discovery stops shimmering.
+		const stack = getSlot(this.options.belongings(), ref);
+		if (stack && this.options.fresh?.(stack.item)) this.options.seen?.(stack.item);
+	}
+
+	/** Whether a stack's slot shimmers: newly discovered and not looked at yet. */
+	isFresh(stack: ItemStack | null): boolean {
+		return !!stack && !!this.options.fresh?.(stack.item);
 	}
 
 	unpoint(): void {
@@ -197,6 +211,8 @@ export class ItemBoard {
 				price: { amount: each, after: stack.count > 1 ? ' each' : '' }
 			});
 		}
+		// Below full, and something that can be mended: off to the Workshop with it.
+		if (this.options.repair && repairCost(stack)) entries.push({ id: 'repair', label: 'Repair' });
 		entries.push({ id: 'drop', label: 'Drop' });
 		return entries;
 	}
@@ -231,6 +247,9 @@ export class ItemBoard {
 				// One: nothing to ask. More: how many.
 				if (stack.count > 1) this.asking = { kind: 'sell', ref, stack };
 				else this.options.sell?.(ref, 1);
+				break;
+			case 'repair':
+				this.options.repair?.(ref);
 				break;
 			case 'drop':
 				if (this.options.confirmDrop) this.asking = { kind: 'drop', ref, stack };

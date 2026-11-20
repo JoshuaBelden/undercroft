@@ -31,7 +31,8 @@ export const ITEM_ALERTS: Record<ItemAlertSource, (from: string) => string> = {
 	store: () => 'Bought',
 	grant: () => 'Granted',
 	pickup: () => 'Picked up',
-	gift: (from) => `Gift from ${from}`
+	gift: (from) => `Gift from ${from}`,
+	craft: () => 'Made'
 };
 
 /**
@@ -61,6 +62,14 @@ export function alertText(alert: Alert): { title: string; line: string } {
 		return { title: text.title, line: text.line(alert.person.name) };
 	}
 	if (alert.kind === 'note') return { title: alert.title, line: alert.line };
+	if (alert.kind === 'discovery') {
+		const name = ITEMS[alert.item]?.name.toLowerCase() ?? alert.item;
+		const uses =
+			alert.recipes === 0
+				? 'Used in no recipe yet.'
+				: `Used in ${alert.recipes} recipe${alert.recipes === 1 ? '' : 's'}.`;
+		return { title: `Discovered: ${name}`, line: uses };
+	}
 	return {
 		title: ITEM_ALERTS[alert.source](alert.from?.name ?? 'someone'),
 		line: itemLine(alert.item, alert.count)

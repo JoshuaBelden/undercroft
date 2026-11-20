@@ -20,6 +20,7 @@ import { DEFAULT_MARK_WHEEL } from '../src/lib/content/marks.ts';
 import { tierAt, tierCells } from '../src/lib/shared/map/doors.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
+import { discoverable, recipesUsing } from '../src/lib/shared/items/crafting.ts';
 import { allStacks, removeItem } from '../src/lib/shared/items/inventory.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { placeCrates } from '../src/lib/shared/map/crates.ts';
@@ -90,6 +91,8 @@ export interface SessionHooks {
 	onResolved?: () => void;
 	/** An admin wiped what is known about the rite. */
 	onRiteReset?: () => void;
+	/** A player saw something in a lootable: where (docs/dev/crafting.md#discovery). */
+	onDiscovered?: (owner: string, item: string, source: string) => void;
 }
 
 /**
@@ -285,13 +288,16 @@ export class Session implements SessionContext {
 		name: string,
 		owner: string,
 		inventory: Inventory,
-		markWheel: readonly string[] = DEFAULT_MARK_WHEEL
+		markWheel: readonly string[] = DEFAULT_MARK_WHEEL,
+		discovered: ReadonlySet<string> = new Set()
 	): Player {
 		const player: Player = {
 			id: randomUUID(),
 			owner,
 			name,
 			socket,
+			discovered: new Set(discovered),
+			seenIn: new Set(),
 			state: this.spawnState(inventory, this.players.size),
 			queue: [],
 			ack: -1,
@@ -416,6 +422,17 @@ export class Session implements SessionContext {
 	mark(playerId: string, symbol: unknown, position: unknown, normal: unknown): void {
 		const player = this.players.get(playerId);
 		if (player) this.systems.marks.draw(player, symbol, position, normal);
+	}
+
+	/** Make or mend something below (CraftSystem.start). */
+	craft(playerId: string, request: { recipe?: unknown; repair?: unknown }): void {
+		const player = this.players.get(playerId);
+		if (player) this.systems.craft.start(player, request);
+	}
+
+	stopCraft(playerId: string): void {
+		const player = this.players.get(playerId);
+		if (player) this.systems.craft.stop(player);
 	}
 
 	/** The player is done with the loot crate they had open (CrateSystem.close). */
@@ -576,6 +593,17 @@ export class Session implements SessionContext {
 		player.lastInput = frame;
 		player.ack = frame.seq;
 		player.processed++;
+	}
+
+	discover(player: Player, item: string, source: string): void {
+		if (!discoverable(item)) return;
+		const where = `${item}:${source}`;
+		if (player.seenIn.has(where)) return;
+		player.seenIn.add(where);
+		this.hooks.onDiscovered?.(player.owner, item, source);
+		if (player.discovered.has(item)) return;
+		player.discovered.add(item);
+		this.send(player, { type: 'discovered', item, recipes: recipesUsing(item).length });
 	}
 
 	/** Falls that hurt: a hard landing costs sanity, and is heard. */

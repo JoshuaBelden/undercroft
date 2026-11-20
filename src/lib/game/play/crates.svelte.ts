@@ -1,4 +1,6 @@
 import { ITEMS } from '#lib/content/items.ts';
+import { raise } from '#lib/game/alerts.svelte.ts';
+import { discoveries } from '#lib/game/discoveries.svelte.ts';
 import { LOOTABLES } from '#lib/content/lootables.ts';
 import { Crates as CrateModels } from '#lib/game/items/Crates.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
@@ -60,6 +62,35 @@ export class Crates implements PlayFeature {
 	private dry: string[] = [];
 
 	message(message: ServerMessage): void {
+		if (message.type === 'discovered') {
+			discoveries.add(message.item);
+			// The same sting as finding something epic.
+			this.ctx.sounds.play('loot.found');
+			raise({ kind: 'discovery', item: message.item, recipes: message.recipes });
+			return;
+		}
+		if (message.type === 'crafted') {
+			if (message.count > 0) {
+				raise({ kind: 'item', item: message.item, count: message.count, source: 'craft' });
+			} else {
+				const name = ITEMS[message.item]?.name ?? message.item;
+				raise({
+					kind: 'note',
+					title: `Mended: ${name.toLowerCase()}`,
+					line: 'Some of the wear is gone.'
+				});
+			}
+			return;
+		}
+		if (message.type === 'fragment') {
+			const name = message.item ? ITEMS[message.item]?.name.toLowerCase() : null;
+			raise({
+				kind: 'note',
+				title: 'A recipe fragment',
+				line: name ? `It mentions ${name}.` : 'Notes on things you already know.'
+			});
+			return;
+		}
 		if (message.type !== 'crate') return;
 		const { ui } = this.ctx;
 		if (message.id === null) {

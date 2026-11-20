@@ -6,6 +6,7 @@ import {
 	returnFromExpedition,
 	takeLoadout
 } from '../src/lib/server/store/explorers.ts';
+import { discover, discoveredOf } from '../src/lib/server/store/discoveries.ts';
 import { emptyInventory } from '../src/lib/shared/items/inventory.ts';
 import type { Inventory } from '../src/lib/shared/player/types.ts';
 import { getDb } from './db.ts';
@@ -68,6 +69,32 @@ export async function markWheels(explorers: string[]): Promise<Map<string, strin
 		log.warn(`Could not read chalk wheels: ${(error as Error).message}`);
 	}
 	return wheels;
+}
+
+/**
+ * What each of these explorers has discovered, read at descent (docs/dev/crafting.md). A co-op
+ * guest's discoveries stay with their own save: they discover nothing here.
+ */
+export async function discoveries(explorers: string[]): Promise<Map<string, Set<string>>> {
+	const here = explorers.filter((explorer) => !isGuest(explorer));
+	const db = getDb();
+	if (!db || here.length === 0) return new Map();
+	try {
+		return await discoveredOf(db, here);
+	} catch (error) {
+		log.warn(`Could not read discoveries: ${(error as Error).message}`);
+		return new Map();
+	}
+}
+
+/** An explorer saw something in a lootable: kept for good. */
+export function recordFind(explorer: string, item: string, source: string): void {
+	if (isGuest(explorer)) return;
+	const db = getDb();
+	if (!db) return;
+	discover(db, explorer, [{ item, source }]).catch((error: Error) =>
+		log.warn(`Could not record a discovery: ${error.message}`)
+	);
 }
 
 /** The expedition is over for them: what they carried out (null if it was lost) goes back. */

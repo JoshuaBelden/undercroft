@@ -133,6 +133,10 @@ export interface PlayerState {
 	performing: number;
 	/** Seconds spent holding interact to open a loot crate (server-driven). */
 	opening: number;
+	/** Seconds kneeling over something being made or mended below (server-driven). */
+	crafting: number;
+	/** What is being made or mended (an item id), while `crafting`. */
+	craftingItem: string | null;
 	/**
 	 * Seconds spent prying at a dead end's wall with a crowbar (server-driven); -1 once it is done,
 	 * until interact is let go.
@@ -164,6 +168,8 @@ export interface ItemStack {
 	loaded?: number;
 	/** What it is loaded with, when not its own rounds (old coins in a slingshot). */
 	ammo?: string;
+	/** Made, not found or bought: it sells for its materials (docs/dev/crafting.md#selling). */
+	crafted?: boolean;
 	/** Hits taken by a breakable melee item (a brick: gone at the last); marks drawn with chalk. */
 	uses?: number;
 	/**

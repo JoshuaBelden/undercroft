@@ -249,7 +249,43 @@ Selling is done on the "Loadout" page: right-click something and choose Sell. Wh
 
 A first descent with nothing is a short one. Bring out what a crate or two holds, and buy a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.
 
-The store doesn't sell everything. Some things are only found below or made: the knife, the hatchet, the crossbow, snares and more.`
+The store doesn't sell everything. Some things are only found below or made: the knife, the hatchet, the crossbow, snares and more.
+
+At first the store sells only the basics. The more you sell to the merchant, the more he trusts you, and the more he offers: a second tier once you have sold him a thousand coin's worth, a third at five thousand. Resolving the Gloaming opens another.`
+	},
+	{
+		id: 'discovery',
+		title: 'Discovery and the Library',
+		category: 'The surface',
+		body: `You learn what things are by finding them. Everything you see in a crate, a dead explorer, a tomb or anything else you open below is discovered: the first time, a chime and a note say so, and how many recipes it goes into. Everyone in your party who looks in discovers what is there. Buying something, or breaking something down into it, doesn't count: you have to find it.
+
+The Library, on the dashboard, lists everything you have discovered and where you saw it. It also lists every recipe you know any part of: what it makes, and what goes into it, with a ? for each part you haven't found yet. When every part is known, the recipe is yours.
+
+Now and then you find a recipe fragment: a torn page of someone's notes. Read it where it lies and it tells you one thing you haven't found yet for a recipe you have started.
+
+Newly discovered things shimmer in your stash and loadout until you look at them.`
+	},
+	{
+		id: 'the-workshop',
+		title: 'The Workshop',
+		category: 'The surface',
+		body: `The Workshop, on the dashboard, is where things are made and mended.
+
+Craft: any recipe you know, made at once from what is in your stash. Something you made sells only for what went into it.
+
+Repair: mend something worn or broken. It takes a few materials from your stash and some coin, more the more worn it is. You can also choose Repair from anything's menu on the Loadout page.
+
+Salvage: break something down into the materials it was made from. Salvaging never teaches you anything new: only finding things does.
+
+Guns and rounds are never made. They are mended, and broken down.`
+	},
+	{
+		id: 'field-crafting',
+		title: 'Crafting below',
+		category: 'Gear and loot',
+		body: `With the field crafting kit worn in a gear slot, some recipes can be made down there: bandages, candles, snares, oil bottles, bolts and more. Open the menu ({action:inventory}) and choose the Craft tab. Pick something you have the materials for and you kneel over it for a few seconds. You need your lamp lit, it makes a little noise, and moving stops it. What you make goes in your pack.
+
+The Craft tab can also mend something you carry a little of the way, with its materials. Each thing made or mended wears the kit.`
 	},
 	{
 		id: 'alerts',

@@ -12,6 +12,8 @@ interface Item {
 	tags?: string[];
 	nested?: { a?: number; list?: string[] };
 	at?: Date;
+	fresh?: string[];
+	seen?: Record<string, string[]>;
 	email?: string;
 }
 
@@ -122,6 +124,19 @@ describe('writing', () => {
 		});
 		await c.updateOne({ _id: 'a' }, { $max: { count: 10 } });
 		expect((await c.findOne({ _id: 'a' }))?.count).toBe(10);
+	});
+
+	it('$pull takes every one of an $in list, and $addToSet adds an $each under a dotted path', async () => {
+		const c = items();
+		await c.insertOne({ _id: 'a', fresh: ['p', 'q', 'r'] });
+		await c.updateOne({ _id: 'a' }, { $pull: { fresh: { $in: ['p', 'r'] } } });
+		await c.updateOne({ _id: 'a' }, { $addToSet: { 'seen.rags': { $each: ['crate', 'locker'] } } });
+		await c.updateOne({ _id: 'a' }, { $addToSet: { 'seen.rags': { $each: ['crate'] } } });
+		expect(await c.findOne({ _id: 'a' })).toEqual({
+			_id: 'a',
+			fresh: ['q'],
+			seen: { rags: ['crate', 'locker'] }
+		});
 	});
 
 	it('counts what matched and what actually changed', async () => {

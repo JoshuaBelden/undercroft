@@ -412,6 +412,11 @@ export interface ItemDef {
 	/** Carried down, a card is drawn at the start of a run: a small blessing or curse (a tarot deck). */
 	tarot?: boolean;
 	/**
+	 * A recipe fragment: read where it lies, never carried (like a clue). Reading it discovers an
+	 * ingredient (see `fragmentFinds`, docs/dev/crafting.md#fragments).
+	 */
+	fragment?: boolean;
+	/**
 	 * For the rite, it counts as `count` of another item (the black candle: five candles). The
 	 * rite takes the real ones first, and this only for what is still wanting.
 	 */
@@ -912,6 +917,20 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 0,
 		weight: 0
+	},
+	// Read where it lies (docs/dev/crafting.md#fragments): a torn manual page, a gunsmith's notes.
+	'recipe-fragment': {
+		id: 'recipe-fragment',
+		name: 'Recipe fragment',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'A torn page of notes: how someone down here made do.',
+		model: null,
+		placeholder: { size: [0.2, 0.01, 0.28], color: 0xc8bc9c },
+		hold: HOLD_RIGHT,
+		maxStack: 0,
+		weight: 0,
+		fragment: true
 	},
 	...WEAPONS,
 	...GEAR,

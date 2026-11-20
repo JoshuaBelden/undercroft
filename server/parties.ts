@@ -9,7 +9,15 @@ import { allReady, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import type { FriendStatus } from '../src/lib/shared/social/types.ts';
 import type { Identity, Profile } from './accounts.ts';
-import { giveBack, lockKit, markWheels, owned, takeKit } from './belongings.ts';
+import {
+	discoveries,
+	giveBack,
+	lockKit,
+	markWheels,
+	owned,
+	recordFind,
+	takeKit
+} from './belongings.ts';
 import { forgetGuest } from './guests.ts';
 import { log } from './log.ts';
 import { Progress } from './progress.ts';
@@ -295,6 +303,7 @@ export class Parties {
 			onClues: (clues) => this.progress.record(descended(), session.afflictionId, { clues }),
 			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
 			onRiteReset: () => void this.progress.reset(descended(), session.afflictionId),
+			onDiscovered: (explorer, item, source) => recordFind(explorer, item, source),
 			onPlayerLeft: (explorer, carried) => {
 				giveBack(explorer, session.id, carried);
 				this.sweep(party);
@@ -329,10 +338,11 @@ export class Parties {
 	 */
 	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
 		const going = [...party.members];
-		const [kits, onSurface, wheels] = await Promise.all([
+		const [kits, onSurface, wheels, known] = await Promise.all([
 			Promise.all(going.map((m) => takeKit(m.explorer, session.id))),
 			owned(going.map((m) => m.explorer)),
-			markWheels(going.map((m) => m.explorer))
+			markWheels(going.map((m) => m.explorer)),
+			discoveries(going.map((m) => m.explorer))
 		]);
 		// A quest item someone already owns (kept on the surface, or brought down) isn't put in the map.
 		const quest =
@@ -348,7 +358,14 @@ export class Parties {
 				return;
 			}
 			const wheel = markWheel(wheels.get(m.explorer));
-			m.playerId = session.addPlayer(m.socket, m.name, m.explorer, kits[i], wheel).id;
+			m.playerId = session.addPlayer(
+				m.socket,
+				m.name,
+				m.explorer,
+				kits[i],
+				wheel,
+				known.get(m.explorer)
+			).id;
 		});
 		if (party.session !== session) return;
 		if (session.playerCount === 0) {

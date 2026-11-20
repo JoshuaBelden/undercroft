@@ -295,6 +295,9 @@ export class Hazards implements PlayFeature {
 				raise({ kind: 'note', title: `You drew ${card.name}`, line: card.line });
 				break;
 			}
+			case 'crafting':
+				sounds.playAt('craft.field', event.position, 1, 4);
+				break;
 			case 'tripwire':
 				// The party hears it wherever it is: it is what the bell is for.
 				sounds.playAt('tripwire.ring', event.position, 1, 12);

@@ -334,6 +334,10 @@ A worn pocket compass shows its needle at the top of the screen: the bearing to 
 
 A player who comes down carrying a deck draws one card (`TAROT` in `src/lib/content/tarot.ts`), once a run: a small blessing or curse made of a share of the lamp's charge, sanity, a condition or the Affliction's meter. A note alert says which. The deck isn't used up. Add a card to `TAROT`.
 
+## Made things
+
+A stack marked `crafted` was made (the Workshop, field crafting): it sells for its materials and never merges with found ones. See [crafting.md](crafting.md).
+
 ## Adding an item
 
 1. Add a builder to `scripts/blender/items.py` (origin at the grip, forward +Y, up +Z) and list it in `ITEMS`. Run `items.build_all()` and `items.export_all()` in Blender, then `pnpm asset:build`.

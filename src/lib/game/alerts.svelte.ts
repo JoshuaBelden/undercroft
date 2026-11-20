@@ -18,12 +18,15 @@ export interface AlertTargets {
 	social: () => void;
 	/** A note goes nowhere: clicking it only dismisses it. */
 	note: () => void;
+	/** A discovery: the Library. */
+	discovery: () => void;
 }
 
 const SITE_TARGETS: AlertTargets = {
 	item: () => void goto(resolve('/(hub)/loadout')),
 	social: () => void goto(resolve('/(hub)/social')),
-	note: () => {}
+	note: () => {},
+	discovery: () => void goto(resolve('/(hub)/library'))
 };
 let targets: AlertTargets = SITE_TARGETS;
 let sound: () => void = () => {};

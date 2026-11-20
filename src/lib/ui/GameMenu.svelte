@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	/** The in-game menu's tabs, in order. */
-	export const MENU_TABS = ['Pack', 'Map', 'Rite'] as const;
+	export const MENU_TABS = ['Pack', 'Craft', 'Map', 'Rite'] as const;
 	export type MenuTab = (typeof MENU_TABS)[number];
 </script>
 
@@ -20,6 +20,9 @@
 	import { MapView } from './mapView.svelte.ts';
 	import PackPanel from './PackPanel.svelte';
 	import RitePanel from './RitePanel.svelte';
+	import CraftPanel from './CraftPanel.svelte';
+	import { wornGear } from '#lib/shared/items/gear.ts';
+	import type { SlotRef } from '#lib/shared/items/types.ts';
 
 	/** What the Map tab draws and is told (docs/dev/map.md). */
 	interface MenuMap {
@@ -60,6 +63,10 @@
 		onabandon: () => void;
 		/** The map, for the Map tab (shown only while a notebook is in the pack); null for none. */
 		survey: MenuMap | null;
+		/** What they have discovered: the Craft tab's recipes (shown with the field crafting kit worn). */
+		discovered: ReadonlySet<string>;
+		/** Make or mend something below (the Craft tab). */
+		oncraft: (change: { recipe: string } | { repair: SlotRef }) => void;
 		onclose: () => void;
 	}
 
@@ -73,13 +80,19 @@
 		onaction,
 		onabandon,
 		survey,
+		discovered,
+		oncraft,
 		onclose
 	}: Props = $props();
 
 	const mapping = $derived(!!survey && carriesSurvey(inventory));
 
+	/** The field crafting kit is worn: the Craft tab is there. */
+	const crafting = $derived(wornGear(inventory).some((def) => def.crafting));
 	const tabs = $derived(
-		MENU_TABS.filter((name) => name === 'Pack' || (name === 'Map' ? mapping : !!rite))
+		MENU_TABS.filter(
+			(name) => name === 'Pack' || (name === 'Craft' ? crafting : name === 'Map' ? mapping : !!rite)
+		)
 	);
 	const current = $derived(tabs.includes(tab) ? tab : (tabs[0] ?? tab));
 	/** Asking whether to really abandon the expedition. */
@@ -149,6 +162,11 @@
 			<div class="pane" aria-label="Pack" inert={current !== 'Pack'}>
 				<PackPanel {inventory} {onaction} />
 			</div>
+			{#if crafting}
+				<div class="pane" aria-label="Craft" inert={current !== 'Craft'}>
+					<CraftPanel {inventory} {discovered} {oncraft} />
+				</div>
+			{/if}
 			{#if current === 'Map' && survey && view}
 				<div class="pane" aria-label="Map">
 					<MapPane {view} {...survey} />

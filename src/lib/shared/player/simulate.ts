@@ -100,6 +100,8 @@ export function createPlayerState(
 		performing: 0,
 		opening: 0,
 		prying: 0,
+		crafting: 0,
+		craftingItem: null,
 		erasing: 0,
 		roping: 0,
 		unbarring: 0,
@@ -459,7 +461,8 @@ function stepDowned(
  * crouch for it, and stand back up when it is done or let go.
  */
 export function kneeling(s: PlayerState): boolean {
-	return s.bandaging > 0 && !!healing(s)?.kneel;
+	// Crafting below (the field crafting kit): kneeling over the work.
+	return (s.bandaging > 0 && !!healing(s)?.kneel) || s.crafting > 0;
 }
 
 /** The healing spec of what is in the hand (a bandage), if it heals. */

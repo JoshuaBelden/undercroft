@@ -24,7 +24,7 @@
 		<button
 			type="button"
 			class="alert"
-			class:item={alert.kind === 'item'}
+			class:item={alert.kind === 'item' || alert.kind === 'discovery'}
 			in:fly={slide}
 			out:fly={slide}
 			animate:flip={{ duration: still ? 0 : 240 }}
@@ -34,12 +34,12 @@
 			onfocus={() => hold(id, true)}
 			onblur={() => hold(id, false)}
 		>
-			{#if alert.kind === 'item'}
+			{#if alert.kind === 'item' || alert.kind === 'discovery'}
 				{@const def = ITEMS[alert.item]}
 				<Slot
 					name={def?.name ?? alert.item}
 					image={def?.image}
-					count={alert.count}
+					count={alert.kind === 'item' ? alert.count : 1}
 					rarity={rarityOf(alert.item)}
 					quest={def?.quest === true}
 				/>

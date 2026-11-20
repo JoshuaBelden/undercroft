@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
+import { openTiers } from '../../content/economy.ts';
 import type { Collection, Db } from 'mongodb';
 import { ACCOUNT, cleanEmail, cleanTag } from '../../content/account.ts';
 import type { AccountView, ExplorerView } from '../../shared/account/types.ts';
@@ -131,6 +132,15 @@ export interface ExplorerDoc {
 	ready?: boolean;
 	/** The eight chalk symbols they chose for their wheel; unset until they choose (the default). */
 	markWheel?: string[];
+	/**
+	 * What they have discovered (docs/dev/crafting.md#discovery): item id to the lootable kinds
+	 * it has been seen in. Written by the game server as it happens.
+	 */
+	discovered?: Record<string, string[]>;
+	/** Discovered and not yet looked at: their slots shimmer until hovered. */
+	fresh?: string[];
+	/** The merchant's trust: coin sold to the store, in all. */
+	sold?: number;
 	createdAt: Date;
 }
 
@@ -553,7 +563,14 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 			id: doc.affliction,
 			clues: doc.clues ?? 0,
 			resolved: doc.resolved === true
-		}))
+		})),
+		discovered: explorer.discovered ?? {},
+		fresh: explorer.fresh ?? [],
+		sold: explorer.sold ?? 0,
+		tiers: openTiers(
+			explorer.sold ?? 0,
+			progress.filter((doc) => doc.resolved).map((doc) => doc.affliction)
+		)
 	};
 	return {
 		id: account._id,

@@ -21,7 +21,12 @@ export type ExplorerError =
 	| 'busy'
 	| 'money'
 	| 'worthless'
-	| 'unsold';
+	| 'unsold'
+	| 'unknownRecipe'
+	| 'undiscovered'
+	| 'materials'
+	| 'unrepairable'
+	| 'unsalvageable';
 
 export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	underground: "You can't do that while you're underground",
@@ -33,7 +38,12 @@ export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	busy: 'Something else changed at the same time. Try again',
 	money: "You can't afford that",
 	worthless: 'No one will buy that',
-	unsold: "The shop doesn't sell that"
+	unsold: "The shop doesn't sell that",
+	unknownRecipe: 'There is no such recipe',
+	undiscovered: "You haven't discovered everything that goes into that yet",
+	materials: "You don't have the materials for that in your stash",
+	unrepairable: "That can't be mended, or doesn't need it",
+	unsalvageable: "That can't be broken down into anything"
 };
 
 const explorers = (db: Db): Collection<ExplorerDoc> => db.collection<ExplorerDoc>('explorers');

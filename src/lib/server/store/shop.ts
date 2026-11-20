@@ -1,5 +1,5 @@
 import type { Db } from 'mongodb';
-import { forSale, sellPrice } from '../../content/economy.ts';
+import { forSale, openTiers, sellPrice, type StoreTier } from '../../content/economy.ts';
 import { ITEMS, SLOTS } from '../../content/items.ts';
 import {
 	addToSlots,
@@ -22,7 +22,7 @@ export interface LedgerDoc {
 	explorer: string;
 	at: Date;
 	/** What happened: a purchase, a sale, something thrown away, an admin grant or reset. */
-	kind: 'buy' | 'sell' | 'discard' | 'grant' | 'reset';
+	kind: 'buy' | 'sell' | 'discard' | 'grant' | 'reset' | 'craft' | 'repair' | 'salvage';
 	item?: string;
 	count?: number;
 	/** Money gained (negative: spent). */
@@ -47,7 +47,7 @@ function stock(explorer: ExplorerDoc, item: string, count: number): boolean {
 
 /** Buy `lots` lots of a shop item into the stash. */
 export async function buy(db: Db, explorerId: string, item: unknown, lots: unknown): Result {
-	const entry = forSale().find((e) => e.item === item);
+	const entry = forSale(await tiersOf(db, explorerId)).find((e) => e.item === item);
 	const wanted = typeof lots === 'number' && Number.isInteger(lots) ? lots : 1;
 	if (!entry || !ITEMS[entry.item] || wanted < 1 || wanted > 99) return { error: 'unsold' };
 	const cost = entry.price * wanted;
@@ -88,9 +88,31 @@ export async function sell(db: Db, explorerId: string, from: unknown, count: unk
 		return null;
 	});
 	if ('explorer' in result) {
+		await trust(db, explorerId, sold.money);
 		await log(db, { explorer: explorerId, kind: 'sell', ...sold, balance: result.explorer.money });
 	}
 	return result;
+}
+
+/** What was sold adds to the merchant's trust. */
+async function trust(db: Db, explorerId: string, money: number): Promise<void> {
+	if (money <= 0) return;
+	await db
+		.collection<ExplorerDoc>('explorers')
+		.updateOne({ _id: explorerId }, { $inc: { sold: money } });
+}
+
+/** The store tiers open to an explorer: by what they have sold, and the Afflictions they resolved. */
+export async function tiersOf(db: Db, explorerId: string): Promise<StoreTier[]> {
+	const explorer = await db.collection<ExplorerDoc>('explorers').findOne({ _id: explorerId });
+	const resolved = await db
+		.collection<{ player: string; affliction: string; resolved?: boolean }>('progress')
+		.find({ player: explorerId, resolved: true })
+		.toArray();
+	return openTiers(
+		explorer?.sold ?? 0,
+		resolved.map((doc) => doc.affliction)
+	);
 }
 
 /** Sell every stack of treasure in the stash (not the loadout), one ledger line per item. */
@@ -121,6 +143,11 @@ export async function sellTreasure(db: Db, explorerId: string): Result {
 			balance += entry.money;
 			await log(db, { explorer: explorerId, kind: 'sell', ...entry, balance });
 		}
+		await trust(
+			db,
+			explorerId,
+			sold.reduce((sum, entry) => sum + entry.money, 0)
+		);
 	}
 	return result;
 }

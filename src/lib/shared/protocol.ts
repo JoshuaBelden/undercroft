@@ -15,7 +15,8 @@ import type {
 	MarkSnapshot,
 	ProjectileSnapshot,
 	TiedRopeSnapshot,
-	WorldItemSnapshot
+	WorldItemSnapshot,
+	SlotRef
 } from './items/types.ts';
 import type { Anchor } from './map/collision.ts';
 import type { MapLayout, Vec3 } from './map/types.ts';
@@ -59,6 +60,12 @@ export type ClientMessage =
 	| { type: 'inventory'; action: InventoryAction }
 	/** Done with the loot crate that is open. */
 	| { type: 'closeCrate' }
+	/**
+	 * Make a field recipe, or mend a carried thing a little (`repair`: its slot), kneeling, with the
+	 * field crafting kit worn (docs/dev/crafting.md#field-crafting). `stopCraft` gives up.
+	 */
+	| { type: 'craft'; recipe?: string; repair?: SlotRef }
+	| { type: 'stopCraft' }
 	/**
 	 * Draw a chalk mark with the chalk in the hand: a symbol on the player's wheel, where their
 	 * view meets the stone (`normal` out of it). The server checks it (see docs/dev/marks.md).
@@ -228,6 +235,12 @@ export type ServerMessage =
 	 * started, stopped, gathered up, tied or untied (see docs/dev/rope.md).
 	 */
 	| { type: 'ropes'; laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[]; pitons: Anchor[] }
+	/** You made something below (`count`), or mended it (`count` 0). */
+	| { type: 'crafted'; item: string; count: number }
+	/** You discovered an item (docs/dev/crafting.md#discovery): it is used in `recipes` recipes. */
+	| { type: 'discovered'; item: string; recipes: number }
+	/** You read a recipe fragment: what it taught you (an ingredient now discovered), or nothing. */
+	| { type: 'fragment'; item: string | null }
 	/** Points added to ropes being laid since the last tick. */
 	| { type: 'ropeGrow'; ropes: { id: string; points: Vec3[] }[] }
 	/**
@@ -315,6 +328,8 @@ const CLIENT_TYPES = new Set<string>([
 	'abandon',
 	'inventory',
 	'closeCrate',
+	'craft',
+	'stopCraft',
 	'mark',
 	'resetAffliction',
 	'vault'

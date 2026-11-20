@@ -1,3 +1,4 @@
+import { craftedValue } from '../shared/items/crafting.ts';
 import { condition } from '../shared/items/durability.ts';
 import type { ItemStack } from '../shared/player/types.ts';
 import { ITEMS } from './items.ts';
@@ -25,7 +26,34 @@ export interface ShopEntry {
  */
 export type StoreTier = 'start' | 'trusted' | 'gloaming' | 'valued';
 
-/** Tiers open to everyone for now; trust and resolved Afflictions open the rest (the Workshop's round). */
+/**
+ * What opens each tier past the start: the merchant's trust (coin sold to him, in all, per
+ * account) or an Affliction resolved.
+ */
+export const STORE_TIERS: Record<
+	Exclude<StoreTier, 'start'>,
+	{ sold?: number; resolved?: string }
+> = {
+	trusted: { sold: 1000 },
+	gloaming: { resolved: 'gloaming' },
+	valued: { sold: 5000 }
+};
+
+/** The tiers open with this much sold and these Afflictions resolved. */
+export function openTiers(sold: number, resolved: readonly string[]): StoreTier[] {
+	const open: StoreTier[] = ['start'];
+	for (const [tier, needs] of Object.entries(STORE_TIERS) as [
+		StoreTier,
+		{ sold?: number; resolved?: string }
+	][]) {
+		const bySold = needs.sold !== undefined && sold >= needs.sold;
+		const byAffliction = needs.resolved !== undefined && resolved.includes(needs.resolved);
+		if (bySold || byAffliction) open.push(tier);
+	}
+	return open;
+}
+
+/** What is open to someone new: the start tier. */
 export const OPEN_TIERS: StoreTier[] = ['start'];
 
 export const ECONOMY = {
@@ -97,6 +125,11 @@ export function forSale(tiers: readonly StoreTier[] = OPEN_TIERS): ShopEntry[] {
 export function sellPrice(item: string, stack?: ItemStack): number {
 	const def = ITEMS[item];
 	if (!def) return 0;
+	// Made from materials: it sells for them, never more (or making things would make coin).
+	if (stack?.crafted) {
+		const left = condition(stack) ?? 1;
+		return craftedValue(item, (material) => sellPrice(material)) * left;
+	}
 	if (def.value !== undefined) return def.value;
 	const left = stack ? (condition(stack) ?? 1) : 1;
 	return Math.floor((def.price ?? 0) * ECONOMY.sellBack * left);

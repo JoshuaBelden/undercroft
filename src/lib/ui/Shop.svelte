@@ -59,7 +59,7 @@
 		if (pointed?.item === ware.item) pointed = null;
 	}
 
-	const wares = forSale();
+	const wares = $derived(forSale(explorer.tiers));
 	const shown = $derived(wares.filter((entry) => matchesFilter(entry.item, filter)));
 	/** The pointed ware, while the filter still shows it and its details aren't open. */
 	const tip = $derived(

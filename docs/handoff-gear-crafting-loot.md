@@ -605,7 +605,11 @@ Decided along the way: the store's tiers are data (`SHOP` lines carry a `tier`),
 
 Every item in this doc in one pass: data, behaviour on the mechanics from Phases 4 and 5, the items and treasure with their own behaviour, store entries, loot table entries, Inspect stats and help topics. Price and value changes to existing items go in here too, and the light budget goes up with glow sticks.
 
-### Phase 7: Workshop, crafting and store
+### Phase 7: Workshop, crafting and store (Done)
+
+Built, and moved into [crafting.md](dev/crafting.md) and [economy.md](dev/economy.md#store-tiers). Discovery from lootables and fonts, kept per explorer with where each was seen (written by the game server as it happens); the Library page; recipes (`src/lib/content/recipes.ts`, from the Craft, Repair and Salvage columns) and recipe fragments, read where they lie; the Workshop page (craft from the stash, repair for materials and coin, salvage), Repair in the item menu; the `crafted` mark and its sell rule; field crafting with the kit (the in-game Craft tab, kneeling, in light, a little noise; mending 30% of one thing too); the merchant's trust and the store's tiers; the discovery alert and the fresh shimmer; admin tools for discoveries and trust.
+
+Decided along the way: the crossbow, slingshot and bolts are built though the code calls them firearms and ammo (they fire no rounds). Field repair takes the item's repair materials. Field crafting needs your own lamp lit. Store tiers count coin sold from when this shipped: earlier sales aren't in it.
 
 - **Discovery** from lootables, the **Library** page, the discovery alert and new-item effect.
 - **Recipes** and recipe fragments.

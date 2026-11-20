@@ -959,7 +959,7 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
  * until each is added to ITEMS (and taken out of here; a test checks every table line is one or
  * the other).
  */
-export const PENDING_ITEMS = new Set(['recipe-fragment']);
+export const PENDING_ITEMS = new Set<string>([]);
 
 /**
  * How much treasure (by `value`) each level of a map holds at most, all its lootables together:

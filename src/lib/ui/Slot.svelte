@@ -28,6 +28,8 @@
 		mark?: { icon: string; label: string };
 		/** Worn out: a red shade over it and the broken mark in the top-right corner. */
 		broken?: boolean;
+		/** Newly discovered (docs/dev/crafting.md#discovery): a soft shimmer until looked at. */
+		fresh?: boolean;
 	}
 
 	let {
@@ -41,7 +43,8 @@
 		rarity = 'common',
 		quest = false,
 		mark,
-		broken = false
+		broken = false,
+		fresh = false
 	}: Props = $props();
 
 	/** Only something that is there and known has a rarity to show. A quest item shows that instead. */
@@ -64,6 +67,7 @@
 	class:legendary={edge === 'legendary'}
 	class:quest={shown && quest}
 	class:broken={shown && broken}
+	class:fresh={shown && fresh}
 >
 	{#if empty}
 		{#if hint}<span class="hint">{hint}</span>{/if}
@@ -100,6 +104,39 @@
 </span>
 
 <style>
+	/* A fresh discovery: a slow sheen across the slot. */
+	.slot.fresh::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		background: linear-gradient(
+			115deg,
+			transparent 30%,
+			rgb(255 240 200 / 0.22) 50%,
+			transparent 70%
+		);
+		background-size: 250% 100%;
+		animation: shimmer 2.6s ease-in-out infinite;
+	}
+
+	@keyframes shimmer {
+		from {
+			background-position: 120% 0;
+		}
+		to {
+			background-position: -120% 0;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.slot.fresh::after {
+			animation: none;
+			background: rgb(255 240 200 / 0.12);
+		}
+	}
+
 	.slot {
 		/*
 		 * One slot's side and the gap between slots: a large slot covers two and the gap. A screen

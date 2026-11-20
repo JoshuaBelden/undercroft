@@ -148,11 +148,39 @@ export async function trade(
 	change:
 		{ action: 'buy'; item: string; lots: number } | { action: 'sell'; from: SlotRef; count: number }
 ): Promise<void> {
+	const before = session.account?.explorer.tiers.length ?? 1;
 	session.account = await api<AccountView>('/api/shop', 'POST', change);
+	// Selling built the merchant's trust past a tier: say so.
+	if ((session.account?.explorer.tiers.length ?? 1) > before) {
+		raise({
+			kind: 'note',
+			title: 'The merchant trusts you more',
+			line: 'There is more for sale in the store.'
+		});
+	}
 	if (change.action === 'buy') {
 		const lot = SHOP.find((entry) => entry.item === change.item)?.lot ?? 1;
 		raise({ kind: 'item', item: change.item, count: lot * change.lots, source: 'store' });
 	}
+}
+
+/**
+ * The Workshop: craft a recipe from the stash, mend a stack, or break one down into materials.
+ * Throws `ApiError` if it is refused.
+ */
+export async function workshop(
+	change:
+		| { action: 'craft'; recipe: string; times: number }
+		| { action: 'repair'; at: SlotRef }
+		| { action: 'salvage'; at: SlotRef }
+): Promise<void> {
+	session.account = await api<AccountView>('/api/explorer/workshop', 'POST', change);
+}
+
+/** Discoveries looked at: their slots stop shimmering. */
+export async function markSeen(items: string[]): Promise<void> {
+	if (!items.length) return;
+	session.account = await api<AccountView>('/api/explorer/library', 'POST', { seen: items });
 }
 
 /** Dev-mode admin tools for the account (see `/api/admin`). Throws `ApiError` if refused. */
@@ -162,6 +190,9 @@ export async function adminAccount(
 		| { action: 'grantItem'; item: string; count: number }
 		| { action: 'resetExplorer' }
 		| { action: 'resetPassword'; email: string; password: string }
+		| { action: 'discoverAll' }
+		| { action: 'resetDiscoveries' }
+		| { action: 'setTrust'; sold: number }
 ): Promise<void> {
 	session.account = await api<AccountView>('/api/admin', 'POST', change);
 	if (change.action === 'grantItem') {

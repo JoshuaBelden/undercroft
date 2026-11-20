@@ -771,6 +771,46 @@ export const SOUNDS = {
 		rate: 1.3,
 		caption: 'a card is drawn'
 	},
+	// The Workshop and the store (docs/dev/crafting.md), synthesized until recorded.
+	'workshop.craft': {
+		file: 'workshop.craft',
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 1.2,
+		variation: 0.1
+	},
+	'workshop.repair': {
+		file: 'workshop.repair',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.1,
+		variation: 0.1
+	},
+	'workshop.salvage': {
+		file: 'workshop.salvage',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.1
+	},
+	'store.tier': {
+		file: 'store.tier',
+		synth: { kind: 'bell', pitch: 660, length: 0.9 },
+		category: 'sfx',
+		volume: 0.4
+	},
+	// Making something below, kneeling (loops while it goes on).
+	'craft.field': {
+		file: 'craft.field',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 0.9,
+		variation: 0.15,
+		caption: 'tinkering'
+	},
 	// A climbing piton hammered into the rock (docs/dev/rope.md#pitons).
 	'piton.hammer': {
 		file: 'piton.hammer',

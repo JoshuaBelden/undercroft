@@ -171,6 +171,7 @@
 
 	let seedInput = $state('');
 	let moneyInput = $state('100');
+	let trustInput = $state('1000');
 	let sanityInput = $state('100');
 	let meterInput = $state('70');
 	let deadlineInput = $state('10');
@@ -624,6 +625,25 @@
 				'The item and count chosen under Items.'
 			)}
 			{@render action('Reset explorer', () => void account({ action: 'resetExplorer' }))}
+			{@render action(
+				'Discover everything',
+				() => void account({ action: 'discoverAll' }),
+				'Every item there is to discover, as if seen; every recipe in the Library and Workshop.'
+			)}
+			{@render action('Forget discoveries', () => void account({ action: 'resetDiscoveries' }))}
+			<form
+				class="setting"
+				onsubmit={(event) => {
+					event.preventDefault();
+					void account({ action: 'setTrust', sold: Number(trustInput) || 0 });
+				}}
+			>
+				<label class="pill">
+					<span class="name">Trust (coin sold)</span>
+					<input type="text" inputmode="numeric" autocomplete="off" bind:value={trustInput} />
+				</label>
+				<button type="submit">Set</button>
+			</form>
 			<p class="hint" role="status">
 				{accountMessage || 'These work on the surface and are refused while underground.'}
 			</p>
