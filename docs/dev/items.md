@@ -52,6 +52,7 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 - `revive: true`: brings a downed player round (smelling salts).
 - `rope`: `length` in metres of a new one (rope packs, 100 m, sold; rope bundles, 40 m, rare in crates). The metres left are on the stack (`ItemStack.metres`). Laid along the floor or tied at an anchor: see [rope.md](rope.md).
 - `defense`: `shield`, the points of creatures' blows it takes before the wearer does. The points used are its wear (`ItemStack.worn`; its `durability` is `{ max: shield, per: 'point' }`, which a test checks), so a worn coat stays worn after extraction. When they run out it breaks and stays in the slot, taking nothing.
+- `protects` (worn gear: `bites`, `poison`, gloves), `fragile` (breaks in a hard fall), `cursed` (`sanity` a second while carried), `breaks` (held, it breaks `rubble`: the pickaxe) and `place.anchor` (a piton): see [world.md](world.md).
 - `weight` is kg for one of it.
 
 `hold` places the model in the viewmodel: `offset` from the camera and `scale`. Firearms also give `aim`, where it moves when aiming down the sights (low and a little right, so it never covers the crosshair; without one, `AIM_OFFSET` in `ViewModel.ts`), and `muzzle`, the barrel's end in the model's own space (where the flare is drawn). `model` points at `modelUrl('shared/items/<id>.glb')` (built into `static/assets/shared/items/<id>.<hash>.glb`). With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).

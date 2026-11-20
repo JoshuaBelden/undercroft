@@ -1,4 +1,4 @@
-import { FALSE_WALLS } from '../../content/map/walls.ts';
+import { FALSE_WALLS, RUBBLE_WALLS, WEBS } from '../../content/map/walls.ts';
 import { Rng } from '../rng.ts';
 import { segmentHit, type CollisionWorld } from './collision.ts';
 import { pieceLinks } from './debug.ts';
@@ -51,14 +51,25 @@ export function placeWalls(
 	const caps = Object.entries(kit).filter(([name, entry]) => entry.role === 'cap' && pieces[name]);
 	const walls: WallPlacement[] = [];
 	const hidden = new Set<number>();
+	// False walls first, then rubble, then webs, each from the side passages left.
+	const kinds: WallPlacement['kind'][] = [
+		...Array.from({ length: FALSE_WALLS.count }, () => undefined),
+		...Array.from({ length: RUBBLE_WALLS.count }, () => 'rubble' as const),
+		...Array.from({ length: WEBS.count }, () => 'web' as const)
+	];
 	for (const { from, to, beyond } of rng.shuffle(found)) {
-		if (walls.length >= FALSE_WALLS.count) break;
+		if (walls.length >= kinds.length) break;
 		// Not inside, or around, a passage already hidden.
 		if (hidden.has(from) || [...beyond].some((i) => hidden.has(i))) continue;
 		const socket = between(layout, pieces, from, to);
 		const cap = socket && caps.find(([, entry]) => entry.seals === socket.type)?.[0];
 		if (!socket || !cap) continue;
-		walls.push({ id: `w${walls.length + 1}`, ...capAt(cap, socket, layout.placements[from].tier) });
+		const kind = kinds[walls.length];
+		walls.push({
+			id: `w${walls.length + 1}`,
+			...capAt(cap, socket, layout.placements[from].tier),
+			...(kind ? { kind } : {})
+		});
 		for (const i of beyond) hidden.add(i);
 	}
 	return walls;
@@ -178,8 +189,28 @@ export function prySpots(
 			spots.push({ position: [x, y + FALSE_WALLS.height * 0.7, z], wall: null });
 		}
 	}
-	for (const wall of layout.walls ?? []) onCap(wall, wall.id);
+	// Only false walls are pried: rubble and webs are what they look like.
+	for (const wall of layout.walls ?? []) if (!wall.kind) onCap(wall, wall.id);
 	return spots;
+}
+
+/** The point looked at on each wall of a kind (rubble, webs): where it is broken or cut. */
+export function wallSpots(layout: MapLayout, kind: 'rubble' | 'web'): PrySpot[] {
+	return (layout.walls ?? [])
+		.filter((wall) => wall.kind === kind)
+		.map((wall) => {
+			const edge = rotateEdge('n', wall.rotation) as Edge;
+			const [ex, ez] = EDGE_DIR[edge];
+			const [x, y, z] = wall.position;
+			return {
+				position: [
+					x - ex * FALSE_WALLS.depth,
+					y + FALSE_WALLS.height,
+					z - ez * FALSE_WALLS.depth
+				] as Vec3,
+				wall: wall.id
+			};
+		});
 }
 
 /**

@@ -6,7 +6,8 @@ import {
 	halfLightVisible,
 	illumination
 } from '../../src/lib/shared/creature/visibility.ts';
-import { quickWith, spendQuick } from '../../src/lib/shared/items/inventory.ts';
+import { ITEMS } from '../../src/lib/content/items.ts';
+import { allStacks, quickWith, spendQuick } from '../../src/lib/shared/items/inventory.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import { headlampOutput } from '../../src/lib/shared/player/headlamp.ts';
 import { eyeHeight } from '../../src/lib/shared/player/simulate.ts';
@@ -50,6 +51,8 @@ export class SanitySystem implements SessionSystem {
 			if (bodies.some((b) => this.sees(s, eye, b.position, b.kind, states))) {
 				drain += SANITY.seeingDrain;
 			}
+			// Something cursed in the pack (the porcelain doll) wears at its carrier.
+			for (const stack of allStacks(s.inventory)) drain += ITEMS[stack.item]?.cursed?.sanity ?? 0;
 			if (drain > 0) ctx.hurt(player, drain * TICK_DT);
 		}
 	}

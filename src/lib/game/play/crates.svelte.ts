@@ -1,7 +1,9 @@
+import { ITEMS } from '#lib/content/items.ts';
 import { LOOTABLES } from '#lib/content/lootables.ts';
 import { Crates as CrateModels } from '#lib/game/items/Crates.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
 import { bestWay, flavorOf, lootableOf, wayNeeds, waysFor } from '#lib/shared/items/lootables.ts';
+import { allStacks } from '#lib/shared/items/inventory.ts';
 import { lookedAtCrate } from '#lib/shared/items/pickup.ts';
 import type { CrateSlot, GameEvent } from '#lib/shared/items/types.ts';
 import type { MapLayout } from '#lib/shared/map/types.ts';
@@ -48,7 +50,14 @@ export class Crates implements PlayFeature {
 
 	tick(tick: TickMessage): void {
 		this.models.apply(tick.crates);
+		this.noticed = tick.crates.noticed;
+		this.dry = tick.crates.dry;
 	}
+
+	/** Hidden lootables (a smuggler's stash) someone has noticed: the rest can't be opened. */
+	private noticed: string[] = [];
+	/** Fonts run dry (from the tick). */
+	private dry: string[] = [];
 
 	message(message: ServerMessage): void {
 		if (message.type !== 'crate') return;
@@ -105,6 +114,11 @@ export class Crates implements PlayFeature {
 		if (event.kind === 'crateOpen') {
 			const def = LOOTABLES[this.models.kind(event.id) ?? 'crate'];
 			sounds.playAt(def.sound, event.position, 1, Math.max(3, def.noise / 2));
+		} else if (event.kind === 'filled') {
+			sounds.playAt('lootable.font', event.position, 1, 3);
+		} else if (event.kind === 'noticed') {
+			// Only the one who saw it knows what they saw.
+			if (event.player === client.playerId) sounds.play('stash.notice');
 		} else if (event.kind === 'crateStuck') {
 			sounds.playAt('crate.stuck', event.position, 1, 4);
 		} else if (event.kind === 'crateUnlock') {
@@ -119,9 +133,12 @@ export class Crates implements PlayFeature {
 	}
 
 	target(_state: PlayerState, aim: Aim | null, taken: boolean): boolean {
+		const known = this.models.placements.filter(
+			(p) => !LOOTABLES[p.kind ?? 'crate'].hidden || this.noticed.includes(p.id)
+		);
 		this.aimedAt =
 			aim && !taken
-				? (lookedAtCrate(aim.world, aim.origin, aim.direction, this.models.placements)?.id ?? null)
+				? (lookedAtCrate(aim.world, aim.origin, aim.direction, known)?.id ?? null)
 				: null;
 		this.models.highlight(this.aimedAt);
 		return !!this.aimedAt;
@@ -133,6 +150,18 @@ export class Crates implements PlayFeature {
 			return { prompt: 'Someone is going through it', progress: 0 };
 		const id = this.aimedAt;
 		const def = lootableOf({ kind: this.models.kind(id) });
+		if (def.fill) {
+			// A font: filled from, with what it fills in the pack, until it runs dry.
+			const fill = def.fill;
+			if (this.dry.includes(id))
+				return { ...keyPrompt('interact', fill.verb), after: '(dry)', blocked: true };
+			const has = allStacks(state.inventory).some((stack) => stack.item === fill.needs);
+			if (!has) {
+				const needs = ITEMS[fill.needs]?.name.toLowerCase() ?? fill.needs;
+				return { ...keyPrompt('interact', fill.verb), after: `(needs a ${needs})`, blocked: true };
+			}
+			return keyPrompt('interact', fill.verb, state.opening / fill.seconds);
+		}
 		// Sealed and known (locked, or a jam someone found): only its sealed ways.
 		const sealed = this.models.isLocked(id) || this.models.isJammed(id);
 		const ways = waysFor(def, sealed);
@@ -142,6 +171,11 @@ export class Crates implements PlayFeature {
 			// Nothing to open it with: say how it would be opened, in red, and what that takes.
 			const first = ways[0];
 			if (!first) return null;
+			// Two at it (a stone lid): the server says how far along, though this side can't see the help.
+			const together = ways.find((w) => w.together);
+			if (together && state.opening > 0) {
+				return keyPrompt('interact', together.verb, state.opening / together.seconds);
+			}
 			const needs = wayNeeds(first);
 			return {
 				...keyPrompt('interact', first.verb),

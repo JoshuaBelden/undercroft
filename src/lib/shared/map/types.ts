@@ -111,6 +111,8 @@ export interface PieceDef {
 	 * the leaves swing away from it. Every one is a door between levels (see DOORS).
 	 */
 	doors: CrateMarker[];
+	/** Locked iron gates (gate-* markers), placed like doors (see GATES). */
+	gates?: CrateMarker[];
 	/** Collapsed walls (rubble-* markers): the only places bricks lie, a few at each. */
 	rubble: Vec3[];
 	/** Ropes to climb (rope-* markers): the extraction ropes. */
@@ -183,6 +185,8 @@ export interface KitEntry {
 	 * docs/dev/lootables.md#rooms.
 	 */
 	lootables?: Partial<Record<LootableId, number>>;
+	/** Opening a lootable here takes this much sanity off whoever opens it (the plague pit). */
+	searchSanity?: number;
 	/**
 	 * Owned by one Affliction (key into AFFLICTIONS): only generated in its maps, and its model
 	 * lives in static/assets/afflictions/<id>/. Unset: shared by every map.
@@ -223,6 +227,8 @@ export interface CratePlacement {
 	 * for a crate. Only the solid ones are in the collision world.
 	 */
 	kind?: Exclude<LootableId, 'crate'>;
+	/** The piece it stands in (what its room makes searching it cost). */
+	piece?: string;
 	/** The level of the map it is on (its piece's tier): what it can hold depends on it. */
 	tier: number;
 }
@@ -241,6 +247,8 @@ export interface DoorPlacement {
 	yaw: number;
 	/** The level of the map it is on: for a long stair's, the one it leads down to. */
 	tier: number;
+	/** A locked iron gate (a gate-* marker): a key or lockpicks open it (see GATES). */
+	kind?: 'gate';
 }
 
 /**
@@ -250,6 +258,11 @@ export interface DoorPlacement {
 export interface WallPlacement extends Placement {
 	/** Its id: its collision boxes carry it, like a door's (openDoor takes them away). */
 	id: string;
+	/**
+	 * What it is: left out, a false wall (hidden, a crowbar brings it down); `rubble` (seen, a
+	 * pickaxe breaks it); `web` (seen, torn by blows, cut by a blade, burned by fire).
+	 */
+	kind?: 'rubble' | 'web';
 }
 
 export interface MapLayout {

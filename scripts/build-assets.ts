@@ -116,6 +116,7 @@ const MARKER_PREFIXES = [
 	'crate-',
 	'lootable-',
 	'door-',
+	'gate-',
 	'rubble-',
 	'rope-',
 	'anchor-',
@@ -286,6 +287,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const crates: CrateMarker[] = [];
 	const lootables: LootableMarker[] = [];
 	const doors: CrateMarker[] = [];
+	const gates: CrateMarker[] = [];
 	const rubble: Vec3[] = [];
 	const ropes: RopeMarker[] = [];
 	const anchors: AnchorMarker[] = [];
@@ -334,6 +336,8 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			lootables.push({ type: type as LootableId, ...crateFromNode(name, label, node, w, d) });
 		} else if (label.startsWith('door-')) {
 			doors.push(crateFromNode(name, label, node, w, d));
+		} else if (label.startsWith('gate-')) {
+			gates.push(crateFromNode(name, label, node, w, d));
 		} else if (label.startsWith('col-')) {
 			colliders.push(boxFromNode(node));
 			stripped.push(node);
@@ -411,6 +415,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		crates,
 		...(lootables.length ? { lootables } : {}),
 		doors,
+		...(gates.length ? { gates } : {}),
 		rubble,
 		ropes,
 		anchors,

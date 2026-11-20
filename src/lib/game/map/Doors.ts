@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DOORS } from '#lib/content/doors.ts';
+import { DOORS, GATES } from '#lib/content/doors.ts';
 import { modelUrl } from '#lib/content/models.ts';
 import { loadModel } from '#lib/game/assets.ts';
 import { closeDoor, openDoor, type CollisionWorld } from '#lib/shared/map/collision.ts';
@@ -52,6 +52,22 @@ export class Doors {
 		this.world = world;
 		const id = this.buildId;
 		for (const placement of placements) {
+			if (placement.kind === 'gate') {
+				const model = gateModel();
+				model.position.set(...placement.position);
+				model.rotation.y = placement.yaw;
+				this.root.add(model);
+				this.shown.set(placement.id, {
+					root: model,
+					left: model.getObjectByName('door-leaf-l') ?? null,
+					right: model.getObjectByName('door-leaf-r') ?? null,
+					bar: null,
+					barY: 0,
+					open: this.opened.has(placement.id) ? 1 : 0
+				});
+				this.pose(this.shown.get(placement.id)!);
+				continue;
+			}
 			void loadModel(MODEL).then((model) => {
 				if (id !== this.buildId) return;
 				model.position.set(...placement.position);
@@ -147,4 +163,38 @@ export class Doors {
 	dispose(): void {
 		this.clear();
 	}
+}
+
+/**
+ * An iron gate until it has a model (planned art: `shared/props/mausoleum-gate.glb`): two leaves
+ * of bars, hinged at the sides of the opening, named as the door model's leaves are.
+ */
+function gateModel(): THREE.Object3D {
+	const root = new THREE.Group();
+	const iron = new THREE.MeshStandardMaterial({ color: 0x2b2a28, metalness: 0.7, roughness: 0.6 });
+	const [w, h] = GATES.size;
+	const half = w / 2;
+	for (const [name, side] of [
+		['door-leaf-l', -1],
+		['door-leaf-r', 1]
+	] as const) {
+		const leaf = new THREE.Group();
+		leaf.name = name;
+		leaf.position.set(side * half, 0, 0);
+		for (let k = 0; k < 6; k++) {
+			const bar = new THREE.Mesh(new THREE.BoxGeometry(0.03, h, 0.03), iron);
+			bar.position.set(-side * (0.08 + k * 0.16), h / 2, 0);
+			leaf.add(bar);
+		}
+		for (const y of [0.15, h / 2, h - 0.1]) {
+			const rail = new THREE.Mesh(new THREE.BoxGeometry(half, 0.05, 0.05), iron);
+			rail.position.set(-side * (half / 2), y, 0);
+			leaf.add(rail);
+		}
+		root.add(leaf);
+	}
+	root.traverse((node) => {
+		if (node instanceof THREE.Mesh) node.castShadow = true;
+	});
+	return root;
 }

@@ -386,6 +386,22 @@ export class CreatureDirector {
 		return out;
 	}
 
+	/**
+	 * Creatures of a kind come out at a spot (a rat swarm from a bone pile, spiders from an egg
+	 * sac), on the nav points nearest it, coming for `at` the player if there is one.
+	 */
+	spawnAt(kind: string, position: Vec3, count: number, prey: Prey | null): void {
+		const def = CREATURES[kind];
+		if (!def) return;
+		for (let i = 0; i < count; i++) {
+			const index = nearestPoint(this.nav, position, 4, reachFilter(def.reach));
+			if (index < 0) return;
+			const at = this.nav.points[index].position;
+			const c = this.add(def, [at[0] + (i % 2) * 0.3, at[1], at[2] + Math.floor(i / 2) * 0.3], 0);
+			if (prey && !def.flight) this.chase(c, prey);
+		}
+	}
+
 	/** Hold a creature fast for `seconds` (a snare). False if there is no such creature alive. */
 	hold(id: string, seconds: number): boolean {
 		const c = this.creatures.find((x) => x.id === id);

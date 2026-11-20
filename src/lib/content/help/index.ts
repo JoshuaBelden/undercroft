@@ -471,7 +471,63 @@ You can't tell a false wall by looking. Take a crowbar in your hand and walk up 
 
 To pry one open, take a crowbar in your hand, look at the crate and hold {action:interact}. It takes ten seconds and it is loud: anything nearby will hear it and come to look. Let go and you start over. Without a crowbar in your hand the prompt shows in red.
 
-On the third level a few of the crates are iron-bound trunks, locked. Each holds something epic or legendary, among other things. To open one you need a key: somewhere in the map, in an ordinary crate, there is one key for every trunk. Look at the trunk and press {action:interact} to unlock it. The key is used up, and it doesn't need to be in your hand. Then hold {action:interact} to search the trunk like any crate. Without a key the prompt shows in red. A key you carry out is yours to bring down again.`
+Deeper down a few of the lootables are iron-bound trunks, locked. Each holds something epic or legendary, among other things. To open one you need a key: somewhere in the map, in something you can open by hand, there is one key for every trunk and every locked gate. Look at the trunk and press {action:interact} to unlock it. The key is used up, and it doesn't need to be in your hand. Then hold {action:interact} to search the trunk like any crate. Without a key the prompt shows in red. A key you carry out is yours to bring down again.`
+	},
+	{
+		id: 'webs-and-rubble',
+		title: 'Webs and rubble',
+		category: 'Gear and loot',
+		body: `Some side passages are blocked by things you can see. They lead somewhere worth going.
+
+A sheet of web tears if you hit it: a few blows of anything you swing. A blade made for cutting, like a hatchet, goes through in one. Fire burns it away, so an oil bottle thrown near it clears it too.
+
+A fall of rubble needs a pickaxe. Take it in your hand, look at the rubble and hold {action:interact}. It takes a few seconds and it is loud. A crowbar does nothing to rubble.`
+	},
+	{
+		id: 'gates',
+		title: 'Locked gates',
+		category: 'Gear and loot',
+		body: `A family mausoleum keeps its dead behind an iron gate, locked. There is a key for every gate somewhere in the map, in something you can open by hand. Carry it, look at the gate and hold {action:interact}: the key is used up and the gate swings open, for everyone.
+
+Lockpicks work too, held in your hand. Picking the lock takes longer but makes no sound, and each lock you pick may snap one of your picks.`
+	},
+	{
+		id: 'what-bites',
+		title: 'What bites back',
+		category: 'Gear and loot',
+		body: `Not everything you reach into is glad of it. A rat nest bites the hand that goes in. A webbed cocoon is poisoned, and spiders are rarely far. Gloves, worn in a gear slot, keep both off.
+
+Disturb a bone pile and the rats under it may come boiling out. Lift a sarcophagus lid and you may find what the spiders left in it. Taking a saint's relic from a reliquary alcove does not go unnoticed by what haunts the place. And there are rooms where searching among the dead wears at you, whatever you find.
+
+A sarcophagus lid is heavy. Lever it with a crowbar, or get a friend to push it with you: both of you look at it and hold {action:interact}.`
+	},
+	{
+		id: 'fragile-and-cursed',
+		title: 'Fragile and cursed things',
+		category: 'Gear and loot',
+		body: `Some treasure is fragile: a jar breaks if you take a hard fall carrying it. Smash a box open rather than pick it and something fragile inside may break too.
+
+Some treasure is cursed. It sells well, but carrying it wears at your sanity, and whatever it is whispers to you, close by, when nobody else can hear.`
+	},
+	{
+		id: 'fonts',
+		title: 'Fonts',
+		category: 'Gear and loot',
+		body: `Chapels and vestries have fonts of still, cold water. Carry an empty glass bottle, look at the font and hold {action:interact} to fill it with holy water. Each font has only a few fills before it runs dry.`
+	},
+	{
+		id: 'stashes',
+		title: "Smugglers' stashes",
+		category: 'Gear and loot',
+		body: `Smugglers used these tunnels long before you. They hid their goods behind loose bricks and marked the spot in chalk only another smuggler would know.
+
+You won't find a stash by walking past it. Get close to a wall and look properly: when you notice a chalk mark, the brick beside it is loose. Then it is there for anyone, and a crowbar pries it out.`
+	},
+	{
+		id: 'pitons',
+		title: 'Climbing pitons',
+		category: 'Gear and loot',
+		body: `A piton is a rope anchor you carry. Where there is a drop and nothing to tie a rope to, stand at the edge facing over it, take a piton in your hand and hold {action:attack} to hammer it in. It is loud. From then on it is an anchor like any other: anyone can tie a rope there and climb down. If there is no drop in front of you, the piton isn't used.`
 	},
 	{
 		id: 'chalk',

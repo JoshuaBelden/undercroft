@@ -69,6 +69,10 @@ export interface CratesSnapshot {
 	jammed: string[];
 	/** Trunks still locked (a key opens one). */
 	locked: string[];
+	/** Hidden ones (a smuggler's stash) someone has noticed: everyone can open them now. */
+	noticed: string[];
+	/** Ones filled from (a font) that have run dry. */
+	dry: string[];
 }
 
 /**
@@ -159,6 +163,10 @@ export type GameEvent =
 	| { kind: 'crateUnlock'; id: string; player: string; position: Vec3 }
 	/** Someone started levering at a jammed crate or a wall with a crowbar. */
 	| { kind: 'pry'; target: 'crate' | 'wall'; player: string; position: Vec3 }
+	/** Someone started breaking at a rubble wall (a pickaxe). */
+	| { kind: 'dig'; id: string; player: string; position: Vec3 }
+	/** A web took a blow (`down`: it is torn through), or burned away. */
+	| { kind: 'webHit'; id: string; position: Vec3; down: boolean; burned: boolean }
 	/** A false wall came down under the crowbar (see map-generation.md#false-walls). */
 	| { kind: 'wallDown'; id: string; player: string; position: Vec3 }
 	/** A hint was found: what it says, and the requirements (item ids) and room (piece id) it revealed. */
@@ -180,6 +188,17 @@ export type GameEvent =
 	| { kind: 'bleed'; id: string; position: Vec3 }
 	/** A player's weapon snagged on a hit (it won't swing for a moment). */
 	| { kind: 'snag'; player: string; item: string; position: Vec3 }
+	/** Something reached into bit a player (a rat nest), or stung them (a cocoon). */
+	| { kind: 'bitten'; player: string; position: Vec3 }
+	/** A piton hammered in at an edge (an anchor from now on); or no edge there to take one. */
+	| { kind: 'piton'; player: string; position: Vec3 }
+	| { kind: 'pitonFailed'; player: string }
+	/** A player filled something at a font (a bottle of holy water). */
+	| { kind: 'filled'; crate: string; player: string; item: string; position: Vec3 }
+	/** A player noticed a hidden lootable's sign (a smuggler's chalk mark). */
+	| { kind: 'noticed'; crate: string; player: string; position: Vec3 }
+	/** Something fragile broke (a fall, a box smashed open). */
+	| { kind: 'shatter'; item: string; position: Vec3 }
 	/** A player set something down (a snare, a line of salt). */
 	| { kind: 'placed'; player: string; item: string; position: Vec3 }
 	/** A snare caught a creature (it is held for a while; the snare is spent). */

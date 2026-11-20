@@ -1,3 +1,4 @@
+import { GATES } from '../../content/doors.ts';
 import { ITEMS, type ItemDef } from '../../content/items.ts';
 import {
 	LOOTABLES,
@@ -41,8 +42,12 @@ export function waysFor(def: LootableDef, sealed: boolean): OpenWay[] {
 	return sealed && def.sealed ? def.sealed.open : def.open;
 }
 
-/** Whether a player carrying this could open it this way right now. */
-export function canUse(way: OpenWay, inv: Inventory, lootable: LootableId): boolean {
+/**
+ * Whether a player carrying this could open it this way right now, with `helpers` other players
+ * at it too (a way that takes two needs one).
+ */
+export function canUse(way: OpenWay, inv: Inventory, lootable: LootableId, helpers = 0): boolean {
+	if (way.together && helpers + 1 < way.together) return false;
 	if (way.key) return allStacks(inv).some((stack) => ITEMS[stack.item]?.unlocks);
 	if (!way.tool) return true;
 	const stack = held(inv);
@@ -53,10 +58,15 @@ export function canUse(way: OpenWay, inv: Inventory, lootable: LootableId): bool
  * The way this player opens it: the fastest of those they can use (a key before anything), or
  * null if they can use none of them.
  */
-export function bestWay(ways: OpenWay[], inv: Inventory, lootable: LootableId): OpenWay | null {
+export function bestWay(
+	ways: OpenWay[],
+	inv: Inventory,
+	lootable: LootableId,
+	helpers = 0
+): OpenWay | null {
 	let best: OpenWay | null = null;
 	for (const way of ways) {
-		if (!canUse(way, inv, lootable)) continue;
+		if (!canUse(way, inv, lootable, helpers)) continue;
 		if (!best || way.seconds < best.seconds) best = way;
 	}
 	return best;
@@ -64,6 +74,7 @@ export function bestWay(ways: OpenWay[], inv: Inventory, lootable: LootableId): 
 
 /** What it takes, for a prompt that can't be done: "a crowbar", "a key". */
 export function wayNeeds(way: OpenWay): string {
+	if (way.together) return 'someone to help';
 	if (way.key) return 'a key';
 	switch (way.tool) {
 		case 'pry':
@@ -84,10 +95,13 @@ export function wayNeeds(way: OpenWay): string {
  * no item is yet (lockpicks, a sledgehammer) when not. Maps leave those out until there is one.
  */
 export function openable(def: LootableDef): boolean {
+	// Filled from, not opened: there as soon as what it fills is (a font, a glass bottle).
+	if (def.fill) return !!ITEMS[def.fill.needs] && !!ITEMS[def.fill.makes];
 	const any = (ways: OpenWay[]): boolean =>
 		ways.some(
 			(way) =>
 				way.key ||
+				way.together ||
 				!way.tool ||
 				Object.values(ITEMS).some((item) => hasTool(item, way.tool!, def.id))
 		);
@@ -107,4 +121,12 @@ export function flavorOf(def: LootableDef, id: string): string {
 	let hash = 0;
 	for (const char of id) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) | 0;
 	return def.flavor[Math.abs(hash) % def.flavor.length] ?? '';
+}
+
+/** Seconds a gate takes with what is carried: a key (fast), lockpicks in the hand, or null. */
+export function gateSeconds(inv: Inventory): number | null {
+	if (allStacks(inv).some((stack) => ITEMS[stack.item]?.unlocks)) return GATES.keySeconds;
+	const stack = held(inv);
+	if (works(stack) && ITEMS[stack.item]?.picks) return GATES.picksSeconds;
+	return null;
 }

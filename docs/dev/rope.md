@@ -85,6 +85,10 @@ Rope packs (`rope-pack`, 100 m, sold for 50) and rope bundles (`rope-bundle`, 40
 
 `ropeNeeded` is the drop plus `ROPE.knot`. Rope given back goes in the pack, or at your feet if it won't fit. Tying and untying are heard (`ROPE.noise`).
 
+## Pitons
+
+Climbing pitons make an anchor where there is none: set one down facing over a drop and it is an anchor (`piton-<n>`) like a map's, for everyone, sent in the `ropes` message. See [world.md](world.md#pitons).
+
 ## Rope drops
 
 `drop-hall` (a gallery 12 m up a tall hall) and `pit` (a 12 m shaft in a chamber floor) are `descends: true, needsRope: true` connectors, 4 levels tall. You come in at the top (level 3) and the way on is at the foot (level 0). Each has an `anchor-0` with a post beside it, and crates at the foot. At `CLIMB.downSpeed` the 12 m takes about 18 s.

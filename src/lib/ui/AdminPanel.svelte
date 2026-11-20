@@ -377,12 +377,12 @@
 			{@render action(
 				'Open the doors',
 				() => onadmin({ kind: 'openDoors' }),
-				'Every door between levels, for everyone, as if held open.'
+				'Every door between levels and every locked gate, for everyone, as if held open.'
 			)}
 			{@render action(
 				'Bring down false walls',
 				() => onadmin({ kind: 'openWalls' }),
-				'Every false wall in the map comes down, as if pried with a crowbar.'
+				'Every false wall, rubble wall and web in the map comes down, as if pried, broken or cut.'
 			)}
 		{:else if group === 'Player'}
 			{#each toggles as toggle (toggle.kind)}
@@ -427,7 +427,11 @@
 			{@render action('Break held item', () => onadmin({ kind: 'breakHeld' }))}
 			{@render action('Repair everything', () => onadmin({ kind: 'repairAll' }))}
 			{@render action('Reset crates', () => onadmin({ kind: 'resetCrates' }))}
-			{@render action('Unlock crates', () => onadmin({ kind: 'unlockCrates' }))}
+			{@render action(
+				'Unlock crates',
+				() => onadmin({ kind: 'unlockCrates' }),
+				"Unjams and unlocks every lootable, finds every smuggler's stash and fills every font."
+			)}
 			{@render action('Clear chalk marks', () => onadmin({ kind: 'clearMarks' }))}
 			<StepperField
 				label="Grip check"

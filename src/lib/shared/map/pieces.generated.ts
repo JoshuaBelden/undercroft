@@ -376,6 +376,7 @@ export const PIECES: Record<string, PieceDef> = {
 		altars: [],
 		crates: [],
 		lootables: [
+			{ type: 'font', position: [-1, 4, 3.37], yaw: 3.142 },
 			{ type: 'offeringBox', position: [3.57, 4, -3.5], yaw: -1.571 },
 			{ type: 'satchel', position: [2.02, 2.4, 0], yaw: -1.571 },
 			{ type: 'satchel', position: [-3.57, 4, 3], yaw: 1.571 },
@@ -533,8 +534,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'family-mausoleum': {
 		name: 'family-mausoleum',
-		url: '/assets/shared/map/family-mausoleum.cea7dcfc.gltf',
-		bytes: 977649,
+		url: '/assets/shared/map/family-mausoleum.77bedfae.gltf',
+		bytes: 974318,
 		footprint: [2, 2],
 		levels: 1,
 		sockets: [
@@ -557,6 +558,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'trunk', position: [3.385, 0, -2], yaw: -1.571 }
 		],
 		doors: [],
+		gates: [{ position: [0, 0, -0.15], yaw: 0 }],
 		rubble: [],
 		ropes: [],
 		anchors: [],
@@ -577,7 +579,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [-3.875, 1.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] }
 		],
 		volumes: [],
-		triangles: 288
+		triangles: 144
 	},
 	'gloaming-chapel': {
 		name: 'gloaming-chapel',
@@ -597,6 +599,7 @@ export const PIECES: Record<string, PieceDef> = {
 		],
 		lootables: [
 			{ type: 'alcove', position: [-6.73, 0, 5.5], yaw: -1.571 },
+			{ type: 'font', position: [-12.5, 0, -0.26], yaw: 0 },
 			{ type: 'offeringBox', position: [-11, 0, 6.2], yaw: 0 },
 			{ type: 'offeringBox', position: [5.32, 0, 6], yaw: -1.571 },
 			{ type: 'sarcophagus', position: [-6.98, 0, 9.5], yaw: -1.571 },
@@ -2341,6 +2344,7 @@ export const PIECES: Record<string, PieceDef> = {
 		altars: [],
 		crates: [{ position: [2.5, 0, -1.4], yaw: 0 }],
 		lootables: [
+			{ type: 'font', position: [-3, 0, -1.37], yaw: 0 },
 			{ type: 'offeringBox', position: [1.5, 0, 1.57], yaw: 3.142 },
 			{ type: 'vestryCabinet', position: [0, 0, -1.47], yaw: 0 },
 			{ type: 'vestryCabinet', position: [-1.5, 0, 1.47], yaw: 3.142 }

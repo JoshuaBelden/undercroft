@@ -1,4 +1,5 @@
-import { ROPE } from '../../src/lib/content/rope.ts';
+import { ITEMS } from '../../src/lib/content/items.ts';
+import { PITONS, ROPE } from '../../src/lib/content/rope.ts';
 import {
 	addItem,
 	getSlot,
@@ -8,8 +9,10 @@ import {
 	takeStack
 } from '../../src/lib/shared/items/inventory.ts';
 import {
+	applyPitons,
 	applyTied,
 	laidLength,
+	pitonAnchor,
 	ropeAction,
 	ropeInHand,
 	ropeLength
@@ -44,6 +47,10 @@ export class RopeSystem implements SessionSystem {
 	simulated(player: Player, { events, pressedAttack }: SimulatedFrame): void {
 		const position: Vec3 = [...player.state.position];
 		for (const event of events) {
+			if (event.kind === 'place' && ITEMS[event.item]?.place?.anchor) {
+				this.hammer(player, event.item, event.direction);
+				continue;
+			}
 			if (event.kind === 'grab') {
 				this.ctx.events.push({ kind: 'ropeGrab', player: player.id, position });
 			} else if (event.kind === 'letgo') {
@@ -219,8 +226,34 @@ export class RopeSystem implements SessionSystem {
 
 	/** Ropes changed: the tied ones are climbable (or not) from now, and everyone is told. */
 	private changed(): void {
+		applyPitons(this.ctx.world, this.ropes.pitons);
 		applyTied(this.ctx.world, this.ropes.tiedList());
 		this.ctx.broadcast({ type: 'ropes', ...this.ropes.snapshot() });
+	}
+
+	/**
+	 * A piton set down (the `place` SimEvent): an anchor at the edge in front, if there is one;
+	 * otherwise it isn't used up after all.
+	 */
+	private hammer(player: Player, item: string, direction: Vec3): void {
+		const ctx = this.ctx;
+		const s = player.state;
+		const anchor = pitonAnchor(
+			ctx.world,
+			s.position,
+			direction,
+			`piton-${this.ropes.pitons.length}`
+		);
+		if (!anchor) {
+			const left = addItem(s.inventory, newStack(item));
+			if (left > 0) ctx.items.dropAll([newStack(item, left)], s.position);
+			ctx.events.push({ kind: 'pitonFailed', player: player.id });
+			return;
+		}
+		this.ropes.pitons.push(anchor);
+		ctx.events.push({ kind: 'piton', player: player.id, position: anchor.knot });
+		ctx.creatures.hear(anchor.position, PITONS.noise, { id: player.id, state: s });
+		this.changed();
 	}
 
 	joined(player: Player): void {

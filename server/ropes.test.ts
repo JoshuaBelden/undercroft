@@ -209,6 +209,6 @@ describe('tying rope at an anchor', () => {
 		const late = new Diver(session, 'B');
 		expect(late.socket.last('ropes')!.laid).toHaveLength(1);
 		session.admin(diver.id, { kind: 'clearRopes' });
-		expect(late.socket.last('ropes')).toEqual({ type: 'ropes', laid: [], tied: [] });
+		expect(late.socket.last('ropes')).toEqual({ type: 'ropes', laid: [], tied: [], pitons: [] });
 	});
 });

@@ -1,4 +1,4 @@
-import { DOORS } from '../../content/doors.ts';
+import { DOORS, GATES } from '../../content/doors.ts';
 import { segmentHit, type CollisionWorld } from './collision.ts';
 import { LEVEL_HEIGHT, cellKey, occupiedCells, toWorld, worldCell } from './grid.ts';
 import type { DoorPlacement, MapLayout, PieceDef, Vec3 } from './types.ts';
@@ -10,17 +10,26 @@ import type { DoorPlacement, MapLayout, PieceDef, Vec3 } from './types.ts';
 
 const round = (v: number): number => Math.round(v * 1000) / 1000;
 
-/** Every door-* marker in the map, in world space, numbered in layout order (`d1`, `d2`...). */
+/**
+ * Every door-* and gate-* marker in the map, in world space, numbered in layout order (`d1`,
+ * `d2`...). A gate is a door with a lock (`kind: 'gate'`).
+ */
 export function placeDoors(layout: MapLayout, pieces: Record<string, PieceDef>): DoorPlacement[] {
 	const doors: DoorPlacement[] = [];
 	for (const placement of layout.placements) {
-		for (const marker of pieces[placement.piece]?.doors ?? []) {
+		const def = pieces[placement.piece];
+		const markers = [
+			...(def?.doors ?? []).map((marker) => ({ marker, gate: false })),
+			...(def?.gates ?? []).map((marker) => ({ marker, gate: true }))
+		];
+		for (const { marker, gate } of markers) {
 			doors.push({
 				id: `d${doors.length + 1}`,
 				piece: placement.piece,
 				position: toWorld(placement, marker.position).map(round) as Vec3,
 				yaw: round(marker.yaw + (placement.rotation * Math.PI) / 2),
-				tier: placement.tier
+				tier: placement.tier,
+				...(gate ? { kind: 'gate' as const } : {})
 			});
 		}
 	}
@@ -28,12 +37,12 @@ export function placeDoors(layout: MapLayout, pieces: Record<string, PieceDef>):
 }
 
 /** A door's solid box while shut: centre, half extents, and its turn about +Y. */
-export function doorBox(door: Pick<DoorPlacement, 'position' | 'yaw'>): {
+export function doorBox(door: Pick<DoorPlacement, 'position' | 'yaw' | 'kind'>): {
 	center: Vec3;
 	half: Vec3;
 	yaw: number;
 } {
-	const [w, h, d] = DOORS.size;
+	const [w, h, d] = door.kind === 'gate' ? GATES.size : DOORS.size;
 	return {
 		center: [door.position[0], door.position[1] + h / 2, door.position[2]],
 		half: [w / 2, h / 2, d / 2],

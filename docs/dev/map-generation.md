@@ -103,7 +103,8 @@ The final room's door is the exception: the manifestation appearing (the rite, o
 - **Nav:** `buildNav` builds the grid with every door open, so the levels below are in it, then tags the points in each doorway (`NavPoint.door`). `NavGrid.closed` holds the doors still shut: `findPath` and `gridDistances` don't step onto their doorways, so creatures can't path through. `Doors.open` takes the id out. Laying out the map (creatures, loot, the rite's items) measures through the doors (`gridDistances(..., true)`).
 - **Protocol:** each `tick` lists the open doors (`doors`) and the sealed ones (`sealed`), which also covers a reconnect. Opening one is a `doorOpen` event (the bar dropping and the hinges groaning: `door.unbar`, `door.open`); the rite sealing one is `doorSeal` (`door.slam` if it stood open, then `door.seal`), and banishing letting it go is `doorRelease` (heard like opening).
 - **Prompt:** looking at a shut door in reach shows "[E] to open the door", filling as `PlayerState.unbarring` grows. A floor item or a crate in the way comes first.
-- **Admin:** the F10 Map group has **Open the doors** (`openDoors`: sealed ones too), and the teleport list has `level-2-door` and `level-3-door` (the long stairs', named for the level they lead to) and `gloaming-chapel-door`, each on the room side of its door. A door records the piece it stands in (`DoorPlacement.piece`).
+- **Gates:** a `gate-<n>` marker is a door with a lock (`kind: 'gate'`, the Family Mausoleum's): a key or lockpicks open it. See [world.md](world.md#gates).
+- **Admin:** the F10 Map group has **Open the doors** (`openDoors`: sealed ones and gates too), and the teleport list has `level-2-door` and `level-3-door` (the long stairs', named for the level they lead to) and `gloaming-chapel-door`, each on the room side of its door. A door records the piece it stands in (`DoorPlacement.piece`).
 
 ## False walls
 
@@ -123,6 +124,7 @@ A few dead ends are false: a wall standing in an opening that leads on, to a sid
 - **On the wire:** the layout carries `walls`; each tick lists the ones brought down (`walls`), so a reconnect or a late arrival sees them gone. The client hides the model and opens the wall in the player's collision world.
 - **The map:** `surveyMap` draws a false wall's side as a wall (no stub giving it away), but a sketch reaches through it once it's down: what a sketch draws is decided by sight.
 - **Admin:** **Bring down false walls** (`openWalls`, Map group). The debug grid shows a false wall as a green (connected) entrance.
+- **Rubble walls and webs** are kinds of wall (`WallPlacement.kind`), placed after the false walls from the passages left: seen, not hidden, and brought down by a pickaxe or by blades and fire. See [world.md](world.md#rubble-walls-and-webs).
 
 ## Algorithm
 

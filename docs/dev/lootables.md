@@ -26,6 +26,7 @@ Everything in the map that is searched for loot: crates, the dead, locked trunks
 - `open`: its ways of opening (below). `sealed`: some are sealed, and open only other ways.
 - `noise`: how far (m) its first opening is heard; `lootNoise`: each thing taken out of it or put in. `sound`: played as it is first opened (a `lootable.*` sound, synthesized until recorded).
 - `loot`, `rarity` and `prize`: what it holds (below). `lid`: a part of its model that swings up when it is opened (the crate's).
+- `catches` (bites, poison, creatures coming out), `meter` (the alcove's), `hidden` (the stash, until noticed) and `fill` (the font): see [world.md](world.md).
 
 ## Opening
 
@@ -34,6 +35,7 @@ A way (`OpenWay`) is `seconds` of holding interact, the `verb` the prompt shows,
 - `tool`: something **in the hand**, not broken: `pry` (an item with `pry`, the crowbar), `cut` (an item whose `cuts` names this lootable: the knife cuts cocoons), `picks` (lockpicks) or `smash` (a sledgehammer). `hasTool` reads the item's fields, never its id.
 - `key`: a key carried anywhere (`unlocks`), used up, at once (a press).
 - `noise` and `every`: the work is heard that far, as it starts and every `every` seconds (prying, smashing), with the player as the source.
+- `together`: it takes that many players at it at once (a sarcophagus lid pushed by two). `breaks`: opened this way, each fragile thing inside breaks with that chance (smashing). See [world.md](world.md#catches).
 
 `bestWay(ways, inventory, lootable)` is the fastest way the player can use, a key first; null if none. The server opens it that way (`CrateSystem.work`), and the client's prompt is worked out by the same function, so they agree. With no way at all, a press only rattles it (`crateStuck`), and the prompt is red and says what it needs ("(needs a crowbar)").
 
@@ -46,17 +48,18 @@ A way (`OpenWay`) is `seconds` of holding interact, the `verb` the prompt shows,
 | Locked trunk                             | 1 s, once unlocked       | Always: a key, picks (6 s, silent) or a sledgehammer |
 | Wall niche                               | 1 s                      | A third, sealed: crowbar, 4 s; better burial goods   |
 | Bone pile                                | 3 s, loud (10 m)         | —                                                    |
-| Sarcophagus                              | Crowbar, 6 s, loud       | —                                                    |
+| Sarcophagus                              | Crowbar or two, 6 s      | —                                                    |
 | Tool chest                               | 3 s                      | —                                                    |
 | Locker, vestry cabinet, Surveyor's cache | 0.5 s                    | —                                                    |
 | Sunken satchel                           | 2 s                      | —                                                    |
 | Offering box                             | Picks (6 s) or smash     | —                                                    |
 | Rat nest                                 | 4 s                      | —                                                    |
 | Cocoon                                   | 5 s, or 2 s with a blade | —                                                    |
-| Smuggler's stash                         | Crowbar, 3 s             | —                                                    |
+| Smuggler's stash                         | Crowbar, 3 s, if noticed | —                                                    |
 | Reliquary alcove                         | Crowbar, 8 s             | —                                                    |
+| Font                                     | Fill a bottle, 2 s       | —                                                    |
 
-Catches the design gives some of them (rats biting, poison, the alcove's meter cost, a sanity drain, two players pushing a lid, the smuggler's chalk sign) come with the world mechanics.
+What goes wrong reaching into some of them (a rat nest's bite, a cocoon's poison, a bone pile's rats, a sarcophagus's spiders, the alcove's meter cost, the Plague Pit's toll), the stash's chalk sign and the font: [world.md](world.md).
 
 ## Where they stand
 
@@ -88,14 +91,14 @@ Each kind has its own **table** (`loot`: item, how many come together, weight ne
 
 **Items still to come.** Tables already name the materials, treasure and tools of the round (rags, bone, gun parts, funeral coins...). Until each is added to `ITEMS`, its lines are skipped (`liveEntries`). `PENDING_ITEMS` lists them; a test checks every table line is in one or the other. Adding the item to `ITEMS` and taking it out of `PENDING_ITEMS` puts it in the loot.
 
-**The budget.** More lootables mustn't mean more treasure: `LOOT_BUDGET` is the most treasure (by `value`) each level holds, all its lootables together. After the roll, `trimToBudget` takes stacks of treasure out of that level's lootables, at random, until it is within it. Things put there on purpose (quest items, hints, keys) are added after and never taken. The caps sit just above what most maps roll, so only the richest are trimmed.
+**The budget.** More lootables mustn't mean more treasure: `LOOT_BUDGET` is the most treasure (by `value`) each level holds, all its lootables together. After the roll, `trimToBudget` takes stacks of treasure out of that level's lootables, at random, until it is within it. Things put there on purpose (quest items, hints, keys) are added after and never taken. A trunk's or an alcove's prize goes last: everything else on the level is taken first. The caps sit just above what most maps roll, so only the richest are trimmed.
 
 **Loose loot** is drawn from the crate's table (`rollLoose`, `LOOSE_LOOT.rarities`).
 
 ## Admin
 
 - **Teleport** to `lootable-<kind>`: in front of the first of each kind in the map (`testPoints`), and `locked-trunk`, `stuck-crate`.
-- **Reset crates** refills everything (seals stay as they are); **Unlock crates** unjams and unlocks everything.
+- **Reset crates** refills everything (seals stay as they are); **Unlock crates** unjams and unlocks everything, finds every stash and fills every font.
 - **Give** a crowbar or a key to open what needs one.
 
 ## Adding a kind

@@ -227,7 +227,7 @@ def build_explorers_camp(force=False):
 
 
 def build_family_mausoleum(force=False):
-    """2x2 cells: a family's vault behind an iron gate (open until there are gates to pick). An
+    """2x2 cells: a family's vault behind a locked iron gate (gate-0, a key or lockpicks). An
     antechamber to the south, the tombs beyond the gate's line to the north."""
     room = Room("family-mausoleum", 2, 2, 3.6, "mat-wall-chapel", "mat-floor-chapel", [("s", -2), ("e", -2)], force=force)
     # The gate's frame across the room: posts each side of an opening, a lintel over it.
@@ -235,10 +235,9 @@ def build_family_mausoleum(force=False):
         room.solid((x0, 0.0, 0), (x1, 0.3, 3.6), "mat-trim-marble")
     room.mb.box((-1.0, 0.0, 2.6), (1.0, 0.3, 3.6), "mat-trim-marble", skip=("+z",))
     col_box(room.coll, room.root, "col-lintel", (-1.0, 0.0, 2.6), (1.0, 0.3, 3.6))
-    # The open gate's leaves, swung back against the posts.
-    for x in (-1.0, 0.92):
-        for k in range(6):
-            room.props.box((x, 0.3 + k * 0.16, 0), (x + 0.08, 0.34 + k * 0.16, 2.5), "mat-iron")
+    # The gate itself is the game's (gate-0: a locked door, key or lockpicks). At yaw 0 its leaves
+    # swing south, into the antechamber.
+    kit.marker(room.coll, room.root, "gate-0", (0, 0.15, 0), display="ARROWS", size=0.6)
     room.creatures([(0.0, -2.2), (-2.0, 2.0)])
     return room.finish()
 

@@ -20,6 +20,18 @@ export const ROPE = {
 } as const;
 
 /** Where a tied rope hangs, from an anchor-* marker on the ledge. */
+/**
+ * Climbing pitons (docs/dev/rope.md#pitons): a rope anchor anywhere there is an edge. Set down (a
+ * PlaceSpec with `anchor`) facing over a drop at least `minDrop` m deep, it is an anchor like a
+ * map's: tie a rope there and climb down. Hammering it in is heard `noise` m off.
+ */
+export const PITONS = {
+	minDrop: 2,
+	/** Not this close (m) to another anchor. */
+	apart: 1.5,
+	noise: 8
+};
+
 export const ANCHOR = {
 	/**
 	 * The rope hangs this far out from the tie point (m): just past the lip, as the tie point is

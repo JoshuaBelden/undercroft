@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ITEMS } from '#lib/content/items.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
-import { held } from '#lib/shared/items/inventory.ts';
+import { allStacks, held } from '#lib/shared/items/inventory.ts';
 import { flightPath, throwOf } from '#lib/shared/items/projectile.ts';
 import type { GameEvent, HazardsSnapshot } from '#lib/shared/items/types.ts';
 import { aimRay, THROW_DRAW } from '#lib/shared/items/weapons.ts';
@@ -13,6 +13,8 @@ import type { PlayContext, PlayFeature, TickMessage } from './feature.ts';
 
 /** A fire's light: warm, close, and only lit near enough to matter (it counts in the light budget). */
 const FIRE_LIGHT = { color: 0xff8a3a, intensity: 6, distance: 7, decay: 2, near: 22 };
+/** Whispers round a cursed thing's carrier: the first after this long, then every so often (s). */
+const CURSE_WHISPER = { first: 6, every: [14, 30] as [number, number] };
 /** The throw arc: how often it is worked out again (s), and its look. */
 const ARC = { every: 1 / 30, color: 0xe6dccb, opacity: 0.35 };
 
@@ -32,6 +34,7 @@ export class Hazards implements PlayFeature {
 	private mark: THREE.Mesh;
 	private sinceArc = 0;
 	private time = 0;
+	private untilWhisper = 0;
 
 	constructor(private ctx: PlayContext) {
 		this.root.name = 'hazards';
@@ -170,6 +173,13 @@ export class Hazards implements PlayFeature {
 			case 'bleed':
 				sounds.playAt('creature.bleed', event.position, 1, 4);
 				break;
+			case 'bitten':
+				if (mine) sounds.play('lootable.nest');
+				else sounds.playAt('lootable.nest', event.position, 1, 4);
+				break;
+			case 'shatter':
+				sounds.playAt('item.break', event.position, 1, 5);
+				break;
 			case 'snared':
 				sounds.playAt('snare.spring', event.position, 1, 6);
 				break;
@@ -197,8 +207,9 @@ export class Hazards implements PlayFeature {
 		}
 	}
 
-	/** The throw arc, while a throw is drawn back (and the setting is on). */
+	/** The throw arc, while a throw is drawn back (and the setting is on); whispers if cursed. */
 	self(state: PlayerState, delta: number): void {
+		this.whisper(state, delta);
 		const w = state.weapon;
 		const spec = throwOf(ITEMS[held(state.inventory)?.item ?? '']);
 		const showing =
@@ -222,6 +233,25 @@ export class Hazards implements PlayFeature {
 		}
 		this.arc.visible = true;
 		this.mark.visible = !!this.mark.userData.landed;
+	}
+
+	/**
+	 * Carrying something cursed (the porcelain doll), whispers come now and then from close by
+	 * (docs/dev/world.md#cursed-loot). Only you hear them.
+	 */
+	private whisper(state: PlayerState, delta: number): void {
+		const cursed = allStacks(state.inventory).some((stack) => ITEMS[stack.item]?.cursed);
+		if (!cursed) {
+			this.untilWhisper = CURSE_WHISPER.first;
+			return;
+		}
+		this.untilWhisper -= delta;
+		if (this.untilWhisper > 0) return;
+		this.untilWhisper =
+			CURSE_WHISPER.every[0] + Math.random() * (CURSE_WHISPER.every[1] - CURSE_WHISPER.every[0]);
+		const a = Math.random() * Math.PI * 2;
+		const [x, y, z] = state.position;
+		this.ctx.sounds.playAt('whisper', [x + Math.cos(a) * 1.5, y + 1.4, z + Math.sin(a) * 1.5], 0.8);
 	}
 
 	update(delta: number): void {

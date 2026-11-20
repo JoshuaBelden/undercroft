@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FALSE_WALLS } from '../../content/map/walls.ts';
+import { FALSE_WALLS, RUBBLE_WALLS, WEBS } from '../../content/map/walls.ts';
 import { MAP_KIT } from '../../content/map/kit.ts';
 import { buildCollisionWorld, openDoor, segmentHit } from './collision.ts';
 import { pieceLinks } from './debug.ts';
@@ -17,7 +17,11 @@ describe('false walls', () => {
 		it(`seed ${seed}: each walls up a side passage of plain connectors, the only way into it`, () => {
 			const layout = generateLayout(seed, PIECES, MAP_KIT, { affliction: 'gloaming' });
 			const walls = layout.walls ?? [];
-			expect(walls.length).toBeLessThanOrEqual(FALSE_WALLS.count);
+			expect(walls.filter((w) => !w.kind).length).toBeLessThanOrEqual(FALSE_WALLS.count);
+			expect(walls.filter((w) => w.kind === 'rubble').length).toBeLessThanOrEqual(
+				RUBBLE_WALLS.count
+			);
+			expect(walls.filter((w) => w.kind === 'web').length).toBeLessThanOrEqual(WEBS.count);
 			for (const wall of walls) {
 				expect(MAP_KIT[wall.piece]?.role).toBe('cap');
 			}
@@ -74,7 +78,9 @@ describe('false walls', () => {
 		const spots = prySpots(layout, PIECES, MAP_KIT);
 		const caps = layout.placements.filter((p) => MAP_KIT[p.piece]?.role === 'cap').length;
 		const ends = layout.placements.filter((p) => MAP_KIT[p.piece]?.role === 'end').length;
-		expect(spots.length).toBeGreaterThanOrEqual(caps + ends + (layout.walls?.length ?? 0));
-		expect(spots.filter((s) => s.wall).length).toBe(layout.walls?.length ?? 0);
+		// Only false walls are pried; rubble and webs have their own ways.
+		const falseWalls = (layout.walls ?? []).filter((w) => !w.kind).length;
+		expect(spots.length).toBeGreaterThanOrEqual(caps + ends + falseWalls);
+		expect(spots.filter((s) => s.wall).length).toBe(falseWalls);
 	});
 });

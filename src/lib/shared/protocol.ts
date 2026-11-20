@@ -17,6 +17,7 @@ import type {
 	TiedRopeSnapshot,
 	WorldItemSnapshot
 } from './items/types.ts';
+import type { Anchor } from './map/collision.ts';
 import type { MapLayout, Vec3 } from './map/types.ts';
 import type { PartyState } from './party/types.ts';
 import type { InputFrame, Inventory, ItemStack, PlayerSnapshot } from './player/types.ts';
@@ -226,7 +227,7 @@ export type ServerMessage =
 	 * Every rope: laid along the floor, and tied at anchors. Sent like `marks`, whenever one is
 	 * started, stopped, gathered up, tied or untied (see docs/dev/rope.md).
 	 */
-	| { type: 'ropes'; laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[] }
+	| { type: 'ropes'; laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[]; pitons: Anchor[] }
 	/** Points added to ropes being laid since the last tick. */
 	| { type: 'ropeGrow'; ropes: { id: string; points: Vec3[] }[] }
 	/**

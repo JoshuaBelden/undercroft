@@ -5,6 +5,7 @@ import { connection } from '#lib/game/net/connection.svelte.ts';
 import { RopeCreaks } from '#lib/game/player/RopeCreaks.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
 import {
+	applyPitons,
 	applyTied,
 	laidLength,
 	ropeAction,
@@ -63,6 +64,7 @@ export class Ropes implements PlayFeature {
 		this.laid.apply(connection.ropes.laid);
 		const world = this.ctx.player.collision;
 		if (world) {
+			applyPitons(world, connection.ropes.pitons);
 			applyTied(world, connection.ropes.tied);
 			this.hanging.sync(world);
 		}
@@ -74,6 +76,12 @@ export class Ropes implements PlayFeature {
 			case 'fall':
 				sounds.playAt(event.hard ? 'fall.land.hard' : 'fall.land', event.position, 1, 2);
 				if (event.player === client.playerId) sounds.play('condition.hobble');
+				break;
+			case 'piton':
+				sounds.playAt('piton.hammer', event.position, 1, 8);
+				break;
+			case 'pitonFailed':
+				if (event.player === client.playerId) sounds.play('crate.stuck');
 				break;
 			case 'ropeGrab':
 				sounds.playAt('rope.grab', grip(event.position), 1, 2);

@@ -19,7 +19,8 @@ import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { DEFAULT_MARK_WHEEL } from '../src/lib/content/marks.ts';
 import { tierAt, tierCells } from '../src/lib/shared/map/doors.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
-import { allStacks } from '../src/lib/shared/items/inventory.ts';
+import { ITEMS } from '../src/lib/content/items.ts';
+import { allStacks, removeItem } from '../src/lib/shared/items/inventory.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { placeCrates } from '../src/lib/shared/map/crates.ts';
 import {
@@ -194,7 +195,14 @@ export class Session implements SessionContext {
 			if (!piece) continue;
 			for (const [x, z, level] of occupiedCells(piece, placement)) cells.add(`${x},${z},${level}`);
 		}
-		this.crates = new Crates(this.world, this.layout.crates, this.nav, start, this.seed);
+		this.crates = new Crates(
+			this.world,
+			this.layout.crates,
+			this.nav,
+			start,
+			this.seed,
+			this.layout.doors.filter((door) => door.kind === 'gate').length
+		);
 		this.items.scatter(this.nav, this.seed, start, rubbleSites(this.layout, PIECES));
 		this.items.scatterLoot(this.nav, this.seed, start, cells.size);
 		scatterRite(
@@ -582,6 +590,14 @@ export class Session implements SessionContext {
 				position,
 				hard: event.speed >= FALL.hardSpeed
 			});
+			// A hard fall breaks what is fragile in the pack (docs/dev/world.md#fragile-loot).
+			if (event.speed >= FALL.hardSpeed) {
+				for (const stack of allStacks(player.state.inventory)) {
+					if (!ITEMS[stack.item]?.fragile) continue;
+					removeItem(player.state.inventory, stack.item, stack.count);
+					this.events.push({ kind: 'shatter', item: stack.item, position });
+				}
+			}
 			this.creatures.hear(position, FALL.noise, player);
 		}
 	}

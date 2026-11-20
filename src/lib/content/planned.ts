@@ -115,37 +115,21 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 
 	// Item models, in the hand and on the floor. Materials and treasure stay boxes on the floor.
 	...group('model', 'Item models', 4, [
-		[item('hatchet'), 'Hatchet (one hand)'],
-		[item('nail-club'), 'Nail-studded club (one hand)'],
-		[item('throwing-knife'), 'Throwing knife (one hand)'],
 		[item('derringer'), 'Derringer (one hand)'],
-		[item('slingshot'), 'Slingshot (one hand)'],
-		[item('trench-spade'), 'Trench spade (two hands)'],
-		[item('short-spear'), 'Short spear (two hands)'],
-		[item('pickaxe'), 'Pickaxe (two hands)'],
-		[item('sledgehammer'), 'Sledgehammer (two hands)'],
 		[item('rifle'), 'Bolt-action rifle (two hands)'],
-		[item('crossbow'), 'Crossbow (two hands)'],
-		[item('crossbow-bolt'), 'Crossbow bolt'],
-		[item('oil-bottle'), 'Oil bottle, with a rag'],
-		[item('firecrackers'), 'Firecrackers'],
-		[item('glow-stick'), 'Glow stick'],
-		[item('snare'), 'Snare'],
-		[item('tripwire-bell'), 'Tripwire bell'],
-		[item('salt-bag'), 'Blessed salt bag'],
-		[item('bait'), 'Bait']
+		[item('crossbow_bolt'), 'Crossbow bolt'],
+		[item('glow_stick'), 'Glow stick'],
+		[item('salt_bag'), 'Blessed salt bag']
 	]),
 	...group('model', 'Item models', 5, [[item('piton'), 'Climbing piton']]),
 	...group('model', 'Item models', 6, [
 		[item('lockpicks'), 'Lockpicks'],
 		[item('censer'), 'Incense censer'],
-		[item('whistle'), 'Whistle'],
 		[item('laudanum'), 'Laudanum bottle'],
-		[item('grave-dirt'), 'Grave dirt pouch'],
-		[item('compass'), 'Pocket compass']
+		[item('grave_dirt'), 'Grave dirt pouch']
 	]),
 	...group('model', 'Item models', 7, [
-		[item('crafting-kit'), 'Field crafting kit (closed, and open on the floor)']
+		[item('crafting_kit'), 'Field crafting kit (closed, and open on the floor)']
 	]),
 
 	// Lootables: each with its states, like the crate and trunk.
@@ -219,7 +203,6 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 	]),
 	...group('sound', 'Lootables', 2, [
 		['lootable.offering.smash', 'An offering box smashed'],
-		['lootable.font', 'Filling a bottle at a font'],
 		['gate.mausoleum', 'The mausoleum gate']
 	]),
 	...group('sound', 'Melee', 4, [
@@ -259,13 +242,7 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		['salt.pour', 'Salt poured'],
 		['glowstick.crack', 'Glow stick cracked']
 	]),
-	...group('sound', 'World', 5, [
-		['rubble.break', 'Rubble breaking'],
-		['web.tear', 'A web torn'],
-		['web.burn', 'A web burning'],
-		['piton.hammer', 'A piton hammered in'],
-		['brick.scrape', "A smuggler's brick scraping"]
-	]),
+	...group('sound', 'World', 5, [['brick.scrape', "A smuggler's brick scraping"]]),
 	...group('sound', 'Items with a use', 6, [
 		['whistle.blow', 'Whistle'],
 		['tripwire.ring', 'Tripwire bell rings'],

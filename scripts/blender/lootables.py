@@ -47,6 +47,7 @@ SIZES = {
     "stash": (0.4, 0.3, 0.3),
     "cache": (0.5, 0.35, 0.35),
     "alcove": (0.8, 1.2, 0.4),
+    "font": (0.7, 1.0, 0.7),
 }
 
 # What each existing room holds, in the order its spots are given out (the handoff's table of
@@ -62,6 +63,7 @@ ROOMS = {
         "sarcophagus",
         "vestryCabinet",
         "offeringBox",
+        "font",
     ],
     "extraction-gate": ["locker", "locker", "locker"],
     "room-small": ["niche", "offeringBox", "niche"],
@@ -73,7 +75,7 @@ ROOMS = {
     "drop-hall": ["corpse"],
     "pit": ["corpse"],
     # The new rooms (rooms.py; the handoff's table of new rooms), with a crate or two.
-    "vestry": ["vestryCabinet", "vestryCabinet", "offeringBox", "crate"],
+    "vestry": ["vestryCabinet", "vestryCabinet", "offeringBox", "crate", "font"],
     "quarry-lodge": ["toolChest", "locker", "toolChest", "locker", "crate"],
     "smugglers-cellar": ["stash", "stash", "corpse", "stash", "crate"],
     "pump-room": ["locker", "satchel", "locker", "satchel"],
@@ -84,7 +86,7 @@ ROOMS = {
     "family-mausoleum": ["sarcophagus", "trunk", "sarcophagus", "sarcophagus"],
     "webbed-gallery": ["cocoon", "cocoon", "corpse", "cocoon"],
     "plague-pit": ["bonePile", "bonePile", "bonePile", "bonePile", "crate"],
-    "drowned-chapel": ["satchel", "satchel", "offeringBox", "satchel"],
+    "drowned-chapel": ["satchel", "satchel", "offeringBox", "satchel", "font"],
     "saints-crypt": ["alcove", "crate"],
     "sinkhole": ["corpse"],
     "broken-stair": ["crate"],

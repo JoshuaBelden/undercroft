@@ -71,7 +71,8 @@ export function placeCrates(
 				id: `c${crates.length + 1}`,
 				position: position.map(round) as Vec3,
 				yaw: round(marker.yaw + (placement.rotation * Math.PI) / 2),
-				tier: placement.tier
+				tier: placement.tier,
+				piece: placement.piece
 			};
 			// A marker of its own kind stands at that lootable's centre already.
 			if (marker.type && marker.type !== 'crate') crate.kind = marker.type;

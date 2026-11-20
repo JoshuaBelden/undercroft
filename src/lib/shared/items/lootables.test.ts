@@ -133,3 +133,22 @@ describe('the Blender script that places their markers (scripts/blender/lootable
 		expect(listed).toEqual(new Set(stepped));
 	});
 });
+
+describe('ways that take two', () => {
+	it('a sarcophagus lid takes a crowbar, or two players pushing together', () => {
+		const lid = LOOTABLES.sarcophagus.open.find((way) => way.together)!;
+		expect(lid.together).toBe(2);
+		const inv = emptyInventory();
+		expect(canUse(lid, inv, 'sarcophagus')).toBe(false);
+		expect(canUse(lid, inv, 'sarcophagus', 1)).toBe(true);
+		expect(bestWay(LOOTABLES.sarcophagus.open, inv, 'sarcophagus')).toBeNull();
+		expect(bestWay(LOOTABLES.sarcophagus.open, inv, 'sarcophagus', 1)).toBe(lid);
+		expect(wayNeeds(lid)).toBe('someone to help');
+	});
+
+	it('a font is filled from, not opened, and only once there is a bottle to fill', () => {
+		const font = LOOTABLES.font;
+		expect(font.fill?.needs).toBe('glass-bottle');
+		expect(openable(font)).toBe(!!ITEMS['glass-bottle'] && !!ITEMS['holy-water']);
+	});
+});

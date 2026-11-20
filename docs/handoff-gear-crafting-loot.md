@@ -589,7 +589,11 @@ Built, and moved into [combat.md](dev/combat.md). Every behaviour is a field on 
 
 Every Combat entry under New mechanics.
 
-### Phase 5: world mechanics
+### Phase 5: world mechanics (Done)
+
+Built, and moved into [world.md](dev/world.md). Like Phase 4, every behaviour is a field (on the item, the lootable or the kit entry), tried with test items until Phase 6 brings the real ones: catches (a rat nest's bite and a cocoon's poison unless gloves are worn, a bone pile's rat swarm, a sarcophagus's spiders, the alcove's meter cost, the Plague Pit's toll on searching), two players on a sarcophagus lid, fragile loot (a hard fall; 25% when smashed open), cursed loot (a sanity drain and whispers only its carrier hears), rubble walls (a pickaxe) and webs (blows, a blade in one, fire) across side passages, the Family Mausoleum's locked gate (a key or lockpicks; a key hidden for each), fonts (fill a glass bottle with holy water, a few times; in maps once the bottle exists), smugglers' stashes hidden until their chalk sign is noticed, and climbing pitons as rope anchors at any edge. A trunk's prize is now the last thing the loot budget takes.
+
+What stands open: the Webbed Gallery's own webs and the Rockfall's heap are still scenery (rubble and webs are placed across side passages, from the same search as false walls), and the rope rooms keep their rope posts. Discovering holy water at a font comes with crafting (Phase 7).
 
 Every World entry under New mechanics.
 

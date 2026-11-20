@@ -113,7 +113,13 @@ describe('buildCatalog', () => {
 
 describe('planned art', () => {
 	const planned: CatalogContent['planned'] = [
-		{ kind: 'model', id: 'shared/items/hatchet.glb', label: 'Hatchet', group: 'Items', phase: 4 },
+		{
+			kind: 'model',
+			id: 'shared/items/derringer.glb',
+			label: 'Derringer',
+			group: 'Items',
+			phase: 4
+		},
 		{ kind: 'image', id: 'test_unmade', label: 'Unmade', group: 'Materials', phase: 2 },
 		{ kind: 'animation', id: 'pry', label: 'Prying', group: 'Clips', phase: 2 },
 		{ kind: 'sound', id: 'gun.empty', label: 'Dry click', group: 'Sounds', phase: 1 }
@@ -122,7 +128,7 @@ describe('planned art', () => {
 
 	it('is listed before it is made: models and clips as placeholders, the rest missing', () => {
 		const catalog = buildCatalog(diskFor(content), content);
-		expect(row(catalog, 'model', 'shared/items/hatchet.glb')).toMatchObject({
+		expect(row(catalog, 'model', 'shared/items/derringer.glb')).toMatchObject({
 			status: 'placeholder',
 			usedBy: ['Planned: Items (phase 4)'],
 			planned: 4

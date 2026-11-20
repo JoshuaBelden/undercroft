@@ -170,6 +170,12 @@ export class AfflictionDirector {
 		return this.manifestation !== null;
 	}
 
+	/** Feed the meter (a reliquary opened); nothing once it is resolved. */
+	raise(amount: number): void {
+		if (this.calmed) return;
+		this.meter = Math.max(0, Math.min(1, this.meter + amount));
+	}
+
 	/** Admin: set the meter (0..1). Stages catch up on the next step. */
 	setMeter(value: number): void {
 		this.meter = Math.max(0, Math.min(1, value));

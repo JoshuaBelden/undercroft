@@ -1,5 +1,6 @@
 import type { SoundId } from './audio/sounds.ts';
 import type { Rarity } from './items.ts';
+import type { ConditionId } from './player/conditions.ts';
 import { modelUrl } from './models.ts';
 
 /**
@@ -27,7 +28,8 @@ export type LootableId =
 	| 'cocoon'
 	| 'stash'
 	| 'cache'
-	| 'alcove';
+	| 'alcove'
+	| 'font';
 
 /**
  * What a way of opening takes in the hand: something that pries (`pry`, the crowbar), cuts this
@@ -49,7 +51,22 @@ export interface OpenWay {
 	/** Radius (m) the work is heard while it goes on, from the start and every `every` seconds. */
 	noise?: number;
 	every?: number;
+	/** It takes this many players at it at once (two on a stone lid). */
+	together?: number;
+	/** Opened this way (smashed), each fragile thing inside breaks with this chance. */
+	breaks?: number;
 }
+
+/**
+ * What can go wrong going through one (docs/dev/world.md#catches): a bite or a condition each
+ * time someone reaches in, unless what they wear `protects` against it (gloves); creatures that
+ * come out of it the first time, with a chance (a rat swarm from a bone pile, spiders from a
+ * sarcophagus's egg sac).
+ */
+export type LootCatch =
+	| { kind: 'bite'; damage: number; unless: string }
+	| { kind: 'condition'; condition: ConditionId; seconds: number; unless: string }
+	| { kind: 'spawn'; creature: string; count: [number, number]; chance: number };
 
 /** How many things of each rarity it holds: the fewest and most, and the chance of each more. */
 export type RarityCounts = Record<Rarity, { count: [number, number]; chance: [number, number] }>;
@@ -117,6 +134,22 @@ export interface LootableDef {
 	 * is added, legendary with this chance.
 	 */
 	prize?: number;
+	/**
+	 * Hidden (docs/dev/world.md#stashes): nobody can open it, or is told it is there, until
+	 * someone has looked at it (its chalk sign) from within `reach` m for `seconds`. A
+	 * smuggler's stash.
+	 */
+	hidden?: { reach: number; seconds: number };
+	/**
+	 * Not opened but filled from (docs/dev/world.md#fonts): holding interact with a `needs` in the
+	 * pack turns one into a `makes` over `seconds`, a few times (`fills`, rolled per map) before
+	 * it runs dry. A font: a glass bottle into holy water. Left out of maps until `needs` exists.
+	 */
+	fill?: { needs: string; makes: string; seconds: number; fills: [number, number]; verb: string };
+	/** What can go wrong going through it. */
+	catches?: LootCatch[];
+	/** Opening it the first time feeds the Affliction's meter this much (0..1: a reliquary). */
+	meter?: number;
 	/** The lid (a part of its model, turned about its X axis by `angle`) goes up when opened. */
 	lid?: { part: string; angle: number };
 }
@@ -284,7 +317,7 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			open: [
 				{ key: true, seconds: 0, verb: 'Unlock' },
 				{ tool: 'picks', seconds: 6, verb: 'Pick the lock' },
-				{ tool: 'smash', seconds: 2, verb: 'Smash it open', noise: 16 }
+				{ tool: 'smash', seconds: 2, verb: 'Smash it open', noise: 16, breaks: 0.25 }
 			]
 		},
 		noise: 3,
@@ -382,6 +415,7 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: false,
 		slots: 4,
 		open: [{ seconds: 3, verb: 'Rummage' }],
+		catches: [{ kind: 'spawn', creature: 'rat', count: [3, 5], chance: 0.2 }],
 		noise: 10,
 		lootNoise: 4,
 		sound: 'lootable.bones',
@@ -422,8 +456,12 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [2.0, 0.8, 0.9],
 		solid: true,
 		slots: 6,
-		// A crowbar under the lid. (Two players pushing it together comes later.)
-		open: [{ tool: 'pry', seconds: 6, verb: 'Push the lid', noise: 12, every: 3 }],
+		// A crowbar under the lid, or two players pushing it together.
+		open: [
+			{ tool: 'pry', seconds: 6, verb: 'Push the lid', noise: 12, every: 3 },
+			{ together: 2, seconds: 6, verb: 'Push the lid', noise: 12, every: 3 }
+		],
+		catches: [{ kind: 'spawn', creature: 'spider', count: [2, 3], chance: 0.15 }],
 		noise: 12,
 		lootNoise: 3,
 		sound: 'lootable.lid',
@@ -583,7 +621,7 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		// No way in by hand: picks, quietly, or smashing it.
 		open: [
 			{ tool: 'picks', seconds: 6, verb: 'Pick the lock' },
-			{ tool: 'smash', seconds: 1.5, verb: 'Smash it', noise: 10 }
+			{ tool: 'smash', seconds: 1.5, verb: 'Smash it', noise: 10, breaks: 0.25 }
 		],
 		noise: 0,
 		lootNoise: 2,
@@ -651,6 +689,7 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: false,
 		slots: 4,
 		open: [{ seconds: 4, verb: 'Reach in' }],
+		catches: [{ kind: 'bite', damage: 8, unless: 'bites' }],
 		noise: 6,
 		lootNoise: 3,
 		sound: 'lootable.nest',
@@ -681,6 +720,10 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		open: [
 			{ seconds: 5, verb: 'Cut it open' },
 			{ tool: 'cut', seconds: 2, verb: 'Cut it open' }
+		],
+		catches: [
+			{ kind: 'condition', condition: 'poisoned', seconds: 8, unless: 'poison' },
+			{ kind: 'spawn', creature: 'spider', count: [1, 2], chance: 0.3 }
 		],
 		noise: 3,
 		lootNoise: 3,
@@ -724,6 +767,8 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: false,
 		slots: 4,
 		open: [{ tool: 'pry', seconds: 3, verb: 'Pry the brick loose', noise: 8 }],
+		// You have to notice the chalk sign.
+		hidden: { reach: 2.5, seconds: 1.2 },
 		noise: 8,
 		lootNoise: 2,
 		sound: 'lootable.brick',
@@ -793,6 +838,8 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		lookHeight: 0.9,
 		slots: 2,
 		open: [{ tool: 'pry', seconds: 8, verb: 'Pry open the alcove', noise: 6, every: 2 }],
+		// Taking a saint's relic does not go unnoticed.
+		meter: 0.04,
 		noise: 6,
 		lootNoise: 2,
 		sound: 'lootable.alcove',
@@ -804,6 +851,30 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		],
 		rarity: everyLevel(counts({})),
 		prize: 1
+	},
+	font: {
+		id: 'font',
+		name: 'Font',
+		flavor: ['The water is perfectly still, and colder than it should be.'],
+		model: null,
+		color: 0x8a8a84,
+		size: [0.7, 1.0, 0.7],
+		solid: true,
+		slots: 0,
+		// Nothing to open: it is filled from (`fill`).
+		open: [],
+		fill: {
+			needs: 'glass-bottle',
+			makes: 'holy-water',
+			seconds: 2,
+			fills: [2, 4],
+			verb: 'Fill a bottle'
+		},
+		noise: 2,
+		lootNoise: 0,
+		sound: 'lootable.font',
+		loot: [],
+		rarity: everyLevel(counts({}))
 	}
 };
 

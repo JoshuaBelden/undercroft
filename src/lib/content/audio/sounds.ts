@@ -514,6 +514,55 @@ export const SOUNDS = {
 		variation: 0.08,
 		caption: 'a snare snaps shut'
 	},
+	// A climbing piton hammered into the rock (docs/dev/rope.md#pitons).
+	'piton.hammer': {
+		file: 'piton.hammer',
+		synth: { kind: 'knock' },
+		category: 'sfx',
+		volume: 0.8,
+		rate: 1.5,
+		variation: 0.1,
+		caption: 'iron rings on rock',
+		captionOthers: true
+	},
+	// You noticed a smuggler's chalk sign: the brick beside it is loose (docs/dev/world.md).
+	'stash.notice': {
+		file: 'stash.notice',
+		synth: { kind: 'scrape' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.6,
+		variation: 0.1,
+		caption: 'a loose brick'
+	},
+	// Breaking at a rubble wall (a pickaxe), and webs torn or burned (docs/dev/world.md).
+	'rubble.break': {
+		file: 'rubble.break',
+		synth: { kind: 'rockfall' },
+		category: 'sfx',
+		volume: 0.8,
+		variation: 0.1,
+		caption: 'rock breaks',
+		captionOthers: true
+	},
+	'web.tear': {
+		file: 'web.tear',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.3,
+		variation: 0.12,
+		caption: 'webbing tears'
+	},
+	'web.burn': {
+		file: 'web.burn',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.5,
+		variation: 0.1,
+		caption: 'webbing burns'
+	},
 	// A fire catching and burning (an oil bottle's).
 	'fire.burn': {
 		file: 'fire.burn',
@@ -793,6 +842,16 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'paper rustles',
 		captionOthers: true
+	},
+	// Filling a bottle at a font (docs/dev/world.md#fonts).
+	'lootable.font': {
+		file: 'lootable.font',
+		synth: { kind: 'splash', length: 0.8, cutoff: 1400 },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.4,
+		variation: 0.1,
+		caption: 'water pours'
 	},
 	'lootable.alcove': {
 		file: 'lootable.alcove',

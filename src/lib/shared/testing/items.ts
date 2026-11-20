@@ -106,7 +106,48 @@ export const TEST_ITEMS: Record<string, ItemDef> = {
 	}),
 	'test.salt': quick('test.salt', {
 		place: { seconds: 0.5, sound: 'brick.land', ward: { length: 3, seconds: 30 } }
-	})
+	}),
+	// World (docs/dev/world.md): one field each.
+	'test.gloves': {
+		id: 'test.gloves',
+		name: 'Test gloves',
+		kind: 'gear',
+		category: 'gear',
+		flavor: 'Worn against bites and poison.',
+		model: null,
+		hold: HOLD,
+		maxStack: 1,
+		weight: 0.2,
+		protects: ['bites', 'poison']
+	},
+	'test.jar': {
+		id: 'test.jar',
+		name: 'Test jar',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'Fragile.',
+		model: null,
+		hold: HOLD,
+		maxStack: 1,
+		weight: 0.5,
+		fragile: true
+	},
+	'test.doll': {
+		id: 'test.doll',
+		name: 'Test doll',
+		kind: 'loot',
+		category: 'other',
+		flavor: 'Cursed.',
+		model: null,
+		hold: HOLD,
+		maxStack: 1,
+		weight: 0.5,
+		cursed: { sanity: 2 }
+	},
+	'test.pickaxe': weapon('test.pickaxe', { melee: MELEE, breaks: ['rubble'] }),
+	'test.hatchet': weapon('test.hatchet', { melee: MELEE, cuts: ['web', 'cocoon'] }),
+	'test.picks': quick('test.picks', { picks: true }),
+	'test.piton': quick('test.piton', { place: { seconds: 0.5, sound: 'brick.land', anchor: true } })
 };
 
 function weapon(id: string, spec: Partial<ItemDef>): ItemDef {

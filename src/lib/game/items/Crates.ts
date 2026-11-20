@@ -188,5 +188,17 @@ function placeholder(def: LootableDef): THREE.Object3D {
 	const root = new THREE.Group();
 	root.name = `placeholder-${def.id}`;
 	root.add(box);
+	// A hidden one's sign (a smuggler's chalk mark, planned as a decal): a pale cross above it.
+	if (def.hidden) {
+		const chalk = new THREE.MeshBasicMaterial({ color: 0xd9d4c4, transparent: true, opacity: 0.7 });
+		for (const turn of [Math.PI / 4, -Math.PI / 4]) {
+			for (const face of [1, -1]) {
+				const stroke = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.025), chalk);
+				stroke.position.set(0, h + 0.18, face * (d / 2 + 0.01));
+				stroke.rotation.set(0, face < 0 ? Math.PI : 0, turn);
+				root.add(stroke);
+			}
+		}
+	}
 	return root;
 }

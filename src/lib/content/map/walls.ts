@@ -23,3 +23,32 @@ export const FALSE_WALLS = {
 	/** How far (m) in front of the opening the face of a cap stands. */
 	depth: 0.25
 };
+
+/**
+ * Rubble walls (docs/dev/world.md#rubble): a few side passages are blocked by a fall of rubble
+ * anyone can see, not hidden. Something that `breaks` rubble in the hand (a pickaxe) breaks a
+ * way through; nothing else does.
+ */
+export const RUBBLE_WALLS = {
+	/** How many a map has, at most (after the false walls, from the side passages left). */
+	count: 2,
+	/** Seconds interact is held, the tool in hand, to break through. */
+	seconds: 6,
+	/** Radius (m) the breaking is heard, again every `every` seconds; the fall when it gives. */
+	noise: 12,
+	every: 2,
+	fallNoise: 14
+};
+
+/**
+ * Webs (docs/dev/world.md#webs): a few side passages are spun shut with web. Swinging anything at
+ * one tears it, a few blows; a blade that `cuts` webs (a hatchet) in one; fire burns it away.
+ */
+export const WEBS = {
+	/** How many a map has, at most (after the false walls and rubble). */
+	count: 2,
+	/** Blows of an ordinary weapon to tear one down. */
+	hits: 3,
+	/** A fire burns a web this far (m) beyond its own radius. */
+	burn: 1
+};

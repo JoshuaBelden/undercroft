@@ -1,5 +1,6 @@
-import { ITEMS } from '../src/lib/content/items.ts';
+import { ITEMS, rarityOf } from '../src/lib/content/items.ts';
 import { CRATES, TRUNKS } from '../src/lib/content/loot.ts';
+import type { LootableDef } from '../src/lib/content/lootables.ts';
 import { newStack, type Slots } from '../src/lib/shared/items/inventory.ts';
 import { lootableOf } from '../src/lib/shared/items/lootables.ts';
 import { rollLootable, trimToBudget } from '../src/lib/shared/items/loot.ts';
@@ -40,6 +41,10 @@ export interface Crate {
 	user: string | null;
 	/** Opened at least once: its lid stays up. */
 	opened: boolean;
+	/** Hidden (a smuggler's stash) and not yet noticed: it can't be opened, and isn't told of. */
+	unseen: boolean;
+	/** Filled from (a font): how many fills are left. */
+	fills: number;
 	/** Seconds spent on the slot being revealed. Lost when the crate is closed. */
 	progress: number;
 }
@@ -60,7 +65,9 @@ export class Crates {
 		placements: CratePlacement[],
 		nav: NavGrid,
 		start: Vec3,
-		private seed: number
+		private seed: number,
+		/** Locked gates in the map (the mausoleum's): each needs a key hidden, like a trunk. */
+		private gates = 0
 	) {
 		const distance = gridDistances(nav, [nearestPoint(nav, start)], true);
 		const along = new Map(placements.map((c) => [c.id, distance[nearestPoint(nav, c.position)]]));
@@ -74,6 +81,8 @@ export class Crates {
 		}
 		// Which are sealed: their own stream, so the loot rolled doesn't change with it.
 		const jams = new Rng(seed ^ 0x7a33ed);
+		// How full each font is: its own stream too.
+		const fillRng = new Rng(seed ^ 0xf0a7);
 		for (const { id, position, kind, tier } of placements) {
 			const seal = lootableOf({ kind }).sealed;
 			const roll = jams.next();
@@ -94,6 +103,8 @@ export class Crates {
 				hidden: new Set(),
 				user: null,
 				opened: false,
+				unseen: !!lootableOf({ kind }).hidden,
+				fills: fillsOf(lootableOf({ kind }), fillRng),
 				progress: 0
 			});
 		}
@@ -113,7 +124,7 @@ export class Crates {
 				byHand(crate) &&
 				Number.isFinite(this.fromStart.get(crate.id) ?? Infinity)
 		);
-		for (let i = 0; i < this.trunks().length; i++) {
+		for (let i = 0; i < this.trunks().length + this.gates; i++) {
 			if (open.length) this.put(rng.pick(open), newStack(TRUNKS.key));
 			else this.stow(newStack(TRUNKS.key), rng);
 		}
@@ -141,13 +152,21 @@ export class Crates {
 		// Each level's treasure within its budget: its own stream, so the rolls above don't change.
 		const budget = new Rng(this.seed ^ 0xb0d6e7 ^ Math.imul(this.fills, 0x9e3779b9));
 		const tiers = new Set(this.tier.values());
+		// A trunk's (an alcove's) promised prize is the last thing the budget takes.
+		const prizes = new Set<ItemStack>();
+		for (const crate of this.crates.values()) {
+			if (lootableOf(crate).prize === undefined) continue;
+			for (const stack of crate.slots) {
+				const rarity = stack ? rarityOf(stack.item) : null;
+				if (stack && (rarity === 'epic' || rarity === 'legendary')) prizes.add(stack);
+			}
+		}
 		for (const tier of [...tiers].sort()) {
 			const here = [...this.crates.values()].filter((crate) => this.tier.get(crate.id) === tier);
-			trimToBudget(
-				here.map((crate) => crate.slots),
-				tier,
-				budget
-			);
+			const slots = here.map((crate) => crate.slots);
+			// Everything else first; a prize only if the level is over its budget even so.
+			trimToBudget(slots, tier, budget, (stack) => prizes.has(stack));
+			trimToBudget(slots, tier, budget);
 		}
 		for (const crate of this.crates.values()) {
 			// What was taken out leaves no gaps: what is left starts at the first slot.
@@ -239,7 +258,9 @@ export class Crates {
 			busy: all.filter((c) => c.user !== null).map((c) => c.id),
 			// Only the jams someone has found: the rest look like any crate until tried.
 			jammed: all.filter((c) => c.lock === 'jammed' && c.jamFound).map((c) => c.id),
-			locked: all.filter((c) => c.lock === 'locked').map((c) => c.id)
+			locked: all.filter((c) => c.lock === 'locked').map((c) => c.id),
+			noticed: all.filter((c) => !c.unseen && lootableOf(c).hidden).map((c) => c.id),
+			dry: all.filter((c) => lootableOf(c).fill && c.fills <= 0).map((c) => c.id)
 		};
 	}
 
@@ -255,9 +276,27 @@ export class Crates {
 		crate.lock = null;
 	}
 
+	/** Admin: unsealed, a hidden one found, a font full again. */
+	free(crate: Crate): void {
+		crate.lock = null;
+		crate.unseen = false;
+		const fill = lootableOf(crate).fill;
+		if (fill) crate.fills = Math.max(crate.fills, fill.fills[1]);
+	}
+
 	/** The crate a player is looking at within reach, or null (see lookedAtCrate). */
 	lookedAt(eye: Vec3, look: Vec3): Crate | null {
-		return lookedAtCrate(this.world, eye, look, this.crates.values());
+		return lookedAtCrate(
+			this.world,
+			eye,
+			look,
+			[...this.crates.values()].filter((c) => !c.unseen)
+		);
+	}
+
+	/** Hidden ones nobody has noticed yet (a smuggler's stash). */
+	unseen(): Crate[] {
+		return [...this.crates.values()].filter((c) => c.unseen);
 	}
 
 	/** A player starts going through a crate. Returns whether this is the first time it is opened. */
@@ -316,4 +355,11 @@ function byHand(crate: Crate): boolean {
 function placed(item: string): boolean {
 	const def = ITEMS[item];
 	return def?.quest === true || def?.kind === 'clue' || def?.unlocks === true;
+}
+
+/** How many fills one holds (a font), rolled per map; 0 for anything not filled from. */
+function fillsOf(def: LootableDef, rng: Rng): number {
+	if (!def.fill) return 0;
+	const [least, most] = def.fill.fills;
+	return least + Math.floor(rng.next() * (most - least + 1));
 }

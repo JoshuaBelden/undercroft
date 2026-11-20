@@ -172,7 +172,9 @@ export const MAP_KIT: MapKit = {
 		levels: [2, 3],
 		title: 'Plague Pit',
 		banner: 'They ran out of names',
-		acoustics: 'vast'
+		acoustics: 'vast',
+		// Searching among the dead here takes a little out of you.
+		searchSanity: 4
 	},
 	'drowned-chapel': {
 		role: 'connector',

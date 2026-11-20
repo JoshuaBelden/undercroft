@@ -1,4 +1,4 @@
-import { DOORS } from '../../content/doors.ts';
+import { DOORS, GATES } from '../../content/doors.ts';
 import { LOOTABLES } from '../../content/lootables.ts';
 import { MAP_KIT } from '../../content/map/kit.ts';
 import { toWorld } from './grid.ts';
@@ -232,11 +232,14 @@ export function buildCollisionWorld(
 	}
 	// Doors between levels are solid until opened (openDoor).
 	for (const door of layout.doors) {
-		const [w, h, d] = DOORS.size;
+		// The same box as doorBox (doors.ts), which imports this file.
+		const [w, h, d] = door.kind === 'gate' ? GATES.size : DOORS.size;
+		const center: Vec3 = [door.position[0], door.position[1] + h / 2, door.position[2]];
+		const half: Vec3 = [w / 2, h / 2, d / 2];
 		const q: Quat = [0, Math.sin(door.yaw / 2), 0, Math.cos(door.yaw / 2)];
 		world.boxes.push({
-			center: [door.position[0], door.position[1] + h / 2, door.position[2]],
-			half: [w / 2, h / 2, d / 2],
+			center,
+			half,
 			axes: [rotate(q, [1, 0, 0]), rotate(q, [0, 1, 0]), rotate(q, [0, 0, 1])],
 			door: door.id
 		});

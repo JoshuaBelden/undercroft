@@ -32,6 +32,8 @@ describe('the loot tables', () => {
 	it('every lootable has its own id, slots, and counts for every level', () => {
 		for (const [id, def] of Object.entries(LOOTABLES)) {
 			expect(def.id).toBe(id);
+			// Filled from (a font): no slots, no ways to open.
+			if (def.fill) continue;
 			expect(def.slots).toBeGreaterThan(0);
 			expect(def.rarity).toHaveLength(LOOT_BUDGET.length);
 			if (def.sealed?.rarity) expect(def.sealed.rarity).toHaveLength(LOOT_BUDGET.length);

@@ -129,7 +129,8 @@ describe('keys and the budget', () => {
 		for (const seed of [1, 2, 3, 4]) {
 			const session = open(seed);
 			const crates = session['crates'];
-			const locks = crates.trunks().length;
+			const gates = session.layout.doors.filter((d) => d.kind === 'gate').length;
+			const locks = crates.trunks().length + gates;
 			const holding = crates
 				.list()
 				.filter(({ crate }) => crate.slots.some((s) => s?.item === 'key'))

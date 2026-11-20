@@ -202,13 +202,14 @@ describe('crates', () => {
 		expect(diver.socket.last('tick')!.crates.locked).toContain(crate.id);
 	});
 
-	it('every trunk has its key in a crate that is neither locked nor jammed', () => {
+	it('every trunk and gate has its key in a crate that is neither locked nor jammed', () => {
 		for (const seed of [1, 2, 3]) {
 			const session = open(seed);
 			const crates = session['crates'].list().map(({ crate }) => crate);
 			const trunks = crates.filter((c) => c.kind === 'trunk');
 			const keys = crates.flatMap((c) => c.slots.filter((s) => s?.item === 'key').map(() => c));
-			expect(keys.length, `seed ${seed}`).toBe(trunks.length);
+			const gates = session.layout.doors.filter((d) => d.kind === 'gate').length;
+			expect(keys.length, `seed ${seed}`).toBe(trunks.length + gates);
 			for (const c of keys) expect(c.lock).toBeNull();
 		}
 	});

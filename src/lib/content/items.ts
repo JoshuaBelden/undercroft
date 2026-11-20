@@ -154,6 +154,11 @@ export interface PlaceSpec {
 	snare?: { hold: number; radius: number };
 	/** A line creatures won't cross, `length` m long across the way, for `seconds` (blessed salt). */
 	ward?: { length: number; seconds: number };
+	/**
+	 * A rope anchor, hammered in at the edge of a drop the player faces (a climbing piton): a rope
+	 * can be tied there from then on. Nowhere to hammer it, it isn't used up. See PITONS.
+	 */
+	anchor?: boolean;
 }
 
 export interface HealSpec {
@@ -339,6 +344,17 @@ export interface ItemDef {
 	noSprint?: boolean;
 	/** Set down on the floor from the quick-use slot (see PlaceSpec). */
 	place?: PlaceSpec;
+	/** Held in the hand, it breaks these: `rubble` (a rubble wall: a pickaxe). */
+	breaks?: string[];
+	/** Worn (gear), it keeps these off: `bites` (a rat nest's), `poison` (a cocoon's). Gloves. */
+	protects?: string[];
+	/** It breaks on a hard fall (and may, inside something smashed open): gone. A jar. */
+	fragile?: boolean;
+	/**
+	 * Cursed: while it is carried, it takes `sanity` a second and whispers round its carrier (the
+	 * porcelain doll). See docs/dev/world.md#cursed-loot.
+	 */
+	cursed?: { sanity: number };
 }
 
 /** How many of most things share a slot. Weapons and defense never stack. */

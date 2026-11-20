@@ -94,6 +94,8 @@ export class HazardSystem implements SessionSystem {
 				by: result.thrower
 			});
 			this.ctx.events.push({ kind: 'fire', item: result.item, position: at });
+			// Webs near it burn away.
+			this.ctx.systems.walls.burn(at, spec.fire.radius);
 		}
 	}
 
@@ -102,7 +104,8 @@ export class HazardSystem implements SessionSystem {
 		for (const event of step.events) {
 			if (event.kind !== 'place') continue;
 			const spec = ITEMS[event.item]?.place;
-			if (!spec) continue;
+			// A piton is the rope system's (an anchor).
+			if (!spec || spec.anchor) continue;
 			const ahead = this.floorAhead(event.origin, event.direction);
 			if (!ahead) continue;
 			const yaw = Math.atan2(-event.direction[0], -event.direction[2]);
