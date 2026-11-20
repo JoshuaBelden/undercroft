@@ -4,10 +4,11 @@ import { LOOTABLES } from '../../content/lootables.ts';
 import { MAP_KIT } from '../../content/map/kit.ts';
 import { openable } from '../items/lootables.ts';
 import { realMap } from '../testing/maps.ts';
-import { placeCrates } from './crates.ts';
+import { buildCollisionWorld } from './collision.ts';
+import { lootableFits, placeCrates } from './crates.ts';
 import { PIECES } from './pieces.generated.ts';
 import { spawnPoint } from './points.ts';
-import type { MapKit } from './types.ts';
+import type { MapKit, MapLayout } from './types.ts';
 
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -48,6 +49,7 @@ describe('placeCrates', () => {
 describe('lootables in the map', () => {
 	it('a lootable marker holds its own kind, at its own place', () => {
 		const pieces = structuredClone(PIECES);
+		for (const piece of Object.values(pieces)) delete piece.lootables;
 		// Make room-small's crate markers locker markers.
 		const piece = pieces['room-small'];
 		piece.lootables = piece.crates.map((marker) => ({ ...marker, type: 'locker' }));
@@ -69,10 +71,13 @@ describe('lootables in the map', () => {
 			Object.entries(MAP_KIT).map(([id, entry]) => [id, { ...entry, lootables: undefined }])
 		);
 		kit['room-vault'] = { ...MAP_KIT['room-vault'], lootables: { cocoon: 1 } };
+		// The pieces without their own lootable markers: only the mix says what is in them.
+		const bare = structuredClone(PIECES);
+		for (const piece of Object.values(bare)) delete piece.lootables;
 		let cocoons = 0;
 		for (const seed of SEEDS) {
 			const map = realMap(seed);
-			for (const crate of placeCrates(map, PIECES, seed, kit)) {
+			for (const crate of placeCrates(map, bare, seed, kit)) {
 				expect(['cocoon', 'corpse', 'trunk', undefined]).toContain(crate.kind);
 				if (crate.kind === 'cocoon') cocoons++;
 			}
@@ -100,5 +105,28 @@ describe('lootables in the map', () => {
 		for (const kind of ['niche', 'bonePile', 'toolChest', 'locker', 'sarcophagus']) {
 			expect(kinds.get(kind), kind).toBeGreaterThan(0);
 		}
+	});
+});
+
+describe("the pieces' lootable markers", () => {
+	it('each has room for its lootable, alone in its piece: clear of the walls, on floor', () => {
+		const misfits: string[] = [];
+		for (const [name, piece] of Object.entries(PIECES)) {
+			if (!piece.lootables?.length) continue;
+			const layout: MapLayout = {
+				seed: 0,
+				affliction: null,
+				placements: [{ piece: name, position: [0, 0, 0], rotation: 0, tier: 0 }],
+				crates: [],
+				doors: []
+			};
+			const world = buildCollisionWorld(layout, PIECES);
+			for (const marker of piece.lootables) {
+				if (!lootableFits(world, marker.position, marker.yaw, marker.type)) {
+					misfits.push(`${name}: ${marker.type} at ${marker.position.join(', ')}`);
+				}
+			}
+		}
+		expect(misfits).toEqual([]);
 	});
 });

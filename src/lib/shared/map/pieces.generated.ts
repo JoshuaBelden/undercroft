@@ -273,6 +273,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [3, 0, 1.1], yaw: -1.571 },
 			{ position: [-3, 0, -0.6], yaw: 1.571 }
 		],
+		lootables: [{ type: 'corpse', position: [0.5, 0, -2.845], yaw: 0 }],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -322,6 +323,11 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, -0.5], yaw: 1.571 },
 			{ position: [5.41, 0, 1], yaw: -1.571 },
 			{ position: [1.6, 0, 3.41], yaw: -3.142 }
+		],
+		lootables: [
+			{ type: 'locker', position: [-2.5, 0, 3.47], yaw: 3.142 },
+			{ type: 'locker', position: [3, 0, -3.47], yaw: 0 },
+			{ type: 'locker', position: [-0.5, 0, 3.47], yaw: 3.142 }
 		],
 		doors: [],
 		rubble: [
@@ -373,6 +379,15 @@ export const PIECES: Record<string, PieceDef> = {
 		crates: [
 			{ position: [-17.3, 0, -1], yaw: 1.571 },
 			{ position: [17.3, 0, -1], yaw: -1.571 }
+		],
+		lootables: [
+			{ type: 'alcove', position: [-6.73, 0, 5.5], yaw: -1.571 },
+			{ type: 'offeringBox', position: [-11, 0, 6.2], yaw: 0 },
+			{ type: 'offeringBox', position: [5.32, 0, 6], yaw: -1.571 },
+			{ type: 'sarcophagus', position: [-6.98, 0, 9.5], yaw: -1.571 },
+			{ type: 'sarcophagus', position: [4, 0, 10.52], yaw: 3.142 },
+			{ type: 'vestryCabinet', position: [-14.02, 0, 9.5], yaw: 1.571 },
+			{ type: 'vestryCabinet', position: [-5.22, 0, -4], yaw: 1.571 }
 		],
 		doors: [{ position: [0, 0, 11.5], yaw: -3.142 }],
 		rubble: [],
@@ -808,6 +823,7 @@ export const PIECES: Record<string, PieceDef> = {
 		rites: [],
 		altars: [],
 		crates: [{ position: [0, 0, 0.836], yaw: 0 }],
+		lootables: [{ type: 'stash', position: [-0.5, 0, 0.019], yaw: 0 }],
 		doors: [],
 		rubble: [[0, 0, -0.2]],
 		ropes: [],
@@ -919,6 +935,11 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [3.06, 0, 0], yaw: -1.571 },
 			{ position: [1.7, 0, -1.06], yaw: 0 },
 			{ position: [1.7, 0, 1.06], yaw: -3.142 }
+		],
+		lootables: [
+			{ type: 'niche', position: [-2.795, 0, 0], yaw: 1.571 },
+			{ type: 'niche', position: [-0.5, 0, -0.795], yaw: 0 },
+			{ type: 'stash', position: [-0.5, 0, 0.82], yaw: 3.142 }
 		],
 		doors: [],
 		rubble: [],
@@ -1135,6 +1156,16 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, -1.8], yaw: 1.571 },
 			{ position: [-5.41, 0, -0.4], yaw: 1.571 }
 		],
+		lootables: [
+			{ type: 'bonePile', position: [0, 0, 0.78], yaw: 0 },
+			{ type: 'bonePile', position: [2.5, 0, 2.97], yaw: 3.142 },
+			{ type: 'bonePile', position: [0, 0, -0.78], yaw: 3.142 },
+			{ type: 'niche', position: [3, 0, -3.201], yaw: 0 },
+			{ type: 'niche', position: [-3, 0, 3.199], yaw: 3.142 },
+			{ type: 'niche', position: [-4.5, 0, -3.198], yaw: 0 },
+			{ type: 'niche', position: [4.5, 0, 3.197], yaw: 3.142 },
+			{ type: 'ratNest', position: [-2.5, 0, -2.968], yaw: 0 }
+		],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -1182,6 +1213,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [3, 0, -1.6], yaw: -1.571 },
 			{ position: [-3, 0, -0.4], yaw: 1.571 }
 		],
+		lootables: [{ type: 'corpse', position: [1.5, 0, 2.845], yaw: 3.142 }],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -1244,6 +1276,14 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-5.41, 0, 3.5], yaw: 1.571 },
 			{ position: [-2, 0, 5.41], yaw: -3.142 }
 		],
+		lootables: [
+			{ type: 'corpse', position: [1, 0, 5.195], yaw: 3.142 },
+			{ type: 'toolChest', position: [-1.595, 0, 2], yaw: 1.571 },
+			{ type: 'toolChest', position: [-1.174, 0, -3], yaw: 1.571 },
+			{ type: 'toolChest', position: [3, 0, 3.605], yaw: 0 },
+			{ type: 'toolChest', position: [-0.5, 0, -5.445], yaw: 0 },
+			{ type: 'toolChest', position: [4.5, 0, -5.445], yaw: 0 }
+		],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -1294,6 +1334,13 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [2.5, 0, 3.06], yaw: -3.142 },
 			{ position: [3.06, 0, -1.8], yaw: -1.571 },
 			{ position: [-3.06, 0, 1.8], yaw: 1.571 }
+		],
+		lootables: [
+			{ type: 'niche', position: [0, 0, -0.705], yaw: 3.142 },
+			{ type: 'niche', position: [-2, 0, 1.355], yaw: 0 },
+			{ type: 'niche', position: [2, 0, -1.355], yaw: 3.142 },
+			{ type: 'sarcophagus', position: [0, 0, 2.92], yaw: 3.142 },
+			{ type: 'sarcophagus', position: [0, 0, -2.92], yaw: 0 }
 		],
 		doors: [],
 		rubble: [],
@@ -1350,6 +1397,13 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-2, 0, -3.41], yaw: 0 },
 			{ position: [2, 0, 3.41], yaw: -3.142 }
 		],
+		lootables: [
+			{ type: 'niche', position: [-3.5, 0, 3.545], yaw: 3.142 },
+			{ type: 'niche', position: [2.5, 0, -3.545], yaw: 0 },
+			{ type: 'niche', position: [-0.625, 0, 0], yaw: -1.571 },
+			{ type: 'niche', position: [3.375, 0, 0], yaw: -1.571 },
+			{ type: 'niche', position: [-4, 0, -0.625], yaw: 3.142 }
+		],
 		doors: [],
 		rubble: [
 			[-6.8, 0, -2.9],
@@ -1399,6 +1453,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [-1.06, 0, 0], yaw: 1.571 },
 			{ position: [1.06, 0, 0], yaw: -1.571 }
 		],
+		lootables: [{ type: 'offeringBox', position: [-1.22, 0, 1.5], yaw: 1.571 }],
 		doors: [],
 		rubble: [],
 		ropes: [],
@@ -1446,6 +1501,13 @@ export const PIECES: Record<string, PieceDef> = {
 			{ position: [5.41, 0, 1.5], yaw: -1.571 },
 			{ position: [-5.41, 0, -1.5], yaw: 1.571 },
 			{ position: [5.41, 0, -1.6], yaw: -1.571 }
+		],
+		lootables: [
+			{ type: 'bonePile', position: [-1.53, 0, 0], yaw: -1.571 },
+			{ type: 'bonePile', position: [-5.32, 0, 1.5], yaw: 1.571 },
+			{ type: 'bonePile', position: [-3.5, 0, 5.32], yaw: 3.142 },
+			{ type: 'cocoon', position: [0, 0, 0.93], yaw: 0 },
+			{ type: 'ratNest', position: [1.6, 0, 2.5], yaw: -1.571 }
 		],
 		doors: [],
 		rubble: [

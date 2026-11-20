@@ -62,14 +62,23 @@ Catches the design gives some of them (rats biting, poison, the alcove's meter c
 
 `placeCrates(layout, pieces, seed, kit = MAP_KIT)`, seeded by the map seed, each step in its own random stream so one doesn't reshuffle the others:
 
-1. **Markers.** Every `crate-<n>` marker, and every `lootable-<type>-<n>` marker (its kind in its name, exported by `pnpm asset:build` into the piece's `lootables`, at the lootable's own centre), is filled with probability `CRATES.fill`, none within `CRATES.minDistance` of the start and none in the start room.
+1. **Markers.** Every `crate-<n>` marker is filled with probability `CRATES.fill`, and every `lootable-<type>-<n>` marker (its kind in its name, exported by `pnpm asset:build` into the piece's `lootables`, at the lootable's own centre) with `CRATES.lootableFill`, higher, as each stands where its room wants one. None within `CRATES.minDistance` of the start, none in the start room, and none of a kind nothing can open yet.
 2. **Corpses:** about `CORPSES.share` of the crates become corpses, where a body fits. The dead lie anywhere, whatever the room.
 3. **Trunks:** on `TRUNKS.tiers` (the third level), about `TRUNKS.chance` of the crates left become locked trunks.
 4. **Rooms.** A crate left in a piece whose kit entry has `lootables` holds one of those instead, by weight (`crate` among them keeps some crates), pushed out from the wall by the difference in depth, where it fits (clear of walls and the others, on dry floor all over; otherwise it stays a crate). Kinds that nothing in the game can open yet (`openable`: the offering box, until there are lockpicks or a sledgehammer) are left out.
 
 ### Rooms
 
-What a room holds is how room type restricts loot. Until the existing pieces have `lootable-*` markers in Blender, their kit entries say what their crate markers hold (the `lootables` mix in `src/lib/content/map/kit.ts`, from the handoff's table of existing pieces): bone piles and niches in the Ossuary Hall, tool chests in the Quarry Gallery, lockers in the Shaft, sarcophagi and niches in crypts, and so on. Once a piece has its own markers, take its line out. Pieces with no crate markers (the Cistern, the canals and flooded halls, the crawls) have no lootables yet.
+What a room holds is how room type restricts loot: its `lootable-*` markers. The existing pieces have theirs from the handoff's table of existing pieces: bone piles, niches and a rat nest in the Ossuary Hall, tool chests in the Quarry Gallery, lockers in the Shaft, sarcophagi and niches in crypts, cabinets, sarcophagi, offering boxes and the alcove in the Gloaming Chapel, and so on. Pieces with no markers (the Cistern, the canals and flooded halls, the crawls) have only what the dead and loose loot bring.
+
+**Placing them** is scripted (`scripts/blender/lootables.py`): `ROOMS` lists each piece's kinds in the order spots are given out, and `place_all()` finds a spot for each. It tries every point of a half-metre grid over the footprint that has a wall near, pushes the lootable back against that wall, and keeps the best spot where the wall behind is even enough, nothing stands on the floor under it, the floor in front is clear, it is clear of every other marker and doorway, and the game's own fit test passes (`fits`, the same rule as `placeCrates`'s: colliders as boxes, collision floor under every point, clear of floor-box edges). `SIZES` there must match each kind's `size`. Headless:
+
+```
+blender --background art/blender/catacomb-kit.blend --python scripts/blender/place_lootables.py -- --force
+pnpm asset:export && pnpm asset:build
+```
+
+(`--force` places every room's again; without it rooms that have markers are skipped.) `crates.test.ts` checks every marker's lootable fits its piece. A kit entry's `lootables` mix is still there for a piece with no markers of its own (none uses it now).
 
 ## What they hold
 

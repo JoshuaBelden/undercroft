@@ -44,7 +44,7 @@ export const MODELS = {
 	'shared/items/knife.glb': { url: '/assets/shared/items/knife.1a50d07f.glb', bytes: 205208 },
 	'shared/items/medkit.glb': { url: '/assets/shared/items/medkit.922e63e8.glb', bytes: 251004 },
 	'shared/items/note.glb': { url: '/assets/shared/items/note.387d1475.glb', bytes: 209852 },
-	'shared/items/notebook.glb': { url: '/assets/shared/items/notebook.7ae4b2a4.glb', bytes: 358292 },
+	'shared/items/notebook.glb': { url: '/assets/shared/items/notebook.473493c6.glb', bytes: 341384 },
 	'shared/items/pendant.glb': { url: '/assets/shared/items/pendant.8cde11ff.glb', bytes: 247972 },
 	'shared/items/revolver.glb': { url: '/assets/shared/items/revolver.fb05cf75.glb', bytes: 224000 },
 	'shared/items/rope_bundle.glb': {

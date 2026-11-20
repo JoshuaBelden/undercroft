@@ -12,8 +12,13 @@ export const CRATES = {
 	columns: 4,
 	/** Seconds it takes to see what is in a slot. Slots are revealed one at a time. */
 	revealSeconds: 1,
-	/** Chance that a crate or lootable marker in a piece has something (about 140 in a map). */
+	/** Chance that a crate marker in a piece has something (about 140 in a map). */
 	fill: 0.22,
+	/**
+	 * Chance that a lootable marker has its lootable: higher, as each was put where its room wants
+	 * one (the niches of an ossuary, the lockers of the shaft).
+	 */
+	lootableFill: 0.45,
 	/** None closer than this to where players start (m, in a straight line). */
 	minDistance: 10
 };

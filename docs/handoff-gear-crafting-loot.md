@@ -567,7 +567,7 @@ Built, and moved into `docs/dev/`: [items.md](dev/items.md) (gear slots, materia
 
 Built, and moved into [lootables.md](dev/lootables.md). What it settled:
 
-- **Room mixes for now:** until the existing pieces have `lootable-*` markers, each kit entry says what its crate markers hold (`lootables` in `src/lib/content/map/kit.ts`). The markers are still on the art list.
+- **Markers in the pieces:** the existing pieces have `lootable-*` markers, placed by script (`scripts/blender/lootables.py`) from the table of existing pieces. Lootable markers are filled more often than crate markers (`CRATES.lootableFill`).
 - **Corpses and trunks first:** they are placed before any room's mix, so the dead lie anywhere (about 10 a map).
 - **Tables for items still to come:** tables already name items that don't exist yet. Their lines are skipped until each is added (`PENDING_ITEMS`).
 - **Unopenable kinds wait:** kinds nothing can open yet are left out of maps. That's the offering box, until lockpicks or a sledgehammer exist.
@@ -687,7 +687,7 @@ Each with its `crate-<n>` and `lootable-<type>-<n>` markers, plus the markers it
 
 | Pieces                                                                                                                                                                                                                  | Needed by |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| **Existing pieces:** add `lootable-*` markers to all 17 in "Existing pieces"                                                                                                                                            | 2         |
+| **Existing pieces:** `lootable-*` markers (done, by `scripts/blender/lootables.py`)                                                                                                                                     | 2         |
 | **New rooms (13):** The Vestry, Quarrymen's Lodge, Smugglers' Cellar, The Pump Room, Rat Warren, Explorers' Camp, Survey Station, Rockfall, Family Mausoleum, Webbed Gallery, Plague Pit, Drowned Chapel, Saints' Crypt | 3         |
 | **Rappel rooms (3):** The Sinkhole, Broken Stair, Sunken Ossuary                                                                                                                                                        | 3         |
 | **Rumors map:** its start room, the short way in (tutorial stops 1–5), the training vault                                                                                                                               | 8         |

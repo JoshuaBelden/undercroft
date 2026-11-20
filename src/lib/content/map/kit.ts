@@ -5,8 +5,8 @@ import type { MapKit } from '../../shared/map/types.ts';
  * exports (`src/lib/shared/map/pieces.generated.ts`); this file says how the generator uses them.
  * Connector weights are relative chances. See docs/dev/map-generation.md.
  *
- * `lootables`: until a piece has lootable-* markers of its own, what its crate markers hold, by
- * weight (docs/dev/lootables.md#rooms). Take a piece's line out once its markers are in.
+ * `lootables`: for a piece with no lootable-* markers of its own, what its crate markers hold, by
+ * weight (docs/dev/lootables.md#rooms).
  */
 export const MAP_KIT: MapKit = {
 	// The start room: a candlelit chapel over a pit. The rope tied on its lip is the only way down,
@@ -17,14 +17,12 @@ export const MAP_KIT: MapKit = {
 	'ossuary-hall': {
 		role: 'major',
 		title: 'Ossuary Hall',
-		acoustics: 'hall',
-		lootables: { bonePile: 3, niche: 3, ratNest: 1, crate: 1 }
+		acoustics: 'hall'
 	},
 	'quarry-gallery': {
 		role: 'major',
 		title: 'Quarry Gallery',
-		acoustics: 'vast',
-		lootables: { toolChest: 4, corpse: 1, crate: 1 }
+		acoustics: 'vast'
 	},
 	cistern: { role: 'major', title: 'The Cistern', acoustics: 'vast' },
 	'gloaming-chapel': {
@@ -32,8 +30,7 @@ export const MAP_KIT: MapKit = {
 		final: true,
 		affliction: 'gloaming',
 		title: 'Gloaming Chapel',
-		acoustics: 'vast',
-		lootables: { vestryCabinet: 2, sarcophagus: 2, offeringBox: 1, alcove: 1 }
+		acoustics: 'vast'
 	},
 
 	// The end of a level: a way up to the surface, and the double door to the long stair down to
@@ -41,8 +38,7 @@ export const MAP_KIT: MapKit = {
 	'extraction-gate': {
 		role: 'extraction',
 		title: 'The Shaft',
-		acoustics: 'hall',
-		lootables: { locker: 3, crate: 1 }
+		acoustics: 'hall'
 	},
 	// The only way between levels, behind the extraction room's double door.
 	'stairs-deep': { role: 'descent', title: 'The Long Stair', acoustics: 'hall' },
@@ -52,39 +48,22 @@ export const MAP_KIT: MapKit = {
 	'hall-corner': { role: 'connector', weight: 3 },
 	'hall-tee': { role: 'connector', weight: 3 },
 	'hall-cross': { role: 'connector', weight: 1.5 },
-	'hall-side-room': {
-		role: 'connector',
-		weight: 1,
-		lootables: { niche: 2, stash: 1, crate: 1 }
-	},
-	'room-small': {
-		role: 'connector',
-		weight: 1,
-		room: true,
-		lootables: { niche: 2, offeringBox: 1, crate: 1 }
-	},
-	'room-crypt': {
-		role: 'connector',
-		weight: 0.5,
-		room: true,
-		acoustics: 'hall',
-		lootables: { sarcophagus: 2, niche: 2 }
-	},
+	'hall-side-room': { role: 'connector', weight: 1 },
+	'room-small': { role: 'connector', weight: 1, room: true },
+	'room-crypt': { role: 'connector', weight: 0.5, room: true, acoustics: 'hall' },
 	'room-vault': {
 		role: 'connector',
 		weight: 1,
 		room: true,
 		title: 'Charnel Vault',
-		acoustics: 'vast',
-		lootables: { bonePile: 2, ratNest: 1, cocoon: 1, crate: 1 }
+		acoustics: 'vast'
 	},
 	'room-gallery': {
 		role: 'connector',
 		weight: 0.8,
 		room: true,
 		title: 'Burial Gallery',
-		acoustics: 'hall',
-		lootables: { niche: 3, sarcophagus: 1 }
+		acoustics: 'hall'
 	},
 	'hall-crawl': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'crawl' },
 	'hall-squeeze-long': { role: 'connector', weight: 0.2, acoustics: 'tight', sketch: 'squeeze' },
@@ -101,8 +80,7 @@ export const MAP_KIT: MapKit = {
 		needsRope: true,
 		room: true,
 		title: 'The Drop',
-		acoustics: 'vast',
-		lootables: { corpse: 1 }
+		acoustics: 'vast'
 	},
 	pit: {
 		role: 'connector',
@@ -110,10 +88,9 @@ export const MAP_KIT: MapKit = {
 		needsRope: true,
 		room: true,
 		title: 'The Pit',
-		acoustics: 'hall',
-		lootables: { corpse: 1 }
+		acoustics: 'hall'
 	},
 
-	'hall-dead-end': { role: 'end', lootables: { stash: 1, cache: 1 } },
+	'hall-dead-end': { role: 'end' },
 	'cap-hall': { role: 'cap', seals: 'hall' }
 };

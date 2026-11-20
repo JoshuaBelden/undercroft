@@ -21,8 +21,9 @@ const CRATE_DEPTH = LOOTABLES.crate.size[2];
  * from there the solid ones are part of the collision world on both sides. Markers in the start
  * room are always left empty. See docs/dev/lootables.md.
  *
- * 1. Every marker is filled with probability `CRATES.fill` (rolled for each, so one more or less
- *    doesn't reshuffle the rest). A lootable marker holds its own kind; a crate marker a crate.
+ * 1. Every crate marker is filled with probability `CRATES.fill`, every lootable marker with
+ *    `CRATES.lootableFill` (rolled for each, so one more or less doesn't reshuffle the rest). A
+ *    lootable marker holds its own kind (none if nothing can open it yet); a crate marker a crate.
  * 2. About `CORPSES.share` of the crates become corpses, where a body fits: the dead lie anywhere.
  * 3. On `TRUNKS.tiers`, about `TRUNKS.chance` of the crates left become locked trunks.
  * 4. A crate left in a piece whose kit entry lists `lootables` (until the piece has lootable
@@ -54,7 +55,7 @@ export function placeCrates(
 			([type, weight]) => (weight ?? 0) > 0 && openable(LOOTABLES[type as LootableId])
 		) as [LootableId, number][];
 		for (const marker of markers) {
-			const filled = rng.next() < CRATES.fill;
+			const filled = rng.next() < (marker.type ? CRATES.lootableFill : CRATES.fill);
 			const position = toWorld(placement, marker.position);
 			const away = Math.hypot(position[0] - start[0], position[2] - start[2]);
 			const atStart = placement === layout.placements[0];
@@ -64,6 +65,8 @@ export function placeCrates(
 					? mixes.weighted<[LootableId, number]>(mix, ([, weight]) => weight)[0]
 					: 'crate';
 			if (atStart || !filled || away < CRATES.minDistance) continue;
+			// A kind nothing in the game can open yet (an offering box, until there are lockpicks).
+			if (marker.type && !openable(LOOTABLES[marker.type])) continue;
 			const crate: CratePlacement = {
 				id: `c${crates.length + 1}`,
 				position: position.map(round) as Vec3,
@@ -194,3 +197,13 @@ function fits(world: CollisionWorld, centre: Vec3, yaw: number, size: Vec3): boo
 
 /** The middle of a lootable: what is looked at to open or search it. */
 export const crateCentre = lootableCentre;
+
+/** Whether a lootable of this kind fits at a place in a world (a test of the pieces' markers). */
+export function lootableFits(
+	world: CollisionWorld,
+	position: Vec3,
+	yaw: number,
+	type: LootableId
+): boolean {
+	return fits(world, position, yaw, LOOTABLES[type].size);
+}

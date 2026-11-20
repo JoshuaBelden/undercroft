@@ -100,10 +100,12 @@ describe('crates', () => {
 
 	it('keeps rare and better for the crates on the third level', () => {
 		const session = open(SEED);
-		const tierOf = new Map(session.layout.crates.map((c) => [c.id, c.tier]));
+		// Plain crates: other lootables have their own rarities by level (a sarcophagus, a stash).
+		const tierOf = new Map(session.layout.crates.filter((c) => !c.kind).map((c) => [c.id, c.tier]));
 		const found = { upper: new Set<string>(), deepest: new Set<string>() };
 		for (let fill = 0; fill < 10; fill++) {
 			for (const { crate } of session['crates'].list()) {
+				if (!tierOf.has(crate.id)) continue;
 				for (const stack of crate.slots) {
 					const kind = stack && ITEMS[stack.item]?.kind;
 					// Hints, the rite's own items and the trunks' keys are put in on top of the roll, anywhere.
