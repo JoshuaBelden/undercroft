@@ -185,11 +185,15 @@ You can also give up from anywhere, as long as you're on your feet: press {actio
 		category: 'Expeditions',
 		body: `The catacombs go down in three levels, one under the other. Each is a maze of its own: passages, junctions, burial rooms and dead ends.
 
+When you walk into a room with a name, its name comes up, with the level you are on. The first time you reach a new level, its number comes up instead.
+
 At the far end of the first and second levels is a room with a shaft up to the surface, and a great double door. Behind the door a long stair leads down to the next level. It is the only way down.
 
 The doors are barred. Hold {action:interact} on one to throw off the bar and push it open. It stays open for good, for everyone, and the sound carries: whatever is down there, or behind you, will hear it, and once it's open they can come through too.
 
-The deeper you go, the better the finds. The first two levels hold everyday things; anything rare or precious lies on the third, where the rite is done.`
+Some rooms are only found on the deeper levels: crypts and mausoleums, the plague pit, the drowned chapel, and rarest of all a saints' crypt. Some places can only be reached on a rope: a sinkhole, a stair that ends in the air, a chamber under a grate.
+
+The deeper you go, the better the finds. Most of what lies on the first two levels is everyday, though the dead were buried with fine things wherever they lie; the rarest of all lies on the third, where the rite is done.`
 	},
 	{
 		id: 'parties',

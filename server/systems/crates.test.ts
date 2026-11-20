@@ -99,11 +99,16 @@ describe('crates', () => {
 	});
 
 	it('keeps rare and better for the crates on the third level', () => {
-		const session = open(SEED);
+		// A map with a few plain crates on its third level (rooms hold their own kinds now).
+		let session = open(SEED);
+		for (let seed = SEED; seed < SEED + 20; seed++) {
+			session = open(seed);
+			if (session.layout.crates.filter((c) => !c.kind && c.tier === 2).length >= 4) break;
+		}
 		// Plain crates: other lootables have their own rarities by level (a sarcophagus, a stash).
 		const tierOf = new Map(session.layout.crates.filter((c) => !c.kind).map((c) => [c.id, c.tier]));
 		const found = { upper: new Set<string>(), deepest: new Set<string>() };
-		for (let fill = 0; fill < 10; fill++) {
+		for (let fill = 0; fill < 20; fill++) {
 			for (const { crate } of session['crates'].list()) {
 				if (!tierOf.has(crate.id)) continue;
 				for (const stack of crate.slots) {

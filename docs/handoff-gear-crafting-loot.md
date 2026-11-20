@@ -577,7 +577,9 @@ Built, and moved into [lootables.md](dev/lootables.md). What it settled:
 
 Lootable types as data, `lootable-*` markers (in the existing pieces first), per-lootable tables, rarities per level and flavor text, the value budget per level, and keys for trunks and gates.
 
-### Phase 3: rooms
+### Phase 3: rooms (Done)
+
+Built, and moved into [map-generation.md](dev/map-generation.md) (`levels`, the level on banners, adding a piece) and [lootables.md](dev/lootables.md). The 16 rooms are built by `scripts/blender/rooms.py`, with their lootable and crate markers, kit entries, levels and banner lines. What stands open until Phase 5: the Webbed Gallery's webs (drawn, not in the way), the Rockfall's rubble wall (a heap, no way through), the Mausoleum's gate (open), fonts (none yet), the Plague Pit's sanity drain. The rope rooms have a rope post until there are climbing pitons. Two drops are shorter than the design: the Sinkhole falls 8 m (levels are 4 m apart) and the Broken Stair's last stretch 4 m. The Drowned Chapel has a dry walkway along its west wall as well, so nothing has to swim through it.
 
 The `levels` field in the generator, the level on room banners, then the 13 new rooms and 3 rappel rooms with their levels, lootable markers and banners. A room whose mechanic isn't built yet (webs, rubble, pitons, the mausoleum gate) is placed with that part open until Phase 5.
 

@@ -30,6 +30,8 @@ import kit
 # Footprint and height (m) of each kind: across (along the wall), high, deep. Must match `size` in
 # LOOTABLES (src/lib/content/lootables.ts); a test checks every marker's lootable fits its piece.
 SIZES = {
+    # A crate marker (crate-<n>), placed the same way: the generic spot any room may have.
+    "crate": (0.94, 0.55, 0.64),
     "corpse": (1.3, 0.52, 1.05),
     "trunk": (0.9, 0.73, 0.67),
     "niche": (0.7, 0.45, 0.35),
@@ -70,6 +72,30 @@ ROOMS = {
     "hall-dead-end": ["stash", "cache"],
     "drop-hall": ["corpse"],
     "pit": ["corpse"],
+    # The new rooms (rooms.py; the handoff's table of new rooms), with a crate or two.
+    "vestry": ["vestryCabinet", "vestryCabinet", "offeringBox", "crate"],
+    "quarry-lodge": ["toolChest", "locker", "toolChest", "locker", "crate"],
+    "smugglers-cellar": ["stash", "stash", "corpse", "stash", "crate"],
+    "pump-room": ["locker", "satchel", "locker", "satchel"],
+    "rat-warren": ["ratNest", "ratNest", "ratNest"],
+    "explorers-camp": ["corpse", "locker", "corpse", "crate", "crate"],
+    "survey-station": ["cache"],
+    "rockfall": ["stash", "corpse"],
+    "family-mausoleum": ["sarcophagus", "trunk", "sarcophagus", "sarcophagus"],
+    "webbed-gallery": ["cocoon", "cocoon", "corpse", "cocoon"],
+    "plague-pit": ["bonePile", "bonePile", "bonePile", "bonePile", "crate"],
+    "drowned-chapel": ["satchel", "satchel", "offeringBox", "satchel"],
+    "saints-crypt": ["alcove", "crate"],
+    "sinkhole": ["corpse"],
+    "broken-stair": ["crate"],
+    "sunken-ossuary": ["niche", "sarcophagus", "niche", "niche"],
+}
+
+# The floors to look for spots on, where a piece's floor isn't at its origin (a room whose
+# entrances are on its upper level), the deepest last. Otherwise those its crate markers stand on.
+FLOORS = {
+    "pump-room": [4.0, 2.5],
+    "drowned-chapel": [4.0, 2.4],
 }
 
 STEP = 0.5  # the grid of places tried, over the footprint
@@ -79,6 +105,9 @@ EVEN = 0.5  # most the wall's distance may vary across its back (arched, uneven 
 LOW = 0.08  # most anything may stand on the floor under it
 SPACE = 0.2  # kept clear between it and any other marker's lootable
 SOCKET_CLEAR = 0.9  # kept from doorways (socket markers) and ropes, beyond its own size
+WAY_CLEAR = 0.9  # kept from the straight line between any two doorways on a floor, beyond its size
+# Kinds that are stepped over, not walked round (solid: false in LOOTABLES): they may stand in the way.
+STEPPED_OVER = {"corpse", "bonePile", "satchel", "ratNest", "cocoon", "stash", "cache"}
 
 
 def _wall_of(empty):
@@ -111,8 +140,8 @@ def probe(tree, at, direction, size):
     floor = at.z
     for across in (-w / 2, 0, w / 2):
         for along in (-d / 2, 0, d / 2):
-            origin = centre + side * across + direction * along + Vector((0, 0, 1.6))
-            hit = tree.ray_cast(origin, Vector((0, 0, -1)), 3.0)
+            origin = centre + side * across + direction * along + Vector((0, 0, 0.6))
+            hit = tree.ray_cast(origin, Vector((0, 0, -1)), 1.0)
             if hit[0] is None:
                 return None  # no floor
             under = max(under, hit[0].z - floor)
@@ -265,7 +294,7 @@ def _seeds(tree, half_w, half_d, floors):
         for i in range(steps_x + 1):
             for j in range(steps_y + 1):
                 at = Vector((-half_w + i * STEP, -half_d + j * STEP, z))
-                down = tree.ray_cast(at + Vector((0, 0, 1.6)), Vector((0, 0, -1)), 3.0)
+                down = tree.ray_cast(at + Vector((0, 0, 0.6)), Vector((0, 0, -1)), 1.0)
                 if down[0] is None or abs(down[0].z - z) > 0.1:
                     continue
                 for direction in directions:
@@ -275,11 +304,31 @@ def _seeds(tree, half_w, half_d, floors):
     return seeds
 
 
+def _ways(root):
+    """The straight lines between every two doorways (socket markers) on the same floor: the way
+    through a room, which a lootable mustn't stand in."""
+    sockets = [c.location.copy() for c in root.children if c.name.startswith("socket-")]
+    return [(a, b) for k, a in enumerate(sockets) for b in sockets[k + 1 :] if abs(a.z - b.z) < 0.5]
+
+
+def _off_ways(ways, c, reach):
+    """Whether a lootable at c (reach: half its longest side) stands clear of every way through."""
+    for a, b in ways:
+        if abs(c.z - a.z) > 0.5:
+            continue
+        ab = (b - a).to_2d()
+        t = max(0.0, min(1.0, (c.to_2d() - a.to_2d()).dot(ab) / max(ab.length_squared, 1e-9)))
+        if (a.to_2d() + ab * t - c.to_2d()).length < reach + WAY_CLEAR:
+            return False
+    return True
+
+
 def clear(piece):
-    """Take a piece's lootable markers out."""
+    """Take a piece's lootable markers out (and its crate markers, where ROOMS places those)."""
     root = bpy.data.objects[piece]
+    prefixes = ("lootable-", "crate-") if "crate" in ROOMS.get(piece, []) else ("lootable-",)
     for child in list(root.children):
-        if child.name.startswith("lootable-"):
+        if child.name.startswith(prefixes):
             bpy.data.objects.remove(child, do_unlink=True)
 
 
@@ -292,8 +341,11 @@ def place(piece, kinds):
     boxes = _boxes(root)
     half_w, half_d = _footprint(root)
     # The floors to look on: those its crate markers stand on (a drop's foot), else the ground.
-    floors = sorted({round(c.location.z, 2) for c in root.children if c.name.startswith("crate-")})
+    floors = FLOORS.get(piece) or sorted(
+        {round(c.location.z, 2) for c in root.children if c.name.startswith("crate-")}
+    )
     seeds = _seeds(tree, half_w, half_d, floors or [0.0])
+    ways = _ways(root)
     placed = []
     for kind in kinds:
         size = SIZES[kind]
@@ -305,13 +357,17 @@ def place(piece, kinds):
             if not found:
                 continue
             c = found["centre"]
-            if abs(c.x) + reach > half_w or abs(c.y) + reach > half_d:
+            # Its footprint, turned to the wall: across along it, deep out from it.
+            ex, ey = (w / 2, d / 2) if abs(direction.y) > 0.5 else (d / 2, w / 2)
+            if abs(c.x) + ex > half_w or abs(c.y) + ey > half_d:
                 continue
             if found["spread"] > EVEN or found["under"] > LOW:
                 continue
             if found["front"] < FRONT or found["sides"] < w / 2:
                 continue
             if any((c - p).length < r + reach + SPACE for p, r in _others(root)):
+                continue
+            if kind not in STEPPED_OVER and not _off_ways(ways, c, reach):
                 continue
             if not fits(tree, colliders, boxes, c, direction, size):
                 continue
@@ -325,10 +381,9 @@ def place(piece, kinds):
             continue
         _, centre, direction = best
         taken = {child.name.split(".")[0] for child in root.children}
-        index = next(i for i in range(100) if f"lootable-{kind}-{i}" not in taken)
-        empty = kit.marker(
-            coll, root, f"lootable-{kind}-{index}", tuple(centre), display="ARROWS", size=0.45
-        )
+        prefix = "crate" if kind == "crate" else f"lootable-{kind}"
+        index = next(i for i in range(100) if f"{prefix}-{i}" not in taken)
+        empty = kit.marker(coll, root, f"{prefix}-{index}", tuple(centre), display="ARROWS", size=0.45)
         empty.rotation_euler = (0, 0, _yaw_of(direction))
         placed.append(empty.name)
     return placed

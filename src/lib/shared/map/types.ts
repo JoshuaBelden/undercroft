@@ -168,6 +168,13 @@ export interface KitEntry {
 	sketch?: SketchSymbol;
 	/** Name shown in the room banner when a player first enters it. */
 	title?: string;
+	/** A line under the title in its banner ("Where the priests made ready"). */
+	banner?: string;
+	/**
+	 * The levels of a map it may appear on, counted from 1 as players see them (`[2, 3]`). Left
+	 * out: any level. A level a map doesn't have (a map of one level) doesn't count.
+	 */
+	levels?: number[];
 	/** How the space sounds (reverb, damping); default 'tunnel'. See src/lib/content/audio/ambience.ts. */
 	acoustics?: Acoustics;
 	/**

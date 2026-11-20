@@ -59,7 +59,13 @@ describe('false walls', () => {
 		const nav = buildNav(shut, layout, PIECES, root);
 		const start = nearestPoint(nav, root);
 		const reach = gridDistances(nav, [start], true);
-		const beyond = nearestPoint(nav, [out[0], wall.position[1], out[2]], 1);
+		// In the passage behind the wall (farther on can be another passage, reached some other way).
+		const past: Vec3 = [
+			spot.position[0] + (wall.position[0] - spot.position[0]) * 3,
+			wall.position[1],
+			spot.position[2] + (wall.position[2] - spot.position[2]) * 3
+		];
+		const beyond = nearestPoint(nav, past, 0.5);
 		expect(beyond === -1 || reach[beyond] === undefined).toBe(true);
 	});
 

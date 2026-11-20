@@ -50,7 +50,7 @@ export const MAP_KIT: MapKit = {
 	'hall-cross': { role: 'connector', weight: 1.5 },
 	'hall-side-room': { role: 'connector', weight: 1 },
 	'room-small': { role: 'connector', weight: 1, room: true },
-	'room-crypt': { role: 'connector', weight: 0.5, room: true, acoustics: 'hall' },
+	'room-crypt': { role: 'connector', weight: 0.5, room: true, acoustics: 'hall', levels: [2, 3] },
 	'room-vault': {
 		role: 'connector',
 		weight: 1,
@@ -92,5 +92,146 @@ export const MAP_KIT: MapKit = {
 	},
 
 	'hall-dead-end': { role: 'end' },
+
+	// The new rooms (docs/handoff-gear-crafting-loot.md#new-rooms, scripts/blender/rooms.py): in any
+	// Affliction's maps, each on the levels it belongs on, with its own line under its banner.
+	vestry: {
+		role: 'connector',
+		weight: 0.4,
+		room: true,
+		title: 'The Vestry',
+		banner: 'Where the priests made ready',
+		acoustics: 'hall'
+	},
+	'quarry-lodge': {
+		role: 'connector',
+		weight: 0.4,
+		room: true,
+		levels: [1, 2],
+		title: "Quarrymen's Lodge",
+		banner: 'The shift never ended',
+		acoustics: 'hall'
+	},
+	'smugglers-cellar': {
+		role: 'connector',
+		weight: 0.4,
+		room: true,
+		levels: [1, 2],
+		title: "Smugglers' Cellar",
+		banner: 'Nobody came down here to pray',
+		acoustics: 'hall'
+	},
+	'pump-room': {
+		role: 'connector',
+		weight: 0.3,
+		room: true,
+		levels: [1, 2],
+		title: 'The Pump Room',
+		banner: 'The water won',
+		acoustics: 'hall',
+		sketch: 'water'
+	},
+	// Low tunnels chewed into soft rock: crouch through.
+	'rat-warren': {
+		role: 'connector',
+		weight: 0.2,
+		levels: [1, 2],
+		acoustics: 'tight',
+		sketch: 'crawl'
+	},
+	'explorers-camp': {
+		role: 'connector',
+		weight: 0.35,
+		room: true,
+		title: "Explorers' Camp",
+		banner: 'They meant to come back for it',
+		acoustics: 'hall'
+	},
+	'family-mausoleum': {
+		role: 'connector',
+		weight: 0.3,
+		room: true,
+		levels: [2, 3],
+		title: 'Family Mausoleum',
+		banner: 'A family that wanted to stay together',
+		acoustics: 'hall'
+	},
+	'webbed-gallery': {
+		role: 'connector',
+		weight: 0.3,
+		room: true,
+		levels: [2, 3],
+		title: 'Webbed Gallery',
+		banner: 'Something else keeps its dead here',
+		acoustics: 'hall'
+	},
+	'plague-pit': {
+		role: 'connector',
+		weight: 0.3,
+		room: true,
+		levels: [2, 3],
+		title: 'Plague Pit',
+		banner: 'They ran out of names',
+		acoustics: 'vast'
+	},
+	'drowned-chapel': {
+		role: 'connector',
+		weight: 0.25,
+		room: true,
+		levels: [2, 3],
+		title: 'Drowned Chapel',
+		banner: 'Mass is still being said, somewhere below',
+		acoustics: 'vast',
+		sketch: 'water'
+	},
+	// Rare: a second legendary spot outside the Gloaming Chapel.
+	'saints-crypt': {
+		role: 'connector',
+		weight: 0.12,
+		room: true,
+		levels: [3],
+		title: "Saints' Crypt",
+		banner: 'Holier than it is safe',
+		acoustics: 'hall'
+	},
+	// Dead-end variants.
+	'survey-station': {
+		role: 'end',
+		weight: 0.3,
+		title: 'Survey Station',
+		banner: 'Every map down here is wrong'
+	},
+	rockfall: { role: 'end', weight: 0.5 },
+	// Rope rooms: down a drop on a rope, staying on the level they hang from (a post to tie it to
+	// until there are climbing pitons). Never on the main route, like the Drop.
+	sinkhole: {
+		role: 'connector',
+		descends: true,
+		needsRope: true,
+		room: true,
+		title: 'The Sinkhole',
+		banner: 'The floor gave way here',
+		acoustics: 'vast'
+	},
+	'broken-stair': {
+		role: 'connector',
+		descends: true,
+		needsRope: true,
+		room: true,
+		title: 'Broken Stair',
+		banner: 'Half a stair is no stair',
+		acoustics: 'vast'
+	},
+	// A hall over a grate; the sealed chamber 8 m below it is only reached on a rope.
+	'sunken-ossuary': {
+		role: 'connector',
+		weight: 0.3,
+		needsRope: true,
+		offRoute: true,
+		levels: [2, 3],
+		title: 'Sunken Ossuary',
+		banner: 'Sealed off, and for a reason',
+		acoustics: 'hall'
+	},
 	'cap-hall': { role: 'cap', seals: 'hall' }
 };

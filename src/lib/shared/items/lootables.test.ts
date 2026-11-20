@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ITEMS } from '../../content/items.ts';
 import { LOOTABLES, type LootableId } from '../../content/lootables.ts';
@@ -100,5 +101,35 @@ describe('looking at one', () => {
 		const def = LOOTABLES.niche;
 		expect(flavorOf(def, 'c12')).toBe(flavorOf(def, 'c12'));
 		expect(def.flavor).toContain(flavorOf(def, 'c7'));
+	});
+});
+
+describe('the Blender script that places their markers (scripts/blender/lootables.py)', () => {
+	const script = readFileSync(
+		new URL('../../../../scripts/blender/lootables.py', import.meta.url),
+		'utf8'
+	);
+
+	it('has every kind at the size the game gives it', () => {
+		const sizes = new Map(
+			[...script.matchAll(/^\s+"(\w+)": \(([\d.]+), ([\d.]+), ([\d.]+)\),/gm)].map((m) => [
+				m[1],
+				[Number(m[2]), Number(m[3]), Number(m[4])]
+			])
+		);
+		for (const [id, def] of Object.entries(LOOTABLES)) {
+			if (id === 'crate') continue;
+			expect(sizes.get(id), id).toEqual(def.size);
+		}
+		expect(sizes.get('crate')).toEqual(LOOTABLES.crate.size);
+	});
+
+	it('lets only what is stepped over stand in the way through a room', () => {
+		const set = script.match(/STEPPED_OVER = \{([^}]*)\}/)?.[1] ?? '';
+		const listed = new Set([...set.matchAll(/"(\w+)"/g)].map((m) => m[1]));
+		const stepped = Object.values(LOOTABLES)
+			.filter((def) => !def.solid)
+			.map((def) => def.id);
+		expect(listed).toEqual(new Set(stepped));
 	});
 });

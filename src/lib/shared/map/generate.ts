@@ -193,6 +193,7 @@ class LayoutState {
 	 * remaining open sockets, or null if nothing fits.
 	 */
 	attach(target: OpenSocket, piece: PieceDef, tier = target.tier): OpenSocket[] | null {
+		if (!onLevel(this.kit, piece, tier)) return null;
 		const want = OPPOSITE[target.edge];
 		const [dx, dz] = EDGE_DIR[target.edge];
 		const neighbour: [number, number] = [target.cell[0] + dx, target.cell[1] + dz];
@@ -260,6 +261,7 @@ class LayoutState {
 	): number {
 		for (const piece of halls) {
 			if (piece.footprint[0] !== 1 || piece.footprint[1] !== 1) continue;
+			if (!onLevel(this.kit, piece, tier)) continue;
 			if (piece.sockets.length !== edges.length) continue;
 			for (let rotation = 0; rotation < 4; rotation++) {
 				const rotated = piece.sockets.map((s) => rotateEdge(s.edge, rotation));
@@ -337,9 +339,17 @@ function findPath(
 	return null;
 }
 
+/** Whether a piece may go on a level of the map (`tier`, 0 first): its kit entry's `levels`. */
+export function onLevel(kit: MapKit, piece: PieceDef, tier: number): boolean {
+	const levels = kit[piece.name]?.levels;
+	return !levels || levels.includes(tier + 1);
+}
+
 /**
  * The rooms on each level's main route, in order: the major rooms shared out evenly (in random
- * order), then the level's last room: an extraction room, or on the deepest level the final room.
+ * order, each on a level its `levels` allows, the emptiest of those), then the level's last room:
+ * an extraction room, or on the deepest level the final room. A room with no level it may go on
+ * in this map is left out.
  */
 function planRoute(
 	rng: Rng,
@@ -351,9 +361,21 @@ function planRoute(
 	const finals = majors.filter((p) => kit[p.name].final);
 	const rooms = rng.shuffle(majors.filter((p) => !kit[p.name].final));
 	const route: PieceDef[][] = Array.from({ length: tiers }, () => []);
-	rooms.forEach((room, i) => route[Math.floor((i * tiers) / rooms.length)].push(room));
+	// The most restricted first, so a room that may only go deep isn't crowded out.
+	const choices = (room: PieceDef) =>
+		Array.from({ length: tiers }, (_, t) => t).filter((t) => onLevel(kit, room, t));
+	const ordered = [...rooms].sort((a, b) => choices(a).length - choices(b).length);
+	for (const room of ordered) {
+		const allowed = choices(room);
+		if (!allowed.length) continue;
+		const emptiest = allowed.reduce((best, t) => (route[t].length < route[best].length ? t : best));
+		route[emptiest].push(room);
+	}
+	// Each level's own rooms in a random order (the sort above isn't).
+	for (let t = 0; t < tiers; t++) route[t] = rng.shuffle(route[t]);
 	for (let t = 0; t < tiers - 1; t++) {
-		route[t].push(rng.weighted(extractions, (p) => kit[p.name].weight ?? 1));
+		const here = extractions.filter((p) => onLevel(kit, p, t));
+		route[t].push(rng.weighted(here.length ? here : extractions, (p) => kit[p.name].weight ?? 1));
 	}
 	route[tiers - 1].push(...rng.shuffle(finals));
 	return route;
@@ -480,7 +502,14 @@ function tryGenerate(
 	state.rng = mainRng;
 
 	// Loops: join pairs of open sockets on the same level with a pathfound hall.
-	const halls = flat.filter((p) => p.footprint[0] === 1 && p.footprint[1] === 1);
+	// Plain 1x1 halls on the ground: never one that needs rope, or whose way through is up a level.
+	const halls = flat.filter(
+		(p) =>
+			p.footprint[0] === 1 &&
+			p.footprint[1] === 1 &&
+			!kit[p.name].needsRope &&
+			p.sockets.every((s) => s.level === 0)
+	);
 	let loops = 0;
 	for (const a of rng.shuffle(state.open())) {
 		if (loops >= options.loops) break;

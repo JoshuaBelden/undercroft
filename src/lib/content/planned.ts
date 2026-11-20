@@ -183,27 +183,7 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		[prop('dummy-track'), 'Dummy track, with a moving dummy']
 	]),
 
-	// Map pieces, each with its crate and lootable markers.
-	...group('piece', 'New rooms', 3, [
-		['vestry', 'The Vestry'],
-		['quarry-lodge', "Quarrymen's Lodge"],
-		['smugglers-cellar', "Smugglers' Cellar"],
-		['pump-room', 'The Pump Room'],
-		['rat-warren', 'Rat Warren'],
-		['explorers-camp', "Explorers' Camp"],
-		['survey-station', 'Survey Station'],
-		['rockfall', 'Rockfall'],
-		['family-mausoleum', 'Family Mausoleum'],
-		['webbed-gallery', 'Webbed Gallery'],
-		['plague-pit', 'Plague Pit'],
-		['drowned-chapel', 'Drowned Chapel'],
-		['saints-crypt', "Saints' Crypt"]
-	]),
-	...group('piece', 'Rappel rooms', 3, [
-		['sinkhole', 'The Sinkhole'],
-		['broken-stair', 'Broken Stair'],
-		['sunken-ossuary', 'Sunken Ossuary']
-	]),
+	// Map pieces, each with its crate and lootable markers (the new rooms are built: rooms.py).
 	...group('piece', 'Rumors', 8, [
 		['rumors-start', 'Rumors: the start room'],
 		['rumors-way-in', 'Rumors: the way in (tutorial stops)'],

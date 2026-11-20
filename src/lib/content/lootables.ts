@@ -85,6 +85,8 @@ export interface LootableDef {
 	solid: boolean;
 	/** Height (m) of its middle, looked at to open it; half its height when left out. */
 	lookHeight?: number;
+	/** It lies under water (a sunken satchel): where it stands may be in a water volume. */
+	wet?: boolean;
 	/** Slots on the loot screen. */
 	slots: number;
 	/** How it opens. Empty: only when sealed (`sealed`). */
@@ -537,6 +539,7 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		color: 0x3b3222,
 		size: [0.45, 0.3, 0.3],
 		solid: false,
+		wet: true,
 		slots: 4,
 		open: [{ seconds: 2, verb: 'Search the satchel' }],
 		noise: 1,

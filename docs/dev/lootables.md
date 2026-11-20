@@ -78,7 +78,7 @@ blender --background art/blender/catacomb-kit.blend --python scripts/blender/pla
 pnpm asset:export && pnpm asset:build
 ```
 
-(`--force` places every room's again; without it rooms that have markers are skipped.) `crates.test.ts` checks every marker's lootable fits its piece. A kit entry's `lootables` mix is still there for a piece with no markers of its own (none uses it now).
+(`--force` places every room's again; without it rooms that have markers are skipped.) Solid kinds also keep off the straight line between any two doorways on the same floor (`WAY_CLEAR`), so they never close the way through a room; kinds that are stepped over (`STEPPED_OVER`: bodies, bone piles, nests...) may stand there. `ROOMS` can also give out `crate` spots (crate markers), as the new rooms do. A test checks the script's sizes and stepped-over kinds against `LOOTABLES`. **Wet** lootables (`wet: true`, the sunken satchel) may stand in water. `crates.test.ts` checks every marker's lootable fits its piece. A kit entry's `lootables` mix is still there for a piece with no markers of its own (none uses it now).
 
 ## What they hold
 

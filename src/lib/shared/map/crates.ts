@@ -136,7 +136,7 @@ function turn(
 	];
 	const others = all.filter((other) => other !== crate);
 	if (others.some((other) => crowds(other, centre, crate.yaw, size))) return false;
-	if (!fits(world, centre, crate.yaw, size)) return false;
+	if (!fits(world, centre, crate.yaw, size, LOOTABLES[type].wet)) return false;
 	crate.position = centre.map(round) as Vec3;
 	crate.kind = type;
 	return true;
@@ -160,9 +160,9 @@ function crowds(other: CratePlacement, centre: Vec3, yaw: number, size: Vec3): b
 
 /**
  * True when a lootable of `size` at `centre` (floor level), turned to `yaw`, touches no wall,
- * crate or column, stands on floor all over and is out of the water.
+ * crate or column, stands on floor all over and is out of the water (unless it is `wet`).
  */
-function fits(world: CollisionWorld, centre: Vec3, yaw: number, size: Vec3): boolean {
+function fits(world: CollisionWorld, centre: Vec3, yaw: number, size: Vec3, wet = false): boolean {
 	const [w, h, d] = size;
 	const cos = Math.cos(yaw);
 	const sin = Math.sin(yaw);
@@ -189,7 +189,7 @@ function fits(world: CollisionWorld, centre: Vec3, yaw: number, size: Vec3): boo
 			}
 			const foot = at(x, 0, z);
 			if (!hasFloor(world, foot, 0.1)) return false;
-			if (volumesAt(world, at(x, 0.1, z)).some((v) => v.kind === 'water')) return false;
+			if (!wet && volumesAt(world, at(x, 0.1, z)).some((v) => v.kind === 'water')) return false;
 		}
 	}
 	return true;
@@ -205,5 +205,5 @@ export function lootableFits(
 	yaw: number,
 	type: LootableId
 ): boolean {
-	return fits(world, position, yaw, LOOTABLES[type].size);
+	return fits(world, position, yaw, LOOTABLES[type].size, LOOTABLES[type].wet);
 }
