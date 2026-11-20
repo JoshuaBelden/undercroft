@@ -6,7 +6,7 @@ import type { ItemStack } from '#lib/shared/player/types.ts';
 
 /** One line of the alternate menu. */
 export interface MenuEntry {
-	id: 'read' | 'equip' | 'unequip' | 'split' | 'sell' | 'drop';
+	id: 'read' | 'inspect' | 'equip' | 'unequip' | 'split' | 'sell' | 'drop';
 	label: string;
 	/** Shown to the right (the price). */
 	note?: string;
@@ -49,6 +49,8 @@ export class ItemBoard {
 	menu = $state<{ ref: SlotRef; stack: ItemStack; x: number; y: number } | null>(null);
 	/** The open dialog: how many to split or sell, or whether to really drop it. */
 	asking = $state<{ kind: 'split' | 'sell' | 'drop'; ref: SlotRef; stack: ItemStack } | null>(null);
+	/** The slot whose Inspect panel is open. */
+	private inspecting = $state<{ ref: SlotRef; stack: ItemStack } | null>(null);
 
 	constructor(private options: BoardOptions) {}
 
@@ -60,6 +62,22 @@ export class ItemBoard {
 		const pointing = this.pointing;
 		const stack = pointing ? getSlot(this.options.belongings(), pointing.ref) : null;
 		return pointing && stack ? { stack, rect: pointing.rect } : null;
+	}
+
+	/**
+	 * The stack the Inspect panel is for, as it is now: what is in that slot if it is still the same
+	 * item (its wear and rounds can change underground), else what it was when it was opened.
+	 */
+	get inspected(): ItemStack | null {
+		const inspecting = this.inspecting;
+		if (!inspecting) return null;
+		const now = getSlot(this.options.belongings(), inspecting.ref);
+		return now?.item === inspecting.stack.item ? now : inspecting.stack;
+	}
+
+	/** Put the Inspect panel away. */
+	closeInspect(): void {
+		this.inspecting = null;
 	}
 
 	get locked(): boolean {
@@ -148,8 +166,8 @@ export class ItemBoard {
 		this.pointing = null;
 	}
 
+	/** Locked, the menu still opens: Inspect changes nothing, so it is all it offers then. */
 	openMenu(ref: SlotRef, stack: ItemStack, x: number, y: number): void {
-		if (this.locked) return;
 		this.pointing = null;
 		this.menu = { ref, stack, x, y };
 	}
@@ -162,14 +180,15 @@ export class ItemBoard {
 	entries(ref: SlotRef, stack: ItemStack): MenuEntry[] {
 		// A hint (in a crate) can only be read where it lies.
 		if (ITEMS[stack.item]?.kind === 'clue') return [{ id: 'read', label: 'Read' }];
-		const entries: MenuEntry[] = [];
+		const entries: MenuEntry[] = [{ id: 'inspect', label: 'Inspect' }];
+		if (this.locked) return entries;
 		const worn = ref.area === 'equipment' || ref.area === 'quick';
 		if (worn) entries.push({ id: 'unequip', label: 'Unequip' });
 		else if (canEquip(this.options.belongings(), ref)) {
 			entries.push({ id: 'equip', label: 'Equip' });
 		}
 		if (stack.count > 1 && ref.area !== 'equipment') entries.push({ id: 'split', label: 'Split' });
-		const each = this.options.sell ? sellPrice(stack.item) : 0;
+		const each = this.options.sell ? sellPrice(stack.item, stack) : 0;
 		// The price of one; a stack asks how many next.
 		if (each > 0) {
 			entries.push({
@@ -186,8 +205,14 @@ export class ItemBoard {
 	choose(id: MenuEntry['id']): void {
 		const menu = this.menu;
 		this.menu = null;
-		if (!menu || this.locked) return;
+		if (!menu) return;
 		const { ref, stack } = menu;
+		// Looking changes nothing, so it works even while the slots are locked.
+		if (id === 'inspect') {
+			this.inspecting = { ref, stack: { ...stack } };
+			return;
+		}
+		if (this.locked) return;
 		switch (id) {
 			case 'read':
 				// The server reads it instead of moving it (see Session.lootAction).

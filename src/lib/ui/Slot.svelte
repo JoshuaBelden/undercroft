@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { imageUrl } from '#lib/content/images.ts';
 	import type { Rarity } from '#lib/content/items.ts';
+	import { BROKEN_ICON } from './items.ts';
 
 	interface Props {
 		/** What is in the slot. Null is something not known yet: a grey question mark. */
@@ -25,6 +26,8 @@
 		 * (`slotMark`: quest item, weapon, defense, treasure). `label` is read out.
 		 */
 		mark?: { icon: string; label: string };
+		/** Worn out: a red shade over it and the broken mark in the top-right corner. */
+		broken?: boolean;
 	}
 
 	let {
@@ -37,7 +40,8 @@
 		detail,
 		rarity = 'common',
 		quest = false,
-		mark
+		mark,
+		broken = false
 	}: Props = $props();
 
 	/** Only something that is there and known has a rarity to show. A quest item shows that instead. */
@@ -59,6 +63,7 @@
 	class:epic={edge === 'epic'}
 	class:legendary={edge === 'legendary'}
 	class:quest={shown && quest}
+	class:broken={shown && broken}
 >
 	{#if empty}
 		{#if hint}<span class="hint">{hint}</span>{/if}
@@ -84,6 +89,12 @@
 		{/if}
 		{#if count > 1}
 			<span class="count">{count}</span>
+		{/if}
+		{#if broken}
+			<svg class="broken-mark" viewBox="0 0 24 24" aria-hidden="true">
+				<path fill="currentColor" d={BROKEN_ICON} />
+			</svg>
+			<span class="hidden">Broken</span>
 		{/if}
 	{/if}
 </span>
@@ -143,6 +154,25 @@
 	.slot.quest {
 		border-left: 2px solid var(--rarity);
 		border-bottom: 2px solid var(--rarity);
+	}
+
+	/* Broken: kept as it looks, under a red shade, with the broken mark in the top-right corner. */
+	.slot.broken {
+		background: rgb(150 20 20 / 0.28);
+	}
+
+	.slot.broken img,
+	.slot.broken .name {
+		filter: sepia(1) saturate(4) hue-rotate(-30deg) brightness(0.7);
+	}
+
+	.broken-mark {
+		position: absolute;
+		top: 5px;
+		right: 6px;
+		width: 16px;
+		height: 16px;
+		color: var(--broken);
 	}
 
 	.slot.large {

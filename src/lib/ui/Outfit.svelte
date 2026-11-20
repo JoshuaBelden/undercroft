@@ -56,7 +56,7 @@
 		for (const stack of explorer.stash) {
 			if (!stack || !ITEMS[stack.item]?.treasure) continue;
 			count += stack.count;
-			worth += sellPrice(stack.item) * stack.count;
+			worth += sellPrice(stack.item, stack) * stack.count;
 		}
 		return { count, worth };
 	});

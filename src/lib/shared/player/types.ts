@@ -162,20 +162,32 @@ export interface ItemStack {
 	count: number;
 	/** Rounds in a firearm. */
 	loaded?: number;
-	/** Hits taken by a breakable melee item; marks drawn with the stick in use (chalk). */
+	/** Hits taken by a breakable melee item (a brick: gone at the last); marks drawn with chalk. */
 	uses?: number;
-	/** Shield points a defense item has used up taking blows. */
+	/**
+	 * Wear an item with `durability` has taken (hits, shots, shield points...): broken when it
+	 * reaches the most it takes. See src/lib/shared/items/durability.ts.
+	 */
 	worn?: number;
 }
 
-export type EquipmentSlot = 'primary' | 'secondary' | 'defense';
+/** The gear slot holds three things: one equipment slot each. */
+export const GEAR_SLOTS = ['gear1', 'gear2', 'gear3'] as const;
+
+export type GearSlot = (typeof GEAR_SLOTS)[number];
+
+export type EquipmentSlot = 'primary' | 'secondary' | 'defense' | GearSlot;
 
 /**
  * What a player carries, and an explorer's loadout on the surface: the same thing. Every place is
  * a slot holding one stack or nothing. See docs/dev/items.md.
  */
 export interface Inventory {
-	/** Two weapons (only items in the weapon category) and what is worn (the defense category). */
+	/**
+	 * Two weapons (only items in the weapon category), what is worn for defense (the defense
+	 * category) and the three gear slots (the gear category). A loadout saved before the gear slots
+	 * existed has no gear keys: read a slot with `getSlot`, which takes a missing one as empty.
+	 */
 	equipment: Record<EquipmentSlot, ItemStack | null>;
 	/** Anything; as many slots as the pack has (BACKPACKS). */
 	backpack: (ItemStack | null)[];
@@ -222,6 +234,8 @@ export type SimEvent =
 	/** Let go of a rope or slipped off it (out of stamina). Not stepping off at either end. */
 	| { kind: 'letgo'; rope: string }
 	| { kind: 'empty'; item: string }
+	/** What was in the hand just broke (a gun's last shot): it stays there, and does nothing. */
+	| { kind: 'broke'; item: string }
 	/** Used the item in the hand on a teammate (one of it is spent): the server applies it to them. */
 	| { kind: 'tend'; patient: string; item: string };
 

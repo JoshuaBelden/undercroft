@@ -4,6 +4,7 @@ import {
 	allStacks,
 	applyAction,
 	held,
+	heldWorking,
 	removeItem,
 	sanitizeAction
 } from '../../src/lib/shared/items/inventory.ts';
@@ -128,7 +129,7 @@ export class CrateSystem implements SessionSystem {
 	private pry(player: Player, crate: Crate): boolean {
 		const ctx = this.ctx;
 		const s = player.state;
-		if (!ITEMS[held(s.inventory)?.item ?? '']?.pry) {
+		if (!heldWorking(s.inventory, 'pry')) {
 			s.opening = 0;
 			return false;
 		}

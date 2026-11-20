@@ -1,14 +1,17 @@
+import { condition } from '../shared/items/durability.ts';
+import type { ItemStack } from '../shared/player/types.ts';
 import { ITEMS } from './items.ts';
 
 /**
  * Money: what the shop sells and what things sell for. Shared by the shop overlay (prices shown)
- * and the server (prices charged). See docs/dev/economy.md.
+ * and the server (prices charged). Every price comes from the item's own `price` (or `value`),
+ * so the store, selling back and (later) repairs all agree. See docs/dev/economy.md.
  */
 
 export interface ShopEntry {
 	/** Key into ITEMS. */
 	item: string;
-	/** Price of one lot. */
+	/** Price of one lot: the item's `price` times `lot`. */
 	price: number;
 	/** How many you get for that price (rounds come by the handful). */
 	lot: number;
@@ -21,30 +24,42 @@ export const ECONOMY = {
 	sellBack: 0.4
 };
 
+/** A store line for an item, at its own `price`. */
+function ware(item: string, lot = 1): ShopEntry {
+	const price = ITEMS[item]?.price;
+	if (price === undefined) throw new Error(`The store sells ${item}, which has no price`);
+	return { item, price: price * lot, lot };
+}
+
 /** What the shop sells, in the order shown. Firearms come empty. */
 export const SHOP: ShopEntry[] = [
-	{ item: 'bandage', price: 15, lot: 1 },
-	{ item: 'salts', price: 40, lot: 1 },
-	{ item: 'medkit', price: 50, lot: 1 },
-	{ item: 'chalk', price: 5, lot: 1 },
-	{ item: 'rope-pack', price: 50, lot: 1 },
-	{ item: 'notebook', price: 35, lot: 1 },
-	{ item: 'candle', price: 4, lot: 1 },
-	{ item: 'knife', price: 20, lot: 1 },
-	{ item: 'crowbar', price: 60, lot: 1 },
-	{ item: 'coat', price: 90, lot: 1 },
-	{ item: 'revolver', price: 150, lot: 1 },
-	{ item: 'ammo.revolver', price: 12, lot: 6 },
-	{ item: 'shotgun', price: 250, lot: 1 },
-	{ item: 'ammo.shotgun', price: 16, lot: 4 }
+	ware('bandage'),
+	ware('salts'),
+	ware('medkit'),
+	ware('chalk'),
+	ware('rope-pack'),
+	ware('notebook'),
+	ware('candle'),
+	ware('knife'),
+	ware('crowbar'),
+	ware('coat'),
+	ware('revolver'),
+	ware('ammo.revolver', 6),
+	ware('shotgun'),
+	ware('ammo.shotgun', 4)
 ];
 
-/** What one of an item sells for: loot its value, shop gear a fraction of its price, else 0. */
-export function sellPrice(item: string): number {
-	const value = ITEMS[item]?.value;
-	if (value !== undefined) return value;
-	const entry = SHOP.find((e) => e.item === item);
-	return entry ? Math.floor((entry.price / entry.lot) * ECONOMY.sellBack) : 0;
+/**
+ * What one of an item sells for: loot its `value`, anything else a share (`ECONOMY.sellBack`) of
+ * its `price`, else 0. Give the stack to count its wear: a worn thing sells for what is left of it,
+ * and a broken one for nothing.
+ */
+export function sellPrice(item: string, stack?: ItemStack): number {
+	const def = ITEMS[item];
+	if (!def) return 0;
+	if (def.value !== undefined) return def.value;
+	const left = stack ? (condition(stack) ?? 1) : 1;
+	return Math.floor((def.price ?? 0) * ECONOMY.sellBack * left);
 }
 
 /** "25 coin". */

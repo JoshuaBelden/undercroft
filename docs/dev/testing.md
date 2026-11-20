@@ -29,6 +29,10 @@ Fixtures (only test files import them):
 - `realWorld(layout)`: its collision world.
 - `worldOf(colliders, volumes?)` with `box(center, size)`, `volume(kind, center, size)` and `FLOOR`: a small hand-built world for exact numbers (a cube on a floor, a ledge, a pool of water).
 
+`src/lib/shared/testing/items.ts`
+
+- `addTestItems()` and `removeTestItems()` (in `beforeAll` and `afterAll`): put `TEST_ITEMS` in `ITEMS` for one test file, for kinds of thing the game has no item of yet: `test.kneepads` (gear, wearing by the second) and `test.rags` (a material).
+
 `server/testing/harness.ts`
 
 - `newSession(seed, hooks?)`: a real `Session` on a known map (it picks its seed with `Math.random`, which this pins).

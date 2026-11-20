@@ -297,7 +297,7 @@ describe('an inventory from someone else (a co-op guest)', () => {
 		raw.quick[0] = { item: 'knife', count: 1 };
 		raw.selected = 99;
 		const inv = sanitizeInventory(raw)!;
-		expect(inv.equipment).toEqual({ primary: null, secondary: null, defense: null });
+		expect(inv.equipment).toEqual(emptyInventory().equipment);
 		expect(inv.backpack).toHaveLength(emptyInventory().backpack.length);
 		expect(inv.backpack[0]).toBeNull();
 		expect(inv.backpack[1]).toEqual({ item: 'bandage', count: 1 });

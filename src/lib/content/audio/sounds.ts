@@ -473,6 +473,16 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'brick shatters'
 	},
+	// A weapon or tool giving way: it is broken now, and does nothing until it is repaired.
+	'item.break': {
+		file: 'item.break',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.8,
+		variation: 0.08,
+		caption: 'something breaks'
+	},
 	'item.pickup': {
 		file: 'item.pickup',
 		synth: { kind: 'rustle' },

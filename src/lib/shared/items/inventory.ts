@@ -1,6 +1,13 @@
 import { BACKPACKS, CARRY, DEFAULT_BACKPACK } from '../../content/carry.ts';
 import { ITEMS, SLOTS, type ItemCategory, type ItemDef } from '../../content/items.ts';
-import { HAND, type EquipmentSlot, type Inventory, type ItemStack } from '../player/types.ts';
+import {
+	GEAR_SLOTS,
+	HAND,
+	type EquipmentSlot,
+	type Inventory,
+	type ItemStack
+} from '../player/types.ts';
+import { addWear, isBroken, works } from './durability.ts';
 import type { InventoryAction, SlotRef } from './types.ts';
 
 /**
@@ -29,7 +36,13 @@ export interface Belongings {
 /** How a request went: done, refused for the weight, or refused (no room, not allowed there). */
 export type MoveResult = 'ok' | 'heavy' | 'refused';
 
-const EQUIPMENT: EquipmentSlot[] = ['primary', 'secondary', 'defense'];
+/** Every equipment slot: the two weapons, defense, then the gear slots. */
+export const EQUIPMENT: readonly EquipmentSlot[] = [
+	'primary',
+	'secondary',
+	'defense',
+	...GEAR_SLOTS
+];
 
 export function emptySlots(count: number): Slots {
 	return new Array<ItemStack | null>(count).fill(null);
@@ -38,7 +51,14 @@ export function emptySlots(count: number): Slots {
 /** Carrying nothing. */
 export function emptyInventory(): Inventory {
 	return {
-		equipment: { primary: null, secondary: null, defense: null },
+		equipment: {
+			primary: null,
+			secondary: null,
+			defense: null,
+			gear1: null,
+			gear2: null,
+			gear3: null
+		},
 		backpack: emptySlots(BACKPACKS[DEFAULT_BACKPACK].slots),
 		quick: emptySlots(SLOTS.quick),
 		selected: HAND.primary,
@@ -57,11 +77,9 @@ export function newStack(item: string, count = 1, loaded?: number): ItemStack {
 export function cloneInventory(inv: Inventory): Inventory {
 	const copy = (stack: ItemStack | null) => (stack ? { ...stack } : null);
 	return {
-		equipment: {
-			primary: copy(inv.equipment.primary),
-			secondary: copy(inv.equipment.secondary),
-			defense: copy(inv.equipment.defense)
-		},
+		equipment: Object.fromEntries(
+			EQUIPMENT.map((slot) => [slot, copy(inv.equipment[slot] ?? null)])
+		) as Inventory['equipment'],
 		backpack: inv.backpack.map(copy),
 		quick: inv.quick.map(copy),
 		selected: inv.selected,
@@ -139,31 +157,64 @@ export function spendQuick(inv: Inventory, index: number): void {
 	if (inv.selected === HAND.quick + index) inv.selected = HAND.primary;
 }
 
-/** What is worn in the defense slot: shield points left of its full shield. Null when nothing is. */
+/**
+ * What is worn in the defense slot: shield points left of its full shield (0 when it is broken).
+ * Null when nothing is.
+ */
 export function shieldOf(inv: Inventory): { left: number; max: number } | null {
 	const worn = inv.equipment.defense;
 	const max = (worn && ITEMS[worn.item]?.defense?.shield) || 0;
 	if (!worn || max <= 0) return null;
-	return { left: Math.max(0, max - (worn.worn ?? 0)), max };
+	return { left: isBroken(worn) ? 0 : Math.max(0, max - (worn.worn ?? 0)), max };
 }
 
 /**
  * A creature's blow lands on what is worn first: its shield takes what it can, and the rest gets
- * through to the wearer. Returns that rest, and the item if the blow used the last of its shield
- * (it is torn apart: gone from the defense slot).
+ * through to the wearer. Returns that rest, and the item if this blow used the last of its shield:
+ * it breaks, and stays in the defense slot, taking nothing more until it is repaired.
  */
 export function absorbBlow(
 	inv: Inventory,
 	damage: number
-): { through: number; torn: string | null } {
+): { through: number; broke: string | null } {
 	const worn = inv.equipment.defense;
 	const shield = shieldOf(inv);
-	if (!worn || !shield) return { through: damage, torn: null };
+	if (!worn || !shield || shield.left <= 0) return { through: damage, broke: null };
 	const taken = Math.min(shield.left, damage);
 	worn.worn = (worn.worn ?? 0) + taken;
-	if (taken < shield.left) return { through: damage - taken, torn: null };
-	inv.equipment.defense = null;
-	return { through: damage - taken, torn: worn.item };
+	// Its durability is its shield (a test checks), so now it is broken (`isBroken`).
+	return { through: damage - taken, broke: taken < shield.left ? null : worn.item };
+}
+
+/**
+ * What is in the hand, if it has this ability and isn't broken (a crowbar that pries). A broken
+ * one is in the hand, but does nothing.
+ */
+export function heldWorking(inv: Inventory, ability: 'pry'): ItemStack | null {
+	const stack = held(inv);
+	return works(stack) && ITEMS[stack.item]?.[ability] ? stack : null;
+}
+
+/** Gear worn (in a gear slot) that isn't broken: what is working on its wearer right now. */
+export function workingGear(inv: Inventory): ItemStack[] {
+	return GEAR_SLOTS.map((slot) => inv.equipment[slot] ?? null).filter(works);
+}
+
+/**
+ * The item in the hand (`item`, if it still is) took wear: a hit landed, a shot was fired. A
+ * brick that runs out is used up and leaves the hand; anything else breaks and stays there.
+ * Returns what came of it, or null if that item isn't in the hand.
+ */
+export function wearHeld(
+	inv: Inventory,
+	item: string,
+	amount = 1
+): 'ok' | 'broke' | 'usedUp' | null {
+	const stack = held(inv);
+	if (stack?.item !== item) return null;
+	const result = addWear(stack, amount);
+	if (result === 'usedUp') spendHeld(inv, true);
+	return result;
 }
 
 /** Every slot of an inventory, in the order things are looked for: backpack, quick use, worn. */
@@ -193,6 +244,12 @@ export function allStacks(inv: Inventory): ItemStack[] {
 	return stacks;
 }
 
+/** Everything carried, the stacks themselves (to change them in place: admin repairs). */
+export function allStacksLive(inv: Inventory): ItemStack[] {
+	const worn = EQUIPMENT.map((slot) => inv.equipment[slot] ?? null);
+	return [...worn, ...inv.quick, ...inv.backpack].filter((stack) => stack !== null);
+}
+
 /** Weight (kg) of everything carried. */
 export function carriedWeight(inv: Inventory): number {
 	let weight = 0;
@@ -218,14 +275,21 @@ export function speedFactor(inv: Inventory): number {
 	return 1 - loadFactor(inv) * (1 - CARRY.slowest);
 }
 
-/** Whether a slot takes an item: the equipment and quick-use slots only take their own kind. */
+/** The category an equipment slot takes. */
+export function slotCategory(slot: EquipmentSlot): ItemCategory {
+	if (slot === 'defense') return 'defense';
+	return slot === 'primary' || slot === 'secondary' ? 'weapon' : 'gear';
+}
+
+/**
+ * Whether a slot takes an item: the equipment and quick-use slots only take their own kind (so a
+ * material never goes in a quick-use slot); the backpack and the stash take anything.
+ */
 export function accepts(ref: SlotRef, item: string): boolean {
 	const def = ITEMS[item];
 	if (!def || def.maxStack < 1) return false;
 	if (ref.area === 'quick') return def.category === 'quick';
-	if (ref.area === 'equipment') {
-		return def.category === (ref.slot === 'defense' ? 'defense' : 'weapon');
-	}
+	if (ref.area === 'equipment') return def.category === slotCategory(ref.slot);
 	return true;
 }
 
@@ -270,6 +334,7 @@ function ownSlots(inv: Inventory, category: ItemCategory): SlotRef[] {
 		];
 	}
 	if (category === 'defense') return [{ area: 'equipment', slot: 'defense' }];
+	if (category === 'gear') return GEAR_SLOTS.map((slot): SlotRef => ({ area: 'equipment', slot }));
 	if (category === 'quick') return inv.quick.map((_, index): SlotRef => ({ area: 'quick', index }));
 	return [];
 }

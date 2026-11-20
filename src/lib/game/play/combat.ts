@@ -127,11 +127,14 @@ export class Combat implements PlayFeature {
 				if (spec) sounds.playAt(spec.land, event.position, 1, 4);
 				break;
 			}
-			case 'break':
-				// A coat torn through, or a brick or crowbar worn out.
-				if (ITEMS[event.item]?.defense) sounds.playAt('defense.torn', event.position, 1, 3);
-				else sounds.playAt('brick.break', event.position, 1, 3);
+			case 'break': {
+				// A coat torn through, a brick used up, or a weapon worn out (broken now).
+				const def = ITEMS[event.item];
+				if (def?.defense) sounds.playAt('defense.torn', event.position, 1, 3);
+				else if (def?.melee?.breaksAfter) sounds.playAt('brick.break', event.position, 1, 3);
+				else sounds.playAt('item.break', event.position, 1, 3);
 				break;
+			}
 			case 'reload': {
 				const gun = ITEMS[event.item]?.firearm;
 				if (gun && event.player !== self) sounds.playAt(gun.reloadSound, event.position, 1, 3);

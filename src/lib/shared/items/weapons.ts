@@ -1,6 +1,7 @@
 import { ITEMS } from '../../content/items.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { InputFrame, PlayerState, SimEvent, WeaponState } from '../player/types.ts';
+import { addWear, isBroken } from './durability.ts';
 import { carriedCount, handRef, held, removeItem, spendHeld } from './inventory.ts';
 
 /**
@@ -157,7 +158,11 @@ export function stepWeapon(
 	}
 	if (w.action !== 'none' || !stack || !def) return;
 
-	// Start something new.
+	// Start something new. Broken, it is in the hand but does nothing: a gun only dry-clicks.
+	if (isBroken(stack)) {
+		if (def.firearm && pressed.attack) emit({ kind: 'empty', item: stack.item });
+		return;
+	}
 	if (def.firearm) {
 		const gun = def.firearm;
 		const loaded = stack.loaded ?? 0;
@@ -165,6 +170,8 @@ export function stepWeapon(
 		if (pressed.attack) {
 			if (loaded > 0) {
 				if (!s.flags.infiniteAmmo) stack.loaded = loaded - 1;
+				// Every shot wears the gun; the one that breaks it still goes off.
+				if (addWear(stack) === 'broke') emit({ kind: 'broke', item: stack.item });
 				w.shots++;
 				const { origin, direction } = ray();
 				emit({

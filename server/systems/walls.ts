@@ -1,7 +1,6 @@
-import { ITEMS } from '../../src/lib/content/items.ts';
 import { MAP_KIT } from '../../src/lib/content/map/kit.ts';
 import { FALSE_WALLS } from '../../src/lib/content/map/walls.ts';
-import { held } from '../../src/lib/shared/items/inventory.ts';
+import { heldWorking } from '../../src/lib/shared/items/inventory.ts';
 import { aimRay } from '../../src/lib/shared/items/weapons.ts';
 import { openDoor } from '../../src/lib/shared/map/collision.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
@@ -72,7 +71,7 @@ export class WallSystem implements SessionSystem {
 	private aimedAt(player: Player): PrySpot | null {
 		const ctx = this.ctx;
 		const s = player.state;
-		if (!ctx.canUseHands(player) || !ITEMS[held(s.inventory)?.item ?? '']?.pry) return null;
+		if (!ctx.canUseHands(player) || !heldWorking(s.inventory, 'pry')) return null;
 		const { origin, direction } = aimRay(s, eyeHeight(s));
 		if (ctx.items.lookedAt(s, origin, direction) || ctx.crates.lookedAt(origin, direction))
 			return null;

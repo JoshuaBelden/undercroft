@@ -1,9 +1,8 @@
 import * as THREE from 'three';
-import { ITEMS } from '#lib/content/items.ts';
 import { MAP_KIT } from '#lib/content/map/kit.ts';
 import { FALSE_WALLS } from '#lib/content/map/walls.ts';
 import { loadModel } from '#lib/game/assets.ts';
-import { held } from '#lib/shared/items/inventory.ts';
+import { heldWorking } from '#lib/shared/items/inventory.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
 import { openDoor, type CollisionWorld } from '#lib/shared/map/collision.ts';
 import { PIECES } from '#lib/shared/map/pieces.generated.ts';
@@ -77,7 +76,7 @@ export class Walls implements PlayFeature {
 	}
 
 	target(state: PlayerState, aim: Aim | null, taken: boolean): boolean {
-		const bar = !!ITEMS[held(state.inventory)?.item ?? '']?.pry;
+		const bar = !!heldWorking(state.inventory, 'pry');
 		const standing = this.spots.filter((spot) => !spot.wall || !this.down.has(spot.wall));
 		this.aimedAt =
 			aim && !taken && bar ? lookedAtPrySpot(aim.world, aim.origin, aim.direction, standing) : null;

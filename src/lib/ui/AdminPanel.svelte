@@ -423,6 +423,9 @@
 				<p class="hint">Firearms come loaded.</p>
 			</form>
 			{@render action('Refill ammo', () => onadmin({ kind: 'refillAmmo' }))}
+			{@render action('Wear held item', () => onadmin({ kind: 'wearHeld' }))}
+			{@render action('Break held item', () => onadmin({ kind: 'breakHeld' }))}
+			{@render action('Repair everything', () => onadmin({ kind: 'repairAll' }))}
 			{@render action('Reset crates', () => onadmin({ kind: 'resetCrates' }))}
 			{@render action('Unlock crates', () => onadmin({ kind: 'unlockCrates' }))}
 			{@render action('Clear chalk marks', () => onadmin({ kind: 'clearMarks' }))}

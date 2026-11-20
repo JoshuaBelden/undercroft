@@ -4,6 +4,7 @@
 	import type { SlotRef } from '#lib/shared/items/types.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import type { ItemBoard } from './itemBoard.svelte.ts';
+	import { isBroken } from '#lib/shared/items/durability.ts';
 	import { slotMark, stackDetail, stackLabel } from './items.ts';
 	import Slot from './Slot.svelte';
 
@@ -125,7 +126,9 @@
 	class:refuses={target === false}
 	class:over={board.isOver(ref)}
 	draggable={stack && !board.locked ? 'true' : 'false'}
-	aria-label={stack ? `${label}: ${stackLabel(stack)}` : `${label}: empty`}
+	aria-label={stack
+		? `${label}: ${stackLabel(stack)}${isBroken(stack) ? ', broken' : ''}`
+		: `${label}: empty`}
 	aria-haspopup={stack ? 'menu' : undefined}
 	ondragstart={dragStart}
 	ondragend={() => board.endDrag()}
@@ -152,6 +155,7 @@
 		rarity={stack ? rarityOf(stack.item) : undefined}
 		quest={stack ? def?.quest : undefined}
 		mark={stack ? slotMark(stack.item) : undefined}
+		broken={isBroken(stack)}
 	/>
 </button>
 

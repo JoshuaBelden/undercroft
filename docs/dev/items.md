@@ -4,40 +4,44 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 
 ## Files
 
-| File                                | What                                                                       |
-| ----------------------------------- | -------------------------------------------------------------------------- |
-| `src/lib/content/items.ts`          | Item definitions (data), `SLOTS`, `DEFAULT_STACK`                          |
-| `src/lib/content/carry.ts`          | Backpacks (slots) and `CARRY` (weight limits, slowdown)                    |
-| `src/lib/content/loadout.ts`        | How many bricks lie around                                                 |
-| `src/lib/shared/items/inventory.ts` | Inventory rules: slots, stacking, moving, equipping, weight                |
-| `src/lib/ui/GameMenu.svelte`        | The in-game menu underground: the Pack and Rite tabs                       |
-| `src/lib/ui/PackPanel.svelte`       | The Pack tab (the pack screen)                                             |
-| `src/lib/ui/LoadoutPanel.svelte`    | An inventory drawn as slots (Pack tab and Loadout page)                    |
-| `src/lib/ui/QuickWheel.svelte`      | The quick-use wheel; `wheel.ts` decides which slot is chosen               |
-| `src/lib/shared/items/weapons.ts`   | `stepWeapon` (part of the player simulation), aim ray, pellet spread       |
-| `src/lib/shared/items/pickup.ts`    | Which floor item you're looking at (shared by server and client)           |
-| `src/lib/shared/items/types.ts`     | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`                     |
-| `server/combat.ts`                  | Resolves shots, swings and throws; damage and noise                        |
-| `src/lib/shared/player/tend.ts`     | Using the item in the hand on a teammate: who is looked at, what they need |
-| `server/systems/tend.ts`            | Gives the teammate what was used on them (or the item back)                |
-| `src/lib/game/play/tend.ts`         | Teammates for prediction, the prompts, the bandage sound                   |
-| `server/items.ts`                   | `WorldItems`: bricks scattered, pickups, drops, death drops, throws        |
-| `server/crates.ts`                  | `Crates`: what each loot crate holds, revealing it, who has it open        |
-| `src/lib/shared/map/crates.ts`      | `placeCrates`: which crate markers of a map have a crate                   |
-| `src/lib/game/items/Crates.ts`      | Crate models, their lids, highlight of the one you'd open                  |
-| `src/lib/ui/CrateScreen.svelte`     | The loot screen                                                            |
-| `scripts/blender/props.py`          | Builds the crate model and adds crate markers in the kit .blend            |
-| `src/lib/game/items/ViewModel.ts`   | The held item: procedural motion, own render pass                          |
-| `src/lib/game/items/WorldItems.ts`  | Floor and thrown items, highlight of what you'd pick up                    |
-| `src/lib/game/items/Effects.ts`     | Muzzle flares, gun fire and smoke, impact dust and sparks, own-shot pulse  |
-| `src/lib/game/items/flare.ts`       | The muzzle flare shader (also impact sparks)                               |
-| `scripts/blender/items.py`          | Builds the item models in the kit .blend                                   |
+| File                                 | What                                                                       |
+| ------------------------------------ | -------------------------------------------------------------------------- |
+| `src/lib/content/items.ts`           | Item definitions (data), `SLOTS`, `DEFAULT_STACK`                          |
+| `src/lib/content/carry.ts`           | Backpacks (slots) and `CARRY` (weight limits, slowdown)                    |
+| `src/lib/content/loadout.ts`         | How many bricks lie around                                                 |
+| `src/lib/shared/items/inventory.ts`  | Inventory rules: slots, stacking, moving, equipping, weight                |
+| `src/lib/shared/items/durability.ts` | Wear: how long a thing lasts, its condition, broken or not                 |
+| `src/lib/ui/ItemInspect.svelte`      | The Inspect panel: every figure about one stack                            |
+| `src/lib/ui/GameMenu.svelte`         | The in-game menu underground: the Pack and Rite tabs                       |
+| `src/lib/ui/PackPanel.svelte`        | The Pack tab (the pack screen)                                             |
+| `src/lib/ui/LoadoutPanel.svelte`     | An inventory drawn as slots (Pack tab and Loadout page)                    |
+| `src/lib/ui/QuickWheel.svelte`       | The quick-use wheel; `wheel.ts` decides which slot is chosen               |
+| `src/lib/shared/items/weapons.ts`    | `stepWeapon` (part of the player simulation), aim ray, pellet spread       |
+| `src/lib/shared/items/pickup.ts`     | Which floor item you're looking at (shared by server and client)           |
+| `src/lib/shared/items/types.ts`      | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`                     |
+| `server/combat.ts`                   | Resolves shots, swings and throws; damage and noise                        |
+| `src/lib/shared/player/tend.ts`      | Using the item in the hand on a teammate: who is looked at, what they need |
+| `server/systems/tend.ts`             | Gives the teammate what was used on them (or the item back)                |
+| `src/lib/game/play/tend.ts`          | Teammates for prediction, the prompts, the bandage sound                   |
+| `server/items.ts`                    | `WorldItems`: bricks scattered, pickups, drops, death drops, throws        |
+| `server/crates.ts`                   | `Crates`: what each loot crate holds, revealing it, who has it open        |
+| `src/lib/shared/map/crates.ts`       | `placeCrates`: which crate markers of a map have a crate                   |
+| `src/lib/game/items/Crates.ts`       | Crate models, their lids, highlight of the one you'd open                  |
+| `src/lib/ui/CrateScreen.svelte`      | The loot screen                                                            |
+| `scripts/blender/props.py`           | Builds the crate model and adds crate markers in the kit .blend            |
+| `src/lib/game/items/ViewModel.ts`    | The held item: procedural motion, own render pass                          |
+| `src/lib/game/items/WorldItems.ts`   | Floor and thrown items, highlight of what you'd pick up                    |
+| `src/lib/game/items/Effects.ts`      | Muzzle flares, gun fire and smoke, impact dust and sparks, own-shot pulse  |
+| `src/lib/game/items/flare.ts`        | The muzzle flare shader (also impact sparks)                               |
+| `scripts/blender/items.py`           | Builds the item models in the kit .blend                                   |
 
 ## Data
 
 An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 
-- `category`: `weapon`, `defense`, `quick` or `other`. It decides which slots take the item (see Inventory) and which stash filter lists it.
+- `category`: `weapon`, `defense`, `quick`, `gear`, `material` or `other`. It decides which slots take the item (see Inventory) and which stash filter lists it. **Gear** is worn, not used: it works while it is in one of the three gear slots (`workingGear` lists what is, broken gear left out). **Materials** are ordinary inventory items that stack and go in the backpack and the stash, never in a quick-use or equipment slot.
+- `price`: what one is worth new, in coin. The store sells at it, and selling back (and repairs) are worked out from it, for things the store sells and things it doesn't alike (see [economy.md](economy.md#money-and-the-shop)). Treasure has a `value` instead.
+- `durability`: the most wear it takes (`max`) and what that is counted in (`per`: `hit`, `shot`, `point`, `use` or `second`). See [Durability](#durability).
 - `maxStack`: how many share a slot. Weapons and defense are 1; most other things use `DEFAULT_STACK` (5); ammo has its own (30 rounds, 20 shells). An item with its own state (rounds loaded, wear) must be 1, so two never merge. 0 means it can't be carried at all (clues).
 - `flavor`: a line or two for the tooltip. `image`: optional picture id in `static/assets/ui/images` (built by `pnpm asset:images`); without one, slots and the tooltip show the name.
 - `melee`: `damage`, `range` (from the eye), `arc` (half-angle), `windup` (hit lands), `recovery`, `noise` (radius when it hits something), optional `breaksAfter` (bricks).
@@ -47,7 +51,7 @@ An `ItemDef` has a `kind`, a `category` and the specs that apply to it:
 - `charge`: `volts` put back into the headlamp and `seconds` to swap it in (batteries).
 - `revive: true`: brings a downed player round (smelling salts).
 - `rope`: `length` in metres of a new one (rope packs, 100 m, sold; rope bundles, 40 m, rare in crates). The metres left are on the stack (`ItemStack.metres`). Laid along the floor or tied at an anchor: see [rope.md](rope.md).
-- `defense`: `shield`, the points of creatures' blows it takes before the wearer does. The points used are kept on the stack (`ItemStack.worn`), so a worn coat stays worn after extraction; when they run out it is torn apart and gone.
+- `defense`: `shield`, the points of creatures' blows it takes before the wearer does. The points used are its wear (`ItemStack.worn`; its `durability` is `{ max: shield, per: 'point' }`, which a test checks), so a worn coat stays worn after extraction. When they run out it breaks and stays in the slot, taking nothing.
 - `weight` is kg for one of it.
 
 `hold` places the model in the viewmodel: `offset` from the camera and `scale`. Firearms also give `aim`, where it moves when aiming down the sights (low and a little right, so it never covers the crosshair; without one, `AIM_OFFSET` in `ViewModel.ts`), and `muzzle`, the barrel's end in the model's own space (where the flare is drawn). `model` points at `modelUrl('shared/items/<id>.glb')` (built into `static/assets/shared/items/<id>.<hash>.glb`). With `null`, the item is drawn as a box on the floor: `placeholder` gives its size and colour (a grey box without one).
@@ -64,7 +68,7 @@ The `notebook` (backpack, a placeholder box) has `survey: true`: carried anywher
 
 `PlayerState.inventory` is an `Inventory`. An explorer's loadout on the surface is the same type (see [economy.md](economy.md)). Every place is a slot holding one `ItemStack` (`item`, `count`, `loaded` for guns, `uses` for breakables) or null:
 
-- `equipment`: `primary` and `secondary` (only `weapon` items) and `defense` (only `defense` items);
+- `equipment`: `primary` and `secondary` (only `weapon` items), `defense` (only `defense` items) and the gear slot, which holds three: `gear1`, `gear2` and `gear3` (`GEAR_SLOTS`; only `gear` items). `slotCategory` says which category an equipment slot takes. A loadout saved before the gear slots existed has no gear keys: everything reads a slot through `getSlot` (or `?? null`), which takes a missing one as empty, so old saves need no migration;
 - `backpack`: anything; as many slots as the pack has (`BACKPACKS[inventory.pack].slots`, 16);
 - `quick`: `SLOTS.quick` (6) slots, only `quick` items: what the wheel offers;
 - `selected`: what is in the hand. `HAND.primary` (0), `HAND.secondary` (1), or `HAND.quick + i` for quick-use slot `i`;
@@ -98,7 +102,7 @@ Underground, the `inventory` action (Tab or I, View on the controller) opens `Ga
 
 ### The pack screen
 
-The Pack tab (`PackPanel`) is a `LoadoutPanel` (EQUIPMENT, BACKPACK, QUICK USE), with the weight carried beside the title, with the slot in the hand outlined. Slots are `ItemSlot`s on an `ItemBoard` (see [systems.md](systems.md#item-slots)): drag onto another slot, shift-click, or right-click for Equip / Unequip, Split and Drop. Each sends an `inventory` message carrying an `InventoryAction`.
+The Pack tab (`PackPanel`) is a `LoadoutPanel` (EQUIPMENT, BACKPACK, QUICK USE), with the weight carried beside the title, with the slot in the hand outlined. Slots are `ItemSlot`s on an `ItemBoard` (see [systems.md](systems.md#item-slots)): drag onto another slot, shift-click, or right-click for Inspect, Equip / Unequip, Split and Drop. Each sends an `inventory` message carrying an `InventoryAction`.
 
 The server checks the request (`sanitizeAction`, which refuses stash slots), applies it in `PackSystem.request` (`server/systems/pack.ts`) with `applyAction`, and refuses it while downed. A `drop` lands on the floor in front of you. If what's in the hand changed, the held item's action is cancelled and the new one comes up (`reequip`). These changes are not predicted: the client sees them in the next snapshot.
 
@@ -143,6 +147,42 @@ What happened is reported as `SimEvent`s (`shot`, `swing`, `throw`, `reloaded`, 
 
 Pellet spread comes from `pelletDirections(direction, spread, pellets, seed)`. The seed is the shot counter, so it's deterministic.
 
+## Durability
+
+Things wear out with use ([#28](https://github.com/JoshuaBelden/undercroft/issues/28)). The rules are in `src/lib/shared/items/durability.ts`, shared by the simulation, the server, the store and the interface.
+
+- **Two kinds.** An item with `durability` (`max` wear, counted `per` hit, shot, point, use or second) **breaks** when its wear (`ItemStack.worn`) reaches `max`, and stays where it is. A brick (`melee.breaksAfter`) is **used up** instead, and gone (its count is `ItemStack.uses`). `lasting(def)` gives either as `{ max, per, usedUp }`, or null for things that never wear.
+- **Wear is on the stack,** so it lasts through extraction, the stash and the loadout. Anything with `durability` has `maxStack: 1` (a test checks), so two stacks of wear never merge.
+- **What wears what:**
+  - A gun wears with every shot it fires (in `stepWeapon`, so it is predicted). The shot that breaks it still goes off, and reports a `broke` SimEvent.
+  - A melee weapon wears with every hit it lands (on the server: `wearHeld` in `server/combat.ts`). Swinging at air doesn't wear it.
+  - Defense wears by every point of a blow it takes (`absorbBlow`).
+  - Gear (by the second) and things worn by the use come with the items that need them.
+- **Broken does nothing** (`isBroken`; `works` is the opposite, for something that is there). It keeps its slot, its picture and its model, and can still be equipped or moved.
+  - A broken gun dry-clicks (an `empty` event) and doesn't reload.
+  - A broken blade or brick doesn't swing or throw.
+  - Broken defense takes no blows (`shieldOf` says 0 left).
+  - A broken crowbar pries nothing (`heldWorking(inv, 'pry')`).
+  - Broken gear isn't in `workingGear`.
+- **Breaking** raises a `break` `GameEvent`: it plays `defense.torn` for defense, `brick.break` for a brick, and `item.break` for anything else.
+- **Condition:** `condition(stack)` is what is left, 1 new to 0 broken. A worn thing sells for that share of its price, and a broken one for nothing (`sellPrice(item, stack)`).
+- **Repair** comes with the Workshop: `mend(stack)` makes a thing as good as new.
+- **In a slot,** a broken item is drawn under a red shade, with the broken mark in its top-right corner (`Slot`'s `broken`). The tooltip shows durability as a bar and a percent (`stackCondition`: never 0% for something that still works, nor 100% with any wear), and says when it is broken.
+
+**Tuning:** `durability` on each item in `src/lib/content/items.ts`: the knife 150 hits, the crowbar 200, the revolver 400 shots, the shotgun 250, the coat 40 points. **Testing:** the admin **Wear held item**, **Break held item** and **Repair everything** (see Admin, below).
+
+## Inspect
+
+Right-click an item (or press the keyboard's menu key, or the controller's Y) and choose **Inspect** to open its panel (`ItemInspect`, drawn by `ItemOverlays`). It shows the picture, name, rarity, type, flavor and durability, and every figure that applies to the item (`itemStats` in `src/lib/ui/items.ts`):
+
+- damage, spread, time between shots, rounds and reload;
+- range and falloff, and how far it is heard;
+- reach and swing times;
+- shield, how long it lasts and what wears it;
+- weight, stack and what it sells for.
+
+The panel follows the stack while it is open, since wear changes underground. It works on a locked board too (the loadout, while the explorer is underground), where it is the only entry in the menu. The tooltip shows only the name, rarity, type, flavor and durability. The recipe, what the item salvages into and where you've seen it join the panel with crafting.
+
 ## Using items on a teammate
 
 A bandage, a medkit or a battery in the hand can be used on a teammate instead of yourself ([#96](https://github.com/JoshuaBelden/undercroft/issues/96)): hold `aim` (right click, LT) looking at them, standing still. Giving items away isn't a thing: drop it for them to pick up.
@@ -158,8 +198,8 @@ A bandage, a medkit or a battery in the hand can be used on a teammate instead o
 ## Combat (server)
 
 - **Shots:** each pellet is a ray from the eye. It stops at the first wall (`segmentHit`) or creature (`rayVsCapsule` against `CreatureDirector.hitBodies()`). Damage per creature is summed per shot, so a shotgun blast staggers as one hit. Damage loses `falloff` linearly to the end of `range`, and keeps going at that level to 1.5× range. Gunfire calls `creatures.hear(origin, noise, shooter)`.
-- **Swings:** the nearest creature whose body is within `range` and inside the `arc` (widened by the body's angular size up close), with line of sight. A hit, or striking a wall, makes `noise`. Swinging at air is silent. Breakable items wear on every hit and break at `breaksAfter`.
-- **Defense:** a creature's blow lands on what is in the defense slot first (`absorbBlow`, in `CreatureSystem.step`): its shield takes what it has left, and only the rest is taken off sanity. The blow that uses the last of it tears it apart: it leaves the slot and a `break` event plays `defense.torn`. The client plays `player.shielded` (and a small shake) when its shield drops, and shows the shield as a bar over your health (`PartyMember.shield`, your own only). Darkness, seeing things and the manifestation go straight to sanity.
+- **Swings:** the nearest creature whose body is within `range` and inside the `arc` (widened by the body's angular size up close), with line of sight. A hit, or striking a wall, makes `noise`. Swinging at air is silent. Every hit wears what made it (`wearHeld`): a brick is used up at `breaksAfter`, and anything with `durability` breaks (see [Durability](#durability)).
+- **Defense:** a creature's blow lands on what is in the defense slot first (`absorbBlow`, in `CreatureSystem.step`): its shield takes what it has left, and only the rest is taken off sanity. The blow that uses the last of it breaks it (`absorbBlow` returns `broke`): it stays in the slot, takes nothing from then on, and a `break` event plays `defense.torn`. The client plays `player.shielded` (and a small shake) when its shield drops, and shows the shield as a bar over your health (`PartyMember.shield`, your own only). Darkness, seeing things and the manifestation go straight to sanity.
 - **Throws:** `WorldItems.launch` simulates a projectile with gravity in sim-rate steps. It hits a creature (damage, then it drops there) or lands on the world and becomes a floor item. Landing calls `hear` with no source, so creatures go and search the spot: a lure (a brick's `landNoise` is 8 m, a knife's only 4).
 - **No friendly fire:** shots and swings only test creatures.
 - **The manifestation** is a target too while it's out (`targets()` adds it, `hurt()` routes id `manifestation` to the Affliction). Every hit damages it. See [affliction.md](affliction.md).
@@ -262,7 +302,7 @@ The dead are searched like crates: the same 8 slots, loot tables, reveal and loo
 ## Adding an item
 
 1. Add a builder to `scripts/blender/items.py` (origin at the grip, forward +Y, up +Z) and list it in `ITEMS`. Run `items.build_all()` and `items.export_all()` in Blender, then `pnpm asset:build`.
-2. Add an `ItemDef` to `ITEMS` in `src/lib/content/items.ts`, with its `category`, `maxStack`, `flavor`, `weight` and specs. For a picture, put a PNG, JPEG or WebP in `art/images`, run `pnpm asset:images` and set `image`.
+2. Add an `ItemDef` to `ITEMS` in `src/lib/content/items.ts`, with its `category`, `maxStack`, `flavor`, `weight`, `price` (or `value` for treasure), `durability` if it wears, and specs. Its art may already be named in `src/lib/content/planned.ts`: take that line out once the item names its picture and model. For a picture, put a PNG, JPEG or WebP in `art/images`, run `pnpm asset:images` and set `image`.
 3. If it can be in the hand (a weapon or quick-use item), give it a `grip`: add it to `GRIPS` in `scripts/blender/explorer.py`, check it with `explorer.show_item(id)`, copy what `explorer.grip_numbers()` prints, and look at it with the admin Grip check.
 4. New behaviour (an item kind that does something new) goes in `stepWeapon` (timing, events) and `server/combat.ts` (what it does). Keep it keyed by def fields, not item ids.
 
@@ -272,6 +312,8 @@ These need `DEV_MODE`:
 
 - **Give** any item with a count (firearms come loaded); it goes where `addItem` puts it;
 - **Refill ammo** (fills the guns in the weapon slots and adds spare rounds);
+- **Wear held item** (`wearHeld`: a quarter of its durability) and **Break held item** (`breakHeld`). Both work on what is in the hand if it wears, else on what is worn for defense;
+- **Repair everything** (`repairAll`): every stack carried, as good as new;
 - **Reset crates** (`resetCrates`): shuts every loot crate and fills it again, hidden, with a new roll (a quest item, hint or key still in a crate stays in it);
 - **Unlock crates** (`unlockCrates`): unjams every crate and unlocks every trunk;
 - **Infinite ammo**;

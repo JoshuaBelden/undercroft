@@ -1,5 +1,5 @@
 import { ITEMS } from '../src/lib/content/items.ts';
-import { held, spendHeld } from '../src/lib/shared/items/inventory.ts';
+import { wearHeld } from '../src/lib/shared/items/inventory.ts';
 import { pelletDirections } from '../src/lib/shared/items/weapons.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { rayVsCapsule, segmentHit, type CollisionWorld } from '../src/lib/shared/map/collision.ts';
@@ -48,6 +48,9 @@ export function resolve(ctx: CombatContext, player: Prey, events: SimEvent[]): v
 					item: event.item,
 					position: [...player.state.position]
 				});
+				break;
+			case 'broke':
+				broke(ctx, player, event.item);
 				break;
 			case 'empty':
 				ctx.out.push({
@@ -170,20 +173,14 @@ function swing(
 	ctx.out.push({ kind: 'swing', player: player.id, item: event.item, origin: event.origin, hit });
 	if (!hit) return;
 	ctx.creatures.hear(event.origin, melee.noise, player);
-	// Breakable weapons wear out on every hit.
-	if (melee.breaksAfter) wear(ctx, player, event.item, melee.breaksAfter);
+	// Every hit wears what made it: a brick is used up at the last, anything else breaks.
+	const result = wearHeld(player.state.inventory, event.item);
+	if (result === 'broke' || result === 'usedUp') broke(ctx, player, event.item);
 }
 
-function wear(ctx: CombatContext, player: Prey, item: string, breaksAfter: number): void {
-	// A swing is made with what is in the hand.
-	const inv = player.state.inventory;
-	const stack = held(inv);
-	if (stack?.item !== item) return;
-	stack.uses = (stack.uses ?? 0) + 1;
-	if (stack.uses >= breaksAfter) {
-		spendHeld(inv, true);
-		ctx.out.push({ kind: 'break', item, position: [...player.state.position] });
-	}
+/** Tell everyone something of a player's broke (or was used up): the sound of it giving way. */
+function broke(ctx: CombatContext, player: Prey, item: string): void {
+	ctx.out.push({ kind: 'break', item, position: [...player.state.position] });
 }
 
 /** Damage a creature and report it (and its death) to clients. */

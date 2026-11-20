@@ -19,7 +19,10 @@ const STATUS_SECONDS = 15;
 /** What a player brought out is worth at the store. */
 export function carriedValue(carried: Inventory | null): number {
 	if (!carried) return 0;
-	return allStacks(carried).reduce((sum, stack) => sum + sellPrice(stack.item) * stack.count, 0);
+	return allStacks(carried).reduce(
+		(sum, stack) => sum + sellPrice(stack.item, stack) * stack.count,
+		0
+	);
 }
 
 /** Write one player's expedition. */

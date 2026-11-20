@@ -7,6 +7,7 @@ import { CREATURES, type CreatureDef } from '../../content/creatures.ts';
 import { IMAGE_URLS } from '../../content/images.generated.ts';
 import { ITEMS, type ItemDef } from '../../content/items.ts';
 import { MODELS } from '../../content/models.generated.ts';
+import { PLANNED_ASSETS, type PlannedAsset } from '../../content/planned.ts';
 import { PLAYER_MODEL } from '../../content/player/model.ts';
 import { PIECES } from '../../shared/map/pieces.generated.ts';
 import {
@@ -49,6 +50,8 @@ export interface CatalogContent {
 	creatures: Record<string, CreatureDef>;
 	afflictions: Record<string, AfflictionDef>;
 	explorer: { model: string; animations: AnimationMap };
+	/** Art named before it is made (content/planned.ts). */
+	planned?: PlannedAsset[];
 }
 
 export const GAME_CONTENT: CatalogContent = {
@@ -61,7 +64,8 @@ export const GAME_CONTENT: CatalogContent = {
 	items: ITEMS,
 	creatures: CREATURES,
 	afflictions: AFFLICTIONS,
-	explorer: PLAYER_MODEL
+	explorer: PLAYER_MODEL,
+	planned: PLANNED_ASSETS
 };
 
 /** `/assets/a/b.png` -> `a/b.png`, the path under static/assets. */
@@ -325,6 +329,43 @@ export function buildCatalog(
 					.filter(Boolean)
 					.join('. ') || undefined,
 			slots
+		});
+	}
+
+	// Planned art (content/planned.ts): each until the real file is there under its name.
+	const clips = new Set(
+		[...disk.gltf]
+			.filter(([path]) => path.startsWith('shared/player/'))
+			.flatMap(([, gltf]) => gltf.animations)
+	);
+	const made = (asset: PlannedAsset): boolean => {
+		switch (asset.kind) {
+			case 'image':
+				return asset.id in content.images;
+			case 'model':
+				return asset.id in content.models;
+			case 'piece':
+				return asset.id in content.pieces;
+			case 'sound':
+				return asset.id in content.sounds;
+			case 'animation':
+				return clips.has(asset.id);
+		}
+	};
+	for (const asset of content.planned ?? []) {
+		if (made(asset)) continue;
+		// A model is drawn as a box until it is made, a clip held as a pose; the rest is just missing.
+		const stand =
+			asset.kind === 'model' ? 'drawn as a box' : asset.kind === 'animation' ? 'a held pose' : '';
+		rows.push({
+			kind: asset.kind,
+			id: asset.kind === 'animation' ? `explorer: ${asset.id}` : asset.id,
+			usedBy: [`Planned: ${asset.group} (phase ${asset.phase})`],
+			files: [],
+			bytes: 0,
+			status: stand ? 'placeholder' : 'missing',
+			note: `${asset.label}. Not made yet${stand ? `: ${stand}` : ''}`,
+			planned: asset.phase
 		});
 	}
 

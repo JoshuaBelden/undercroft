@@ -47,13 +47,13 @@ Links inside the group use route ids with `resolve` (`resolve('/(hub)/loadout')`
 
 ### The Loadout page
 
-`Outfit` fills the page with two rounded, see-through panels. STASH on the left is as wide as its slots: a column of round filter buttons (`ItemFilters`: all, weapons, ammunition, defense, quick use, treasure, other) and the slots, 5 across, in a container that scrolls. A filter shows the stacks of that category first and then the empty slots, so there is still somewhere to drop things. LOADOUT takes the rest of the width and is a `LoadoutPanel`, with the weight of it (`CarriedWeight`) beside the title. The two are always side by side: in a narrower window the slots shrink (`--slot-size`, set on the page and read by `Slot`).
+`Outfit` fills the page with two rounded, see-through panels. STASH on the left is as wide as its slots: a column of round filter buttons (`ItemFilters`: all, weapons, ammunition, defense, quick use, gear, materials, treasure, quest items, other) and the slots, 5 across, in a container that scrolls. A filter shows the stacks of that category first and then the empty slots, so there is still somewhere to drop things. LOADOUT takes the rest of the width and is a `LoadoutPanel`, with the weight of it (`CarriedWeight`) beside the title. The two are always side by side: in a narrower window the slots shrink (`--slot-size`, set on the page and read by `Slot`).
 
 Everything is drag and drop; the one button is **Sell all treasure** under the stash (below). Slots are `ItemSlot`s on one `ItemBoard` (see [systems.md](systems.md#item-slots)):
 
 - drag a stack onto a slot: it moves, joins a stack of the same item, or swaps places;
 - shift-click: stash to loadout (where it belongs) and back;
-- right-click: Equip or Unequip, Split, Sell with the price ("Sell ＄5", or "Sell ＄5 each" for a stack; choosing it sells) and Drop. Split and selling more than one ask how many in a `QuantityDialog`; Drop is confirmed, because on the surface the thing is gone for good;
+- right-click: Inspect (every figure about it, see [items.md](items.md#inspect)), Equip or Unequip, Split, Sell with the price ("Sell ＄5", or "Sell ＄5 each" for a stack; choosing it sells) and Drop. Split and selling more than one ask how many in a `QuantityDialog`; Drop is confirmed, because on the surface the thing is gone for good;
 - hover or focus: the tooltip.
 
 A change plays `inventory.drop` (`slot-drop.mp3`); a sale plays `shop.sell` (`sfx_sell.mp3`) and throwing something away plays `item.drop` (`sfx_drop_item.mp3`, also heard when something is dropped on the floor underground).
@@ -149,9 +149,10 @@ An explorer's `money` is a whole number of coin. It only changes on the server.
 
 Everything to tune is in `src/lib/content/economy.ts`:
 
-- `SHOP`: what is sold, in order. Each entry is an `item`, a `price` and a `lot` (how many you get for that price: rounds come six or four at a time). Firearms are sold empty.
-- `ECONOMY.sellBack`: the fraction of its price that shop gear sells back for (per unit, rounded down).
-- `sellPrice(item)`: loot sells for its `value` (in `ITEMS`), shop gear for the sell-back, anything else for nothing and can't be sold.
+- **Prices are on the items.** Every item that has a price has `price` on its `ItemDef` (`src/lib/content/items.ts`): what one is worth new, whether the store sells it or not. The store, selling back and (with the Workshop) repairs all work from it.
+- `SHOP`: what is sold, in order. Each entry is made by `ware(item, lot)`: the item, its `lot` (how many you get at once: rounds come six or four at a time) and its `price`, the item's `price` times the lot. An item the store sells without a `price` throws when the module loads. Firearms are sold empty.
+- `ECONOMY.sellBack`: the fraction of its `price` that something sells back for (per unit, rounded down).
+- `sellPrice(item, stack?)`: loot sells for its `value`; anything else for the sell-back of its `price`, or nothing (it can't be sold). Given the stack, a worn thing sells for what is left of it (its condition, see [items.md](items.md#durability)), and a broken one for nothing. Every caller that has the stack passes it: the store's sell, the menu's Sell price, the expedition result and the stash's worth.
 - `ECONOMY.currency`: what money is called.
 
 Loot values are on the items (`value` in `src/lib/content/items.ts`), and how much loot there is to find is `CRATE_RARITY`, `CRATES.fill` and `LOOSE_LOOT` in `src/lib/content/loot.ts`.

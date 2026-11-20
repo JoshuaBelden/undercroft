@@ -80,6 +80,14 @@ export type AdminCommand =
 	| { kind: 'give'; item: string; count: number }
 	/** Fill your guns and add spare ammo. */
 	| { kind: 'refillAmmo' }
+	/**
+	 * Wear what is in your hand (else what you wear for defense) by a quarter of its durability, or
+	 * break it outright.
+	 */
+	| { kind: 'wearHeld' }
+	| { kind: 'breakHeld' }
+	/** Everything you carry as good as new. */
+	| { kind: 'repairAll' }
 	| { kind: 'killCreatures' }
 	/** Set the Affliction meter (0..1). */
 	| { kind: 'setMeter'; value: number }

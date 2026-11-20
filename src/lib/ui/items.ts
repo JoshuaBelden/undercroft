@@ -1,6 +1,26 @@
 import { sellPrice } from '#lib/content/economy.ts';
-import { ITEMS, type ItemCategory } from '#lib/content/items.ts';
+import { ITEMS, type ItemCategory, type WearUnit } from '#lib/content/items.ts';
+import { condition, isBroken, lasting, wearAmount, wearOf } from '#lib/shared/items/durability.ts';
 import type { ItemStack } from '#lib/shared/player/types.ts';
+
+/**
+ * How worn a stack is, for its tooltip and Inspect panel: what is left (0..1, and as a whole
+ * percent) and whether it is broken. Null for things that never wear.
+ */
+export function stackCondition(
+	stack: ItemStack
+): { left: number; percent: number; broken: boolean } | null {
+	const left = condition(stack);
+	if (left === null) return null;
+	// Never "0%" for something that still works, nor "100%" for something with any wear.
+	const raw = left * 100;
+	const percent = left <= 0 ? 0 : left >= 1 ? 100 : Math.min(99, Math.max(1, Math.round(raw)));
+	return { left, percent, broken: isBroken(stack) };
+}
+
+/** The mark drawn on a broken item's slot (`Slot`'s `broken`): a crack, in a 24-unit box. */
+export const BROKEN_ICON =
+	'M13.500 2 9 9.500l3.500 2.500L8 22l2.500-.500 5-9.500L12 9.500 16 2.500z';
 
 /** How a stack reads in a list: its name, rounds loaded for a firearm, or the count. */
 export function stackLabel(stack: ItemStack): string {
@@ -29,6 +49,8 @@ export const CATEGORY_LABELS: Record<ItemCategory, string> = {
 	weapon: 'Weapon',
 	defense: 'Defense',
 	quick: 'Quick use',
+	gear: 'Gear',
+	material: 'Material',
 	other: 'Other'
 };
 
@@ -39,6 +61,8 @@ export const FILTER_ICONS: Record<ItemFilter, string> = {
 	ammo: 'M12 2c2 1.800 3 4.200 3 7v9H9V9c0-2.800 1-5.200 3-7zM9 19.500h6V22H9z',
 	defense: 'M12 3l7 2.500v6c0 4.500-3 7.800-7 9.500-4-1.700-7-5-7-9.500v-6z',
 	quick: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',
+	gear: 'M12 2l2.200 3.300 3.900-.600-.600 3.900L21 12l-3.500 3.400.600 3.900-3.900-.600L12 22l-2.200-3.300-3.900.600.600-3.900L3 12l3.500-3.400-.600-3.900 3.900.600zM12 8.500a3.500 3.500 0 1 0 0 7 3.500 3.500 0 0 0 0-7z',
+	material: 'M3 5h18v4H3zM3 10.500h18v4H3zM3 16h18v4H3z',
 	treasure: 'M7 4h10l4 5-9 11L3 9z',
 	quest: 'M12 2l2.500 7.500L22 12l-7.500 2.500L12 22l-2.500-7.500L2 12l7.500-2.500z',
 	other:
@@ -47,7 +71,7 @@ export const FILTER_ICONS: Record<ItemFilter, string> = {
 
 /**
  * The mark in the bottom-left corner of an item's slot: its filter icon, for quest items,
- * weapons, defense and treasure. Other things have none.
+ * treasure, weapons, defense, gear and materials. Other things have none.
  */
 export function slotMark(item: string): { icon: string; label: string } | undefined {
 	const def = ITEMS[item];
@@ -56,6 +80,8 @@ export function slotMark(item: string): { icon: string; label: string } | undefi
 	if (def.treasure) return { icon: FILTER_ICONS.treasure, label: 'Treasure' };
 	if (def.category === 'weapon') return { icon: FILTER_ICONS.weapon, label: 'Weapon' };
 	if (def.category === 'defense') return { icon: FILTER_ICONS.defense, label: 'Defense' };
+	if (def.category === 'gear') return { icon: FILTER_ICONS.gear, label: 'Gear' };
+	if (def.category === 'material') return { icon: FILTER_ICONS.material, label: 'Material' };
 	return undefined;
 }
 
@@ -98,9 +124,29 @@ export interface ItemStat {
 /** The coin sign, as in the top bar. */
 export const COIN_SIGN = '＄';
 
+/** What wears an item, by what its wear is counted in. */
+const WEAR_PER: Record<WearUnit, string> = {
+	hit: 'With every hit it lands',
+	shot: 'With every shot',
+	point: 'With every point of a blow it takes',
+	use: 'With every use',
+	second: 'For as long as it is worn'
+};
+
+/** An angle in radians as degrees: "2.0°". */
+function degrees(radians: number): string {
+	return `${((radians * 180) / Math.PI).toFixed(1)}°`;
+}
+
+/** Seconds, to a tenth: "0.5 s". */
+function seconds(value: number): string {
+	return `${Number(value.toFixed(2))} s`;
+}
+
 /**
- * The figures that matter for a stack, for the tooltip: only those that apply to it. `forSale` is
- * a stack in the store, not one you own: what it holds and stacks to, not what is in it now.
+ * Every figure of a stack, for the Inspect panel and the store's details: only those that apply
+ * to it (damage, spread, time between shots, reload, range, noise, wear per use...). `forSale` is a
+ * stack in the store, not one you own: what it holds and stacks to, not what is in it now.
  */
 export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 	const def = ITEMS[stack.item];
@@ -110,23 +156,26 @@ export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 	if (def.firearm) {
 		const gun = def.firearm;
 		add('Damage', gun.pellets > 1 ? `${gun.damage} × ${gun.pellets}` : `${gun.damage}`);
-		add('Range', `${gun.range} m`);
+		add('Spread', `${degrees(gun.spread.hip)} hip, ${degrees(gun.spread.aimed)} aimed`);
+		add('Between shots', seconds(gun.interval));
 		if (forSale) add('Holds', `${gun.magazine}`);
 		else add('Loaded', `${stack.loaded ?? 0} / ${gun.magazine}`);
+		add('Reload', seconds(gun.reloadTime));
+		add('Range', `${gun.range} m, ${Math.round(gun.falloff * 100)}% less by then`);
+		add('Heard', `${gun.noise} m`);
 		add('Takes', ITEMS[gun.ammo]?.name ?? gun.ammo);
 	}
 	if (def.melee) {
-		add('Damage', `${def.melee.damage}`);
-		add('Reach', `${def.melee.range} m`);
-		add('Swing', `${(def.melee.windup + def.melee.recovery).toFixed(1)} s`);
-		if (def.melee.breaksAfter) {
-			add(
-				forSale ? 'Breaks after' : 'Blows left',
-				`${Math.max(0, def.melee.breaksAfter - (stack.uses ?? 0))}`
-			);
-		}
+		const melee = def.melee;
+		add('Damage', `${melee.damage}`);
+		add('Reach', `${melee.range} m`);
+		add('Swing', `${seconds(melee.windup)} to land, ${seconds(melee.recovery)} to recover`);
+		add('Heard', `${melee.noise} m`);
 	}
-	if (def.throwable) add('Thrown', `${def.throwable.damage} damage`);
+	if (def.throwable) {
+		add('Thrown', `${def.throwable.damage} damage`);
+		add('Lands', `heard ${def.throwable.landNoise} m`);
+	}
 	if (def.heal) {
 		add('Restores', `${def.heal.amount} sanity`);
 		add('Takes', `${def.heal.seconds} s, standing still`);
@@ -139,17 +188,24 @@ export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 	if (def.rope) {
 		add('Rope', `${def.rope.length} m`);
 	}
-	if (def.defense) {
-		const { shield } = def.defense;
-		add('Shield', forSale ? `${shield}` : `${Math.max(0, shield - (stack.worn ?? 0))} / ${shield}`);
+	if (def.defense) add('Shield', `${def.defense.shield}`);
+	const last = lasting(def);
+	if (last) {
+		const left = Math.max(0, last.max - (forSale ? 0 : wearOf(stack)));
+		add(last.usedUp ? 'Lasts' : 'Durability', `${wearAmount(left, last.per)} of ${last.max}`);
+		add('Wears', WEAR_PER[last.per]);
+		if (!last.usedUp) add('When it runs out', 'It breaks, and needs repair');
 	}
 	add('Weight', stackKilos(stack));
 	if (def.maxStack > 1) {
 		if (forSale) add('Stacks to', `${def.maxStack}`);
 		else add('Stack', `${stack.count} / ${def.maxStack}`);
 	}
-	const price = sellPrice(stack.item);
-	// One's price, with the coin sign of the top bar in front.
-	if (price > 0 && !forSale) add('Sells for', `${price}`, true);
+	// One's price, with the coin sign of the top bar in front; a worn one sells for less.
+	const price = sellPrice(stack.item, forSale ? undefined : stack);
+	if (!forSale) {
+		if (price > 0) add('Sells for', `${price}`, true);
+		else if (isBroken(stack) && sellPrice(stack.item) > 0) add('Sells for', 'Nothing, broken');
+	}
 	return stats;
 }

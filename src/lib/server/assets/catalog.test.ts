@@ -111,6 +111,51 @@ describe('buildCatalog', () => {
 	});
 });
 
+describe('planned art', () => {
+	const planned: CatalogContent['planned'] = [
+		{ kind: 'model', id: 'shared/items/hatchet.glb', label: 'Hatchet', group: 'Items', phase: 4 },
+		{ kind: 'image', id: 'rags', label: 'Rags', group: 'Materials', phase: 2 },
+		{ kind: 'animation', id: 'pry', label: 'Prying', group: 'Clips', phase: 2 },
+		{ kind: 'sound', id: 'gun.empty', label: 'Dry click', group: 'Sounds', phase: 1 }
+	];
+	const content: CatalogContent = { ...GAME_CONTENT, planned };
+
+	it('is listed before it is made: models and clips as placeholders, the rest missing', () => {
+		const catalog = buildCatalog(diskFor(content), content);
+		expect(row(catalog, 'model', 'shared/items/hatchet.glb')).toMatchObject({
+			status: 'placeholder',
+			usedBy: ['Planned: Items (phase 4)'],
+			planned: 4
+		});
+		expect(row(catalog, 'image', 'rags')?.status).toBe('missing');
+		expect(row(catalog, 'animation', 'explorer: pry')?.status).toBe('placeholder');
+	});
+
+	it('drops off the list once the real thing is there under its name', () => {
+		const disk = diskFor(content);
+		disk.gltf.set('shared/player/explorer-clips.glb', { animations: ['pry'], uris: [] });
+		const made: CatalogContent = {
+			...content,
+			images: { ...content.images, rags: '/assets/ui/images/rags.0000.webp' }
+		};
+		const catalog = buildCatalog(disk, made);
+		expect(
+			catalog.rows.filter((r) => r.id === 'rags' && r.usedBy[0]?.startsWith('Planned'))
+		).toEqual([]);
+		expect(row(catalog, 'animation', 'explorer: pry')).toBeUndefined();
+		// A sound that already exists in SOUNDS is never listed as planned.
+		expect(catalog.rows.some((r) => r.usedBy.includes('Planned: Sounds (phase 1)'))).toBe(false);
+	});
+
+	it('every planned name is one of a kind, and none is something the game has', () => {
+		const keys = GAME_CONTENT.planned!.map((a) => `${a.kind}:${a.id}`);
+		expect(new Set(keys).size).toBe(keys.length);
+		const catalog = buildCatalog(diskFor(GAME_CONTENT));
+		const listed = catalog.rows.filter((r) => r.planned !== undefined);
+		expect(listed).toHaveLength(GAME_CONTENT.planned!.length);
+	});
+});
+
 describe('animationSlots', () => {
 	it('gives each slot its clip, a held pose, or what it falls back to', () => {
 		const slots = animationSlots(

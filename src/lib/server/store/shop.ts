@@ -78,7 +78,7 @@ export async function sell(db: Db, explorerId: string, from: unknown, count: unk
 		if (!at || wanted < 1) return 'missing';
 		const stack = takeStack({ inventory: explorer.loadout, stash: explorer.stash }, at, wanted);
 		if (!stack) return 'missing';
-		const each = sellPrice(stack.item);
+		const each = sellPrice(stack.item, stack);
 		if (each <= 0) return 'worthless';
 		explorer.money += each * stack.count;
 		sold = { item: stack.item, count: stack.count, money: each * stack.count };
@@ -97,7 +97,7 @@ export async function sellTreasure(db: Db, explorerId: string): Result {
 		sold = [];
 		explorer.stash = explorer.stash.map((stack) => {
 			if (!stack || !ITEMS[stack.item]?.treasure) return stack;
-			const each = sellPrice(stack.item);
+			const each = sellPrice(stack.item, stack);
 			if (each <= 0) return stack;
 			const line = sold.find((entry) => entry.item === stack.item);
 			if (line) {

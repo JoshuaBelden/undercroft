@@ -18,6 +18,8 @@
 		{ id: 'ammo', label: 'Ammunition' },
 		{ id: 'defense', label: 'Defense' },
 		{ id: 'quick', label: 'Quick use' },
+		{ id: 'gear', label: 'Gear' },
+		{ id: 'material', label: 'Materials' },
 		{ id: 'treasure', label: 'Treasure' },
 		{ id: 'quest', label: 'Quest items' },
 		{ id: 'other', label: 'Other' }

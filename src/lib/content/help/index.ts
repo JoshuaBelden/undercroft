@@ -221,11 +221,11 @@ Whatever you carry out of the catacombs is yours. You come back to your loadout 
 
 The dashboard is where you land when you sign in. Its "Loadout" page shows what you own and what you're taking down: the stash on the left stays on the surface, and the loadout on the right goes down with you. Drag something from one to the other, or hold Shift and click it to send it across.
 
-The loadout has a place for everything. Two weapons, and one thing worn for protection: it takes the blows of whatever catches you before you do, until it is torn apart. The pale bar over your health underground is what it has left, and the wear stays on it when you come back up. A backpack that takes anything. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
+The loadout has a place for everything. Two weapons, and one thing worn for protection: it takes the blows of whatever catches you before you do, until it is worn through. The pale bar over your health underground is what it has left, and the wear stays on it when you come back up. Three gear slots, for things you wear that help just by being worn. A backpack that takes anything, materials included. And six quick-use slots for what you'll want in a hurry: bandages, smelling salts, something to throw. Only the quick-use slots are within reach of the wheel underground, so what sits in the backpack stays there until you move it.
 
-Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to equip it, split a stack, sell it or drop it. Dropping something on the surface throws it away for good.
+Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to inspect it, equip it, split a stack, sell it or drop it. Inspect shows everything about it: damage, range, how fast it fires, how far it is heard, how long it lasts. Dropping something on the surface throws it away for good.
 
-Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, treasure, quest items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
+Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, gear, materials, treasure, quest items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
 
 What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the omens close in.
 
@@ -382,14 +382,24 @@ Look at something on the floor and press {action:interact} to pick it up. It goe
 If you die down here, everything you carried stays where you fell. Someone else might find it.`
 	},
 	{
+		id: 'wear',
+		title: 'Wear and broken things',
+		category: 'Gear and loot',
+		body: `Your gear wears out. A gun wears with every shot, a blade or a crowbar with every blow that lands, a coat with every blow it takes for you. Hold the cursor over something to see how much it has left: the bar under its name, and the percent.
+
+When it runs out it breaks. A broken thing keeps its place and looks the same, under a red shade with a crack in the corner of its slot, but it does nothing. A broken gun only clicks. A broken blade won't swing. A broken coat takes nothing, and every blow goes straight to you. A broken crowbar won't pry. You can still carry it, and equip it, until it can be mended.
+
+Worn things sell for less, and broken things for nothing. A brick is different: it is only good for a few blows, and then it crumbles away.`
+	},
+	{
 		id: 'pack',
 		title: 'Your pack',
 		category: 'Gear and loot',
 		body: `Press {action:inventory} to open your pack. It is the first tab of the menu; the Rite tab beside it shows what you know of the rite. You can't open the menu while you're down. The catacombs don't wait while you look through it, and your hands are full: you can walk, but not fight, use or pick up anything, or run. With a controller you stand still.
 
-It is laid out like your loadout on the surface. Equipment: two weapons, and what you wear for protection. The backpack, which takes anything. And the quick-use slots, which are what the wheel offers. The slot in your hand is outlined.
+It is laid out like your loadout on the surface. Equipment: two weapons, what you wear for protection, and three gear slots. The backpack, which takes anything. And the quick-use slots, which are what the wheel offers. The slot in your hand is outlined.
 
-Drag things between slots. Hold Shift and click to send something between the backpack and the slot it belongs in. Right-click to equip it, split a stack or drop it. Things of a kind share a slot, up to a few of each; drop one stack on another to join them. To hand something to someone, drop it and let them pick it up.
+Drag things between slots. Hold Shift and click to send something between the backpack and the slot it belongs in. Right-click to inspect it, equip it, split a stack or drop it. Things of a kind share a slot, up to a few of each; drop one stack on another to join them. To hand something to someone, drop it and let them pick it up.
 
 Everything weighs something, and the weight you carry is shown beside the title. Once it turns blue you have started to slow down, and the more you carry the slower you get. There's a limit to what you can lift at all: when the game says something is too heavy, you'll have to leave something else behind.`
 	},

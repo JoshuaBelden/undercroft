@@ -9,7 +9,17 @@ import { SANITY } from './player/sanity.ts';
  */
 
 export type ItemKind =
-	'melee' | 'firearm' | 'throwable' | 'ammo' | 'consumable' | 'defense' | 'rite' | 'clue' | 'loot';
+	| 'melee'
+	| 'firearm'
+	| 'throwable'
+	| 'ammo'
+	| 'consumable'
+	| 'defense'
+	| 'gear'
+	| 'material'
+	| 'rite'
+	| 'clue'
+	| 'loot';
 
 /** How hard an item is to come by, commonest first. Shown on its slot and in its tooltip. */
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
@@ -23,8 +33,12 @@ export const RARITIES: { id: Rarity; name: string }[] = [
 	{ id: 'legendary', name: 'Legendary' }
 ];
 
-/** Which slots take an item, and the stash filter it is listed under. */
-export type ItemCategory = 'weapon' | 'defense' | 'quick' | 'other';
+/**
+ * Which slots take an item, and the stash filter it is listed under. Gear goes in the gear slots
+ * (worn, not used: it works while it is there); materials only ever sit in the backpack or the
+ * stash, never in a quick-use slot.
+ */
+export type ItemCategory = 'weapon' | 'defense' | 'quick' | 'gear' | 'material' | 'other';
 
 export interface MeleeSpec {
 	damage: number;
@@ -132,10 +146,29 @@ export interface RopeSpec {
 
 export interface DefenseSpec {
 	/**
-	 * Points of a creature's blow it takes before the wearer does. The points it has taken are kept
-	 * on the stack (`ItemStack.worn`); when they are all used up it is torn apart and gone.
+	 * Points of a creature's blow it takes before the wearer does. The points it has taken are its
+	 * wear (`ItemStack.worn`, in `point`s: its `durability.max` is this shield). When they are all
+	 * used up it is broken: it stays in the slot and takes nothing until it is repaired.
 	 */
 	shield: number;
+}
+
+/**
+ * What one unit of an item's wear is: a hit it lands (melee), a shot it fires, a point of a blow
+ * it takes (defense), a use (crafts, searches, resets) or a second of being worn (gear).
+ */
+export type WearUnit = 'hit' | 'shot' | 'point' | 'use' | 'second';
+
+/**
+ * How much wear an item takes before it is broken. The wear taken is on the stack
+ * (`ItemStack.worn`), so it lasts through extraction and the stash. A broken item keeps its slot
+ * and its looks, and can still be equipped, but does nothing until it is repaired (see
+ * src/lib/shared/items/durability.ts and docs/dev/items.md#durability).
+ */
+export interface DurabilitySpec {
+	/** Wear, in `per`, from new to broken. */
+	max: number;
+	per: WearUnit;
 }
 
 /**
@@ -193,7 +226,13 @@ export interface ItemDef {
 	maxStack: number;
 	/** Weight of one, in kg: everything carried counts toward the load (see CARRY). */
 	weight: number;
-	/** What one sells for on the surface (loot). */
+	/**
+	 * What one is worth new, in coin: the store sells it at this (`SHOP`), and selling it back and
+	 * repairs are worked out from it. Things the store doesn't sell have one too. Left out for what
+	 * has no price: treasure (it has a `value`), quest items and clues.
+	 */
+	price?: number;
+	/** What one sells for on the surface (loot): sold at this, not at a share of `price`. */
 	value?: number;
 	/**
 	 * Treasure: good for nothing but its value. Listed under its own stash filter and marked with
@@ -222,6 +261,8 @@ export interface ItemDef {
 	rope?: RopeSpec;
 	/** Worn in the defense slot. */
 	defense?: DefenseSpec;
+	/** It wears out with use and breaks (see DurabilitySpec). Without one it never wears. */
+	durability?: DurabilitySpec;
 	/**
 	 * Carried anywhere, it lets you open your map, sketch into it and show it to a teammate
 	 * (the surveyor's notebook, see docs/dev/map.md).
@@ -255,6 +296,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.665, 0.232, 1.181] },
 		maxStack: 1,
 		weight: 0.3,
+		price: 20,
+		durability: { max: 150, per: 'hit' },
 		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2 },
 		// Faster and flatter than a brick, and quieter where it lands: no lure.
 		throwable: { speed: 18, damage: 30, landNoise: 4, sound: 'knife.throw', land: 'knife.land' }
@@ -271,6 +314,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.934, 0.73, 1.052] },
 		maxStack: 1,
 		weight: 2.5,
+		price: 60,
+		durability: { max: 200, per: 'hit' },
 		melee: { damage: 40, range: 1.8, arc: 0.6, windup: 0.45, recovery: 0.65, noise: 6 },
 		pry: true
 	},
@@ -312,6 +357,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.025, 0.07, -0.0223], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 1.1,
+		price: 150,
+		durability: { max: 400, per: 'shot' },
 		firearm: {
 			damage: 32,
 			pellets: 1,
@@ -346,6 +393,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'twoHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 3.2,
+		price: 250,
+		durability: { max: 250, per: 'shot' },
 		firearm: {
 			damage: 9,
 			pellets: 8,
@@ -374,7 +423,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: modelUrl('shared/items/ammo-revolver.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 30,
-		weight: 0.015
+		weight: 0.015,
+		price: 2
 	},
 	'ammo.shotgun': {
 		id: 'ammo.shotgun',
@@ -386,7 +436,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: modelUrl('shared/items/ammo-shotgun.glb'),
 		hold: HOLD_RIGHT,
 		maxStack: 20,
-		weight: 0.045
+		weight: 0.045,
+		price: 4
 	},
 	bandage: {
 		id: 'bandage',
@@ -400,6 +451,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0166, 0.075, -0.0418], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
+		price: 15,
 		heal: { amount: 25, seconds: 3 }
 	},
 	// Rare: everything a bandage does and more, all at once (a full refill of sanity).
@@ -416,6 +468,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [0, -2.763, -1.571] },
 		maxStack: 2,
 		weight: 0.6,
+		price: 50,
 		rarity: 'rare',
 		heal: { amount: SANITY.max, seconds: 5, kneel: true }
 	},
@@ -448,6 +501,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0092, 0.075, -0.0232], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
+		price: 40,
 		revive: true
 	},
 	// One mark a stick (see docs/dev/marks.md), and the rite takes one.
@@ -463,6 +517,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0166, 0.09, -0.0418], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.01,
+		price: 5,
 		chalk: { marks: 1 }
 	},
 	// Rope (docs/dev/rope.md). The store sells packs; bundles are only found below, and rope picked
@@ -480,6 +535,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0296, 0.08, -0.0743], rotation: [1.571, 0, 2.763] },
 		maxStack: 1,
 		weight: 4,
+		price: 50,
 		rope: { length: 100 }
 	},
 	'rope-bundle': {
@@ -510,6 +566,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 0.3,
+		price: 35,
 		survey: true
 	},
 	// Opens one locked trunk on the third level, and is used up (see docs/dev/items.md).
@@ -539,7 +596,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		placeholder: { size: [0.03, 0.15, 0.03], color: 0xd8cba0 },
 		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
-		weight: 0.08
+		weight: 0.08,
+		price: 4
 	},
 	// Defense: a stand-in until there is real protection to find (see docs/dev/items.md).
 	coat: {
@@ -554,6 +612,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 2,
+		price: 90,
+		durability: { max: 40, per: 'point' },
 		defense: { shield: 40 }
 	},
 	// Loot: what is carried out and sold (see docs/dev/economy.md). None has a model yet.

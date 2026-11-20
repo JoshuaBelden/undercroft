@@ -2,7 +2,7 @@ import { ITEMS } from '#lib/content/items.ts';
 import { CRATES } from '#lib/content/loot.ts';
 import { Crates as CrateModels } from '#lib/game/items/Crates.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
-import { allStacks, held } from '#lib/shared/items/inventory.ts';
+import { allStacks, heldWorking } from '#lib/shared/items/inventory.ts';
 import { lookedAtCrate } from '#lib/shared/items/pickup.ts';
 import type { CrateSlot, GameEvent } from '#lib/shared/items/types.ts';
 import type { MapLayout } from '#lib/shared/map/types.ts';
@@ -139,7 +139,7 @@ export class Crates implements PlayFeature {
 		}
 		if (this.models.isJammed(id)) {
 			// It takes something that pries, in the hand.
-			const bar = !!ITEMS[held(state.inventory)?.item ?? '']?.pry;
+			const bar = !!heldWorking(state.inventory, 'pry');
 			const prompt = keyPrompt('interact', 'Pry', bar ? state.opening / CRATES.prySeconds : 0);
 			return { ...prompt, after: '(crate stuck)', blocked: !bar };
 		}

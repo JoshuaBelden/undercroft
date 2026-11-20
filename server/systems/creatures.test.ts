@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { ITEMS } from '../../src/lib/content/items.ts';
 import { SANITY } from '../../src/lib/content/player/sanity.ts';
+import { isBroken } from '../../src/lib/shared/items/durability.ts';
 import { THROW_DRAW } from '../../src/lib/shared/items/weapons.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import { HAND } from '../../src/lib/shared/player/types.ts';
@@ -66,6 +68,31 @@ describe('fighting', () => {
 			diver.hold(look, 0.15);
 		}
 		expect(events().some((e) => e.kind === 'swing' && e.hit === 'creature')).toBe(true);
+		// Every hit that lands wears the knife.
+		expect(diver.state.inventory.equipment.primary?.worn ?? 0).toBeGreaterThan(0);
+	});
+
+	it('the shot that wears a gun out breaks it: it stays in the hand, and only clicks after', () => {
+		const session = open(SEED);
+		session.admin('nobody', { kind: 'clearCreatures' });
+		const inv = kit(['revolver'], ['ammo.revolver', 6]);
+		const gun = inv.equipment.primary!;
+		gun.loaded = 6;
+		gun.worn = ITEMS.revolver.durability!.max - 1;
+		const diver = new Diver(session, 'A', inv);
+		diver.hold({}, 0.5);
+		diver.press({ attack: true });
+		diver.hold({}, 1);
+		diver.press({ attack: true });
+		diver.hold({}, 1);
+		const events = diver.socket.all('tick').flatMap((t) => t.events);
+		expect(events.filter((e) => e.kind === 'shot')).toHaveLength(1);
+		expect(events.some((e) => e.kind === 'break' && e.item === 'revolver')).toBe(true);
+		expect(events.some((e) => e.kind === 'empty')).toBe(true);
+		const held = diver.state.inventory.equipment.primary;
+		expect(held?.item).toBe('revolver');
+		expect(isBroken(held)).toBe(true);
+		expect(held?.loaded).toBe(5);
 	});
 
 	it('a brick held back and let go is thrown, and lands', () => {
@@ -89,7 +116,7 @@ describe('fighting', () => {
 		session.admin(diver.id, { kind: 'spawnCreature' });
 		diver.hold({}, 12);
 		expect(
-			diver.state.sanity < SANITY.max || diver.state.inventory.equipment.defense === null
+			diver.state.sanity < SANITY.max || (diver.state.inventory.equipment.defense?.worn ?? 0) > 0
 		).toBe(true);
 	});
 });

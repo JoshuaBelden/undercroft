@@ -129,3 +129,40 @@ describe('throwing', () => {
 		expect(s.weapon.action).toBe('none');
 	});
 });
+
+describe('wear and broken weapons', () => {
+	it('every shot wears the gun, and the one that breaks it still goes off', () => {
+		const s = holding('revolver');
+		const gun = s.inventory.equipment.primary!;
+		gun.loaded = 6;
+		gun.worn = ITEMS.revolver.durability!.max - 1;
+		const events = run(s, { attack: true }, 1);
+		expect(kinds(events)).toEqual(['broke', 'shot']);
+		expect(gun.worn).toBe(ITEMS.revolver.durability!.max);
+		expect(gun.loaded).toBe(5);
+	});
+
+	it('a broken gun only dry-clicks: no shot, no reload', () => {
+		const s = holding('revolver', 'ammo.revolver');
+		const gun = s.inventory.equipment.primary!;
+		gun.loaded = 3;
+		gun.worn = ITEMS.revolver.durability!.max;
+		const events = [
+			...run(s, { attack: true }, 1),
+			...run(s, {}, 1),
+			...run(s, { reload: true }, 1)
+		];
+		expect(kinds(events)).toEqual(['empty']);
+		expect(gun.loaded).toBe(3);
+		expect(s.weapon.action).toBe('none');
+	});
+
+	it('a broken blade neither swings nor is thrown', () => {
+		const s = holding('knife');
+		s.inventory.equipment.primary!.worn = ITEMS.knife.durability!.max;
+		const events = run(s, { attack: true }, steps(DRAW) + 30);
+		expect(events).toEqual([]);
+		expect(s.weapon.action).toBe('none');
+		expect(s.inventory.equipment.primary?.item).toBe('knife');
+	});
+});
