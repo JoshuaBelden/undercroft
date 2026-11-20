@@ -97,6 +97,10 @@ interface Creature {
 	wounds: number;
 	/** Seconds left reeling from a hard hit (no moving or attacking). */
 	staggered: number;
+	/** Seconds left held fast (a snare): no moving or attacking. */
+	held: number;
+	/** Bleeding: damage a second, seconds left, and who did it (they get the kill). */
+	bleed: { dps: number; left: number; from: Prey | null } | null;
 	/** Statuses it has (stunned: no moving or attacking), by its own reactions to them. */
 	statuses: Statuses;
 	/** Seconds since it died. */
@@ -110,6 +114,12 @@ interface Creature {
 	phase: number;
 	/** Flown off and out of the game: removed this tick. */
 	gone: boolean;
+}
+
+/** A line creatures won't cross (blessed salt), across the floor from `a` to `b`. */
+export interface Ward {
+	a: Vec3;
+	b: Vec3;
 }
 
 /** A creature's body for hit tests. */
@@ -362,6 +372,47 @@ export class CreatureDirector {
 
 	clear(): void {
 		this.creatures = [];
+	}
+
+	/** Lines creatures won't cross right now (blessed salt, server/systems/hazards.ts). */
+	wards: Ward[] = [];
+	/** Creatures that bled to death since this was last read (`takeBled`), and who opened the wound. */
+	private bled: { id: string; by: string | null; position: Vec3 }[] = [];
+
+	/** Those that bled to death since last asked, for the death to be told (CreatureSystem). */
+	takeBled(): { id: string; by: string | null; position: Vec3 }[] {
+		const out = this.bled;
+		this.bled = [];
+		return out;
+	}
+
+	/** Hold a creature fast for `seconds` (a snare). False if there is no such creature alive. */
+	hold(id: string, seconds: number): boolean {
+		const c = this.creatures.find((x) => x.id === id);
+		if (!c || c.mode === 'dead' || c.def.flight) return false;
+		c.held = Math.max(c.held, seconds);
+		if (c.mode === 'attack' && !c.attackHit) {
+			c.mode = 'agro';
+			c.cooldown = c.def.attack.cooldown * 0.5;
+		}
+		return true;
+	}
+
+	/**
+	 * Set a creature bleeding: `dps` a second for `seconds`, `from` a player (it comes for them,
+	 * and the kill is theirs). A fresh wound replaces a weaker one. False if it can't bleed.
+	 */
+	bleed(id: string, dps: number, seconds: number, from: Prey | null): boolean {
+		const c = this.creatures.find((x) => x.id === id);
+		if (!c || c.mode === 'dead' || c.def.invulnerable) return false;
+		if (c.bleed && c.bleed.dps * c.bleed.left > dps * seconds) return true;
+		c.bleed = { dps, left: seconds, from };
+		return true;
+	}
+
+	/** Whether a creature is bleeding (for the client's cue). */
+	bleeding(id: string): boolean {
+		return !!this.creatures.find((x) => x.id === id)?.bleed;
 	}
 
 	/** Admin: kill every creature. */
@@ -639,6 +690,28 @@ export class CreatureDirector {
 			}
 			c.cooldown = Math.max(0, c.cooldown - TICK_DT);
 			stepStatuses(c.statuses, c.def.statuses ?? {}, TICK_DT);
+			if (c.bleed) {
+				// Its wound runs: the damage a tick, and whoever opened it gets the kill.
+				const wound = c.bleed;
+				wound.left -= TICK_DT;
+				if (wound.left <= 0) c.bleed = null;
+				if (this.damage(c.id, wound.dps * TICK_DT, wound.from)) {
+					const b = c.body.position;
+					this.bled.push({
+						id: c.id,
+						by: wound.from?.id ?? null,
+						position: [b[0], b[1] + 1, b[2]]
+					});
+					continue;
+				}
+			}
+			if (c.held > 0) {
+				// Held fast: it struggles where it is.
+				c.held -= TICK_DT;
+				this.move(c, null, false);
+				this.animate(c, false);
+				continue;
+			}
 			if (c.def.shy && c.mode === 'patrol') {
 				// Sitting, it's seen: it gets up and goes, or shows what it is.
 				const seer = this.seenBy(c, targets);
@@ -801,6 +874,8 @@ export class CreatureDirector {
 			still: 0,
 			wounds: 0,
 			staggered: 0,
+			held: 0,
+			bleed: null,
 			statuses: {},
 			deadTime: 0,
 			fated: !!def.shy && this.rng.next() < def.shy.turnChance,
@@ -1275,6 +1350,17 @@ export class CreatureDirector {
 	}
 
 	private move(c: Creature, direction: Vec3 | null, sprint: boolean): void {
+		const before: Vec3 = [...c.body.position];
+		this.walk(c, direction, sprint);
+		// A line it won't cross (blessed salt): it stays on its own side.
+		const after = c.body.position;
+		if (this.wards.some((w) => crosses(before, after, w))) {
+			c.body.position = before;
+			c.body.velocity = [0, c.body.velocity[1], 0];
+		}
+	}
+
+	private walk(c: Creature, direction: Vec3 | null, sprint: boolean): void {
 		const frame = idleFrame(0, c.body);
 		if (direction && Math.hypot(direction[0], direction[2]) > 1e-3) {
 			frame.yaw = Math.atan2(-direction[0], -direction[2]);
@@ -1311,7 +1397,8 @@ export class CreatureDirector {
 		c.still = speed < 0.15 ? c.still + TICK_DT : 0;
 		const { gait } = c.def;
 		if (c.mode === 'dead') anim = 'die';
-		else if (c.staggered > 0 || hasStatus(c.statuses, 'stunned')) anim = 'take_damage';
+		else if (c.staggered > 0 || c.held > 0 || hasStatus(c.statuses, 'stunned'))
+			anim = 'take_damage';
 		else if (c.mode === 'attack') anim = 'melee_attack';
 		else if (c.body.mantle) anim = 'climb';
 		else if (c.mode === 'alert') anim = gait.alert;
@@ -1459,4 +1546,22 @@ function yawTo(from: Vec3, to: Vec3): number {
 
 function round(v: number): number {
 	return Math.round(v * 1000) / 1000;
+}
+
+/**
+ * Whether a move from `from` to `to` crosses a ward's line (on the floor, seen from above; a line
+ * on another floor, more than a storey off, doesn't count).
+ */
+export function crosses(from: Vec3, to: Vec3, ward: Ward): boolean {
+	if (Math.abs(from[1] - ward.a[1]) > 2) return false;
+	const side = (p: Vec3) =>
+		(ward.b[0] - ward.a[0]) * (p[2] - ward.a[2]) - (ward.b[2] - ward.a[2]) * (p[0] - ward.a[0]);
+	const sf = side(from);
+	const st = side(to);
+	if (sf === 0 && st === 0) return false;
+	if (sf * st > 0) return false;
+	// The line from the ward's ends against the move: the ends on either side of it too.
+	const across = (p: Vec3) =>
+		(to[0] - from[0]) * (p[2] - from[2]) - (to[2] - from[2]) * (p[0] - from[0]);
+	return across(ward.a) * across(ward.b) <= 0;
 }

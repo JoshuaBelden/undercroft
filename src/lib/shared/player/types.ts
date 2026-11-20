@@ -203,7 +203,16 @@ export interface Inventory {
  * `draw`: attack held with a throwable in the hand, drawing it back to throw (see `stepWeapon`).
  * `throw`: it has left the hand, and the arm comes through.
  */
-export type WeaponAction = 'none' | 'equip' | 'swing' | 'shot' | 'reload' | 'draw' | 'throw';
+export type WeaponAction =
+	| 'none'
+	| 'equip'
+	| 'swing'
+	| 'shot'
+	| 'reload'
+	| 'draw'
+	| 'throw'
+	/** Holding attack with something to set down (a snare, salt): `ItemDef.place`. */
+	| 'place';
 
 /** `Inventory.selected` for the weapons; quick-use slot `i` is `HAND.quick + i`. */
 export const HAND = { primary: 0, secondary: 1, quick: 2 } as const;
@@ -220,6 +229,10 @@ export interface WeaponState {
 	shots: number;
 	/** Previous frame's buttons, for press edges. */
 	prev: { attack: boolean; reload: boolean };
+	/** Seconds the weapon in the hand is still snagged (`melee.snag`): it won't swing. */
+	snag: number;
+	/** A throw was put down (aim, the menu): nothing more until attack is let go. */
+	putDown: boolean;
 }
 
 /** Something the simulation did that the server resolves (hits, noise) and clients show. */
@@ -234,6 +247,10 @@ export type SimEvent =
 	/** Let go of a rope or slipped off it (out of stamina). Not stepping off at either end. */
 	| { kind: 'letgo'; rope: string }
 	| { kind: 'empty'; item: string }
+	/** Too little stamina to swing (`melee.stamina`): a gasp, and no swing. */
+	| { kind: 'winded'; item: string }
+	/** Something was set down on the floor in front (`ItemDef.place`): one of it is spent. */
+	| { kind: 'place'; item: string; origin: Vec3; direction: Vec3 }
 	/** What was in the hand just broke (a gun's last shot): it stays there, and does nothing. */
 	| { kind: 'broke'; item: string }
 	/** Used the item in the hand on a teammate (one of it is spent): the server applies it to them. */

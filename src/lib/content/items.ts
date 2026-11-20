@@ -54,6 +54,17 @@ export interface MeleeSpec {
 	noise: number;
 	/** Hits before it breaks (bricks); omit for unbreakable. */
 	breaksAfter?: number;
+	/**
+	 * Stamina each swing costs. With too little left it won't swing at all (and the explorer gasps):
+	 * heavy weapons empty it in a few blows.
+	 */
+	stamina?: number;
+	/** It hits every creature in its arc, each for `damage`, not just the nearest (a trench spade). */
+	sweep?: boolean;
+	/** A hit sets the creature bleeding: `dps` damage a second for `seconds` (a nail-studded club). */
+	bleed?: { dps: number; seconds: number };
+	/** A hit can snag: with this chance, it is stuck for `seconds` and won't swing (the club). */
+	snag?: { chance: number; seconds: number };
 }
 
 export interface FirearmSpec {
@@ -81,6 +92,14 @@ export interface FirearmSpec {
 	/** Aiming down the sights narrows the view to this fraction of the field of view (and slows the mouse to match). */
 	zoom: number;
 	recoil: RecoilSpec;
+	/** Each pellet passes through every creature in its line, to the first wall (a rifle). */
+	pierce?: boolean;
+	/**
+	 * It doesn't hit at once: each shot is a round in flight, at `speed` m/s, falling as it goes (a
+	 * crossbow's bolt, a slingshot's pebble). It lands where it stops, heard `landNoise` away, and
+	 * can be picked up again, unless it breaks on a hit (`breakChance`).
+	 */
+	projectile?: { speed: number; landNoise: number; breakChance?: number };
 }
 
 /** What firing does to your aim and to the gun in your hands. */
@@ -109,6 +128,32 @@ export interface ThrowSpec {
 	sound: SoundId;
 	/** Sound where it lands. */
 	land: SoundId;
+	/**
+	 * A lure on a fuse (firecrackers): `seconds` after it lands it goes off, heard `noise` away,
+	 * hissing (`hiss`) till then and banging (`bang`) when it does. Used up when it does.
+	 */
+	fuse?: { seconds: number; noise: number; hiss: SoundId; bang: SoundId };
+	/**
+	 * It bursts into a fire where it lands (an oil bottle): `radius` m across it, `dps` damage a
+	 * second to every creature (and explorer) in it, for `seconds`; it lights its patch while it
+	 * burns. Used up when it lands. `sound`: the burst; the burning is `fire.burn`.
+	 */
+	fire?: { radius: number; dps: number; seconds: number; sound: SoundId };
+}
+
+/**
+ * Set down on the floor in front, holding attack for `seconds` (a snare, a line of salt). It stays
+ * there: see docs/dev/combat.md#placed-things.
+ */
+export interface PlaceSpec {
+	/** Seconds attack is held to set it down, standing still. */
+	seconds: number;
+	/** Played as it is set down. */
+	sound: SoundId;
+	/** A snare: holds the first creature that steps within `radius` m for `hold` seconds, once. */
+	snare?: { hold: number; radius: number };
+	/** A line creatures won't cross, `length` m long across the way, for `seconds` (blessed salt). */
+	ward?: { length: number; seconds: number };
 }
 
 export interface HealSpec {
@@ -284,6 +329,16 @@ export interface ItemDef {
 	smash?: boolean;
 	/** Carried anywhere, it unlocks one locked trunk, and is used up (the key, see items.md). */
 	unlocks?: boolean;
+	/** Its shots make no sound: nothing hears them, and they add nothing to the noise (a crossbow). */
+	silent?: boolean;
+	/** It can be used while crawling, where nothing else can (a short spear, a derringer). */
+	cramped?: boolean;
+	/** It can be used while downed (a derringer). */
+	downed?: boolean;
+	/** In the hand, it is too heavy to sprint with (a sledgehammer). */
+	noSprint?: boolean;
+	/** Set down on the floor from the quick-use slot (see PlaceSpec). */
+	place?: PlaceSpec;
 }
 
 /** How many of most things share a slot. Weapons and defense never stack. */
@@ -307,7 +362,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		weight: 0.3,
 		price: 20,
 		durability: { max: 150, per: 'hit' },
-		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2 },
+		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2, stamina: 4 },
 		// It cuts a cocoon open in a few seconds, where bare hands take longer.
 		cuts: ['cocoon'],
 		// Faster and flatter than a brick, and quieter where it lands: no lure.
@@ -327,7 +382,15 @@ export const ITEMS: Record<string, ItemDef> = {
 		weight: 2.5,
 		price: 60,
 		durability: { max: 200, per: 'hit' },
-		melee: { damage: 40, range: 1.8, arc: 0.6, windup: 0.45, recovery: 0.65, noise: 6 },
+		melee: {
+			damage: 40,
+			range: 1.8,
+			arc: 0.6,
+			windup: 0.45,
+			recovery: 0.65,
+			noise: 6,
+			stamina: 10
+		},
 		pry: true
 	},
 	// Wears with every blow, so each one keeps its own slot.
@@ -351,7 +414,8 @@ export const ITEMS: Record<string, ItemDef> = {
 			windup: 0.3,
 			recovery: 0.5,
 			noise: 5,
-			breaksAfter: 3
+			breaksAfter: 3,
+			stamina: 8
 		},
 		throwable: { speed: 14, damage: 30, landNoise: 8, sound: 'brick.throw', land: 'brick.land' }
 	},

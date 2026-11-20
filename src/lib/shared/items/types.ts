@@ -71,6 +71,16 @@ export interface CratesSnapshot {
 	locked: string[];
 }
 
+/**
+ * What has been set down or set off in the map (server/systems/hazards.ts): fires burning, snares
+ * set and lines of salt. Every client draws them. See docs/dev/combat.md.
+ */
+export interface HazardsSnapshot {
+	fires: { id: string; position: Vec3; radius: number }[];
+	snares: { id: string; item: string; position: Vec3; yaw: number }[];
+	wards: { id: string; item: string; a: Vec3; b: Vec3 }[];
+}
+
 /** A thrown item in flight. */
 export interface ProjectileSnapshot {
 	id: string;
@@ -164,6 +174,21 @@ export type GameEvent =
 	| { kind: 'rite'; player: string; position: Vec3 }
 	/** The manifestation the rite summoned was banished: the Affliction is resolved and calmed. */
 	| { kind: 'resolved'; position: Vec3 }
+	/** A player tried to swing with too little stamina: a gasp. */
+	| { kind: 'winded'; player: string; position: Vec3 }
+	/** A hit set a creature bleeding. */
+	| { kind: 'bleed'; id: string; position: Vec3 }
+	/** A player's weapon snagged on a hit (it won't swing for a moment). */
+	| { kind: 'snag'; player: string; item: string; position: Vec3 }
+	/** A player set something down (a snare, a line of salt). */
+	| { kind: 'placed'; player: string; item: string; position: Vec3 }
+	/** A snare caught a creature (it is held for a while; the snare is spent). */
+	| { kind: 'snared'; id: string; item: string; position: Vec3 }
+	/** Something on a fuse landed and is hissing; then it went off. */
+	| { kind: 'fuseLit'; item: string; position: Vec3 }
+	| { kind: 'fuseBang'; item: string; position: Vec3 }
+	/** Something burst into a fire (an oil bottle). */
+	| { kind: 'fire'; item: string; position: Vec3 }
 	/** A lamp was turned on from off: a flash that stuns what is vulnerable to it, if lit. */
 	| { kind: 'strobe'; player: string; position: Vec3; stunned: number }
 	/** Time ran out: everyone still underground is lost. */

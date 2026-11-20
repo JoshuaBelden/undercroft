@@ -4,6 +4,7 @@ import { Combat } from './combat.ts';
 import { Crates } from './crates.svelte.ts';
 import { Doors } from './doors.ts';
 import type { PlayContext, PlayFeature } from './feature.ts';
+import { Hazards } from './hazards.ts';
 import { Marks } from './marks.svelte.ts';
 import { Pack } from './pack.ts';
 import { Rite } from './rite.svelte.ts';
@@ -25,6 +26,7 @@ export function createFeatures(ctx: PlayContext) {
 		vitals: new Vitals(ctx),
 		tend: new Tend(ctx),
 		combat: new Combat(ctx),
+		hazards: new Hazards(ctx),
 		pack: new Pack(ctx),
 		crates: new Crates(ctx),
 		doors: new Doors(ctx),

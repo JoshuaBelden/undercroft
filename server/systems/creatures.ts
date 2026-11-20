@@ -22,6 +22,10 @@ export class CreatureSystem implements SessionSystem {
 			ctx.hurt(player, through);
 			if (hit.condition && !s.dead) applyCondition(s, hit.condition.id, hit.condition.seconds);
 		}
+		// Bled to death: told like any other kill, to whoever opened the wound.
+		for (const { id, by, position } of ctx.creatures.takeBled()) {
+			ctx.events.push({ kind: 'creatureDie', id, position, by });
+		}
 	}
 
 	admin = {

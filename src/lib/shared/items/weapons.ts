@@ -1,4 +1,5 @@
 import { ITEMS } from '../../content/items.ts';
+import { MOVEMENT } from '../../content/player/movement.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { InputFrame, PlayerState, SimEvent, WeaponState } from '../player/types.ts';
 import { addWear, isBroken } from './durability.ts';
@@ -28,7 +29,9 @@ export function idleWeapon(): WeaponState {
 		done: false,
 		aiming: false,
 		shots: 0,
-		prev: { attack: false, reload: false }
+		prev: { attack: false, reload: false },
+		snag: 0,
+		putDown: false
 	};
 }
 
@@ -76,6 +79,8 @@ export function stepWeapon(
 
 	const stack = held(inv);
 	const def = stack ? ITEMS[stack.item] : undefined;
+	w.snag = Math.max(0, (w.snag ?? 0) - dt);
+	if (!input.attack) w.putDown = false;
 	w.aiming = able && !!def?.firearm && input.aim && w.action !== 'reload';
 	if (!able) {
 		if (w.action !== 'equip') start(w, 'none');
@@ -122,9 +127,11 @@ export function stepWeapon(
 			}
 			case 'draw': {
 				const spec = def?.throwable;
-				// Opening the menu puts it down: neither a swing nor a throw.
-				if (!spec || !stack || input.reading) {
+				// Opening the menu, or aim, puts it down: neither a swing nor a throw, and nothing
+				// more until attack is let go.
+				if (!spec || !stack || input.reading || input.aim) {
 					start(w, 'none');
+					w.putDown = true;
 					break;
 				}
 				if (input.attack) break;
@@ -140,7 +147,7 @@ export function stepWeapon(
 						stack: { ...stack, count: 1 }
 					});
 					start(w, 'throw');
-				} else if (def.melee) {
+				} else if (def.melee && payStamina(s, def.melee.stamina ?? 0, true, stack.item, emit)) {
 					// Let go early: a swing, already as far into its wind-up as the draw got.
 					const time = Math.min(w.time, def.melee.windup);
 					start(w, 'swing');
@@ -154,9 +161,26 @@ export function stepWeapon(
 				// Whatever is in the hand now (the next one, or the weapon) comes up after.
 				if (w.time >= THROW_FOLLOW) start(w, 'equip');
 				break;
+			case 'place': {
+				const spec = def?.place;
+				// Let go, moved, or the menu opened: it isn't set down.
+				if (!spec || !stack || !input.attack || input.reading || moving(input)) {
+					start(w, 'none');
+					break;
+				}
+				if (w.time >= spec.seconds) {
+					const { origin, direction } = ray();
+					spendHeld(inv);
+					emit({ kind: 'place', item: stack.item, origin, direction });
+					// Whatever is in the hand now comes up; a fresh press for the next.
+					start(w, 'equip');
+					w.prev.attack = true;
+				}
+				break;
+			}
 		}
 	}
-	if (w.action !== 'none' || !stack || !def) return;
+	if (w.action !== 'none' || !stack || !def || w.putDown) return;
 
 	// Start something new. Broken, it is in the hand but does nothing: a gun only dry-clicks.
 	if (isBroken(stack)) {
@@ -192,9 +216,56 @@ export function stepWeapon(
 		}
 		return;
 	}
+	// Held, something to set down is set down, standing still.
+	if (def.place && pressed.attack && !moving(input)) {
+		start(w, 'place');
+		return;
+	}
 	// Held, a throwable draws back; held, anything else swings again and again.
 	if (def.throwable && input.attack) start(w, 'draw');
-	else if (def.melee && input.attack) start(w, 'swing');
+	else if (def.melee && input.attack) {
+		// Snagged: it won't come free yet.
+		if (w.snag > 0) return;
+		if (payStamina(s, def.melee.stamina ?? 0, pressed.attack, stack.item, emit)) start(w, 'swing');
+	}
+}
+
+/**
+ * Pay a swing's stamina. With too little left (or worn out), no swing: a gasp instead, once a
+ * press (`gasp`). Returns whether it swings.
+ */
+function payStamina(
+	s: PlayerState,
+	cost: number,
+	gasp: boolean,
+	item: string,
+	emit: (event: SimEvent) => void
+): boolean {
+	if (cost <= 0 || s.flags.infiniteStamina) return true;
+	if (s.stamina < cost || s.exhausted) {
+		if (gasp) emit({ kind: 'winded', item });
+		return false;
+	}
+	s.stamina -= cost;
+	s.staminaDelay = MOVEMENT.stamina.regenDelay;
+	return true;
+}
+
+/** Walking (any movement input): setting something down needs standing still. */
+function moving(input: InputFrame): boolean {
+	return Math.abs(input.moveX) > 0.01 || Math.abs(input.moveZ) > 0.01;
+}
+
+/**
+ * Whether the held item can be used in this state at all: most things need room (not crawling or
+ * in a squeeze) and being on your feet; `cramped` items work crawling and squeezed, `downed`
+ * ones while down. `roomy` is the rest of what using anything needs (not swimming, mantling...).
+ */
+export function canUseHeld(s: PlayerState, roomy: boolean, cramped: boolean): boolean {
+	const def = ITEMS[held(s.inventory)?.item ?? ''];
+	if (s.downed) return !!def?.downed;
+	if (!roomy) return false;
+	return !cramped || !!def?.cramped;
 }
 
 function start(w: WeaponState, action: WeaponState['action']): void {

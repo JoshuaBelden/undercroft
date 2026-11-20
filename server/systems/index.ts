@@ -4,6 +4,7 @@ import { CrateSystem } from './crates.ts';
 import { CreatureSystem } from './creatures.ts';
 import { DeadlineSystem } from './deadline.ts';
 import { DoorSystem } from './doors.ts';
+import { HazardSystem } from './hazards.ts';
 import { MarkSystem } from './marks.ts';
 import { PackSystem } from './pack.ts';
 import { RiteSystem } from './rite.ts';
@@ -24,6 +25,7 @@ export function createSystems(ctx: SessionContext) {
 		creatures: new CreatureSystem(ctx),
 		affliction: new AfflictionSystem(ctx),
 		pack: new PackSystem(ctx),
+		hazards: new HazardSystem(ctx),
 		sanity: new SanitySystem(ctx),
 		tend: new TendSystem(ctx),
 		rite: new RiteSystem(ctx),

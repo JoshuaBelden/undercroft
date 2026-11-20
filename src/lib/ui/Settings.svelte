@@ -429,6 +429,15 @@
 			hint="Names the thing on the floor you are looking at."
 		/>
 		<StepperField
+			label="Throw arc"
+			text={onOff(settings.interface.throwPreview)}
+			onstep={() => {
+				settings.interface.throwPreview = !settings.interface.throwPreview;
+				saveSettings();
+			}}
+			hint="While a throw is drawn back, shows its arc and where it will land."
+		/>
+		<StepperField
 			label="Show rite panel"
 			text={onOff(settings.interface.ritePanel)}
 			onstep={() => {

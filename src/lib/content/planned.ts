@@ -231,14 +231,12 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		['spear.hit', 'Spear hit'],
 		['club.swing', 'Club swing'],
 		['club.hit', 'Club hit'],
-		['club.snag', 'Club snags'],
 		['pickaxe.swing', 'Pickaxe swing'],
 		['pickaxe.hit', 'Pickaxe hit'],
 		['sledge.swing', 'Sledgehammer swing'],
 		['sledge.hit', 'Sledgehammer hit'],
 		['throwingKnife.throw', 'Throwing knife thrown'],
-		['throwingKnife.land', 'Throwing knife lands'],
-		['player.winded', 'Out of stamina: a gasp']
+		['throwingKnife.land', 'Throwing knife lands']
 	]),
 	...group('sound', 'Ranged', 4, [
 		['rifle.shot', 'Rifle shot'],
@@ -253,15 +251,12 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		['pebble.land', 'Pebble lands'],
 		['oilBottle.light', 'Oil bottle lit'],
 		['oilBottle.throw', 'Oil bottle thrown'],
-		['oilBottle.shatter', 'Oil bottle shatters'],
-		['fire.burn', 'Fire burning (loop)']
+		['oilBottle.shatter', 'Oil bottle shatters']
 	]),
 	...group('sound', 'Utility', 4, [
 		['firecrackers.fuse', 'Firecracker fuse'],
 		['firecrackers.bang', 'Firecrackers going off'],
-		['snare.spring', 'Snare springs'],
 		['salt.pour', 'Salt poured'],
-		['creature.bleed', 'A creature bleeding'],
 		['glowstick.crack', 'Glow stick cracked']
 	]),
 	...group('sound', 'World', 5, [

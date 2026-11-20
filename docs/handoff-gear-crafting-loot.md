@@ -583,7 +583,9 @@ Built, and moved into [map-generation.md](dev/map-generation.md) (`levels`, the 
 
 The `levels` field in the generator, the level on room banners, then the 13 new rooms and 3 rappel rooms with their levels, lootable markers and banners. A room whose mechanic isn't built yet (webs, rubble, pitons, the mausoleum gate) is placed with that part open until Phase 5.
 
-### Phase 4: combat mechanics
+### Phase 4: combat mechanics (Done)
+
+Built, and moved into [combat.md](dev/combat.md). Every behaviour is a field on the item, tried with test items until Phase 6 brings the real ones: stamina per swing (the knife, brick and crowbar already pay it), sweeps, bleeding, snags, piercing, silent and slow rounds (the crossbow's bolt drops to be picked up), the throw arc (with a setting), putting a throw down with aim, fuses, fires (a light lit only near the camera), snares, lines of salt, `cramped` and `downed` weapons and `noSprint`. Fire burns explorers in it too, not only the thrower within 2 m.
 
 Every Combat entry under New mechanics.
 

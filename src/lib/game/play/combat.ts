@@ -38,6 +38,8 @@ export class Combat implements PlayFeature {
 				if (gun) player.kick(gun.recoil.pitch, (Math.random() * 2 - 1) * gun.recoil.yaw);
 				const heavy = (gun?.pellets ?? 1) > 1;
 				rumble(heavy ? 'heavyShot' : 'shot');
+				// A bow or a sling has no flash and no smoke: only powder does.
+				if (!gun || gun.projectile) continue;
 				// First person, the flare is on the gun in your hands; over the shoulder, at the
 				// barrel of the gun your body holds; otherwise just in front of your eyes.
 				const drawn = viewModel.flash(heavy);
@@ -97,6 +99,7 @@ export class Combat implements PlayFeature {
 					// From the barrel of the gun in their hands; until it is drawn, out in front of
 					// their eyes, near where it would be.
 					const length = Math.hypot(...toward) || 1;
+					if (gun?.projectile) break;
 					const barrel = remote.muzzle(event.player, this.muzzle);
 					const at: Vec3 = barrel
 						? [barrel.x, barrel.y, barrel.z]

@@ -473,6 +473,57 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'brick shatters'
 	},
+	// Combat (docs/dev/combat.md): placeholders in code until each is recorded.
+	// Too little stamina left to swing.
+	'player.winded': {
+		file: 'player.winded',
+		synth: { kind: 'gasp' },
+		category: 'sfx',
+		volume: 0.7,
+		rate: 0.85,
+		variation: 0.08,
+		caption: 'a gasp',
+		captionOthers: true
+	},
+	// A weapon caught on what it hit (`melee.snag`).
+	'club.snag': {
+		file: 'club.snag',
+		synth: { kind: 'thud', cutoff: 380 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.1,
+		caption: 'a weapon snags'
+	},
+	// A creature set bleeding.
+	'creature.bleed': {
+		file: 'creature.bleed',
+		synth: { kind: 'drip' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 0.7,
+		variation: 0.1,
+		caption: 'something bleeds'
+	},
+	// A snare springing shut on what stepped in it.
+	'snare.spring': {
+		file: 'snare.spring',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.9,
+		rate: 0.6,
+		variation: 0.08,
+		caption: 'a snare snaps shut'
+	},
+	// A fire catching and burning (an oil bottle's).
+	'fire.burn': {
+		file: 'fire.burn',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.75,
+		rate: 0.6,
+		variation: 0.1,
+		caption: 'fire crackles'
+	},
 	// A weapon or tool giving way: it is broken now, and does nothing until it is repaired.
 	'item.break': {
 		file: 'item.break',

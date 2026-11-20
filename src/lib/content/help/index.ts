@@ -425,6 +425,10 @@ Everything weighs something, and the weight you carry is shown beside the title.
 		category: 'Surviving',
 		body: `Press {action:attack} to swing or fire. Hold {action:aim} to aim a gun: you move slowly, but your shots go where you look. Press {action:reload} to reload.
 
+Every swing takes stamina, more for heavy weapons. Out of breath, you can't swing until you get it back.
+
+Hold {action:attack} with something you can throw to draw it back: a faint arc shows where it will land (you can turn that off in the settings, under Interface). Let go to throw it, or press {action:aim} to put it down again.
+
 A knife is quick and quiet. A crowbar is slow but hits hard enough to stop something mid-swing. Bricks are everywhere; they break after a few blows.
 
 A knife or a brick can be thrown. Hold {action:attack} and your arm draws back; after a moment it is ready, with a click. Let go to throw. Let go sooner and you only swing. Whatever you threw lies where it lands until you pick it up again. To keep hold of it, take something else in your hand instead of letting go.

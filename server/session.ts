@@ -653,6 +653,7 @@ export class Session implements SessionContext {
 			doors: this.doors.snapshot(),
 			sealed: this.doors.sealedSnapshot(),
 			walls: this.systems.walls.snapshot(),
+			hazards: this.systems.hazards.snapshot(),
 			// For the admin bars only: never sent outside dev mode.
 			...(config.devMode && {
 				attraction: {

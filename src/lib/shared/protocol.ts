@@ -9,6 +9,7 @@ import type {
 	CrateSlot,
 	CratesSnapshot,
 	GameEvent,
+	HazardsSnapshot,
 	InventoryAction,
 	LaidRopeSnapshot,
 	MarkSnapshot,
@@ -196,6 +197,8 @@ export type ServerMessage =
 			sealed: string[];
 			/** False walls brought down (where they stood is in the layout). */
 			walls: string[];
+			/** Fires burning, snares set, lines of salt (server/systems/hazards.ts). */
+			hazards: HazardsSnapshot;
 			/**
 			 * Dev mode only (the admin bars): how full the party's noise and light meters are, 0..1
 			 * (full for a moment after one brings a witch), how many witches are alive, and why the
