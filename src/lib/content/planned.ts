@@ -206,52 +206,17 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		['gate.mausoleum', 'The mausoleum gate']
 	]),
 	...group('sound', 'Melee', 4, [
-		['hatchet.swing', 'Hatchet swing'],
-		['hatchet.hit', 'Hatchet hit'],
-		['spade.swing', 'Trench spade swing'],
-		['spade.hit', 'Trench spade hit'],
-		['spear.thrust', 'Spear thrust'],
-		['spear.hit', 'Spear hit'],
-		['club.swing', 'Club swing'],
-		['club.hit', 'Club hit'],
-		['pickaxe.swing', 'Pickaxe swing'],
-		['pickaxe.hit', 'Pickaxe hit'],
-		['sledge.swing', 'Sledgehammer swing'],
-		['sledge.hit', 'Sledgehammer hit'],
 		['throwingKnife.throw', 'Throwing knife thrown'],
 		['throwingKnife.land', 'Throwing knife lands']
 	]),
 	...group('sound', 'Ranged', 4, [
-		['rifle.shot', 'Rifle shot'],
-		['rifle.bolt', 'Rifle bolt worked'],
-		['rifle.load', 'Rifle round loaded'],
-		['derringer.shot', 'Derringer shot'],
-		['derringer.reload', 'Derringer reload'],
-		['crossbow.shot', 'Crossbow twang (quiet)'],
-		['crossbow.crank', 'Crossbow cranked'],
-		['crossbow.hit', 'Crossbow bolt hits'],
-		['slingshot.shot', 'Slingshot snap'],
-		['pebble.land', 'Pebble lands'],
 		['oilBottle.light', 'Oil bottle lit'],
 		['oilBottle.throw', 'Oil bottle thrown'],
 		['oilBottle.shatter', 'Oil bottle shatters']
 	]),
-	...group('sound', 'Utility', 4, [
-		['firecrackers.fuse', 'Firecracker fuse'],
-		['firecrackers.bang', 'Firecrackers going off'],
-		['salt.pour', 'Salt poured'],
-		['glowstick.crack', 'Glow stick cracked']
-	]),
+	...group('sound', 'Utility', 4, []),
 	...group('sound', 'World', 5, [['brick.scrape', "A smuggler's brick scraping"]]),
-	...group('sound', 'Items with a use', 6, [
-		['whistle.blow', 'Whistle'],
-		['tripwire.ring', 'Tripwire bell rings'],
-		['censer.swing', 'Censer swinging'],
-		['laudanum.drink', 'Laudanum'],
-		['compass.open', 'Compass opened'],
-		['doll.phantom', "The doll's phantom sounds"],
-		['tarot.draw', 'A tarot card drawn']
-	]),
+	...group('sound', 'Items with a use', 6, [['doll.phantom', "The doll's phantom sounds"]]),
 	...group('sound', 'Hub', 7, [
 		['workshop.repair', 'Workshop: repair'],
 		['workshop.craft', 'Workshop: craft'],

@@ -9,6 +9,7 @@ import {
 import { ITEMS } from '../../src/lib/content/items.ts';
 import { allStacks, quickWith, spendQuick } from '../../src/lib/shared/items/inventory.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
+import { calmed } from '../../src/lib/shared/player/conditions.ts';
 import { headlampOutput } from '../../src/lib/shared/player/headlamp.ts';
 import { eyeHeight } from '../../src/lib/shared/player/simulate.ts';
 import type { PlayerState } from '../../src/lib/shared/player/types.ts';
@@ -44,11 +45,13 @@ export class SanitySystem implements SessionSystem {
 			if (s.downed || s.dead || s.extracted) continue;
 			const eye: Vec3 = [s.position[0], s.position[1] + eyeHeight(s), s.position[2]];
 			let drain = 0;
-			if (!headlampOutput(s).on) {
+			// Laudanum: the dark and what is in it cost nothing (a curse still does).
+			const calm = calmed(s);
+			if (!calm && !headlampOutput(s).on) {
 				const others = states.filter((o) => o !== s);
 				if (illumination(ctx.world, others, eye) < DARK) drain += SANITY.darknessDrain;
 			}
-			if (bodies.some((b) => this.sees(s, eye, b.position, b.kind, states))) {
+			if (!calm && bodies.some((b) => this.sees(s, eye, b.position, b.kind, states))) {
 				drain += SANITY.seeingDrain;
 			}
 			// Something cursed in the pack (the porcelain doll) wears at its carrier.

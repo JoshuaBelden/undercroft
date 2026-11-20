@@ -56,6 +56,10 @@ Using anything needs room: crawling or squeezed, nothing works, but for things m
 
 The admin tools of [items.md](items.md#admin) apply (Give, infinite ammo and stamina, kill all). The items that carry these fields arrive with Phase 6.
 
+## The round's weapons
+
+The weapons of the handoff are data on these mechanics (`src/lib/content/items/weapons.ts`): the hatchet (cuts webs, thrown), the trench spade (`sweep`), the short spear (`cramped`, a narrow arc), the nail-studded club (`bleed`, `snag`), the pickaxe (`breaks` rubble), the sledgehammer (`smash`, `noSprint`, `stagger`), the rifle (`pierce`, `single`), the derringer (`cramped`, `downed`, revolver rounds), the crossbow (`silent`, a `projectile` bolt, `reloadSlow`), the slingshot (a pebble or a coin in flight, `alsoFires`), the oil bottle (`fire`), throwing knives. See [items.md](items.md#the-rounds-items) for the fields.
+
 ## Adding a behaviour
 
 Add a field to the item's spec, check it where the behaviour happens (`stepWeapon` for timing and what the player can do, `server/combat.ts` for what a hit does, `HazardSystem` for things that last in the map), give it a test item, a sound (with a `synth` until recorded) and a line here.

@@ -52,6 +52,22 @@ export function resolve(ctx: CombatContext, player: Prey, events: SimEvent[]): v
 			case 'broke':
 				broke(ctx, player, event.item);
 				break;
+			case 'dose':
+				ctx.out.push({
+					kind: 'dosed',
+					player: player.id,
+					item: event.item,
+					position: [...player.state.position]
+				});
+				break;
+			case 'whistle': {
+				const spec = ITEMS[event.item]?.whistle;
+				if (!spec) break;
+				const position: Vec3 = [...player.state.position];
+				ctx.creatures.hear(position, spec.noise, player);
+				ctx.out.push({ kind: 'whistle', player: player.id, position, seconds: spec.seconds });
+				break;
+			}
 			case 'winded':
 				ctx.out.push({ kind: 'winded', player: player.id, position: [...player.state.position] });
 				break;
@@ -90,7 +106,7 @@ function shoot(ctx: CombatContext, player: Prey, event: Extract<SimEvent, { kind
 	if (gun.projectile) {
 		// A round in flight (a bolt, a pebble): it hits (or lands) when it gets there.
 		const [dir] = pelletDirections(event.direction, spread, 1, event.seed);
-		ctx.items.launch({ item: gun.ammo, count: 1 }, event.origin, dir, player.id, {
+		ctx.items.launch({ item: event.round ?? gun.ammo, count: 1 }, event.origin, dir, player.id, {
 			speed: gun.projectile.speed,
 			lift: 0,
 			damage: gun.damage,
@@ -210,6 +226,7 @@ function swing(
 	if (target) {
 		for (const body of melee.sweep ? swept : [target]) {
 			hurt(ctx, body.id, melee.damage, player, bodies);
+			if (melee.stagger) ctx.creatures.stagger(body.id, melee.stagger);
 			// A wound that bleeds (a nail-studded club): it goes on hurting.
 			if (
 				melee.bleed &&

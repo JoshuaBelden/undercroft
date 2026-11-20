@@ -83,6 +83,12 @@ export interface HazardsSnapshot {
 	fires: { id: string; position: Vec3; radius: number }[];
 	snares: { id: string; item: string; position: Vec3; yaw: number }[];
 	wards: { id: string; item: string; a: Vec3; b: Vec3 }[];
+	/** Glow sticks lying lit: `left` of `seconds` (they fade at the end). */
+	glows: { id: string; item: string; position: Vec3; left: number; seconds: number }[];
+	/** Bait lying where it landed. */
+	baits: { id: string; item: string; position: Vec3 }[];
+	/** Tripwire bells set across the way. */
+	tripwires: { id: string; item: string; a: Vec3; b: Vec3 }[];
 }
 
 /** A thrown item in flight. */
@@ -190,6 +196,14 @@ export type GameEvent =
 	| { kind: 'snag'; player: string; item: string; position: Vec3 }
 	/** Something reached into bit a player (a rat nest), or stung them (a cocoon). */
 	| { kind: 'bitten'; player: string; position: Vec3 }
+	/** A player drew a tarot card coming down (TAROT): its blessing or curse is on them. */
+	| { kind: 'tarot'; player: string; card: string }
+	/** A tripwire bell rang: something crossed it. Everyone is told (the party hears where). */
+	| { kind: 'tripwire'; id: string; item: string; position: Vec3 }
+	/** A player took something (laudanum, grave dirt). */
+	| { kind: 'dosed'; player: string; item: string; position: Vec3 }
+	/** A player blew a whistle: the party is shown where, for `seconds`. */
+	| { kind: 'whistle'; player: string; position: Vec3; seconds: number }
 	/** A piton hammered in at an edge (an anchor from now on); or no edge there to take one. */
 	| { kind: 'piton'; player: string; position: Vec3 }
 	| { kind: 'pitonFailed'; player: string }

@@ -625,6 +625,10 @@ export class Session implements SessionContext {
 				this.logRun(player, timedOut ? 'lost' : 'died', null);
 			} else {
 				this.escaped++;
+				for (const stack of allStacks(player.state.inventory)) {
+					if (ITEMS[stack.item]?.spoils)
+						removeItem(player.state.inventory, stack.item, stack.count);
+				}
 				this.send(player, {
 					type: 'extracted',
 					...result,

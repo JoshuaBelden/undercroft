@@ -37,6 +37,8 @@ export type ItemAlertSource =
 
 export type Alert =
 	| { kind: 'social'; event: SocialAlertEvent; person: Person }
+	/** Something to say underground (a tripwire bell rang, a tarot card drawn). */
+	| { kind: 'note'; title: string; line: string }
 	| {
 			kind: 'item';
 			/** Item id (key into ITEMS). */

@@ -514,6 +514,263 @@ export const SOUNDS = {
 		variation: 0.08,
 		caption: 'a snare snaps shut'
 	},
+	// The round's weapons and items (docs/handoff-gear-crafting-loot.md), synthesized until recorded.
+	'hatchet.swing': {
+		file: 'hatchet.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.45,
+		rate: 1.2,
+		variation: 0.15
+	},
+	'hatchet.hit': {
+		file: 'hatchet.hit',
+		synth: { kind: 'thud', cutoff: 2600 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.1
+	},
+	'spade.swing': {
+		file: 'spade.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 0.8,
+		variation: 0.12
+	},
+	'spade.hit': {
+		file: 'spade.hit',
+		synth: { kind: 'thud', cutoff: 2000 },
+		category: 'sfx',
+		volume: 0.75,
+		variation: 0.1
+	},
+	'spear.thrust': {
+		file: 'spear.thrust',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.5,
+		variation: 0.1
+	},
+	'spear.hit': {
+		file: 'spear.hit',
+		synth: { kind: 'thud', cutoff: 2400 },
+		category: 'sfx',
+		volume: 0.65,
+		variation: 0.1
+	},
+	'club.swing': {
+		file: 'club.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 0.95,
+		variation: 0.15
+	},
+	'club.hit': {
+		file: 'club.hit',
+		synth: { kind: 'thud', cutoff: 1500 },
+		category: 'sfx',
+		volume: 0.75,
+		variation: 0.1
+	},
+	'pickaxe.swing': {
+		file: 'pickaxe.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.6,
+		rate: 0.7,
+		variation: 0.1
+	},
+	'pickaxe.hit': {
+		file: 'pickaxe.hit',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.85,
+		variation: 0.1,
+		caption: 'iron on stone',
+		captionOthers: true
+	},
+	'sledge.swing': {
+		file: 'sledge.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.65,
+		rate: 0.55,
+		variation: 0.1
+	},
+	'sledge.hit': {
+		file: 'sledge.hit',
+		synth: { kind: 'thud', cutoff: 900 },
+		category: 'sfx',
+		volume: 1,
+		variation: 0.08,
+		caption: 'a heavy blow',
+		captionOthers: true
+	},
+	'rifle.shot': {
+		file: 'rifle.shot',
+		synth: { kind: 'gunshot', boom: 110, length: 2.4, bright: 5200 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.04,
+		caption: 'rifle shot',
+		captionOthers: true
+	},
+	'rifle.bolt': {
+		file: 'rifle.bolt',
+		synth: { kind: 'reload' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.6
+	},
+	'rifle.load': {
+		file: 'rifle.load',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 0.9,
+		variation: 0.1
+	},
+	'derringer.shot': {
+		file: 'derringer.shot',
+		synth: { kind: 'gunshot', boom: 80, length: 1.2, bright: 3600 },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.05,
+		caption: 'gunshot',
+		captionOthers: true
+	},
+	'derringer.reload': {
+		file: 'derringer.reload',
+		synth: { kind: 'reload' },
+		category: 'sfx',
+		volume: 0.55,
+		rate: 1.1
+	},
+	'crossbow.shot': {
+		file: 'crossbow.shot',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 0.5,
+		variation: 0.08
+	},
+	'crossbow.crank': {
+		file: 'crossbow.crank',
+		synth: { kind: 'reload' },
+		category: 'sfx',
+		volume: 0.5,
+		rate: 0.7
+	},
+	'crossbow.hit': {
+		file: 'crossbow.hit',
+		synth: { kind: 'thud', cutoff: 2800 },
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.1
+	},
+	'slingshot.shot': {
+		file: 'slingshot.shot',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.4,
+		variation: 0.1
+	},
+	'pebble.land': {
+		file: 'pebble.land',
+		synth: { kind: 'thud', cutoff: 4200 },
+		category: 'sfx',
+		volume: 0.55,
+		variation: 0.15,
+		caption: 'a pebble clatters',
+		captionOthers: true
+	},
+	'firecrackers.fuse': {
+		file: 'firecrackers.fuse',
+		synth: { kind: 'hiss' },
+		category: 'sfx',
+		volume: 0.45,
+		variation: 0.05,
+		caption: 'a fuse hisses',
+		captionOthers: true
+	},
+	'firecrackers.bang': {
+		file: 'firecrackers.bang',
+		synth: { kind: 'gunshot', boom: 60, length: 0.6, bright: 6000 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.2,
+		caption: 'firecrackers',
+		captionOthers: true
+	},
+	'salt.pour': {
+		file: 'salt.pour',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.4,
+		variation: 0.1,
+		caption: 'salt pours'
+	},
+	'glowstick.crack': {
+		file: 'glowstick.crack',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.6,
+		variation: 0.1
+	},
+	'whistle.blow': {
+		file: 'whistle.blow',
+		synth: { kind: 'bell', pitch: 2400, length: 0.9 },
+		category: 'sfx',
+		volume: 0.8,
+		variation: 0.02,
+		caption: 'a whistle',
+		captionOthers: true
+	},
+	'tripwire.ring': {
+		file: 'tripwire.ring',
+		synth: { kind: 'bell', pitch: 1800, length: 1.2 },
+		category: 'sfx',
+		volume: 0.75,
+		variation: 0.05,
+		caption: 'a bell rings',
+		captionOthers: true
+	},
+	'censer.swing': {
+		file: 'censer.swing',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.25,
+		rate: 0.6,
+		variation: 0.1
+	},
+	'laudanum.drink': {
+		file: 'laudanum.drink',
+		synth: { kind: 'gasp' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 0.8
+	},
+	'compass.open': {
+		file: 'compass.open',
+		synth: { kind: 'click' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.2
+	},
+	'tarot.draw': {
+		file: 'tarot.draw',
+		synth: { kind: 'rustle' },
+		category: 'sfx',
+		volume: 0.35,
+		rate: 1.3,
+		caption: 'a card is drawn'
+	},
 	// A climbing piton hammered into the rock (docs/dev/rope.md#pitons).
 	'piton.hammer': {
 		file: 'piton.hammer',

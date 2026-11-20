@@ -1,5 +1,11 @@
 import type { SoundId } from './audio/sounds.ts';
+import { GEAR } from './items/gear.ts';
+import { MATERIALS } from './items/materials.ts';
+import { QUICK } from './items/quick.ts';
+import { TREASURE } from './items/treasure.ts';
+import { WEAPONS } from './items/weapons.ts';
 import { modelUrl } from './models.ts';
+import type { ConditionId } from './player/conditions.ts';
 import { SANITY } from './player/sanity.ts';
 
 /**
@@ -65,6 +71,10 @@ export interface MeleeSpec {
 	bleed?: { dps: number; seconds: number };
 	/** A hit can snag: with this chance, it is stuck for `seconds` and won't swing (the club). */
 	snag?: { chance: number; seconds: number };
+	/** A hit staggers it this long (s), however hard it took it (a sledgehammer). */
+	stagger?: number;
+	/** Its own swing and hit, in place of `melee.swing` and `melee.hit`. */
+	sound?: { swing: SoundId; hit: SoundId };
 }
 
 export interface FirearmSpec {
@@ -100,6 +110,12 @@ export interface FirearmSpec {
 	 * can be picked up again, unless it breaks on a hit (`breakChance`).
 	 */
 	projectile?: { speed: number; landNoise: number; breakChance?: number };
+	/** It loads one round at a time, each reload a round (a bolt-action rifle). */
+	single?: boolean;
+	/** Reloading it, no faster than a crawl (cranking a crossbow). */
+	reloadSlow?: boolean;
+	/** Other rounds it fires when it has none of its `ammo` (old coins in a slingshot). */
+	alsoFires?: string[];
 }
 
 /** What firing does to your aim and to the gun in your hands. */
@@ -139,6 +155,13 @@ export interface ThrowSpec {
 	 * burns. Used up when it lands. `sound`: the burst; the burning is `fire.burn`.
 	 */
 	fire?: { radius: number; dps: number; seconds: number; sound: SoundId };
+	/**
+	 * A light where it lands (a glow stick): `range` m, for `seconds`, fading at the end. It counts
+	 * toward the light budget, and moths come to it.
+	 */
+	glow?: { seconds: number; range: number; color: number };
+	/** Creatures of a kind within `radius` go to it and stay, for `seconds` (bait: rats). */
+	lure?: { creature: string; radius: number; seconds: number };
 }
 
 /**
@@ -159,6 +182,11 @@ export interface PlaceSpec {
 	 * can be tied there from then on. Nowhere to hammer it, it isn't used up. See PITONS.
 	 */
 	anchor?: boolean;
+	/**
+	 * A line across the way (a tripwire bell): when a creature crosses it, it rings, heard `noise`
+	 * away, and the party is told. It sets itself again, a use of its wear each time.
+	 */
+	tripwire?: { length: number; noise: number };
 }
 
 export interface HealSpec {
@@ -355,6 +383,39 @@ export interface ItemDef {
 	 * porcelain doll). See docs/dev/world.md#cursed-loot.
 	 */
 	cursed?: { sanity: number };
+	/**
+	 * Held in the hand, attack takes it (laudanum, grave dirt): `seconds` standing still, then the
+	 * condition, and it is used up.
+	 */
+	dose?: { condition: ConditionId; seconds: number; sound: SoundId };
+	/** Worn (defense), it slows a sprint to this share (a leather jerkin). */
+	sprint?: number;
+	/** Worn (gear), crafting below is possible (the field crafting kit). */
+	crafting?: boolean;
+	/** Worn (gear), crawling is this much faster and its sound this share as loud (kneepads). */
+	crawl?: { speed: number; quiet: number };
+	/** Worn (gear), footsteps are this share as loud (felt overshoes). */
+	steps?: { quiet: number };
+	/** Worn (gear), climbing a rope is this much faster (gloves). */
+	climb?: number;
+	/** Worn (gear), a bearing on the HUD to the nearest way out (a pocket compass). */
+	compass?: boolean;
+	/**
+	 * Held in the hand, its smoke keeps creatures of these kinds `radius` m away, and adds `noise`
+	 * to the noise meter; it wears by the second while held (an incense censer).
+	 */
+	censer?: { radius: number; repels: string[]; noise: number };
+	/** Held, attack blows it: heard `noise` away, the party shown where for `seconds` (a whistle). */
+	whistle?: { noise: number; seconds: number };
+	/** It doesn't keep: whatever is left of it is gone after the run (bait). */
+	spoils?: boolean;
+	/** Carried down, a card is drawn at the start of a run: a small blessing or curse (a tarot deck). */
+	tarot?: boolean;
+	/**
+	 * For the rite, it counts as `count` of another item (the black candle: five candles). The
+	 * rite takes the real ones first, and this only for what is still wanting.
+	 */
+	countsAs?: { item: string; count: number };
 }
 
 /** How many of most things share a slot. Weapons and defense never stack. */
@@ -376,7 +437,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.665, 0.232, 1.181] },
 		maxStack: 1,
 		weight: 0.3,
-		price: 20,
+		// Never sold now: found or crafted (it sells for 2).
+		price: 5,
 		durability: { max: 150, per: 'hit' },
 		melee: { damage: 18, range: 1.4, arc: 0.55, windup: 0.15, recovery: 0.3, noise: 2, stamina: 4 },
 		// It cuts a cocoon open in a few seconds, where bare hands take longer.
@@ -423,6 +485,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'oneHand', offset: [-0.0148, 0.08, -0.0372], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 2.5,
+		// Found by rubble; worth nothing.
+		value: 0,
 		melee: {
 			damage: 25,
 			range: 1.5,
@@ -559,7 +623,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [0, -2.763, -1.571] },
 		maxStack: 2,
 		weight: 0.6,
-		price: 50,
+		price: 60,
 		rarity: 'rare',
 		heal: { amount: SANITY.max, seconds: 5, kneel: true }
 	},
@@ -576,7 +640,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0129, 0.075, -0.0325], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.15,
-		value: 20,
+		price: 20,
 		rarity: 'uncommon',
 		charge: { volts: 12, seconds: 2 }
 	},
@@ -641,6 +705,8 @@ export const ITEMS: Record<string, ItemDef> = {
 		grip: { pose: 'item', offset: [-0.0296, 0.08, -0.0743], rotation: [1.571, 0, 2.763] },
 		maxStack: 1,
 		weight: 1.6,
+		// Never sold: found, or made from rope lengths.
+		value: 15,
 		rarity: 'rare',
 		rope: { length: 40 }
 	},
@@ -799,7 +865,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 1.8,
-		value: 260,
+		value: 300,
 		rarity: 'epic'
 	},
 	relic: {
@@ -816,7 +882,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 3,
-		value: 600,
+		value: 800,
 		rarity: 'legendary'
 	},
 	// Rite items (see docs/dev/rite.md).
@@ -846,7 +912,12 @@ export const ITEMS: Record<string, ItemDef> = {
 		hold: HOLD_RIGHT,
 		maxStack: 0,
 		weight: 0
-	}
+	},
+	...WEAPONS,
+	...GEAR,
+	...QUICK,
+	...MATERIALS,
+	...TREASURE
 };
 
 /** How hard an item is to come by. */

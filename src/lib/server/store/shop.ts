@@ -1,5 +1,5 @@
 import type { Db } from 'mongodb';
-import { SHOP, sellPrice } from '../../content/economy.ts';
+import { forSale, sellPrice } from '../../content/economy.ts';
 import { ITEMS, SLOTS } from '../../content/items.ts';
 import {
 	addToSlots,
@@ -47,7 +47,7 @@ function stock(explorer: ExplorerDoc, item: string, count: number): boolean {
 
 /** Buy `lots` lots of a shop item into the stash. */
 export async function buy(db: Db, explorerId: string, item: unknown, lots: unknown): Result {
-	const entry = SHOP.find((e) => e.item === item);
+	const entry = forSale().find((e) => e.item === item);
 	const wanted = typeof lots === 'number' && Number.isInteger(lots) ? lots : 1;
 	if (!entry || !ITEMS[entry.item] || wanted < 1 || wanted > 99) return { error: 'unsold' };
 	const cost = entry.price * wanted;
@@ -80,8 +80,11 @@ export async function sell(db: Db, explorerId: string, from: unknown, count: unk
 		if (!stack) return 'missing';
 		const each = sellPrice(stack.item, stack);
 		if (each <= 0) return 'worthless';
-		explorer.money += each * stack.count;
-		sold = { item: stack.item, count: stack.count, money: each * stack.count };
+		// A whole stack at once: nails are worth a tenth each, a lot of ten a coin.
+		const total = Math.floor(each * stack.count + 1e-9);
+		if (total <= 0) return 'worthless';
+		explorer.money += total;
+		sold = { item: stack.item, count: stack.count, money: total };
 		return null;
 	});
 	if ('explorer' in result) {

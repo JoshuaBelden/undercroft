@@ -23,7 +23,14 @@ import {
 import { aimRay, canUseHeld, idleWeapon, stepWeapon } from '../items/weapons.ts';
 import type { Vec3 } from '../map/types.ts';
 import { grabRope, letGo, ropeToGrab, stepClimb, type ClimberSpot } from './climb.ts';
-import { applyCondition, conditionSpeedCap, lampBlocked, stepConditions } from './conditions.ts';
+import {
+	applyCondition,
+	conditionSpeedCap,
+	conditionSpeedFactor,
+	lampBlocked,
+	stepConditions
+} from './conditions.ts';
+import { crawlFactor, sprintFactor } from '../items/gear.ts';
 import { lookedAtTeammate, needs, tendKind, type TeammateSpot } from './tend.ts';
 import type { InputFrame, Inventory, PlayerState, SimEvent, Stance } from './types.ts';
 
@@ -315,8 +322,15 @@ export function stepPlayer(
 	} else if (s.swimming && surface !== null) {
 		swim(s, input, world, dt, t, surface, sprinting);
 	} else {
-		let speed = sprinting ? t.sprintSpeed : t.stances[s.stance].speed;
+		let speed = sprinting
+			? t.sprintSpeed * sprintFactor(s.inventory)
+			: t.stances[s.stance].speed * (s.stance === 'crawl' ? crawlFactor(s.inventory) : 1);
 		if (s.weapon.aiming) speed = Math.min(speed, t.aimSpeed);
+		// Cranking a crossbow back: no faster than a crawl.
+		if (s.weapon.action === 'reload' && ITEMS[held(s.inventory)?.item ?? '']?.firearm?.reloadSlow) {
+			speed = Math.min(speed, t.stances.crawl.speed);
+		}
+		speed *= conditionSpeedFactor(s);
 		if (input.sneak) speed = Math.min(speed, t.sneakSpeed);
 		if (s.squeezing) speed = Math.min(speed, t.squeezeSpeed);
 		if (s.wading) speed *= t.wadeSpeed;

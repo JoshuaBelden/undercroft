@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { ITEMS } from '#lib/content/items.ts';
+import { TAROT } from '#lib/content/tarot.ts';
+import { raise } from '#lib/game/alerts.svelte.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
 import { allStacks, held } from '#lib/shared/items/inventory.ts';
 import { flightPath, throwOf } from '#lib/shared/items/projectile.ts';
@@ -13,6 +15,11 @@ import type { PlayContext, PlayFeature, TickMessage } from './feature.ts';
 
 /** A fire's light: warm, close, and only lit near enough to matter (it counts in the light budget). */
 const FIRE_LIGHT = { color: 0xff8a3a, intensity: 6, distance: 7, decay: 2, near: 22 };
+/**
+ * A glow stick's light: green, small, fading over its last `fade` share; only the `lit` nearest
+ * the camera are lit at all, so a floor full of them stays in the light budget.
+ */
+const GLOW_LIGHT = { intensity: 2.5, decay: 2, near: 25, lit: 4, fade: 0.2 };
 /** Whispers round a cursed thing's carrier: the first after this long, then every so often (s). */
 const CURSE_WHISPER = { first: 6, every: [14, 30] as [number, number] };
 /** The throw arc: how often it is worked out again (s), and its look. */
@@ -29,12 +36,19 @@ export class Hazards implements PlayFeature {
 	private fires = new Map<string, { group: THREE.Group; light: THREE.PointLight }>();
 	private snares = new Map<string, THREE.Object3D>();
 	private wards = new Map<string, THREE.Object3D>();
+	private glows = new Map<
+		string,
+		{ group: THREE.Group; light: THREE.PointLight; left: number; seconds: number }
+	>();
+	private baits = new Map<string, THREE.Object3D>();
+	private tripwires = new Map<string, THREE.Object3D>();
 	private world: CollisionWorld | null = null;
 	private arc: THREE.Line;
 	private mark: THREE.Mesh;
 	private sinceArc = 0;
 	private time = 0;
 	private untilWhisper = 0;
+	private untilSwing = 0;
 
 	constructor(private ctx: PlayContext) {
 		this.root.name = 'hazards';
@@ -97,6 +111,81 @@ export class Hazards implements PlayFeature {
 				dispose(shown);
 			}
 		);
+		sync(
+			this.glows,
+			hazards.glows,
+			(glow) => this.glow(glow.item, glow.position, glow.left, glow.seconds),
+			(shown) => {
+				this.root.remove(shown.group);
+				dispose(shown.group);
+			}
+		);
+		// How long each has left, as the server last said.
+		for (const glow of hazards.glows) {
+			const shown = this.glows.get(glow.id);
+			if (shown) shown.left = glow.left;
+		}
+		sync(
+			this.baits,
+			hazards.baits,
+			(bait) => this.snare(bait.item, bait.position, 0),
+			(shown) => {
+				this.root.remove(shown);
+				dispose(shown);
+			}
+		);
+		sync(
+			this.tripwires,
+			hazards.tripwires,
+			(wire) => this.tripwire(wire.a, wire.b),
+			(shown) => {
+				this.root.remove(shown);
+				dispose(shown);
+			}
+		);
+	}
+
+	/** A glow stick lying lit: a small green stick and its light. */
+	private glow(
+		item: string,
+		position: Vec3,
+		left: number,
+		seconds: number
+	): { group: THREE.Group; light: THREE.PointLight; left: number; seconds: number } {
+		const spec = ITEMS[item]?.throwable?.glow;
+		const color = spec?.color ?? 0x7dff8a;
+		const group = new THREE.Group();
+		group.position.set(...position);
+		const stick = new THREE.Mesh(
+			new THREE.CylinderGeometry(0.012, 0.012, 0.16, 8).rotateZ(Math.PI / 2),
+			new THREE.MeshBasicMaterial({ color })
+		);
+		stick.position.y = 0.02;
+		const light = new THREE.PointLight(color, 0, spec?.range ?? 7, GLOW_LIGHT.decay);
+		light.position.y = 0.25;
+		group.add(stick, light);
+		this.root.add(group);
+		return { group, light, left, seconds };
+	}
+
+	/** A tripwire: a taut line across the way, a bell at one end. */
+	private tripwire(a: Vec3, b: Vec3): THREE.Object3D {
+		const group = new THREE.Group();
+		const length = Math.hypot(b[0] - a[0], b[2] - a[2]);
+		const line = new THREE.Mesh(
+			new THREE.BoxGeometry(length, 0.008, 0.008),
+			new THREE.MeshBasicMaterial({ color: 0xb8ad94 })
+		);
+		line.position.set((a[0] + b[0]) / 2, Math.max(a[1], b[1]) + 0.15, (a[2] + b[2]) / 2);
+		line.rotation.y = -Math.atan2(b[2] - a[2], b[0] - a[0]);
+		const bell = new THREE.Mesh(
+			new THREE.ConeGeometry(0.04, 0.06, 10),
+			new THREE.MeshStandardMaterial({ color: 0xb08a3a, metalness: 0.7, roughness: 0.4 })
+		);
+		bell.position.set(a[0], a[1] + 0.12, a[2]);
+		group.add(line, bell);
+		this.root.add(group);
+		return group;
 	}
 
 	/** A fire: a low flame over its patch and a light, that flickers. */
@@ -198,6 +287,27 @@ export class Hazards implements PlayFeature {
 				if (fuse) sounds.playAt(fuse.bang, event.position, 1, fuse.noise);
 				break;
 			}
+			case 'tarot': {
+				if (!mine) break;
+				const card = TAROT.find((c) => c.id === event.card);
+				if (!card) break;
+				sounds.play('tarot.draw');
+				raise({ kind: 'note', title: `You drew ${card.name}`, line: card.line });
+				break;
+			}
+			case 'tripwire':
+				// The party hears it wherever it is: it is what the bell is for.
+				sounds.playAt('tripwire.ring', event.position, 1, 12);
+				raise({ kind: 'note', title: 'A tripwire bell rang', line: 'Something crossed it.' });
+				break;
+			case 'dosed': {
+				const dose = ITEMS[event.item]?.dose;
+				if (dose && mine) sounds.play(dose.sound);
+				break;
+			}
+			case 'whistle':
+				sounds.playAt('whistle.blow', event.position, 1, 25);
+				break;
 			case 'fire': {
 				const fire = ITEMS[event.item]?.throwable?.fire;
 				if (fire) sounds.playAt(fire.sound, event.position, 1, 8);
@@ -210,6 +320,16 @@ export class Hazards implements PlayFeature {
 	/** The throw arc, while a throw is drawn back (and the setting is on); whispers if cursed. */
 	self(state: PlayerState, delta: number): void {
 		this.whisper(state, delta);
+		// A censer in the hand swings on its chain.
+		if (ITEMS[held(state.inventory)?.item ?? '']?.censer) {
+			this.untilSwing -= delta;
+			if (this.untilSwing <= 0) {
+				this.untilSwing = 2;
+				this.ctx.sounds.play('censer.swing');
+			}
+		} else {
+			this.untilSwing = 0;
+		}
 		const w = state.weapon;
 		const spec = throwOf(ITEMS[held(state.inventory)?.item ?? '']);
 		const showing =
@@ -266,10 +386,20 @@ export class Hazards implements PlayFeature {
 			light.intensity = near ? FIRE_LIGHT.intensity * flicker : 0;
 			k++;
 		}
+		// Glow sticks: the nearest few lit, fading as they run out.
+		const glows = [...this.glows.values()]
+			.map((glow) => ({ glow, d: glow.group.position.distanceTo(camera) }))
+			.sort((x, y) => x.d - y.d);
+		glows.forEach(({ glow, d }, i) => {
+			glow.left = Math.max(0, glow.left - delta);
+			const fade = Math.min(1, glow.left / (glow.seconds * GLOW_LIGHT.fade));
+			glow.light.intensity =
+				i < GLOW_LIGHT.lit && d < GLOW_LIGHT.near ? GLOW_LIGHT.intensity * fade : 0;
+		});
 	}
 
 	clear(): void {
-		this.apply({ fires: [], snares: [], wards: [] });
+		this.apply({ fires: [], snares: [], wards: [], glows: [], baits: [], tripwires: [] });
 		this.arc.visible = this.mark.visible = false;
 	}
 

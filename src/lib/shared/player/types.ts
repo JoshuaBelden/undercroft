@@ -162,6 +162,8 @@ export interface ItemStack {
 	count: number;
 	/** Rounds in a firearm. */
 	loaded?: number;
+	/** What it is loaded with, when not its own rounds (old coins in a slingshot). */
+	ammo?: string;
 	/** Hits taken by a breakable melee item (a brick: gone at the last); marks drawn with chalk. */
 	uses?: number;
 	/**
@@ -212,7 +214,9 @@ export type WeaponAction =
 	| 'draw'
 	| 'throw'
 	/** Holding attack with something to set down (a snare, salt): `ItemDef.place`. */
-	| 'place';
+	| 'place'
+	/** Holding attack with something to take (laudanum, grave dirt): `ItemDef.dose`. */
+	| 'dose';
 
 /** `Inventory.selected` for the weapons; quick-use slot `i` is `HAND.quick + i`. */
 export const HAND = { primary: 0, secondary: 1, quick: 2 } as const;
@@ -238,7 +242,20 @@ export interface WeaponState {
 /** Something the simulation did that the server resolves (hits, noise) and clients show. */
 export type SimEvent =
 	| { kind: 'swing'; item: string; origin: Vec3; direction: Vec3 }
-	| { kind: 'shot'; item: string; origin: Vec3; direction: Vec3; seed: number; aimed: boolean }
+	| {
+			kind: 'shot';
+			item: string;
+			origin: Vec3;
+			direction: Vec3;
+			seed: number;
+			aimed: boolean;
+			/** What was fired (its own rounds, or old coins from a slingshot). */
+			round?: string;
+	  }
+	/** Something taken (laudanum, grave dirt): its condition is on them now. */
+	| { kind: 'dose'; item: string }
+	/** A whistle blown. */
+	| { kind: 'whistle'; item: string; origin: Vec3 }
 	| { kind: 'throw'; item: string; origin: Vec3; direction: Vec3; stack: ItemStack }
 	| { kind: 'reloaded'; item: string }
 	/** Hit the floor faster than FALL.safeSpeed (m/s): the server takes sanity for it. */

@@ -165,6 +165,10 @@ Loot values are on the items (`value` in `src/lib/content/items.ts`), and how mu
 
 The client only says what to buy or sell. Prices are looked up on the server, and the Store page shows the same table. It writes every amount with the coin sign (`COIN_SIGN`, ＄), as in the top bar: on each ware's slot, the price, the total and the purse. Like every hub change it is refused while underground or ready to descend.
 
+### Store tiers
+
+Every `SHOP` line has a `tier`: `start`, `trusted` (coin sold, in all), `gloaming` (resolving the Gloaming) and `valued`, as the handoff's table. `forSale(tiers)` is what can be bought; until the merchant's trust is kept, `OPEN_TIERS` is the start tier only. What is never sold (the knife, the hatchet, the crossbow, snares...) has a price all the same, its worth.
+
 ### The Store page
 
 `Shop` is for buying only. It draws one panel in the same style as the stash, titled STORE: the `ItemFilters` column and a grid of `SHOP` entries, `SLOTS.stashColumns` across. Each entry is a `Slot` in a button, with the lot size as the count and the price as the small print in the corner. A filter shows only the entries of that category (`matchesFilter`).

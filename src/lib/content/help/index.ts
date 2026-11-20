@@ -247,7 +247,9 @@ What you buy goes to your stash, which only has so many slots: open "Loadout" to
 
 Selling is done on the "Loadout" page: right-click something and choose Sell. What you find down there is what sells: treasure, marked with a small diamond in the corner of its slot. "Sell all treasure", under the stash, sells every piece of treasure in your stash at once (not what is in your loadout). Gear you bought can be sold back, for less than you paid. Some things nobody wants.
 
-A first descent with nothing is a short one. Bring out what a crate or two holds, and buy a knife and a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.`
+A first descent with nothing is a short one. Bring out what a crate or two holds, and buy a bandage before you go deeper. Smelling salts are what get you back on your feet when you go down alone.
+
+The store doesn't sell everything. Some things are only found below or made: the knife, the hatchet, the crossbow, snares and more.`
 	},
 	{
 		id: 'alerts',
@@ -405,7 +407,9 @@ If you die down here, everything you carried stays where you fell. Someone else 
 
 When it runs out it breaks. A broken thing keeps its place and looks the same, under a red shade with a crack in the corner of its slot, but it does nothing. A broken gun only clicks. A broken blade won't swing. A broken coat takes nothing, and every blow goes straight to you. A broken crowbar won't pry. You can still carry it, and equip it, until it can be mended.
 
-Worn things sell for less, and broken things for nothing. A brick is different: it is only good for a few blows, and then it crumbles away.`
+Worn things sell for less, and broken things for nothing. A brick is different: it is only good for a few blows, and then it crumbles away.
+
+Some things wear by the minute instead. Kneepads wear while you crawl, felt overshoes while you walk, an incense censer while you hold it. Gloves wear a little every time they keep a bite or a sting off you.`
 	},
 	{
 		id: 'pack',
@@ -454,6 +458,50 @@ Only one of you can go through a crate at a time. Once a crate has been opened i
 How hard something is to come by shows on the left and bottom edge of its slot: nothing for common things, then grey, green, blue and yellow for uncommon, rare, epic and legendary. Hold the cursor over it to read what it is and what it sells for.
 
 A crate never holds much of the best. Deeper crates hold more.`
+	},
+	{
+		id: 'weapons',
+		title: 'Weapons',
+		category: 'Gear and loot',
+		body: `Every weapon has its way. Hold the cursor over one and choose Inspect from its menu to see all of it: how hard it hits, how far, how loud, how long it lasts.
+
+A hatchet cuts webs in one blow, and can be thrown and picked up again. A trench spade hits everything in front of you, a little less each. A short spear reaches far but only straight ahead, and it is the one weapon that works while you crawl. A nail-studded club leaves things bleeding, but it can snag. A pickaxe breaks through rubble. A sledgehammer staggers anything it hits and smashes trunks open, but you can't run with it in your hand.
+
+The bolt-action rifle's round goes through everything in a line; it loads one round at a time. The derringer fires from the floor, crawling or downed, and takes revolver rounds. The crossbow makes no sound at all, but its bolt takes its time and drops. A slingshot won't kill anything; it makes a noise a long way off, and fires pebbles or old coins.
+
+An oil bottle bursts into fire where it lands. Firecrackers go off a few seconds after they land, loudly, somewhere you are not. Throwing knives come three to a lot: go and get them back.`
+	},
+	{
+		id: 'gear',
+		title: 'Gear',
+		category: 'Gear and loot',
+		body: `Gear is worn, not used: three gear slots in your loadout, and each thing works while it is there.
+
+Kneepads make crawling faster and quieter. Felt overshoes soften your footsteps. Gloves keep a rat nest's teeth and a cocoon's poison off your hands, and make rope easier to climb. A pocket compass shows, at the top of the screen, which way the nearest way out is and how far; once you know where the rite is held, it points there instead. The field crafting kit lets you make things below.
+
+A leather jerkin takes more than a padded coat before it gives, but you run a little slower in it.`
+	},
+	{
+		id: 'tools-and-tricks',
+		title: 'Tools and tricks',
+		category: 'Gear and loot',
+		body: `Most of these are used from the quick-use wheel: take one in your hand and hold {action:attack}.
+
+Laudanum: for a minute, nothing the dark or the things in it do costs you sanity, but your aim sways and you move a little slower. Grave dirt: whatever is hunting you loses you for a few seconds. A whistle: everyone in your party sees where you are, for a moment, and so does everything nearby that hears it.
+
+Thrown: a glow stick lights where it lands for a few minutes, and moths come to it. Bait draws rats to it, and off you. Set down: a snare holds the first thing through it. A line of blessed salt is not crossed while it lasts. A tripwire bell rings when something crosses it, and your party is told; it sets itself again a few times.
+
+Held: an incense censer keeps moths, rats and spiders away while it smokes, and makes a little noise as it swings. Lockpicks open locks without a sound, but a pick can snap.
+
+Bait doesn't keep: whatever you bring back up is gone.`
+	},
+	{
+		id: 'curious-treasure',
+		title: 'Curious treasure',
+		category: 'Gear and loot',
+		body: `Most treasure is only worth what it sells for. A few pieces are worth more than that, if you dare.
+
+Carry a tarot deck down and you draw a card as you arrive: a small blessing, or a small curse. The black candle counts as all five candles the rite needs. The custodian's key ring opens any one lock, and is gone. The porcelain doll sells for a great deal, but it is cursed. And an apothecary jar or a sealed reliquary jar won't survive a hard fall.`
 	},
 	{
 		id: 'false-walls',

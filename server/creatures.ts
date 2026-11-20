@@ -1,3 +1,5 @@
+import { stepLoudness } from '../src/lib/shared/items/gear.ts';
+import { unseen } from '../src/lib/shared/player/conditions.ts';
 import {
 	CREATURES,
 	creatureHealth,
@@ -376,6 +378,12 @@ export class CreatureDirector {
 
 	/** Lines creatures won't cross right now (blessed salt, server/systems/hazards.ts). */
 	wards: Ward[] = [];
+	/** Bait on the floor (HazardSystem): creatures of its kind within reach go to it instead. */
+	lures: Lure[] = [];
+	/** Censers held (GearSystem): creatures of these kinds won't come within the radius. */
+	repels: Repel[] = [];
+	/** Glow sticks lit (HazardSystem): moths come to them as to a bright lamp. */
+	glows: { id: string; position: Vec3 }[] = [];
 	/** Creatures that bled to death since this was last read (`takeBled`), and who opened the wound. */
 	private bled: { id: string; by: string | null; position: Vec3 }[] = [];
 
@@ -399,6 +407,52 @@ export class CreatureDirector {
 			const at = this.nav.points[index].position;
 			const c = this.add(def, [at[0] + (i % 2) * 0.3, at[1], at[2] + Math.floor(i / 2) * 0.3], 0);
 			if (prey && !def.flight) this.chase(c, prey);
+		}
+	}
+
+	/** The bait this creature goes to: of its kind, within reach, the nearest; or none. */
+	private lureFor(c: Creature): Lure | null {
+		let best: Lure | null = null;
+		let bestD = Infinity;
+		for (const lure of this.lures) {
+			if (lure.creature !== c.def.id) continue;
+			const d = distance3(lure.position, c.body.position);
+			if (d <= lure.radius && d < bestD) {
+				best = lure;
+				bestD = d;
+			}
+		}
+		return best;
+	}
+
+	/** Off after something that isn't a player (bait): it forgets whoever it was after and goes to look. */
+	private goTo(c: Creature, point: Vec3): void {
+		if (c.mode === 'agro' || c.mode === 'attack') {
+			c.target = null;
+			c.mode = 'investigate';
+			c.arrived = false;
+			c.linger = c.def.alert.linger;
+			this.resetPath(c);
+		}
+		if (c.mode === 'patrol' || c.mode === 'alert') {
+			c.mode = 'investigate';
+			c.arrived = false;
+			c.linger = c.def.alert.linger;
+			this.resetPath(c);
+		}
+		c.alertPoint = [...point];
+		// It stays at it while the bait lasts.
+		if (c.mode === 'investigate') c.linger = Math.max(c.linger, 1);
+	}
+
+	/** A blow that sends it reeling (a sledgehammer): staggered `seconds`, whatever the blow. */
+	stagger(id: string, seconds: number): void {
+		const c = this.creatures.find((x) => x.id === id);
+		if (!c || c.mode === 'dead' || c.def.flight) return;
+		c.staggered = Math.max(c.staggered, seconds);
+		if (c.mode === 'attack' && !c.attackHit) {
+			c.mode = 'agro';
+			c.cooldown = c.def.attack.cooldown * 0.5;
 		}
 	}
 
@@ -688,7 +742,10 @@ export class CreatureDirector {
 	/** Advance every creature by one server tick. Returns the hits that landed. */
 	step(prey: Prey[]): CreatureHit[] {
 		const hits: CreatureHit[] = [];
-		const targets = prey.filter((p) => !p.state.downed && !p.state.dead && !p.state.extracted);
+		// Grave dirt on them: nothing can find them (those chasing them lose them).
+		const targets = prey.filter(
+			(p) => !p.state.downed && !p.state.dead && !p.state.extracted && !unseen(p.state)
+		);
 		if (this.lastWitch) this.lastWitch.seconds += TICK_DT;
 		this.attract(targets);
 		this.lampFliers(targets);
@@ -734,7 +791,13 @@ export class CreatureDirector {
 				if (seer && c.fated) this.turn(c, seer);
 				else if (seer) this.flee(c, targets, false);
 			}
-			this.perceive(c, targets);
+			// Bait in reach: it goes to that, whoever is about.
+			const lure = this.lureFor(c);
+			if (lure) {
+				this.goTo(c, lure.position);
+			} else {
+				this.perceive(c, targets);
+			}
 			if (hasStatus(c.statuses, 'stunned')) {
 				// Stunned: it stands where it is, and an attack not yet landed is lost.
 				if (c.mode === 'attack' && !c.attackHit) {
@@ -951,9 +1014,31 @@ export class CreatureDirector {
 					if (lamp.dark >= flight.disperse) for (const c of mine) this.flyOff(c);
 				}
 			}
+			// A glow stick lit is a bright lamp lying on the floor.
+			for (const glow of this.glows) {
+				const key = `${def.id}:${glow.id}`;
+				let lamp = this.lamps.get(key);
+				if (!lamp) {
+					lamp = { bright: 0, dark: 0, next: 0 };
+					this.lamps.set(key, lamp);
+				}
+				const mine = this.living().filter(
+					(c) => c.def === def && c.follow === glow.id && c.mode !== 'flee'
+				);
+				lamp.bright += TICK_DT;
+				if (lamp.bright >= flight.after && mine.length < flight.max) {
+					lamp.next -= TICK_DT;
+					if (lamp.next <= 0) {
+						lamp.next = flight.arrive;
+						this.flyTo(def, glow);
+					}
+				}
+			}
 			for (const c of this.living()) {
 				if (c.def !== def || c.mode === 'flee') continue;
-				if (!targets.some((t) => t.id === c.follow)) this.flyOff(c);
+				const known =
+					targets.some((t) => t.id === c.follow) || this.glows.some((g) => g.id === c.follow);
+				if (!known) this.flyOff(c);
 			}
 		}
 	}
@@ -973,6 +1058,25 @@ export class CreatureDirector {
 				c.mode = 'patrol';
 				return;
 			}
+		}
+	}
+
+	/** One flies in to a glow stick, from somewhere open above it. */
+	private flyTo(def: CreatureDef, glow: { id: string; position: Vec3 }): void {
+		const flight = def.flight;
+		if (!flight) return;
+		const at: Vec3 = [glow.position[0], glow.position[1] + 0.4, glow.position[2]];
+		for (const turn of [0, 1.5, 3, 4.5]) {
+			const from: Vec3 = [
+				at[0] + Math.sin(turn) * flight.from * 0.4,
+				at[1] + 1,
+				at[2] + Math.cos(turn) * flight.from * 0.4
+			];
+			if (segmentBlocked(this.world, at, from)) continue;
+			const c = this.add(def, from, yawTo(from, at));
+			c.follow = glow.id;
+			c.mode = 'patrol';
+			return;
 		}
 	}
 
@@ -1005,20 +1109,29 @@ export class CreatureDirector {
 			goal = c.goal;
 		} else {
 			const owner = targets.find((t) => t.id === c.follow);
-			if (!owner) {
-				this.flyOff(c);
-				return;
-			}
-			const s = owner.state;
-			const cp = Math.cos(s.pitch);
-			const eye = s.position[1] + eyeHeight(s);
+			const glow = this.glows.find((g) => g.id === c.follow);
 			c.phase += TICK_DT * 2.2;
 			const r = flight.radius;
-			goal = [
-				s.position[0] - Math.sin(s.yaw) * cp * flight.ahead + Math.cos(c.phase) * r,
-				eye + Math.sin(s.pitch) * flight.ahead + Math.sin(c.phase * 1.7) * r * 0.6,
-				s.position[2] - Math.cos(s.yaw) * cp * flight.ahead + Math.sin(c.phase * 1.3) * r
-			];
+			if (glow) {
+				// Round a glow stick on the floor.
+				goal = [
+					glow.position[0] + Math.cos(c.phase) * r,
+					glow.position[1] + 0.5 + Math.sin(c.phase * 1.7) * r * 0.6,
+					glow.position[2] + Math.sin(c.phase * 1.3) * r
+				];
+			} else if (!owner) {
+				this.flyOff(c);
+				return;
+			} else {
+				const s = owner.state;
+				const cp = Math.cos(s.pitch);
+				const eye = s.position[1] + eyeHeight(s);
+				goal = [
+					s.position[0] - Math.sin(s.yaw) * cp * flight.ahead + Math.cos(c.phase) * r,
+					eye + Math.sin(s.pitch) * flight.ahead + Math.sin(c.phase * 1.7) * r * 0.6,
+					s.position[2] - Math.cos(s.yaw) * cp * flight.ahead + Math.sin(c.phase * 1.3) * r
+				];
+			}
 		}
 		const d: Vec3 = [goal[0] - b[0], goal[1] - b[1], goal[2] - b[2]];
 		const dist = Math.hypot(d[0], d[1], d[2]);
@@ -1368,9 +1481,17 @@ export class CreatureDirector {
 	private move(c: Creature, direction: Vec3 | null, sprint: boolean): void {
 		const before: Vec3 = [...c.body.position];
 		this.walk(c, direction, sprint);
-		// A line it won't cross (blessed salt): it stays on its own side.
+		// A line it won't cross (blessed salt), or a censer's smoke it won't come into: it stays out.
 		const after = c.body.position;
-		if (this.wards.some((w) => crosses(before, after, w))) {
+		const smoke = this.repels.some(
+			(r) =>
+				r.kinds.includes(c.def.id) &&
+				Math.abs(after[1] - r.position[1]) < 2 &&
+				Math.hypot(after[0] - r.position[0], after[2] - r.position[2]) < r.radius &&
+				Math.hypot(after[0] - r.position[0], after[2] - r.position[2]) <
+					Math.hypot(before[0] - r.position[0], before[2] - r.position[2])
+		);
+		if (smoke || this.wards.some((w) => crosses(before, after, w))) {
 			c.body.position = before;
 			c.body.velocity = [0, c.body.velocity[1], 0];
 		}
@@ -1529,6 +1650,20 @@ export class CreatureDirector {
 	}
 }
 
+/** Bait lying on the floor: creatures of a kind within `radius` go to it. */
+export interface Lure {
+	creature: string;
+	position: Vec3;
+	radius: number;
+}
+
+/** A censer's smoke: creatures of these kinds won't come within `radius` of `position`. */
+export interface Repel {
+	kinds: string[];
+	position: Vec3;
+	radius: number;
+}
+
 /** How a player is moving, for the noise it makes. */
 export function movementNoise(s: PlayerState): Movement {
 	const speed = Math.hypot(s.velocity[0], s.velocity[2]);
@@ -1549,7 +1684,12 @@ function noiseRadius(s: PlayerState, def: CreatureDef): number {
 	const hear = def.perception.hear;
 	const movement = movementNoise(s);
 	if (movement === 'still') return 0;
-	return hear[movement === 'climb' ? 'walk' : movement];
+	// Kneepads quieten a crawl, felt overshoes every other step.
+	const loudness =
+		movement === 'climb' || movement === 'swim'
+			? 1
+			: stepLoudness(s.inventory, movement === 'crawl');
+	return hear[movement === 'climb' ? 'walk' : movement] * loudness;
 }
 
 function distance3(a: Vec3, b: Vec3): number {

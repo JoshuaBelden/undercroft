@@ -1,4 +1,5 @@
 import { Affliction } from './affliction.svelte.ts';
+import { Bearings } from './bearings.svelte.ts';
 import { Candles } from './candles.ts';
 import { Combat } from './combat.ts';
 import { Crates } from './crates.svelte.ts';
@@ -22,6 +23,7 @@ import { Walls } from './walls.ts';
  */
 export function createFeatures(ctx: PlayContext) {
 	const affliction = new Affliction(ctx);
+	const rite = new Rite(ctx, () => affliction.name);
 	return {
 		vitals: new Vitals(ctx),
 		tend: new Tend(ctx),
@@ -36,7 +38,8 @@ export function createFeatures(ctx: PlayContext) {
 		marks: new Marks(ctx),
 		ropes: new Ropes(ctx),
 		survey: new Survey(ctx),
-		rite: new Rite(ctx, () => affliction.name),
+		rite,
+		bearings: new Bearings(ctx, () => rite.known?.room ?? null),
 		affliction
 	} satisfies Record<string, PlayFeature>;
 }

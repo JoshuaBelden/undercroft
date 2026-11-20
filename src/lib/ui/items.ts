@@ -1,4 +1,5 @@
 import { sellPrice } from '#lib/content/economy.ts';
+import { CONDITIONS } from '#lib/content/player/conditions.ts';
 import { ITEMS, type ItemCategory, type WearUnit } from '#lib/content/items.ts';
 import { condition, isBroken, lasting, wearAmount, wearOf } from '#lib/shared/items/durability.ts';
 import type { ItemStack } from '#lib/shared/player/types.ts';
@@ -162,8 +163,12 @@ export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 		else add('Loaded', `${stack.loaded ?? 0} / ${gun.magazine}`);
 		add('Reload', seconds(gun.reloadTime));
 		add('Range', `${gun.range} m, ${Math.round(gun.falloff * 100)}% less by then`);
-		add('Heard', `${gun.noise} m`);
-		add('Takes', ITEMS[gun.ammo]?.name ?? gun.ammo);
+		add('Heard', gun.noise > 0 && !def.silent ? `${gun.noise} m` : 'Silent');
+		const rounds = [gun.ammo, ...(gun.alsoFires ?? [])].map((id) => ITEMS[id]?.name ?? id);
+		add('Takes', rounds.join(' or '));
+		if (gun.single) add('Loads', 'One round at a time');
+		if (gun.pierce) add('Shot', 'Passes through everything in its line');
+		if (gun.projectile) add('Flight', `${gun.projectile.speed} m/s, falling as it goes`);
 	}
 	if (def.melee) {
 		const melee = def.melee;
@@ -171,11 +176,59 @@ export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 		add('Reach', `${melee.range} m`);
 		add('Swing', `${seconds(melee.windup)} to land, ${seconds(melee.recovery)} to recover`);
 		add('Heard', `${melee.noise} m`);
+		if (melee.stamina) add('Stamina', `${melee.stamina} a swing`);
+		if (melee.sweep) add('Sweep', 'Hits everything in its arc');
+		if (melee.bleed)
+			add('Bleeding', `${melee.bleed.dps} a second for ${seconds(melee.bleed.seconds)}`);
+		if (melee.snag) add('Snags', `${Math.round(melee.snag.chance * 100)}% of hits`);
+		if (melee.stagger) add('Staggers', seconds(melee.stagger));
 	}
+	if (def.cramped)
+		add('Works', def.downed ? 'Crawling, squeezed and downed' : 'Crawling and squeezed');
+	if (def.noSprint) add('In the hand', 'No sprinting');
+	if (def.cuts?.includes('web')) add('Cuts', 'Webs, in one');
+	if (def.breaks?.includes('rubble')) add('Breaks', 'Rubble walls');
+	if (def.smash) add('Smashes', 'Trunks and boxes open');
+	if (def.picks) add('Picks', 'Locks, silently');
+	if (def.pry) add('Pries', 'Jammed lids, false walls');
 	if (def.throwable) {
-		add('Thrown', `${def.throwable.damage} damage`);
-		add('Lands', `heard ${def.throwable.landNoise} m`);
+		const t = def.throwable;
+		if (t.damage > 0) add('Thrown', `${t.damage} damage`);
+		add('Lands', `heard ${t.landNoise} m`);
+		if (t.fuse) add('Fuse', `${seconds(t.fuse.seconds)}, then heard ${t.fuse.noise} m`);
+		if (t.fire) add('Fire', `${t.fire.dps} a second for ${seconds(t.fire.seconds)}`);
+		if (t.glow) add('Glows', `${Math.round(t.glow.seconds / 60)} min, ${t.glow.range} m`);
+		if (t.lure) add('Draws', `${t.lure.creature}s within ${t.lure.radius} m`);
 	}
+	if (def.place) {
+		const p = def.place;
+		if (p.snare) add('Holds', `The first creature through, ${seconds(p.snare.hold)}`);
+		if (p.ward) add('A line', `Not crossed for ${seconds(p.ward.seconds)}`);
+		if (p.tripwire) add('Rings', `Heard ${p.tripwire.noise} m when crossed`);
+		if (p.anchor) add('Anchor', 'A rope can be tied where it goes in');
+	}
+	if (def.dose) {
+		const cond = CONDITIONS[def.dose.condition];
+		add('Takes', `${cond.name}, ${seconds(cond.seconds)}`);
+	}
+	if (def.whistle) add('Heard', `${def.whistle.noise} m; shows the party where`);
+	if (def.censer) add('Keeps off', `${def.censer.repels.join(', ')}s, ${def.censer.radius} m`);
+	if (def.protects?.length) add('Keeps off', 'Bites and poison');
+	if (def.crawl) add('Crawling', `${Math.round((def.crawl.speed - 1) * 100)}% faster, quieter`);
+	if (def.steps) add('Footsteps', `${Math.round((1 - def.steps.quiet) * 100)}% quieter`);
+	if (def.climb) add('Climbing', `${Math.round((def.climb - 1) * 100)}% faster`);
+	if (def.sprint) add('Sprinting', `${Math.round((1 - def.sprint) * 100)}% slower`);
+	if (def.compass) add('Bearing', 'To the nearest way out');
+	if (def.crafting) add('Crafting', 'Lets you craft below');
+	if (def.fragile) add('Fragile', 'Breaks in a hard fall');
+	if (def.cursed) add('Cursed', `${def.cursed.sanity} sanity a second while carried`);
+	if (def.spoils) add('Keeps', 'One run');
+	if (def.countsAs)
+		add(
+			'The rite',
+			`Counts as ${def.countsAs.count} ${ITEMS[def.countsAs.item]?.name.toLowerCase() ?? ''}s`
+		);
+	if (def.tarot) add('Draw', 'A card at the start of a run');
 	if (def.heal) {
 		add('Restores', `${def.heal.amount} sanity`);
 		add('Takes', `${def.heal.seconds} s, standing still`);

@@ -1,7 +1,6 @@
 import { DOORS, GATES } from '../../src/lib/content/doors.ts';
-import { ITEMS } from '../../src/lib/content/items.ts';
 import { allStacks, held, removeItem } from '../../src/lib/shared/items/inventory.ts';
-import { gateSeconds } from '../../src/lib/shared/items/lootables.ts';
+import { gateSeconds, firstKey } from '../../src/lib/shared/items/lootables.ts';
 import type { DoorPlacement } from '../../src/lib/shared/map/types.ts';
 import { aimRay } from '../../src/lib/shared/items/weapons.ts';
 import { doorBox } from '../../src/lib/shared/map/doors.ts';
@@ -61,7 +60,7 @@ export class DoorSystem implements SessionSystem {
 
 	/** A gate opened: a key is used up, or else a pick may snap. */
 	private unlock(inv: Parameters<typeof allStacks>[0]): void {
-		const key = allStacks(inv).find((stack) => ITEMS[stack.item]?.unlocks);
+		const key = firstKey(inv);
 		if (key) {
 			removeItem(inv, key.item, 1);
 			return;

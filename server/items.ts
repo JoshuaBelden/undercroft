@@ -88,7 +88,7 @@ export function thrownFlight(item: string): Flight {
 		damage: spec?.damage ?? 0,
 		landNoise: spec?.landNoise ?? 0,
 		breakChance: 0,
-		usedUp: !!spec?.fuse || !!spec?.fire
+		usedUp: !!spec?.fuse || !!spec?.fire || !!spec?.glow || !!spec?.lure
 	};
 }
 
@@ -126,6 +126,20 @@ export class WorldItems {
 					rng.next() * Math.PI * 2
 				);
 			}
+		}
+		// Pebbles by some of them, in their own stream so the bricks lie where they did.
+		const stones = new Rng(seed ^ 0x9eb1);
+		for (const site of rubble) {
+			if (Math.hypot(site[0] - start[0], site[2] - start[2]) <= 6) continue;
+			if (stones.next() >= BRICKS.pebbles.chance) continue;
+			const near = nearestPoint(nav, site, BRICKS.radius);
+			if (near < 0) continue;
+			const count = stones.int(BRICKS.pebbles.count[0], BRICKS.pebbles.count[1]);
+			this.place(
+				newStack('pebbles', count),
+				[...nav.points[near].position],
+				stones.next() * Math.PI * 2
+			);
 		}
 	}
 

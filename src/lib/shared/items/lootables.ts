@@ -7,7 +7,7 @@ import {
 	type LootTool,
 	type OpenWay
 } from '../../content/lootables.ts';
-import type { Inventory } from '../player/types.ts';
+import type { Inventory, ItemStack } from '../player/types.ts';
 import type { Vec3 } from '../map/types.ts';
 import { works } from './durability.ts';
 import { allStacks, held } from './inventory.ts';
@@ -106,6 +106,12 @@ export function openable(def: LootableDef): boolean {
 				Object.values(ITEMS).some((item) => hasTool(item, way.tool!, def.id))
 		);
 	return any(def.open) && (!def.sealed || any(def.sealed.open));
+}
+
+/** The key a lock takes: an ordinary key before anything that is treasure too (a key ring). */
+export function firstKey(inv: Inventory): ItemStack | null {
+	const keys = allStacks(inv).filter((stack) => ITEMS[stack.item]?.unlocks);
+	return keys.find((stack) => !ITEMS[stack.item]?.treasure) ?? keys[0] ?? null;
 }
 
 /** The middle of a lootable: what is looked at to open it. */

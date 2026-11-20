@@ -43,9 +43,9 @@ describe('the loot tables', () => {
 	});
 
 	it('leaves the lines for items still to come out of the roll', () => {
-		const live = liveEntries(LOOTABLES.toolChest.loot);
+		const live = liveEntries(LOOTABLES.cache.loot);
 		expect(live.every((e) => Object.hasOwn(ITEMS, e.item))).toBe(true);
-		expect(live.length).toBeLessThan(LOOTABLES.toolChest.loot.length);
+		expect(live.length).toBeLessThan(LOOTABLES.cache.loot.length);
 	});
 });
 

@@ -9,8 +9,9 @@ import {
 	removeItem,
 	sanitizeAction
 } from '../../src/lib/shared/items/inventory.ts';
-import { bestWay, lootableOf, waysFor } from '../../src/lib/shared/items/lootables.ts';
+import { bestWay, lootableOf, waysFor, firstKey } from '../../src/lib/shared/items/lootables.ts';
 import { MAP_KIT } from '../../src/lib/content/map/kit.ts';
+import { addWear } from '../../src/lib/shared/items/durability.ts';
 import { workingGear } from '../../src/lib/shared/items/inventory.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import { applyCondition } from '../../src/lib/shared/player/conditions.ts';
@@ -214,15 +215,22 @@ export class CrateSystem implements SessionSystem {
 		const ctx = this.ctx;
 		const def = lootableOf(crate);
 		const s = player.state;
-		const worn = new Set(
-			workingGear(s.inventory).flatMap((stack) => ITEMS[stack.item]?.protects ?? [])
-		);
+		const gear = workingGear(s.inventory);
+		const worn = new Set(gear.flatMap((stack) => ITEMS[stack.item]?.protects ?? []));
+		// What kept something off wears a use for it (gloves).
+		const kept = (against: string): void => {
+			const by = gear.find((stack) => ITEMS[stack.item]?.protects?.includes(against));
+			if (by && addWear(by) === 'broke')
+				ctx.events.push({ kind: 'break', item: by.item, position: [...s.position] });
+		};
 		const position: Vec3 = crateCentre(crate);
 		for (const c of def.catches ?? []) {
-			if (c.kind === 'bite' && !worn.has(c.unless)) {
+			if ((c.kind === 'bite' || c.kind === 'condition') && worn.has(c.unless)) {
+				kept(c.unless);
+			} else if (c.kind === 'bite') {
 				ctx.hurt(player, c.damage);
 				ctx.events.push({ kind: 'bitten', player: player.id, position });
-			} else if (c.kind === 'condition' && !worn.has(c.unless)) {
+			} else if (c.kind === 'condition') {
 				applyCondition(s, c.condition, c.seconds);
 				ctx.events.push({ kind: 'bitten', player: player.id, position });
 			} else if (c.kind === 'spawn' && first && Math.random() < c.chance) {
@@ -269,7 +277,7 @@ export class CrateSystem implements SessionSystem {
 		const inv = player.state.inventory;
 		player.state.opening = 0;
 		player.crateLatch = true;
-		const key = allStacks(inv).find((stack) => ITEMS[stack.item]?.unlocks);
+		const key = firstKey(inv);
 		const position = crateCentre(crate);
 		if (!key) return;
 		removeItem(inv, key.item, 1);

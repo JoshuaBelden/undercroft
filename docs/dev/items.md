@@ -4,36 +4,41 @@ What players carry (equipment, backpack and quick-use slots, weight), weapons, d
 
 ## Files
 
-| File                                 | What                                                                       |
-| ------------------------------------ | -------------------------------------------------------------------------- |
-| `src/lib/content/items.ts`           | Item definitions (data), `SLOTS`, `DEFAULT_STACK`                          |
-| `src/lib/content/carry.ts`           | Backpacks (slots) and `CARRY` (weight limits, slowdown)                    |
-| `src/lib/content/loadout.ts`         | How many bricks lie around                                                 |
-| `src/lib/shared/items/inventory.ts`  | Inventory rules: slots, stacking, moving, equipping, weight                |
-| `src/lib/shared/items/durability.ts` | Wear: how long a thing lasts, its condition, broken or not                 |
-| `src/lib/ui/ItemInspect.svelte`      | The Inspect panel: every figure about one stack                            |
-| `src/lib/ui/GameMenu.svelte`         | The in-game menu underground: the Pack and Rite tabs                       |
-| `src/lib/ui/PackPanel.svelte`        | The Pack tab (the pack screen)                                             |
-| `src/lib/ui/LoadoutPanel.svelte`     | An inventory drawn as slots (Pack tab and Loadout page)                    |
-| `src/lib/ui/QuickWheel.svelte`       | The quick-use wheel; `wheel.ts` decides which slot is chosen               |
-| `src/lib/shared/items/weapons.ts`    | `stepWeapon` (part of the player simulation), aim ray, pellet spread       |
-| `src/lib/shared/items/pickup.ts`     | Which floor item you're looking at (shared by server and client)           |
-| `src/lib/shared/items/types.ts`      | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`                     |
-| `server/combat.ts`                   | Resolves shots, swings and throws; damage and noise                        |
-| `src/lib/shared/player/tend.ts`      | Using the item in the hand on a teammate: who is looked at, what they need |
-| `server/systems/tend.ts`             | Gives the teammate what was used on them (or the item back)                |
-| `src/lib/game/play/tend.ts`          | Teammates for prediction, the prompts, the bandage sound                   |
-| `server/items.ts`                    | `WorldItems`: bricks scattered, pickups, drops, death drops, throws        |
-| `server/crates.ts`                   | `Crates`: what each loot crate holds, revealing it, who has it open        |
-| `src/lib/shared/map/crates.ts`       | `placeCrates`: which crate markers of a map have a crate                   |
-| `src/lib/game/items/Crates.ts`       | Crate models, their lids, highlight of the one you'd open                  |
-| `src/lib/ui/CrateScreen.svelte`      | The loot screen                                                            |
-| `scripts/blender/props.py`           | Builds the crate model and adds crate markers in the kit .blend            |
-| `src/lib/game/items/ViewModel.ts`    | The held item: procedural motion, own render pass                          |
-| `src/lib/game/items/WorldItems.ts`   | Floor and thrown items, highlight of what you'd pick up                    |
-| `src/lib/game/items/Effects.ts`      | Muzzle flares, gun fire and smoke, impact dust and sparks, own-shot pulse  |
-| `src/lib/game/items/flare.ts`        | The muzzle flare shader (also impact sparks)                               |
-| `scripts/blender/items.py`           | Builds the item models in the kit .blend                                   |
+| File                                   | What                                                                       |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| `src/lib/content/items.ts`             | Item definitions (data), `SLOTS`, `DEFAULT_STACK`                          |
+| `src/lib/content/items/*.ts`           | The round's items: weapons, gear, quick use, materials, treasure           |
+| `src/lib/shared/items/gear.ts`         | What worn things do: crawl, climb, sprint and step factors, the compass    |
+| `server/systems/gear.ts`               | Gear that wears by the second; the censer's smoke                          |
+| `server/systems/tarot.ts`              | The tarot draw at the start of a run (`src/lib/content/tarot.ts`)          |
+| `src/lib/game/play/bearings.svelte.ts` | The compass's bearing and the party's whistles (`Bearings.svelte`)         |
+| `src/lib/content/carry.ts`             | Backpacks (slots) and `CARRY` (weight limits, slowdown)                    |
+| `src/lib/content/loadout.ts`           | How many bricks lie around                                                 |
+| `src/lib/shared/items/inventory.ts`    | Inventory rules: slots, stacking, moving, equipping, weight                |
+| `src/lib/shared/items/durability.ts`   | Wear: how long a thing lasts, its condition, broken or not                 |
+| `src/lib/ui/ItemInspect.svelte`        | The Inspect panel: every figure about one stack                            |
+| `src/lib/ui/GameMenu.svelte`           | The in-game menu underground: the Pack and Rite tabs                       |
+| `src/lib/ui/PackPanel.svelte`          | The Pack tab (the pack screen)                                             |
+| `src/lib/ui/LoadoutPanel.svelte`       | An inventory drawn as slots (Pack tab and Loadout page)                    |
+| `src/lib/ui/QuickWheel.svelte`         | The quick-use wheel; `wheel.ts` decides which slot is chosen               |
+| `src/lib/shared/items/weapons.ts`      | `stepWeapon` (part of the player simulation), aim ray, pellet spread       |
+| `src/lib/shared/items/pickup.ts`       | Which floor item you're looking at (shared by server and client)           |
+| `src/lib/shared/items/types.ts`        | `WorldItemSnapshot`, `ProjectileSnapshot`, `GameEvent`                     |
+| `server/combat.ts`                     | Resolves shots, swings and throws; damage and noise                        |
+| `src/lib/shared/player/tend.ts`        | Using the item in the hand on a teammate: who is looked at, what they need |
+| `server/systems/tend.ts`               | Gives the teammate what was used on them (or the item back)                |
+| `src/lib/game/play/tend.ts`            | Teammates for prediction, the prompts, the bandage sound                   |
+| `server/items.ts`                      | `WorldItems`: bricks scattered, pickups, drops, death drops, throws        |
+| `server/crates.ts`                     | `Crates`: what each loot crate holds, revealing it, who has it open        |
+| `src/lib/shared/map/crates.ts`         | `placeCrates`: which crate markers of a map have a crate                   |
+| `src/lib/game/items/Crates.ts`         | Crate models, their lids, highlight of the one you'd open                  |
+| `src/lib/ui/CrateScreen.svelte`        | The loot screen                                                            |
+| `scripts/blender/props.py`             | Builds the crate model and adds crate markers in the kit .blend            |
+| `src/lib/game/items/ViewModel.ts`      | The held item: procedural motion, own render pass                          |
+| `src/lib/game/items/WorldItems.ts`     | Floor and thrown items, highlight of what you'd pick up                    |
+| `src/lib/game/items/Effects.ts`        | Muzzle flares, gun fire and smoke, impact dust and sparks, own-shot pulse  |
+| `src/lib/game/items/flare.ts`          | The muzzle flare shader (also impact sparks)                               |
+| `scripts/blender/items.py`             | Builds the item models in the kit .blend                                   |
 
 ## Data
 
@@ -300,6 +305,34 @@ The dead (`LOOTABLES.corpse`, "Dead explorer") are `layout.crates` entries with 
 - **Effects:** a shader muzzle flare (`flare.ts`: unlit and additive, a hot core and flame petals that change shape each shot), tongues of flame blown forward out of the barrel (3, or 6 from the shotgun: unlit and additive, burning down `FIRE_RAMP` from white-yellow through orange to red in 0.12 to 0.26 s), a faint wisp of smoke after them (a lit material, so the flash and headlamps show on it), and impact dust or a dark spatter (creature), with sparks off stone.
 - **Gun sounds:** each gun's `sound`, `reloadSound` and `gun.empty`. Another explorer's shot crossfades from the gun's own sound into `gun.distant` between `DISTANT_SHOT.from` and `from + span` metres (`src/lib/content/audio/sounds.ts`).
 - **HUD:** what is in the hand (name and count; the "Held item" setting hides it), the ammo counter (loaded | spare in the backpack) and a tighter crosshair while aiming.
+
+## The round's items
+
+The items of [the handoff](../handoff-gear-crafting-loot.md) are in their own files under `src/lib/content/items/` (`WEAPONS`, `GEAR`, `QUICK`, `MATERIALS`, `TREASURE`), spread into `ITEMS`; the older ones stay in `items.ts`. Every one is a set of fields on the mechanics of [combat.md](combat.md) and [world.md](world.md), and the ones below. An item the store doesn't sell still has a `price`, its worth (it sells back for 40% of it: the knife at 2, the crossbow at 20); materials, treasure and a few found things (the brick, the rope bundle, bait) sell at a `value`. A stack sold is worth its total rounded down (nails are a tenth each).
+
+New fields:
+
+- `firearm.single` (the rifle loads one round a reload, carrying on until full or attack is pressed), `firearm.reloadSlow` (cranking a crossbow: a crawl), `firearm.alsoFires` (a slingshot fires old coins with no pebbles; the stack's `ammo` says what is loaded, and the shot's `round` is what lands).
+- `melee.sound` (its own swing and hit) and `melee.stagger` (a sledgehammer's blow staggers that long, `CreatureDirector.stagger`).
+- `dose` (laudanum, grave dirt): held, attack held standing still for `seconds` gives its condition (`laudanum`: no sanity lost to the dark or sights, 10% slower, aim sways (`aimSway`, in the shot's ray); `buried`: creatures can't find you, `unseen`), and it is used up.
+- `whistle`: attack blows it, heard `noise` away; the `whistle` event shows everyone where for `seconds` (Bearings).
+- `throwable.glow` (a glow stick: a light where it lands, in the light budget, that moths come to), `throwable.lure` (bait: creatures of its kind within reach go to it, off whoever they were after). Both are used up as they land; the hazard system keeps them.
+- `place.tripwire` (a tripwire bell): a line across the way; a creature crossing it rings it (`tripwire`, heard `noise` away, a note alert for everyone), it sets itself again after 3 s, a use of its wear each time.
+- `censer` (held): creatures of `repels` don't come within `radius` (`CreatureDirector.repels`, set by GearSystem), a swing heard `noise` away every 2 s, and it burns by the second.
+- `spoils` (bait): gone from what is carried out.
+- `countsAs` (the black candle counts as five candles for the rite: `riteCount`, `takeForRite`), `tarot`, `unlocks` on treasure (the key ring; a lock takes an iron key first, `firstKey`).
+
+### Gear
+
+Gear works while it is in a gear slot and not broken (`wornGear`): `crawl` (kneepads: crawling faster, and quieter to what listens), `steps` (felt overshoes: footsteps quieter), `climb` (gloves: rope climbing faster), `protects` ([world.md](world.md#catches)), `compass`, `crafting` (the kit, for crafting). The defense slot's `sprint` (the jerkin) slows a sprint. Movement reads them in the shared step, so the client predicts it; creatures hear the quieter steps through `stepLoudness`. What wears `per: 'second'` wears in GearSystem: kneepads while crawling, overshoes while walking; what wears `per: 'use'` wears a use when it works (gloves, a search they kept a bite off).
+
+### Bearings
+
+A worn pocket compass shows its needle at the top of the screen: the bearing to the nearest way out, or to the rite's room once a clue has said where. Whistles blown are marked on the screen where they were, at the edge when out of view, for their `seconds`. Both are the `bearings` play feature, drawn by `Bearings.svelte`.
+
+### Tarot
+
+A player who comes down carrying a deck draws one card (`TAROT` in `src/lib/content/tarot.ts`), once a run: a small blessing or curse made of a share of the lamp's charge, sanity, a condition or the Affliction's meter. A note alert says which. The deck isn't used up. Add a card to `TAROT`.
 
 ## Adding an item
 

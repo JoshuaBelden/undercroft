@@ -16,11 +16,14 @@ export const alerts: { list: { id: number; alert: Alert }[] } = $state({ list: [
 export interface AlertTargets {
 	item: () => void;
 	social: () => void;
+	/** A note goes nowhere: clicking it only dismisses it. */
+	note: () => void;
 }
 
 const SITE_TARGETS: AlertTargets = {
 	item: () => void goto(resolve('/(hub)/loadout')),
-	social: () => void goto(resolve('/(hub)/social'))
+	social: () => void goto(resolve('/(hub)/social')),
+	note: () => {}
 };
 let targets: AlertTargets = SITE_TARGETS;
 let sound: () => void = () => {};

@@ -1,8 +1,13 @@
 import type { RiteSpec } from '../src/lib/content/afflictions.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
-import { carriesAll, revealed, riteSnapshot } from '../src/lib/shared/affliction/rite.ts';
+import {
+	carriesAll,
+	revealed,
+	riteSnapshot,
+	takeForRite
+} from '../src/lib/shared/affliction/rite.ts';
 import type { RiteSnapshot } from '../src/lib/shared/affliction/types.ts';
-import { newStack, removeItem } from '../src/lib/shared/items/inventory.ts';
+import { newStack } from '../src/lib/shared/items/inventory.ts';
 import type { CollisionWorld } from '../src/lib/shared/map/collision.ts';
 import {
 	LEVEL_HEIGHT,
@@ -112,7 +117,7 @@ export class RiteDirector {
 
 	/** The rite uses up what it needed. */
 	take(state: PlayerState): void {
-		for (const { item, count } of this.spec.requirements) removeItem(state.inventory, item, count);
+		for (const { item, count } of this.spec.requirements) takeForRite(state.inventory, item, count);
 	}
 }
 

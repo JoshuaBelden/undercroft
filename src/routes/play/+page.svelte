@@ -81,6 +81,7 @@
 	import QuickWheel from '#lib/ui/QuickWheel.svelte';
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
+	import Bearings from '#lib/ui/Bearings.svelte';
 	import { wheelChoice } from '#lib/ui/wheel.ts';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
@@ -338,7 +339,8 @@
 			item: () => {
 				if (panel !== 'menu') toggle('menu');
 			},
-			social: () => {}
+			social: () => {},
+			note: () => {}
 		})
 	);
 
@@ -1289,6 +1291,10 @@
 		pointer={features.marks.wheel.pointer}
 		chosen={features.marks.wheel.chosen}
 	/>
+{/if}
+
+{#if features && spawned && !panel && !mapView && !result}
+	<Bearings bearing={features.bearings.bearing} pings={features.bearings.pings} />
 {/if}
 
 {#if features?.marks.label && spawned && !panel && !mapView && !result}

@@ -60,6 +60,7 @@ export function alertText(alert: Alert): { title: string; line: string } {
 		const text = SOCIAL_ALERTS[alert.event];
 		return { title: text.title, line: text.line(alert.person.name) };
 	}
+	if (alert.kind === 'note') return { title: alert.title, line: alert.line };
 	return {
 		title: ITEM_ALERTS[alert.source](alert.from?.name ?? 'someone'),
 		line: itemLine(alert.item, alert.count)

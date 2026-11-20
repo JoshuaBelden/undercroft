@@ -215,7 +215,14 @@ const MIXED: LootEntry[] = [
 	entry('relic', [1, 1], [1, 1]),
 	entry('rags', [1, 3], [3, 2]),
 	entry('twine', [1, 2], [2, 2]),
-	entry('glass-bottle', [1, 1], [2, 2])
+	entry('glass-bottle', [1, 1], [2, 2]),
+	entry('nail-club', [1, 1], [1, 1]),
+	entry('slingshot', [1, 1], [1, 1]),
+	entry('firecrackers', [1, 2], [2, 2]),
+	entry('bait', [1, 1], [2, 2]),
+	entry('apothecary-jar', [1, 1], [1, 1]),
+	entry('tarot', [1, 1], [0, 1]),
+	entry('doll', [1, 1], [0, 1])
 ];
 
 /** Burial goods: what the dead were laid to rest with. */
@@ -294,7 +301,28 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('leather', [1, 2], [3, 3]),
 			entry('gun-parts', [1, 1], [0, 3]),
 			entry('gun-oil', [1, 1], [0, 2]),
-			entry('recipe-fragment', [1, 1], [1, 2])
+			entry('recipe-fragment', [1, 1], [1, 2]),
+			entry('short-spear', [1, 1], [1, 1]),
+			entry('nail-club', [1, 1], [1, 1]),
+			entry('throwing-knives', [1, 3], [1, 2]),
+			entry('derringer', [1, 1], [0, 1]),
+			entry('crossbow', [1, 1], [0, 1]),
+			entry('bolts', [2, 4], [1, 2]),
+			entry('rifle', [1, 1], [0, 1]),
+			entry('ammo.rifle', [2, 5], [0, 2]),
+			entry('jerkin', [1, 1], [0, 1]),
+			entry('crafting-kit', [1, 1], [1, 1]),
+			entry('kneepads', [1, 1], [1, 1]),
+			entry('overshoes', [1, 1], [1, 1]),
+			entry('gloves', [1, 1], [1, 1]),
+			entry('compass', [1, 1], [0, 1]),
+			entry('laudanum', [1, 1], [1, 1]),
+			entry('glow-sticks', [1, 3], [3, 2]),
+			entry('pitons', [1, 3], [1, 1]),
+			entry('lockpicks', [1, 2], [1, 1]),
+			entry('whistle', [1, 1], [1, 1]),
+			entry('medal', [1, 1], [1, 1]),
+			entry('key-ring', [1, 1], [0, 1])
 		],
 		rarity: [CRATE_SHALLOW, CRATE_SHALLOW, CRATE]
 	},
@@ -323,7 +351,17 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		noise: 3,
 		lootNoise: 4,
 		sound: 'crate.open',
-		loot: [...MIXED, ...BURIAL.filter((e) => !MIXED.some((m) => m.item === e.item))],
+		loot: [
+			...MIXED,
+			...BURIAL.filter((e) => !MIXED.some((m) => m.item === e.item)),
+			entry('medal', [1, 1], [2, 2]),
+			entry('tarot', [1, 1], [1, 1]),
+			entry('garnet', [1, 1], [2, 2]),
+			entry('key-ring', [1, 1], [1, 1]),
+			entry('ledger', [1, 1], [1, 1]),
+			entry('astrolabe', [1, 1], [1, 1]),
+			entry('doll', [1, 1], [1, 1])
+		],
 		// Rare to legendary, on whatever level it stands.
 		rarity: everyLevel(
 			counts({
@@ -384,7 +422,9 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('signet', [1, 1], [2, 3]),
 			entry('jet-rosary', [1, 1], [1, 2]),
 			entry('cameo-brooch', [1, 1], [1, 1]),
-			entry('candlestick', [1, 1], [1, 2])
+			entry('candlestick', [1, 1], [1, 2]),
+			entry('grave-dirt', [1, 1], [1, 1]),
+			entry('garnet', [1, 1], [1, 1])
 		],
 		rarity: [
 			counts({
@@ -465,7 +505,12 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		noise: 12,
 		lootNoise: 3,
 		sound: 'lootable.lid',
-		loot: BURIAL,
+		loot: [
+			...BURIAL,
+			entry('grave-dirt', [1, 1], [2, 2]),
+			entry('censer', [1, 1], [0, 1]),
+			entry('ledger', [1, 1], [0, 1])
+		],
 		rarity: [
 			counts({
 				common: { count: [1, 2], chance: [0.35, 0.45] },
@@ -513,7 +558,14 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('rope-length', [1, 2], [2, 2]),
 			entry('chalk', [1, 2], [2, 2]),
 			entry('battery', [1, 1], [2, 2]),
-			entry('pickaxe', [1, 1], [0, 1])
+			entry('pickaxe', [1, 1], [0, 1]),
+			entry('hatchet', [1, 1], [1, 1]),
+			entry('trench-spade', [1, 1], [1, 1]),
+			entry('sledgehammer', [1, 1], [0, 1]),
+			entry('pitons', [1, 3], [2, 2]),
+			entry('lockpicks', [1, 2], [1, 1]),
+			entry('snare', [1, 1], [2, 2]),
+			entry('gloves', [1, 1], [1, 1])
 		],
 		rarity: [
 			counts({
@@ -560,7 +612,15 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('chalk', [1, 2], [4, 3]),
 			entry('bandage', [1, 1], [3, 3]),
 			entry('candle', [1, 2], [2, 2]),
-			entry('coins', [1, 3], [2, 2])
+			entry('coins', [1, 3], [2, 2]),
+			entry('lamp-oil', [1, 1], [2, 2]),
+			entry('firecrackers', [1, 2], [2, 2]),
+			entry('tripwire-bell', [1, 1], [1, 1]),
+			entry('whistle', [1, 1], [1, 1]),
+			entry('oil-bottle', [1, 1], [1, 1]),
+			entry('kneepads', [1, 1], [1, 1]),
+			entry('overshoes', [1, 1], [1, 1]),
+			entry('slingshot', [1, 1], [1, 1])
 		],
 		rarity: everyLevel(
 			counts({
@@ -590,7 +650,11 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('glass-bottle', [1, 1], [3, 2]),
 			entry('cameo-brooch', [1, 1], [1, 2]),
 			entry('silver-snuffbox', [1, 1], [1, 2]),
-			entry('candlestick', [1, 1], [1, 1])
+			entry('candlestick', [1, 1], [1, 1]),
+			entry('apothecary-jar', [1, 1], [1, 1]),
+			entry('medal', [1, 1], [1, 1]),
+			entry('garnet', [1, 1], [1, 1]),
+			entry('tarot', [1, 1], [0, 1])
 		],
 		rarity: [
 			counts({
@@ -661,7 +725,9 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('chalk', [1, 2], [3, 3]),
 			entry('holy-water', [1, 1], [2, 3]),
 			entry('black-candle', [1, 1], [1, 2]),
-			entry('chalice', [1, 1], [1, 2])
+			entry('chalice', [1, 1], [1, 2]),
+			entry('blessed-salt', [1, 1], [2, 2]),
+			entry('censer', [1, 1], [1, 1])
 		],
 		rarity: [
 			counts({
@@ -697,7 +763,8 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('coins', [1, 6], [6, 6]),
 			entry('tooth', [1, 3], [5, 5]),
 			entry('signet', [1, 1], [3, 3]),
-			entry('rags', [1, 2], [2, 2])
+			entry('rags', [1, 2], [2, 2]),
+			entry('garnet', [1, 1], [1, 1])
 		],
 		rarity: everyLevel(
 			counts({
@@ -738,7 +805,10 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('rope-bundle', [1, 1], [1, 1]),
 			entry('leather', [1, 2], [4, 4]),
 			entry('coins', [1, 5], [3, 3]),
-			entry('gun-parts', [1, 1], [1, 3])
+			entry('gun-parts', [1, 1], [1, 3]),
+			entry('rifle', [1, 1], [0, 1]),
+			entry('crossbow', [1, 1], [0, 1]),
+			entry('doll', [1, 1], [0, 1])
 		],
 		rarity: [
 			counts({
@@ -780,7 +850,11 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			entry('medkit', [1, 1], [1, 2]),
 			entry('laudanum', [1, 1], [1, 2]),
 			entry('gun-oil', [1, 1], [2, 3]),
-			entry('glass-bottle', [1, 2], [2, 2])
+			entry('glass-bottle', [1, 2], [2, 2]),
+			entry('derringer', [1, 1], [1, 1]),
+			entry('ammo.rifle', [2, 5], [1, 2]),
+			entry('lockpicks', [1, 2], [2, 2]),
+			entry('oil-bottle', [1, 1], [1, 1])
 		],
 		rarity: [
 			counts({
@@ -847,7 +921,8 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		loot: [
 			entry('relic', [1, 1]),
 			entry('crozier-head', [1, 1]),
-			entry('sealed-reliquary-jar', [1, 1])
+			entry('sealed-reliquary-jar', [1, 1]),
+			entry('ledger', [1, 1])
 		],
 		rarity: everyLevel(counts({})),
 		prize: 1
@@ -884,38 +959,7 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
  * until each is added to ITEMS (and taken out of here; a test checks every table line is one or
  * the other).
  */
-export const PENDING_ITEMS = new Set([
-	'rags',
-	'twine',
-	'wax',
-	'nails',
-	'wood',
-	'metal',
-	'leather',
-	'rubber',
-	'rope-length',
-	'glass-bottle',
-	'lamp-oil',
-	'rock-salt',
-	'holy-water',
-	'bone',
-	'gun-oil',
-	'gun-parts',
-	'grave-dirt',
-	'glow-sticks',
-	'laudanum',
-	'compass',
-	'pickaxe',
-	'recipe-fragment',
-	'funeral-coin',
-	'jet-rosary',
-	'cameo-brooch',
-	'silver-snuffbox',
-	'saints-icon',
-	'black-candle',
-	'crozier-head',
-	'sealed-reliquary-jar'
-]);
+export const PENDING_ITEMS = new Set(['recipe-fragment']);
 
 /**
  * How much treasure (by `value`) each level of a map holds at most, all its lootables together:

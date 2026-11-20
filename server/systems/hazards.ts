@@ -4,7 +4,7 @@ import { floorHeightAt, segmentHit } from '../../src/lib/shared/map/collision.ts
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import type { SimEvent } from '../../src/lib/shared/player/types.ts';
 import { hurt, targets } from '../combat.ts';
-import type { Ward } from '../creatures.ts';
+import { crosses, type Ward } from '../creatures.ts';
 import type { ProjectileResult } from '../items.ts';
 import { TICK_DT, type Player, type SessionContext, type SessionSystem } from './system.ts';
 
@@ -49,6 +49,36 @@ interface Laid extends Ward {
 	left: number;
 }
 
+interface Glow {
+	id: string;
+	item: string;
+	position: Vec3;
+	left: number;
+	seconds: number;
+}
+
+interface Bait {
+	id: string;
+	item: string;
+	position: Vec3;
+	creature: string;
+	radius: number;
+	left: number;
+}
+
+interface Tripwire extends Ward {
+	id: string;
+	item: string;
+	noise: number;
+	/** Rings left (its wear: each ring a use) before it is spent. */
+	rings: number;
+	/** Seconds before it can ring again (it sets itself). */
+	wait: number;
+}
+
+/** A tripwire bell sets itself again this long after it rings (s). */
+const TRIPWIRE_RESET = 3;
+
 /** Things are set down this far in front of the eye (m), on the floor below. */
 const PLACE_AHEAD = 0.9;
 
@@ -57,6 +87,11 @@ export class HazardSystem implements SessionSystem {
 	private fires: Fire[] = [];
 	private snares: Snare[] = [];
 	private wards: Laid[] = [];
+	private glows: Glow[] = [];
+	private baits: Bait[] = [];
+	private tripwires: Tripwire[] = [];
+	/** Where each creature was last tick, for what it crosses. */
+	private was = new Map<string, Vec3>();
 	private nextId = 1;
 
 	constructor(private ctx: SessionContext) {}
@@ -73,6 +108,37 @@ export class HazardSystem implements SessionSystem {
 				noise: spec.fuse.noise
 			});
 			this.ctx.events.push({ kind: 'fuseLit', item: result.item, position });
+		}
+		if (spec?.glow || spec?.lure) {
+			const floor = floorHeightAt(
+				this.ctx.world,
+				position[0],
+				position[2],
+				position[1] + 0.5,
+				position[1] - 3
+			);
+			const at: Vec3 = [position[0], floor ?? position[1], position[2]];
+			// A glow stick: a light on the floor till it fades.
+			if (spec.glow) {
+				this.glows.push({
+					id: `g${this.nextId++}`,
+					item: result.item,
+					position: at,
+					left: spec.glow.seconds,
+					seconds: spec.glow.seconds
+				});
+			}
+			// Bait: what likes it goes to it.
+			if (spec.lure) {
+				this.baits.push({
+					id: `b${this.nextId++}`,
+					item: result.item,
+					position: at,
+					creature: spec.lure.creature,
+					radius: spec.lure.radius,
+					left: spec.lure.seconds
+				});
+			}
 		}
 		if (spec?.fire) {
 			// The fire sits on the floor under where it burst.
@@ -117,6 +183,20 @@ export class HazardSystem implements SessionSystem {
 					yaw,
 					radius: spec.snare.radius,
 					hold: spec.snare.hold
+				});
+			}
+			if (spec.tripwire) {
+				// Across the way the player faces, like a line of salt.
+				const half = spec.tripwire.length / 2;
+				const across: Vec3 = [Math.cos(yaw), 0, -Math.sin(yaw)];
+				this.tripwires.push({
+					id: `t${this.nextId++}`,
+					item: event.item,
+					a: [ahead[0] - across[0] * half, ahead[1], ahead[2] - across[2] * half],
+					b: [ahead[0] + across[0] * half, ahead[1], ahead[2] + across[2] * half],
+					noise: spec.tripwire.noise,
+					rings: ITEMS[event.item]?.durability?.max ?? 1,
+					wait: 0
 				});
 			}
 			if (spec.ward) {
@@ -204,13 +284,57 @@ export class HazardSystem implements SessionSystem {
 		for (const ward of this.wards) ward.left -= TICK_DT;
 		this.wards = this.wards.filter((ward) => ward.left > 0);
 		ctx.creatures.wards = this.wards;
+
+		// Glow sticks fade; bait is eaten in time.
+		for (const glow of this.glows) glow.left -= TICK_DT;
+		this.glows = this.glows.filter((glow) => glow.left > 0);
+		ctx.creatures.glows = this.glows.map(({ id, position }) => ({ id, position }));
+		for (const bait of this.baits) bait.left -= TICK_DT;
+		this.baits = this.baits.filter((bait) => bait.left > 0);
+		ctx.creatures.lures = this.baits.map(({ creature, position, radius }) => ({
+			creature,
+			position,
+			radius
+		}));
+
+		// A tripwire rings when something crosses it, then sets itself again, until it is spent.
+		const now = new Map(bodies.map((body) => [body.id, [...body.position] as Vec3]));
+		for (const wire of this.tripwires) {
+			wire.wait = Math.max(0, wire.wait - TICK_DT);
+			if (wire.wait > 0) continue;
+			const crossed = [...now].some(([id, at]) => {
+				const before = this.was.get(id);
+				return !!before && crosses(before, at, wire);
+			});
+			if (!crossed) continue;
+			wire.rings--;
+			wire.wait = TRIPWIRE_RESET;
+			const middle: Vec3 = [
+				(wire.a[0] + wire.b[0]) / 2,
+				wire.a[1] + 0.2,
+				(wire.a[2] + wire.b[2]) / 2
+			];
+			ctx.creatures.hear(middle, wire.noise, null);
+			ctx.events.push({ kind: 'tripwire', id: wire.id, item: wire.item, position: middle });
+		}
+		this.tripwires = this.tripwires.filter((wire) => wire.rings > 0);
+		this.was = now;
 	}
 
 	snapshot(): HazardsSnapshot {
 		return {
 			fires: this.fires.map(({ id, position, radius }) => ({ id, position, radius })),
 			snares: this.snares.map(({ id, item, position, yaw }) => ({ id, item, position, yaw })),
-			wards: this.wards.map(({ id, item, a, b }) => ({ id, item, a, b }))
+			wards: this.wards.map(({ id, item, a, b }) => ({ id, item, a, b })),
+			glows: this.glows.map(({ id, item, position, left, seconds }) => ({
+				id,
+				item,
+				position,
+				left: Math.round(left * 10) / 10,
+				seconds
+			})),
+			baits: this.baits.map(({ id, item, position }) => ({ id, item, position })),
+			tripwires: this.tripwires.map(({ id, item, a, b }) => ({ id, item, a, b }))
 		};
 	}
 
@@ -219,7 +343,13 @@ export class HazardSystem implements SessionSystem {
 		this.fires = [];
 		this.snares = [];
 		this.wards = [];
+		this.glows = [];
+		this.baits = [];
+		this.tripwires = [];
+		this.was.clear();
 		this.ctx.creatures.wards = [];
+		this.ctx.creatures.glows = [];
+		this.ctx.creatures.lures = [];
 	}
 }
 
