@@ -608,9 +608,12 @@ export function sanitizeAction(raw: unknown, stash = false): InventoryAction | n
 	}
 }
 
-/** Two stacks that may be one: the same item, both made or both found (crafted sells differently). */
+/**
+ * Two stacks that may be one: the same item, both made or both found, both free or neither
+ * (crafted and free ones sell differently).
+ */
 function sameKind(a: ItemStack, b: ItemStack): boolean {
-	return a.item === b.item && !!a.crafted === !!b.crafted;
+	return a.item === b.item && !!a.crafted === !!b.crafted && !!a.free === !!b.free;
 }
 
 /** Check an untrusted stack: a known item, a count it allows, sensible wear and rounds. */
@@ -627,6 +630,7 @@ export function sanitizeStack(raw: unknown): ItemStack | null {
 	if (whole(s.uses)) stack.uses = s.uses;
 	if (whole(s.worn)) stack.worn = s.worn;
 	if (s.crafted === true) stack.crafted = true;
+	if (s.free === true) stack.free = true;
 	return stack;
 }
 

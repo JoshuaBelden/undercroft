@@ -32,7 +32,7 @@
 		/** Ready to descend with the party: nothing can be changed until they cancel. */
 		ready?: boolean;
 		/** Something was moved, sold or dropped (for a sound). */
-		onchange?: (kind: 'move' | 'sell' | 'drop') => void;
+		onchange?: (kind: 'move' | 'sell' | 'drop' | 'salvage') => void;
 	}
 
 	let { explorer, ready = false, onchange }: Props = $props();
@@ -158,6 +158,11 @@
 		act: arrange,
 		sell,
 		repair,
+		salvage: (at) => {
+			error = '';
+			onchange?.('salvage');
+			send('/api/explorer/workshop', { action: 'salvage', at });
+		},
 		fresh: (item) => explorer.fresh.includes(item) && !looked.has(item),
 		seen: (item) => {
 			looked.add(item);

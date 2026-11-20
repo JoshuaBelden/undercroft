@@ -93,7 +93,7 @@ In your pack, a crate or the Loadout page, {button:PadA} picks an item up and th
 
 With a notebook in your pack, your pack has a Map tab: {button:PadLB} and {button:PadRB} go to it. On the map, hold {button:PadX} to sketch and {button:PadY} to show your map to a teammate. The Up and Down buttons at the top change level, {pad:mapZoomIn} and {pad:mapZoomOut} zoom, and the right stick moves the page. {button:PadB} puts it away.
 
-On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
+On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready; while you confirm an empty loadout, holding it takes the free loadout instead), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
 
 Settings > Controller has look sensitivity, invert Y, the dead zone, vibration, sprint (toggle or hold) and the button icons. A controller the game doesn't recognise has to be mapped to the standard layout in your system's or Steam's own controller settings.`
 	},
@@ -219,7 +219,9 @@ If your connection drops underground, your place is held for a minute. You're st
 		id: 'the-surface',
 		title: 'What you keep',
 		category: 'The surface',
-		body: `You start with nothing: a headlamp and your hands.
+		body: `You start with a headlamp, your hands and 100 coin for the store.
+
+Nothing to take down? When your loadout is empty, Use free loadout (beside Confirm loadout, or hold {button:PadY}) takes you down with a crowbar, a padded coat and 3 bandages instead. You keep them if you get out, but they sell for nothing and can't be salvaged.
 
 Whatever you carry out of the catacombs is yours. You come back to your loadout packed the way you carried it, with what you found still in your backpack. Move it to your stash, or sell it, before the next descent.
 
@@ -271,11 +273,11 @@ Newly discovered things shimmer in your stash and loadout until you look at them
 		category: 'The surface',
 		body: `The Workshop, on the dashboard, is where things are made and mended.
 
-Craft: any recipe you know, made at once from what is in your stash. Something you made sells only for what went into it.
+Craft: any recipe you know, made at once from what is in your stash. Each thing it takes is a slot: dim with none on hand, the count red with too few. Choosing a recipe you can make in the Library brings you here with it. Something you made sells only for what went into it.
 
 Repair: mend something worn or broken. It takes a few materials from your stash and some coin, more the more worn it is. You can also choose Repair from anything's menu on the Loadout page.
 
-Salvage: break something down into the materials it was made from. Salvaging never teaches you anything new: only finding things does.
+Salvage, in anything's menu in your stash or loadout (right-click it): break it down into the materials it was made from, into your stash. Salvaging never teaches you anything new: only finding things does.
 
 Guns and rounds are never made. They are mended, and broken down.`
 	},

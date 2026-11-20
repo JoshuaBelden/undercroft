@@ -85,6 +85,18 @@ describe('a connection', () => {
 		expect(parties.find('acc-ok-b')).toBeUndefined();
 	});
 
+	it('readies with the free loadout when asked, and forgets it on unready', async () => {
+		const socket = await hello('ok-a');
+		socket.receive({ type: 'affliction', id: 'rumors' });
+		socket.receive({ type: 'ready', ready: true, free: true });
+		await vi.advanceTimersByTimeAsync(0);
+		const member = parties.find('acc-ok-a')!;
+		expect(member.ready).toBe(true);
+		expect(member.free).toBe(true);
+		socket.receive({ type: 'ready', ready: false });
+		expect(member.free).toBe(false);
+	});
+
 	it('routes expedition messages once underground', async () => {
 		const socket = await hello('ok-a');
 		socket.receive({ type: 'affliction', id: 'rumors' });

@@ -73,6 +73,8 @@ export function repairCost(stack: ItemStack): { coin: number; materials: Ingredi
 
 /** What a stack breaks down into: its materials (rope by the metres left); nothing if it can't. */
 export function salvageOf(stack: ItemStack): Ingredient[] {
+	// From the free loadout: its materials would be coin.
+	if (stack.free) return [];
 	const def = ITEMS[stack.item];
 	if (def?.rope) {
 		const lengths = Math.floor(def.rope.length / CRAFT.ropePerLength) * stack.count;

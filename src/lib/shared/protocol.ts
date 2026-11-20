@@ -45,7 +45,8 @@ export type ClientMessage =
 	 * Ready to descend (the loadout is confirmed), or not after all. Needs an Affliction chosen.
 	 * Once everyone is ready the descent counts down and starts by itself.
 	 */
-	| { type: 'ready'; ready: boolean }
+	/** `free`: going down with the free loadout (only given with an empty one: docs/dev/economy.md). */
+	| { type: 'ready'; ready: boolean; free?: boolean }
 	/** Party host: choose the Affliction the expedition is against. Everyone becomes not ready. */
 	| { type: 'affliction'; id: string }
 	/** Friends and party invites (see docs/dev/social.md). */

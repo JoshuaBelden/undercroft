@@ -170,6 +170,8 @@ export interface ItemStack {
 	ammo?: string;
 	/** Made, not found or bought: it sells for its materials (docs/dev/crafting.md#selling). */
 	crafted?: boolean;
+	/** From the free loadout: it sells for nothing and can't be salvaged (docs/dev/economy.md). */
+	free?: boolean;
 	/** Hits taken by a breakable melee item (a brick: gone at the last); marks drawn with chalk. */
 	uses?: number;
 	/**

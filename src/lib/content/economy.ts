@@ -60,8 +60,25 @@ export const ECONOMY = {
 	/** What money is called, after a number. */
 	currency: 'coin',
 	/** Gear sells back for this fraction of what it costs. */
-	sellBack: 0.4
+	sellBack: 0.4,
+	/** What a new explorer (or one reset to new) starts with. */
+	startingMoney: 100
 };
+
+/**
+ * What Use Free Loadout takes down, for an explorer whose own loadout is empty
+ * (docs/dev/economy.md#free-loadout): each a slot of the loadout. What comes back is `free`: it
+ * sells for nothing and can't be salvaged, so the free loadout is never coin.
+ */
+export const FREE_LOADOUT: {
+	item: string;
+	count: number;
+	slot: 'primary' | 'defense' | 'quick' | 'backpack';
+}[] = [
+	{ item: 'crowbar', count: 1, slot: 'primary' },
+	{ item: 'coat', count: 1, slot: 'defense' },
+	{ item: 'bandage', count: 3, slot: 'quick' }
+];
 
 /** A store line for an item, at its own `price`. */
 function ware(tier: StoreTier, item: string, lot = 1): ShopEntry {
@@ -125,6 +142,8 @@ export function forSale(tiers: readonly StoreTier[] = OPEN_TIERS): ShopEntry[] {
 export function sellPrice(item: string, stack?: ItemStack): number {
 	const def = ITEMS[item];
 	if (!def) return 0;
+	// From the free loadout: never coin.
+	if (stack?.free) return 0;
 	// Made from materials: it sells for them, never more (or making things would make coin).
 	if (stack?.crafted) {
 		const left = condition(stack) ?? 1;

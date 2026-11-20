@@ -3,6 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { session } from '#lib/account/account.svelte.ts';
+	import { FREE_LOADOUT } from '#lib/content/economy.ts';
+	import { ITEMS } from '#lib/content/items.ts';
+	import { allStacks } from '#lib/shared/items/inventory.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { connection, me, send } from '#lib/game/net/connection.svelte.ts';
@@ -18,6 +21,17 @@
 		launch.confirming && !ready && !!connection.party?.affliction && !connection.party.expedition
 	);
 
+	/** Nothing in the loadout: the free one can be taken down instead (docs/dev/economy.md). */
+	const empty = $derived(!!explorer && allStacks(explorer.loadout).length === 0);
+	const freeKit = FREE_LOADOUT.map(
+		({ item, count }) =>
+			`${ITEMS[item]?.name.toLowerCase() ?? item}${count > 1 ? ` ×${count}` : ''}`
+	).join(', ');
+
+	$effect(() => {
+		launch.free = confirming && empty;
+	});
+
 	let outfit = $state<Outfit | null>(null);
 	let busy = $state(false);
 
@@ -25,7 +39,7 @@
 	const sounds = new SoundBank(audio);
 
 	/** Something was put down in a slot, sold or thrown away. */
-	function changed(kind: 'move' | 'sell' | 'drop'): void {
+	function changed(kind: 'move' | 'sell' | 'drop' | 'salvage'): void {
 		for (const category of ['master', 'sfx'] as const) {
 			audio.setVolume(category, settings.audio[category]);
 		}
@@ -33,18 +47,24 @@
 			.unlock()
 			.then(() =>
 				sounds.play(
-					kind === 'sell' ? 'shop.sell' : kind === 'drop' ? 'item.drop' : 'inventory.drop'
+					kind === 'sell'
+						? 'shop.sell'
+						: kind === 'salvage'
+							? 'workshop.salvage'
+							: kind === 'drop'
+								? 'item.drop'
+								: 'inventory.drop'
 				)
 			);
 	}
 
 	/** This loadout is the one: ready to descend, and back to the party. */
-	async function confirm(): Promise<void> {
+	async function confirm(free = false): Promise<void> {
 		if (busy) return;
 		busy = true;
 		// Changes still on their way to the server go first: being ready locks the loadout.
 		await outfit?.settled();
-		send({ type: 'ready', ready: true });
+		send({ type: 'ready', ready: true, ...(free ? { free: true } : {}) });
 		launch.confirming = false;
 		await goto(resolve('/(hub)'));
 	}
@@ -57,6 +77,7 @@
 	onMount(() => () => {
 		// Leaving the page any other way is not confirming.
 		launch.confirming = false;
+		launch.free = false;
 		audio.dispose();
 	});
 </script>
@@ -66,8 +87,27 @@
 	<Outfit bind:this={outfit} {explorer} {ready} onchange={changed} />
 	{#if confirming}
 		<div class="confirm" role="group" aria-label="Confirm your loadout">
-			<p>This is what you take down. Change anything you like, then confirm.</p>
+			{#if empty}
+				<p>Nothing to take down? The free loadout is a {freeKit}. It sells for nothing.</p>
+			{:else}
+				<p>This is what you take down. Change anything you like, then confirm.</p>
+			{/if}
 			<button type="button" class="back" onclick={back}>Back</button>
+			{#if empty}
+				<!-- Held Y takes the free loadout from anywhere on the page. -->
+				<button
+					type="button"
+					class="free"
+					disabled={busy}
+					data-pad-hold="y"
+					onclick={() => void confirm(true)}
+				>
+					Use free loadout
+					{#if !busy}
+						<ButtonHint code="PadY" hold />
+					{/if}
+				</button>
+			{/if}
 			<!-- Held X confirms from anywhere on the page; a quick X still sends an item. -->
 			<button
 				type="button"
@@ -125,12 +165,15 @@
 		text-transform: uppercase;
 	}
 
-	.back {
+	.back,
+	.free {
 		border-color: var(--text);
 	}
 
 	.back:hover,
-	.back:focus-visible {
+	.back:focus-visible,
+	.free:hover:not(:disabled),
+	.free:focus-visible {
 		border-color: var(--text);
 		background: rgb(255 255 255 / 0.1);
 	}

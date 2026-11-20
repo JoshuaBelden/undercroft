@@ -1,4 +1,10 @@
 import type { SlotRef } from '#lib/shared/items/types.ts';
 
-/** Repair in an item's menu goes to the Workshop with that slot chosen (docs/dev/crafting.md). */
-export const workshopAsk = $state<{ repair: SlotRef | null }>({ repair: null });
+/**
+ * What the Workshop opens on (docs/dev/crafting.md): a slot to mend (Repair in an item's menu),
+ * or a recipe to make (chosen in the Library). Taken once by the page.
+ */
+export const workshopAsk = $state<{ repair: SlotRef | null; recipe: string | null }>({
+	repair: null,
+	recipe: null
+});

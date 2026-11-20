@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { ECONOMY } from '../../content/economy.ts';
 import type { Db } from 'mongodb';
 import { ITEMS } from '../../content/items.ts';
 import { LocalDb } from '../localdb/LocalDb.ts';
@@ -153,7 +154,7 @@ describe('starting again (the admin reset)', () => {
 		const { resetExplorer } = await import('./shop.ts');
 		expect('explorer' in (await resetExplorer(db, explorer._id))).toBe(true);
 		const now = await doc();
-		expect(now.money).toBe(0);
+		expect(now.money).toBe(ECONOMY.startingMoney);
 		expect(now.stash.every((s) => s === null)).toBe(true);
 		expect(now.discovered).toEqual({});
 		expect(now.fresh).toEqual([]);

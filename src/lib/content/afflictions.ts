@@ -335,7 +335,15 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 					radius: 2.5,
 					title: 'Chalk',
 					line: 'Take the chalk in your hand and mark the wall. Marks are the only way back out.',
-					help: 'chalk'
+					help: 'chalk',
+					firstTime: true
+				},
+				{
+					spot: 'step-vault',
+					radius: 7,
+					title: 'The rite',
+					line: 'Every Affliction ends with a rite: bring what it asks for to the room where it is done, and perform it there. Its pane says what is known; clues found below tell the rest. Rumors has none: getting out is enough.',
+					help: 'the-rite'
 				},
 				{
 					spot: 'step-vault',

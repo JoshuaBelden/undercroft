@@ -86,6 +86,9 @@
 			<span class="bar" aria-hidden="true"><span style:width="100%"></span></span>
 		</div>
 	{/if}
+	{#if stack.free && !forSale}
+		<p class="note">From the free loadout: it sells for nothing.</p>
+	{/if}
 </div>
 
 <style>

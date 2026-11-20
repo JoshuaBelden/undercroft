@@ -1,5 +1,5 @@
 import type { Db } from 'mongodb';
-import { forSale, openTiers, sellPrice, type StoreTier } from '../../content/economy.ts';
+import { ECONOMY, forSale, openTiers, sellPrice, type StoreTier } from '../../content/economy.ts';
 import { ITEMS, SLOTS } from '../../content/items.ts';
 import {
 	addToSlots,
@@ -184,7 +184,7 @@ export async function grant(
 /** Admin: back to a new explorer: no money, nothing owned, nothing learned. */
 export async function resetExplorer(db: Db, explorerId: string): Result {
 	const result = await changeExplorer(db, explorerId, (explorer) => {
-		explorer.money = 0;
+		explorer.money = ECONOMY.startingMoney;
 		explorer.stash = emptySlots(SLOTS.stash);
 		explorer.loadout = emptyInventory();
 		return null;
@@ -196,7 +196,12 @@ export async function resetExplorer(db: Db, explorerId: string): Result {
 			.collection<ExplorerDoc>('explorers')
 			.updateOne({ _id: explorerId }, { $set: { discovered: {}, fresh: [], sold: 0 } });
 		await db.collection('progress').deleteMany({ player: explorerId });
-		await log(db, { explorer: explorerId, kind: 'reset', money: 0, balance: 0 });
+		await log(db, {
+			explorer: explorerId,
+			kind: 'reset',
+			money: ECONOMY.startingMoney,
+			balance: ECONOMY.startingMoney
+		});
 	}
 	return result;
 }

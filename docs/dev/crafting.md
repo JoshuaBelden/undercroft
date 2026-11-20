@@ -24,7 +24,7 @@ On the explorer, `discovered` maps each item to the lootable kinds it was seen i
 
 ## The Library
 
-The Library page lists what is discovered (with where it was seen and how many recipes use it) and every recipe with any ingredient discovered (`recipeStatus`: `hidden`, `started`, `available`): the product's name and silhouette, the discovered ingredients, and `?` for the rest. Available, it can be made in the Workshop, and below if it is a `field` recipe.
+The Library page lists what is discovered (with where it was seen and how many recipes use it) and every recipe with any ingredient discovered (`recipeStatus`: `hidden`, `started`, `available`): the product (its slot with the item tooltip, a silhouette until it can be made) and a slot per ingredient (`IngredientSlots`: dim with none in the stash, the count red with too few, on hand / needed; `?` for one not discovered). Available, Make opens the Workshop with it chosen (`workshopAsk.recipe`), and it can be made below too if it is a `field` recipe. Discovered items are slots with the item tooltip (`TipSlot`).
 
 ## Fragments
 
@@ -36,7 +36,9 @@ Everything is from the stash and into it, in one change to the explorer (all of 
 
 - **Craft** a recipe up to 20 times. It must be available. What is made is marked `crafted`.
 - **Repair** a stack in the stash or the loadout: its `REPAIRS` materials from the stash, and coin: `CRAFT.repairShare` (20%) of its price, by the share of it worn. A broken one can be mended. Repair in an item's menu on the Loadout page opens the Workshop with it chosen (`workshopAsk`).
-- **Salvage** a stack into its `SALVAGE` materials (rope: a length per 5 m). Never treasure, never a discovery.
+- **Salvage** a stack into its `SALVAGE` materials (rope: a length per 5 m). Never treasure, never a discovery. It is not a Workshop tab: it is Salvage in an item's menu in the stash and loadout (`ItemBoard`'s `salvage`, asked first in `ItemOverlays`).
+
+The Workshop page shows each recipe or repair as its product (`TipSlot`) and the same ingredient slots as the Library.
 
 Each is a ledger line (`craft`, `repair`, `salvage`).
 

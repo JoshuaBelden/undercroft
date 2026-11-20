@@ -1,16 +1,19 @@
 <script lang="ts">
-	import { ITEMS, rarityOf } from '#lib/content/items.ts';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { ITEMS } from '#lib/content/items.ts';
 	import { LOOTABLES, type LootableId } from '#lib/content/lootables.ts';
 	import { RECIPES } from '#lib/content/recipes.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import { recipeStatus, recipesUsing } from '#lib/shared/items/crafting.ts';
-	import Slot from './Slot.svelte';
+	import IngredientSlots from './IngredientSlots.svelte';
+	import TipSlot from './TipSlot.svelte';
+	import { workshopAsk } from './workshop.svelte.ts';
 
 	/**
-	 * The Library (docs/dev/crafting.md#the-library): every item discovered, where it was seen
-	 * and what it goes into; every recipe with any ingredient discovered, the rest shown as ?.
-	 * A recipe with all of them is available: made in the Workshop (and below, if it is a field
-	 * recipe).
+	 * The Library (docs/dev/crafting.md#the-library): every recipe with any ingredient discovered,
+	 * what it takes as slots (? for what isn't discovered yet), and every item discovered, where it
+	 * was seen and what it goes into. A recipe that can be made opens it in the Workshop.
 	 */
 	interface Props {
 		explorer: ExplorerView;
@@ -21,6 +24,8 @@
 	let { explorer, onseen }: Props = $props();
 
 	const discovered = $derived(new Set(Object.keys(explorer.discovered)));
+	const inStash = (item: string): number =>
+		explorer.stash.reduce((n, stack) => n + (stack?.item === item ? stack.count : 0), 0);
 	const items = $derived(
 		Object.keys(explorer.discovered)
 			.filter((id) => ITEMS[id])
@@ -41,6 +46,12 @@
 		);
 		return where.join(', ');
 	}
+
+	/** A recipe that can be made: off to the Workshop with it. */
+	function make(id: string): void {
+		workshopAsk.recipe = id;
+		void goto(resolve('/(hub)/workshop'));
+	}
 </script>
 
 <div class="library">
@@ -48,42 +59,37 @@
 		<h2 id="recipes-title">Recipes</h2>
 		{#if recipes.length === 0}
 			<p class="note">
-				No recipe is known yet. Everything you see in a crate, a corpse or anything else you open
-				below is discovered, and any recipe it goes into appears here.
+				No recipe is known yet. Everything you see in a crate, a dead explorer or anything else you
+				open below is discovered, and any recipe it goes into appears here.
 			</p>
 		{/if}
 		<ul class="rows">
 			{#each recipes as { recipe, status } (recipe.id)}
 				{@const def = ITEMS[recipe.makes]}
-				<li class="row">
-					<span class="product" class:silhouette={status !== 'available'}>
-						<Slot
-							name={def?.name ?? recipe.makes}
-							image={def?.image}
-							count={recipe.count}
-							rarity={status === 'available' ? rarityOf(recipe.makes) : undefined}
-						/>
+				{@const ready = status === 'available'}
+				<li class="row" class:ready>
+					<span class="product" class:silhouette={!ready}>
+						<TipSlot stack={{ item: recipe.makes, count: recipe.count }} />
 					</span>
 					<div class="what">
 						<strong>{def?.name ?? recipe.makes}{recipe.count > 1 ? ` ×${recipe.count}` : ''}</strong
 						>
-						<span class="needs">
-							{#each recipe.ingredients as i (i.item)}
-								{#if discovered.has(i.item)}
-									<span>{ITEMS[i.item]?.name ?? i.item}{i.count > 1 ? ` ×${i.count}` : ''}</span>
-								{:else}
-									<span class="unknown" aria-label="Not discovered yet">?</span>
-								{/if}
-							{/each}
-						</span>
-						<span class="tag">
-							{status === 'available'
-								? recipe.field
-									? 'Available: in the Workshop, or below with the field crafting kit'
-									: 'Available in the Workshop'
-								: 'Discover the rest to make it'}
-						</span>
+						{#if ready}
+							<span class="tag"
+								>{recipe.field
+									? 'In the Workshop, or below with the field crafting kit'
+									: 'In the Workshop'}</span
+							>
+						{/if}
+						<IngredientSlots
+							ingredients={recipe.ingredients}
+							have={inStash}
+							known={(item) => discovered.has(item)}
+						/>
 					</div>
+					{#if ready}
+						<button type="button" class="pill go" onclick={() => make(recipe.id)}>Make</button>
+					{/if}
 				</li>
 			{/each}
 		</ul>
@@ -96,22 +102,17 @@
 			{#each items as id (id)}
 				{@const def = ITEMS[id]}
 				{@const uses = recipesUsing(id).length}
-				<li
-					class="row"
-					onpointerenter={() => {
-						if (explorer.fresh.includes(id)) onseen?.(id);
-					}}
-				>
-					<Slot
-						name={def.name}
-						image={def.image}
-						rarity={rarityOf(id)}
+				<li class="row">
+					<TipSlot
+						stack={{ item: id, count: 1 }}
 						fresh={explorer.fresh.includes(id)}
+						onpoint={() => {
+							if (explorer.fresh.includes(id)) onseen?.(id);
+						}}
 					/>
 					<div class="what">
 						<strong>{def.name}</strong>
-						<span class="flavor">{def.flavor}</span>
-						<span class="needs">
+						<span class="tag">
 							Seen in {seenIn(id)}. {uses === 0
 								? 'Used in no recipe.'
 								: `Used in ${uses} recipe${uses === 1 ? '' : 's'}.`}
@@ -126,15 +127,15 @@
 <style>
 	.library {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
 		gap: 18px;
-		width: min(1100px, 100%);
+		width: min(1200px, 100%);
 		margin: 24px auto 96px;
 		padding: 0 16px;
 	}
 
 	.panel {
-		padding: 18px 20px 20px;
+		padding: 18px 24px 24px;
 		border: 1px solid var(--border);
 		border-radius: 18px;
 		background: rgb(14 12 10 / 0.55);
@@ -153,14 +154,17 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		--slot-size: 64px;
+		gap: 12px;
+		--slot-size: 72px;
 	}
 
 	.row {
 		display: flex;
 		align-items: center;
-		gap: 14px;
+		gap: 18px;
+		padding: 10px;
+		border-radius: 12px;
+		background: rgb(255 255 255 / 0.02);
 	}
 
 	.what {
@@ -168,33 +172,13 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 6px;
 	}
 
-	.needs,
-	.flavor,
 	.tag {
 		color: var(--muted);
-	}
-
-	.needs {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px 10px;
-	}
-
-	.tag {
 		font-size: 0.85em;
 		font-style: italic;
-	}
-
-	.unknown {
-		display: inline-grid;
-		place-items: center;
-		width: 22px;
-		height: 22px;
-		border: 1px dashed var(--border);
-		border-radius: 6px;
 	}
 
 	/* Not made yet: the product as a silhouette. */
@@ -204,6 +188,16 @@
 
 	.silhouette :global(.name) {
 		opacity: 0.4;
+	}
+
+	.pill {
+		height: 40px;
+		padding: 0 20px;
+		border: 1px solid var(--accent);
+		border-radius: 999px;
+		background: var(--accent);
+		color: #fff;
+		font-family: var(--font-ui);
 	}
 
 	.note {

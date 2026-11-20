@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import { discoveriesOf } from './discoveries.ts';
-import { openTiers } from '../../content/economy.ts';
+import { ECONOMY, openTiers } from '../../content/economy.ts';
 import type { Collection, Db } from 'mongodb';
 import { ACCOUNT, cleanEmail, cleanTag } from '../../content/account.ts';
 import type { AccountView, ExplorerView } from '../../shared/account/types.ts';
@@ -496,7 +496,7 @@ export async function explorerFor(db: Db, accountId: string): Promise<ExplorerDo
 	const explorer: ExplorerDoc = {
 		_id: randomUUID(),
 		account: accountId,
-		money: 0,
+		money: ECONOMY.startingMoney,
 		stash: emptySlots(SLOTS.stash),
 		loadout: emptyInventory(),
 		layout: LAYOUT,

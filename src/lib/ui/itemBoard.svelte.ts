@@ -1,13 +1,13 @@
 import { sellPrice } from '#lib/content/economy.ts';
 import { ITEMS } from '#lib/content/items.ts';
-import { repairCost } from '#lib/shared/items/crafting.ts';
+import { repairCost, salvageOf } from '#lib/shared/items/crafting.ts';
 import { accepts, canEquip, getSlot, type Belongings } from '#lib/shared/items/inventory.ts';
 import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
 import type { ItemStack } from '#lib/shared/player/types.ts';
 
 /** One line of the alternate menu. */
 export interface MenuEntry {
-	id: 'read' | 'inspect' | 'equip' | 'unequip' | 'split' | 'sell' | 'repair' | 'drop';
+	id: 'read' | 'inspect' | 'equip' | 'unequip' | 'split' | 'sell' | 'repair' | 'salvage' | 'drop';
 	label: string;
 	/** Shown to the right (the price). */
 	note?: string;
@@ -24,6 +24,8 @@ export interface BoardOptions {
 	sell?: (from: SlotRef, count: number) => void;
 	/** Mend a worn thing (off to the Workshop with it). Leave out where nothing is mended. */
 	repair?: (at: SlotRef) => void;
+	/** Break a thing down into its materials (asked first). Leave out where nothing is. */
+	salvage?: (at: SlotRef) => void;
 	/** Newly discovered: its slot shimmers until hovered (`seen` is told). */
 	fresh?: (item: string) => boolean;
 	seen?: (item: string) => void;
@@ -54,7 +56,11 @@ export class ItemBoard {
 	/** The open alternate menu: which slot, and where it was asked for. */
 	menu = $state<{ ref: SlotRef; stack: ItemStack; x: number; y: number } | null>(null);
 	/** The open dialog: how many to split or sell, or whether to really drop it. */
-	asking = $state<{ kind: 'split' | 'sell' | 'drop'; ref: SlotRef; stack: ItemStack } | null>(null);
+	asking = $state<{
+		kind: 'split' | 'sell' | 'drop' | 'salvage';
+		ref: SlotRef;
+		stack: ItemStack;
+	} | null>(null);
 	/** The slot whose Inspect panel is open. */
 	private inspecting = $state<{ ref: SlotRef; stack: ItemStack } | null>(null);
 
@@ -213,6 +219,10 @@ export class ItemBoard {
 		}
 		// Below full, and something that can be mended: off to the Workshop with it.
 		if (this.options.repair && repairCost(stack)) entries.push({ id: 'repair', label: 'Repair' });
+		// Something that breaks down into materials (never treasure).
+		if (this.options.salvage && !ITEMS[stack.item]?.treasure && salvageOf(stack).length) {
+			entries.push({ id: 'salvage', label: 'Salvage' });
+		}
 		entries.push({ id: 'drop', label: 'Drop' });
 		return entries;
 	}
@@ -251,6 +261,9 @@ export class ItemBoard {
 			case 'repair':
 				this.options.repair?.(ref);
 				break;
+			case 'salvage':
+				this.asking = { kind: 'salvage', ref, stack };
+				break;
 			case 'drop':
 				if (this.options.confirmDrop) this.asking = { kind: 'drop', ref, stack };
 				else this.options.act({ kind: 'drop', from: ref, count: stack.count });
@@ -266,6 +279,7 @@ export class ItemBoard {
 		const { kind, ref, stack } = asking;
 		if (kind === 'split') this.options.act({ kind: 'split', from: ref, count });
 		else if (kind === 'sell') this.options.sell?.(ref, count);
+		else if (kind === 'salvage') this.options.salvage?.(ref);
 		else this.options.act({ kind: 'drop', from: ref, count: stack.count });
 	}
 

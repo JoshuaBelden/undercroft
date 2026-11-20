@@ -79,7 +79,7 @@ export function serve(
 				parties.leave(member);
 				break;
 			case 'ready':
-				void parties.setReady(member, message.ready === true);
+				void parties.setReady(member, message.ready === true, message.free === true);
 				break;
 			case 'kick':
 				parties.kick(member, message.member);

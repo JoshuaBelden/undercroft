@@ -83,6 +83,10 @@ Explorers from before slots (a stash list; a loadout of quick slots, pack and po
 
 The game server is the only writer while an explorer is underground.
 
+### Free loadout
+
+An explorer whose loadout is empty can go down with `FREE_LOADOUT` (`src/lib/content/economy.ts`: a crowbar, a padded coat and 3 bandages, each with its slot): Use free loadout beside Confirm loadout (held Y) sends `{ type: 'ready', ready: true, free: true }`, `Member.free` holds it until unready, and `takeLoadout(db, explorer, session, free)` hands out `freeLoadout()` only if the loadout it empties had nothing in it (otherwise their own goes down, as if they hadn't asked). Every stack of it is `free`: `sellPrice` is 0, `salvageOf` is nothing, and it never merges with a bought or found stack (`sameKind`), so the free loadout never becomes coin. A co-op guest (their own save) takes their own loadout.
+
 1. **Descent** (`Parties.begin`, `takeKit`): `takeLoadout` empties the loadout and sets `underground` to the session id, in one update. The inventory it returns is what `Session.addPlayer` gives the player. Fetching takes a moment, so a member who left meanwhile gets their kit straight back.
 2. **Underground:** the hub refuses changes (`underground`), and `ExplorerView.underground` is true.
 3. **Return** (`SessionHooks.onPlayerLeft(owner, carried)`, `giveBack`, `returnFromExpedition`):
@@ -146,7 +150,7 @@ To add a loot item, add an `ItemDef` with `kind: 'loot'`, a `value`, a `rarity` 
 
 ## Money and the shop
 
-An explorer's `money` is a whole number of coin. It only changes on the server.
+An explorer's `money` is a whole number of coin. It only changes on the server. A new explorer, and one the admin resets, starts with `ECONOMY.startingMoney` (100).
 
 Everything to tune is in `src/lib/content/economy.ts`:
 

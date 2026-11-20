@@ -19,13 +19,16 @@ import { log } from './log.ts';
  * save: for them each of these asks their client instead (server/guests.ts, docs/dev/hosting.md).
  */
 
-/** Descent: the explorer's loadout leaves the surface with them. */
-export async function takeKit(explorer: string, session: string): Promise<Inventory> {
+/**
+ * Descent: the explorer's loadout leaves the surface with them; or, `free` with their own empty,
+ * the free loadout (a co-op guest's save has no free loadout: they take their own).
+ */
+export async function takeKit(explorer: string, session: string, free = false): Promise<Inventory> {
 	if (isGuest(explorer)) return (await guestTake(explorer, session)).kit;
 	const db = getDb();
 	if (!db) return emptyInventory();
 	try {
-		return await takeLoadout(db, explorer, session);
+		return await takeLoadout(db, explorer, session, free);
 	} catch (error) {
 		log.warn(`Could not take a loadout: ${(error as Error).message}`);
 		return emptyInventory();

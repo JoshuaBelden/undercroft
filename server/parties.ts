@@ -39,6 +39,8 @@ export interface Member {
 	ready: boolean;
 	/** What they last asked for; `ready` follows once their loadout is locked. */
 	wantReady: boolean;
+	/** Ready with the free loadout (given at descent if their own is empty). */
+	free: boolean;
 	/** False while the connection is down and their place is held. */
 	connected: boolean;
 	/** Runs out when a dropped member has been gone too long. */
@@ -124,6 +126,7 @@ export class Parties {
 			socket,
 			ready: false,
 			wantReady: false,
+			free: false,
 			connected: true,
 			dropTimer: null,
 			party: this.create(),
@@ -272,7 +275,7 @@ export class Parties {
 	 * refuses changes to it), so what they confirmed is what goes down; only then do the others
 	 * see them as ready.
 	 */
-	async setReady(member: Member, ready: boolean): Promise<void> {
+	async setReady(member: Member, ready: boolean, free = false): Promise<void> {
 		const party = member.party;
 		if (!ready) {
 			if (!member.ready && !member.wantReady) return;
@@ -292,6 +295,7 @@ export class Parties {
 			return;
 		}
 		member.wantReady = true;
+		member.free = free;
 		await lockKit(member.explorer, true);
 		// They changed their mind, left or dropped meanwhile: `unready` has unlocked it again.
 		if (!member.wantReady || member.ready) return;
@@ -358,7 +362,7 @@ export class Parties {
 	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
 		const going = [...party.members];
 		const [kits, onSurface, wheels, known, done] = await Promise.all([
-			Promise.all(going.map((m) => takeKit(m.explorer, session.id))),
+			Promise.all(going.map((m) => takeKit(m.explorer, session.id, m.free))),
 			owned(going.map((m) => m.explorer)),
 			markWheels(going.map((m) => m.explorer)),
 			discoveries(going.map((m) => m.explorer)),
@@ -501,6 +505,7 @@ export class Parties {
 		if (!member.ready && !member.wantReady) return;
 		member.ready = false;
 		member.wantReady = false;
+		member.free = false;
 		void lockKit(member.explorer, false);
 	}
 
