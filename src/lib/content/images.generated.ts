@@ -4,6 +4,7 @@
 export const IMAGE_URLS: Record<string, string> = {
 	'affliction-gloaming-banner': '/assets/ui/images/affliction-gloaming-banner.3682538c.webp',
 	'affliction-rumors-banner': '/assets/ui/images/affliction-rumors-banner.f8be8077.webp',
+	'affliction-unknown-banner': '/assets/ui/images/affliction-unknown-banner.f621871a.webp',
 	apothecary_jar: '/assets/ui/images/apothecary_jar.bf24bfd8.webp',
 	bait: '/assets/ui/images/bait.20ce741e.webp',
 	bandages: '/assets/ui/images/bandages.7a322854.webp',

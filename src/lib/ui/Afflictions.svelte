@@ -20,9 +20,6 @@
 	}
 
 	let { progress, onjoin, joinBlocked, owned, onreset, resetBlocked }: Props = $props();
-
-	/** Panes shown after the real ones for Afflictions nobody has met yet. */
-	const UNKNOWN_PANES = 4;
 </script>
 
 <div class="afflictions">
@@ -37,9 +34,6 @@
 				{resetBlocked}
 				onreset={onreset && (() => onreset(id))}
 			/>
-		{/each}
-		{#each { length: UNKNOWN_PANES }, index (index)}
-			<AfflictionPane id={null} {progress} />
 		{/each}
 	</div>
 	<p class="note">
@@ -60,6 +54,8 @@
 	.track {
 		flex: none;
 		display: flex;
+		/* Centred while they fit; scrolling from the first once they don't. */
+		justify-content: safe center;
 		gap: 20px;
 		padding: 24px 0 14px;
 		overflow-x: auto;

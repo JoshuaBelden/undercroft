@@ -36,7 +36,7 @@ The Affliction director starts calmed (no meter, omens or manifestation; `manife
 
 ## Done
 
-Getting out of a training ground (`onTrained`) records it as resolved in `Progress`. An Affliction's `requires` (the Gloaming's is `rumors`) keeps it locked until that is done: the host can't choose it and nobody can ready for it (`Parties.locked`), and its pane says so (`afflictionLocked`). Reset on Rumors' pane forgets it again.
+Getting out of a training ground (`onTrained`) records it as resolved in `Progress`. An Affliction's `requires` (the Gloaming's is `rumors`) keeps it locked until that is done: the host can't choose it and nobody can ready for it (`Parties.locked`), its pane on the Afflictions page shows it as not yet discovered (the unknown banner, no rite or location), and the Expedition picker leaves it out (`afflictionLocked`). Reset on Rumors' pane forgets it again.
 
 ## Admin
 

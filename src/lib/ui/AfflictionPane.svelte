@@ -48,12 +48,16 @@
 		resetBlocked
 	}: Props = $props();
 
-	/** Question-mark slots on an unknown pane. */
-	const UNKNOWN_SLOTS = 3;
 	/** The picture behind an unknown pane (static/assets/ui/images). */
 	const UNKNOWN_IMAGE = 'affliction-unknown-banner';
 
-	const def = $derived(id === null ? null : (AFFLICTIONS[id] ?? null));
+	const real = $derived(id === null ? null : (AFFLICTIONS[id] ?? null));
+	/** Still locked: what it requires isn't done yet (the Gloaming before Rumors). */
+	const locked = $derived(
+		!!real && afflictionLocked(real.id, (id) => progress.some((p) => p.id === id && p.resolved))
+	);
+	/** What the pane shows: a locked one is not yet discovered, like one with no id. */
+	const def = $derived(locked ? null : real);
 	const known = $derived(progress.find((entry) => entry.id === id));
 	const rite = $derived(def ? riteSnapshot(def.rite, known?.clues ?? 0) : null);
 	/**
@@ -76,7 +80,7 @@
 						needed: requirement.count
 					}));
 				})
-			: Array.from({ length: UNKNOWN_SLOTS }, () => null)
+			: []
 	);
 	const room = $derived(rite?.room ? (MAP_KIT[rite.room]?.title ?? rite.room) : null);
 	const resolved = $derived(known?.resolved ?? false);
@@ -84,13 +88,6 @@
 	const started = $derived((known?.clues ?? 0) > 0 || resolved);
 	/** A training ground (Rumors): no rite to learn; done once you have got out of it. */
 	const training = $derived(!!def?.training);
-	/** Still locked: what it requires isn't done yet (the Gloaming before Rumors). */
-	const locked = $derived(
-		!!def && afflictionLocked(def.id, (id) => progress.some((p) => p.id === id && p.resolved))
-	);
-	const requiredName = $derived(
-		def?.requires ? (AFFLICTIONS[def.requires]?.name ?? def.requires) : ''
-	);
 
 	/** What a requirement's slot says on hover. */
 	function describe(slot: (typeof slots)[number]): string {
@@ -111,7 +108,7 @@
 		<h2>{def?.name ?? 'Unknown'}</h2>
 		{#if def}
 			<span class="status" class:resolved>
-				{#if locked}Locked{:else if training}{resolved ? 'Done' : 'Start here'}{:else}{resolved
+				{#if training}{resolved ? 'Done' : 'Start here'}{:else}{resolved
 						? 'Resolved'
 						: 'Unresolved'}{/if}
 			</span>
@@ -119,12 +116,11 @@
 	</header>
 
 	<div class="content">
-		<p class="flavor">{def?.flavor ?? 'Nothing is written of this one. Not yet.'}</p>
+		<p class="flavor">{def?.flavor ?? 'Not yet discovered.'}</p>
 
-		{#if locked}
-			<p class="locked">Go on a {requiredName} expedition first.</p>
-		{/if}
-		{#if training}
+		{#if !def}
+			<!-- Not yet discovered: nothing more to say about it. -->
+		{:else if training}
 			<h3>A training ground</h3>
 			<p class="room">
 				A short way in, step by step, and a vault to try your gear. Nothing down there wants you.
@@ -166,8 +162,8 @@
 			<button
 				type="button"
 				class="join"
-				disabled={joinBlocked !== undefined || locked}
-				title={locked ? `Go on a ${requiredName} expedition first` : joinBlocked}
+				disabled={joinBlocked !== undefined}
+				title={joinBlocked}
 				onclick={onjoin}
 			>
 				Join Expedition
@@ -182,8 +178,6 @@
 			class="choose"
 			aria-label="Choose {def.name}"
 			aria-pressed={selected}
-			disabled={locked}
-			title={locked ? `Go on a ${requiredName} expedition first` : undefined}
 			onclick={onselect}
 		></button>
 	{/if}
@@ -294,10 +288,6 @@
 		font-size: 0.9rem;
 		font-style: italic;
 		line-height: 1.45;
-	}
-
-	.locked {
-		color: var(--broken);
 	}
 
 	/* Above Join Expedition, quieter. */
