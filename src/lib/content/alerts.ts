@@ -5,6 +5,8 @@ import { ITEMS } from './items.ts';
 export const ALERT = {
 	/** How long one shows before it slides away (paused while the pointer or focus is on it). */
 	seconds: 3,
+	/** A tutorial step's alert (Rumors) is up this long, or until it is clicked away. */
+	tutorialSeconds: 20,
 	/** Most shown at once: a new one past this pushes the oldest out. */
 	max: 5
 };

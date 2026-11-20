@@ -1,19 +1,14 @@
 import * as THREE from 'three';
 import { AFFLICTIONS, type TrainingSpec } from '#lib/content/afflictions.ts';
+import { ALERT } from '#lib/content/alerts.ts';
+import { raise } from '#lib/game/alerts.svelte.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
 import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 import { worldSpots } from '#lib/shared/map/spots.ts';
 import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
+import type { ServerMessage } from '#lib/shared/protocol.ts';
 import type { PlayContext, PlayFeature } from './feature.ts';
-
-/** A tutorial step being shown. */
-export interface TutorialCard {
-	title: string;
-	line: string;
-	/** The help topic it points to. */
-	help?: string;
-}
 
 /** A dummy hit's number, rising where it was struck. */
 export interface HitNumber {
@@ -24,22 +19,27 @@ export interface HitNumber {
 	fade: number;
 }
 
-/** How long (s) a step stays up, and a hit's number. */
-const CARD_SECONDS = 16;
+/** How long (s) a hit's number rises. */
 const NUMBER_SECONDS = 1.2;
 
 /**
- * The training ground (Rumors, docs/dev/rumors.md) on the play page: each tutorial step shown
- * once as the player reaches it (the first on arriving), and each hit on a dummy as a number
- * rising where it landed.
+ * The training ground (Rumors, docs/dev/rumors.md) on the play page: each tutorial step raised
+ * once as an alert as the player reaches it (the first on arriving), up ALERT.tutorialSeconds or
+ * until clicked away, and each hit on a dummy as a number rising where it landed.
  */
 export class Training implements PlayFeature {
-	card = $state<TutorialCard | null>(null);
 	numbers = $state<HitNumber[]>([]);
 	private spec: TrainingSpec | null = null;
-	private steps: { position: Vec3 | null; radius: number; card: TutorialCard }[] = [];
+	private steps: {
+		position: Vec3 | null;
+		radius: number;
+		title: string;
+		line: string;
+		firstTime: boolean;
+	}[] = [];
+	/** The tutorial's crates and things are stocked this time (the server says, on arriving). */
+	private firstTime = true;
 	private told: number[] = [];
-	private cardLeft = 0;
 	private hits: { id: number; text: string; position: Vec3; left: number }[] = [];
 	private nextHit = 1;
 
@@ -53,8 +53,14 @@ export class Training implements PlayFeature {
 		this.steps = this.spec.steps.map((step) => ({
 			position: step.spot ? (spots.find((s) => s.name === step.spot)?.position ?? null) : null,
 			radius: step.radius,
-			card: { title: step.title, line: step.line, help: step.help }
+			title: step.title,
+			line: step.line,
+			firstTime: !!step.firstTime
 		}));
+	}
+
+	message(message: ServerMessage): void {
+		if (message.type === 'tutorial') this.firstTime = message.firstTime;
 	}
 
 	event(event: GameEvent): void {
@@ -72,24 +78,20 @@ export class Training implements PlayFeature {
 		}
 	}
 
-	self(state: PlayerState, delta: number): void {
+	self(state: PlayerState): void {
 		if (!this.spec) return;
 		this.steps.forEach((step, index) => {
 			if (this.told.includes(index)) return;
+			// About the stocked crates and the kit: not when they are empty.
+			if (step.firstTime && !this.firstTime) return;
 			const near =
 				step.position === null ||
 				Math.hypot(state.position[0] - step.position[0], state.position[2] - step.position[2]) <=
 					step.radius;
 			if (!near) return;
 			this.told.push(index);
-			this.card = step.card;
-			this.cardLeft = CARD_SECONDS;
-			this.ctx.sounds.play('ui.alert');
+			raise({ kind: 'note', title: step.title, line: step.line, seconds: ALERT.tutorialSeconds });
 		});
-		if (this.card) {
-			this.cardLeft -= delta;
-			if (this.cardLeft <= 0) this.card = null;
-		}
 	}
 
 	update(delta: number): void {
@@ -118,16 +120,10 @@ export class Training implements PlayFeature {
 		});
 	}
 
-	/** Put the step away. */
-	dismiss(): void {
-		this.card = null;
-	}
-
 	clear(): void {
 		this.spec = null;
 		this.steps = [];
 		this.told = [];
-		this.card = null;
 		this.hits = [];
 		this.numbers = [];
 	}

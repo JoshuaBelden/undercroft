@@ -32,16 +32,16 @@ The Affliction director starts calmed (no meter, omens or manifestation; `manife
 
 ## The tutorial
 
-`steps` are told once each, as a card at the bottom left, when a player comes within `radius` of the step's spot (the first, with no spot, on arriving); each points at a help topic. `crates` (what each of the walk's crates holds) and `floor` things marked `firstTime` are only there the first time: the party tells the session (`tutorial(firstTime)`) whether anyone going down hasn't done it yet; otherwise they are empty. Bricks are always there.
+`steps` are told once each, as a note alert where alerts show (up `ALERT.tutorialSeconds`, 20 s, or until clicked away), when a player comes within `radius` of the step's spot (the first, with no spot, on arriving). Steps marked `firstTime` (the stocked crates, the kit) are told only when the tutorial is stocked: the session says which on arriving (the `tutorial` message). `crates` (what each of the walk's crates holds) and `floor` things marked `firstTime` are only there the first time: the party tells the session (`tutorial(firstTime)`) whether anyone going down hasn't done it yet; otherwise they are empty. Bricks are always there.
 
 ## Done
 
-Getting out of a training ground (`onTrained`) records it as resolved in `Progress`. An Affliction's `requires` (the Gloaming's is `rumors`) keeps it locked until that is done: the host can't choose it and nobody can ready for it (`Parties.locked`), its pane on the Afflictions page shows it as not yet discovered (the unknown banner, no rite or location), and the Expedition picker leaves it out (`afflictionLocked`). Reset on Rumors' pane forgets it again.
+Getting out of a training ground (`onTrained`) records it as resolved in `Progress`. An Affliction's `requires` (the Gloaming's is `rumors`) keeps it locked until that is done: the host can't choose it and nobody can ready for it (`Parties.locked`), its pane on the Afflictions page shows it as not yet discovered (and the first time the page is seen after it opens, the unknown pane fades into it: remembered per explorer in localStorage) (the unknown banner, no rite or location), and the Expedition picker leaves it out (`afflictionLocked`). F10's **Forget Afflictions** forgets it again.
 
 ## Admin
 
 - **Rumors done** (F10, Account group, dev mode): marks Rumors resolved, the Gloaming open.
-- The Afflictions page's **Reset** on Rumors puts it back.
+- **Forget Afflictions** (F10, Account group): no progress against any Affliction, Rumors to do again.
 - The admin app's **Reset to a new player** (a member's page) starts them over entirely ([admin.md](admin.md)).
 
 ## Adding a step, a dummy or a thing

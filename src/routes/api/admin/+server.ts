@@ -22,8 +22,8 @@ import type { RequestHandler } from './$types';
  * - `{ action: 'resetPassword', email, password }`: any account
  * - `{ action: 'discoverAll' }`, `{ action: 'resetDiscoveries' }`: your own discoveries
  * - `{ action: 'setTrust', sold }`: the merchant's trust (coin sold), which opens store tiers
- * - `{ action: 'completeTraining' }`: Rumors done (the Gloaming unlocked); the Afflictions page's
- *   Reset puts it back
+ * - `{ action: 'completeTraining' }`: Rumors done (the Gloaming unlocked)
+ * - `{ action: 'forgetAfflictions' }`: no progress against any Affliction (Rumors to do again)
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!devMode) error(404, 'Not found');
@@ -57,6 +57,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					{ upsert: true }
 				);
 		}
+		return json(await accountView(db, account));
+	}
+	if (body.action === 'forgetAfflictions') {
+		await db.collection('progress').deleteMany({ player: explorer._id });
 		return json(await accountView(db, account));
 	}
 	if (body.action === 'setTrust') {

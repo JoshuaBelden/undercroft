@@ -1,28 +1,12 @@
 <script lang="ts">
-	import { HELP_TOPICS } from '#lib/content/help/index.ts';
-	import type { HitNumber, TutorialCard } from '#lib/game/play/training.svelte.ts';
+	import type { HitNumber } from '#lib/game/play/training.svelte.ts';
 
 	/**
-	 * The training ground's overlay (docs/dev/rumors.md): the tutorial step being shown, and the
-	 * numbers rising off the dummies as they are hit.
+	 * The training ground's overlay (docs/dev/rumors.md): the numbers rising off the dummies as
+	 * they are hit. (Its tutorial steps are alerts.)
 	 */
-	let {
-		card,
-		numbers,
-		ondismiss
-	}: { card: TutorialCard | null; numbers: HitNumber[]; ondismiss: () => void } = $props();
-
-	const topic = $derived(card?.help ? HELP_TOPICS.find((t) => t.id === card.help) : undefined);
+	let { numbers }: { numbers: HitNumber[] } = $props();
 </script>
-
-{#if card}
-	<aside class="card" aria-live="polite">
-		<strong>{card.title}</strong>
-		<p>{card.line}</p>
-		{#if topic}<p class="help">More in Help: {topic.title}</p>{/if}
-		<button type="button" onclick={ondismiss}>Got it</button>
-	</aside>
-{/if}
 
 {#each numbers as number (number.id)}
 	<span
@@ -35,34 +19,6 @@
 {/each}
 
 <style>
-	.card {
-		position: fixed;
-		left: 24px;
-		bottom: 120px;
-		z-index: 45;
-		width: min(360px, calc(100vw - 48px));
-		padding: 14px 16px;
-		border: 1px solid rgb(201 176 120 / 0.45);
-		border-radius: 14px;
-		background: rgb(16 14 12 / 0.82);
-		backdrop-filter: blur(4px);
-		color: #e6dccb;
-	}
-
-	.card p {
-		margin: 6px 0 0;
-	}
-
-	.help {
-		color: var(--muted);
-		font-size: 0.9em;
-	}
-
-	.card button {
-		margin-top: 10px;
-		border-radius: 999px;
-	}
-
 	.number {
 		position: fixed;
 		z-index: 40;

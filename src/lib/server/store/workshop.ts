@@ -16,6 +16,7 @@ import {
 	type Slots
 } from '../../shared/items/inventory.ts';
 import type { ExplorerDoc } from './accounts.ts';
+import { discoveriesOf } from './discoveries.ts';
 import { changeExplorer, type ExplorerError } from './explorers.ts';
 import { log } from './shop.ts';
 
@@ -55,7 +56,7 @@ export async function craft(db: Db, explorerId: string, recipeId: unknown, times
 	const n = typeof times === 'number' && Number.isInteger(times) ? times : 1;
 	if (!recipe || n < 1 || n > 20) return { error: 'unknownRecipe' };
 	const result = await changeExplorer(db, explorerId, (explorer) => {
-		const discovered = new Set(Object.keys(explorer.discovered ?? {}));
+		const discovered = new Set(Object.keys(discoveriesOf(explorer)));
 		if (recipeStatus(recipe, discovered) !== 'available') return 'undiscovered';
 		if (!hasIngredients(recipe, (item) => inStash(explorer.stash, item), n)) return 'materials';
 		spend(explorer.stash, recipe.ingredients, n);

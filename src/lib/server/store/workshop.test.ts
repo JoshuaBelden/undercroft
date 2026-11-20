@@ -59,6 +59,14 @@ describe('discoveries', () => {
 		expect((await doc()).fresh).toEqual([]);
 	});
 
+	it('an item id with a dot in it is kept whole', async () => {
+		await discover(db, explorer._id, [{ item: 'ammo.revolver', source: 'corpse' }]);
+		const account = (await db.collection('accounts').findOne({}))!;
+		const view = await accountView(db, account as never);
+		expect(view.explorer.discovered).toEqual({ 'ammo.revolver': ['corpse'] });
+		expect(view.explorer.fresh).toEqual(['ammo.revolver']);
+	});
+
 	it('the admin can discover everything, or forget it all', async () => {
 		await discoverAll(db, explorer._id);
 		expect(Object.keys((await doc()).discovered ?? {})).toContain('gun-parts');

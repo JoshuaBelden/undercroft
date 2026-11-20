@@ -424,6 +424,9 @@ export class Session implements SessionContext {
 			resumed,
 			markWheel: [...player.markWheel]
 		});
+		if (this.affliction.def.training) {
+			this.send(player, { type: 'tutorial', firstTime: this.firstTime });
+		}
 		for (const system of this.ordered) system.joined?.(player, resumed);
 	}
 

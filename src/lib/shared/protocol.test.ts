@@ -25,6 +25,19 @@ describe('protocol', () => {
 	});
 });
 
+describe('what each side sends', () => {
+	it('the client takes in every message the game server sends', () => {
+		for (const message of [
+			{ type: 'discovered', item: 'rags', recipes: 2 },
+			{ type: 'fragment', item: null },
+			{ type: 'crafted', item: 'bandage', count: 1 },
+			{ type: 'tutorial', firstTime: true }
+		]) {
+			expect(decodeServer(JSON.stringify(message)), message.type).toEqual(message);
+		}
+	});
+});
+
 describe('allReady', () => {
 	const member = (ready: boolean, connected = true) => ({
 		id: 'm',

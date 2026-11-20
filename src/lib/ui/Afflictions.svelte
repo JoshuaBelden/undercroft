@@ -1,10 +1,13 @@
 <script lang="ts">
-	import { AFFLICTION_ORDER } from '#lib/content/afflictions.ts';
+	import { untrack } from 'svelte';
+	import { AFFLICTIONS, AFFLICTION_ORDER, afflictionLocked } from '#lib/content/afflictions.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import AfflictionPane from './AfflictionPane.svelte';
 	import { dragScroll } from './dragScroll.ts';
 
 	interface Props {
+		/** Whose page it is (their explorer id): what has faded in is remembered for them. */
+		explorer: string;
 		/** The explorer's rite progress (only Afflictions with any). */
 		progress: ExplorerView['afflictions'];
 		/** Given, each known pane has a Join Expedition button that calls this with its id. */
@@ -13,13 +16,41 @@
 		joinBlocked?: string;
 		/** How many of each item the explorer owns (stash and loadout), for the requirement slots. */
 		owned?: Record<string, number>;
-		/** Given, each known pane has a Reset button that calls this with its id. */
-		onreset?: (id: string) => void;
-		/** Why resetting is not possible right now (the buttons are disabled). */
-		resetBlocked?: string;
 	}
 
-	let { progress, onjoin, joinBlocked, owned, onreset, resetBlocked }: Props = $props();
+	let { explorer, progress, onjoin, joinBlocked, owned }: Props = $props();
+
+	/**
+	 * Afflictions unlocked since this page was last seen here (by this explorer, in this browser):
+	 * each fades in from unknown once. Remembered in localStorage; without it, nothing fades.
+	 */
+	const KEY = 'undercroft.afflictionsRevealed';
+	let revealing = $state<string[]>([]);
+	$effect(() => {
+		const unlocked = AFFLICTION_ORDER.filter(
+			(id) =>
+				!!AFFLICTIONS[id]?.requires &&
+				!afflictionLocked(id, (done) => progress.some((p) => p.id === done && p.resolved))
+		);
+		const who = explorer;
+		untrack(() => {
+			let seen: Record<string, string[]>;
+			try {
+				seen = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, string[]>;
+			} catch {
+				return;
+			}
+			const mine = seen[who] ?? [];
+			const fresh = unlocked.filter((id) => !mine.includes(id));
+			if (!fresh.length) return;
+			revealing = [...revealing, ...fresh];
+			try {
+				localStorage.setItem(KEY, JSON.stringify({ ...seen, [who]: [...mine, ...fresh] }));
+			} catch {
+				// Not kept: it fades in again next time.
+			}
+		});
+	});
 </script>
 
 <div class="afflictions">
@@ -30,9 +61,8 @@
 				{progress}
 				{owned}
 				{joinBlocked}
+				reveal={revealing.includes(id)}
 				onjoin={onjoin && (() => onjoin(id))}
-				{resetBlocked}
-				onreset={onreset && (() => onreset(id))}
 			/>
 		{/each}
 	</div>

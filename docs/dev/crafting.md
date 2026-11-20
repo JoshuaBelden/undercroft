@@ -20,7 +20,7 @@ Discovery, the Library, recipes and recipe fragments, the Workshop (craft, repai
 
 An item is discovered by seeing it in a lootable: every slot in sight in a lootable a player has open (`CrateSystem.step`, each tick it sends them the `crate` view) and what a font fills. `Session.discover(player, item, source)` keeps it on the player (`Player.discovered`, read at descent with `discoveries()` in `server/belongings.ts`), records where (`onDiscovered` to `discover()`, once per item and lootable a run), and the first time sends `discovered` (an alert with the epic-find sting: "Discovered: rubber. Used in 2 recipes."). Buying, salvaging, a teammate's drop or a floor pickup never discover. What can't be discovered: anything no lootable holds (`discoverable`: bricks and pebbles lie loose), quest items, clues and fragments. A co-op guest's discoveries stay in their own save.
 
-On the explorer, `discovered` maps each item to the lootable kinds it was seen in; `fresh` lists those not yet looked at, whose slots shimmer (`Slot`'s `fresh`) on the Loadout page and in the Library until hovered (`markSeen`).
+On the explorer, `discovered` maps each item to the lootable kinds it was seen in (stored with `~` for an id's dots, which an update would read as a path: `storedKey`, `discoveriesOf`); `fresh` lists those not yet looked at, whose slots shimmer (`Slot`'s `fresh`) on the Loadout page and in the Library until hovered (`markSeen`).
 
 ## The Library
 

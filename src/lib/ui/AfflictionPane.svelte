@@ -21,6 +21,8 @@
 		onselect?: () => void;
 		/** It is the one chosen. */
 		selected?: boolean;
+		/** Just unlocked: it starts as an unknown pane and fades into itself (once, the first time). */
+		reveal?: boolean;
 		/** Given, a known pane has a Join Expedition button that calls this. */
 		onjoin?: () => void;
 		/** Why joining is not possible right now; the button is disabled and says so. */
@@ -30,10 +32,6 @@
 		 * is greyed until they own enough of it.
 		 */
 		owned?: Record<string, number>;
-		/** Given, a known pane with any progress has a Reset button that calls this. */
-		onreset?: () => void;
-		/** Why resetting is not possible right now; the button is disabled and says so. */
-		resetBlocked?: string;
 	}
 
 	let {
@@ -41,11 +39,10 @@
 		progress,
 		onselect,
 		selected = false,
+		reveal = false,
 		onjoin,
 		joinBlocked,
-		owned,
-		onreset,
-		resetBlocked
+		owned
 	}: Props = $props();
 
 	/** The picture behind an unknown pane (static/assets/ui/images). */
@@ -84,8 +81,6 @@
 	);
 	const room = $derived(rite?.room ? (MAP_KIT[rite.room]?.title ?? rite.room) : null);
 	const resolved = $derived(known?.resolved ?? false);
-	/** Anything to forget: hints found, or resolved. */
-	const started = $derived((known?.clues ?? 0) > 0 || resolved);
 	/** A training ground (Rumors): no rite to learn; done once you have got out of it. */
 	const training = $derived(!!def?.training);
 
@@ -102,6 +97,8 @@
 	class:unknown={def === null}
 	class:selectable={onselect !== undefined}
 	class:selected
+	class:revealing={reveal && def !== null}
+	style:--unknown-art="url('{imageUrl(UNKNOWN_IMAGE)}')"
 	style:--art="url('{imageUrl(def?.image ?? UNKNOWN_IMAGE)}')"
 >
 	<header>
@@ -146,18 +143,6 @@
 			<p class="room" class:hidden={!room}>{room ?? 'Unknown'}</p>
 		{/if}
 
-		{#if onreset && def && started}
-			<button
-				type="button"
-				class="reset"
-				disabled={resetBlocked !== undefined}
-				title={resetBlocked ?? 'Forget every hint: it is unresolved again'}
-				onclick={onreset}
-			>
-				Reset
-			</button>
-		{/if}
-
 		{#if onjoin && def}
 			<button
 				type="button"
@@ -170,6 +155,14 @@
 			</button>
 		{/if}
 	</div>
+
+	{#if reveal && def}
+		<!-- What it looked like until now, fading away to show what it is. -->
+		<div class="veil" aria-hidden="true">
+			<header><h2>Unknown</h2></header>
+			<div class="content"><p class="flavor">Not yet discovered.</p></div>
+		</div>
+	{/if}
 
 	{#if onselect && def}
 		<!-- Over the whole pane: clicking anywhere on it chooses it. -->
@@ -290,32 +283,6 @@
 		line-height: 1.45;
 	}
 
-	/* Above Join Expedition, quieter. */
-	.reset {
-		align-self: center;
-		margin-top: auto;
-		padding: 6px 14px;
-		border-radius: 999px;
-		font-size: 0.75rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--muted);
-	}
-
-	.reset:hover:not(:disabled),
-	.reset:focus-visible {
-		color: var(--text);
-	}
-
-	.reset:disabled {
-		opacity: 0.45;
-		cursor: not-allowed;
-	}
-
-	.reset + .join {
-		margin-top: 12px;
-	}
-
 	.room {
 		margin: 0;
 	}
@@ -349,8 +316,42 @@
 	}
 
 	.pane.unknown h2,
-	.pane.unknown .flavor {
+	.pane.unknown .flavor,
+	.veil h2,
+	.veil .flavor {
 		color: var(--muted);
+	}
+
+	/* An Affliction just unlocked: the unknown pane over it, fading away. */
+	.pane.revealing {
+		position: relative;
+	}
+
+	.veil {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		pointer-events: none;
+		background:
+			var(--unknown-art) top center / 100% auto no-repeat,
+			linear-gradient(rgb(33 28 24), rgb(10 9 8) 70%);
+		animation: unveil 1.6s ease-in-out 0.8s forwards;
+	}
+
+	@keyframes unveil {
+		to {
+			opacity: 0;
+			visibility: hidden;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.veil {
+			animation-duration: 0.01s;
+			animation-delay: 0s;
+		}
 	}
 
 	.pane.selectable {

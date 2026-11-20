@@ -221,7 +221,15 @@ export interface TrainingSpec {
 	 * The tutorial: each step told once, when a player comes within `radius` of its spot (null:
 	 * on arriving). `help` is the help topic it points to.
 	 */
-	steps: { spot: string | null; radius: number; title: string; line: string; help?: string }[];
+	steps: {
+		spot: string | null;
+		radius: number;
+		title: string;
+		line: string;
+		help?: string;
+		/** About what is only there the first time (the stocked crates, the kit): told only then. */
+		firstTime?: boolean;
+	}[];
 }
 
 export interface AfflictionDef {
@@ -302,22 +310,25 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 					spot: 'step-crate',
 					radius: 2.5,
 					title: 'A crate',
-					line: 'Look at it and hold interact to open it. Whatever you see inside is discovered.',
-					help: 'discovery'
+					line: 'Look at it and hold interact to open it. Whatever you see inside is discovered: rags, here, and a bandage needs only rags.',
+					help: 'discovery',
+					firstTime: true
 				},
 				{
 					spot: 'step-kit',
 					radius: 2.5,
 					title: 'A field crafting kit',
 					line: 'Pick it up and wear it in a gear slot. Then open the menu, choose Craft, and make a bandage from the rags.',
-					help: 'field-crafting'
+					help: 'field-crafting',
+					firstTime: true
 				},
 				{
 					spot: 'step-recipe',
 					radius: 2.5,
 					title: 'Another crate',
-					line: 'Wax, but no twine: the candle recipe is in your Library now, with one part still unknown.',
-					help: 'discovery'
+					line: 'Open this one too. It holds wax but no twine: the candle recipe goes into your Library with one part still unknown, to find later.',
+					help: 'discovery',
+					firstTime: true
 				},
 				{
 					spot: 'step-chalk',

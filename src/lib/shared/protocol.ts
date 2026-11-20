@@ -235,6 +235,11 @@ export type ServerMessage =
 	 * started, stopped, gathered up, tied or untied (see docs/dev/rope.md).
 	 */
 	| { type: 'ropes'; laid: LaidRopeSnapshot[]; tied: TiedRopeSnapshot[]; pitons: Anchor[] }
+	/**
+	 * In a training ground (Rumors): whether its tutorial's crates and things are stocked this
+	 * time (anyone's first time through), so the steps about them are told only then.
+	 */
+	| { type: 'tutorial'; firstTime: boolean }
 	/** You made something below (`count`), or mended it (`count` 0). */
 	| { type: 'crafted'; item: string; count: number }
 	/** You discovered an item (docs/dev/crafting.md#discovery): it is used in `recipes` recipes. */
@@ -313,52 +318,62 @@ export function decodeServer(raw: string): ServerMessage | null {
 	return decode(raw, SERVER_TYPES) as ServerMessage | null;
 }
 
-const CLIENT_TYPES = new Set<string>([
-	'hello',
-	'ping',
-	'input',
-	'admin',
-	'leaveParty',
-	'kick',
-	'ready',
-	'affliction',
-	'social',
-	'profile',
-	'stopSpectating',
-	'abandon',
-	'inventory',
-	'closeCrate',
-	'craft',
-	'stopCraft',
-	'mark',
-	'resetAffliction',
-	'vault'
-]);
-const SERVER_TYPES = new Set<string>([
-	'party',
-	'partyError',
-	'social',
-	'socialSearch',
-	'alert',
-	'welcome',
-	'reject',
-	'pong',
-	'tick',
-	'crate',
-	'marks',
-	'ropes',
-	'ropeGrow',
-	'survey',
-	'map',
-	'extracted',
-	'died',
-	'abandoned',
-	'spectateEnd',
-	'afflictionReset',
-	'serverError',
-	'achievement',
-	'vault'
-]);
+/**
+ * Every message type each side may send. Keyed by the union's own types, so a new message that
+ * isn't added here doesn't compile (an unknown type is dropped on arrival).
+ */
+const CLIENT_TYPE_TABLE: Record<ClientMessage['type'], true> = {
+	hello: true,
+	ping: true,
+	input: true,
+	admin: true,
+	leaveParty: true,
+	kick: true,
+	ready: true,
+	affliction: true,
+	social: true,
+	profile: true,
+	stopSpectating: true,
+	abandon: true,
+	inventory: true,
+	closeCrate: true,
+	craft: true,
+	stopCraft: true,
+	mark: true,
+	resetAffliction: true,
+	vault: true
+};
+const SERVER_TYPE_TABLE: Record<ServerMessage['type'], true> = {
+	party: true,
+	partyError: true,
+	social: true,
+	socialSearch: true,
+	alert: true,
+	welcome: true,
+	reject: true,
+	pong: true,
+	tick: true,
+	crate: true,
+	marks: true,
+	ropes: true,
+	ropeGrow: true,
+	survey: true,
+	map: true,
+	extracted: true,
+	died: true,
+	abandoned: true,
+	spectateEnd: true,
+	afflictionReset: true,
+	serverError: true,
+	achievement: true,
+	vault: true,
+	discovered: true,
+	fragment: true,
+	crafted: true,
+	tutorial: true
+};
+const CLIENT_TYPES = new Set<string>(Object.keys(CLIENT_TYPE_TABLE));
+const SERVER_TYPES = new Set<string>(Object.keys(SERVER_TYPE_TABLE));
 
 function decode(raw: string, allowed: Set<string>): unknown {
 	try {

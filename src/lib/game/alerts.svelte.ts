@@ -62,7 +62,9 @@ export function hold(id: number, held: boolean): void {
 	clearTimeout(timers[id]);
 	delete timers[id];
 	if (held) return;
-	timers[id] = setTimeout(() => dismiss(id), ALERT.seconds * 1000);
+	const entry = alerts.list.find((other) => other.id === id);
+	const seconds = (entry?.alert.kind === 'note' && entry.alert.seconds) || ALERT.seconds;
+	timers[id] = setTimeout(() => dismiss(id), seconds * 1000);
 }
 
 /** An alert was clicked: go where it is about, and take it away. */

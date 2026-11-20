@@ -1301,11 +1301,7 @@
 
 {#if features && spawned && !panel && !mapView && !result}
 	<Bearings bearing={features.bearings.bearing} pings={features.bearings.pings} />
-	<TrainingOverlay
-		card={features.training.card}
-		numbers={features.training.numbers}
-		ondismiss={() => features?.training.dismiss()}
-	/>
+	<TrainingOverlay numbers={features.training.numbers} />
 {/if}
 
 {#if features?.marks.label && spawned && !panel && !mapView && !result}

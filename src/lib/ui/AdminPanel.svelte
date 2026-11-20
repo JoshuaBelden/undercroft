@@ -634,7 +634,12 @@
 			{@render action(
 				'Rumors done',
 				() => void account({ action: 'completeTraining' }),
-				'As if you had got out of Rumors: the Gloaming opens. Reset it on the Afflictions page.'
+				'As if you had got out of Rumors: the Gloaming opens.'
+			)}
+			{@render action(
+				'Forget Afflictions',
+				() => void account({ action: 'forgetAfflictions' }),
+				'Every hint and resolution forgotten: Rumors to do again, the Gloaming locked.'
 			)}
 			<form
 				class="setting"
