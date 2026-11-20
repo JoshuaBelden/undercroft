@@ -190,6 +190,11 @@ export async function resetExplorer(db: Db, explorerId: string): Result {
 		return null;
 	});
 	if ('explorer' in result) {
+		// As if they had just signed up: nothing discovered, no trust, no Affliction progress
+		// (Rumors to do again, the Gloaming locked until then). Their chalk wheel is a preference.
+		await db
+			.collection<ExplorerDoc>('explorers')
+			.updateOne({ _id: explorerId }, { $set: { discovered: {}, fresh: [], sold: 0 } });
 		await db.collection('progress').deleteMany({ player: explorerId });
 		await log(db, { explorer: explorerId, kind: 'reset', money: 0, balance: 0 });
 	}

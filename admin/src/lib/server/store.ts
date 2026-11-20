@@ -8,12 +8,12 @@ export * from '../../../../src/lib/server/store/auth.ts';
 export * from '../../../../src/lib/server/store/avatars.ts';
 export { discordAvatarUrl } from '../../../../src/lib/shared/account/avatar.ts';
 export { deleteAccount } from '../../../../src/lib/server/store/deletion.ts';
-export type { LedgerDoc } from '../../../../src/lib/server/store/shop.ts';
+export { resetExplorer, type LedgerDoc } from '../../../../src/lib/server/store/shop.ts';
 export { resetMail, sendMail } from '../../../../src/lib/server/mail.ts';
 export * from '../../../../src/lib/server/store/reports.ts';
 export * from '../../../../src/lib/server/store/feedback.ts';
 export * from '../../../../src/lib/server/store/runs.ts';
-export { resetMarkWheel } from '../../../../src/lib/server/store/explorers.ts';
+export { EXPLORER_ERRORS, resetMarkWheel } from '../../../../src/lib/server/store/explorers.ts';
 export { MARK_SYMBOLS, markWheel } from '../../../../src/lib/content/marks.ts';
 export {
 	BOARD_STATUSES,

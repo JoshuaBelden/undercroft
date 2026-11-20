@@ -85,7 +85,7 @@ export function serve(
 				parties.kick(member, message.member);
 				break;
 			case 'affliction':
-				parties.setAffliction(member, message.id);
+				void parties.setAffliction(member, message.id);
 				break;
 			case 'resetAffliction':
 				void parties.resetAffliction(member, message.id);

@@ -61,6 +61,7 @@ Search by email, gamer tag or Discord name (a case-insensitive substring); witho
 - **Change the gamer tag**: for a name that shouldn't be one. Other players see the new one from their next connection.
 - **Remove picture**: their uploaded avatar, for a picture that shouldn't be one (`removeAvatar`). The page shows it, or their Discord avatar, which can't be removed here. Other players see it gone from their next connection. See [accounts.md](accounts.md#avatars).
 - **Make admin**, **Remove admin**.
+- **Reset to a new player**: after typing the gamer tag, everything they own and have learned goes, as if they had just signed up: no money (a new explorer has none), nothing in the stash or loadout, nothing discovered, no trust with the merchant, and no progress against any Affliction (Rumors to do again, the Gloaming locked until then). The account, its friends, settings and chalk wheel stay. Refused while they are underground or ready to descend (`resetExplorer` in `src/lib/server/store/shop.ts`, audited as `resetExplorer`).
 - **Delete account**: for good, after typing the gamer tag; not your own. Then back to the member list. What goes and what stays: [accounts.md](accounts.md#deleting-an-account).
 
 ### Suspending

@@ -6,6 +6,10 @@ export const MODELS = {
 		url: '/assets/afflictions/gloaming/creatures/gloaming_boss.c655302a.glb',
 		bytes: 1051444
 	},
+	'shared/creatures/dummy.glb': {
+		url: '/assets/shared/creatures/dummy.926c257c.glb',
+		bytes: 17756
+	},
 	'shared/creatures/dweller.glb': {
 		url: '/assets/shared/creatures/dweller.8727e224.glb',
 		bytes: 2742984

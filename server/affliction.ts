@@ -1,4 +1,8 @@
-import { AFFLICTIONS, type AfflictionDef } from '../src/lib/content/afflictions.ts';
+import {
+	AFFLICTIONS,
+	type AfflictionDef,
+	type ManifestationSpec
+} from '../src/lib/content/afflictions.ts';
 import { STROBE } from '../src/lib/content/statuses.ts';
 import { TICK_RATE } from '../src/lib/shared/constants.ts';
 import type { AfflictionSnapshot } from '../src/lib/shared/affliction/types.ts';
@@ -164,6 +168,15 @@ export class AfflictionDirector {
 	) {
 		this.def = AFFLICTIONS[id] ?? AFFLICTIONS.gloaming;
 		this.rng = new Rng(seed ^ 0xaff1c7);
+		// A training ground (Rumors): no meter, no omens, nothing to summon, from the start.
+		if (this.def.training || !this.def.manifestation) this.calmed = true;
+	}
+
+	/** What the rite summons. Only read once something is out, which a calmed one never is. */
+	private get spec(): ManifestationSpec {
+		const m = this.def.manifestation;
+		if (!m) throw new Error(`${this.def.id} has no manifestation`);
+		return m;
 	}
 
 	get manifested(): boolean {
@@ -229,7 +242,7 @@ export class AfflictionDirector {
 	stun(): boolean {
 		const d = this.manifestation;
 		if (!d || d.state === 'banished' || d.state === 'vanished') return false;
-		return applyStatus(d.statuses, STROBE.causes, this.def.manifestation.statuses);
+		return applyStatus(d.statuses, STROBE.causes, this.spec.statuses);
 	}
 
 	/** Admin: swing now at the nearest player, in reach or not. */
@@ -271,7 +284,7 @@ export class AfflictionDirector {
 	 */
 	strobe(state: PlayerState): boolean {
 		const d = this.manifestation;
-		const m = this.def.manifestation;
+		const m = this.spec;
 		if (!d || d.state === 'banished' || d.state === 'vanished') return false;
 		if (!m.vulnerable.includes('strobe')) return false;
 		if (lampIllumination(this.world, state, this.core(d)) < STROBE.light) return false;
@@ -314,7 +327,7 @@ export class AfflictionDirector {
 	hitBody(): CreatureBody | null {
 		const d = this.manifestation;
 		if (!d || d.state === 'banished' || d.state === 'vanished') return null;
-		const m = this.def.manifestation;
+		const m = this.spec;
 		return { id: MANIFESTATION_ID, position: d.position, height: m.hitHeight, radius: m.hitRadius };
 	}
 
@@ -330,17 +343,17 @@ export class AfflictionDirector {
 
 	/** Damage a landed strike does, for this party's size. */
 	get strikeDamage(): number {
-		return byParty(this.def.manifestation.strikeDamage, this.party);
+		return byParty(this.spec.strikeDamage, this.party);
 	}
 
 	/** Damage its ray does, for this party's size. */
 	get rayDamage(): number {
-		return byParty(this.def.manifestation.ray.damage, this.party);
+		return byParty(this.spec.ray.damage, this.party);
 	}
 
 	/** Damage it takes to banish, for this party's size. */
 	get maxHealth(): number {
-		return byParty(this.def.manifestation.health, this.party);
+		return byParty(this.spec.health, this.party);
 	}
 
 	/** Health it has left (admin readout, tests); null while it isn't out. */
@@ -365,8 +378,7 @@ export class AfflictionDirector {
 						casts: d.casts,
 						charge:
 							d.cast >= 0
-								? Math.round(Math.min(1, d.cast / this.def.manifestation.ray.chargeSeconds) * 100) /
-									100
+								? Math.round(Math.min(1, d.cast / this.spec.ray.chargeSeconds) * 100) / 100
 								: 0,
 						aim: d.cast >= 0 && d.aim ? round(d.aim) : null,
 						rushing: d.rushLeft > 0
@@ -388,7 +400,7 @@ export class AfflictionDirector {
 			for (let i = 0; i < spec.spawn; i++) {
 				this.creatures.spawnFar(
 					players.map((p) => p.state.position),
-					this.def.manifestation.spawnDistance
+					this.spec.spawnDistance
 				);
 			}
 		}
@@ -397,7 +409,7 @@ export class AfflictionDirector {
 	}
 
 	private manifestFar(players: Prey[]): void {
-		const m = this.def.manifestation;
+		const m = this.spec;
 		const starts = players.map((p) => nearestPoint(this.nav, p.state.position));
 		const distance = gridDistances(this.nav, starts);
 		let spots = this.nav.points.filter(
@@ -413,7 +425,7 @@ export class AfflictionDirector {
 	}
 
 	private appear(at: Vec3): void {
-		const m = this.def.manifestation;
+		const m = this.spec;
 		this.manifestation = {
 			position: [...at],
 			state: 'gathering',
@@ -472,7 +484,7 @@ export class AfflictionDirector {
 		up: Prey[],
 		hits: AfflictionHit[]
 	): void {
-		const m = this.def.manifestation;
+		const m = this.spec;
 		d.time += DT;
 		if (d.state === 'banished') return;
 		stepStatuses(d.statuses, m.statuses, DT);
@@ -592,7 +604,7 @@ export class AfflictionDirector {
 
 	/** It charges: flat out at its prey for a moment, then hunts as before. */
 	private beginRush(d: Manifested): void {
-		const r = this.def.manifestation.rush;
+		const r = this.spec.rush;
 		d.rushLeft = this.between(r.seconds);
 		d.rushIn = this.between(r.every);
 		d.repath = 0;
@@ -603,7 +615,7 @@ export class AfflictionDirector {
 	 * and hits the first player whose body is within `ray.width` of that line.
 	 */
 	private fire(d: Manifested, aim: Vec3, up: Prey[], hits: AfflictionHit[]): void {
-		const r = this.def.manifestation.ray;
+		const r = this.spec.ray;
 		const from = this.core(d);
 		const dir: Vec3 = [aim[0] - from[0], aim[1] - from[1], aim[2] - from[2]];
 		const len = Math.hypot(dir[0], dir[1], dir[2]) || 1;
@@ -648,7 +660,7 @@ export class AfflictionDirector {
 	private vanish(d: Manifested): void {
 		d.state = 'vanished';
 		d.time = 0;
-		d.gone = this.between(this.def.manifestation.vanish.seconds);
+		d.gone = this.between(this.spec.vanish.seconds);
 		d.swing = -1;
 		d.cast = -1;
 		d.recover = 0;
@@ -663,7 +675,7 @@ export class AfflictionDirector {
 	 * it went. It stands a moment, then hunts.
 	 */
 	private comeBack(d: Manifested, players: Prey[], up: Prey[]): void {
-		const v = this.def.manifestation.vanish;
+		const v = this.spec.vanish;
 		const prey = loneliest(up);
 		if (prey) d.position = this.returnSpot(prey, players) ?? d.position;
 		d.state = 'gathering';
@@ -675,7 +687,7 @@ export class AfflictionDirector {
 	}
 
 	private returnSpot(prey: Prey, players: Prey[]): Vec3 | null {
-		const v = this.def.manifestation.vanish;
+		const v = this.spec.vanish;
 		const s = prey.state;
 		const home = nearestPoint(this.nav, s.position, 3);
 		if (home < 0) return null;
@@ -694,7 +706,7 @@ export class AfflictionDirector {
 				if (i < 0) continue;
 				const at = this.nav.points[i].position;
 				if (Math.abs(at[1] - s.position[1]) > SAME_LEVEL) continue;
-				const core: Vec3 = [at[0], at[1] + this.def.manifestation.hitHeight / 2, at[2]];
+				const core: Vec3 = [at[0], at[1] + this.spec.hitHeight / 2, at[2]];
 				if (illumination(this.world, lamps, core) >= UNLIT) continue;
 				const path = findPath(this.nav, i, home, 4000);
 				if (!path || pathLength(path) > r * 3) continue;
@@ -706,7 +718,7 @@ export class AfflictionDirector {
 
 	/** Back off and to one side of its prey, for a moment, before it comes on again. */
 	private retreat(d: Manifested, up: Prey[]): void {
-		const mv = this.def.manifestation.movement;
+		const mv = this.spec.movement;
 		const target = this.nearest(d, up);
 		if (!target) return;
 		const t = target.state.position;
@@ -748,7 +760,7 @@ export class AfflictionDirector {
 	 * the table doesn't keep it on the far side. Backing off, it heads for its retreat spot.
 	 */
 	private goal(d: Manifested, target: Prey, speed: number): Vec3 {
-		const mv = this.def.manifestation.movement;
+		const mv = this.spec.movement;
 		const t = target.state.position;
 		const straight = flat(d.position, t);
 		if (d.tactic !== 'close') {
@@ -822,7 +834,7 @@ export class AfflictionDirector {
 	}
 
 	private core(d: Manifested): Vec3 {
-		return [d.position[0], d.position[1] + this.def.manifestation.hitHeight / 2, d.position[2]];
+		return [d.position[0], d.position[1] + this.spec.hitHeight / 2, d.position[2]];
 	}
 
 	private nearest(d: Manifested, up: Prey[]): Prey | null {

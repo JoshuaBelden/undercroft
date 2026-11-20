@@ -62,8 +62,8 @@ describe('a connection', () => {
 	it('after hello, gets a party and routes party messages', async () => {
 		const socket = await hello('ok-a');
 		expect(socket.last('party')!.party.members[0].name).toBe('ok-a');
-		socket.receive({ type: 'affliction', id: 'gloaming' });
-		expect(socket.last('party')!.party.affliction).toBe('gloaming');
+		socket.receive({ type: 'affliction', id: 'rumors' });
+		expect(socket.last('party')!.party.affliction).toBe('rumors');
 		socket.receive({ type: 'ready', ready: true });
 		await vi.advanceTimersByTimeAsync(0);
 		expect(socket.last('party')!.party.members[0].ready).toBe(true);
@@ -87,7 +87,7 @@ describe('a connection', () => {
 
 	it('routes expedition messages once underground', async () => {
 		const socket = await hello('ok-a');
-		socket.receive({ type: 'affliction', id: 'gloaming' });
+		socket.receive({ type: 'affliction', id: 'rumors' });
 		socket.receive({ type: 'ready', ready: true });
 		await vi.advanceTimersByTimeAsync(PARTY.countdownSeconds * 1000 + 100);
 		expect(socket.last('welcome')).toBeDefined();

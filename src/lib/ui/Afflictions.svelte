@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
+	import { AFFLICTION_ORDER } from '#lib/content/afflictions.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import AfflictionPane from './AfflictionPane.svelte';
 	import { dragScroll } from './dragScroll.ts';
@@ -27,7 +27,7 @@
 
 <div class="afflictions">
 	<div class="track" use:dragScroll>
-		{#each Object.keys(AFFLICTIONS) as id (id)}
+		{#each AFFLICTION_ORDER as id (id)}
 			<AfflictionPane
 				{id}
 				{progress}

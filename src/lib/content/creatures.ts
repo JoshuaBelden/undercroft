@@ -165,6 +165,12 @@ export interface CreatureDef {
 	/** Can't be hurt: hits pass through it (it has no hit capsule). */
 	invulnerable?: boolean;
 	/**
+	 * A training dummy (Rumors, docs/dev/rumors.md): it stands (or runs its track), never notices
+	 * or attacks anyone, and never dies: taking its health, it is whole again. Every hit tells
+	 * its damage (and staggers and bleeding, as anything's do).
+	 */
+	dummy?: boolean;
+	/**
 	 * Patrols from corner to corner (dead ends and room corners within `patrol.radius`), starting
 	 * each walk from where the last ended, and pauses there.
 	 */
@@ -338,6 +344,42 @@ export const CREATURES: Record<string, CreatureDef> = {
 			minDistance: 20,
 			where: 'anywhere'
 		}
+	},
+	// Rumors' training dummies (docs/dev/rumors.md): placed by the training ground, never spawned.
+	dummy: {
+		id: 'dummy',
+		model: modelUrl('shared/creatures/dummy.glb'),
+		yawOffset: 0,
+		height: 1.8,
+		reach: ANYWHERE,
+		dread: false,
+		killWeight: 0,
+		dummy: true,
+		animations: {},
+		gait: { patrol: 'idle', alert: 'idle', stalk: 'idle', burst: 'idle' },
+		movement: small(1.5, 1.5),
+		creepSpeed: 1.5,
+		burstSpeed: 1.5,
+		creepTime: [1, 1],
+		burstTime: [1, 1],
+		patrol: { radius: 0, pause: [1, 1] },
+		alert: { wait: [1, 1], maxWait: 1, linger: 1 },
+		attack: { range: 0, windup: 1, duration: 1, damage: 0, cooldown: 1 },
+		perception: {
+			hear: { sprint: 0, walk: 0, crouch: 0, crawl: 0, creep: 0, swim: 0 },
+			alertRange: 0,
+			agro: { litRange: 0, darkRange: 0 },
+			touch: 0,
+			evadeTime: 1,
+			passive: true
+		},
+		health: [100],
+		stagger: { threshold: 20, seconds: 0.5 },
+		hitRadius: 0.35,
+		corpseTime: 0,
+		visibleBand: [0, Infinity],
+		sounds: { hurt: 'dummy.hit' },
+		spawn: { kind: 'attracted' }
 	},
 	spider: {
 		id: 'spider',

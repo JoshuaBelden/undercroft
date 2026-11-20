@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AFFLICTIONS } from '#lib/content/afflictions.ts';
+	import { AFFLICTIONS, afflictionLocked } from '#lib/content/afflictions.ts';
 	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { MAP_KIT } from '#lib/content/map/kit.ts';
@@ -82,6 +82,15 @@
 	const resolved = $derived(known?.resolved ?? false);
 	/** Anything to forget: hints found, or resolved. */
 	const started = $derived((known?.clues ?? 0) > 0 || resolved);
+	/** A training ground (Rumors): no rite to learn; done once you have got out of it. */
+	const training = $derived(!!def?.training);
+	/** Still locked: what it requires isn't done yet (the Gloaming before Rumors). */
+	const locked = $derived(
+		!!def && afflictionLocked(def.id, (id) => progress.some((p) => p.id === id && p.resolved))
+	);
+	const requiredName = $derived(
+		def?.requires ? (AFFLICTIONS[def.requires]?.name ?? def.requires) : ''
+	);
 
 	/** What a requirement's slot says on hover. */
 	function describe(slot: (typeof slots)[number]): string {
@@ -101,31 +110,45 @@
 	<header>
 		<h2>{def?.name ?? 'Unknown'}</h2>
 		{#if def}
-			<span class="status" class:resolved>{resolved ? 'Resolved' : 'Unresolved'}</span>
+			<span class="status" class:resolved>
+				{#if locked}Locked{:else if training}{resolved ? 'Done' : 'Start here'}{:else}{resolved
+						? 'Resolved'
+						: 'Unresolved'}{/if}
+			</span>
 		{/if}
 	</header>
 
 	<div class="content">
 		<p class="flavor">{def?.flavor ?? 'Nothing is written of this one. Not yet.'}</p>
 
-		<h3>Banishment</h3>
-		{#if rite?.hints.length}
-			<ol class="hints">
-				{#each rite.hints as hint, index (index)}
-					<li>“{hint}”</li>
-				{/each}
-			</ol>
+		{#if locked}
+			<p class="locked">Go on a {requiredName} expedition first.</p>
 		{/if}
-		<ul class="slots">
-			{#each slots as slot, index (index)}
-				<li class:lacking={slot?.lacking} title={describe(slot)}>
-					<Slot name={slot?.name ?? null} image={slot?.image} quest={slot?.quest} />
-				</li>
-			{/each}
-		</ul>
+		{#if training}
+			<h3>A training ground</h3>
+			<p class="room">
+				A short way in, step by step, and a vault to try your gear. Nothing down there wants you.
+			</p>
+		{:else}
+			<h3>Banishment</h3>
+			{#if rite?.hints.length}
+				<ol class="hints">
+					{#each rite.hints as hint, index (index)}
+						<li>“{hint}”</li>
+					{/each}
+				</ol>
+			{/if}
+			<ul class="slots">
+				{#each slots as slot, index (index)}
+					<li class:lacking={slot?.lacking} title={describe(slot)}>
+						<Slot name={slot?.name ?? null} image={slot?.image} quest={slot?.quest} />
+					</li>
+				{/each}
+			</ul>
 
-		<h3>Location</h3>
-		<p class="room" class:hidden={!room}>{room ?? 'Unknown'}</p>
+			<h3>Location</h3>
+			<p class="room" class:hidden={!room}>{room ?? 'Unknown'}</p>
+		{/if}
 
 		{#if onreset && def && started}
 			<button
@@ -143,8 +166,8 @@
 			<button
 				type="button"
 				class="join"
-				disabled={joinBlocked !== undefined}
-				title={joinBlocked}
+				disabled={joinBlocked !== undefined || locked}
+				title={locked ? `Go on a ${requiredName} expedition first` : joinBlocked}
 				onclick={onjoin}
 			>
 				Join Expedition
@@ -159,6 +182,8 @@
 			class="choose"
 			aria-label="Choose {def.name}"
 			aria-pressed={selected}
+			disabled={locked}
+			title={locked ? `Go on a ${requiredName} expedition first` : undefined}
 			onclick={onselect}
 		></button>
 	{/if}
@@ -269,6 +294,10 @@
 		font-size: 0.9rem;
 		font-style: italic;
 		line-height: 1.45;
+	}
+
+	.locked {
+		color: var(--broken);
 	}
 
 	/* Above Join Expedition, quieter. */

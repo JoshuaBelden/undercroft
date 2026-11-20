@@ -76,6 +76,37 @@ export function placeWalls(
 }
 
 /**
+ * A training map's walls (Rumors): across the vault's side arches, each to a dead end, a web and
+ * then a fall of rubble, to practise on. Ids follow the false walls' (`w1`...).
+ */
+export function trainingWalls(
+	layout: MapLayout,
+	pieces: Record<string, PieceDef>,
+	kit: MapKit,
+	vault: string
+): WallPlacement[] {
+	const from = layout.placements.findIndex((p) => p.piece === vault);
+	if (from < 0) return [];
+	const links = pieceLinks(layout, pieces);
+	const caps = Object.entries(kit).filter(([name, entry]) => entry.role === 'cap' && pieces[name]);
+	const kinds: WallPlacement['kind'][] = ['web', 'rubble'];
+	const walls: WallPlacement[] = [];
+	for (const to of [...links[from]].sort((a, b) => a - b)) {
+		if (walls.length >= kinds.length) break;
+		if (kit[layout.placements[to].piece]?.role !== 'end') continue;
+		const socket = between(layout, pieces, from, to);
+		const cap = socket && caps.find(([, entry]) => entry.seals === socket.type)?.[0];
+		if (!socket || !cap) continue;
+		walls.push({
+			id: `w${walls.length + 1}`,
+			...capAt(cap, socket, layout.placements[from].tier),
+			kind: kinds[walls.length]
+		});
+	}
+	return walls;
+}
+
+/**
  * What can no longer be reached from the start (placement 0) without the link from `a` to `b`,
  * when that is everything on `b`'s side of it; null when `b` is still reached some other way.
  */

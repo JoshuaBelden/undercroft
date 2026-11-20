@@ -82,6 +82,7 @@
 	import MarkWheel from '#lib/ui/MarkWheel.svelte';
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
 	import Bearings from '#lib/ui/Bearings.svelte';
+	import TrainingOverlay from '#lib/ui/TrainingOverlay.svelte';
 	import { discoveries, knowDiscoveries } from '#lib/game/discoveries.svelte.ts';
 	import { wheelChoice } from '#lib/ui/wheel.ts';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
@@ -1300,6 +1301,11 @@
 
 {#if features && spawned && !panel && !mapView && !result}
 	<Bearings bearing={features.bearings.bearing} pings={features.bearings.pings} />
+	<TrainingOverlay
+		card={features.training.card}
+		numbers={features.training.numbers}
+		ondismiss={() => features?.training.dismiss()}
+	/>
 {/if}
 
 {#if features?.marks.label && spawned && !panel && !mapView && !result}

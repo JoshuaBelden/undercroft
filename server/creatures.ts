@@ -378,6 +378,16 @@ export class CreatureDirector {
 
 	/** Lines creatures won't cross right now (blessed salt, server/systems/hazards.ts). */
 	wards: Ward[] = [];
+	/** A training ground: nothing comes to noise or light (no witch, no moths). */
+	quiet = false;
+	/** Every hit this tick (for the training ground's numbers), and dummies made whole. */
+	private struck: { id: string; amount: number; position: Vec3 }[] = [];
+	private reset: { id: string; position: Vec3 }[] = [];
+	/** Dummies on a track: where its middle is, which way across, how far either way, how long a run. */
+	private tracks = new Map<
+		string,
+		{ centre: Vec3; yaw: number; half: number; seconds: number; t: number }
+	>();
 	/** Bait on the floor (HazardSystem): creatures of its kind within reach go to it instead. */
 	lures: Lure[] = [];
 	/** Censers held (GearSystem): creatures of these kinds won't come within the radius. */
@@ -456,6 +466,57 @@ export class CreatureDirector {
 		}
 	}
 
+	/**
+	 * A training dummy's tick: it stands, or runs its track side to side (`track`: half its run
+	 * either way along local X), staggers and bleeds as anything does, and turns to no one.
+	 */
+	private train(c: Creature): void {
+		c.staggered = Math.max(0, c.staggered - TICK_DT);
+		if (c.bleed) {
+			const wound = c.bleed;
+			wound.left -= TICK_DT;
+			if (wound.left <= 0) c.bleed = null;
+			this.damage(c.id, wound.dps * TICK_DT, wound.from);
+		}
+		const track = this.tracks.get(c.id);
+		if (track && c.staggered <= 0 && c.held <= 0) {
+			track.t += TICK_DT;
+			const k = Math.sin((track.t / track.seconds) * Math.PI * 2) * track.half;
+			c.body.position = [
+				track.centre[0] + Math.cos(track.yaw) * k,
+				track.centre[1],
+				track.centre[2] - Math.sin(track.yaw) * k
+			];
+		}
+		c.held = Math.max(0, c.held - TICK_DT);
+		this.animate(c, false);
+	}
+
+	/**
+	 * Stand a training dummy at a place, facing `yaw`; with `track` (m), it runs that far side
+	 * to side across where it faces.
+	 */
+	placeDummy(position: Vec3, yaw: number, track?: number): void {
+		const def = CREATURES.dummy;
+		if (!def) return;
+		const c = this.add(def, [...position], yaw);
+		c.mode = 'patrol';
+		if (track) {
+			this.tracks.set(c.id, { centre: [...position], yaw, half: track / 2, seconds: 6, t: 0 });
+		}
+	}
+
+	/** Dummy hits this tick, for the client's numbers; and dummies that came whole again. */
+	takeStruck(): {
+		struck: { id: string; amount: number; position: Vec3 }[];
+		reset: { id: string; position: Vec3 }[];
+	} {
+		const out = { struck: this.struck, reset: this.reset };
+		this.struck = [];
+		this.reset = [];
+		return out;
+	}
+
 	/** Hold a creature fast for `seconds` (a snare). False if there is no such creature alive. */
 	hold(id: string, seconds: number): boolean {
 		const c = this.creatures.find((x) => x.id === id);
@@ -498,7 +559,14 @@ export class CreatureDirector {
 		const c = this.creatures.find((x) => x.id === id);
 		if (!c || c.mode === 'dead' || c.def.invulnerable) return false;
 		c.wounds += amount;
+		if (c.def.dummy) this.struck.push({ id: c.id, amount, position: [...c.body.position] });
 		if (c.wounds >= creatureHealth(c.def, this.party)) {
+			// A training dummy is whole again, never dead.
+			if (c.def.dummy) {
+				c.wounds = 0;
+				this.reset.push({ id: c.id, position: [...c.body.position] });
+				return false;
+			}
 			this.kill(c);
 			return true;
 		}
@@ -747,8 +815,10 @@ export class CreatureDirector {
 			(p) => !p.state.downed && !p.state.dead && !p.state.extracted && !unseen(p.state)
 		);
 		if (this.lastWitch) this.lastWitch.seconds += TICK_DT;
-		this.attract(targets);
-		this.lampFliers(targets);
+		if (!this.quiet) {
+			this.attract(targets);
+			this.lampFliers(targets);
+		}
 		for (const c of this.creatures) {
 			if (c.mode === 'dead') {
 				// It drops where it is (a flier falls).
@@ -759,6 +829,10 @@ export class CreatureDirector {
 			}
 			if (c.def.flight) {
 				this.fly(c, targets);
+				continue;
+			}
+			if (c.def.dummy) {
+				this.train(c);
 				continue;
 			}
 			c.cooldown = Math.max(0, c.cooldown - TICK_DT);

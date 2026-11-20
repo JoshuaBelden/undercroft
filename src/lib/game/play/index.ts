@@ -13,6 +13,7 @@ import { Ropes } from './ropes.ts';
 import { Survey } from './survey.svelte.ts';
 import { Surveyor } from './surveyor.ts';
 import { Tend } from './tend.ts';
+import { Training } from './training.svelte.ts';
 import { Vitals } from './vitals.ts';
 import { Walls } from './walls.ts';
 
@@ -39,6 +40,7 @@ export function createFeatures(ctx: PlayContext) {
 		ropes: new Ropes(ctx),
 		survey: new Survey(ctx),
 		rite,
+		training: new Training(ctx),
 		bearings: new Bearings(ctx, () => rite.known?.room ?? null),
 		affliction
 	} satisfies Record<string, PlayFeature>;

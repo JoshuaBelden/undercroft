@@ -811,6 +811,30 @@ export const SOUNDS = {
 		variation: 0.15,
 		caption: 'tinkering'
 	},
+	// Rumors' training dummies (docs/dev/rumors.md), synthesized until recorded.
+	'dummy.hit': {
+		file: 'dummy.hit',
+		synth: { kind: 'thud', cutoff: 900 },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.12,
+		caption: 'a dummy is hit'
+	},
+	'dummy.reset': {
+		file: 'dummy.reset',
+		synth: { kind: 'groan' },
+		category: 'sfx',
+		volume: 0.4,
+		rate: 1.6,
+		variation: 0.1
+	},
+	'dummy.track': {
+		file: 'dummy.track',
+		synth: { kind: 'scrape' },
+		category: 'ambience',
+		volume: 0.25,
+		rate: 0.6
+	},
 	// A climbing piton hammered into the rock (docs/dev/rope.md#pitons).
 	'piton.hammer': {
 		file: 'piton.hammer',

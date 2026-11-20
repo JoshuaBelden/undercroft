@@ -29,9 +29,9 @@ describe('the manifestation', () => {
 		const diver = new Diver(session);
 		diver.state.inventory.equipment.defense = newStack('coat');
 		const m = face(session, diver);
-		const blow = AFFLICTIONS.gloaming.manifestation.strikeDamage[0];
+		const blow = AFFLICTIONS.gloaming.manifestation!.strikeDamage[0];
 		// The first blow is all taken by the coat, which breaks: still worn, but it takes nothing now.
-		diver.hold({}, AFFLICTIONS.gloaming.manifestation.strikeAt + 0.2);
+		diver.hold({}, AFFLICTIONS.gloaming.manifestation!.strikeAt + 0.2);
 		expect(m.strikes).toBe(1);
 		expect(diver.state.sanity).toBe(SANITY.max);
 		expect(isBroken(diver.state.inventory.equipment.defense)).toBe(true);
@@ -39,7 +39,7 @@ describe('the manifestation', () => {
 		expect(events.some((e) => e.kind === 'break' && e.item === 'coat')).toBe(true);
 		// The next lands in full, and only that.
 		while (m.strikes < 2) diver.hold({}, 0.05);
-		diver.hold({}, AFFLICTIONS.gloaming.manifestation.strikeAt + 0.1);
+		diver.hold({}, AFFLICTIONS.gloaming.manifestation!.strikeAt + 0.1);
 		expect(diver.state.sanity).toBe(SANITY.max - blow);
 	});
 
@@ -64,7 +64,7 @@ describe('the manifestation', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);
 		const m = face(session, diver);
-		const spec = AFFLICTIONS.gloaming.manifestation;
+		const spec = AFFLICTIONS.gloaming.manifestation!;
 		// 2 m ahead, down the room: out of reach, a clear line.
 		const [x, y, z] = diver.state.position;
 		const yaw = diver.state.yaw;

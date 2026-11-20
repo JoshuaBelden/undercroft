@@ -47,7 +47,8 @@ import type {
 	RopeMarker,
 	AnchorMarker,
 	Vec3,
-	VolumeBox
+	VolumeBox,
+	SpotMarker
 } from '../src/lib/shared/map/types.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -117,6 +118,7 @@ const MARKER_PREFIXES = [
 	'lootable-',
 	'door-',
 	'gate-',
+	'spot-',
 	'rubble-',
 	'rope-',
 	'anchor-',
@@ -288,6 +290,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 	const lootables: LootableMarker[] = [];
 	const doors: CrateMarker[] = [];
 	const gates: CrateMarker[] = [];
+	const spots: SpotMarker[] = [];
 	const rubble: Vec3[] = [];
 	const ropes: RopeMarker[] = [];
 	const anchors: AnchorMarker[] = [];
@@ -338,6 +341,9 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 			doors.push(crateFromNode(name, label, node, w, d));
 		} else if (label.startsWith('gate-')) {
 			gates.push(crateFromNode(name, label, node, w, d));
+		} else if (label.startsWith('spot-')) {
+			// spot-<name>: a named place in the piece (Rumors' tutorial stops and dummies).
+			spots.push({ name: label.slice('spot-'.length), ...crateFromNode(name, label, node, w, d) });
 		} else if (label.startsWith('col-')) {
 			colliders.push(boxFromNode(node));
 			stripped.push(node);
@@ -416,6 +422,7 @@ async function buildPiece(io: NodeIO, file: string): Promise<PieceDef> {
 		...(lootables.length ? { lootables } : {}),
 		doors,
 		...(gates.length ? { gates } : {}),
+		...(spots.length ? { spots } : {}),
 		rubble,
 		ropes,
 		anchors,

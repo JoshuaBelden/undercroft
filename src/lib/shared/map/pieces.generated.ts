@@ -2049,6 +2049,105 @@ export const PIECES: Record<string, PieceDef> = {
 		volumes: [],
 		triangles: 962
 	},
+	'rumors-vault': {
+		name: 'rumors-vault',
+		url: '/assets/afflictions/rumors/map/rumors-vault.db0c644a.gltf',
+		bytes: 1371511,
+		footprint: [3, 12],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 11], level: 0, edge: 'w' },
+			{ type: 'hall', cell: [2, 11], level: 0, edge: 'e' },
+			{ type: 'vault', cell: [1, 11], level: 0, edge: 's' }
+		],
+		spawns: [],
+		creatures: [],
+		extracts: [[0, 0, -23.05]],
+		rites: [],
+		altars: [],
+		crates: [],
+		doors: [],
+		spots: [
+			{ name: 'dummy-5', position: [-2, 0, 15.25], yaw: -3.142 },
+			{ name: 'dummy-10', position: [-2, 0, 10.25], yaw: -3.142 },
+			{ name: 'dummy-20', position: [-2, 0, 0.25], yaw: -3.142 },
+			{ name: 'dummy-40', position: [-2, 0, -19.75], yaw: -3.142 },
+			{ name: 'range', position: [0, 0, 20.25], yaw: 0 },
+			{ name: 'step-out', position: [0, 0, -20.75], yaw: 0 },
+			{ name: 'step-vault', position: [0, 0, 22.25], yaw: 0 },
+			{ name: 'track', position: [3, 0, 5.25], yaw: -3.142 }
+		],
+		rubble: [
+			[-4.75, 0, 22.55],
+			[-4.15, 0, 21.75]
+		],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.8, 0], halfExtents: [6, 0.2, 24], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 24], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 1.8, 23.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 3.2, 22], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 1.8, -1.5], halfExtents: [0.125, 1.8, 22.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 1.8, -23.875], halfExtents: [6, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 1.8, 23.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.2, 23.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 1.8, 23.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 1.8, 23.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 3.2, 22], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 1.8, -1.5], halfExtents: [0.125, 1.8, 22.5], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 333
+	},
+	'rumors-walk': {
+		name: 'rumors-walk',
+		url: '/assets/afflictions/rumors/map/rumors-walk.43b5a496.gltf',
+		bytes: 1269512,
+		footprint: [1, 4],
+		levels: 1,
+		sockets: [
+			{ type: 'hall', cell: [0, 3], level: 0, edge: 's' },
+			{ type: 'vault', cell: [0, 0], level: 0, edge: 'n' }
+		],
+		spawns: [],
+		creatures: [],
+		extracts: [],
+		rites: [],
+		altars: [],
+		crates: [
+			{ position: [1.42, 0, 4.75], yaw: -1.571 },
+			{ position: [1.42, 0, -1.25], yaw: -1.571 }
+		],
+		doors: [],
+		spots: [
+			{ name: 'chalk', position: [-1.25, 0, -4.25], yaw: 0 },
+			{ name: 'kit', position: [-1.25, 0, 1.75], yaw: 0 },
+			{ name: 'step-chalk', position: [0, 0, -3.85], yaw: 0 },
+			{ name: 'step-crate', position: [0, 0, 5.35], yaw: 0 },
+			{ name: 'step-kit', position: [0, 0, 2.15], yaw: 0 },
+			{ name: 'step-recipe', position: [0, 0, -0.65], yaw: 0 }
+		],
+		rubble: [],
+		ropes: [],
+		anchors: [],
+		candles: [],
+		colliders: [
+			{ center: [0, 3.4, 0], halfExtents: [2, 0.2, 8], rotation: [0, 0, 0, 1] },
+			{ center: [0, -0.1, 0], halfExtents: [2, 0.1, 8], rotation: [0, 0, 0, 1] },
+			{ center: [1.875, 1.6, 0], halfExtents: [0.125, 1.6, 8], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.6, -7.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3, -7.875], halfExtents: [1, 0.2, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.6, -7.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.5, 1.6, 7.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3, 7.875], halfExtents: [1, 0.2, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [1.5, 1.6, 7.875], halfExtents: [0.5, 1.6, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-1.875, 1.6, 0], halfExtents: [0.125, 1.6, 8], rotation: [0, 0, 0, 1] }
+		],
+		volumes: [],
+		triangles: 114
+	},
 	'saints-crypt': {
 		name: 'saints-crypt',
 		url: '/assets/shared/map/saints-crypt.45f13d55.gltf',

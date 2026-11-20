@@ -239,6 +239,16 @@ export class WorldItems {
 		for (const [id, entry] of this.items) if (entry.stack.item === item) this.items.delete(id);
 	}
 
+	/** Take away any of an item lying within half a metre of a spot (a tutorial thing put back). */
+	removeAt(item: string, at: Vec3): void {
+		for (const [id, entry] of this.items) {
+			const p = entry.position;
+			if (entry.stack.item === item && Math.hypot(p[0] - at[0], p[1] - at[1], p[2] - at[2]) < 0.5) {
+				this.items.delete(id);
+			}
+		}
+	}
+
 	/** Drop in front of a player (from their eye and look direction): out of the pack. */
 	drop(stack: ItemStack, origin: Vec3, direction: Vec3): void {
 		const ahead: Vec3 = [origin[0] + direction[0] * 0.7, origin[1], origin[2] + direction[2] * 0.7];

@@ -11,7 +11,7 @@ import { CreatureDirector, type Prey } from './creatures.ts';
 import { mapFixture, prey } from './testing/harness.ts';
 
 const DEF = AFFLICTIONS.gloaming;
-const m = DEF.manifestation;
+const m = DEF.manifestation!;
 const map = mapFixture(1);
 const STUN = m.statuses.stunned!;
 

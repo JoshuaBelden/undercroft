@@ -31,7 +31,8 @@ export const AUDIT_ACTIONS = {
 	updateIdea: 'Changed an idea',
 	mergeIdea: 'Merged an idea',
 	archiveFeedback: 'Archived feedback',
-	resetMarkWheel: 'Reset the chalk wheel'
+	resetMarkWheel: 'Reset the chalk wheel',
+	resetExplorer: 'Reset to a new player (account kept)'
 } satisfies Record<string, string>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

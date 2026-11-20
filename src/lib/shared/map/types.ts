@@ -113,6 +113,8 @@ export interface PieceDef {
 	doors: CrateMarker[];
 	/** Locked iron gates (gate-* markers), placed like doors (see GATES). */
 	gates?: CrateMarker[];
+	/** Named places (spot-<name> markers): where Rumors puts things and tells its steps. */
+	spots?: SpotMarker[];
 	/** Collapsed walls (rubble-* markers): the only places bricks lie, a few at each. */
 	rubble: Vec3[];
 	/** Ropes to climb (rope-* markers): the extraction ropes. */
@@ -263,6 +265,11 @@ export interface WallPlacement extends Placement {
 	 * pickaxe breaks it); `web` (seen, torn by blows, cut by a blade, burned by fire).
 	 */
 	kind?: 'rubble' | 'web';
+}
+
+/** A named place in a piece (a spot-<name> marker). */
+export interface SpotMarker extends CrateMarker {
+	name: string;
 }
 
 export interface MapLayout {

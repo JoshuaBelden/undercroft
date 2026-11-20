@@ -34,7 +34,8 @@ function onFoot(map: MapLayout, links: Set<number>[]): Set<number> {
 }
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => (i * 2654435761) >>> 0);
-const AFFLICTION_IDS = Object.keys(AFFLICTIONS);
+// Generated maps: a training ground (Rumors) has its own small one (training.test.ts).
+const AFFLICTION_IDS = Object.keys(AFFLICTIONS).filter((id) => !AFFLICTIONS[id].training);
 
 describe('generateLayout', () => {
 	it('gives the same layout for the same seed', () => {

@@ -133,7 +133,7 @@ describe("the host's party", () => {
 describe('the vault', () => {
 	/** Host and guest both ready with the Affliction chosen: the countdown runs. */
 	async function readyBoth(h: FakeSocket, g: FakeSocket): Promise<void> {
-		h.receive({ type: 'affliction', id: 'gloaming' });
+		h.receive({ type: 'affliction', id: 'rumors' });
 		h.receive({ type: 'ready', ready: true });
 		g.receive({ type: 'ready', ready: true });
 		await vi.advanceTimersByTimeAsync(0);

@@ -44,6 +44,8 @@ const prop = (id: string): string => `shared/props/${id}.glb`;
 
 export const PLANNED_ASSETS: PlannedAsset[] = [
 	// Item pictures: the stash, loadout, store, Workshop, Library and pack.
+	// Rumors' pane on the Afflictions page (it shows the Gloaming's until then).
+	...group('image', 'Afflictions', 8, [['affliction-rumors-banner', 'Rumors: its pane']]),
 	...group('image', 'Materials', 2, [
 		['lamp_oil', 'Lamp oil'],
 		['rock_salt', 'Rock salt'],
@@ -162,17 +164,9 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		[prop('piton-anchor'), 'Piton anchor in rock, with rope tied'],
 		[prop('chalk-sign'), "Smuggler's chalk sign (decal)"]
 	]),
-	...group('model', 'World', 8, [
-		[prop('training-dummy'), 'Training dummy'],
-		[prop('dummy-track'), 'Dummy track, with a moving dummy']
-	]),
+	...group('model', 'World', 8, [[prop('dummy-track'), 'Dummy track, with a moving dummy']]),
 
 	// Map pieces, each with its crate and lootable markers (the new rooms are built: rooms.py).
-	...group('piece', 'Rumors', 8, [
-		['rumors-start', 'Rumors: the start room'],
-		['rumors-way-in', 'Rumors: the way in (tutorial stops)'],
-		['rumors-vault', 'Rumors: the training vault']
-	]),
 
 	// Explorer clips, beside the holding and using clips in explorer-clips.glb.
 	...group('animation', 'Explorer clips', 2, [
@@ -216,10 +210,5 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 	]),
 	...group('sound', 'Utility', 4, []),
 	...group('sound', 'World', 5, [['brick.scrape', "A smuggler's brick scraping"]]),
-	...group('sound', 'Items with a use', 6, [['doll.phantom', "The doll's phantom sounds"]]),
-	...group('sound', 'Rumors', 8, [
-		['dummy.hit', 'Training dummy hit'],
-		['dummy.reset', 'Training dummy resets'],
-		['dummy.track', 'The dummy track running']
-	])
+	...group('sound', 'Items with a use', 6, [['doll.phantom', "The doll's phantom sounds"]])
 ];

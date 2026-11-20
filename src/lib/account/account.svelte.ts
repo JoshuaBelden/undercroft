@@ -193,6 +193,7 @@ export async function adminAccount(
 		| { action: 'discoverAll' }
 		| { action: 'resetDiscoveries' }
 		| { action: 'setTrust'; sold: number }
+		| { action: 'completeTraining' }
 ): Promise<void> {
 	session.account = await api<AccountView>('/api/admin', 'POST', change);
 	if (change.action === 'grantItem') {

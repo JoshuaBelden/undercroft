@@ -21,9 +21,10 @@ import { tierAt, tierCells } from '../src/lib/shared/map/doors.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
 import { discoverable, recipesUsing } from '../src/lib/shared/items/crafting.ts';
-import { allStacks, removeItem } from '../src/lib/shared/items/inventory.ts';
+import { allStacks, newStack, removeItem } from '../src/lib/shared/items/inventory.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import { placeCrates } from '../src/lib/shared/map/crates.ts';
+import { trainingCrates, worldSpots } from '../src/lib/shared/map/spots.ts';
 import {
 	creatureSpawns,
 	entryPoint,
@@ -71,6 +72,16 @@ const MAX_FRAMES_PER_MESSAGE = 30;
 
 /** The map for a seed: the layout, and which of its crate markers have a crate. */
 function generate(seed: number, affliction: string): MapLayout {
+	// A training ground (Rumors): its own small map, and only the tutorial's crates.
+	const training = AFFLICTIONS[affliction]?.training;
+	if (training) {
+		const layout = generateLayout(seed, PIECES, MAP_KIT, {
+			affliction,
+			training: { walk: training.walk, vault: training.vault }
+		});
+		layout.crates = trainingCrates(layout, PIECES, training.walk);
+		return layout;
+	}
 	const layout = generateLayout(seed, PIECES, MAP_KIT, { affliction });
 	layout.crates = placeCrates(layout, PIECES, seed);
 	return layout;
@@ -93,6 +104,8 @@ export interface SessionHooks {
 	onRiteReset?: () => void;
 	/** A player saw something in a lootable: where (docs/dev/crafting.md#discovery). */
 	onDiscovered?: (owner: string, item: string, source: string) => void;
+	/** A player got out of a training ground (Rumors): done, for what it unlocks. */
+	onTrained?: (owner: string) => void;
 }
 
 /**
@@ -191,6 +204,11 @@ export class Session implements SessionContext {
 	private populate(): void {
 		// Measured from where the catacombs begin: the foot of the start room's rope.
 		const start = entryPoint(this.world, this.layout, PIECES);
+		const training = this.affliction.def.training;
+		if (training) {
+			this.populateTraining(start);
+			return;
+		}
 		this.creatures.populate(start, (p) => tierAt(this.tiers, p));
 		const cells = new Set<string>();
 		for (const placement of this.layout.placements) {
@@ -223,6 +241,59 @@ export class Session implements SessionContext {
 			this.crates,
 			this.withheld
 		);
+	}
+
+	/** A first time through the tutorial: its crates and things hold what they teach with. */
+	private firstTime = true;
+
+	/**
+	 * A training ground (Rumors, docs/dev/rumors.md): no creatures but the dummies at their
+	 * spots, nothing drawn to noise or light, bricks by the rubble, and the tutorial's crates and
+	 * things (the first time only).
+	 */
+	private populateTraining(start: Vec3): void {
+		const training = this.affliction.def.training!;
+		this.creatures.quiet = true;
+		const spots = worldSpots(this.layout, PIECES);
+		for (const dummy of training.dummies) {
+			const spot = spots.find((s) => s.name === dummy.spot);
+			if (spot) this.creatures.placeDummy(spot.position, spot.yaw, dummy.track);
+		}
+		this.crates = new Crates(this.world, this.layout.crates, this.nav, start, this.seed, 0);
+		this.items.scatter(this.nav, this.seed, start, rubbleSites(this.layout, PIECES));
+		this.stockTraining();
+	}
+
+	/** The tutorial's crates and things: what they hold the first time, nothing after. */
+	private stockTraining(): void {
+		const training = this.affliction.def.training;
+		if (!training) return;
+		const crates = this.crates.list().map(({ crate }) => crate);
+		crates.forEach((crate, i) => {
+			const holds = this.firstTime ? (training.crates[i] ?? []) : [];
+			crate.slots = crate.slots.map((_, k) =>
+				holds[k] ? newStack(holds[k].item, holds[k].count) : null
+			);
+			crate.hidden = new Set(crate.slots.flatMap((s, k) => (s ? [k] : [])));
+		});
+		const spots = worldSpots(this.layout, PIECES);
+		for (const thing of training.floor) {
+			const spot = spots.find((s) => s.name === thing.spot);
+			if (!spot) continue;
+			this.items.removeAt(thing.item, spot.position);
+			if (thing.firstTime && !this.firstTime) continue;
+			this.items.place(newStack(thing.item, thing.count), [...spot.position], spot.yaw);
+		}
+	}
+
+	/**
+	 * Before anyone comes down: whether this is anyone's first time through the tutorial. Not, and
+	 * its crates and things are empty (they come out with you only the first time).
+	 */
+	tutorial(firstTime: boolean): void {
+		if (this.firstTime === firstTime) return;
+		this.firstTime = firstTime;
+		this.stockTraining();
 	}
 
 	/** Every system's admin commands in one table; two systems may not claim the same one. */
@@ -663,6 +734,7 @@ export class Session implements SessionContext {
 					carried: allStacks(player.state.inventory)
 				});
 				log.info(`Player ${player.name} extracted from session ${this.id.slice(0, 8)}`);
+				if (this.affliction.def.training) this.hooks.onTrained?.(player.owner);
 				this.logRun(player, 'extracted', player.state.inventory);
 			}
 			this.removePlayer(player.id, player.state.dead ? null : player.state.inventory);
@@ -796,6 +868,11 @@ export class Session implements SessionContext {
 	hurt(player: Player, amount: number): void {
 		const s = player.state;
 		if (s.flags.godMode || s.downed || s.dead) return;
+		// A training ground: it hurts, but nobody goes down.
+		if (this.affliction.def.training) {
+			s.sanity = Math.max(1, s.sanity - amount);
+			return;
+		}
 		s.sanity = Math.max(0, s.sanity - amount);
 		if (s.sanity <= 0) this.down(player);
 	}

@@ -131,7 +131,7 @@ export function buildCatalog(
 		addUser(creature.model, `Creature: ${id}`);
 	}
 	for (const affliction of Object.values(content.afflictions)) {
-		const body = affliction.manifestation.body;
+		const body = affliction.manifestation?.body;
 		if (body) addUser(body.model, `${affliction.name}: manifestation`);
 	}
 	addUser(content.explorer.model, 'Explorer');
@@ -294,7 +294,7 @@ export function buildCatalog(
 			map: c.animations
 		})),
 		...Object.entries(content.afflictions).flatMap(([id, a]) => {
-			const body = a.manifestation.body;
+			const body = a.manifestation?.body;
 			return body
 				? [
 						{

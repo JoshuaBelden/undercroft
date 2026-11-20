@@ -235,15 +235,28 @@ export class Parties {
 		log.info(`${member.name} reset their progress on ${id}`);
 	}
 
+	/**
+	 * Why a member can't go against an Affliction yet: one it `requires` they haven't done (the
+	 * Gloaming until they have got out of Rumors). Null if they can.
+	 */
+	async locked(member: Member, id: string): Promise<string | null> {
+		const requires = AFFLICTIONS[id]?.requires;
+		if (!requires) return null;
+		const done = await this.progress.of(member.explorer, requires);
+		if (done.resolved) return null;
+		return `Go on a ${AFFLICTIONS[requires]?.name ?? requires} expedition first`;
+	}
+
 	/** The host chooses what the expedition is against. Everyone confirms again after a change. */
-	setAffliction(member: Member, id: unknown): void {
+	async setAffliction(member: Member, id: unknown): Promise<void> {
 		const party = member.party;
-		let problem: string | null = null;
+		let problem: string | null;
 		if (party.leader !== member.id) problem = 'Only the host chooses the Affliction';
 		else if (party.session) problem = 'An expedition is already under way';
 		else if (typeof id !== 'string' || !Object.hasOwn(AFFLICTIONS, id)) {
 			problem = 'No such Affliction';
-		}
+		} else if (AFFLICTIONS[id].requires) problem = await this.locked(member, id);
+		else problem = null;
 		if (problem !== null || typeof id !== 'string') {
 			this.send(member, { type: 'partyError', reason: problem ?? 'No such Affliction' });
 			return;
@@ -268,9 +281,12 @@ export class Parties {
 			return;
 		}
 		if (member.wantReady || this.expedition(member)) return;
-		let problem: string | null = null;
+		let problem: string | null;
 		if (party.session) problem = 'An expedition is already under way';
 		else if (!party.affliction) problem = 'No Affliction has been chosen yet';
+		else if (AFFLICTIONS[party.affliction]?.requires) {
+			problem = await this.locked(member, party.affliction);
+		} else problem = null;
 		if (problem) {
 			this.send(member, { type: 'partyError', reason: problem });
 			return;
@@ -304,6 +320,9 @@ export class Parties {
 			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
 			onRiteReset: () => void this.progress.reset(descended(), session.afflictionId),
 			onDiscovered: (explorer, item, source) => recordFind(explorer, item, source),
+			// Out of a training ground (Rumors): done, which opens what it unlocks.
+			onTrained: (explorer) =>
+				this.progress.record([explorer], session.afflictionId, { resolved: true }),
 			onPlayerLeft: (explorer, carried) => {
 				giveBack(explorer, session.id, carried);
 				this.sweep(party);
@@ -338,12 +357,15 @@ export class Parties {
 	 */
 	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
 		const going = [...party.members];
-		const [kits, onSurface, wheels, known] = await Promise.all([
+		const [kits, onSurface, wheels, known, done] = await Promise.all([
 			Promise.all(going.map((m) => takeKit(m.explorer, session.id))),
 			owned(going.map((m) => m.explorer)),
 			markWheels(going.map((m) => m.explorer)),
-			discoveries(going.map((m) => m.explorer))
+			discoveries(going.map((m) => m.explorer)),
+			Promise.all(going.map((m) => this.progress.of(m.explorer, session.afflictionId)))
 		]);
+		// A training ground's tutorial holds its lessons for anyone's first time through.
+		session.tutorial(done.some((d) => !d.resolved));
 		// A quest item someone already owns (kept on the surface, or brought down) isn't put in the map.
 		const quest =
 			AFFLICTIONS[session.afflictionId]?.rite.requirements

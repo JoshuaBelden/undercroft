@@ -203,6 +203,10 @@ Hit tests use `hitBodies()`: a vertical capsule of `height` and `hitRadius` per 
 
 Behaviour beyond the shared states is keyed by def fields, never by kind name.
 
+### Training dummies
+
+`dummy: true` (Rumors' training dummies, [rumors.md](rumors.md#dummies)): placed by the training ground (`placeDummy`), never spawned. It skips the AI (`train`): it stands or runs its track, staggers and bleeds, and never dies (its wounds go back to 0). Every hit is told (`takeStruck`: `dummyHit`, `dummyReset`).
+
 ### Rats and spiders
 
 Small (`small(speed, sprint)` movement: as quick through a crawl as in the open, a 0.2 m body) and go anywhere. The **rat** perceives like a witch at short range: a lamp in sight within 6 m, or anyone within 1.5 m in the dark, and noise alerts it. Its bite is 6. The **spider** is `passive`: noise and light don't reach it, and only a hit sets it (and only it) on the attacker. The **giant spider** hunts with full perception. Every spider bite carries `condition: { id: 'poisoned' }` (no faster than a crouch, no sprinting, 60 s), which `CreatureSystem` applies to whoever it lands on after the coat takes its share.

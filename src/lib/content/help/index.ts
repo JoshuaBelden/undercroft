@@ -672,6 +672,18 @@ Listen. Knocking that comes more often. Whispers where no one is. A low hum unde
 These are warnings. When they come thick and close together, it is time to think about the way out.`
 	},
 	{
+		id: 'rumors',
+		title: 'Rumors',
+		category: 'The Gloaming',
+		body: `Everyone starts with Rumors: a short way into the catacombs, and an old vault where the keepers trained. Nothing down there wants you, and nobody goes down, though things still hurt.
+
+On the way in you are shown, a step at a time, what you need: the rope and your lamp, opening a crate, discovering what is in it, making a bandage with the field crafting kit, the Library, chalk. The first time through, the crates and the kit are there for you, and what you take comes out with you.
+
+The vault has training dummies at 5, 10, 20 and 40 metres, one running along a track, bricks by the door, a web across one arch and rubble in the other. Every hit on a dummy shows how hard it was. Everything works as it does anywhere else: rounds are spent, things wear out, what you use is gone.
+
+Climb the ladder at the far end to get out. Once you have, the Gloaming is open to you. Rumors stays open after, as a place to train.`
+	},
+	{
 		id: 'the-gloaming',
 		title: 'The Gloaming',
 		category: 'The Gloaming',

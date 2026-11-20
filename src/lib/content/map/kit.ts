@@ -13,6 +13,16 @@ export const MAP_KIT: MapKit = {
 	// and it stops short of the floor, so nobody climbs back up (docs/dev/rope.md). The way on
 	// leaves the chamber at its foot. (`stairwell`, the old cellar start, is retired.)
 	'angel-well': { role: 'start', title: "The Angel's Well", acoustics: 'hall' },
+	// Rumors (the tutorial, docs/dev/rumors.md): the walk in and the training vault. Only in its map.
+	'rumors-walk': { role: 'connector', affliction: 'rumors', weight: 0 },
+	'rumors-vault': {
+		role: 'major',
+		affliction: 'rumors',
+		room: true,
+		title: 'The Training Vault',
+		banner: 'Where the keepers learned their trade',
+		acoustics: 'vast'
+	},
 
 	'ossuary-hall': {
 		role: 'major',

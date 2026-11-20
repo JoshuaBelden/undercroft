@@ -64,6 +64,9 @@ ROOMS = [
     "sinkhole",
     "broken-stair",
     "sunken-ossuary",
+    # Rumors (the tutorial Affliction): the walk in and the training vault.
+    "rumors-walk",
+    "rumors-vault",
 ]
 
 
@@ -610,7 +613,87 @@ def _drop_ceiling_hole(mb, h, g):
         mb.face([(x, y, h) for x, y in pts], "mat-wall-ossuary", facing=(0, 0, -1))
 
 
+def _retype_socket(room, index, kind):
+    """A Room's socket-hall-<index> becomes socket-<kind>-0: an opening only its own kind meets."""
+    for child in room.root.children:
+        if child.name.split(".")[0] == f"socket-hall-{index}":
+            child.name = f"socket-{kind}-0"
+            return
+    raise RuntimeError(f"{room.name}: no socket-hall-{index}")
+
+
+def _spot(room, name, x, y, yaw=0.0):
+    """A named spot (spot-<name>): where Rumors puts a thing, or a tutorial step is told."""
+    e = marker(room.coll, room.root, f"spot-{name}", (x, y, room.z0), display="PLAIN_AXES", size=0.35)
+    e.rotation_euler = (0, 0, yaw)
+    return e
+
+
+def _crate(room, index, x, y, yaw):
+    """A crate marker (crate-<n>) against a wall: its back along local +Y, toward the wall."""
+    e = marker(room.coll, room.root, f"crate-{index}", (x, y, room.z0), display="ARROWS", size=0.45)
+    e.rotation_euler = (0, 0, yaw)
+    return e
+
+
+def build_rumors_walk(force=False):
+    """1x4 cells: the tutorial walk, in from the start (south, a hall socket) to the training vault
+    (north, a vault socket, so it is always walked this way). Along it, in order: a crate of rags,
+    the field crafting kit on the floor, a crate of wax, chalk and a bare wall to mark. Each stop
+    has a spot-step-<n> where Rumors says what to do there."""
+    room = Room("rumors-walk", 1, 4, 3.2, "mat-wall-tunnel", "mat-floor-tunnel", [("s", 0), ("n", 0)], force=force)
+    _retype_socket(room, 1, "vault")
+    ix, iy = room.ix, room.iy
+    east = -math.pi / 2
+    _crate(room, 0, ix - 0.33, -iy + 3.0, east)
+    _spot(room, "step-crate", 0.0, -iy + 2.4)
+    _spot(room, "kit", -ix + 0.5, -iy + 6.0)
+    _spot(room, "step-kit", 0.0, -iy + 5.6)
+    _crate(room, 1, ix - 0.33, -iy + 9.0, east)
+    _spot(room, "step-recipe", 0.0, -iy + 8.4)
+    _spot(room, "chalk", -ix + 0.5, -iy + 12.0)
+    _spot(room, "step-chalk", 0.0, -iy + 11.6)
+    return room.finish()
+
+
+def build_rumors_vault(force=False):
+    """3x12 cells: the training vault. In from the walk at the south end (a vault socket), an arch
+    off each side near it (a web across one, rubble in the other: dead ends, in the game's data).
+    Dummies down the long room at 5, 10, 20 and 40 m from where you stand (spot-range), one on a
+    track off to the side, bricks by the door, and the way out up a ladder at the far end."""
+    room = Room(
+        "rumors-vault",
+        3,
+        12,
+        3.6,
+        "mat-wall-chapel",
+        "mat-floor-chapel",
+        [("s", 0), ("w", -22.0), ("e", -22.0)],
+        force=force,
+    )
+    _retype_socket(room, 0, "vault")
+    ix, iy = room.ix, room.iy
+    stand = -iy + 3.5
+    _spot(room, "range", 0.0, stand)
+    _spot(room, "step-vault", 0.0, -iy + 1.5)
+    for metres in (5, 10, 20, 40):
+        _spot(room, f"dummy-{metres}", -2.0, stand + metres, math.pi)
+    _spot(room, "track", 3.0, stand + 15.0, math.pi)
+    # The track the moving dummy runs along: a rail across the floor.
+    room.props.box((0.2, stand + 14.9, 0.0), (ix - 0.2, stand + 15.1, 0.06), "mat-iron")
+    room.rubble_markers([(-ix + 1.0, -iy + 1.2), (-ix + 1.6, -iy + 2.0)])
+    # The way out: a ladder up the far wall.
+    xm = MeshBuilder("rumors-vault-ladder")
+    kit.extraction_ladder(xm, 0.0, iy - 0.14, 0.0, 3.6, axis="x", half_w=0.22)
+    xm.finish(room.coll, room.root)
+    marker(room.coll, room.root, "extract-0", (0.0, iy - 0.7, 0.0), display="SPHERE", size=0.6)
+    _spot(room, "step-out", 0.0, iy - 3.0)
+    return room.finish()
+
+
 BUILDERS = {
+    "rumors-walk": build_rumors_walk,
+    "rumors-vault": build_rumors_vault,
     "vestry": build_vestry,
     "quarry-lodge": build_quarry_lodge,
     "smugglers-cellar": build_smugglers_cellar,

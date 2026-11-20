@@ -631,6 +631,11 @@
 				'Every item there is to discover, as if seen; every recipe in the Library and Workshop.'
 			)}
 			{@render action('Forget discoveries', () => void account({ action: 'resetDiscoveries' }))}
+			{@render action(
+				'Rumors done',
+				() => void account({ action: 'completeTraining' }),
+				'As if you had got out of Rumors: the Gloaming opens. Reset it on the Afflictions page.'
+			)}
 			<form
 				class="setting"
 				onsubmit={(event) => {

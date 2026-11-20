@@ -43,7 +43,7 @@ function pair() {
 	const host = connect('Host');
 	const guest = connect('Guest');
 	expect(parties.join(guest.member, host.member)).toBeNull();
-	parties.setAffliction(host.member, 'gloaming');
+	parties.setAffliction(host.member, 'rumors');
 	return { host, guest };
 }
 
@@ -76,10 +76,20 @@ describe('Parties', () => {
 
 	it('only the host chooses the Affliction, and only a real one', () => {
 		const { host, guest } = pair();
-		parties.setAffliction(guest.member, 'gloaming');
+		parties.setAffliction(guest.member, 'rumors');
 		expect(errorOf(guest.socket)).toBe('Only the host chooses the Affliction');
 		parties.setAffliction(host.member, 'no-such');
 		expect(errorOf(host.socket)).toBe('No such Affliction');
+		expect(partyOf(host.socket).affliction).toBe('rumors');
+	});
+
+	it('the Gloaming stays locked until you have got out of Rumors', async () => {
+		const { host } = pair();
+		await parties.setAffliction(host.member, 'gloaming');
+		expect(errorOf(host.socket)).toBe('Go on a Rumors expedition first');
+		expect(partyOf(host.socket).affliction).toBe('rumors');
+		parties['progress'].record([host.member.explorer], 'rumors', { resolved: true });
+		await parties.setAffliction(host.member, 'gloaming');
 		expect(partyOf(host.socket).affliction).toBe('gloaming');
 	});
 
@@ -107,7 +117,7 @@ describe('Parties', () => {
 		expect(partyOf(host.socket).launchIn).toBeNull();
 		// Changing the Affliction un-readies everyone.
 		await parties.setReady(guest.member, true);
-		parties.setAffliction(host.member, 'gloaming');
+		parties.setAffliction(host.member, 'rumors');
 		expect(partyOf(host.socket).members.every((m) => m.ready)).toBe(true);
 	});
 
@@ -125,7 +135,7 @@ describe('Parties', () => {
 		expect(e.session.playerCount).toBe(2);
 		// Nothing about the party changes while it is underground.
 		await parties.setReady(host.member, true);
-		parties.setAffliction(host.member, 'gloaming');
+		parties.setAffliction(host.member, 'rumors');
 		expect(errorOf(host.socket)).toBe('An expedition is already under way');
 		parties.kick(host.member, guest.member.id);
 		expect(errorOf(host.socket)).toBe("You can't remove anyone during an expedition");
@@ -217,12 +227,12 @@ describe('Parties', () => {
 		const { host, guest } = pair();
 		await parties.resetAffliction(host.member, 'no-such');
 		expect(errorOf(host.socket)).toBe('No such Affliction');
-		await parties.resetAffliction(host.member, 'gloaming');
-		expect(host.socket.last('afflictionReset')!.id).toBe('gloaming');
+		await parties.resetAffliction(host.member, 'rumors');
+		expect(host.socket.last('afflictionReset')!.id).toBe('rumors');
 		await parties.setReady(host.member, true);
 		await parties.setReady(guest.member, true);
 		await descend();
-		await parties.resetAffliction(host.member, 'gloaming');
+		await parties.resetAffliction(host.member, 'rumors');
 		expect(errorOf(host.socket)).toBe('An expedition is under way');
 	});
 

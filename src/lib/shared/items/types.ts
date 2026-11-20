@@ -200,6 +200,9 @@ export type GameEvent =
 	| { kind: 'tarot'; player: string; card: string }
 	/** A tripwire bell rang: something crossed it. Everyone is told (the party hears where). */
 	| { kind: 'tripwire'; id: string; item: string; position: Vec3 }
+	/** A training dummy took a hit (its damage, for the numbers), or came whole again. */
+	| { kind: 'dummyHit'; id: string; amount: number; position: Vec3 }
+	| { kind: 'dummyReset'; id: string; position: Vec3 }
 	/** A player knelt to make or mend something below. */
 	| { kind: 'crafting'; player: string; position: Vec3 }
 	/** A player took something (laudanum, grave dirt). */

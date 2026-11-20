@@ -617,7 +617,11 @@ Decided along the way: the crossbow, slingshot and bolts are built though the co
 - **Field crafting** with the kit, and its animation.
 - **Store tiers** with trust per account.
 
-### Phase 8: Rumors
+### Phase 8: Rumors (Done)
+
+Built, and moved into [rumors.md](dev/rumors.md). The training ground's own map (the start room, a tutorial walk and the training vault, built in Blender as `rumors-walk` and `rumors-vault`), its tutorial steps told as you reach them, the tutorial's crates and kit the first time only, training dummies (at 5, 10, 20 and 40 m and on a track; they never die, and each hit shows its number), a web and rubble off the vault, bricks, no meter, no creatures and nobody going down, getting out recorded, and the Gloaming locked until then for every account. The admin app can reset a member to a new player (account kept), and the dev tools mark Rumors done.
+
+Decided along the way: the start room is the usual one (its rope down is the first step). The vault is 48 m long, 3.6 m high. The dummy's model is a placeholder built by `scripts/blender/dummy.py` (the planned dummy prop is folded into it). Rumors' pane uses the Gloaming's picture until its own (planned). The tutorial's loot is there if anyone going down hasn't done Rumors before.
 
 The tutorial Affliction, its map and dummies, its tutorial steps (which use discovery and field crafting from Phase 7), and the Gloaming unlocking after it for every account.
 

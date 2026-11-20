@@ -127,3 +127,30 @@ describe('the store’s tiers', () => {
 		expect(view.explorer.tiers).toContain('trusted');
 	});
 });
+
+describe('starting again (the admin reset)', () => {
+	it('takes everything owned and learned back to how a new player starts; the account stays', async () => {
+		await stash(newStack('crowbar'), newStack('rags', 3));
+		await db
+			.collection<ExplorerDoc>('explorers')
+			.updateOne({ _id: explorer._id }, { $set: { money: 500 } });
+		await discover(db, explorer._id, [{ item: 'rags', source: 'crate' }]);
+		await setTrust(db, explorer._id, 2000);
+		await db.collection('progress').insertOne({
+			_id: `${explorer._id}:rumors` as never,
+			player: explorer._id,
+			affliction: 'rumors',
+			resolved: true
+		});
+		const { resetExplorer } = await import('./shop.ts');
+		expect('explorer' in (await resetExplorer(db, explorer._id))).toBe(true);
+		const now = await doc();
+		expect(now.money).toBe(0);
+		expect(now.stash.every((s) => s === null)).toBe(true);
+		expect(now.discovered).toEqual({});
+		expect(now.fresh).toEqual([]);
+		expect(now.sold).toBe(0);
+		expect(await db.collection('progress').countDocuments({ player: explorer._id })).toBe(0);
+		expect(await db.collection('accounts').countDocuments({})).toBe(1);
+	});
+});

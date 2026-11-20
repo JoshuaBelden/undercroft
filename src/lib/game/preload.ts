@@ -103,7 +103,7 @@ export function preloadRun(
 	const pieces = [...new Set(layout.placements.map((p) => p.piece))].flatMap((name) =>
 		PIECES[name] ? [PIECES[name]] : []
 	);
-	const body = layout.affliction ? AFFLICTIONS[layout.affliction]?.manifestation.body : undefined;
+	const body = layout.affliction ? AFFLICTIONS[layout.affliction]?.manifestation?.body : undefined;
 	return run(
 		[
 			...pieceTasks(pieces),

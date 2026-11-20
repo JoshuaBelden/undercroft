@@ -1,6 +1,6 @@
 import { Rng } from '../rng.ts';
 import { placeDoors } from './doors.ts';
-import { placeWalls } from './walls.ts';
+import { placeWalls, trainingWalls } from './walls.ts';
 import {
 	CELL,
 	EDGE_DIR,
@@ -66,6 +66,8 @@ export interface GenerateOptions {
 	attempts: number;
 	/** The Affliction the map is for: pieces owned by any other Affliction are left out. */
 	affliction: string | null;
+	/** A training map (Rumors): only the start, these two pieces and dead ends (`tryTraining`). */
+	training: { walk: string; vault: string } | null;
 }
 
 const DEFAULTS: GenerateOptions = {
@@ -81,7 +83,8 @@ const DEFAULTS: GenerateOptions = {
 	dropBranch: [1, 3],
 	deadEndChance: 0.55,
 	attempts: 64,
-	affliction: null
+	affliction: null,
+	training: null
 };
 
 interface OpenSocket extends WorldSocket {
@@ -345,6 +348,76 @@ export function onLevel(kit: MapKit, piece: PieceDef, tier: number): boolean {
 	return !levels || levels.includes(tier + 1);
 }
 
+/** Seal: join facing sockets (unless that would make a roundabout), then dead ends or caps. */
+function seal(state: LayoutState, caps: PieceDef[], ends: PieceDef[], deadEndChance: number): void {
+	const { rng, kit } = state;
+	for (const socket of state.open()) {
+		if (socket.connected) continue;
+		const across = state
+			.open()
+			.find((other) => other !== socket && facing(other, socket) && state.joinable(socket, other));
+		if (across) {
+			state.join(socket, across);
+			continue;
+		}
+		if (ends.length && rng.next() < deadEndChance && state.attachAny(socket, ends)) continue;
+		const cap = caps.find((c) => kit[c.name].seals === socket.type);
+		if (!cap) throw new GenerationFailed();
+		const [ex, ez] = EDGE_DIR[socket.edge];
+		// Caps are modelled facing north with their origin on the opening.
+		const capRotation = [0, 1, 2, 3].find((r) => rotateEdge('n', r) === socket.edge) ?? 0;
+		state.placements.push({
+			piece: cap.name,
+			position: [
+				(socket.cell[0] + ex / 2) * CELL,
+				socket.level * LEVEL_HEIGHT,
+				(socket.cell[1] + ez / 2) * CELL
+			],
+			rotation: capRotation,
+			tier: socket.tier
+		});
+		state.links.push(new Set());
+		socket.connected = true;
+	}
+}
+
+/**
+ * A training map (an Affliction with `training`: Rumors, docs/dev/rumors.md): the start room and
+ * its exit, the walk, and the vault at the end of it, every other opening a dead end. No levels,
+ * branches, drops or loops: nothing to get lost in.
+ */
+function tryTraining(
+	rng: Rng,
+	pieces: Record<string, PieceDef>,
+	kit: MapKit,
+	training: { walk: string; vault: string }
+): Placement[] {
+	const state = new LayoutState(rng, pieces, kit);
+	const start = rng.pick(state.role('start'));
+	const rotation = rng.int(0, 3);
+	const [ox, oz] = rotateXZ(cellOffset(start, [0, 0]), rotation);
+	let tips = state.place(start, { piece: start.name, position: [-ox, 0, -oz], rotation, tier: 0 });
+	const exit = kit[start.name].exit;
+	if (exit) {
+		const next = state.attach(rng.pick(tips), pieces[exit]);
+		if (!next?.length) throw new GenerationFailed();
+		tips = next;
+	}
+	for (const name of [training.walk, training.vault]) {
+		const piece = pieces[name];
+		let next: OpenSocket[] | null = null;
+		for (const tip of rng.shuffle(tips)) {
+			if (tip.connected) continue;
+			next = state.attach(tip, piece);
+			if (next) break;
+		}
+		if (!next) throw new GenerationFailed();
+		tips = next;
+	}
+	seal(state, state.role('cap'), state.role('end'), 1);
+	return state.placements;
+}
+
 /**
  * The rooms on each level's main route, in order: the major rooms shared out evenly (in random
  * order, each on a level its `levels` allows, the emptiest of those), then the level's last room:
@@ -547,36 +620,7 @@ function tryGenerate(
 		}
 	}
 
-	// Seal: join facing sockets (unless that would make a roundabout), then dead ends or caps.
-	for (const socket of state.open()) {
-		if (socket.connected) continue;
-		const across = state
-			.open()
-			.find((other) => other !== socket && facing(other, socket) && state.joinable(socket, other));
-		if (across) {
-			state.join(socket, across);
-			continue;
-		}
-		if (ends.length && rng.next() < options.deadEndChance && state.attachAny(socket, ends))
-			continue;
-		const cap = caps.find((c) => kit[c.name].seals === socket.type);
-		if (!cap) throw new GenerationFailed();
-		const [ex, ez] = EDGE_DIR[socket.edge];
-		// Caps are modelled facing north with their origin on the opening.
-		const capRotation = [0, 1, 2, 3].find((r) => rotateEdge('n', r) === socket.edge) ?? 0;
-		state.placements.push({
-			piece: cap.name,
-			position: [
-				(socket.cell[0] + ex / 2) * CELL,
-				socket.level * LEVEL_HEIGHT,
-				(socket.cell[1] + ez / 2) * CELL
-			],
-			rotation: capRotation,
-			tier: socket.tier
-		});
-		state.links.push(new Set());
-		socket.connected = true;
-	}
+	seal(state, caps, ends, options.deadEndChance);
 	return state.placements;
 }
 
@@ -599,12 +643,16 @@ export function generateLayout(
 			const layout: MapLayout = {
 				seed,
 				affliction: opts.affliction,
-				placements: tryGenerate(rng, pieces, own, opts, dropRng),
+				placements: opts.training
+					? tryTraining(rng, pieces, own, opts.training)
+					: tryGenerate(rng, pieces, own, opts, dropRng),
 				crates: [],
 				doors: []
 			};
 			layout.doors = placeDoors(layout, pieces);
-			layout.walls = placeWalls(layout, pieces, own, seed);
+			layout.walls = opts.training
+				? trainingWalls(layout, pieces, own, opts.training.vault)
+				: placeWalls(layout, pieces, own, seed);
 			return layout;
 		} catch (error) {
 			if (!(error instanceof GenerationFailed)) throw error;

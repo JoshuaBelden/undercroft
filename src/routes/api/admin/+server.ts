@@ -1,4 +1,5 @@
 import { error, json } from '@sveltejs/kit';
+import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 import { devMode } from '#lib/dev.ts';
 import { database } from '#lib/server/db.ts';
 import {
@@ -21,6 +22,8 @@ import type { RequestHandler } from './$types';
  * - `{ action: 'resetPassword', email, password }`: any account
  * - `{ action: 'discoverAll' }`, `{ action: 'resetDiscoveries' }`: your own discoveries
  * - `{ action: 'setTrust', sold }`: the merchant's trust (coin sold), which opens store tiers
+ * - `{ action: 'completeTraining' }`: Rumors done (the Gloaming unlocked); the Afflictions page's
+ *   Reset puts it back
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!devMode) error(404, 'Not found');
@@ -39,6 +42,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (body.action === 'discoverAll' || body.action === 'resetDiscoveries') {
 		if (body.action === 'discoverAll') await discoverAll(db, explorer._id);
 		else await resetDiscoveries(db, explorer._id);
+		return json(await accountView(db, account));
+	}
+	if (body.action === 'completeTraining') {
+		for (const def of Object.values(AFFLICTIONS)) {
+			if (!def.training) continue;
+			await db
+				.collection<{ _id: string; player: string; affliction: string; resolved?: boolean }>(
+					'progress'
+				)
+				.updateOne(
+					{ _id: `${explorer._id}:${def.id}` },
+					{ $set: { player: explorer._id, affliction: def.id, resolved: true } },
+					{ upsert: true }
+				);
+		}
 		return json(await accountView(db, account));
 	}
 	if (body.action === 'setTrust') {
