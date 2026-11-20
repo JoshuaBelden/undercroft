@@ -114,7 +114,7 @@ describe('buildCatalog', () => {
 describe('planned art', () => {
 	const planned: CatalogContent['planned'] = [
 		{ kind: 'model', id: 'shared/items/hatchet.glb', label: 'Hatchet', group: 'Items', phase: 4 },
-		{ kind: 'image', id: 'rags', label: 'Rags', group: 'Materials', phase: 2 },
+		{ kind: 'image', id: 'test_unmade', label: 'Unmade', group: 'Materials', phase: 2 },
 		{ kind: 'animation', id: 'pry', label: 'Prying', group: 'Clips', phase: 2 },
 		{ kind: 'sound', id: 'gun.empty', label: 'Dry click', group: 'Sounds', phase: 1 }
 	];
@@ -127,7 +127,7 @@ describe('planned art', () => {
 			usedBy: ['Planned: Items (phase 4)'],
 			planned: 4
 		});
-		expect(row(catalog, 'image', 'rags')?.status).toBe('missing');
+		expect(row(catalog, 'image', 'test_unmade')?.status).toBe('missing');
 		expect(row(catalog, 'animation', 'explorer: pry')?.status).toBe('placeholder');
 	});
 
@@ -136,11 +136,11 @@ describe('planned art', () => {
 		disk.gltf.set('shared/player/explorer-clips.glb', { animations: ['pry'], uris: [] });
 		const made: CatalogContent = {
 			...content,
-			images: { ...content.images, rags: '/assets/ui/images/rags.0000.webp' }
+			images: { ...content.images, test_unmade: '/assets/ui/images/test_unmade.0000.webp' }
 		};
 		const catalog = buildCatalog(disk, made);
 		expect(
-			catalog.rows.filter((r) => r.id === 'rags' && r.usedBy[0]?.startsWith('Planned'))
+			catalog.rows.filter((r) => r.id === 'test_unmade' && r.usedBy[0]?.startsWith('Planned'))
 		).toEqual([]);
 		expect(row(catalog, 'animation', 'explorer: pry')).toBeUndefined();
 		// A sound that already exists in SOUNDS is never listed as planned.

@@ -45,16 +45,6 @@ const prop = (id: string): string => `shared/props/${id}.glb`;
 export const PLANNED_ASSETS: PlannedAsset[] = [
 	// Item pictures: the stash, loadout, store, Workshop, Library and pack.
 	...group('image', 'Materials', 2, [
-		['rags', 'Rags'],
-		['twine', 'Twine'],
-		['wax_scraps', 'Wax scraps'],
-		['nails', 'Nails'],
-		['wood', 'Wood'],
-		['metal_scraps', 'Metal scraps'],
-		['leather_scraps', 'Leather scraps'],
-		['rubber', 'Rubber'],
-		['rope_length', 'Rope length'],
-		['glass_bottle', 'Glass bottle'],
 		['lamp_oil', 'Lamp oil'],
 		['rock_salt', 'Rock salt'],
 		['holy_water', 'Holy water'],
