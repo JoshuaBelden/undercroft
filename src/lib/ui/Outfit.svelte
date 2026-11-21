@@ -13,7 +13,9 @@
 	import Dialog from './Dialog.svelte';
 	import { ItemBoard } from './itemBoard.svelte.ts';
 	import { workshopAsk } from './workshop.svelte.ts';
-	import { matchesFilter, type ItemFilter } from './items.ts';
+	import type { ItemStack } from '#lib/shared/player/types.ts';
+	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
+	import { matchesFilter, sortItems, type ItemFilter } from './items.ts';
 	import ItemFilters from './ItemFilters.svelte';
 	import ItemOverlays from './ItemOverlays.svelte';
 	import ItemSlot from './ItemSlot.svelte';
@@ -41,14 +43,25 @@
 	let error = $state('');
 
 	/**
-	 * The stash slots to show, each with its real place in the stash. A filter shows the stacks of
-	 * that kind first and then the empty slots, so there is still somewhere to drop things.
+	 * The stash slots to show, each with its real place in the stash. A filter or a sort shows the
+	 * stacks (of that kind, in that order) first and then the empty slots, so there is still
+	 * somewhere to drop things. A stack is valued at what it would sell for, all of it.
 	 */
 	const shown = $derived.by(() => {
 		const slots = explorer.stash.map((stack, index) => ({ stack, index }));
-		if (filter === 'all') return slots;
+		const order = settings.interface.stashSort;
+		if (filter === 'all' && order === 'placed') return slots;
+		const held = slots.filter(
+			(slot): slot is { stack: ItemStack; index: number } =>
+				!!slot.stack && matchesFilter(slot.stack.item, filter)
+		);
 		return [
-			...slots.filter(({ stack }) => stack && matchesFilter(stack.item, filter)),
+			...sortItems(
+				held,
+				order,
+				({ stack }) => stack.item,
+				({ stack }) => sellPrice(stack.item, stack) * stack.count
+			),
 			...slots.filter(({ stack }) => !stack)
 		];
 	});
@@ -178,7 +191,16 @@
 	<section class="panel stash" aria-labelledby="stash-title">
 		<h2 id="stash-title">Stash</h2>
 		<div class="stash-body">
-			<ItemFilters bind:filter />
+			<ItemFilters
+				bind:filter
+				bind:order={
+					() => settings.interface.stashSort,
+					(order) => {
+						settings.interface.stashSort = order;
+						saveSettings();
+					}
+				}
+			/>
 			<div class="scroll">
 				<div class="grid" style:--columns={SLOTS.stashColumns}>
 					{#each shown as { stack, index } (index)}

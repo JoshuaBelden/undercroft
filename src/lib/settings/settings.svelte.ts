@@ -6,6 +6,7 @@ import {
 } from '#lib/game/input/actions.ts';
 import type { AudioCategory } from '#lib/game/audio/AudioManager.ts';
 import { SURVEY } from '#lib/content/map/survey.ts';
+import type { ItemSortOrder } from '#lib/ui/items.ts';
 
 /**
  * All player settings live here and persist to localStorage.
@@ -115,6 +116,9 @@ export interface Settings {
 		mapZoom: number;
 		/** Notices at the right edge: friend requests, invites, items received (docs/dev/alerts.md). */
 		alerts: boolean;
+		/** How the Stash and the Store are ordered, each as last left (`ItemSort`). */
+		stashSort: ItemSortOrder;
+		storeSort: ItemSortOrder;
 	};
 	controls: ControlSettings;
 	controller: ControllerSettings;
@@ -137,7 +141,9 @@ function defaults(): Settings {
 			ritePanel: true,
 			gamerTags: true,
 			mapZoom: SURVEY.zoom.initial,
-			alerts: true
+			alerts: true,
+			stashSort: 'placed',
+			storeSort: 'placed'
 		},
 		controls: { mouseSensitivity: 1, invertY: false },
 		controller: {

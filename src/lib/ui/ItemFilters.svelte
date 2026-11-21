@@ -1,15 +1,19 @@
 <script lang="ts">
-	import { FILTER_ICONS, type ItemFilter } from './items.ts';
+	import { FILTER_ICONS, type ItemFilter, type ItemSortOrder } from './items.ts';
+	import ItemSort from './ItemSort.svelte';
 
 	/**
 	 * The column of round buttons beside a grid of items (the stash, the store): show everything,
 	 * or only one category (or the ammunition, the treasure or the quest items). Bind `filter` and filter the grid by it.
+	 * Below them, the order the grid is shown in: bind `order` and sort by it (`sortItems`).
 	 */
 	interface Props {
 		filter: ItemFilter;
+		/** Left out, there is no sort button (the admin catalogue). */
+		order?: ItemSortOrder;
 	}
 
-	let { filter = $bindable() }: Props = $props();
+	let { filter = $bindable(), order = $bindable() }: Props = $props();
 
 	/** The filters, top to bottom. The icons are `FILTER_ICONS`. */
 	const FILTERS: { id: ItemFilter; label: string }[] = [
@@ -41,6 +45,10 @@
 			</svg>
 		</button>
 	{/each}
+	{#if order !== undefined}
+		<span class="rule" aria-hidden="true"></span>
+		<ItemSort bind:order />
+	{/if}
 </div>
 
 <style>
@@ -48,6 +56,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
+	}
+
+	/* Between the filters and the sort. */
+	.rule {
+		height: 1px;
+		margin: 2px 6px;
+		background: var(--text);
+		opacity: 0.3;
 	}
 
 	/* Round and white; the one in use is ringed. */

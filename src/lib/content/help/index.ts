@@ -230,7 +230,7 @@ The loadout has a place for everything. Two weapons, and one thing worn for prot
 
 Things of a kind share a slot, up to a few of each. Drop one stack on another to join them. Right-click anything to inspect it, equip it, split a stack, sell it or drop it. Inspect shows everything about it: damage, range, how fast it fires, how far it is heard, how long it lasts. Dropping something on the surface throws it away for good.
 
-Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, gear, materials, treasure, quest items or everything else. You can only take what you could carry: the weight is shown beside the Loadout title.
+Hold the cursor over something to see what it is and what it does. The round buttons beside the stash show only weapons, ammunition, protection, quick-use items, gear, materials, treasure, quest items or everything else. The round button below them sorts the stash (and the store): as placed, by value, by name or by type. Click it again for the next order; the order you leave it in is kept. You can only take what you could carry: the weight is shown beside the Loadout title.
 
 What the dead were buried with is worth money on the surface. Most of it is in crates, more and better the deeper you go. But it fills your backpack, some of it is heavy, and the more of it you carry the sooner the omens close in.
 

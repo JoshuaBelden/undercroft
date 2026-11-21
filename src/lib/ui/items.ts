@@ -109,12 +109,65 @@ export type ItemFilter = 'all' | ItemCategory | 'ammo' | 'treasure' | 'quest';
  */
 export function matchesFilter(item: string, filter: ItemFilter): boolean {
 	if (filter === 'all') return true;
+	return !!ITEMS[item] && filterOf(item) === filter;
+}
+
+/** The filters in the order they are listed (`ItemFilters`), which is also the order of Type. */
+export const FILTER_ORDER: ItemFilter[] = [
+	'all',
+	'weapon',
+	'ammo',
+	'defense',
+	'quick',
+	'gear',
+	'material',
+	'treasure',
+	'quest',
+	'other'
+];
+
+/** The filter an item is listed under (never `all`). */
+export function filterOf(item: string): Exclude<ItemFilter, 'all'> {
 	const def = ITEMS[item];
-	if (!def) return false;
-	if (def.quest) return filter === 'quest';
-	if (def.kind === 'ammo') return filter === 'ammo';
-	if (def.treasure) return filter === 'treasure';
-	return def.category === filter;
+	if (!def) return 'other';
+	if (def.quest) return 'quest';
+	if (def.kind === 'ammo') return 'ammo';
+	if (def.treasure) return 'treasure';
+	return def.category;
+}
+
+/**
+ * How a grid of items is ordered (`ItemSort`): as the things were placed, by value (dearest
+ * first), by name, or by type (the filter order, then name). Only the showing changes: each
+ * slot keeps its real place.
+ */
+export type ItemSortOrder = 'placed' | 'value' | 'name' | 'type';
+
+export const SORT_LABELS: Record<ItemSortOrder, string> = {
+	placed: 'As placed',
+	value: 'By value',
+	name: 'By name',
+	type: 'By type'
+};
+
+/**
+ * `entries` in the order asked for. `item` names an entry's item; `value` is what it is worth.
+ * Ties keep the order they came in (the sort is stable), so "as placed" breaks every tie.
+ */
+export function sortItems<T>(
+	entries: readonly T[],
+	order: ItemSortOrder,
+	item: (entry: T) => string,
+	value: (entry: T) => number
+): T[] {
+	const list = [...entries];
+	if (order === 'placed') return list;
+	const name = (entry: T): string => ITEMS[item(entry)]?.name ?? item(entry);
+	const byName = (a: T, b: T): number => name(a).localeCompare(name(b));
+	if (order === 'name') return list.sort(byName);
+	if (order === 'value') return list.sort((a, b) => value(b) - value(a) || byName(a, b));
+	const rank = (entry: T): number => FILTER_ORDER.indexOf(filterOf(item(entry)));
+	return list.sort((a, b) => rank(a) - rank(b) || byName(a, b));
 }
 
 /** One figure in a tooltip. `coins`: the value is money, drawn after the coin sign. */
