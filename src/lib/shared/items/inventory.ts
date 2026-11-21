@@ -414,6 +414,35 @@ export function addItem(inv: Inventory, stack: ItemStack): number {
 	return stack.count - place({ inventory: inv }, def, stack, count, true);
 }
 
+/**
+ * Add an item into one slot of an inventory (the admin catalogue, dragged onto a slot): onto a
+ * stack of the same item there, or into the slot, moving what was in it to the backpack. Nothing
+ * past the slot's stack size or the maximum weight, and never into a slot that doesn't take it.
+ * Returns how many didn't fit.
+ */
+export function addItemAt(inv: Inventory, ref: SlotRef, stack: ItemStack): number {
+	const b: Belongings = { inventory: inv };
+	const def = ITEMS[stack.item];
+	if (!def || ref.area === 'stash' || !exists(b, ref) || !accepts(ref, stack.item)) {
+		return stack.count;
+	}
+	const count = Math.min(stack.count, unitsByWeight(inv, def.weight));
+	if (count <= 0) return stack.count;
+	const there = getSlot(b, ref);
+	if (there && !sameKind(there, stack)) {
+		// What is there makes way, into the backpack; if it can't, nothing changes.
+		setSlot(b, ref, null);
+		const copy = cloneInventory(inv);
+		const room = refs({ inventory: copy }, 'backpack').filter((r) => !sameSlot(r, ref));
+		if (put({ inventory: copy }, room, there, there.count) < there.count) {
+			setSlot(b, ref, there);
+			return stack.count;
+		}
+		put(b, room, there, there.count);
+	}
+	return stack.count - put(b, [ref], stack, count);
+}
+
 /** Into the item's own slots and, with `pack`, the backpack. Returns how many went in. */
 function place(
 	b: Belongings,

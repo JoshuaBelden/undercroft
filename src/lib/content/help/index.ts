@@ -505,9 +505,9 @@ A crate never holds much of the best. Deeper crates hold more.`
 
 A hatchet cuts webs in one blow, and can be thrown and picked up again. A trench spade hits everything in front of you, a little less each. A short spear reaches far but only straight ahead, and it is the one weapon that works while you crawl. A nail-studded club leaves things bleeding, but it can snag. A pickaxe breaks through rubble. A sledgehammer staggers anything it hits and smashes trunks open, but you can't run with it in your hand.
 
-The bolt-action rifle's round goes through everything in a line; it loads one round at a time. The derringer fires from the floor, crawling or downed, and takes revolver rounds. The crossbow makes no sound at all, but its bolt takes its time and drops. A slingshot won't kill anything; it makes a noise a long way off, and fires pebbles or old coins.
+The bolt-action rifle's round goes through everything in a line; it loads one round at a time. The derringer fires from the floor, crawling or downed, and takes revolver rounds. It is small enough to go in a quick-use slot, not a weapon slot: take it in your hand from the quick-use wheel ({action:quickUse}). The crossbow makes no sound at all, but its bolt takes its time and drops. A slingshot won't kill anything; it makes a noise a long way off, and fires pebbles or old coins.
 
-An oil bottle bursts into fire where it lands. Firecrackers go off a few seconds after they land, loudly, somewhere you are not. Throwing knives come three to a lot: go and get them back.`
+An oil bottle bursts into fire where it lands. Firecrackers go off a few seconds after they land, loudly, somewhere you are not. Throwing knives come three to a lot: go and get them back. Like the derringer they go in a quick-use slot and come to hand from the wheel.`
 	},
 	{
 		id: 'gear',
@@ -527,7 +527,7 @@ A leather jerkin takes more than a padded coat before it gives, but you run a li
 
 Laudanum: for a minute, nothing the dark or the things in it do costs you sanity, but your aim sways and you move a little slower. Grave dirt: whatever is hunting you loses you for a few seconds. A whistle: everyone in your party sees where you are, for a moment, and so does everything nearby that hears it.
 
-Thrown: a glow stick lights where it lands for a few minutes, and moths come to it. Bait draws rats to it, and off you. Set down: a snare holds the first thing through it. A line of blessed salt is not crossed while it lasts. A tripwire bell rings when something crosses it, and your party is told; it sets itself again a few times.
+Thrown: a glow stick lights where it lands for a few minutes, and moths come to it. Bait draws rats to it, and off you. Set down: take it in your hand, stand still facing the floor where it should go, and hold {action:attack} for a moment; moving or letting go stops it. A snare is set where you face, and holds the first creature that steps in it fast for a few seconds; then it is spent. Blessed salt pours a line 3 m long across the way you face, and nothing hunting you crosses it for half a minute. A tripwire bell strings a line across the way you face: when something crosses it the bell rings, your party is told, and whatever is near hears it. It sets itself again a few times. A snare or a bell still set can be taken up again: look at it and press {action:interact}.
 
 Held: an incense censer keeps moths, rats and spiders away while it smokes, and makes a little noise as it swings. Lockpicks open locks without a sound, but a pick can snap.
 

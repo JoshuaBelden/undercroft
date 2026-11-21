@@ -59,9 +59,13 @@ export function applyPitons(world: CollisionWorld, pitons: readonly Anchor[]): v
 	world.anchors = [...world.anchors.filter((a) => !a.id.startsWith('piton-')), ...pitons];
 }
 
+/** How far in front of the feet the edge is looked for when a piton goes in (m), and in what steps. */
+const EDGE_SEARCH = 1.4;
+const EDGE_STEP = 0.05;
+
 /**
  * Where a piton would go in for a player standing at `feet` and facing `direction`: an anchor
- * just in front of them, at the edge of a drop at least PITONS.minDrop deep, away from any other
+ * on the edge in front of them (no further than EDGE_SEARCH), of a drop at least PITONS.minDrop deep, away from any other
  * anchor; null if there is no such edge.
  */
 export function pitonAnchor(
@@ -74,9 +78,22 @@ export function pitonAnchor(
 	if (flat < 1e-6) return null;
 	const out: [number, number] = [direction[0] / flat, direction[2] / flat];
 	const [ox, oz] = out;
-	// The landing is where they stand: the tie point is ANCHOR.stand in front, on the edge.
-	const position: Vec3 = [feet[0] + ox * ANCHOR.stand, feet[1], feet[2] + oz * ANCHOR.stand];
-	// Still floor there (the lip), and none just past it.
+	// The tie point is on the edge itself, wherever it is in front of them (within EDGE_SEARCH):
+	// the last floor before it falls away. Further back, the rope would hang through the ledge.
+	let ahead = -1;
+	for (let d = EDGE_STEP; d <= EDGE_SEARCH; d += EDGE_STEP) {
+		const floor = floorHeightAt(
+			world,
+			feet[0] + ox * d,
+			feet[2] + oz * d,
+			feet[1] + 0.4,
+			feet[1] - 0.4
+		);
+		if (floor === null) break;
+		ahead = d;
+	}
+	if (ahead < 0) return null;
+	const position: Vec3 = [feet[0] + ox * ahead, feet[1], feet[2] + oz * ahead];
 	const here = floorHeightAt(world, position[0], position[2], feet[1] + 0.4, feet[1] - 0.4);
 	if (here === null) return null;
 	position[1] = here;
@@ -86,6 +103,16 @@ export function pitonAnchor(
 		position[2] + oz * ANCHOR.overhang
 	];
 	const past = ANCHOR.overhang + 0.25;
+	// Just past the lip the floor has to fall away: on a solid block the floor under the block
+	// would otherwise read as a drop anywhere on top of it.
+	const level = floorHeightAt(
+		world,
+		position[0] + ox * past,
+		position[2] + oz * past,
+		here + 0.4,
+		here - 0.4
+	);
+	if (level !== null) return null;
 	const below = floorHeightAt(
 		world,
 		position[0] + ox * past,

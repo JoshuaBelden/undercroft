@@ -289,7 +289,10 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			crates: [[{ item: 'rags', count: 3 }], [{ item: 'wax', count: 2 }]],
 			floor: [
 				{ spot: 'kit', item: 'crafting-kit', count: 1, firstTime: true },
-				{ spot: 'chalk', item: 'chalk', count: 2, firstTime: true }
+				{ spot: 'chalk', item: 'chalk', count: 2, firstTime: true },
+				// On the ledge: something to hammer in, and a rope to tie to it.
+				{ spot: 'pitons', item: 'pitons', count: 2, firstTime: true },
+				{ spot: 'pitons', item: 'rope-bundle', count: 1, firstTime: true }
 			],
 			dummies: [
 				{ spot: 'dummy-5' },
@@ -351,6 +354,13 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 					title: 'The training vault',
 					line: 'Dummies at 5, 10, 20 and 40 m, one on a track. A web and a fall of rubble in the arches. Bricks by the door. Try what you brought.',
 					help: 'fighting-back'
+				},
+				{
+					spot: 'step-piton',
+					radius: 2.5,
+					title: 'A ledge',
+					line: 'Nothing up there to tie a rope to. Stand at the edge facing over the drop, take a piton in your hand and hold attack to hammer it in. Then tie a rope to it with interact, and climb down.',
+					help: 'pitons'
 				},
 				{
 					spot: 'step-out',

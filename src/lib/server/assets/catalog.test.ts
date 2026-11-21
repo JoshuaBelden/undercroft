@@ -115,8 +115,8 @@ describe('planned art', () => {
 	const planned: CatalogContent['planned'] = [
 		{
 			kind: 'model',
-			id: 'shared/items/derringer.glb',
-			label: 'Derringer',
+			id: 'shared/items/test_unmade.glb',
+			label: 'Unmade model',
 			group: 'Items',
 			phase: 4
 		},
@@ -128,7 +128,7 @@ describe('planned art', () => {
 
 	it('is listed before it is made: models and clips as placeholders, the rest missing', () => {
 		const catalog = buildCatalog(diskFor(content), content);
-		expect(row(catalog, 'model', 'shared/items/derringer.glb')).toMatchObject({
+		expect(row(catalog, 'model', 'shared/items/test_unmade.glb')).toMatchObject({
 			status: 'placeholder',
 			usedBy: ['Planned: Items (phase 4)'],
 			planned: 4

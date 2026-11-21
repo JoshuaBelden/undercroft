@@ -181,5 +181,30 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	// A key turning in a trunk's lock.
 	{ id: 'key.unlock', file: 'sfx_key_unlock.mp3' },
 	// Pencil on paper: sketching the map.
-	{ id: 'map.scribble', file: 'sfx_scribble.mp3' }
+	{ id: 'map.scribble', file: 'sfx_scribble.mp3' },
+	// The gear, crafting and loot round's weapons and tools.
+	{ id: 'crossbow.shot', file: 'crossbow.shot.mp3' },
+	// The crank runs 11 s; reloading takes 2.5.
+	{ id: 'crossbow.crank', file: 'crossbow.crank.mp3', crop: { start: 0, length: 2.5 } },
+	{ id: 'rifle.shot', file: 'rifle.shot.mp3' },
+	{ id: 'rifle.bolt', file: 'rifle.bolt.mp3' },
+	{ id: 'rifle.load', file: 'rifle.load.mp3' },
+	{ id: 'hatchet.hit', file: 'hatchet.hit.mp3' },
+	{ id: 'spade.hit', file: 'spade.hit.mp3' },
+	{ id: 'spear.thrust', file: 'spear.thrust.mp3' },
+	// Every swing (the knife and crowbar's `melee.swing`, and each weapon's own swing, pitched).
+	{ id: 'swoosh', file: 'swoosh.mp3' },
+	{ id: 'slingshot.shot', file: 'slingshot.shot.mp3' },
+	{ id: 'oilbottle.shatter', file: 'oilbottle.shatter.mp3' },
+	// The fuse burns 4 s.
+	{ id: 'firecrackers.fuse', file: 'firecracker.fuse.mp3', crop: { start: 0, length: 4 } },
+	{ id: 'firecrackers.bang', file: 'firecrackers.bang.mp3' },
+	{ id: 'tripwire.ring', file: 'tripwire.ring.mp3' },
+	{ id: 'whistle.blow', file: 'whistle.blow.mp3' },
+	// Hammering a piton in takes 2 s; the recording runs nearly 10.
+	{ id: 'piton.hammer', file: 'piton.hammer.mp3', crop: { start: 0, length: 2 } },
+	{ id: 'laudanum.drink', file: 'drink.mp3' },
+	// Mending and breaking down at the Workshop.
+	{ id: 'workshop.repair', file: 'workshop.repair.mp3' },
+	{ id: 'workshop.salvage', file: 'item.salvage.mp3' }
 ];

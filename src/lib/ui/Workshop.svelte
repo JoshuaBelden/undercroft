@@ -203,9 +203,15 @@
 </section>
 
 <style>
+	/* As tall as the window allows (less the bar above and the corner buttons below), like the
+	   Loadout page's panels. */
 	.workshop {
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		height: calc(100vh - 170px);
 		width: min(1100px, calc(100% - 32px));
-		margin: 24px auto 96px;
+		margin: 24px auto 84px;
 		padding: 18px 24px 24px;
 		border: 1px solid var(--border);
 		border-radius: 18px;
@@ -258,6 +264,13 @@
 		flex-direction: column;
 		gap: 12px;
 		--slot-size: 72px;
+		/* The page stays still: the list scrolls inside its container. */
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		padding-right: 6px;
+		scrollbar-width: thin;
+		scrollbar-color: var(--border) transparent;
 	}
 
 	.row {

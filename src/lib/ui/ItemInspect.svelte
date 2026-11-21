@@ -55,7 +55,7 @@
 			<span class="label"
 				>{wear.broken ? 'Broken: it does nothing until repaired' : 'Durability'}</span
 			>
-			<span class="percent">{wear.percent}%</span>
+			<span class="percent">{wear.readout}</span>
 			<span class="bar" aria-hidden="true"><span style:width="{wear.left * 100}%"></span></span>
 		</div>
 	{/if}

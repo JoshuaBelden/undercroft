@@ -73,7 +73,7 @@
 	{#if wear}
 		<div class="durability" class:broken={wear.broken}>
 			<span class="label">{wear.broken ? 'Broken' : 'Durability'}</span>
-			<span class="percent">{wear.percent}%</span>
+			<span class="percent">{wear.readout}</span>
 			<span class="bar" aria-hidden="true"><span style:width="{wear.left * 100}%"></span></span>
 		</div>
 		{#if wear.broken}
@@ -188,7 +188,7 @@
 		color: var(--muted);
 	}
 
-	/* Durability: the label and percent above a thin bar of what is left. Red when broken. */
+	/* Durability: the label and what is left (left/max) above a thin bar of what is left. Red when broken. */
 	.durability {
 		display: grid;
 		grid-template-columns: 1fr auto;

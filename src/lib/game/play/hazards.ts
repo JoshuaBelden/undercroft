@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import { ITEMS } from '#lib/content/items.ts';
 import { TAROT } from '#lib/content/tarot.ts';
 import { raise } from '#lib/game/alerts.svelte.ts';
+import { loadModel } from '#lib/game/assets.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
-import { allStacks, held } from '#lib/shared/items/inventory.ts';
+import { allStacks, canTake, held } from '#lib/shared/items/inventory.ts';
+import { lookedAtItem } from '#lib/shared/items/pickup.ts';
 import { flightPath, throwOf } from '#lib/shared/items/projectile.ts';
 import type { GameEvent, HazardsSnapshot } from '#lib/shared/items/types.ts';
 import { aimRay, THROW_DRAW } from '#lib/shared/items/weapons.ts';
@@ -11,7 +13,8 @@ import type { CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
 import { eyeHeight } from '#lib/shared/player/simulate.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
-import type { PlayContext, PlayFeature, TickMessage } from './feature.ts';
+import type { Aim, PlayContext, PlayFeature, Prompt, TickMessage } from './feature.ts';
+import { keyPrompt } from './prompt.ts';
 
 /** A fire's light: warm, close, and only lit near enough to matter (it counts in the light budget). */
 const FIRE_LIGHT = { color: 0xff8a3a, intensity: 6, distance: 7, decay: 2, near: 22 };
@@ -42,6 +45,10 @@ export class Hazards implements PlayFeature {
 	>();
 	private baits = new Map<string, THREE.Object3D>();
 	private tripwires = new Map<string, THREE.Object3D>();
+	/** What was set down that can be taken up again (snares, tripwire bells), as the tick says. */
+	private takeable: { id: string; item: string; position: Vec3 }[] = [];
+	/** The one of them interact would take up. */
+	private aimedAt: { id: string; item: string } | null = null;
 	private world: CollisionWorld | null = null;
 	private arc: THREE.Line;
 	private mark: THREE.Mesh;
@@ -84,6 +91,15 @@ export class Hazards implements PlayFeature {
 	}
 
 	private apply(hazards: HazardsSnapshot): void {
+		// What interact can take up again: where the server looks for it (HazardSystem.takeBack).
+		this.takeable = [
+			...hazards.snares.map(({ id, item, position }) => ({ id, item, position })),
+			...hazards.tripwires.map(({ id, item, a, b }) => ({
+				id,
+				item,
+				position: [(a[0] + b[0]) / 2, a[1], (a[2] + b[2]) / 2] as Vec3
+			}))
+		];
 		sync(
 			this.fires,
 			hazards.fires,
@@ -137,7 +153,7 @@ export class Hazards implements PlayFeature {
 		sync(
 			this.tripwires,
 			hazards.tripwires,
-			(wire) => this.tripwire(wire.a, wire.b),
+			(wire) => this.tripwire(wire.item, wire.a, wire.b),
 			(shown) => {
 				this.root.remove(shown);
 				dispose(shown);
@@ -168,8 +184,31 @@ export class Hazards implements PlayFeature {
 		return { group, light, left, seconds };
 	}
 
-	/** A tripwire: a taut line across the way, a bell at one end. */
-	private tripwire(a: Vec3, b: Vec3): THREE.Object3D {
+	/**
+	 * A snare or a tripwire bell set down, in view and in reach: interact takes it up again. A
+	 * floor item comes first (its prompt is ahead of this one, and the server takes it first).
+	 */
+	target(state: PlayerState, aim: Aim | null, taken: boolean): boolean {
+		const found =
+			aim && !taken
+				? lookedAtItem(aim.world, state.position, aim.origin, aim.direction, this.takeable)
+				: null;
+		this.aimedAt = found ? { id: found.id, item: found.item } : null;
+		return !!found;
+	}
+
+	prompt(state: PlayerState): Prompt | null {
+		if (!this.aimedAt) return null;
+		const { item } = this.aimedAt;
+		const name = ITEMS[item]?.name ?? item;
+		const fit = canTake(state.inventory, { item, count: 1 });
+		if (fit === 'heavy') return { prompt: name + ': too heavy to carry', progress: 0 };
+		if (fit === 'full') return { prompt: name + ': no room for it', progress: 0 };
+		return keyPrompt('interact', `to take up the ${name.toLowerCase()}`);
+	}
+
+	/** A tripwire: a taut line across the way, its bell at one end (the item's model when it has one). */
+	private tripwire(item: string, a: Vec3, b: Vec3): THREE.Object3D {
 		const group = new THREE.Group();
 		const length = Math.hypot(b[0] - a[0], b[2] - a[2]);
 		const line = new THREE.Mesh(
@@ -183,7 +222,17 @@ export class Hazards implements PlayFeature {
 			new THREE.MeshStandardMaterial({ color: 0xb08a3a, metalness: 0.7, roughness: 0.4 })
 		);
 		bell.position.set(a[0], a[1] + 0.12, a[2]);
-		group.add(line, bell);
+		group.add(line);
+		const url = ITEMS[item]?.model;
+		if (url) {
+			const at = new THREE.Group();
+			at.position.set(a[0], a[1], a[2]);
+			at.rotation.y = -Math.atan2(b[2] - a[2], b[0] - a[0]);
+			group.add(at);
+			this.onFloor(url, at);
+			bell.geometry.dispose();
+			(bell.material as THREE.Material).dispose();
+		} else group.add(bell);
 		this.root.add(group);
 		return group;
 	}
@@ -221,18 +270,44 @@ export class Hazards implements PlayFeature {
 		return { group, light };
 	}
 
-	/** A snare set on the floor: its item's model when it has one, a small box till then. */
+	/** A snare set on the floor (or bait thrown down): its item's model, or a small box till it has one. */
 	private snare(item: string, position: Vec3, yaw: number): THREE.Object3D {
 		const def = ITEMS[item];
+		const group = new THREE.Group();
+		group.position.set(...position);
+		group.rotation.y = yaw;
+		this.root.add(group);
+		if (def?.model) {
+			this.onFloor(def.model, group);
+			return group;
+		}
 		const [w, h, d] = def?.placeholder?.size ?? [0.4, 0.06, 0.4];
 		const box = new THREE.Mesh(
 			new THREE.BoxGeometry(w, h, d),
 			new THREE.MeshStandardMaterial({ color: def?.placeholder?.color ?? 0x5b4a30, roughness: 0.9 })
 		);
-		box.position.set(position[0], position[1] + h / 2, position[2]);
-		box.rotation.y = yaw;
-		this.root.add(box);
-		return box;
+		box.position.y = h / 2;
+		group.add(box);
+		return group;
+	}
+
+	/**
+	 * An item's model into `into`, resting on its lowest point on the floor there. The model's
+	 * geometry is shared with every other copy (the asset cache), so it is marked never to be
+	 * disposed with what it was put in.
+	 */
+	private onFloor(url: string, into: THREE.Object3D): void {
+		void loadModel(url).then((model) => {
+			model.traverse((node) => {
+				if (!(node instanceof THREE.Mesh)) return;
+				node.castShadow = true;
+				node.receiveShadow = true;
+				node.userData.shared = true;
+			});
+			const box = new THREE.Box3().setFromObject(model);
+			model.position.y = -box.min.y;
+			into.add(model);
+		});
 	}
 
 	/** A line of salt across the floor. */
@@ -435,7 +510,8 @@ function sync<T extends { id: string }, S>(
 /** Free an object's own geometry and materials. */
 function dispose(root: THREE.Object3D): void {
 	root.traverse((node) => {
-		if (!(node instanceof THREE.Mesh)) return;
+		// A loaded model's geometry and materials belong to the asset cache.
+		if (!(node instanceof THREE.Mesh) || node.userData.shared) return;
 		node.geometry.dispose();
 		(node.material as THREE.Material).dispose();
 	});

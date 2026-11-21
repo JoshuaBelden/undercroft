@@ -4,6 +4,7 @@ import { ITEMS, type ItemCategory } from '../../content/items.ts';
 import { HAND } from '../player/types.ts';
 import {
 	addItem,
+	addItemAt,
 	addToSlots,
 	allStacks,
 	applyAction,
@@ -104,6 +105,43 @@ describe('adding and removing', () => {
 		expect(addItem(inv, { item: 'no-such-item', count: 3 })).toBe(3);
 		expect(canTake(inv, { item: 'no-such-item', count: 1 })).toBe('full');
 		expect(addToSlots(emptySlots(4), { item: 'no-such-item', count: 2 })).toBe(2);
+	});
+});
+
+describe('adding into one slot (the admin catalogue)', () => {
+	const pack = (index: number) => ({ area: 'backpack', index }) as const;
+
+	it('puts it in that slot, stacking onto the same item, up to maxStack', () => {
+		const inv = emptyInventory();
+		expect(addItemAt(inv, pack(5), newStack(JUNK, 3))).toBe(0);
+		expect(addItemAt(inv, pack(5), newStack(JUNK, maxStack(JUNK)))).toBe(3);
+		expect(inv.backpack[5]).toMatchObject({ item: JUNK, count: maxStack(JUNK) });
+		expect(carriedCount(inv, JUNK)).toBe(maxStack(JUNK));
+	});
+
+	it("moves what was there into the backpack, or refuses if it can't", () => {
+		const inv = emptyInventory();
+		addItem(inv, newStack(WEAPON));
+		const primary = { area: 'equipment', slot: 'primary' } as const;
+		expect(addItemAt(inv, primary, newStack(OTHER_WEAPON))).toBe(0);
+		expect(inv.equipment.primary?.item).toBe(OTHER_WEAPON);
+		expect(inv.backpack.some((s) => s?.item === WEAPON)).toBe(true);
+		// With the backpack full, the weapon in the slot stays and the new one isn't given.
+		const full = emptyInventory();
+		full.equipment.primary = newStack(WEAPON);
+		full.backpack.fill(newStack(JUNK));
+		expect(addItemAt(full, primary, newStack(OTHER_WEAPON))).toBe(1);
+		expect(full.equipment.primary?.item).toBe(WEAPON);
+	});
+
+	it("refuses a slot that doesn't take it, the stash, or past the maximum weight", () => {
+		const inv = emptyInventory();
+		expect(addItemAt(inv, { area: 'quick', index: 0 }, newStack(JUNK, 2))).toBe(2);
+		expect(addItemAt(inv, { area: 'stash', index: 0 }, newStack(JUNK, 2))).toBe(2);
+		expect(addItemAt(inv, pack(99), newStack(JUNK, 2))).toBe(2);
+		addItem(inv, newStack(HEAVY, FULL_LOAD));
+		const free = inv.backpack.findIndex((s) => !s);
+		expect(addItemAt(inv, pack(free), newStack(HEAVY))).toBe(1);
 	});
 });
 

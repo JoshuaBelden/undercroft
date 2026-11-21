@@ -2,7 +2,17 @@ import { MAP_KIT } from '../../src/lib/content/map/kit.ts';
 import { ITEMS } from '../../src/lib/content/items.ts';
 import { MOVEMENT } from '../../src/lib/content/player/movement.ts';
 import { addWear, lasting, mend, wreck } from '../../src/lib/shared/items/durability.ts';
-import { addItem, allStacksLive, held, newStack } from '../../src/lib/shared/items/inventory.ts';
+import {
+	addItem,
+	addItemAt,
+	allStacksLive,
+	canTake,
+	EQUIPMENT,
+	held,
+	newStack,
+	sanitizeRef,
+	takeStack
+} from '../../src/lib/shared/items/inventory.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
 import { toWorld } from '../../src/lib/shared/map/grid.ts';
 import { dropSpot, inFront, roomPoints, testPoints } from '../../src/lib/shared/map/points.ts';
@@ -25,10 +35,48 @@ export class CheatSystem implements SessionSystem {
 		godMode: (player, command) => this.flag(player, command.kind, command.enabled),
 		infiniteAmmo: (player, command) => this.flag(player, command.kind, command.enabled),
 		give: (player, command) => {
-			if (typeof command.item !== 'string' || !ITEMS[command.item]) return false;
+			const def = typeof command.item === 'string' ? ITEMS[command.item] : undefined;
+			if (!def) return false;
+			const to = command.to === undefined ? null : sanitizeRef(command.to);
+			if (command.to !== undefined && !to) return false;
 			const count = Math.max(1, Math.min(99, Math.floor(Number(command.count) || 1)));
-			const magazine = ITEMS[command.item].firearm?.magazine;
-			addItem(player.state.inventory, newStack(command.item, count, magazine));
+			const inv = player.state.inventory;
+			const stack = newStack(command.item, count, def.firearm?.magazine);
+			const left = to ? addItemAt(inv, to, stack) : addItem(inv, stack);
+			const given = count - left;
+			if (given > 0) {
+				this.ctx.send(player, {
+					type: 'alert',
+					alert: { kind: 'item', item: command.item, count: given, source: 'grant' }
+				});
+			}
+			// What didn't fit is said, not dropped or lost without a word.
+			if (left > 0) {
+				const heavy = canTake(inv, newStack(command.item)) === 'heavy';
+				this.ctx.send(player, {
+					type: 'alert',
+					alert: {
+						kind: 'note',
+						title: given > 0 ? `Only ${given} of ${count} given` : 'Nothing given',
+						line: heavy
+							? `${def.name}: too heavy to carry more.`
+							: to
+								? `${def.name}: no room in that slot.`
+								: `${def.name}: no room for it.`
+					}
+				});
+			}
+		},
+		discard: (player, command) => {
+			const from = sanitizeRef(command.from);
+			if (!from || !takeStack({ inventory: player.state.inventory }, from, Infinity)) return false;
+		},
+		emptyInventory: (player) => {
+			// Emptied in place: the pack itself (and its size) stays.
+			const inv = player.state.inventory;
+			for (const slot of EQUIPMENT) inv.equipment[slot] = null;
+			inv.backpack.fill(null);
+			inv.quick.fill(null);
 		},
 		refillAmmo: (player) => {
 			for (const slot of ['primary', 'secondary'] as const) {

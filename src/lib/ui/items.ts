@@ -5,18 +5,20 @@ import { condition, isBroken, lasting, wearAmount, wearOf } from '#lib/shared/it
 import type { ItemStack } from '#lib/shared/player/types.ts';
 
 /**
- * How worn a stack is, for its tooltip and Inspect panel: what is left (0..1, and as a whole
- * percent) and whether it is broken. Null for things that never wear.
+ * How worn a stack is, for its slot, tooltip and Inspect panel: what is left (0..1), as
+ * "left/max" in the item's own unit (hits, shots, uses, seconds), so a sturdier thing reads as
+ * one, and whether it is broken. Null for things that never wear.
  */
 export function stackCondition(
 	stack: ItemStack
-): { left: number; percent: number; broken: boolean } | null {
+): { left: number; readout: string; broken: boolean } | null {
 	const left = condition(stack);
-	if (left === null) return null;
-	// Never "0%" for something that still works, nor "100%" for something with any wear.
-	const raw = left * 100;
-	const percent = left <= 0 ? 0 : left >= 1 ? 100 : Math.min(99, Math.max(1, Math.round(raw)));
-	return { left, percent, broken: isBroken(stack) };
+	const last = lasting(ITEMS[stack.item]);
+	if (left === null || !last) return null;
+	// Never 0 for something that still works, nor full for something with any wear.
+	const raw = last.max - wearOf(stack);
+	const remaining = raw <= 0 ? 0 : raw >= last.max ? last.max : Math.max(1, Math.floor(raw));
+	return { left, readout: `${remaining}/${last.max}`, broken: isBroken(stack) };
 }
 
 /** The mark drawn on a broken item's slot (`Slot`'s `broken`): a crack, in a 24-unit box. */

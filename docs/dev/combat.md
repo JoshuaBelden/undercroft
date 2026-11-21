@@ -43,8 +43,10 @@ The ways weapons and thrown and placed things behave beyond a plain swing or sho
 
 - **Snares** (`snare: { hold, radius }`): the first creature that steps within `radius` is held fast for `hold` seconds (`CreatureDirector.hold`: it stands struggling, and an attack not yet landed is lost), and the snare is spent. A `snared` event plays `snare.spring`.
 - **Lines of salt** (`ward: { length, seconds }`): a line `length` across the way, for `seconds`. Creatures won't cross it: a move that would (`crosses`) is undone, so they stay on their side.
+- **Tripwire bells** (`tripwire: { length, noise }`): a line across the way that rings when something crosses it (`noise`, and a `tripwire` event: the party is told), then sets itself again; each ring is a use of its `durability`. The `place` event carries the bell's `worn`, so a bell set down rings only what it has left.
+- **Taken up again:** a snare or a tripwire bell still set is taken back with interact, looking at it (the snare, or the middle of the line), when no floor item is in view (`HazardSystem.takeBack`, from `PackSystem`): back into the pack as it was, a bell with a ring's wear for each ring. The client prompts for it (`Hazards.target`, `prompt`) and draws each with its item's model.
 
-What is set down or set off is in every tick's `hazards` (`HazardsSnapshot`: fires, snares, wards), and drawn by every client.
+What is set down or set off is in every tick's `hazards` (`HazardsSnapshot`: fires, snares, wards, tripwires), and drawn by every client.
 
 ## Crawling, squeezed or down
 

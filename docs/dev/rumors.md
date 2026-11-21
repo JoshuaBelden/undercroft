@@ -22,6 +22,8 @@ An Affliction with `training` gets its own map (`generateLayout` with `training`
 
 `spot-<name>` markers name places in a piece (`PieceDef.spots`, `worldSpots` in world space). The walk has the tutorial's: `step-crate`, `kit`, `step-kit`, `step-recipe`, `chalk`, `step-chalk`. The vault has `range`, `dummy-5`/`10`/`20`/`40` (that far from `range`), `track`, `step-vault` and `step-out`, rubble markers for bricks, and its ladder out (`extract-0`).
 
+Against the vault's east wall is a ledge 2.2 m up, with steps to it from the south, to practise [climbing pitons](world.md#pitons) on: its north and west edges are sheer, with nothing to tie a rope to. The pitons and a rope bundle lie on it the first time (`pitons`), and `step-piton` at the foot of the steps says how. For room to stand on the ledge the vault is 5 m tall, over its one level: its root's `headroom` (1.4 m), allowed because nothing is ever built over the training map.
+
 ## No threat, normal rules
 
 The Affliction director starts calmed (no meter, omens or manifestation; `manifestation` is optional on an Affliction), the creature director is `quiet` (nothing is drawn to noise or light) and only the dummies are placed. Things hurt as anywhere, but in a training ground `hurt` never takes sanity below 1: nobody goes down. Rounds are spent, things wear and break, what is used is gone.

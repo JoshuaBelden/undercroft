@@ -5,7 +5,7 @@
 	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import type { ItemBoard } from './itemBoard.svelte.ts';
 	import { isBroken } from '#lib/shared/items/durability.ts';
-	import { slotMark, stackDetail, stackLabel } from './items.ts';
+	import { slotMark, stackCondition, stackDetail, stackLabel } from './items.ts';
 	import Slot from './Slot.svelte';
 
 	/**
@@ -29,6 +29,8 @@
 	let { board, ref, stack, size = 'normal', hint, label }: Props = $props();
 
 	const def = $derived(stack ? ITEMS[stack.item] : undefined);
+	/** Under the slot: what is left of it, for things that wear ("75/100"). */
+	const wear = $derived(stack ? stackCondition(stack) : null);
 	/** Something is being dragged: this slot would take it, or it wouldn't. */
 	const target = $derived(board.dragging ? board.allows(ref) : null);
 
@@ -158,11 +160,16 @@
 		broken={isBroken(stack)}
 		fresh={board.isFresh(stack)}
 	/>
+	<!-- Always there, so slots line up whether or not what is in them wears. -->
+	<span class="wear" class:broken={wear?.broken} aria-hidden="true">{wear?.readout ?? ''}</span>
 </button>
 
 <style>
 	.item-slot {
 		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
 		padding: 0;
 		border: 0;
 		border-radius: 12px;
@@ -201,5 +208,18 @@
 
 	.item-slot.refuses {
 		opacity: 0.4;
+	}
+
+	.wear {
+		min-height: 1.1em;
+		font-family: var(--font-ui);
+		font-size: 0.7rem;
+		line-height: 1.1;
+		letter-spacing: 0.04em;
+		color: var(--muted);
+	}
+
+	.wear.broken {
+		color: var(--broken);
 	}
 </style>

@@ -1,4 +1,6 @@
 import { ITEMS } from '../../src/lib/content/items.ts';
+import { addItem, newStack } from '../../src/lib/shared/items/inventory.ts';
+import { lookedAtItem } from '../../src/lib/shared/items/pickup.ts';
 import type { HazardsSnapshot } from '../../src/lib/shared/items/types.ts';
 import { floorHeightAt, segmentHit } from '../../src/lib/shared/map/collision.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
@@ -195,7 +197,8 @@ export class HazardSystem implements SessionSystem {
 					a: [ahead[0] - across[0] * half, ahead[1], ahead[2] - across[2] * half],
 					b: [ahead[0] + across[0] * half, ahead[1], ahead[2] + across[2] * half],
 					noise: spec.tripwire.noise,
-					rings: ITEMS[event.item]?.durability?.max ?? 1,
+					// As worn as the bell was: each ring is a use.
+					rings: Math.max(1, (ITEMS[event.item]?.durability?.max ?? 1) - (event.worn ?? 0)),
 					wait: 0
 				});
 			}
@@ -218,6 +221,40 @@ export class HazardSystem implements SessionSystem {
 				position: ahead
 			});
 		}
+	}
+
+	/**
+	 * Interact on a snare or a tripwire bell you set (or anyone did), with no floor item in view
+	 * (PackSystem): it is taken up again, back into the pack as it was. False if none is in view
+	 * or there is no room for it.
+	 */
+	takeBack(player: Player, eye: Vec3, look: Vec3): boolean {
+		const s = player.state;
+		const set = [
+			...this.snares.map((snare) => ({ id: snare.id, item: snare.item, position: snare.position })),
+			...this.tripwires.map((wire) => ({
+				id: wire.id,
+				item: wire.item,
+				position: wireMiddle(wire)
+			}))
+		];
+		const found = lookedAtItem(this.ctx.world, s.position, eye, look, set);
+		if (!found) return false;
+		const stack = newStack(found.item);
+		const wire = this.tripwires.find((w) => w.id === found.id);
+		const max = ITEMS[found.item]?.durability?.max;
+		if (wire && max) stack.worn = max - wire.rings;
+		if (addItem(s.inventory, stack) > 0) return false;
+		this.snares = this.snares.filter((snare) => snare.id !== found.id);
+		this.tripwires = this.tripwires.filter((w) => w.id !== found.id);
+		this.ctx.events.push({
+			kind: 'pickup',
+			player: player.id,
+			item: found.item,
+			count: 1,
+			position: [...found.position]
+		});
+		return true;
 	}
 
 	/** The floor a step in front of the eye, if there is one there and nothing in the way of it. */
@@ -357,4 +394,9 @@ export class HazardSystem implements SessionSystem {
 function inside(fire: Fire, position: Vec3): boolean {
 	if (Math.abs(position[1] - fire.position[1]) > 1.2) return false;
 	return Math.hypot(position[0] - fire.position[0], position[2] - fire.position[2]) <= fire.radius;
+}
+
+/** The middle of a tripwire's line: where it is looked at to take it up. */
+export function wireMiddle(wire: Ward): Vec3 {
+	return [(wire.a[0] + wire.b[0]) / 2, wire.a[1], (wire.a[2] + wire.b[2]) / 2];
 }

@@ -1,4 +1,7 @@
+import * as THREE from 'three';
+import { ITEMS } from '#lib/content/items.ts';
 import { ROPE } from '#lib/content/rope.ts';
+import { loadModel } from '#lib/game/assets.ts';
 import { LaidRopes } from '#lib/game/items/LaidRopes.ts';
 import { HangingRopes, type RopeClimber } from '#lib/game/map/HangingRopes.ts';
 import { connection } from '#lib/game/net/connection.svelte.ts';
@@ -13,7 +16,7 @@ import {
 	ropeLength
 } from '#lib/shared/items/rope.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
-import type { CollisionWorld } from '#lib/shared/map/collision.ts';
+import type { Anchor, CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
 import { ropeById, ropeToGrab } from '#lib/shared/player/climb.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
@@ -34,10 +37,15 @@ export class Ropes implements PlayFeature {
 	private hanging = new HangingRopes();
 	private laid = new LaidRopes();
 	private creaks: RopeCreaks;
+	/** Pitons hammered in, drawn where they went in (by anchor id). */
+	private pitons = new THREE.Group();
+	private shownPitons = new Map<string, THREE.Object3D>();
 
 	constructor(private ctx: PlayContext) {
 		ctx.engine.scene.add(this.hanging.root);
 		ctx.engine.scene.add(this.laid.root);
+		this.pitons.name = 'pitons';
+		ctx.engine.scene.add(this.pitons);
 		this.creaks = new RopeCreaks(ctx.sounds);
 	}
 
@@ -65,6 +73,7 @@ export class Ropes implements PlayFeature {
 		const world = this.ctx.player.collision;
 		if (world) {
 			applyPitons(world, connection.ropes.pitons);
+			this.drawPitons(connection.ropes.pitons);
 			applyTied(world, connection.ropes.tied);
 			this.hanging.sync(world);
 		}
@@ -189,7 +198,40 @@ export class Ropes implements PlayFeature {
 		return null;
 	}
 
+	/**
+	 * Each piton where it went in: the item's model driven point down into the stone at the knot,
+	 * its eye just showing. The model's geometry is the asset cache's, so nothing is disposed.
+	 */
+	private drawPitons(pitons: readonly Anchor[]): void {
+		const ids = new Set(pitons.map((piton) => piton.id));
+		for (const [id, shown] of this.shownPitons) {
+			if (ids.has(id)) continue;
+			shown.removeFromParent();
+			this.shownPitons.delete(id);
+		}
+		const url = Object.values(ITEMS).find((def) => def.place?.anchor)?.model;
+		for (const piton of pitons) {
+			if (this.shownPitons.has(piton.id)) continue;
+			const at = new THREE.Group();
+			at.position.set(piton.position[0], piton.position[1], piton.position[2]);
+			// Facing out over the drop.
+			at.rotation.y = Math.atan2(
+				-(piton.lip[0] - piton.position[0]),
+				-(piton.lip[2] - piton.position[2])
+			);
+			this.pitons.add(at);
+			this.shownPitons.set(piton.id, at);
+			if (!url) continue;
+			void loadModel(url).then((model) => {
+				// Forward (-Z, the points) turned straight down.
+				model.rotation.x = -Math.PI / 2;
+				at.add(model);
+			});
+		}
+	}
+
 	clear(): void {
+		this.drawPitons([]);
 		this.hanging.clear();
 		this.creaks.clear();
 		this.laid.clear();

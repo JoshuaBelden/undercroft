@@ -195,4 +195,4 @@ Every purchase, sale, grant and reset, and everything thrown away, writes a line
 
 ## Testing
 
-A new explorer has nothing. In dev mode, the admin panel's Account section (F10 on the party screen) grants money and items; underground, Give puts things straight in your hands. Dying needs no salts: set sanity to 0 and wait out the bleed-out.
+A new explorer has nothing. In dev mode, the admin panel's Account section (F10) grants money and items to the stash, which only works while the explorer is on the surface; underground, the Items section's item catalogue puts things straight into your slots ([items.md](items.md#admin)). Dying needs no salts: set sanity to 0 and wait out the bleed-out.

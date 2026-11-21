@@ -33,7 +33,9 @@
 	import { canVibrate, connectedPads, familyOf, playRumble } from '#lib/game/input/gamepad.ts';
 	import { bindingLabel, type PadFamily } from '#lib/game/input/actions.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
-	import type { PlayerFlags } from '#lib/shared/player/types.ts';
+	import type { InventoryAction } from '#lib/shared/items/types.ts';
+	import type { Inventory, PlayerFlags } from '#lib/shared/player/types.ts';
+	import AdminCatalogue from './AdminCatalogue.svelte';
 	import type { AdminCommand } from '#lib/shared/protocol.ts';
 	import StepperField from './StepperField.svelte';
 	import TabScreen from './TabScreen.svelte';
@@ -68,7 +70,11 @@
 		/** Affliction meter 0..1 (dev only) and omen stage. */
 		meter: number | null;
 		omen: number;
+		/** What you carry, for the item catalogue (null before the game has said). */
+		inventory: Inventory | null;
 		onadmin: (command: AdminCommand) => void;
+		/** A change within what you carry, from the item catalogue (as the pack screen sends it). */
+		oninventory: (action: InventoryAction) => void;
 		onmapview: (enabled: boolean) => void;
 		onfreecam: (enabled: boolean) => void;
 		ongridview: (enabled: boolean) => void;
@@ -100,7 +106,9 @@
 		gripPose,
 		meter,
 		omen,
+		inventory,
 		onadmin,
+		oninventory,
 		onmapview,
 		onfreecam,
 		ongridview,
@@ -177,10 +185,18 @@
 	let deadlineInput = $state('10');
 	let accountMessage = $state('');
 
-	// Clues are read where they lie; they can't be given.
+	/** The item catalogue is open in place of the groups. */
+	let catalogue = $state(false);
+
+	/** The item the Alerts group's test alerts and the Account group's stash grant are about. */
 	const itemIds = Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'clue');
 	let giveItem = $state('crowbar');
 	let giveCount = $state('1');
+
+	function stepItem(by: number): void {
+		const index = itemIds.indexOf(giveItem);
+		giveItem = itemIds[(index + by + itemIds.length) % itemIds.length];
+	}
 
 	const creatureKinds = Object.keys(CREATURES);
 	let spawnKind = $state('witch');
@@ -188,11 +204,6 @@
 	function stepKind(by: number): void {
 		const index = creatureKinds.indexOf(spawnKind);
 		spawnKind = creatureKinds[(index + by + creatureKinds.length) % creatureKinds.length];
-	}
-
-	function stepItem(by: number): void {
-		const index = itemIds.indexOf(giveItem);
-		giveItem = itemIds[(index + by + itemIds.length) % itemIds.length];
 	}
 
 	/** The Grip check steps through Off and every item that can be in the hand. */
@@ -265,12 +276,6 @@
 		if (Number.isFinite(seconds)) onadmin({ kind: 'setDeadline', seconds });
 	}
 
-	function give(event: SubmitEvent): void {
-		event.preventDefault();
-		const count = Number(giveCount);
-		onadmin({ kind: 'give', item: giveItem, count: Number.isFinite(count) ? count : 1 });
-	}
-
 	function setSanity(event: SubmitEvent): void {
 		event.preventDefault();
 		const value = Number(sanityInput);
@@ -307,7 +312,14 @@
 	</div>
 {/snippet}
 
-{#if devMode}
+{#if devMode && catalogue && inventory}
+	<AdminCatalogue
+		{inventory}
+		{onadmin}
+		onaction={oninventory}
+		onclose={() => (catalogue = false)}
+	/>
+{:else if devMode}
 	<TabScreen label="Admin" groups={GROUPS} bind:group {onclose} dim>
 		{#if group === 'Session'}
 			{@render info('Connection', status)}
@@ -414,15 +426,11 @@
 				{@render action(room, () => onadmin({ kind: 'teleport', room }))}
 			{/each}
 		{:else if group === 'Items'}
-			<StepperField label="Item" text={ITEMS[giveItem]?.name ?? giveItem} onstep={stepItem} />
-			<form class="setting" onsubmit={give}>
-				<label class="pill">
-					<span class="name">Count</span>
-					<input type="text" inputmode="numeric" autocomplete="off" bind:value={giveCount} />
-				</label>
-				<button type="submit">Give</button>
-				<p class="hint">Firearms come loaded.</p>
-			</form>
+			{@render action(
+				'Item catalogue',
+				() => (catalogue = true),
+				'Every item beside what you carry: drag one onto a slot, or shift-click it. Firearms come loaded.'
+			)}
 			{@render action('Refill ammo', () => onadmin({ kind: 'refillAmmo' }))}
 			{@render action('Wear held item', () => onadmin({ kind: 'wearHeld' }))}
 			{@render action('Break held item', () => onadmin({ kind: 'breakHeld' }))}
@@ -519,6 +527,14 @@
 			{@render action('Test rumble', () => playRumble('hit'), 'On every controller.')}
 		{:else if group === 'Alerts'}
 			<!-- Raised here only, to see them stack and slide (docs/dev/alerts.md). -->
+			<StepperField label="Item" text={ITEMS[giveItem]?.name ?? giveItem} onstep={stepItem} />
+			<div class="setting">
+				<label class="pill">
+					<span class="name">Count</span>
+					<input type="text" inputmode="numeric" autocomplete="off" bind:value={giveCount} />
+				</label>
+				<p class="hint">The item and count for these alerts and the Account group's grant.</p>
+			</div>
 			{@render action(
 				`Item: ${ITEMS[giveItem]?.name ?? giveItem} × ${Number(giveCount) || 1}`,
 				() =>
@@ -528,7 +544,7 @@
 						count: Number(giveCount) || 1,
 						source: 'pickup'
 					}),
-				'The item and count chosen under Items. Again within its time adds to the same alert.'
+				'Again within its time adds to the same alert.'
 			)}
 			{@render action('Gift from another player', () =>
 				raise({
@@ -622,7 +638,7 @@
 			{@render action(
 				`Grant ${ITEMS[giveItem]?.name ?? giveItem} × ${Number(giveCount) || 1} to stash`,
 				() => void account({ action: 'grantItem', item: giveItem, count: Number(giveCount) || 1 }),
-				'The item and count chosen under Items.'
+				'The item and count chosen under Alerts.'
 			)}
 			{@render action('Reset explorer', () => void account({ action: 'resetExplorer' }))}
 			{@render action(

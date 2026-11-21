@@ -275,7 +275,8 @@ export type SimEvent =
 	/** Too little stamina to swing (`melee.stamina`): a gasp, and no swing. */
 	| { kind: 'winded'; item: string }
 	/** Something was set down on the floor in front (`ItemDef.place`): one of it is spent. */
-	| { kind: 'place'; item: string; origin: Vec3; direction: Vec3 }
+	/** Something set down; `worn`: the wear it had (a tripwire bell's rings used). */
+	| { kind: 'place'; item: string; origin: Vec3; direction: Vec3; worn?: number }
 	/** What was in the hand just broke (a gun's last shot): it stays there, and does nothing. */
 	| { kind: 'broke'; item: string }
 	/** Used the item in the hand on a teammate (one of it is spent): the server applies it to them. */

@@ -392,6 +392,41 @@ describe('admin commands', () => {
 		expect(() => session.admin(diver.id, { kind: 'throw' })).toThrow();
 	});
 
+	it('gives into one slot, says what did not fit, discards and empties', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		const inv = () => diver.state.inventory;
+		session.admin(diver.id, {
+			kind: 'give',
+			item: 'bandage',
+			count: 2,
+			to: { area: 'backpack', index: 3 }
+		});
+		expect(inv().backpack[3]).toMatchObject({ item: 'bandage', count: 2 });
+		expect(diver.socket.last('alert')!.alert).toMatchObject({ kind: 'item', count: 2 });
+		// A bandage can't go in a weapon slot: nothing given, and it says so.
+		session.admin(diver.id, {
+			kind: 'give',
+			item: 'bandage',
+			count: 1,
+			to: { area: 'equipment', slot: 'primary' }
+		});
+		expect(diver.socket.last('alert')!.alert).toMatchObject({
+			kind: 'note',
+			title: 'Nothing given'
+		});
+		// More than there is room for: the rest is said, not dropped.
+		const before = diver.socket.all('alert').length;
+		session.admin(diver.id, { kind: 'give', item: 'brick', count: 99 });
+		const alerts = diver.socket.all('alert').slice(before);
+		expect(alerts.map((a) => a.alert.kind)).toEqual(['item', 'note']);
+		session.admin(diver.id, { kind: 'discard', from: { area: 'backpack', index: 3 } });
+		expect(inv().backpack[3]).toBeNull();
+		session.admin(diver.id, { kind: 'emptyInventory' });
+		expect(inv().backpack.every((s) => s === null)).toBe(true);
+		expect(Object.values(inv().equipment).every((s) => s === null)).toBe(true);
+	});
+
 	it('moves the body to the free camera: it falls to the floor, or stays with noclip', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);

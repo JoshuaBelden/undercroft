@@ -130,11 +130,17 @@
 		grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
 		gap: 18px;
 		width: min(1200px, 100%);
-		margin: 24px auto 96px;
+		margin: 24px auto 84px;
 		padding: 0 16px;
 	}
 
+	/* As tall as the window allows (less the bar above and the corner buttons below), like the
+	   Loadout page's panels. */
 	.panel {
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		height: calc(100vh - 170px);
 		padding: 18px 24px 24px;
 		border: 1px solid var(--border);
 		border-radius: 18px;
@@ -156,6 +162,13 @@
 		flex-direction: column;
 		gap: 12px;
 		--slot-size: 72px;
+		/* The page stays still: the list scrolls inside its container. */
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		padding-right: 6px;
+		scrollbar-width: thin;
+		scrollbar-color: var(--border) transparent;
 	}
 
 	.row {
