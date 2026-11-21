@@ -1,6 +1,6 @@
 # The game view: the play page and its features
 
-Underground, the client is one page, `src/routes/play/+page.svelte`. It owns what every part of the game shares: the engine and the camera (first person, over the shoulder, spectating, the dev map view and free camera), the map, the HUD, the screens over the game (menu, map, crate, settings, help, admin), the input and the results.
+Underground, the client is one page, `src/routes/play/+page.svelte`. It owns what every part of the game shares: the engine and the camera (over the shoulder, at the eyes in the water, spectating, the dev map view and free camera), the map, the HUD, the screens over the game (menu, map, crate, settings, help, admin), the input and the results.
 
 What each feature shows and plays down there is a **feature** in `src/lib/game/play/`, one file per feature. The page reaches it only through hooks. It is the client side of the server's systems ([session.md](session.md)). A new feature adds a file there and a line in `src/lib/game/play/index.ts`. It doesn't add `case`s to the page.
 

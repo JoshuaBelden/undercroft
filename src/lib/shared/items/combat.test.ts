@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ITEMS } from '../../content/items.ts';
+import { HANDS, ITEMS } from '../../content/items.ts';
 import { SIM_RATE } from '../constants.ts';
 import { createPlayerState, idleFrame, stepPlayer } from '../player/simulate.ts';
 import { HAND, type InputFrame, type PlayerState, type SimEvent } from '../player/types.ts';
@@ -191,5 +191,55 @@ describe('flight', () => {
 	it('aimed at the sky with no ceiling, it comes down in the end or never (no landing)', () => {
 		const open = worldOf([]);
 		expect(flightPath(open, [0, 1.6, 0], [0, 1, 0], 5, 0).landing).toBeNull();
+	});
+});
+
+describe('bare hands', () => {
+	const fists = HANDS.melee!;
+
+	it('with nothing in the hand, attack punches: a swing of bare hands at their wind-up', () => {
+		const s = holding();
+		const before = s.stamina;
+		const at: number[] = [];
+		for (let i = 0; i < steps(fists.windup + fists.recovery); i++) {
+			const events = run(s, { attack: i < 2 }, 1);
+			if (events.length) {
+				expect(events).toMatchObject([{ kind: 'swing', item: 'hands' }]);
+				at.push(i);
+			}
+		}
+		expect(at).toHaveLength(1);
+		expect(Math.abs(at[0] - fists.windup * SIM_RATE)).toBeLessThanOrEqual(1);
+		expect(s.stamina).toBe(before - fists.stamina!);
+	});
+
+	it('held, they punch again and again, until out of breath', () => {
+		const s = holding();
+		const events = run(s, { attack: true }, steps(3));
+		expect(kinds(events).filter((k) => k === 'swing').length).toBeGreaterThan(3);
+		// The last punch comes back; then too little breath for another.
+		run(s, {}, steps(1));
+		s.stamina = 1;
+		expect(kinds(run(s, { attack: true }, 10))).toEqual(['winded']);
+	});
+
+	it('once the knife is thrown, the empty hand punches', () => {
+		const s = holding('knife');
+		run(s, { attack: true }, steps(THROW_DRAW) + 1);
+		run(s, {}, steps(1));
+		expect(s.inventory.equipment.primary).toBeNull();
+		expect(run(s, { attack: true }, steps(1))).toContainEqual(
+			expect.objectContaining({ kind: 'swing', item: 'hands' })
+		);
+	});
+
+	it('not crawling, squeezed or down', () => {
+		const s = holding();
+		expect(canUseHeld(s, true, false)).toBe(true);
+		expect(canUseHeld(s, true, true)).toBe(false);
+		s.downed = true;
+		expect(canUseHeld(s, true, false)).toBe(false);
+		s.downed = false;
+		expect(kinds(run(s, { attack: true }, steps(1), false))).toEqual([]);
 	});
 });

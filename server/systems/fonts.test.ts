@@ -25,7 +25,6 @@ function item(id: string): ItemDef {
 		category: 'material',
 		flavor: 'A test item.',
 		model: null,
-		hold: { offset: [0, 0, 0], scale: 1 },
 		maxStack: 5,
 		weight: 0.3
 	};

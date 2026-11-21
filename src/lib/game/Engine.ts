@@ -30,12 +30,7 @@ export class Engine {
 	readonly renderer: THREE.WebGLRenderer;
 	readonly scene = new THREE.Scene();
 	readonly camera: THREE.PerspectiveCamera;
-	/**
-	 * First-person viewmodel (the held item): its own scene and camera, drawn after the world
-	 * with the depth buffer cleared, so it never clips into walls.
-	 */
-	readonly viewScene = new THREE.Scene();
-	readonly viewCamera = new THREE.PerspectiveCamera(60, 1, 0.01, 10);
+
 	private timer = new THREE.Timer();
 	private frameHandle = 0;
 	private updaters = new Set<(delta: number) => void>();
@@ -62,26 +57,14 @@ export class Engine {
 	/** Shadow map size for the current quality; lights read it when casting shadows. */
 	shadowMapSize = 1024;
 
-	/** Field of view from the settings, and the fraction of it in use (aiming narrows it). */
-	private baseFov = 75;
-	private zoom = 1;
 	/** Frames per second at most (0: every frame the screen shows), and when the last one ran. */
 	private frameCap = 0;
 	private lastFrame = 0;
 
-	/** Narrow the view to `factor` of the field of view from the settings (1 = all of it). */
-	setZoom(factor: number): void {
-		if (Math.abs(factor - this.zoom) < 1e-4) return;
-		this.zoom = factor;
-		this.camera.fov = this.baseFov * factor;
-		this.camera.updateProjectionMatrix();
-	}
-
 	/** Apply player graphics settings (FOV, brightness, quality). Safe to call any time. */
 	applyGraphics(graphics: GraphicsSettings): void {
 		const quality = QUALITY[graphics.quality] ?? QUALITY.high;
-		this.baseFov = graphics.fov;
-		this.camera.fov = this.baseFov * this.zoom;
+		this.camera.fov = graphics.fov;
 		this.camera.updateProjectionMatrix();
 		this.renderer.toneMappingExposure = graphics.brightness;
 		// The render resolution scales the preset's: fewer pixels is the biggest saving on a weak GPU.
@@ -117,12 +100,6 @@ export class Engine {
 			const delta = Math.min(this.timer.getDelta(), 0.1);
 			for (const update of this.updaters) update(delta);
 			this.renderer.render(this.scene, this.camera);
-			if (this.viewScene.children.length) {
-				this.renderer.autoClear = false;
-				this.renderer.clearDepth();
-				this.renderer.render(this.viewScene, this.viewCamera);
-				this.renderer.autoClear = true;
-			}
 			this.trackStats(delta);
 		};
 		frame();
@@ -160,8 +137,6 @@ export class Engine {
 		this.renderer.setSize(width, height, false);
 		this.camera.aspect = width / height;
 		this.camera.updateProjectionMatrix();
-		this.viewCamera.aspect = width / height;
-		this.viewCamera.updateProjectionMatrix();
 	}
 
 	private trackStats(delta: number): void {

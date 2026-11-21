@@ -68,7 +68,7 @@ Every rigged model names its clips differently, so each one (every `CreatureDef`
 
 `rope_idle`, `rope_climb` and `fall` are the explorer's (hanging on a rope, climbing it, falling; see [rope.md](rope.md#body-animation)); no creature uses them yet.
 
-`animations` holds one entry per slot the model has a clip for: `{ clip, speed?, start?, end? }`. `clip` is the name in the file and `speed` the playback rate (default 1; 0 holds the first frame as a pose). `start` and `end` (seconds into the clip) use only part of it, to skip a lead-in or cut a tail off. Two slots can share a clip. Slots the model has nothing for are left out.
+`animations` holds one entry per slot the model has a clip for: `{ clip, speed?, start?, end?, loopBlend? }`. `clip` is the name in the file and `speed` the playback rate (default 1; 0 holds the first frame as a pose). `start` and `end` (seconds into the clip) use only part of it, to skip a lead-in or cut a tail off. `loopBlend` (seconds) is for a looping slot whose clip was never made to loop: over its last that many seconds it blends into what leads up to `start` (`seamlessLoop`, `src/lib/game/loopClip.ts`), so it comes round without a jump; `start` must be at least that far in. `pnpm exec tsx scripts/anim-loop.ts <model.glb> <clip>` finds where such a clip comes closest to looping. Two slots can share a clip. Slots the model has nothing for are left out.
 
 The server only ever sends a slot name (`CreatureSnapshot.anim`), picked in `CreatureDirector.animate`:
 

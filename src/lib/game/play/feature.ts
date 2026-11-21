@@ -5,7 +5,6 @@ import type { SoundBank } from '#lib/game/audio/SoundBank.ts';
 import type { Creatures } from '#lib/game/creatures/Creatures.ts';
 import type { Engine } from '#lib/game/Engine.ts';
 import type { InputMap } from '#lib/game/input/InputMap.ts';
-import type { ViewModel } from '#lib/game/items/ViewModel.ts';
 import type { MapRenderer } from '#lib/game/map/MapRenderer.ts';
 import type { GameClient } from '#lib/game/net/GameClient.ts';
 import type { Headlamp } from '#lib/game/player/Headlamp.ts';
@@ -81,7 +80,6 @@ export interface PlayContext {
 	remote: RemotePlayers;
 	map: MapRenderer;
 	creatures: Creatures;
-	viewModel: ViewModel;
 	/** Your own body, drawn over the shoulder (`root.visible` while it is). */
 	body: PlayerBody;
 	/** The player's head: where their eyes are and which way they look. */

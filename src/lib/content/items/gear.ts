@@ -7,8 +7,6 @@ import { modelUrl } from '../models.ts';
  * use. The padded coat is in items.ts.
  */
 
-const HOLD: ItemDef['hold'] = { offset: [0.22, -0.22, -0.42], scale: 1 };
-
 function gear(
 	id: string,
 	name: string,
@@ -24,7 +22,6 @@ function gear(
 		flavor,
 		model: null,
 		placeholder: { size: [0.2, 0.08, 0.16], color },
-		hold: HOLD,
 		maxStack: 1,
 		rarity: 'uncommon',
 		...rest
@@ -40,7 +37,6 @@ export const GEAR: Record<string, ItemDef> = {
 		flavor: 'Boiled leather, thick as a boot sole. It takes a beating, and it slows you down.',
 		model: null,
 		placeholder: { size: [0.4, 0.12, 0.5], color: 0x4a3020 },
-		hold: HOLD,
 		maxStack: 1,
 		weight: 3.5,
 		price: 160,

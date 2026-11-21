@@ -57,11 +57,7 @@ export const ACTIONS = {
 	toggleSocial: { label: 'Friends and invites', category: 'Interface', defaults: ['KeyO'] },
 	// The browser's own fullscreen key; the page takes it, so fullscreen is the game's own.
 	toggleFullscreen: { label: 'Fullscreen', category: 'Interface', defaults: ['F11'] },
-	toggleView: {
-		label: 'Camera: first person / shoulder',
-		category: 'Interface',
-		defaults: ['KeyV']
-	},
+
 	// Underground: hides or shows the rite down the left (docs/dev/rite.md).
 	toggleRitePanel: { label: 'Rite panel', category: 'Interface', defaults: ['KeyH'] },
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },
@@ -125,7 +121,6 @@ export const PAD_DEFAULTS: Record<Action, readonly string[]> = {
 	toggleHelp: ['PadRight'],
 	toggleSocial: ['PadR3'],
 	toggleFullscreen: [],
-	toggleView: ['PadLeft'],
 	toggleRitePanel: ['PadR3'],
 	toggleStats: [],
 	toggleAdmin: [],

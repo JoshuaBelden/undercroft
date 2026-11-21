@@ -11,7 +11,7 @@ import { SANITY } from './player/sanity.ts';
 /**
  * Item definitions (data). Weapons, defense, ammo, consumables and loot. Behaviour is driven
  * entirely by these fields: the shared simulation (timing, ammo), the server (hits, noise) and the
- * client (models, viewmodel, sounds, slots) all read them. See docs/dev/items.md.
+ * client (models, sounds, slots) all read them. See docs/dev/items.md.
  */
 
 export type ItemKind =
@@ -73,8 +73,8 @@ export interface MeleeSpec {
 	snag?: { chance: number; seconds: number };
 	/** A hit staggers it this long (s), however hard it took it (a sledgehammer). */
 	stagger?: number;
-	/** Its own swing and hit, in place of `melee.swing` and `melee.hit`. */
-	sound?: { swing: SoundId; hit: SoundId };
+	/** Its own swing and hit, in place of `melee.swing` and `melee.hit`; null plays nothing. */
+	sound?: { swing: SoundId | null; hit: SoundId | null };
 }
 
 export interface FirearmSpec {
@@ -99,8 +99,6 @@ export interface FirearmSpec {
 	sound: SoundId;
 	/** Played when a reload starts; it should last about `reloadTime`. */
 	reloadSound: SoundId;
-	/** Aiming down the sights narrows the view to this fraction of the field of view (and slows the mouse to match). */
-	zoom: number;
 	recoil: RecoilSpec;
 	/** Each pellet passes through every creature in its line, to the first wall (a rifle). */
 	pierce?: boolean;
@@ -118,7 +116,7 @@ export interface FirearmSpec {
 	alsoFires?: string[];
 }
 
-/** What firing does to your aim and to the gun in your hands. */
+/** What firing does to your aim. */
 export interface RecoilSpec {
 	/**
 	 * Your view is thrown up by `pitch` radians, and sideways by up to `yaw` either way, over a
@@ -126,11 +124,6 @@ export interface RecoilSpec {
 	 */
 	pitch: number;
 	yaw: number;
-	/** The gun in your hands turns up `rise` radians and comes back `back` metres... */
-	rise: number;
-	back: number;
-	/** ...and settles over this many seconds. */
-	settle: number;
 }
 
 /** Thrown by holding attack until it is drawn back (`THROW_DRAW`), then letting go (`stepWeapon`). */
@@ -284,16 +277,10 @@ export interface ItemDef {
 	/** How it looks on the floor until it has a model: a box of this size (m) and colour. */
 	placeholder?: { size: [number, number, number]; color: number };
 	/**
-	 * Viewmodel placement: offset from the camera (m) and scale. `aim` is where it moves when
-	 * aiming down the sights (firearms): low and a little right, so it never covers the
-	 * crosshair. `muzzle` is the barrel's end in the model's own space, for the flash and smoke.
+	 * A gun's barrel end in its model's own space, for the flash and smoke of a shot from the gun
+	 * in an explorer's hands (`PlayerBody.muzzle`). Without one, a shot flashes in front of the eyes.
 	 */
-	hold: {
-		offset: [number, number, number];
-		scale: number;
-		aim?: [number, number, number];
-		muzzle?: [number, number, number];
-	};
+	muzzle?: [number, number, number];
 	/**
 	 * How it is held on an explorer's body (other players, and you over the shoulder): the pose
 	 * of the arms, and where the model sits in the right hand. Items that can't be in the hand
@@ -426,8 +413,6 @@ export interface ItemDef {
 /** How many of most things share a slot. Weapons and defense never stack. */
 export const DEFAULT_STACK = 5;
 
-const HOLD_RIGHT: ItemDef['hold'] = { offset: [0.22, -0.22, -0.42], scale: 1 };
-
 /**
  * The pictures (static/assets/ui/images, built from art/images by `pnpm asset:images`) of the
  * round's items, by item id: the art's file names, which mostly follow the ids.
@@ -511,7 +496,6 @@ export const ITEMS: Record<string, ItemDef> = {
 			'A folding knife with a worn bone handle. Quick, quiet, and only as good as your nerve.',
 		image: 'knife',
 		model: modelUrl('shared/items/knife.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.665, 0.232, 1.181] },
 		maxStack: 1,
 		weight: 0.3,
@@ -532,7 +516,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'A yard of cold iron. Slow to swing, and nothing gets up quickly after it lands.',
 		image: 'crowbar',
 		model: modelUrl('shared/items/crowbar.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'oneHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.934, 0.73, 1.052] },
 		maxStack: 1,
 		weight: 2.5,
@@ -559,7 +542,6 @@ export const ITEMS: Record<string, ItemDef> = {
 			'A loose brick from the walls. Good for a few blows, or for making a noise somewhere you are not.',
 		image: 'brick',
 		model: modelUrl('shared/items/brick.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'oneHand', offset: [-0.0148, 0.08, -0.0372], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 2.5,
@@ -586,7 +568,7 @@ export const ITEMS: Record<string, ItemDef> = {
 			'Six chambers, and a report that carries a long way down here. Everything will know where you are.',
 		image: 'revolver',
 		model: modelUrl('shared/items/revolver.glb'),
-		hold: { ...HOLD_RIGHT, aim: [0.06, -0.15, -0.34], muzzle: [0, 0.045, -0.21] },
+		muzzle: [0, 0.045, -0.21],
 		grip: { pose: 'oneHand', offset: [-0.025, 0.07, -0.0223], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 1.1,
@@ -605,8 +587,7 @@ export const ITEMS: Record<string, ItemDef> = {
 			noise: 35,
 			sound: 'revolver.fire',
 			reloadSound: 'revolver.reload',
-			zoom: 0.6,
-			recoil: { pitch: 0.035, yaw: 0.012, rise: 0.45, back: 0.08, settle: 0.16 }
+			recoil: { pitch: 0.035, yaw: 0.012 }
 		}
 	},
 	shotgun: {
@@ -617,12 +598,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'Two barrels, cut short. Unanswerable up close; a rumour at any distance.',
 		image: 'shotgun',
 		model: modelUrl('shared/items/shotgun.glb'),
-		hold: {
-			offset: [0.2, -0.24, -0.5],
-			scale: 1,
-			aim: [0.07, -0.21, -0.42],
-			muzzle: [0, 0.05, -0.7]
-		},
+		muzzle: [0, 0.05, -0.7],
 		grip: { pose: 'twoHand', offset: [-0.0111, 0.07, -0.0279], rotation: [1.571, 0, 1.192] },
 		maxStack: 1,
 		weight: 3.2,
@@ -641,9 +617,8 @@ export const ITEMS: Record<string, ItemDef> = {
 			noise: 40,
 			sound: 'shotgun.fire',
 			reloadSound: 'shotgun.reload',
-			zoom: 0.7,
 			// A real shove: about 9 degrees up, and the gun slams back into your shoulder.
-			recoil: { pitch: 0.15, yaw: 0.05, rise: 0.9, back: 0.28, settle: 0.45 }
+			recoil: { pitch: 0.15, yaw: 0.05 }
 		}
 	},
 	'ammo.revolver': {
@@ -654,7 +629,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'Loose rounds for the revolver.',
 		image: 'revolver_shells',
 		model: modelUrl('shared/items/ammo-revolver.glb'),
-		hold: HOLD_RIGHT,
 		maxStack: 30,
 		weight: 0.015,
 		price: 2
@@ -667,7 +641,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'Paper-cased shells for the shotgun. Keep them dry.',
 		image: 'shotgun_shells',
 		model: modelUrl('shared/items/ammo-shotgun.glb'),
-		hold: HOLD_RIGHT,
 		maxStack: 20,
 		weight: 0.045,
 		price: 4
@@ -680,7 +653,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'Clean linen. Binding something, even a small thing, steadies the mind.',
 		image: 'bandages',
 		model: modelUrl('shared/items/bandage.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'item', offset: [-0.0166, 0.075, -0.0418], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
@@ -697,7 +669,6 @@ export const ITEMS: Record<string, ItemDef> = {
 			'A tin case of field dressings, iodine and a little morphine. Enough to put anyone back together, once.',
 		image: 'medkit',
 		model: modelUrl('shared/items/medkit.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'item', offset: [-0.0148, 0.08, -0.0372], rotation: [0, -2.763, -1.571] },
 		maxStack: 2,
 		weight: 0.6,
@@ -714,7 +685,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'A dry cell, half spent by whoever carried it last. Enough to buy a little more light.',
 		image: 'battery',
 		model: modelUrl('shared/items/battery.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'item', offset: [-0.0129, 0.075, -0.0325], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.15,
@@ -730,7 +700,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'A stoppered vial that would wake the dead. Near enough, anyway.',
 		image: 'smelling_salts',
 		model: modelUrl('shared/items/salts.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'item', offset: [-0.0092, 0.075, -0.0232], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.05,
@@ -746,7 +715,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'A stub of soft chalk. A mark on the wall is the only thread back out.',
 		image: 'chalk',
 		model: modelUrl('shared/items/chalk.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'item', offset: [-0.0166, 0.09, -0.0418], rotation: [1.571, 0, 2.763] },
 		maxStack: DEFAULT_STACK,
 		weight: 0.01,
@@ -764,7 +732,6 @@ export const ITEMS: Record<string, ItemDef> = {
 			'A hundred metres of hemp, bound tight. Tie it off at a drop, or pay it out behind you to find the way back.',
 		image: 'rope_pack',
 		model: modelUrl('shared/items/rope_pack.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'item', offset: [-0.0296, 0.08, -0.0743], rotation: [1.571, 0, 2.763] },
 		maxStack: 1,
 		weight: 4,
@@ -779,7 +746,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'A loose heap of old rope, still sound. Someone came down here meaning to climb.',
 		image: 'rope_bundle',
 		model: modelUrl('shared/items/rope_bundle.glb'),
-		hold: HOLD_RIGHT,
 		grip: { pose: 'item', offset: [-0.0296, 0.08, -0.0743], rotation: [1.571, 0, 2.763] },
 		maxStack: 1,
 		weight: 1.6,
@@ -798,7 +764,6 @@ export const ITEMS: Record<string, ItemDef> = {
 			'Squared paper and a stub of pencil. What you draw in it is all you will know of the way back.',
 		image: 'notebook',
 		model: modelUrl('shared/items/notebook.glb'),
-		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 0.3,
 		price: 35,
@@ -813,7 +778,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		flavor: 'Heavy, toothed and black with age. Somewhere down here is the lock it was made for.',
 		image: 'key',
 		model: modelUrl('shared/items/key.glb'),
-		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
 		weight: 0.15,
 		rarity: 'rare',
@@ -829,7 +793,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'candle',
 		model: null,
 		placeholder: { size: [0.03, 0.15, 0.03], color: 0xd8cba0 },
-		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
 		weight: 0.08,
 		price: 4
@@ -844,7 +807,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'padded_coat',
 		model: null,
 		placeholder: { size: [0.4, 0.12, 0.5], color: 0x4a4238 },
-		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 2,
 		price: 90,
@@ -862,7 +824,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'coins',
 		model: null,
 		placeholder: { size: [0.08, 0.02, 0.08], color: 0x7a6a4a },
-		hold: HOLD_RIGHT,
 		maxStack: 20,
 		weight: 0.02,
 		value: 3
@@ -877,7 +838,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'bone_rosary',
 		model: null,
 		placeholder: { size: [0.12, 0.02, 0.12], color: 0xb8ad94 },
-		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
 		weight: 0.1,
 		value: 12
@@ -892,7 +852,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'gold_tooth',
 		model: null,
 		placeholder: { size: [0.03, 0.03, 0.03], color: 0xc9a23a },
-		hold: HOLD_RIGHT,
 		maxStack: 10,
 		weight: 0.01,
 		value: 30,
@@ -908,7 +867,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'signet_ring',
 		model: null,
 		placeholder: { size: [0.04, 0.02, 0.04], color: 0xb8902e },
-		hold: HOLD_RIGHT,
 		maxStack: DEFAULT_STACK,
 		weight: 0.02,
 		value: 45,
@@ -924,7 +882,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'silver_candlestick',
 		model: null,
 		placeholder: { size: [0.1, 0.3, 0.1], color: 0x8c9094 },
-		hold: HOLD_RIGHT,
 		maxStack: 2,
 		weight: 1.2,
 		value: 110,
@@ -940,7 +897,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'chalice',
 		model: null,
 		placeholder: { size: [0.12, 0.2, 0.12], color: 0xc2a64e },
-		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 1.8,
 		value: 300,
@@ -957,7 +913,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'reliquary',
 		model: null,
 		placeholder: { size: [0.2, 0.2, 0.2], color: 0xd9b84a },
-		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 3,
 		value: 800,
@@ -973,7 +928,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'pendant',
 		quest: true,
 		model: modelUrl('shared/items/pendant.glb'),
-		hold: HOLD_RIGHT,
 		maxStack: 1,
 		weight: 0.2
 	},
@@ -987,7 +941,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'note',
 		model: null,
 		placeholder: { size: [0.21, 0.01, 0.3], color: 0xcfc4a6 },
-		hold: HOLD_RIGHT,
 		maxStack: 0,
 		weight: 0
 	},
@@ -1001,7 +954,6 @@ export const ITEMS: Record<string, ItemDef> = {
 		image: 'recipe_fragment',
 		model: null,
 		placeholder: { size: [0.2, 0.01, 0.28], color: 0xc8bc9c },
-		hold: HOLD_RIGHT,
 		maxStack: 0,
 		weight: 0,
 		fragment: true
@@ -1012,6 +964,41 @@ export const ITEMS: Record<string, ItemDef> = {
 	...pictured(MATERIALS),
 	...pictured(TREASURE)
 };
+
+/**
+ * Bare hands: what swings when nothing is in the hand (an empty weapon slot, or an empty quick-use
+ * slot taken in hand). Not an item: never carried, dropped, sold or listed, and not in ITEMS. It
+ * goes through the same swing as any melee weapon, under its own id (`swing` events carry
+ * `hands`), so look it up with `heldDef`. A last resort: weak, short, and tiring. See
+ * docs/dev/combat.md#bare-hands.
+ */
+export const HANDS: ItemDef = {
+	id: 'hands',
+	name: 'Bare hands',
+	kind: 'melee',
+	category: 'weapon',
+	flavor: 'Nothing in your hands but your hands.',
+	model: null,
+	maxStack: 0,
+	weight: 0,
+	melee: {
+		damage: 8,
+		range: 1.2,
+		arc: 0.5,
+		windup: 0.12,
+		recovery: 0.38,
+		noise: 1.5,
+		stamina: 5,
+		// Silent: the blow is heard in what it hits (a creature's hurt), and by creatures (`noise`).
+		sound: { swing: null, hit: null }
+	}
+};
+
+/** The def of what is in a hand or behind a swing: an item, or bare hands (`HANDS.id`). */
+export function heldDef(item: string | null | undefined): ItemDef | undefined {
+	if (!item) return undefined;
+	return item === HANDS.id ? HANDS : ITEMS[item];
+}
 
 /** How hard an item is to come by. */
 export function rarityOf(item: string): Rarity {

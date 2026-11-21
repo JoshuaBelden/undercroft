@@ -84,8 +84,6 @@ export class LocalPlayer {
 	private pitch = 0;
 	/** Recoil still to be applied to the view (radians), worked off over a moment. */
 	private kickLeft = { pitch: 0, yaw: 0 };
-	/** Mouse look is scaled by this: the zoom while aiming, so the view moves as it looks. */
-	lookScale = 1;
 	/** What the map screen is holding down (sketch or show), sent in every frame; see docs/dev/map.md. */
 	survey: SurveyHold = null;
 	/** Wanted stance, cycled by the stance key; the simulation rises only when there is room. */
@@ -380,18 +378,12 @@ export class LocalPlayer {
 			const scale = Math.min(1, WHEEL_REACH / (Math.hypot(x, y) || 1));
 			this.wheel = { x: x * scale, y: y * scale };
 		} else if (active) {
-			// Aiming (zoomed in) has its own sensitivity on top of the general one.
-			const aim = this.lookScale < 1 ? settings.controls.aimSensitivity : 1;
-			const speed = LOOK_SPEED * settings.controls.mouseSensitivity * aim * this.lookScale;
+			const speed = LOOK_SPEED * settings.controls.mouseSensitivity;
 			this.yaw -= dx * speed;
 			this.pitch -= dy * speed * (settings.controls.invertY ? -1 : 1);
 			// The right stick turns at a speed, not by a distance: its push, curved.
 			const turn =
-				PAD_TURN *
-				settings.controller.lookSensitivity *
-				this.lookScale *
-				delta *
-				push ** (LOOK_CURVE - 1);
+				PAD_TURN * settings.controller.lookSensitivity * delta * push ** (LOOK_CURVE - 1);
 			this.yaw -= stick.x * turn;
 			this.pitch -= stick.y * turn * (settings.controller.invertY ? -1 : 1);
 			this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch));

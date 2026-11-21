@@ -7,7 +7,6 @@ import { modelUrl } from '../models.ts';
  * are in items.ts.
  */
 
-const HOLD: ItemDef['hold'] = { offset: [0.22, -0.22, -0.42], scale: 1 };
 const SMALL: GripSpec = {
 	pose: 'item',
 	offset: [-0.0166, 0.075, -0.0418],
@@ -29,7 +28,6 @@ function quick(
 		flavor,
 		model: null,
 		placeholder: { size: [0.08, 0.06, 0.06], color },
-		hold: HOLD,
 		grip: SMALL,
 		...rest
 	};

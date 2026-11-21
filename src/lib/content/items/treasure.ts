@@ -6,8 +6,6 @@ import type { ItemDef, Rarity } from '../items.ts';
  * candlestick, the chalice and the reliquary) is in items.ts. A few have a use besides.
  */
 
-const HOLD: ItemDef['hold'] = { offset: [0.22, -0.22, -0.42], scale: 1 };
-
 function treasure(
 	id: string,
 	name: string,
@@ -31,7 +29,6 @@ function treasure(
 		flavor,
 		model: null,
 		placeholder: { size: size ?? [0.08, 0.06, 0.08], color },
-		hold: HOLD,
 		...rest
 	};
 }

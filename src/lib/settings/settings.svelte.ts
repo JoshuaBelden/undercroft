@@ -21,8 +21,6 @@ export type GraphicsQuality = 'low' | 'medium' | 'high';
 export interface ControlSettings {
 	/** Multiplier on the base look speed. */
 	mouseSensitivity: number;
-	/** Multiplier on the look speed while aiming down sights (on top of mouseSensitivity). */
-	aimSensitivity: number;
 	invertY: boolean;
 }
 
@@ -44,11 +42,7 @@ export interface ControllerSettings {
 	icons: ButtonIcons;
 }
 
-/** Through the explorer's eyes, or from behind their shoulder. */
-export type CameraView = 'first' | 'shoulder';
-
 export interface GraphicsSettings {
-	view: CameraView;
 	/** Vertical field of view in degrees. */
 	fov: number;
 	/** Tone-mapping exposure; calibrated by the player. */
@@ -145,7 +139,7 @@ function defaults(): Settings {
 			mapZoom: SURVEY.zoom.initial,
 			alerts: true
 		},
-		controls: { mouseSensitivity: 1, aimSensitivity: 1, invertY: false },
+		controls: { mouseSensitivity: 1, invertY: false },
 		controller: {
 			lookSensitivity: 1,
 			invertY: false,
@@ -155,7 +149,6 @@ function defaults(): Settings {
 			icons: 'auto'
 		},
 		graphics: {
-			view: 'first',
 			fov: 75,
 			brightness: 1,
 			quality: 'high',

@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { DISTANT_SHOT } from '#lib/content/audio/sounds.ts';
-import { ITEMS } from '#lib/content/items.ts';
+import type { SoundId } from '#lib/content/audio/sounds.ts';
+import { HANDS, heldDef, ITEMS, type MeleeSpec } from '#lib/content/items.ts';
 import { rumble } from '#lib/game/input/gamepad.ts';
 import { Effects } from '#lib/game/items/Effects.ts';
-import { ViewModel } from '#lib/game/items/ViewModel.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
 import { THROW_DRAW } from '#lib/shared/items/weapons.ts';
@@ -29,7 +29,7 @@ export class Combat implements PlayFeature {
 
 	/** Instant feedback for what the local (predicted) simulation did. */
 	self(state: PlayerState): void {
-		const { sounds, player, viewModel, body, head, headlamp } = this.ctx;
+		const { sounds, player, body, head, headlamp } = this.ctx;
 		for (const event of player.drainEvents()) {
 			if (event.kind === 'shot') {
 				const gun = ITEMS[event.item]?.firearm;
@@ -40,15 +40,12 @@ export class Combat implements PlayFeature {
 				rumble(heavy ? 'heavyShot' : 'shot');
 				// A bow or a sling has no flash and no smoke: only powder does.
 				if (!gun || gun.projectile) continue;
-				// First person, the flare is on the gun in your hands; over the shoulder, at the
-				// barrel of the gun your body holds; otherwise just in front of your eyes.
-				const drawn = viewModel.flash(heavy);
-				const at = (!drawn && body.muzzle(this.muzzle)) || ViewModel.muzzle(head, this.muzzle);
-				this.effects.shot(at, event.direction, {
-					flare: !drawn,
-					own: true,
-					heavy
-				});
+				// At the barrel of the gun your body holds; until it is drawn (or when the body
+				// isn't: in the water), just in front of your eyes.
+				const at =
+					body.muzzle(this.muzzle) ??
+					this.muzzle.set(0.12, -0.1, -0.7).applyMatrix4(head.matrixWorld);
+				this.effects.shot(at, event.direction, { own: true, heavy });
 				headlamp.flash();
 			} else if (event.kind === 'empty') {
 				sounds.play('gun.empty');
@@ -70,7 +67,9 @@ export class Combat implements PlayFeature {
 				if (gun) sounds.play(gun.reloadSound);
 			}
 			if (action === 'swing') {
-				sounds.play(ITEMS[held(state.inventory)?.item ?? '']?.melee?.sound?.swing ?? 'melee.swing');
+				const swung = heldDef(held(state.inventory)?.item ?? HANDS.id);
+				const sound = swingSound(swung?.melee, 'swing', 'melee.swing');
+				if (sound) sounds.play(sound);
 			}
 			this.lastAction = action;
 		}
@@ -106,11 +105,7 @@ export class Combat implements PlayFeature {
 					const at: Vec3 = barrel
 						? [barrel.x, barrel.y, barrel.z]
 						: (event.origin.map((v, i) => v + (toward[i] / length) * 0.6) as Vec3);
-					this.effects.shot(at, toward, {
-						flare: true,
-						own: false,
-						heavy: (gun?.pellets ?? 1) > 1
-					});
+					this.effects.shot(at, toward, { own: false, heavy: (gun?.pellets ?? 1) > 1 });
 					remote.flash(event.player);
 				}
 				this.effects.impact(event.end, event.creature);
@@ -118,15 +113,18 @@ export class Combat implements PlayFeature {
 				break;
 			}
 			case 'swing': {
-				// A weapon's own swing and hit (a hatchet, a sledgehammer), else the usual ones.
-				const own = ITEMS[event.item]?.melee?.sound;
-				if (event.hit === 'creature') {
-					sounds.playAt(own?.hit ?? 'melee.hit.creature', event.origin, 1, 3);
-				} else if (event.hit === 'wall') {
-					sounds.playAt(own?.hit ?? 'melee.hit', event.origin, 1, 3);
-				} else if (event.player !== self) {
-					sounds.playAt(own?.swing ?? 'melee.swing', event.origin, 1, 3);
-				}
+				// A weapon's own swing and hit (a hatchet, a sledgehammer), none for bare hands, else
+				// the usual ones.
+				const melee = heldDef(event.item)?.melee;
+				const sound =
+					event.hit === 'creature'
+						? swingSound(melee, 'hit', 'melee.hit.creature')
+						: event.hit === 'wall'
+							? swingSound(melee, 'hit', 'melee.hit')
+							: event.player !== self
+								? swingSound(melee, 'swing', 'melee.swing')
+								: null;
+				if (sound) sounds.playAt(sound, event.origin, 1, 3);
 				break;
 			}
 			case 'throw': {
@@ -174,4 +172,14 @@ export class Combat implements PlayFeature {
 	dispose(): void {
 		this.effects.dispose();
 	}
+}
+
+/** A swing's or hit's sound: the weapon's own (null for none: bare hands), else `usual`. */
+function swingSound(
+	melee: MeleeSpec | undefined,
+	part: 'swing' | 'hit',
+	usual: SoundId
+): SoundId | null {
+	const own = melee?.sound;
+	return own ? own[part] : usual;
 }

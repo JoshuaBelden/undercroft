@@ -1,6 +1,6 @@
 # Player: movement, collision, networking, headlamp, sanity
 
-The first-person player. The server is authoritative. The client predicts its own movement with the same code and reconciles with the server.
+The player. The server is authoritative. The client predicts its own movement with the same code and reconciles with the server.
 
 ## Files
 
@@ -175,11 +175,11 @@ So you see teammates about 100 ms plus latency in the past, and the local player
 - **Low battery:** below `flicker.lowBattery`, the lamp dims and flickers more.
 - **Low and bright** are a choice, not a step up: low (intensity 7, 8 m, a 0.7 rad half-cone) is dim, for getting about carefully, and shows a creature only within about 3.5 m; bright (55, 18 m, 0.75 rad) is as wide as low and far brighter, at three times the drain. A creature shows within about 14 m. The strobe (switching on from off, [status.md](status.md)) needs 0.05 on the creature: within about 3 m on low. Tuning the modes, check these distances with `lampIllumination` ([creatures.md](creatures.md#half-light)); wider cones don't change the light count, but spread each lamp's shadow map wider.
 
-`Headlamp.ts` puts a `SpotLight` on the player's head: an object at the eyes, facing where they look. In first person that is where the camera is; over the shoulder the camera hangs back and the lamp stays on the head, which is where the server works out the light from. It casts one shadow on medium and high quality, and it counts toward `LIGHT_BUDGET`. The scene's ambient light is almost black, so the headlamp is the light.
+`Headlamp.ts` puts a `SpotLight` on the player's head: an object at the eyes, facing where they look. The camera hangs back over the shoulder and the lamp stays on the head, which is where the server works out the light from. It casts one shadow on medium and high quality, and it counts toward `LIGHT_BUDGET`. The scene's ambient light is almost black, so the headlamp is the light.
 
-**Other players' headlamps:** `RemotePlayers` gives each remote player a head pivot (eye height, yaw, pitch from their snapshot) with its own `Headlamp`. Their flicker uses the same `headlampOutput`, with the lamp clock advanced locally between 20 Hz snapshots so it stays smooth. Remote lamps cast shadows (at most 512 px) so their light doesn't leak through walls, and each one counts toward `LIGHT_BUDGET`. **Reduce flashing** (`src/lib/game/flashing.ts`) only changes what is drawn: `SteadyLight` eases every lamp's light (and the viewmodel's fill) toward the shared `headlampOutput` over about 0.3 s, so flicker becomes a waver and cut-outs slow dips. `flashStrength()` scales muzzle flashes, flares and the shot's ambient pulse to a quarter, and the hurt vignette fades in and out slowly. The simulation, and so what the server counts as lit, doesn't change.
+**Other players' headlamps:** `RemotePlayers` gives each remote player a head pivot (eye height, yaw, pitch from their snapshot) with its own `Headlamp`. Their flicker uses the same `headlampOutput`, with the lamp clock advanced locally between 20 Hz snapshots so it stays smooth. Remote lamps cast shadows (at most 512 px) so their light doesn't leak through walls, and each one counts toward `LIGHT_BUDGET`. **Reduce flashing** (`src/lib/game/flashing.ts`) only changes what is drawn: `SteadyLight` eases every lamp's light (and your own body's fill from the camera) toward the shared `headlampOutput` over about 0.3 s, so flicker becomes a waver and cut-outs slow dips. `flashStrength()` scales muzzle flashes, flares and the shot's ambient pulse to a quarter, and the hurt vignette fades in and out slowly. The simulation, and so what the server counts as lit, doesn't change.
 
-**Toggle sprint and aim** (accessibility settings) are handled in `LocalPlayer`: a press switches sprint or aim on and the input frames carry it as if held. Sprint ends when you stop moving or press the stance key. The controller has its own sprint setting, a toggle by default (see [controller.md](controller.md#moving-and-looking)); `sprintBy` remembers which device switched it on. Aim only toggles with a firearm in hand and ends when the gun leaves the hand. Aiming sensitivity (`controls.aimSensitivity`) multiplies the look speed while zoomed in.
+**Toggle sprint and aim** (accessibility settings) are handled in `LocalPlayer`: a press switches sprint or aim on and the input frames carry it as if held. Sprint ends when you stop moving or press the stance key. The controller has its own sprint setting, a toggle by default (see [controller.md](controller.md#moving-and-looking)); `sprintBy` remembers which device switched it on. Aim only toggles with a firearm in hand and ends when the gun leaves the hand.
 
 A lamp redraws its shadow map only while it's lit and its light could reach the view (`Headlamp.update` with the camera's frustum). Otherwise `shadow.autoUpdate` is off, and Three.js keeps the old map without a pass over the scene. Shadows are never turned off with `castShadow` while playing, because changing how many lights cast shadows recompiles every material, like changing the number of lights. "Nearest" below swaps which lamp casts without changing how many.
 
@@ -218,17 +218,17 @@ Every player is drawn with the explorer model (`PLAYER_MODEL` in `src/lib/conten
 
 The explorer's map:
 
-| Slot           | Clip                           | Notes                                                  |
-| -------------- | ------------------------------ | ------------------------------------------------------ |
-| `idle`         | `Walking`, held at frame 0     | a stand-in: the model has no idle clip                 |
-| `walking`      | `Walking`                      |                                                        |
-| `running`      | `Running`                      |                                                        |
-| `crouch`       | `Cautious_Crouch_Walk_Forward` |                                                        |
-| `crawl`        | `Crawl_and_Look_Back`          | the first 2.1 s only; the rest stops to look back      |
-| `melee_attack` | `Heavy_Hammer_Swing`           |                                                        |
-| `kneel`        | `Kneel_Medkit`                 | hand-keyed, whole body (`scripts/blender/explorer.py`) |
-| `take_damage`  | `Face_Punch_Reaction_1`        | 2.1 to 2.5 s only: the punch landing, the twist        |
-| `die`          | `Shot_and_Slow_Fall_Backward`  |                                                        |
+| Slot           | Clip                           | Notes                                                                      |
+| -------------- | ------------------------------ | -------------------------------------------------------------------------- |
+| `idle`         | `Walking`, held at frame 0     | a stand-in: the model has no idle clip                                     |
+| `walking`      | `Walking`                      |                                                                            |
+| `running`      | `Running`                      |                                                                            |
+| `crouch`       | `Cautious_Crouch_Walk_Forward` |                                                                            |
+| `crawl`        | `Crawl_and_Look_Back`          | 0.367 to 2.033 s, blended round (`loopBlend`); the rest stops to look back |
+| `melee_attack` | `Heavy_Hammer_Swing`           |                                                                            |
+| `kneel`        | `Kneel_Medkit`                 | hand-keyed, whole body (`scripts/blender/explorer.py`)                     |
+| `take_damage`  | `Face_Punch_Reaction_1`        | 2.1 to 2.5 s only: the punch landing, the twist                            |
+| `die`          | `Shot_and_Slow_Fall_Backward`  |                                                                            |
 
 **Kneeling at a medkit.** Using an item with `heal.kneel` (the medkit) on yourself crouches you in the shared step (`kneeling`), and your body plays `kneel`: down on the right knee, the left foot planted, both hands working at the kit, which is taken out of the hand and set on the floor in front of the kneeling knee (`FLOOR_SPOT` in `PlayerBody`, its long side toward them) until it is done or let go. The arms are part of the clip, so no upper-body pose plays meanwhile.
 
@@ -240,7 +240,7 @@ The body doesn't cast shadows. The lamp is inside the head, so a shadow-casting 
 
 What is in a player's hand shows on their body: the item's model in the right hand, the arms posed for it, and using it plays on the arms.
 
-**The item in the hand.** `PlayerBody` hangs a group from the right hand bone (`PLAYER_MODEL.hand`, `mixamorigRightHand`: three.js drops the `:` from Mixamo's bone names) and puts the held item's model in it at the item's `grip` (`offset` and `rotation` in the hand bone's frame, in `src/lib/content/items.ts`; see [items.md](items.md#data)). It swaps when the held item changes, and is put away while the player is down, dead, on a rope or swimming. An item without a `grip` isn't drawn. The model comes from `itemModel` (`src/lib/game/items/itemModel.ts`), shared with the viewmodel.
+**The item in the hand.** `PlayerBody` hangs a group from the right hand bone (`PLAYER_MODEL.hand`, `mixamorigRightHand`: three.js drops the `:` from Mixamo's bone names) and puts the held item's model in it at the item's `grip` (`offset` and `rotation` in the hand bone's frame, in `src/lib/content/items.ts`; see [items.md](items.md#data)). It swaps when the held item changes, and is put away while the player is down, dead, on a rope or swimming. An item without a `grip` isn't drawn. The model comes from `itemModel` (`src/lib/game/items/itemModel.ts`).
 
 **Upper-body poses.** The legs keep playing the full-body clip above. Over it, `UpperBody` (`src/lib/game/UpperBody.ts`) plays clips that turn only arm and hand bones. Each frame, after the full-body clip has posed the skeleton, every bone an upper clip turns is slerped from that pose toward the clip's, so walking, running and crouching need no clip per hold. A bone the clip leaves alone (the free arm of a one-handed hold) follows the legs' clip. Poses fade in and out over 0.2 s; a shot or reload over 0.05 s, so the kick isn't lost. `upperBodyPose(state)` (`src/lib/game/player/pose.ts`) picks the slot from the state alone:
 
@@ -257,7 +257,7 @@ The slots are `UPPER_SLOTS` in `src/lib/content/animations.ts`, mapped to clips 
 
 **The clips** are hand-keyed in `art/blender/Explorer.blend` by `scripts/blender/explorer.py` and merged into the explorer at build time (see [asset-pipeline.md](asset-pipeline.md#the-explorer)). Each key there gives where each wrist goes and which way the hand faces; a temporary IK chain solves the arm and the result is baked to rotation keys, fingers curled by a `grip` amount. To change a pose, edit `CLIPS` there, run `explorer.build_all()` and `explorer.export()` in Blender, then `pnpm asset:build`. A clip found elsewhere (Mixamo) works the same, as long as it keys only the arms: put it in the .blend as an NLA track and name it in `PLAYER_MODEL.upper`.
 
-**Shots from the gun.** Another player's muzzle flare and smoke start at the barrel of the gun in their hands (`PlayerBody.muzzle`, the item's `hold.muzzle` in its model's space, via `RemotePlayers.muzzle`), and so does yours over the shoulder. Until the body's gun is drawn they fall back to a point in front of the eyes. The shot itself still goes from the eye along the look direction on the server, so it lands where the crosshair is.
+**Shots from the gun.** Another player's muzzle flare and smoke start at the barrel of the gun in their hands (`PlayerBody.muzzle`, the item's `muzzle` in its model's space, via `RemotePlayers.muzzle`), and so does yours over the shoulder. Until the body's gun is drawn they fall back to a point in front of the eyes. The shot itself still goes from the eye along the look direction on the server, so it lands where the crosshair is.
 
 ## Gamer tags
 
@@ -277,12 +277,13 @@ The name comes from the player snapshot (`PlayerSnapshot.name`, the gamer tag th
 
 ## Camera
 
-`settings.graphics.view` is `first` or `shoulder`; `toggleView` (V) switches it, and so does Camera under Graphics in the settings.
+The camera is over the shoulder, with your own body drawn. Only in the water, on the map and spectating is it at the eyes. There is no first person: what you hold is drawn in your body's hand.
 
 - **Lamp position:** whenever a body is drawn (other players, and you over the shoulder), its lamp is moved `PLAYER_MODEL.lampForward` (0.45 m) ahead of the eye point. The model's head is ahead of the eye point and leans further in a run, so a lamp left at the eye point would shine on the back of the head.
-- **Only standing.** Crouched, crawling or swimming, the body would fill the view from behind, so the shoulder view gives way to the eyes and comes back when you stand up.
-- **First person:** the camera is at the eyes and the held item is drawn by `ViewModel`.
-- **Over the shoulder:** the camera sits behind and to the right of the head (`SHOULDER_CAMERA`: right, up, back, in the look frame). `segmentHit` from the eye to that spot pulls it in short of a wall. Your own `PlayerBody` is drawn and the viewmodel is hidden. If the camera is squeezed to within `hideWithin` (0.3 m) of the head, the body is hidden so you don't see it from the inside.
+- **The head looks, the body follows.** Every explorer's body (yours and others') turns to the look only as it moves, aims or does something with the hand (`PlayerBody.face`: `TURN_RATE`, faster acting). Standing still, the neck and head turn instead (`look`: a world-space turn put on `PLAYER_MODEL.neck` and `.head` over the clips, the neck `NECK_SHARE` of it), up to `HEAD_TURN` aside and up or down; look further aside and the body comes round on the spot. Crawling, the head turns less (`CRAWL_HEAD_TURN`), so the body comes round sooner. Climbing, swimming, mantling or down, the whole body faces the look as before.
+- **Not swimming.** In the water the shoulder view gives way to the eyes, and comes back when you are out. Crouched or crawling, the body is lower and leans into the view, so the camera sits further aside and forward over it (`SHOULDER_CAMERA.crouch`, `.crawl`); crawling, kept low under a crawlspace's roof.
+- **Lit from the camera.** Your headlamp points ahead, so the back of your own body, the side you look at over the shoulder, would be black. Your own `PlayerBody` (`new PlayerBody(true)`) has copies of its materials that add a soft light from the camera as emitted light (`cameraFilled`: `OWN_FILL`, some of it all round, the rest on what faces the camera). It follows your lamp's output (through `SteadyLight`, for Reduce flashing), so with the lamp off you are as dark as everything else. No scene light changes, so the headlamp, the light budget and other players are untouched.
+- **Over the shoulder:** the camera sits behind and to the right of the head (`SHOULDER_CAMERA`: right, up, back, in the look frame). `segmentHit` from the eye to that spot pulls it in short of a wall. Your own `PlayerBody` is drawn. If the camera is squeezed to within `hideWithin` (0.3 m) of the head, the body is hidden so you don't see it from the inside.
 
 The view changes nothing on the server: you still move, aim and shoot from the eyes along the look direction, so over the shoulder a shot lands slightly left of the centre of the screen at close range.
 

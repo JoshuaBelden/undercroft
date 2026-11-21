@@ -82,7 +82,7 @@ The same `RitePanel`, all of it whether or not the panel is hidden, is the Rite 
 On a tablet or a phone the rite covers a good part of the screen, so players can hide it:
 
 - **The setting** is `settings.interface.ritePanel` (on by default), Settings > Interface > Show rite panel. It persists like every setting.
-- **The action** `toggleRitePanel` (Interface; `KeyH`, `PadR3` in `PAD_DEFAULTS`) flips that setting and saves it, from the play page's `onPressed` switch, as `toggleView` and `toggleStats` do. It plays `ui.toggle`, a quiet tick (the menu click, quieter and higher). It only does anything underground: the dashboard doesn't handle it.
+- **The action** `toggleRitePanel` (Interface; `KeyH`, `PadR3` in `PAD_DEFAULTS`) flips that setting and saves it, from the play page's `onPressed` switch, as `toggleStats` does. It plays `ui.toggle`, a quiet tick (the menu click, quieter and higher). It only does anything underground: the dashboard doesn't handle it.
 - **Hidden,** `RitePanel` gets `open={false}` and draws only its header: the Affliction's name in its pill ("Resolved" beside it once done) and a `KeyCap` of `promptCode('toggleRitePanel')`, so it follows remapping and shows the controller button or the key, whichever was used last. The party's health (`PartyHealth`, see [player.md](player.md)), the vignette, prompts, held item, ammunition and the expedition clock stay.
 
 It isn't hidden automatically by screen size. Anything else added down the left edge underground should follow the same setting.
