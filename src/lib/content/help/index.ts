@@ -433,7 +433,7 @@ Everything else you can use is on the quick-use wheel. Hold {action:quickUse} an
 
 What is in your hand is named in the bottom-right corner, with the rounds loaded and spare when it is a firearm. Spare rounds are taken from your backpack.
 
-Look at something on the floor and press {action:interact} to pick it up. It goes where it belongs if there is room: a weapon to an empty weapon slot, quick-use things to the wheel, the rest to your backpack. To put something down, open your pack and drop it from its menu.
+Look at something on the floor and press {action:interact} to pick it up. It goes where it belongs if there is room: a weapon to an empty weapon slot, quick-use things to the wheel, the rest to your backpack. To put something down, open your pack and drop it from its menu. Some things have nothing to lie on the floor as: those go into a drop box of yours, an iron strongbox, in front of you. Anything you drop near your own box goes into it. Anyone can open a box and take from it, but what you drop never goes into someone else's. A box that is closed empty is gone.
 
 If you die down here, everything you carried stays where you fell. Someone else might find it.`
 	},

@@ -31,8 +31,10 @@ export class PackSystem implements SessionSystem {
 	}
 
 	/** After a request was carried out: what came out lands on the floor, the hand is checked. */
-	afterRequest(player: Player, inHand: ItemStack | null, dropped?: ItemStack): void {
+	afterRequest(player: Player, inHand: ItemStack | null, given?: ItemStack): void {
 		const s = player.state;
+		// Into a drop box, if it goes in one (docs/dev/lootables.md#drop-boxes); the rest lands.
+		const dropped = given ? this.ctx.systems.crates.dropInBox(player, given) : null;
 		if (dropped) {
 			const { origin, direction } = aimRay(s, eyeHeight(s));
 			this.ctx.items.drop(dropped, origin, direction);

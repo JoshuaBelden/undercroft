@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { LOOTABLES, type LootableDef } from '#lib/content/lootables.ts';
 import { loadModel } from '#lib/game/assets.ts';
-import type { CratesSnapshot } from '#lib/shared/items/types.ts';
+import type { CratesSnapshot, DropBoxSnapshot } from '#lib/shared/items/types.ts';
 import type { CratePlacement } from '#lib/shared/map/types.ts';
 
 interface Shown {
@@ -30,6 +30,8 @@ export class Crates {
 	readonly root = new THREE.Group();
 	/** The crates of the current map (for the opening rule on the client). */
 	placements: CratePlacement[] = [];
+	/** Drop boxes, as the tick says (docs/dev/lootables.md#drop-boxes): who each belongs to. */
+	boxes = new Map<string, DropBoxSnapshot>();
 	private shown = new Map<string, Shown>();
 	private opened = new Set<string>();
 	private busy = new Set<string>();
@@ -45,33 +47,71 @@ export class Crates {
 	build(placements: CratePlacement[]): void {
 		this.clear();
 		this.placements = placements;
-		const id = this.buildId;
-		for (const placement of placements) {
-			const def = LOOTABLES[placement.kind ?? 'crate'];
-			const loaded = def.model ? loadModel(def.model) : Promise.resolve(placeholder(def));
-			void loaded.then((model) => {
-				// A newer map was loaded while this one was on its way.
-				if (id !== this.buildId) return;
-				model.position.set(...placement.position);
-				model.rotation.y = placement.yaw;
-				model.traverse((node) => {
-					if (node instanceof THREE.Mesh) {
-						node.castShadow = true;
-						node.receiveShadow = true;
-					}
-				});
-				this.root.add(model);
-				this.shown.set(placement.id, {
-					root: model,
-					lid: def.lid ? (model.getObjectByName(def.lid.part) ?? null) : null,
-					angle: def.lid?.angle ?? 0,
-					// One that was opened before we got here is already up.
-					open: this.opened.has(placement.id) ? 1 : 0,
-					highlighted: false,
-					materials: new Map()
-				});
-			});
+		for (const placement of placements) this.place(placement);
+	}
+
+	/**
+	 * The drop boxes in the tick: new ones are drawn, ones gone (closed empty) are taken away.
+	 * Their models are the asset cache's, so nothing of theirs is disposed.
+	 */
+	syncBoxes(boxes: DropBoxSnapshot[]): void {
+		const now = new Set(boxes.map((box) => box.id));
+		for (const id of [...this.boxes.keys()]) {
+			if (now.has(id)) continue;
+			this.boxes.delete(id);
+			const shown = this.shown.get(id);
+			if (shown) {
+				this.glow(shown, false);
+				shown.root.removeFromParent();
+				this.shown.delete(id);
+			}
 		}
+		for (const box of boxes) {
+			if (this.boxes.has(box.id)) continue;
+			this.boxes.set(box.id, box);
+			this.place({ id: box.id, position: box.position, yaw: box.yaw, kind: 'dropBox', tier: 0 });
+		}
+	}
+
+	/** Lootables that can be looked at to open: the map's, and the drop boxes. */
+	all(): CratePlacement[] {
+		return [
+			...this.placements,
+			...[...this.boxes.values()].map((box): CratePlacement => ({
+				...box,
+				kind: 'dropBox',
+				tier: 0
+			}))
+		];
+	}
+
+	private place(placement: CratePlacement): void {
+		const id = this.buildId;
+		const def = LOOTABLES[placement.kind ?? 'crate'];
+		const loaded = def.model ? loadModel(def.model) : Promise.resolve(placeholder(def));
+		void loaded.then((model) => {
+			// A newer map was loaded while this one was on its way, or the box is gone already.
+			if (id !== this.buildId) return;
+			if (placement.kind === 'dropBox' && !this.boxes.has(placement.id)) return;
+			model.position.set(...placement.position);
+			model.rotation.y = placement.yaw;
+			model.traverse((node) => {
+				if (node instanceof THREE.Mesh) {
+					node.castShadow = true;
+					node.receiveShadow = true;
+				}
+			});
+			this.root.add(model);
+			this.shown.set(placement.id, {
+				root: model,
+				lid: def.lid ? (model.getObjectByName(def.lid.part) ?? null) : null,
+				angle: def.lid?.angle ?? 0,
+				// One that was opened before we got here is already up.
+				open: this.opened.has(placement.id) ? 1 : 0,
+				highlighted: false,
+				materials: new Map()
+			});
+		});
 	}
 
 	apply(snapshot: CratesSnapshot): void {
@@ -91,8 +131,9 @@ export class Crates {
 		return this.locked.has(id);
 	}
 
-	/** What stands at this id: a corpse, a trunk, or (undefined) a crate. */
+	/** What stands at this id: a corpse, a trunk, a drop box, or (undefined) a crate. */
 	kind(id: string): CratePlacement['kind'] {
+		if (this.boxes.has(id)) return 'dropBox';
 		return this.placements.find((placement) => placement.id === id)?.kind;
 	}
 
@@ -142,6 +183,7 @@ export class Crates {
 		}
 		this.shown.clear();
 		this.placements = [];
+		this.boxes.clear();
 		this.opened.clear();
 		this.busy.clear();
 		this.jammed.clear();

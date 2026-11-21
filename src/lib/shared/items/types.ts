@@ -73,6 +73,20 @@ export interface CratesSnapshot {
 	noticed: string[];
 	/** Ones filled from (a font) that have run dry. */
 	dry: string[];
+	/**
+	 * Drop boxes (docs/dev/lootables.md#drop-boxes): made where explorers drop things, so not in
+	 * the layout. `owner` is the player who dropped into it first.
+	 */
+	boxes: DropBoxSnapshot[];
+}
+
+export interface DropBoxSnapshot {
+	id: string;
+	/** Floor centre, world space. */
+	position: Vec3;
+	/** Turn about +Y (radians), as a crate placement's: its front to +Z at 0. */
+	yaw: number;
+	owner: string;
 }
 
 /**
@@ -150,6 +164,8 @@ export type GameEvent =
 	/** `count`: how many were taken (all that fit). */
 	| { kind: 'pickup'; player: string; item: string; count: number; position: Vec3 }
 	| { kind: 'drop'; player: string; item: string; position: Vec3 }
+	/** Something dropped went into a drop box (docs/dev/lootables.md#drop-boxes). */
+	| { kind: 'boxed'; player: string; item: string; position: Vec3 }
 	| { kind: 'creatureHit'; id: string; position: Vec3 }
 	/** `by`: the player who finished it off, if one did. */
 	| { kind: 'creatureDie'; id: string; position: Vec3; by: string | null }

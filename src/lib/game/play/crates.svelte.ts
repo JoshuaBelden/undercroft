@@ -52,6 +52,7 @@ export class Crates implements PlayFeature {
 
 	tick(tick: TickMessage): void {
 		this.models.apply(tick.crates);
+		this.models.syncBoxes(tick.crates.boxes);
 		this.noticed = tick.crates.noticed;
 		this.dry = tick.crates.dry;
 	}
@@ -108,7 +109,7 @@ export class Crates implements PlayFeature {
 				id: message.id,
 				slots: message.slots,
 				reveal: message.reveal,
-				name: def.name,
+				name: this.title(message.id, def.name),
 				flavor: flavorOf(def, message.id)
 			};
 			// Something special just revealed (not one seen before the crate was opened).
@@ -129,6 +130,18 @@ export class Crates implements PlayFeature {
 		}
 	}
 
+	/**
+	 * What a lootable is called: its name, or for a drop box whose it is ("Your drop box",
+	 * "Wanderer's drop box").
+	 */
+	private title(id: string, name: string): string {
+		const box = this.models.boxes.get(id);
+		if (!box) return name;
+		if (box.owner === this.ctx.client.playerId) return `Your ${name.toLowerCase()}`;
+		const owner = this.ctx.remote.list().find((player) => player.id === box.owner);
+		return owner ? `${owner.name}'s ${name.toLowerCase()}` : name;
+	}
+
 	/** Done with the loot crate: tell the server, and straight back to play. */
 	close(): void {
 		const { ui } = this.ctx;
@@ -145,6 +158,10 @@ export class Crates implements PlayFeature {
 		if (event.kind === 'crateOpen') {
 			const def = LOOTABLES[this.models.kind(event.id) ?? 'crate'];
 			sounds.playAt(def.sound, event.position, 1, Math.max(3, def.noise / 2));
+		} else if (event.kind === 'boxed') {
+			// Put down in a drop box.
+			if (event.player === client.playerId) sounds.play('inventory.drop');
+			else sounds.playAt('inventory.drop', event.position, 1, 3);
 		} else if (event.kind === 'filled') {
 			sounds.playAt('lootable.font', event.position, 1, 3);
 		} else if (event.kind === 'noticed') {
@@ -164,9 +181,9 @@ export class Crates implements PlayFeature {
 	}
 
 	target(_state: PlayerState, aim: Aim | null, taken: boolean): boolean {
-		const known = this.models.placements.filter(
-			(p) => !LOOTABLES[p.kind ?? 'crate'].hidden || this.noticed.includes(p.id)
-		);
+		const known = this.models
+			.all()
+			.filter((p) => !LOOTABLES[p.kind ?? 'crate'].hidden || this.noticed.includes(p.id));
 		this.aimedAt =
 			aim && !taken
 				? (lookedAtCrate(aim.world, aim.origin, aim.direction, known)?.id ?? null)
@@ -215,7 +232,11 @@ export class Crates implements PlayFeature {
 			};
 		}
 		const progress = way.seconds > 0 ? state.opening / way.seconds : 0;
-		return { ...keyPrompt('interact', way.verb, progress), after };
+		// A drop box says whose it is: "to open Wanderer's drop box".
+		const verb = this.models.boxes.has(id)
+			? `${way.verb} ${this.title(id, def.name).replace(/^Your/, 'your')}`
+			: way.verb;
+		return { ...keyPrompt('interact', verb, progress), after };
 	}
 
 	update(delta: number): void {

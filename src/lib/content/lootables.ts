@@ -29,7 +29,8 @@ export type LootableId =
 	| 'stash'
 	| 'cache'
 	| 'alcove'
-	| 'font';
+	| 'font'
+	| 'dropBox';
 
 /**
  * What a way of opening takes in the hand: something that pries (`pry`, the crowbar), cuts this
@@ -152,6 +153,11 @@ export interface LootableDef {
 	meter?: number;
 	/** The lid (a part of its model, turned about its X axis by `angle`) goes up when opened. */
 	lid?: { part: string; angle: number };
+	/**
+	 * Never part of a map: made where an explorer drops something (a drop box, DROP_BOXES in
+	 * loot.ts). It rolls no loot and has no marker in any room.
+	 */
+	dropped?: true;
 }
 
 /** Nothing of a rarity. */
@@ -950,6 +956,28 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		sound: 'lootable.font',
 		loot: [],
 		rarity: everyLevel(counts({}))
+	},
+	// What an explorer drops that has no model of its own (docs/dev/lootables.md#drop-boxes).
+	dropBox: {
+		id: 'dropBox',
+		name: 'Drop box',
+		flavor: [
+			'A battered iron box, left where someone put things down.',
+			'Someone meant to come back for this.'
+		],
+		model: modelUrl('shared/props/drop_box.glb'),
+		color: 0x3c3a36,
+		size: [0.5, 0.38, 0.36],
+		// Stepped over: it appears and goes in the middle of a game, and the map's collision doesn't.
+		solid: false,
+		slots: 8,
+		open: [{ seconds: 0.5, verb: 'to open' }],
+		noise: 0,
+		lootNoise: 2,
+		sound: 'crate.open',
+		loot: [],
+		rarity: everyLevel(counts({})),
+		dropped: true
 	}
 };
 
