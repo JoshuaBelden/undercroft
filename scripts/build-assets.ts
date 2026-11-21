@@ -92,6 +92,11 @@ const PROP_FIT: Record<string, { tris: number; scale?: number }> = {
 	// high with its handle and 0.36 m deep, its hasp to +Z like the crate's front.
 	drop_box: { tris: 4000, scale: 0.26 }
 };
+/**
+ * Props whose texture needs more than PROP_TEXTURE: the spider web's strands are a pixel or two
+ * wide, and vanish at 512.
+ */
+const PROP_TEXTURE_SIZE: Record<string, number> = { 'spider-web': 2048 };
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'shared', 'map', 'pieces.generated.ts');
 const MODEL_MANIFEST = path.join(ROOT, 'src', 'lib', 'content', 'models.generated.ts');
 /**
@@ -709,7 +714,7 @@ async function buildProps(io: NodeIO): Promise<void> {
 			textureCompress({
 				encoder: sharp,
 				targetFormat: 'webp',
-				resize: [PROP_TEXTURE, PROP_TEXTURE],
+				resize: [PROP_TEXTURE_SIZE[id] ?? PROP_TEXTURE, PROP_TEXTURE_SIZE[id] ?? PROP_TEXTURE],
 				quality: 85
 			}),
 			prune()

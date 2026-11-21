@@ -74,7 +74,6 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		[prop('fire-patch'), 'Fire patch (effect)']
 	]),
 	...group('model', 'World', 5, [
-		[prop('spider-web'), 'Spider web across an arch: whole, cut'],
 		[prop('rubble-wall'), 'Breakable rubble wall: whole, broken'],
 		[prop('piton-anchor'), 'Piton anchor in rock, with rope tied'],
 		[prop('chalk-sign'), "Smuggler's chalk sign (decal)"]

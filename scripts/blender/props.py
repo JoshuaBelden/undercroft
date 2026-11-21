@@ -1,4 +1,5 @@
-"""Undercroft props (things standing in the map that aren't part of a piece): the loot crate.
+"""Undercroft props (things standing in the map that aren't part of a piece): the loot crate, the
+double door, the spider web.
 
 Bootstraps the models inside the kit .blend. Like pieces and items, the .blend is the source of
 truth once they exist: building skips a prop collection that already exists unless force=True,
@@ -31,7 +32,17 @@ import kit
 
 EXPORT = os.path.join(kit.EXPORT, "props")
 
-PROPS = ["crate", "door-double"]
+PROPS = ["crate", "door-double", "spider-web"]
+
+# The spider web across a side passage's arch (docs/dev/world.md#webs): its size (m), how far it
+# bows toward you, and the texture: colour with the strands' opacity in its alpha (made from the
+# art/textures/spider_web set).
+WEB_W = 2.1
+WEB_H = 2.8
+WEB_BOW = 0.12
+WEB_TEXTURE = os.path.join(kit.TEXTURES, "spider_web", "spider_web_rgba_2k.png")
+# Props whose texture has a cut-out (alpha): exported as PNG, not JPEG, to keep it.
+ALPHA_PROPS = {"spider-web"}
 
 # The crate: outer size (m), plank thickness, and how thick the lid is.
 CRATE_W = 0.9
@@ -140,7 +151,78 @@ def build_door_double(force=False):
     return coll
 
 
-BUILDERS = {"crate": build_crate, "door-double": build_door_double}
+def _web_material():
+    """The web's material: the strands from the texture, the rest see-through; both sides drawn."""
+    mat = bpy.data.materials.get("mat-spider-web")
+    if mat:
+        return mat
+    mat = bpy.data.materials.new("mat-spider-web")
+    mat.use_backface_culling = False
+    if hasattr(mat, "surface_render_method"):
+        mat.surface_render_method = "BLENDED"
+    else:
+        mat.blend_method = "BLEND"
+    if hasattr(mat, "use_nodes") and not mat.use_nodes:
+        mat.use_nodes = True
+    nt = mat.node_tree
+    bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(WEB_TEXTURE, check_existing=True)
+    tex.location = (-300, 0)
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    bsdf.inputs["Roughness"].default_value = 0.6
+    return mat
+
+
+def _web_sheet(name, width, height, bow, depth, flip):
+    """One bowed sheet of web: a grid `width` x `height`, its middle `bow` toward -Y (the front)
+    and set `depth` back. The square texture covers the height, cropped at the sides; `flip`
+    mirrors it, so a second sheet behind doesn't repeat the first."""
+    cols, rows = 16, 20
+    mb = bmesh.new()
+    uv_layer = mb.loops.layers.uv.new("UVMap")
+    grid = []
+    for j in range(rows + 1):
+        row = []
+        for i in range(cols + 1):
+            u, v = i / cols, j / rows
+            x = (u - 0.5) * width
+            z = v * height
+            sag = (1 - (2 * u - 1) ** 2) * math.sin(math.pi * v)
+            row.append(mb.verts.new((x, depth - bow * sag, z)))
+        grid.append(row)
+    crop = (1 - width / height) / 2
+    for j in range(rows):
+        for i in range(cols):
+            quad = (grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i])
+            face = mb.faces.new(quad)
+            for loop, (di, dj) in zip(face.loops, ((0, 0), (1, 0), (1, 1), (0, 1))):
+                u = (i + di) / cols
+                u = crop + (1 - u if flip else u) * (1 - 2 * crop)
+                loop[uv_layer].uv = (u, (j + dj) / rows)
+    mesh = bpy.data.meshes.new(name)
+    mb.to_mesh(mesh)
+    mb.free()
+    mesh.materials.append(_web_material())
+    return bpy.data.objects.new(name, mesh)
+
+
+def build_spider_web(force=False):
+    """A web across an arch: origin on the floor in the middle, the web standing over it, spanning
+    X, bowing toward the front (-Y). A second, smaller sheet a little behind it, mirrored, so it
+    still reads as a web from an angle."""
+    coll, root = prop_collection("spider-web", force)
+    for obj in (
+        _web_sheet("spider-web-front", WEB_W, WEB_H, WEB_BOW, 0.0, False),
+        _web_sheet("spider-web-back", WEB_W * 0.94, WEB_H * 0.94, WEB_BOW * 0.6, 0.07, True),
+    ):
+        coll.objects.link(obj)
+        obj.parent = root
+    return root
+
+
+BUILDERS = {"crate": build_crate, "door-double": build_door_double, "spider-web": build_spider_web}
 
 
 # ---------------------------------------------------------------------------
@@ -273,7 +355,8 @@ def export_prop(name):
         export_yup=True,
         export_lights=False,
         export_cameras=False,
-        export_image_format="JPEG",  # raw intermediate; asset:build re-encodes to WebP
+        # Raw intermediate (asset:build re-encodes to WebP); PNG where the alpha has to survive.
+        export_image_format="AUTO" if name in ALPHA_PROPS else "JPEG",
     )
     root.location = saved
     return path
