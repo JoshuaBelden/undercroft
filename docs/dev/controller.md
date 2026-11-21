@@ -86,7 +86,7 @@ Controller bindings are their own settings group, `settings.padBindings` (action
 | X          | Interact / grab a rope / revive (hold)                    | LB          | Quick-use wheel (hold)        |
 | Y          | Other weapon                                              | RB          | Reload                        |
 | D-pad up   | Headlamp (tap: on/off, hold 1 s: low/bright)              | D-pad down  | (free)                        |
-| D-pad left | Camera: first person / shoulder                           | D-pad right | Help                          |
+| D-pad left | (free)                                                    | D-pad right | Help                          |
 | View       | Pack and rite (the in-game menu)                          | Menu        | Settings                      |
 
 R3 is the rite panel underground (hide or show it, see [rite.md](rite.md#hiding-the-panel)) and Social on the dashboard (see the dashboard's shortcuts below). The two never listen at once, so they share the button.
@@ -101,7 +101,7 @@ No controller button: choosing primary or secondary directly (Y swaps the two), 
 - **B in water** is swim down: stance is bound to it too, but a stance press is ignored while swimming (for every device), so nobody climbs out of the water crouched. Swimming where you look (push forward looking up or down) works with the stick as it does with keys.
 - **Climbing stays on A.** The simulation never climbs on its own (`simulate.ts`, "Never automatic"): a haul costs stamina and can be heard.
 - **Ropes:** X (interact) takes hold of a rope you are looking at (a fresh press). On it the stick climbs up and down, L3 (sprint) climbs faster or slides, and B (stance) lets go: a stance press on a rope only lets go, it never changes stance. See [rope.md](rope.md).
-- **Looking.** The right stick, after its dead zone, goes through a curve (finer near the centre, faster toward the edge) to at most `PAD_TURN` (about 180 degrees a second) times `settings.controller.lookSensitivity`. Aiming slows it by the same zoom as the mouse (`lookScale`). No turn boost at the edge and no aim assist; both are tuning for the balance pass if wanted.
+- **Looking.** The right stick, after its dead zone, goes through a curve (finer near the centre, faster toward the edge) to at most `PAD_TURN` (about 180 degrees a second) times `settings.controller.lookSensitivity`. No turn boost at the edge and no aim assist; both are tuning for the balance pass if wanted.
 - **Wheels.** While the quick-use or chalk wheel is open, the right stick points at it directly. Letting the stick go back to the centre keeps the last choice, so letting go of the stick before LB doesn't lose it.
 
 ## Playing without the mouse captured

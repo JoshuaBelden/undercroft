@@ -71,7 +71,6 @@ Press {action:toggleHelp} at any time, on the surface or underground, to read mo
 - {action:quickUse} the quick-use wheel
 - {action:inventory} your pack and the rite
 - {action:map} your map, if you carry a notebook
-- {action:toggleView} over the shoulder or through your eyes
 - {action:toggleRitePanel} hide or show the rite
 - {action:toggleSettings} settings, {action:toggleHelp} help. With your pack or the map open, {action:toggleSettings} puts it away; then move to carry on`
 	},
@@ -85,7 +84,7 @@ Move with the left stick: push it gently to creep, a slow walk that makes no foo
 
 {pad:climb} climbs and swims up, and held while you are down, surrenders. {pad:stance} changes stance, swims down in water and lets go of a rope. {pad:interact} interacts, takes hold of a rope and revives. {pad:attack} attacks, fires or uses what is in your hand, and held, throws a knife or brick when you let go. {pad:aim} aims and {pad:reload} reloads. {pad:nextItem} swaps weapons. Hold {pad:quickUse} for the quick-use wheel and point at an item with the right stick.
 
-{pad:headlamp} switches the headlamp off and on (hold it to change between low and bright), {pad:toggleView} changes the camera and {pad:toggleHelp} opens this help. Click {pad:toggleRitePanel} to hide the rite down the left, and again to bring it back. {pad:inventory} opens your pack and the rite, and {pad:toggleSettings} the settings.
+{pad:headlamp} switches the headlamp off and on (hold it to change between low and bright) and {pad:toggleHelp} opens this help. Click {pad:toggleRitePanel} to hide the rite down the left, and again to bring it back. {pad:inventory} opens your pack and the rite, and {pad:toggleSettings} the settings.
 
 In menus, the D-pad or left stick moves between choices and {button:PadA} picks one; {button:PadB} goes back. {button:PadLB} and {button:PadRB} switch tabs, and the right stick scrolls. On a slider, or a setting with arrows, left and right change it. In the store, push the right stick left or right to choose how many. While a menu is open, the D-pad and face buttons work the menu, not the game.
 
@@ -107,7 +106,7 @@ Hold {action:sprint} to run.
 
 Tap {action:stance} to change stance: walking, crouching, crawling, then back to walking. Hold {action:stance} to creep: a slow walk that makes no footstep sound, for as long as you hold it. Your stance and creep show in the bottom-left corner. Running puts you back on your feet.
 
-Press {action:toggleView} to step back and see yourself from over your shoulder, and again to look through your own eyes. Crouched, crawling or swimming, you always see through your own eyes.
+You see your explorer from over their shoulder. In the water, you see through their eyes.
 
 Crawlspaces are too low to stand or crouch in: crawl through them. Squeezes are narrow but tall enough to walk, and long: you have to work your way through slowly, you can't run, and there's no room to fight. Make sure nothing is following you in. You can't stand up while something is overhead; you'll rise as soon as there is room.`
 	},
@@ -469,6 +468,8 @@ Everything weighs something, and the weight you carry is shown beside the title.
 
 Every swing takes stamina, more for heavy weapons. Out of breath, you can't swing until you get it back.
 
+With nothing in your hand, {action:attack} throws a punch. It barely hurts anything and you have to be close, but it is better than nothing when your weapon is gone or broken. Fists tire you too.
+
 Hold {action:attack} with something you can throw to draw it back: a faint arc shows where it will land (you can turn that off in the settings, under Interface). Let go to throw it, or press {action:aim} to put it down again.
 
 A knife is quick and quiet. A crowbar is slow but hits hard enough to stop something mid-swing. Bricks are everywhere; they break after a few blows.
@@ -565,7 +566,7 @@ Deeper down a few of the lootables are iron-bound trunks, locked. Each holds som
 		category: 'Gear and loot',
 		body: `Some side passages are blocked by things you can see. They lead somewhere worth going.
 
-A web across the way tears if you hit it: a few blows of anything you swing ({action:attack}), and every blow tears more of it open. A blade made for cutting, like a hatchet, goes through in one. Fire burns it away, so an oil bottle thrown near it clears it too. Look at a web and it says what will get you through.
+A web across the way tears if you hit it: a few blows of anything you swing ({action:attack}), even your bare hands, and every blow tears more of it open. A blade made for cutting, like a hatchet, goes through in one. Fire burns it away, so an oil bottle thrown near it clears it too. Look at a web and it says what will get you through.
 
 A fall of rubble needs a pickaxe. Take it in your hand, look at the rubble and hold {action:interact}. It takes a few seconds and it is loud. A crowbar does nothing to rubble.`
 	},

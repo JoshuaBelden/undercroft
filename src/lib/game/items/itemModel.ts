@@ -3,7 +3,7 @@ import type { ItemDef } from '#lib/content/items.ts';
 import { loadModel } from '#lib/game/assets.ts';
 
 /**
- * An item's model for drawing in a hand (yours in the viewmodel, or on an explorer's body): its
+ * An item's model for drawing in a hand (on an explorer's body): its
  * `.glb`, or a grey box while it has none or it fails to load. It casts no shadow, so the lamp
  * in the head isn't blocked by what the hand holds, and isn't culled (a skinned hand moves it).
  */

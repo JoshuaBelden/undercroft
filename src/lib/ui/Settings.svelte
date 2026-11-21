@@ -163,17 +163,7 @@
 				settings.bindings.toggleFullscreen[0] ?? ''
 			)} switches it anywhere."
 		/>
-		<StepperField
-			label="Camera"
-			text={settings.graphics.view === 'shoulder' ? 'Over the shoulder' : 'First person'}
-			onstep={() => {
-				settings.graphics.view = settings.graphics.view === 'shoulder' ? 'first' : 'shoulder';
-				saveSettings();
-			}}
-			hint="Look through your explorer's eyes, or from behind their shoulder. {bindingLabel(
-				settings.bindings.toggleView[0] ?? ''
-			)} switches it while you play."
-		/>
+
 		<SliderField
 			label="Field of view"
 			value={settings.graphics.fov}
@@ -267,19 +257,7 @@
 				saveSettings();
 			}}
 		/>
-		<SliderField
-			label="Aiming sensitivity"
-			value={settings.controls.aimSensitivity}
-			min={0.2}
-			max={2}
-			step={0.05}
-			text={settings.controls.aimSensitivity.toFixed(2)}
-			onset={(value) => {
-				settings.controls.aimSensitivity = value;
-				saveSettings();
-			}}
-			hint="Look speed while aiming down the sights, on top of the sensitivity above."
-		/>
+
 		<StepperField
 			label="Invert Y"
 			text={onOff(settings.controls.invertY)}

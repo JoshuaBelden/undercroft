@@ -8,13 +8,6 @@ import { modelUrl } from '../models.ts';
  * it is worth (selling back 40% of it).
  */
 
-const HOLD: ItemDef['hold'] = { offset: [0.22, -0.22, -0.42], scale: 1 };
-const HOLD_LONG: ItemDef['hold'] = {
-	offset: [0.2, -0.24, -0.5],
-	scale: 1,
-	aim: [0.07, -0.21, -0.42],
-	muzzle: [0, 0.05, -0.7]
-};
 const BLADE: GripSpec = {
 	pose: 'oneHand',
 	offset: [-0.0111, 0.07, -0.0279],
@@ -55,7 +48,6 @@ function melee(
 		category: 'weapon',
 		flavor,
 		model: null,
-		hold: HOLD,
 		grip: HAFT,
 		maxStack: 1,
 		durability: { max: hits, per: 'hit' },
@@ -78,7 +70,7 @@ function gun(
 		flavor,
 		model: null,
 		placeholder: { size: [0.08, 0.12, 0.3], color: 0x3a3430 },
-		hold: { ...HOLD, aim: [0.06, -0.15, -0.34], muzzle: [0, 0.045, -0.21] },
+		muzzle: [0, 0.045, -0.21],
 		grip: PISTOL,
 		maxStack: 1,
 		durability: { max: shots, per: 'shot' },
@@ -101,7 +93,6 @@ function ammo(
 		flavor,
 		model: null,
 		placeholder: { size: [0.06, 0.04, 0.04], color },
-		hold: HOLD,
 		...rest
 	};
 }
@@ -257,7 +248,6 @@ export const WEAPONS: Record<string, ItemDef> = {
 		category: 'quick',
 		flavor: 'Balanced blades with no handle to speak of. Throw them, then go and get them back.',
 		model: modelUrl('shared/items/throwing_knives.glb'),
-		hold: HOLD,
 		grip: BLADE,
 		maxStack: 6,
 		weight: 0.15,
@@ -271,7 +261,7 @@ export const WEAPONS: Record<string, ItemDef> = {
 		'A soldier’s rifle, the stock scarred. One round goes through everything in its way.',
 		{
 			model: modelUrl('shared/items/rifle.glb'),
-			hold: { ...HOLD_LONG, muzzle: [0, 0.065, -0.77] },
+			muzzle: [0, 0.065, -0.77],
 			grip: LONG_GUN,
 			weight: 4,
 			price: 320,
@@ -292,8 +282,7 @@ export const WEAPONS: Record<string, ItemDef> = {
 				noise: 45,
 				sound: 'rifle.shot',
 				reloadSound: 'rifle.load',
-				zoom: 0.45,
-				recoil: { pitch: 0.12, yaw: 0.03, rise: 0.7, back: 0.22, settle: 0.4 },
+				recoil: { pitch: 0.12, yaw: 0.03 },
 				pierce: true
 			}
 		}
@@ -304,7 +293,7 @@ export const WEAPONS: Record<string, ItemDef> = {
 		'Two barrels you can hide in a palm. Useless past arm’s length, and it fires from the floor.',
 		{
 			model: modelUrl('shared/items/derringer.glb'),
-			hold: { ...HOLD, aim: [0.06, -0.15, -0.34], muzzle: [0, 0.04, -0.11] },
+			muzzle: [0, 0.04, -0.11],
 			grip: PISTOL,
 			category: 'quick',
 			weight: 0.4,
@@ -324,8 +313,7 @@ export const WEAPONS: Record<string, ItemDef> = {
 				noise: 30,
 				sound: 'derringer.shot',
 				reloadSound: 'derringer.reload',
-				zoom: 0.8,
-				recoil: { pitch: 0.05, yaw: 0.02, rise: 0.5, back: 0.06, settle: 0.15 }
+				recoil: { pitch: 0.05, yaw: 0.02 }
 			},
 			cramped: true,
 			downed: true
@@ -337,7 +325,6 @@ export const WEAPONS: Record<string, ItemDef> = {
 		'Built from a cart spring and a coffin lid. It makes no sound at all, and the bolt takes its time.',
 		{
 			model: modelUrl('shared/items/crossbow.glb'),
-			hold: HOLD_LONG,
 			grip: LONG_GUN,
 			weight: 3,
 			price: 50,
@@ -356,8 +343,7 @@ export const WEAPONS: Record<string, ItemDef> = {
 				noise: 0,
 				sound: 'crossbow.shot',
 				reloadSound: 'crossbow.crank',
-				zoom: 0.6,
-				recoil: { pitch: 0.02, yaw: 0.01, rise: 0.2, back: 0.05, settle: 0.2 },
+				recoil: { pitch: 0.02, yaw: 0.01 },
 				projectile: { speed: 45, landNoise: 2, breakChance: 0.3 },
 				// Cranking it back is slow work: a crawl while it is done.
 				reloadSlow: true
@@ -390,8 +376,7 @@ export const WEAPONS: Record<string, ItemDef> = {
 				noise: 0,
 				sound: 'slingshot.shot',
 				reloadSound: 'revolver.reload',
-				zoom: 0.8,
-				recoil: { pitch: 0.01, yaw: 0, rise: 0.1, back: 0.02, settle: 0.1 },
+				recoil: { pitch: 0.01, yaw: 0 },
 				projectile: { speed: 28, landNoise: 8 }
 			},
 			silent: true
@@ -404,7 +389,6 @@ export const WEAPONS: Record<string, ItemDef> = {
 		category: 'quick',
 		flavor: 'Lamp oil in a bottle, a rag in the neck. Light it, throw it, stand well back.',
 		model: modelUrl('shared/items/oil_bottle.glb'),
-		hold: HOLD,
 		grip: SMALL,
 		maxStack: 3,
 		weight: 0.6,

@@ -14,6 +14,9 @@ export interface PlayerModelDef {
 	upper: UpperMap;
 	/** The bone the held item hangs from (three.js drops the ':' from Mixamo's names). */
 	hand: string;
+	/** The bones that turn to look where the player looks, the neck taking a share of it. */
+	head: string;
+	neck: string;
 	/**
 	 * How far in front of the eye point (m) the headlamp sits when the body is drawn. The model's
 	 * head is ahead of the eye point and leans further when it runs; a lamp left at the eye point
@@ -34,8 +37,10 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		walking: { clip: 'Walking' },
 		running: { clip: 'Running' },
 		crouch: { clip: 'Cautious_Crouch_Walk_Forward' },
-		// The clip stops to look back after two seconds; loop only the crawl before it.
-		crawl: { clip: 'Crawl_and_Look_Back', end: 2.1 },
+		// The clip stops to look back after two seconds; loop only the crawl before it. No two
+		// frames of it match, so the loop is cut where they come closest (scripts/anim-loop.ts)
+		// and blended round.
+		crawl: { clip: 'Crawl_and_Look_Back', start: 0.367, end: 2.033, loopBlend: 0.35 },
 		// On a rope: hanging still, and climbing (played backwards to climb down).
 		rope_idle: { clip: 'Rope_Hang_Idle' },
 		rope_climb: { clip: 'Climb_Up_Rope' },
@@ -62,14 +67,23 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		use_bandage: { clip: 'Use_Bandage' },
 		use_battery: { clip: 'Use_Battery' }
 	},
-	hand: 'mixamorigRightHand'
+	hand: 'mixamorigRightHand',
+	head: 'mixamorigHead',
+	neck: 'mixamorigNeck'
 };
 
 /** Over-the-shoulder camera: where it sits from the eye, in the look frame (m). */
 export const SHOULDER_CAMERA = {
-	right: 0.3,
+	right: 0.45,
 	up: 0.1,
 	back: 0.55,
+	/**
+	 * Crouched and crawling, where it sits instead: the body is lower and leans into the view, so
+	 * further aside, and forward over it (crawling, the body lies out behind the eye, and the
+	 * camera rides over the shoulders). Crawling, kept low, under a crawlspace's roof.
+	 */
+	crouch: { right: 0.65, up: 0.15, back: 0.5 },
+	crawl: { right: 0.6, up: 0.2, back: 0.15 },
 	/** Kept this far off whatever is behind the player. */
 	margin: 0.15,
 	/** Squeezed closer to the head than this, the body is not drawn (no view from inside it). */

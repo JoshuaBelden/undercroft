@@ -60,22 +60,19 @@ export class Effects {
 	}
 
 	/**
-	 * A gunshot from `position` along `direction`. `flare` draws the muzzle flare in the world
-	 * (off for your own first-person shots: the viewmodel draws that one). `own` adds the
-	 * ambient pulse.
+	 * A gunshot from `position` along `direction`: the muzzle flare, flame and smoke. `own`
+	 * adds the ambient pulse.
 	 */
 	shot(
 		position: Vec3 | THREE.Vector3,
 		direction: Vec3,
-		options: { flare: boolean; own: boolean; heavy: boolean }
+		options: { own: boolean; heavy: boolean }
 	): void {
 		const at = toVector(position);
 		const forward = new THREE.Vector3(...direction).normalize();
-		if (options.flare) {
-			const flare = this.flares.find((f) => !f.lit) ?? this.flares[0];
-			flare.mesh.position.copy(at).addScaledVector(forward, 0.05);
-			flare.fire((options.heavy ? 0.75 : 0.5) * Math.sqrt(flashStrength()), 0.06);
-		}
+		const flare = this.flares.find((f) => !f.lit) ?? this.flares[0];
+		flare.mesh.position.copy(at).addScaledVector(forward, 0.05);
+		flare.fire((options.heavy ? 0.75 : 0.5) * Math.sqrt(flashStrength()), 0.06);
 		if (options.own) this.pulseLeft = PULSE_TIME;
 		// Flame: tongues blown out of the barrel, fast and spreading, gone in a quarter second.
 		const tongues = options.heavy ? 6 : 3;

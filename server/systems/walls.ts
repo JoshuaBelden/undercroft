@@ -1,5 +1,5 @@
 import { MAP_KIT } from '../../src/lib/content/map/kit.ts';
-import { ITEMS } from '../../src/lib/content/items.ts';
+import { heldDef, ITEMS } from '../../src/lib/content/items.ts';
 import { FALSE_WALLS, RUBBLE_WALLS, WEBS } from '../../src/lib/content/map/walls.ts';
 import { works } from '../../src/lib/shared/items/durability.ts';
 import { held, heldWorking } from '../../src/lib/shared/items/inventory.ts';
@@ -136,11 +136,14 @@ export class WallSystem implements SessionSystem {
 		this.bringDown(spot.wall!, player, spot, RUBBLE_WALLS.fallNoise);
 	}
 
-	/** Blows that reach a web tear at it (the `swing` SimEvent, from the player's own simulation). */
+	/**
+	 * Blows that reach a web tear at it (the `swing` SimEvent, from the player's own simulation),
+	 * bare hands' too.
+	 */
 	simulated(player: Player, step: { events: SimEvent[] }): void {
 		for (const event of step.events) {
 			if (event.kind !== 'swing') continue;
-			const melee = ITEMS[event.item]?.melee;
+			const melee = heldDef(event.item)?.melee;
 			if (!melee) continue;
 			for (const web of this.webs) {
 				if (

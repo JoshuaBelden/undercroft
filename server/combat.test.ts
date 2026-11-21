@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { HANDS } from '../src/lib/content/items.ts';
+import { emptyInventory } from '../src/lib/shared/items/inventory.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { createPlayerState } from '../src/lib/shared/player/simulate.ts';
@@ -84,6 +86,25 @@ describe('swings', () => {
 		// Its snag chance is 1 in the test club.
 		expect(p.state.weapon.snag).toBeGreaterThan(0);
 		expect(a.out.some((e) => e.kind === 'snag')).toBe(true);
+	});
+
+	it('bare hands hit for their own damage, a short reach away, and wear nothing', () => {
+		const fists = HANDS.melee!;
+		const near = arena([body('a', 0, -1)]);
+		const p: Prey = { id: 'p', state: createPlayerState([0, 0, 0], 0, emptyInventory()) };
+		resolve(near.ctx, p, [swing(HANDS.id)]);
+		expect(near.damage).toEqual([{ id: 'a', amount: fists.damage }]);
+		expect(near.out).toContainEqual(
+			expect.objectContaining({ kind: 'swing', item: 'hands', hit: 'creature' })
+		);
+		expect(near.out.some((e) => e.kind === 'break')).toBe(false);
+		expect(near.creatures.hear).toHaveBeenCalledWith(EYE, fists.noise, p);
+		// Where a knife would still reach, a fist doesn't.
+		const far = arena([body('a', 0, -1.6)]);
+		resolve(far.ctx, p, [swing(HANDS.id)]);
+		expect(far.damage).toEqual([]);
+		resolve(far.ctx, p, [swing('knife')]);
+		expect(far.damage.map((d) => d.id)).toEqual(['a']);
 	});
 });
 

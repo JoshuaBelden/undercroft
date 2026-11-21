@@ -1,4 +1,4 @@
-import { ITEMS } from '../../content/items.ts';
+import { HANDS, ITEMS } from '../../content/items.ts';
 import { MOVEMENT } from '../../content/player/movement.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { FirearmSpec } from '../../content/items.ts';
@@ -98,15 +98,16 @@ export function stepWeapon(
 				if (w.time >= EQUIP_TIME) start(w, 'none');
 				break;
 			case 'swing': {
-				const melee = def?.melee;
-				if (!melee || !stack) {
+				// An empty hand swings bare hands.
+				const melee = stack ? def?.melee : HANDS.melee;
+				if (!melee) {
 					start(w, 'none');
 					break;
 				}
 				if (!w.done && w.time >= melee.windup) {
 					w.done = true;
 					const { origin, direction } = ray();
-					emit({ kind: 'swing', item: stack.item, origin, direction });
+					emit({ kind: 'swing', item: stack?.item ?? HANDS.id, origin, direction });
 				}
 				if (w.time >= melee.windup + melee.recovery) start(w, 'none');
 				break;
@@ -209,7 +210,15 @@ export function stepWeapon(
 			}
 		}
 	}
-	if (w.action !== 'none' || !stack || !def || w.putDown) return;
+	if (w.action !== 'none' || w.putDown) return;
+	// Nothing in the hand: bare hands, swung again and again while attack is held.
+	if (!stack) {
+		const fists = HANDS.melee;
+		if (fists && input.attack && payStamina(s, fists.stamina ?? 0, pressed.attack, HANDS.id, emit))
+			start(w, 'swing');
+		return;
+	}
+	if (!def) return;
 
 	// Start something new. Broken, it is in the hand but does nothing: a gun only dry-clicks.
 	if (isBroken(stack)) {

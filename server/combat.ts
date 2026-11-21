@@ -1,4 +1,4 @@
-import { ITEMS } from '../src/lib/content/items.ts';
+import { heldDef, ITEMS } from '../src/lib/content/items.ts';
 import { wearHeld } from '../src/lib/shared/items/inventory.ts';
 import { pelletDirections } from '../src/lib/shared/items/weapons.ts';
 import type { GameEvent } from '../src/lib/shared/items/types.ts';
@@ -191,7 +191,8 @@ function swing(
 	player: Prey,
 	event: Extract<SimEvent, { kind: 'swing' }>
 ): void {
-	const melee = ITEMS[event.item]?.melee;
+	// Bare hands too (HANDS): nothing in the hand to wear.
+	const melee = heldDef(event.item)?.melee;
 	if (!melee) return;
 	const bodies = targets(ctx);
 	const [ox, oy, oz] = event.origin;

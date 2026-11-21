@@ -36,6 +36,12 @@ export interface AnimClip {
 	start?: number;
 	/** Seconds in to stop at (default: the end), to cut a tail off. */
 	end?: number;
+	/**
+	 * A looping clip that was never made to loop: over its last this many seconds it blends into
+	 * what leads up to `start`, so it comes round without a jump (`seamlessLoop`). Needs a
+	 * `start` at least this far in.
+	 */
+	loopBlend?: number;
 }
 
 /** A model's animation map: clip per slot. Slots the model has no clip for are left out. */

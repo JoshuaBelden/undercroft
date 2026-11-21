@@ -229,7 +229,7 @@ export class RemotePlayers {
 			const turn = to.yaw - from.yaw;
 			head.rotation.y = from.yaw + Math.atan2(Math.sin(turn), Math.cos(turn)) * blend;
 			head.rotation.x = from.pitch + (to.pitch - from.pitch) * blend;
-			body.update(delta, state, head.rotation.y);
+			body.update(delta, state, head.rotation.y, head.rotation.x);
 			remote.tag.sprite.position.y = head.position.y + GAMER_TAGS.above;
 			remote.tag.update(
 				this.tags.shown && id !== this.hidden,

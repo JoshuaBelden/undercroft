@@ -14,7 +14,6 @@
 	import { CaptionFeed } from '#lib/game/audio/captions.svelte.ts';
 	import type { SoundId } from '#lib/content/audio/sounds.ts';
 	import { Creatures } from '#lib/game/creatures/Creatures.ts';
-	import { ViewModel } from '#lib/game/items/ViewModel.ts';
 	import { Underwater } from '#lib/game/Underwater.ts';
 	import UnderwaterOverlay from '#lib/ui/UnderwaterOverlay.svelte';
 	import { ITEMS } from '#lib/content/items.ts';
@@ -377,7 +376,7 @@
 		engine.scene.add(head);
 		const headlamp = new Headlamp(head);
 		/** Your own body, drawn only when the camera is outside it. */
-		const body = new PlayerBody();
+		const body = new PlayerBody(true);
 		body.root.visible = false;
 		engine.scene.add(body.root);
 		/** Dev: the Grip check's test explorer, in front of you (admin panel, Items). */
@@ -490,7 +489,6 @@
 		const ambience = new Ambience(audio, sounds);
 		const creatures = new Creatures(sounds);
 		engine.scene.add(creatures.root);
-		const viewModel = new ViewModel(engine.viewScene, engine.viewCamera);
 		const water = new Underwater(engine.scene);
 		/** The low drone heard with your head under, started on first use. */
 		let waterDrone: { setVolume(v: number): void; stop(): void } | null = null;
@@ -561,7 +559,6 @@
 			remote,
 			map,
 			creatures,
-			viewModel,
 			body,
 			head,
 			headlamp,
@@ -1039,10 +1036,9 @@
 			const self = player.state;
 			const lamps = self ? [self, ...remote.states()] : [...remote.states()];
 			creatures.update(delta, player.collision, lamps);
-			// Only on your feet: crouched, crawling or swimming, the body fills the view from
-			// behind, so those are always first person.
-			const upright = player.state?.stance === 'stand' && !player.state.swimming;
-			const shoulder = settings.graphics.view === 'shoulder' && !mapView && !spectating && upright;
+			// Over the shoulder, but in the water, on the map and spectating: from the eyes.
+			const dry = !!player.state && !player.state.swimming;
+			const shoulder = !mapView && !spectating && dry;
 			let outside = mapView;
 			if (mapView) {
 				if (!freecam) orbit.update();
@@ -1058,7 +1054,11 @@
 				if (eye) engine.camera.position.set(eye[0], eye[1], eye[2]);
 				if (eye && shoulder) {
 					// Behind and to the right of the head, pulled in short of anything in the way.
-					const { right, up, back, margin, hideWithin } = SHOULDER_CAMERA;
+					// Crouched or crawling, further aside and back (SHOULDER_CAMERA.crouch, .crawl).
+					const stance = player.state?.stance ?? 'stand';
+					const { margin, hideWithin } = SHOULDER_CAMERA;
+					const { right, up, back } =
+						stance === 'stand' ? SHOULDER_CAMERA : SHOULDER_CAMERA[stance];
 					head.rotation.set(look.pitch, look.yaw, 0);
 					shoulderOffset.set(right, up, back).applyQuaternion(head.quaternion);
 					const length = shoulderOffset.length();
@@ -1097,17 +1097,14 @@
 			body.root.visible = outside && !!state && !!feet;
 			if (state && feet) {
 				body.root.position.set(feet[0], feet[1], feet[2]);
-				body.update(delta, state, player.look().yaw);
+				const look = player.look();
+				body.update(delta, state, look.yaw, look.pitch);
 			}
 			gripCheck.update(delta);
 			// With your body drawn, the lamp goes out in front of its head.
 			headlamp.setForward(shoulder ? PLAYER_MODEL.lampForward : 0);
 			headlamp.update(state);
-			viewModel.update(delta, state, !mapView && !result && !shoulder);
-			// Aiming down the sights narrows the view, and slows the mouse to match.
-			const zoom = viewModel.zoom();
-			engine.setZoom(zoom);
-			player.lookScale = zoom;
+
 			playerAudio.update(state, audio.unlocked);
 			const cam = engine.camera.position;
 			engine.camera.getWorldDirection(lookDir);
@@ -1213,10 +1210,7 @@
 					// Nothing open and the pointer free (after Esc put the pack away): walk on.
 					else if (!panel && !locked && expedition && !mapView) capture();
 					break;
-				case 'toggleView':
-					settings.graphics.view = settings.graphics.view === 'shoulder' ? 'first' : 'shoulder';
-					saveSettings();
-					break;
+
 				case 'toggleRitePanel':
 					settings.interface.ritePanel = !settings.interface.ritePanel;
 					saveSettings();
@@ -1265,7 +1259,6 @@
 			waterDrone?.stop();
 			for (const feature of list) feature.dispose?.();
 			creatures.dispose();
-			viewModel.dispose();
 			playerAudio.dispose();
 			ambience.dispose();
 			player.dispose();

@@ -1,15 +1,17 @@
 import * as THREE from 'three';
 import type { AnimSlot } from '#lib/content/animations.ts';
-import { ITEMS } from '#lib/content/items.ts';
+import { HANDS, heldDef, ITEMS } from '#lib/content/items.ts';
 import { CONDITIONS } from '#lib/content/player/conditions.ts';
 import { CLIMB, FALL, MOVEMENT } from '#lib/content/player/movement.ts';
 import { PLAYER_MODEL } from '#lib/content/player/model.ts';
 import { Animator } from '#lib/game/Animator.ts';
+import { SteadyLight } from '#lib/game/flashing.ts';
 import { loadCharacter } from '#lib/game/assets.ts';
 import { itemModel } from '#lib/game/items/itemModel.ts';
 import { UpperBody } from '#lib/game/UpperBody.ts';
 import { held } from '#lib/shared/items/inventory.ts';
 import { THROW_DRAW, THROW_FOLLOW } from '#lib/shared/items/weapons.ts';
+import { headlampOutput } from '#lib/shared/player/headlamp.ts';
 import { kneeling } from '#lib/shared/player/simulate.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 import { upperBodyPose } from './pose.ts';
@@ -34,6 +36,26 @@ const FLOOR_SPOT: [number, number, number] = [0.1, 0, -0.5];
 const RATE_RANGE: [number, number] = [0.4, 1.6];
 /** How much of the attack clip is the arm going back (by eye): a throw holds there while drawn. */
 const WINDUP_PART = 0.4;
+/**
+ * Your own body over the shoulder is lit from the camera too, this strong at full lamp: the
+ * headlamp points ahead, so without it the back you look at is black. Some of it whatever way a
+ * face turns (AMBIENT), the rest on what faces the camera.
+ */
+const OWN_FILL = 0.45;
+const OWN_FILL_AMBIENT = 0.35;
+/**
+ * Looking about standing still, the body stays put and the head turns, up to `yaw` (rad) aside
+ * and `pitch` up or down; look further aside and the body comes round to face it. Lying on the
+ * floor crawling, the head turns less, so the body comes round sooner. The neck takes NECK_SHARE of the turn, the head the rest.
+ */
+const HEAD_TURN = { yaw: 1.1, pitch: 0.6 };
+const CRAWL_HEAD_TURN = { yaw: 0.8, pitch: 0.4 };
+const NECK_SHARE = 0.4;
+/** How fast the body turns to face the look (1/s, eased): walking, and when doing something. */
+const TURN_RATE = 8;
+const ACT_TURN_RATE = 20;
+/** Coming round on the spot, it turns until the head is this close to straight (rad). */
+const SETTLED = 0.05;
 
 /**
  * A player's body: the explorer model, animated from that player's state alone (stance, speed,
@@ -65,11 +87,34 @@ export class PlayerBody {
 	private flinch = 0;
 	private flinchBegan = false;
 	private disposed = false;
+	/** Your own body's fill from the camera (`own`), following your lamp, and its materials. */
+	private fill = { value: 0 };
+	private steady = new SteadyLight();
+	private filled: THREE.Material[] = [];
+	/** Which way the body faces (null until the first frame): the look, once it moves. */
+	private facing: number | null = null;
+	/** Coming round on the spot after looking too far aside (HEAD_TURN). */
+	private turning = false;
+	private headBone: THREE.Object3D | null = null;
+	private neckBone: THREE.Object3D | null = null;
+	private turn = new THREE.Quaternion();
+	private tilt = new THREE.Quaternion();
+	private parentTurn = new THREE.Quaternion();
+	private toParent = new THREE.Quaternion();
+	private right = new THREE.Vector3();
+	/**
+	 * Per turned bone, its pose from the clips (`base`) and the pose the turn left it in
+	 * (`left`). A clip that is held still (the idle's frozen frame) doesn't write the bone again,
+	 * so a bone still as it was left is put back to its base before turning it again: the turn
+	 * never piles up frame on frame.
+	 */
+	private turned = new Map<THREE.Object3D, { base: THREE.Quaternion; left: THREE.Quaternion }>();
 	/** The hand action and its clock last frame: a new action, or the clock going back, starts it. */
 	private action = 'none';
 	private actionTime = 0;
 
-	constructor() {
+	/** `own`: your own body, seen over the shoulder, lit from the camera (OWN_FILL). */
+	constructor(private own = false) {
 		this.root.name = 'player-body';
 		this.root.rotation.order = 'YXZ';
 		void loadCharacter(PLAYER_MODEL.model).then(({ scene, clips }) => {
@@ -81,11 +126,14 @@ export class PlayerBody {
 				// lamp (shadow passes draw back faces), and layers can't exempt a single light.
 				node.castShadow = false;
 				node.frustumCulled = false;
+				if (this.own) node.material = cameraFilled(node.material, this.fill, this.filled);
 			});
 			this.root.add(scene);
 			this.animator = new Animator(scene, clips, PLAYER_MODEL.animations);
 			this.upper = new UpperBody(scene, clips, PLAYER_MODEL.upper);
 			scene.getObjectByName(PLAYER_MODEL.hand)?.add(this.grip);
+			this.headBone = scene.getObjectByName(PLAYER_MODEL.head) ?? null;
+			this.neckBone = scene.getObjectByName(PLAYER_MODEL.neck) ?? null;
 		});
 		this.grip.name = 'held-item';
 		this.floor.name = 'set-down-item';
@@ -95,9 +143,17 @@ export class PlayerBody {
 		this.grip.visible = false;
 	}
 
-	/** Face `yaw` and animate for this state. */
-	update(delta: number, state: PlayerState, yaw: number): void {
-		this.root.rotation.y = yaw;
+	/**
+	 * Look along `yaw` and `pitch` and animate for this state. The body turns to the look only as
+	 * it moves (or does something); standing still, the head turns instead (`face`, `look`).
+	 */
+	update(delta: number, state: PlayerState, yaw: number, pitch = state.pitch): void {
+		const free = this.face(delta, state, yaw);
+		this.root.rotation.y = this.facing ?? yaw;
+		if (this.own) {
+			const out = headlampOutput(state);
+			this.fill.value = OWN_FILL * this.steady.follow(out.on ? out.level : 0);
+		}
 		const animator = this.animator;
 		if (!animator) return;
 		this.flinchBegan = this.sanity !== null && state.sanity < this.sanity - HIT_DROP;
@@ -109,16 +165,90 @@ export class PlayerBody {
 		// A flinch takes the whole body, arms and all.
 		this.upper?.play(this.flinch > 0 ? null : upperBodyPose(state), shot);
 		this.upper?.apply(delta);
+		this.unturn();
+		if (free) this.look(yaw, pitch, state.stance === 'crawl' ? CRAWL_HEAD_TURN : HEAD_TURN);
 		this.hold(state);
 	}
 
 	/**
-	 * Where the held gun's muzzle is in the world (its `hold.muzzle`), for the flare and smoke of
+	 * Turn the body for this frame: toward the look while moving or doing something (and always
+	 * where the whole body goes with the look: climbing, swimming, down); standing still, only
+	 * once the look is more than HEAD_TURN (CRAWL_HEAD_TURN) aside, and then all the way round.
+	 * Returns whether the head is free to turn on its own.
+	 */
+	private face(delta: number, state: PlayerState, yaw: number): boolean {
+		const whole = state.climbing || state.swimming || state.downed || state.dead || !!state.mantle;
+		if (this.facing === null || whole) {
+			this.facing = yaw;
+			this.turning = false;
+			return false;
+		}
+		const w = state.weapon;
+		const acting = w.aiming || (w.action !== 'none' && w.action !== 'equip');
+		const moving = Math.hypot(state.velocity[0], state.velocity[2]) > STILL;
+		const off = angleTo(this.facing, yaw);
+		const crawling = state.stance === 'crawl';
+		if (Math.abs(off) > (crawling ? CRAWL_HEAD_TURN : HEAD_TURN).yaw) this.turning = true;
+		if (moving || acting || this.turning) {
+			const rate = acting ? ACT_TURN_RATE : TURN_RATE;
+			this.facing += off * Math.min(1, delta * rate);
+			if (Math.abs(angleTo(this.facing, yaw)) < SETTLED) this.turning = false;
+		}
+		return true;
+	}
+
+	/** Put the turned bones back as the clips posed them, where the clips didn't (`turned`). */
+	private unturn(): void {
+		for (const [bone, pose] of this.turned) {
+			if (bone.quaternion.equals(pose.left)) bone.quaternion.copy(pose.base);
+		}
+	}
+
+	/**
+	 * Turn the neck and head (over whatever the clips posed) to look along `yaw` and `pitch`,
+	 * as far as a head turns (`limit`): the body's facing does the rest.
+	 */
+	private look(yaw: number, pitch: number, limit: { yaw: number; pitch: number }): void {
+		const head = this.headBone;
+		if (!head || this.facing === null) return;
+		const aside = THREE.MathUtils.clamp(angleTo(this.facing, yaw), -limit.yaw, limit.yaw);
+		const up = THREE.MathUtils.clamp(pitch, -limit.pitch, limit.pitch);
+		const lookYaw = this.facing + aside;
+		const right = this.right.set(Math.cos(lookYaw), 0, -Math.sin(lookYaw));
+		const bones: [THREE.Object3D, number][] = this.neckBone
+			? [
+					[this.neckBone, NECK_SHARE],
+					[head, 1 - NECK_SHARE]
+				]
+			: [[head, 1]];
+		this.root.updateMatrixWorld(true);
+		for (const [bone, share] of bones) {
+			// Turned in the world (round the up axis, then up or down about the look's right),
+			// brought into the bone's parent's frame.
+			this.turn.setFromAxisAngle(UP, aside * share);
+			this.tilt.setFromAxisAngle(right, up * share);
+			this.turn.premultiply(this.tilt);
+			bone.parent?.getWorldQuaternion(this.parentTurn);
+			this.toParent.copy(this.parentTurn).invert().multiply(this.turn).multiply(this.parentTurn);
+			let pose = this.turned.get(bone);
+			if (!pose) {
+				pose = { base: new THREE.Quaternion(), left: new THREE.Quaternion() };
+				this.turned.set(bone, pose);
+			}
+			pose.base.copy(bone.quaternion);
+			bone.quaternion.premultiply(this.toParent);
+			pose.left.copy(bone.quaternion);
+			bone.updateMatrixWorld(true);
+		}
+	}
+
+	/**
+	 * Where the held gun's muzzle is in the world (its `muzzle`), for the flare and smoke of
 	 * a shot; null when no gun is drawn in the hand.
 	 */
 	muzzle(target: THREE.Vector3): THREE.Vector3 | null {
 		const def = this.item ? ITEMS[this.item] : undefined;
-		const at = def?.firearm && def.hold.muzzle;
+		const at = def?.firearm && def.muzzle;
 		if (!at || !this.model || !this.grip.visible || !this.root.visible) return null;
 		this.model.updateWorldMatrix(true, false);
 		return this.model.localToWorld(target.set(...at));
@@ -210,7 +340,7 @@ export class PlayerBody {
 			return;
 		} else if (w.action === 'swing') {
 			anim = 'melee_attack';
-			const melee = ITEMS[held(state.inventory)?.item ?? '']?.melee;
+			const melee = heldDef(held(state.inventory)?.item ?? HANDS.id)?.melee;
 			if (melee) animator.setDuration(anim, melee.windup + melee.recovery);
 			animator.play(anim, w.time, began);
 			animator.update(delta);
@@ -268,6 +398,42 @@ export class PlayerBody {
 		this.disposed = true;
 		this.setItem(null);
 		this.animator?.dispose();
+		for (const material of this.filled) material.dispose();
 		this.root.removeFromParent();
 	}
+}
+
+/**
+ * A copy of the body's material lit from the camera as well, by `fill` (a uniform): added as
+ * emitted light, so no light in the scene changes, the headlamp's least of all.
+ */
+function cameraFilled(
+	source: THREE.Material | THREE.Material[],
+	fill: { value: number },
+	made: THREE.Material[]
+): THREE.Material | THREE.Material[] {
+	if (Array.isArray(source))
+		return source.map((m) => cameraFilled(m, fill, made) as THREE.Material);
+	const material = source.clone();
+	made.push(material);
+	material.onBeforeCompile = (shader) => {
+		shader.uniforms.uOwnFill = fill;
+		shader.fragmentShader = shader.fragmentShader
+			.replace('#include <common>', '#include <common>\nuniform float uOwnFill;')
+			.replace(
+				'#include <emissivemap_fragment>',
+				`#include <emissivemap_fragment>
+totalEmissiveRadiance += diffuseColor.rgb * uOwnFill * (${OWN_FILL_AMBIENT.toFixed(2)} + ${(1 - OWN_FILL_AMBIENT).toFixed(2)} * max(normal.z, 0.0));`
+			);
+	};
+	material.customProgramCacheKey = () => 'own-body';
+	return material;
+}
+
+const UP = new THREE.Vector3(0, 1, 0);
+
+/** The turn (rad) from `from` to `to`, the short way round. */
+function angleTo(from: number, to: number): number {
+	const d = to - from;
+	return Math.atan2(Math.sin(d), Math.cos(d));
 }

@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { GATES } from '../../src/lib/content/doors.ts';
+import { HANDS } from '../../src/lib/content/items.ts';
 import { RUBBLE_WALLS, WEBS } from '../../src/lib/content/map/walls.ts';
 import { carriedCount, newStack } from '../../src/lib/shared/items/inventory.ts';
 import { pitonAnchor } from '../../src/lib/shared/items/rope.ts';
@@ -227,6 +228,16 @@ describe('webs', () => {
 		for (let i = 1; i < WEBS.hits; i++) swing(session, diver, web, 'test.spear');
 		expect(session.world.openDoors.has(web.wall!)).toBe(false);
 		swing(session, diver, web, 'test.spear');
+		expect(session.world.openDoors.has(web.wall!)).toBe(true);
+	});
+
+	it('bare hands tear it too, blow by blow', () => {
+		const session = quiet();
+		const diver = new Diver(session);
+		const web = wallSpots(session.layout, 'web')[0];
+		for (let i = 1; i < WEBS.hits; i++) swing(session, diver, web, HANDS.id);
+		expect(session.world.openDoors.has(web.wall!)).toBe(false);
+		swing(session, diver, web, HANDS.id);
 		expect(session.world.openDoors.has(web.wall!)).toBe(true);
 	});
 

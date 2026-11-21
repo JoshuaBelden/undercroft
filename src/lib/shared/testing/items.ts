@@ -8,8 +8,6 @@ import { ITEMS, type ItemDef } from '../../content/items.ts';
  *   afterAll(() => removeTestItems());
  */
 
-const HOLD: ItemDef['hold'] = { offset: [0, 0, 0], scale: 1 };
-
 /** An ordinary swing: what the combat test weapons build on. */
 const MELEE = { damage: 20, range: 1.8, arc: 0.6, windup: 0.3, recovery: 0.4, noise: 4 };
 
@@ -26,8 +24,7 @@ const FIREARM: NonNullable<ItemDef['firearm']> = {
 	noise: 30,
 	sound: 'revolver.fire',
 	reloadSound: 'revolver.reload',
-	zoom: 0.7,
-	recoil: { pitch: 0, yaw: 0, rise: 0, back: 0, settle: 0.1 }
+	recoil: { pitch: 0, yaw: 0 }
 };
 
 const THROW = {
@@ -46,7 +43,6 @@ export const TEST_ITEMS: Record<string, ItemDef> = {
 		category: 'gear',
 		flavor: 'Worn in a gear slot.',
 		model: null,
-		hold: HOLD,
 		maxStack: 1,
 		weight: 0.4,
 		price: 40,
@@ -59,7 +55,6 @@ export const TEST_ITEMS: Record<string, ItemDef> = {
 		category: 'material',
 		flavor: 'A material: backpack and stash only.',
 		model: null,
-		hold: HOLD,
 		maxStack: 10,
 		weight: 0.05,
 		value: 1
@@ -88,7 +83,6 @@ export const TEST_ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		flavor: 'A round in flight.',
 		model: null,
-		hold: HOLD,
 		maxStack: 12,
 		weight: 0.05
 	},
@@ -115,7 +109,6 @@ export const TEST_ITEMS: Record<string, ItemDef> = {
 		category: 'gear',
 		flavor: 'Worn against bites and poison.',
 		model: null,
-		hold: HOLD,
 		maxStack: 1,
 		weight: 0.2,
 		protects: ['bites', 'poison']
@@ -127,7 +120,6 @@ export const TEST_ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		flavor: 'Fragile.',
 		model: null,
-		hold: HOLD,
 		maxStack: 1,
 		weight: 0.5,
 		fragile: true
@@ -139,7 +131,6 @@ export const TEST_ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		flavor: 'Cursed.',
 		model: null,
-		hold: HOLD,
 		maxStack: 1,
 		weight: 0.5,
 		cursed: { sanity: 2 }
@@ -158,7 +149,6 @@ function weapon(id: string, spec: Partial<ItemDef>): ItemDef {
 		category: 'weapon',
 		flavor: 'A test weapon.',
 		model: null,
-		hold: HOLD,
 		maxStack: 1,
 		weight: 1,
 		...spec
@@ -173,7 +163,6 @@ function quick(id: string, spec: Partial<ItemDef>): ItemDef {
 		category: 'quick',
 		flavor: 'A test item.',
 		model: null,
-		hold: HOLD,
 		maxStack: 5,
 		weight: 0.2,
 		...spec

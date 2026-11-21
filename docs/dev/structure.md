@@ -24,7 +24,7 @@ src/
       player/               local player prediction, headlamp light, remote players, player audio
       creatures/            creature models, animation, half-light fade, sounds
       affliction/           the manifestation (the figure) renderer
-      items/                viewmodel (held item), world items, crates, chalk marks, muzzle flash
+      items/                held item models, world items, crates, chalk marks, muzzle flash
       input/
         actions.ts          action definitions and default bindings
         InputMap.ts         raw input -> actions

@@ -221,15 +221,16 @@ export class Walls implements PlayFeature {
 }
 
 /**
- * What a web says to someone looking at it: with a weapon in the hand, swing at it; with
- * something that burns, throw it; otherwise, what would do.
+ * What a web says to someone looking at it: with a weapon (or nothing) in the hand, swing at it;
+ * with something that burns, throw it; otherwise, what would do.
  */
 function webPrompt(state: PlayerState): Prompt {
 	const stack = held(state.inventory);
+	if (!stack) return keyPrompt('attack', 'to tear the web with your hands');
 	const def = works(stack) ? ITEMS[stack.item] : undefined;
 	if (def?.melee) return keyPrompt('attack', 'to tear the web');
 	if (def?.throwable?.fire) return keyPrompt('attack', 'to throw it and burn the web');
-	return { prompt: 'A web: tear it down with a weapon, or burn it', progress: 0 };
+	return { prompt: 'A web: tear it down with a weapon or your hands, or burn it', progress: 0 };
 }
 
 /** GLSL for the tearing: the uniform, the uv, and a patchy two-octave value noise. */

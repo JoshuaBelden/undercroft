@@ -6,6 +6,7 @@ import {
 	type AnimSlot,
 	type AnimationMap
 } from '#lib/content/animations.ts';
+import { seamlessLoop } from './loopClip.ts';
 
 const CROSSFADE = 0.25;
 /** Frame rate used to cut a clip down to `start`..`end`. */
@@ -35,7 +36,12 @@ export class Animator {
 			const spec = map[slot];
 			let clip = spec && clips.find((c) => c.name === spec.clip);
 			if (!spec || !clip) continue;
-			if (spec.start !== undefined || spec.end !== undefined) {
+			const loop = LOOPING_ANIMS.has(slot);
+			if (loop && spec.loopBlend) {
+				const from = spec.start ?? 0;
+				const to = spec.end ?? clip.duration;
+				clip = seamlessLoop(clip, `${clip.name}:${slot}`, from, to, spec.loopBlend, FPS);
+			} else if (spec.start !== undefined || spec.end !== undefined) {
 				const from = Math.round((spec.start ?? 0) * FPS);
 				const to = Math.round((spec.end ?? clip.duration) * FPS);
 				clip = THREE.AnimationUtils.subclip(clip, `${clip.name}:${slot}`, from, to, FPS);
@@ -44,7 +50,6 @@ export class Animator {
 				clip = clip.clone();
 			}
 			used.add(clip);
-			const loop = LOOPING_ANIMS.has(slot);
 			const action = this.mixer.clipAction(clip);
 			action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
 			action.clampWhenFinished = !loop;

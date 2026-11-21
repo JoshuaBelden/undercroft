@@ -24,6 +24,16 @@ The ways weapons and thrown and placed things behave beyond a plain swing or sho
 - **Bleeding** (`melee.bleed: { dps, seconds }`): a hit sets the creature bleeding (`CreatureDirector.bleed`): `dps` a second for `seconds`, the kill credited to whoever opened the wound. A fresh wound replaces a weaker one. A `bleed` event plays `creature.bleed`. Creatures that bleed to death are told like any kill (`takeBled`, then `creatureDie`).
 - **Snags** (`melee.snag: { chance, seconds }`): on a hit, with that chance, the weapon snags: `WeaponState.snag` counts down and it won't swing till then. Rolled on the server; the client learns it from the snapshot. A `snag` event plays `club.snag`.
 
+## Bare hands
+
+With nothing in the hand (an empty weapon slot, a knife thrown, a brick used up, an empty quick-use slot taken in hand), attack punches. Bare hands aren't an item: `HANDS` in `src/lib/content/items.ts` is an `ItemDef` kept out of `ITEMS`, so it is never carried, dropped, sold or listed, with a `melee` spec like any weapon's (weak, short, quick, and tiring: 8 damage, 1.2 m, 5 stamina). `stepWeapon` swings it when the hand is empty, held to punch again and again, and the `swing` SimEvent carries `item: 'hands'`. Look up whatever is behind a swing with `heldDef(item)`, not `ITEMS[item]`: it gives `HANDS` for `hands`. The server resolves it as any swing (`server/combat.ts`), with nothing to wear; it tears webs as any blow does (`server/systems/walls.ts`).
+
+- **Where:** as for any held item (`canUseHeld`): not crawling, squeezed or down.
+- **Seen:** the body plays its `melee_attack` clip at the punch's length.
+- **Sound:** none of its own (`melee.sound` with null swing and hit): a creature it lands on still cries out, and creatures still hear it (`noise`).
+- **Admin:** nothing of its own: drop what is in the hand to punch, and infinite stamina and kill all ([items.md](items.md#admin)) apply.
+- **Tuning:** change `HANDS.melee`; the tests in `src/lib/shared/items/combat.test.ts` and `server/combat.test.ts` read it.
+
 ## Shots
 
 - **Piercing** (`firearm.pierce`): each pellet passes through every creature in its line, to the first wall, each taking its damage (with falloff).

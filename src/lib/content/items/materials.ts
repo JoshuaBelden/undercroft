@@ -6,8 +6,6 @@ import type { ItemDef } from '../items.ts';
  * `value`, like treasure, but aren't treasure. Recipes come with the Workshop.
  */
 
-const HOLD: ItemDef['hold'] = { offset: [0.22, -0.22, -0.42], scale: 1 };
-
 function material(
 	id: string,
 	name: string,
@@ -32,7 +30,6 @@ function material(
 		...(spec.image ? { image: spec.image } : {}),
 		model: null,
 		placeholder: { size: spec.size ?? [0.12, 0.06, 0.1], color: spec.color },
-		hold: HOLD,
 		maxStack: spec.maxStack,
 		weight: spec.weight,
 		value: spec.value,
@@ -191,7 +188,6 @@ export const MATERIALS: Record<string, ItemDef> = {
 		flavor: 'Round stones, the size of a thumb. Good for a slingshot.',
 		model: null,
 		placeholder: { size: [0.05, 0.04, 0.05], color: 0x6a645c },
-		hold: HOLD,
 		maxStack: 20,
 		weight: 0.02,
 		value: 0

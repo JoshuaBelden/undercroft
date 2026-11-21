@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Undercroft**. A co-op (and solo) first-person horror extraction game set in the catacombs.
+**Undercroft**. A co-op (and solo) third-person horror extraction game set in the catacombs.
 
 - Work items: GitHub Issues (https://github.com/JoshuaBelden/undercroft/issues)
 - Dev docs: `docs/dev/`
