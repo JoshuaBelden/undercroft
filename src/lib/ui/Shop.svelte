@@ -6,6 +6,7 @@
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
+	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import ButtonHint from './ButtonHint.svelte';
 	import ItemFilters from './ItemFilters.svelte';
 	import ItemTooltip from './ItemTooltip.svelte';
@@ -15,6 +16,7 @@
 		itemStats,
 		matchesFilter,
 		slotMark,
+		sortItems,
 		type ItemFilter
 	} from './items.ts';
 	import Slot from './Slot.svelte';
@@ -60,7 +62,15 @@
 	}
 
 	const wares = $derived(forSale(explorer.tiers));
-	const shown = $derived(wares.filter((entry) => matchesFilter(entry.item, filter)));
+	/** What the filter shows, in the order chosen; a ware is valued at its price. */
+	const shown = $derived(
+		sortItems(
+			wares.filter((entry) => matchesFilter(entry.item, filter)),
+			settings.interface.storeSort,
+			(ware) => ware.item,
+			(ware) => ware.price
+		)
+	);
 	/** The pointed ware, while the filter still shows it and its details aren't open. */
 	const tip = $derived(
 		pointed && pointed.item !== selected
@@ -119,7 +129,16 @@
 	<section class="panel" aria-labelledby="store-title">
 		<h2 id="store-title">Store</h2>
 		<div class="body">
-			<ItemFilters bind:filter />
+			<ItemFilters
+				bind:filter
+				bind:order={
+					() => settings.interface.storeSort,
+					(order) => {
+						settings.interface.storeSort = order;
+						saveSettings();
+					}
+				}
+			/>
 			<div class="scroll">
 				<div class="grid" style:--columns={SLOTS.stashColumns}>
 					{#each shown as ware (ware.item)}

@@ -19,7 +19,7 @@ Between expeditions an explorer owns a **stash** (kept on the surface) and a **l
 | `src/routes/api/shop/`              | Shop endpoint                                                  |
 | `src/routes/api/admin/`             | Dev-mode account tools                                         |
 | `src/lib/ui/Shop.svelte`            | The shop (the dashboard's Store page): buying only             |
-| `src/lib/ui/ItemFilters.svelte`     | The round category filters beside the stash and the store      |
+| `src/lib/ui/ItemFilters.svelte`     | The round category filters and the sort beside stash and store |
 | `src/routes/(hub)/`                 | The dashboard: its layout and one page per tab                 |
 | `src/lib/account/account.svelte.ts` | Client: `session.account.explorer`, `changeLoadout`            |
 
@@ -175,7 +175,7 @@ Every `SHOP` line has a `tier`: `start`, `trusted` (coin sold, in all), `gloamin
 
 ### The Store page
 
-`Shop` is for buying only. It draws one panel in the same style as the stash, titled STORE: the `ItemFilters` column and a grid of `SHOP` entries, `SLOTS.stashColumns` across. Each entry is a `Slot` in a button, with the lot size as the count and the price as the small print in the corner. A filter shows only the entries of that category (`matchesFilter`).
+`Shop` is for buying only. It draws one panel in the same style as the stash, titled STORE: the `ItemFilters` column and a grid of `SHOP` entries, `SLOTS.stashColumns` across. Each entry is a `Slot` in a button, with the lot size as the count and the price as the small print in the corner. A filter shows only the entries of that category (`matchesFilter`), and the sort button below the filters orders them (`sortItems`, by price for value; see systems.md).
 
 Hovering or focusing an entry (a controller moving onto it focuses it) shows the same `ItemTooltip` as the Loadout page, beside its slot, with `forSale` set so it shows `itemStats(stack, true)`. The store's slots aren't `ItemSlot`s on an `ItemBoard` (nothing is dragged), so `Shop` tracks the pointed entry itself. The tooltip is hidden for the entry whose details panel is open, and when a filter hides the entry.
 
