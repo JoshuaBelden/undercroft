@@ -56,7 +56,11 @@ export class PackSystem implements SessionSystem {
 		if (!pressedInteract || s.climbing || s.downed || s.dead || s.swimming) return;
 		const { origin, direction } = aimRay(s, eyeHeight(s));
 		const item = this.ctx.items.lookedAt(s, origin, direction);
-		if (!item) return;
+		// No floor item: a snare or a tripwire bell set down, taken up again.
+		if (!item) {
+			this.ctx.systems.hazards.takeBack(player, origin, direction);
+			return;
+		}
 		const position: Vec3 = [...item.position];
 		if (ITEMS[item.stack.item]?.kind === 'clue') {
 			if (this.ctx.systems.rite.readClue(player, position)) this.ctx.items.remove(item.id);

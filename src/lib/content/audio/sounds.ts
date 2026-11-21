@@ -429,7 +429,14 @@ export const SOUNDS = {
 		category: 'sfx',
 		volume: 0.65
 	},
-	'melee.swing': { synth: { kind: 'whoosh' }, category: 'sfx', volume: 0.5, variation: 0.15 },
+	// One swoosh for every swing: each weapon's own swing pitches it (heavier is lower and slower).
+	'melee.swing': {
+		file: 'swoosh',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.15
+	},
 	'melee.hit': {
 		synth: { kind: 'thud', cutoff: 1800 },
 		category: 'sfx',
@@ -516,7 +523,7 @@ export const SOUNDS = {
 	},
 	// The round's weapons and items (docs/handoff-gear-crafting-loot.md), synthesized until recorded.
 	'hatchet.swing': {
-		file: 'hatchet.swing',
+		file: 'swoosh',
 		synth: { kind: 'whoosh' },
 		category: 'sfx',
 		volume: 0.45,
@@ -531,7 +538,7 @@ export const SOUNDS = {
 		variation: 0.1
 	},
 	'spade.swing': {
-		file: 'spade.swing',
+		file: 'swoosh',
 		synth: { kind: 'whoosh' },
 		category: 'sfx',
 		volume: 0.55,
@@ -550,7 +557,6 @@ export const SOUNDS = {
 		synth: { kind: 'whoosh' },
 		category: 'sfx',
 		volume: 0.4,
-		rate: 1.5,
 		variation: 0.1
 	},
 	'spear.hit': {
@@ -561,7 +567,7 @@ export const SOUNDS = {
 		variation: 0.1
 	},
 	'club.swing': {
-		file: 'club.swing',
+		file: 'swoosh',
 		synth: { kind: 'whoosh' },
 		category: 'sfx',
 		volume: 0.5,
@@ -576,7 +582,7 @@ export const SOUNDS = {
 		variation: 0.1
 	},
 	'pickaxe.swing': {
-		file: 'pickaxe.swing',
+		file: 'swoosh',
 		synth: { kind: 'whoosh' },
 		category: 'sfx',
 		volume: 0.6,
@@ -593,7 +599,7 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'sledge.swing': {
-		file: 'sledge.swing',
+		file: 'swoosh',
 		synth: { kind: 'whoosh' },
 		category: 'sfx',
 		volume: 0.65,
@@ -622,15 +628,13 @@ export const SOUNDS = {
 		file: 'rifle.bolt',
 		synth: { kind: 'reload' },
 		category: 'sfx',
-		volume: 0.55,
-		rate: 1.6
+		volume: 0.55
 	},
 	'rifle.load': {
 		file: 'rifle.load',
 		synth: { kind: 'click' },
 		category: 'sfx',
 		volume: 0.5,
-		rate: 0.9,
 		variation: 0.1
 	},
 	'derringer.shot': {
@@ -654,15 +658,13 @@ export const SOUNDS = {
 		synth: { kind: 'click' },
 		category: 'sfx',
 		volume: 0.35,
-		rate: 0.5,
 		variation: 0.08
 	},
 	'crossbow.crank': {
 		file: 'crossbow.crank',
 		synth: { kind: 'reload' },
 		category: 'sfx',
-		volume: 0.5,
-		rate: 0.7
+		volume: 0.5
 	},
 	'crossbow.hit': {
 		file: 'crossbow.hit',
@@ -676,7 +678,6 @@ export const SOUNDS = {
 		synth: { kind: 'click' },
 		category: 'sfx',
 		volume: 0.35,
-		rate: 1.4,
 		variation: 0.1
 	},
 	'pebble.land': {
@@ -723,6 +724,15 @@ export const SOUNDS = {
 		rate: 1.6,
 		variation: 0.1
 	},
+	'oilbottle.shatter': {
+		file: 'oilbottle.shatter',
+		synth: { kind: 'crack' },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.1,
+		caption: 'glass shatters',
+		captionOthers: true
+	},
 	'whistle.blow': {
 		file: 'whistle.blow',
 		synth: { kind: 'bell', pitch: 2400, length: 0.9 },
@@ -753,8 +763,7 @@ export const SOUNDS = {
 		file: 'laudanum.drink',
 		synth: { kind: 'gasp' },
 		category: 'sfx',
-		volume: 0.4,
-		rate: 0.8
+		volume: 0.4
 	},
 	'compass.open': {
 		file: 'compass.open',
@@ -785,7 +794,6 @@ export const SOUNDS = {
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.55,
-		rate: 1.1,
 		variation: 0.1
 	},
 	'workshop.salvage': {
@@ -841,7 +849,6 @@ export const SOUNDS = {
 		synth: { kind: 'knock' },
 		category: 'sfx',
 		volume: 0.8,
-		rate: 1.5,
 		variation: 0.1,
 		caption: 'iron rings on rock',
 		captionOthers: true

@@ -270,7 +270,8 @@ export const WEAPONS: Record<string, ItemDef> = {
 		'Bolt-action rifle',
 		'A soldier’s rifle, the stock scarred. One round goes through everything in its way.',
 		{
-			hold: HOLD_LONG,
+			model: modelUrl('shared/items/rifle.glb'),
+			hold: { ...HOLD_LONG, muzzle: [0, 0.065, -0.77] },
 			grip: LONG_GUN,
 			weight: 4,
 			price: 320,
@@ -302,7 +303,8 @@ export const WEAPONS: Record<string, ItemDef> = {
 		'Derringer',
 		'Two barrels you can hide in a palm. Useless past arm’s length, and it fires from the floor.',
 		{
-			model: null,
+			model: modelUrl('shared/items/derringer.glb'),
+			hold: { ...HOLD, aim: [0.06, -0.15, -0.34], muzzle: [0, 0.04, -0.11] },
 			grip: PISTOL,
 			category: 'quick',
 			weight: 0.4,
@@ -413,7 +415,7 @@ export const WEAPONS: Record<string, ItemDef> = {
 			damage: 0,
 			landNoise: 6,
 			sound: 'brick.throw',
-			land: 'item.break',
+			land: 'oilbottle.shatter',
 			fire: { radius: 1.6, dps: 15, seconds: 5, sound: 'item.break' }
 		}
 	},

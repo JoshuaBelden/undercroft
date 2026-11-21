@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
+import { carriedCount } from '../../src/lib/shared/items/inventory.ts';
 import { addTestItems, removeTestItems } from '../../src/lib/shared/testing/items.ts';
 import { crosses } from '../creatures.ts';
 import type { Session } from '../session.ts';
@@ -114,6 +115,41 @@ describe('placed things', () => {
 		expect(snapshot().snares).toHaveLength(0);
 		expect(c.held).toBeGreaterThan(0);
 		expect(events(diver).some((e) => e.kind === 'snared')).toBe(true);
+	});
+
+	it('a snare or a tripwire bell set down is taken up again with interact, the bell as worn as it was', () => {
+		const session = open(SEED);
+		quiet(session);
+		const diver = new Diver(session);
+		const s = diver.state;
+		const eye: Vec3 = [s.position[0], s.position[1] + 1.6, s.position[2]];
+		const place = (item: string, worn?: number) =>
+			session.systems.hazards.simulated(diver.player, {
+				events: [{ kind: 'place', item, origin: eye, direction: [0, -0.2, -1], worn }]
+			} as never);
+		const hazards = session.systems.hazards;
+		place('test.snare');
+		const snare = hazards.snapshot().snares[0];
+		const look = (at: Vec3): Vec3 => {
+			const to: Vec3 = [at[0] - eye[0], at[1] + 0.1 - eye[1], at[2] - eye[2]];
+			const d = Math.hypot(...to);
+			return [to[0] / d, to[1] / d, to[2] / d];
+		};
+		// Looking away: nothing taken.
+		expect(hazards.takeBack(diver.player, eye, [0, 0, 1])).toBe(false);
+		expect(hazards.takeBack(diver.player, eye, look(snare.position))).toBe(true);
+		expect(hazards.snapshot().snares).toHaveLength(0);
+		expect(carriedCount(s.inventory, 'test.snare')).toBe(1);
+		// A bell that has rung once rings two more times; taken up, it has one ring's wear on it.
+		place('tripwire-bell', 1);
+		const wire = hazards.snapshot().tripwires[0];
+		const middle: Vec3 = [(wire.a[0] + wire.b[0]) / 2, wire.a[1], (wire.a[2] + wire.b[2]) / 2];
+		expect(hazards.takeBack(diver.player, eye, look(middle))).toBe(true);
+		expect(hazards.snapshot().tripwires).toHaveLength(0);
+		const bell = [...s.inventory.quick, ...s.inventory.backpack].find(
+			(stack) => stack?.item === 'tripwire-bell'
+		);
+		expect(bell?.worn).toBe(1);
 	});
 
 	it('salt laid across the way: creatures won’t cross its line while it lasts', () => {

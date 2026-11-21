@@ -391,10 +391,10 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [0.725, 2.3, 0], halfExtents: [3.025, 0.1, 2.2], rotation: [0, 0, 0, 1] },
 			{ center: [0, 7.8, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
 			{ center: [2.75, 3.65, 0], halfExtents: [0.55, 1.25, 0.9], rotation: [0, 0, 0, 1] },
-			{ center: [3.875, 3.9, 0], halfExtents: [0.125, 0.1, 2.2], rotation: [0, 0, 0, 1] },
-			{ center: [0, 3.9, -3.1], halfExtents: [4, 0.1, 0.9], rotation: [0, 0, 0, 1] },
-			{ center: [0, 3.9, 3.1], halfExtents: [4, 0.1, 0.9], rotation: [0, 0, 0, 1] },
-			{ center: [-3.15, 3.9, 0], halfExtents: [0.85, 0.1, 2.2], rotation: [0, 0, 0, 1] },
+			{ center: [3.875, 3.1, 0], halfExtents: [0.125, 0.9, 2.2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.1, -3.1], halfExtents: [4, 0.9, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.1, 3.1], halfExtents: [4, 0.9, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [-3.15, 3.1, 0], halfExtents: [0.85, 0.9, 2.2], rotation: [0, 0, 0, 1] },
 			{ center: [3.875, 5.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] },
 			{ center: [-3.5, 5.8, -3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
 			{ center: [-2, 7.2, -3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
@@ -1517,7 +1517,7 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'pump-room': {
 		name: 'pump-room',
-		url: '/assets/shared/map/pump-room.7f6a7954.gltf',
+		url: '/assets/shared/map/pump-room.9f1ca822.gltf',
 		bytes: 1805959,
 		footprint: [2, 2],
 		levels: 2,
@@ -1550,10 +1550,10 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [0, 7.8, 0], halfExtents: [4, 0.2, 4], rotation: [0, 0, 0, 1] },
 			{ center: [3.2, 4.7, -3.2], halfExtents: [0.35, 0.7, 0.35], rotation: [0, 0, 0, 1] },
 			{ center: [-3.2, 4.7, 3.2], halfExtents: [0.35, 0.7, 0.35], rotation: [0, 0, 0, 1] },
-			{ center: [3.1, 3.9, 0], halfExtents: [0.9, 0.1, 1.6], rotation: [0, 0, 0, 1] },
-			{ center: [0, 3.9, -2.8], halfExtents: [4, 0.1, 1.2], rotation: [0, 0, 0, 1] },
-			{ center: [0, 3.9, 2.8], halfExtents: [4, 0.1, 1.2], rotation: [0, 0, 0, 1] },
-			{ center: [-3.1, 3.9, 0], halfExtents: [0.9, 0.1, 1.6], rotation: [0, 0, 0, 1] },
+			{ center: [3.1, 3.15, 0], halfExtents: [0.9, 0.85, 1.6], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.15, -2.8], halfExtents: [4, 0.85, 1.2], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.15, 2.8], halfExtents: [4, 0.85, 1.2], rotation: [0, 0, 0, 1] },
+			{ center: [-3.1, 3.15, 0], halfExtents: [0.9, 0.85, 1.6], rotation: [0, 0, 0, 1] },
 			{ center: [3.875, 5.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] },
 			{ center: [-3.5, 5.8, -3.875], halfExtents: [0.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
 			{ center: [-2, 7.2, -3.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
@@ -1564,7 +1564,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ center: [-3.875, 5.8, 0], halfExtents: [0.125, 1.8, 4], rotation: [0, 0, 0, 1] }
 		],
 		volumes: [
-			{ kind: 'water', center: [0, 3.1, 0], halfExtents: [2.2, 0.6, 1.6], rotation: [0, 0, 0, 1] }
+			{ kind: 'water', center: [0, 3.15, 0], halfExtents: [2.2, 0.65, 1.6], rotation: [0, 0, 0, 1] }
 		],
 		triangles: 168
 	},
@@ -2051,8 +2051,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'rumors-vault': {
 		name: 'rumors-vault',
-		url: '/assets/afflictions/rumors/map/rumors-vault.db0c644a.gltf',
-		bytes: 1371511,
+		url: '/assets/afflictions/rumors/map/rumors-vault.af26e137.gltf',
+		bytes: 1373218,
 		footprint: [3, 12],
 		levels: 1,
 		sockets: [
@@ -2072,8 +2072,10 @@ export const PIECES: Record<string, PieceDef> = {
 			{ name: 'dummy-10', position: [-2, 0, 10.25], yaw: -3.142 },
 			{ name: 'dummy-20', position: [-2, 0, 0.25], yaw: -3.142 },
 			{ name: 'dummy-40', position: [-2, 0, -19.75], yaw: -3.142 },
+			{ name: 'pitons', position: [4.15, 2.2, -7.55], yaw: 0 },
 			{ name: 'range', position: [0, 0, 20.25], yaw: 0 },
 			{ name: 'step-out', position: [0, 0, -20.75], yaw: 0 },
+			{ name: 'step-piton', position: [4.15, 0, 0.25], yaw: 0 },
 			{ name: 'step-vault', position: [0, 0, 22.25], yaw: 0 },
 			{ name: 'track', position: [3, 0, 5.25], yaw: -3.142 }
 		],
@@ -2085,21 +2087,29 @@ export const PIECES: Record<string, PieceDef> = {
 		anchors: [],
 		candles: [],
 		colliders: [
-			{ center: [0, 3.8, 0], halfExtents: [6, 0.2, 24], rotation: [0, 0, 0, 1] },
+			{ center: [0, 5.2, 0], halfExtents: [6, 0.2, 24], rotation: [0, 0, 0, 1] },
 			{ center: [0, -0.1, 0], halfExtents: [6, 0.1, 24], rotation: [0, 0, 0, 1] },
-			{ center: [5.875, 1.8, 23.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
-			{ center: [5.875, 3.2, 22], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
-			{ center: [5.875, 1.8, -1.5], halfExtents: [0.125, 1.8, 22.5], rotation: [0, 0, 0, 1] },
-			{ center: [0, 1.8, -23.875], halfExtents: [6, 1.8, 0.125], rotation: [0, 0, 0, 1] },
-			{ center: [-3.5, 1.8, 23.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
-			{ center: [0, 3.2, 23.875], halfExtents: [1, 0.4, 0.125], rotation: [0, 0, 0, 1] },
-			{ center: [3.5, 1.8, 23.875], halfExtents: [2.5, 1.8, 0.125], rotation: [0, 0, 0, 1] },
-			{ center: [-5.875, 1.8, 23.5], halfExtents: [0.125, 1.8, 0.5], rotation: [0, 0, 0, 1] },
-			{ center: [-5.875, 3.2, 22], halfExtents: [0.125, 0.4, 1], rotation: [0, 0, 0, 1] },
-			{ center: [-5.875, 1.8, -1.5], halfExtents: [0.125, 1.8, 22.5], rotation: [0, 0, 0, 1] }
+			{ center: [4.45, 1.1, -6.25], halfExtents: [1.3, 1.1, 2.5], rotation: [0, 0, 0, 1] },
+			{ center: [5.15, 0.138, -2.35], halfExtents: [0.6, 0.138, 1.4], rotation: [0, 0, 0, 1] },
+			{ center: [5.15, 0.275, -2.55], halfExtents: [0.6, 0.275, 1.2], rotation: [0, 0, 0, 1] },
+			{ center: [5.15, 0.412, -2.75], halfExtents: [0.6, 0.412, 1], rotation: [0, 0, 0, 1] },
+			{ center: [5.15, 0.55, -2.95], halfExtents: [0.6, 0.55, 0.8], rotation: [0, 0, 0, 1] },
+			{ center: [5.15, 0.688, -3.15], halfExtents: [0.6, 0.688, 0.6], rotation: [0, 0, 0, 1] },
+			{ center: [5.15, 0.825, -3.35], halfExtents: [0.6, 0.825, 0.4], rotation: [0, 0, 0, 1] },
+			{ center: [5.15, 0.962, -3.55], halfExtents: [0.6, 0.962, 0.2], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 2.5, 23.5], halfExtents: [0.125, 2.5, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 3.9, 22], halfExtents: [0.125, 1.1, 1], rotation: [0, 0, 0, 1] },
+			{ center: [5.875, 2.5, -1.5], halfExtents: [0.125, 2.5, 22.5], rotation: [0, 0, 0, 1] },
+			{ center: [0, 2.5, -23.875], halfExtents: [6, 2.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-3.5, 2.5, 23.875], halfExtents: [2.5, 2.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [0, 3.9, 23.875], halfExtents: [1, 1.1, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [3.5, 2.5, 23.875], halfExtents: [2.5, 2.5, 0.125], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 2.5, 23.5], halfExtents: [0.125, 2.5, 0.5], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 3.9, 22], halfExtents: [0.125, 1.1, 1], rotation: [0, 0, 0, 1] },
+			{ center: [-5.875, 2.5, -1.5], halfExtents: [0.125, 2.5, 22.5], rotation: [0, 0, 0, 1] }
 		],
 		volumes: [],
-		triangles: 333
+		triangles: 429
 	},
 	'rumors-walk': {
 		name: 'rumors-walk',

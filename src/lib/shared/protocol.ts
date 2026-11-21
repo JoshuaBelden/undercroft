@@ -86,8 +86,15 @@ export type AdminCommand =
 			kind: 'noclip' | 'infiniteStamina' | 'infiniteBattery' | 'godMode' | 'infiniteAmmo';
 			enabled: boolean;
 	  }
-	/** Put an item in your inventory (firearms come loaded). */
-	| { kind: 'give'; item: string; count: number }
+	/**
+	 * Put an item in your inventory (firearms come loaded): where it belongs, or into one slot
+	 * (`to`). What doesn't fit is said in a note, not dropped.
+	 */
+	| { kind: 'give'; item: string; count: number; to?: SlotRef }
+	/** Throw away what is in one of your slots, for good (not onto the floor). */
+	| { kind: 'discard'; from: SlotRef }
+	/** Throw away everything you carry, for good. */
+	| { kind: 'emptyInventory' }
 	/** Fill your guns and add spare ammo. */
 	| { kind: 'refillAmmo' }
 	/**

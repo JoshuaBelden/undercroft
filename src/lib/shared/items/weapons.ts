@@ -200,7 +200,7 @@ export function stepWeapon(
 				if (w.time >= spec.seconds) {
 					const { origin, direction } = ray();
 					spendHeld(inv);
-					emit({ kind: 'place', item: stack.item, origin, direction });
+					emit({ kind: 'place', item: stack.item, origin, direction, worn: stack.worn });
 					// Whatever is in the hand now comes up; a fresh press for the next.
 					start(w, 'equip');
 					w.prev.attack = true;

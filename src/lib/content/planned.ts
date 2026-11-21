@@ -44,20 +44,7 @@ const prop = (id: string): string => `shared/props/${id}.glb`;
 
 export const PLANNED_ASSETS: PlannedAsset[] = [
 	// Item models, in the hand and on the floor. Materials and treasure stay boxes on the floor.
-	...group('model', 'Item models', 4, [
-		[item('derringer'), 'Derringer (one hand)'],
-		[item('rifle'), 'Bolt-action rifle (two hands)'],
-		[item('crossbow_bolt'), 'Crossbow bolt'],
-		[item('glow_stick'), 'Glow stick'],
-		[item('salt_bag'), 'Blessed salt bag']
-	]),
-	...group('model', 'Item models', 5, [[item('piton'), 'Climbing piton']]),
-	...group('model', 'Item models', 6, [
-		[item('lockpicks'), 'Lockpicks'],
-		[item('censer'), 'Incense censer'],
-		[item('laudanum'), 'Laudanum bottle'],
-		[item('grave_dirt'), 'Grave dirt pouch']
-	]),
+	...group('model', 'Item models', 4, [[item('crossbow_bolt'), 'Crossbow bolt']]),
 	...group('model', 'Item models', 7, [
 		[item('crafting_kit'), 'Field crafting kit (closed, and open on the floor)']
 	]),

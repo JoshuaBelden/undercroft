@@ -114,7 +114,26 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'crowbar.pry': ['/assets/shared/audio/crowbar.pry.1de6e61d.webm'],
 	'crowbar.rocks': ['/assets/shared/audio/crowbar.rocks.d5b148da.webm'],
 	'key.unlock': ['/assets/shared/audio/key.unlock.624f38af.webm'],
-	'map.scribble': ['/assets/shared/audio/map.scribble.bb56d96d.webm']
+	'map.scribble': ['/assets/shared/audio/map.scribble.bb56d96d.webm'],
+	'crossbow.shot': ['/assets/shared/audio/crossbow.shot.61d140b3.webm'],
+	'crossbow.crank': ['/assets/shared/audio/crossbow.crank.85853072.webm'],
+	'rifle.shot': ['/assets/shared/audio/rifle.shot.09ae41ed.webm'],
+	'rifle.bolt': ['/assets/shared/audio/rifle.bolt.8b22f847.webm'],
+	'rifle.load': ['/assets/shared/audio/rifle.load.6ad1080f.webm'],
+	'hatchet.hit': ['/assets/shared/audio/hatchet.hit.564790d8.webm'],
+	'spade.hit': ['/assets/shared/audio/spade.hit.f7b8f9af.webm'],
+	'spear.thrust': ['/assets/shared/audio/spear.thrust.874ecbb8.webm'],
+	swoosh: ['/assets/shared/audio/swoosh.0e896cfb.webm'],
+	'slingshot.shot': ['/assets/shared/audio/slingshot.shot.1578516c.webm'],
+	'oilbottle.shatter': ['/assets/shared/audio/oilbottle.shatter.7b66766d.webm'],
+	'firecrackers.fuse': ['/assets/shared/audio/firecrackers.fuse.1f596cfc.webm'],
+	'firecrackers.bang': ['/assets/shared/audio/firecrackers.bang.155d9cec.webm'],
+	'tripwire.ring': ['/assets/shared/audio/tripwire.ring.1e1be26f.webm'],
+	'whistle.blow': ['/assets/shared/audio/whistle.blow.6df2c070.webm'],
+	'piton.hammer': ['/assets/shared/audio/piton.hammer.27867e60.webm'],
+	'laudanum.drink': ['/assets/shared/audio/laudanum.drink.4e6f7f2c.webm'],
+	'workshop.repair': ['/assets/shared/audio/workshop.repair.c8691664.webm'],
+	'workshop.salvage': ['/assets/shared/audio/workshop.salvage.0d03c075.webm']
 };
 
 /** Size in bytes of each built sound file, by URL (preload progress). */
@@ -215,7 +234,26 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/crowbar.pry.1de6e61d.webm': 63184,
 	'/assets/shared/audio/crowbar.rocks.d5b148da.webm': 23769,
 	'/assets/shared/audio/key.unlock.624f38af.webm': 7605,
-	'/assets/shared/audio/map.scribble.bb56d96d.webm': 8445
+	'/assets/shared/audio/map.scribble.bb56d96d.webm': 8445,
+	'/assets/shared/audio/crossbow.shot.61d140b3.webm': 4236,
+	'/assets/shared/audio/crossbow.crank.85853072.webm': 18039,
+	'/assets/shared/audio/rifle.shot.09ae41ed.webm': 9703,
+	'/assets/shared/audio/rifle.bolt.8b22f847.webm': 22415,
+	'/assets/shared/audio/rifle.load.6ad1080f.webm': 12190,
+	'/assets/shared/audio/hatchet.hit.564790d8.webm': 6047,
+	'/assets/shared/audio/spade.hit.f7b8f9af.webm': 3410,
+	'/assets/shared/audio/spear.thrust.874ecbb8.webm': 4678,
+	'/assets/shared/audio/swoosh.0e896cfb.webm': 4885,
+	'/assets/shared/audio/slingshot.shot.1578516c.webm': 13225,
+	'/assets/shared/audio/oilbottle.shatter.7b66766d.webm': 8270,
+	'/assets/shared/audio/firecrackers.fuse.1f596cfc.webm': 25487,
+	'/assets/shared/audio/firecrackers.bang.155d9cec.webm': 49915,
+	'/assets/shared/audio/tripwire.ring.1e1be26f.webm': 12830,
+	'/assets/shared/audio/whistle.blow.6df2c070.webm': 13771,
+	'/assets/shared/audio/piton.hammer.27867e60.webm': 5937,
+	'/assets/shared/audio/laudanum.drink.4e6f7f2c.webm': 3532,
+	'/assets/shared/audio/workshop.repair.c8691664.webm': 20868,
+	'/assets/shared/audio/workshop.salvage.0d03c075.webm': 5368
 };
 
 /**

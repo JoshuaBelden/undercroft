@@ -173,6 +173,7 @@ Things wear out with use ([#28](https://github.com/JoshuaBelden/undercroft/issue
   - Broken gear isn't in `workingGear`.
 - **Breaking** raises a `break` `GameEvent`: it plays `defense.torn` for defense, `brick.break` for a brick, and `item.break` for anything else.
 - **Condition:** `condition(stack)` is what is left, 1 new to 0 broken. A worn thing sells for that share of its price, and a broken one for nothing (`sellPrice(item, stack)`).
+- **Shown** as what is left of its `max`, in its own unit (`stackCondition` in `src/lib/ui/items.ts`): "75/100" under its slot (`ItemSlot`, a line every slot keeps so they line up), in its tooltip and its Inspect panel. Never full once it has any wear, never 0 while it works. Reading the `max` tells a player which of two things lasts longer.
 - **Repair** comes with the Workshop: `mend(stack)` makes a thing as good as new.
 - **In a slot,** a broken item is drawn under a red shade, with the broken mark in its top-right corner (`Slot`'s `broken`). The tooltip shows durability as a bar and a percent (`stackCondition`: never 0% for something that still works, nor 100% with any wear), and says when it is broken.
 
@@ -349,7 +350,7 @@ A stack marked `crafted` was made (the Workshop, field crafting): it sells for i
 
 These need `DEV_MODE`:
 
-- **Give** any item with a count (firearms come loaded); it goes where `addItem` puts it;
+- **Item catalogue** (`AdminCatalogue.svelte`, F10 > Items): every item, by category or name, beside what you carry, like a crate that never runs out. Drag one onto a slot and it goes there (`give` with `to`: `addItemAt`, what was in the slot moving to the backpack); shift-click sends it where `addItem` puts it. 1, 5 or a full stack each time; firearms come loaded. What doesn't fit (no room, too heavy, a slot that doesn't take it) is said in a note, and what was given in an item alert. Drag something you carry back onto the catalogue, or drop it, and it is thrown away (`discard`); **Empty everything** (`emptyInventory`) throws away all you carry;
 - **Refill ammo** (fills the guns in the weapon slots and adds spare rounds);
 - **Wear held item** (`wearHeld`: a quarter of its durability) and **Break held item** (`breakHeld`). Both work on what is in the hand if it wears, else on what is worn for defense;
 - **Repair everything** (`repairAll`): every stack carried, as good as new;

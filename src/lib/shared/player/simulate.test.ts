@@ -4,7 +4,7 @@ import { FLOOR, box, realMap, realWorld, volume, worldOf } from '../testing/maps
 import { MOVEMENT } from '../../content/player/movement.ts';
 import { SANITY } from '../../content/player/sanity.ts';
 import { addItem, emptyInventory, newStack } from '../items/inventory.ts';
-import { findFreeSpot, type CollisionWorld } from '../map/collision.ts';
+import { buildCollisionWorld, findFreeSpot, type CollisionWorld } from '../map/collision.ts';
 import type { Vec3 } from '../map/types.ts';
 import { PIECES } from '../map/pieces.generated.ts';
 import { spawnPoint } from '../map/points.ts';
@@ -365,6 +365,40 @@ describe('water', () => {
 		run(s, { moveZ: 1, climb: true }, seconds(1.5), pool);
 		expect(s.swimming).toBe(false);
 		expect(s.position[1]).toBeGreaterThan(-0.2);
+	});
+
+	// Every real piece with water in it: from the middle of the water, there is a way out. A
+	// walkway only a thin slab at the top (no wall below it to mantle against) once left a swimmer
+	// in the Pump Room and the Drowned Chapel with none.
+	const watery = Object.values(PIECES).filter((p) => p.volumes.some((v) => v.kind === 'water'));
+	it.each(watery.map((p) => p.name))('%s: a swimmer can get out of the water', (name) => {
+		const world = buildCollisionWorld(
+			{
+				seed: 0,
+				affliction: null,
+				placements: [{ piece: name, position: [0, 0, 0], rotation: 0, tier: 0 }],
+				crates: [],
+				doors: []
+			},
+			PIECES
+		);
+		for (const water of PIECES[name].volumes.filter((v) => v.kind === 'water')) {
+			const surface = water.center[1] + water.halfExtents[1];
+			const out = [0, 1, 2, 3].filter((quarter) => {
+				const s = createPlayerState(
+					[water.center[0], water.center[1], water.center[2]],
+					(quarter * Math.PI) / 2
+				);
+				run(s, {}, seconds(1), world);
+				// Out on dry ground at some point (the piece stands alone: walk on and you fall off it).
+				for (let i = 0; i < seconds(6); i++) {
+					run(s, { moveZ: 1, climb: true }, 1, world);
+					if (!s.swimming && !s.wading && s.grounded && s.position[1] > surface) return true;
+				}
+				return false;
+			});
+			expect(out.length, `ways out of the water at ${water.center.join(', ')}`).toBeGreaterThan(0);
+		}
 	});
 
 	it('shallow water is waded through, slower', () => {

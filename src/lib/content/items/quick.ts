@@ -41,6 +41,7 @@ export const QUICK: Record<string, ItemDef> = {
 		'Laudanum',
 		'Tincture of opium in a brown bottle. The dark stops mattering for a while. So does aiming.',
 		{
+			model: modelUrl('shared/items/laudanum.glb'),
 			weight: 0.15,
 			maxStack: 3,
 			price: 45,
@@ -55,6 +56,7 @@ export const QUICK: Record<string, ItemDef> = {
 		'Glow sticks',
 		'Snap one and shake it, and it glows a sick green for a few minutes. Throw it where you need to see.',
 		{
+			model: modelUrl('shared/items/glow_sticks.glb'),
 			kind: 'throwable',
 			weight: 0.05,
 			maxStack: 6,
@@ -71,6 +73,7 @@ export const QUICK: Record<string, ItemDef> = {
 		}
 	),
 	pitons: quick('pitons', 'Climbing pitons', 'Iron spikes with an eye for the rope.', {
+		model: modelUrl('shared/items/piton.glb'),
 		weight: 0.2,
 		maxStack: 6,
 		price: 7,
@@ -83,7 +86,15 @@ export const QUICK: Record<string, ItemDef> = {
 		'lockpicks',
 		'Lockpicks',
 		'A tension wrench and a ring of picks in a cloth roll. Quiet, if you have the patience.',
-		{ weight: 0.05, maxStack: 5, price: 30, rarity: 'uncommon', color: 0x404448, picks: true }
+		{
+			model: modelUrl('shared/items/lockpicks.glb'),
+			weight: 0.05,
+			maxStack: 5,
+			price: 30,
+			rarity: 'uncommon',
+			color: 0x404448,
+			picks: true
+		}
 	),
 	snare: quick('snare', 'Snare', 'A noose of wire on a stake. The first thing through it stays.', {
 		model: modelUrl('shared/items/snare.glb'),
@@ -116,6 +127,7 @@ export const QUICK: Record<string, ItemDef> = {
 		'Blessed salt',
 		'Rock salt soaked in holy water. Pour a line, and what hunts you won’t cross it. For a while.',
 		{
+			model: modelUrl('shared/items/salt_bag.glb'),
 			weight: 0.3,
 			maxStack: 3,
 			price: 10,
@@ -169,6 +181,7 @@ export const QUICK: Record<string, ItemDef> = {
 		'Grave dirt',
 		'A pinch of earth from a crypt floor. Rub it on, and what follows you loses the scent.',
 		{
+			model: modelUrl('shared/items/grave_dirt.glb'),
 			weight: 0.3,
 			maxStack: 3,
 			price: 25,
@@ -183,6 +196,7 @@ export const QUICK: Record<string, ItemDef> = {
 		'Incense censer',
 		'A brass censer on a chain, smoking sweetly. Moths, rats and spiders keep their distance.',
 		{
+			model: modelUrl('shared/items/censer.glb'),
 			weight: 1.5,
 			maxStack: 1,
 			price: 70,

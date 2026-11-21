@@ -585,7 +585,16 @@ function frameItem(doc: Document, frame: ItemFrame): void {
 	if (Math.hypot(...r) < 0.5) throw new Error('forward and up must be different axes');
 	const scene = doc.getRoot().listScenes()[0];
 	const holder = doc.createNode('item');
-	for (const child of scene.listChildren()) holder.addChild(child);
+	// A model that lies askew in its file is first turned square (`tilt`), about one of its axes.
+	const inner = frame.tilt ? doc.createNode('tilt') : holder;
+	for (const child of scene.listChildren()) inner.addChild(child);
+	if (frame.tilt) {
+		const [x, y, z] = AXES[frame.tilt.axis];
+		const half = (frame.tilt.degrees * Math.PI) / 360;
+		const sin = Math.sin(half);
+		inner.setRotation([x * sin, y * sin, z * sin, Math.cos(half)]);
+		holder.addChild(inner);
+	}
 	scene.addChild(holder);
 	// Rows are where each game axis comes from: right, up, and back (-forward).
 	const turn = (s: number, t: Vec3): number[] => [

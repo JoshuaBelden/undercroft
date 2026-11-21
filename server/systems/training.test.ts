@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AFFLICTIONS } from '../../src/lib/content/afflictions.ts';
 import { MAP_KIT } from '../../src/lib/content/map/kit.ts';
-import { unsealExtracts } from '../../src/lib/shared/map/collision.ts';
+import { floorHeightAt, unsealExtracts } from '../../src/lib/shared/map/collision.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
+import { pitonAnchor } from '../../src/lib/shared/items/rope.ts';
 import { worldSpots } from '../../src/lib/shared/map/spots.ts';
+import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import type { Session } from '../session.ts';
 import { Diver, kit, useSessions } from '../testing/harness.ts';
 
@@ -79,6 +81,50 @@ describe('the training vault', () => {
 		expect(
 			Math.hypot(runner.body.position[0] - before[0], runner.body.position[2] - before[2])
 		).toBeGreaterThan(1);
+	});
+});
+
+describe('the piton ledge', () => {
+	it('has nothing to tie to, a piton goes in at its edge, and the pitons and a rope lie on it', () => {
+		const session = rumors();
+		new Diver(session);
+		const spots = worldSpots(session.layout, PIECES);
+		const on = spots.find((s) => s.name === 'pitons')!;
+		const foot = spots.find((s) => s.name === 'step-piton')!;
+		// From the foot of the steps toward the pitons is the way to the ledge's far edge.
+		const out: Vec3 = [on.position[0] - foot.position[0], 0, on.position[2] - foot.position[2]];
+		const length = Math.hypot(out[0], out[2]);
+		const way: Vec3 = [out[0] / length, 0, out[2] / length];
+		expect(on.position[1]).toBeGreaterThan(2);
+		// Standing on the ledge, facing back the way the steps came: no drop there, no piton.
+		expect(pitonAnchor(session.world, on.position, [-way[0], 0, -way[2]], 'piton-0')).toBeNull();
+		// A step from the edge, facing over it: a piton goes in, over a drop of 2 m or more.
+		const feet: Vec3 = [
+			on.position[0] + way[0] * 0.6,
+			on.position[1],
+			on.position[2] + way[2] * 0.6
+		];
+		const piton = pitonAnchor(session.world, feet, way, 'piton-0');
+		expect(piton).not.toBeNull();
+		expect(piton!.position[1] - piton!.bottom).toBeGreaterThanOrEqual(2);
+		// The rope hangs clear of the ledge, from its very edge, even hammered in from further back.
+		const clear = (anchor: typeof piton) =>
+			floorHeightAt(
+				session.world,
+				anchor!.top[0],
+				anchor!.top[2],
+				anchor!.position[1] + 0.4,
+				anchor!.position[1] - 0.4
+			);
+		expect(clear(piton)).toBeNull();
+		const back = pitonAnchor(session.world, on.position, way, 'piton-1');
+		expect(back).not.toBeNull();
+		expect(clear(back)).toBeNull();
+		expect(
+			Math.hypot(back!.position[0] - piton!.position[0], back!.position[2] - piton!.position[2])
+		).toBeLessThan(0.1);
+		const items = session['items'].snapshots().map((s) => s.item);
+		expect(items).toEqual(expect.arrayContaining(['pitons', 'rope-bundle']));
 	});
 });
 

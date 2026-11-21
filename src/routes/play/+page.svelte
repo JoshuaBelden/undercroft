@@ -893,6 +893,7 @@
 				extractPrompt(state) ??
 				all.crates.prompt(state) ??
 				all.pack.prompt(state) ??
+				all.hazards.prompt(state) ??
 				all.doors.prompt(state) ??
 				all.walls.prompt(state) ??
 				all.surveyor.prompt(state) ??
@@ -1163,7 +1164,8 @@
 							surrender: Math.max(0, state.surrendering) / SANITY.surrenderSeconds
 						}
 					: null;
-				if (panel === 'menu' || panel === 'crate') {
+				// The admin screen too: its item catalogue shows what you carry.
+				if (panel === 'menu' || panel === 'crate' || panel === 'admin') {
 					if (state.downed && panel === 'menu') {
 						panel = null;
 					} else {
@@ -1491,7 +1493,9 @@
 		{gripPose}
 		meter={features?.affliction.meter ?? null}
 		omen={features?.affliction.omen ?? 0}
+		{inventory}
 		onadmin={(command) => sendAdmin(command)}
+		oninventory={(action) => sendInventory(action)}
 		onmapview={(enabled) => setMapView(enabled)}
 		onfreecam={(enabled) => {
 			panel = null;

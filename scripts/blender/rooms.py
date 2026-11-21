@@ -293,7 +293,7 @@ def build_pump_room(force=False):
     Rusted pumps on the walls. Openings to the north and south."""
     z = LEVEL
     room = Room("pump-room", 2, 2, 3.6, "mat-wall-cistern", "mat-floor-cistern", [("n", -2), ("s", 2)], force=force, z0=z, levels=2)
-    _sunken_basin(room, (-2.2, 2.2, -1.6, 1.6), depth=1.5, water=1.2, mat="mat-basin")
+    _sunken_basin(room, (-2.2, 2.2, -1.6, 1.6), depth=1.5, water=1.3, mat="mat-basin")
     # In the corners away from the doors, so the walkway goes all the way round.
     for x, y in ((3.2, 3.2), (-3.2, -3.2)):
         room.solid((x - 0.35, y - 0.35, z), (x + 0.35, y + 0.35, z + 1.4), "mat-iron", props=True)
@@ -350,14 +350,16 @@ def _sunken_basin(room, rect, depth, water, mat):
     surface = low + water
     room.props.face([(x0, y0, surface), (x1, y0, surface), (x1, y1, surface), (x0, y1, surface)], "mat-water", facing=(0, 0, 1))
     vol_box(room.coll, room.root, "vol-water-0", (x0, y0, low), (x1, y1, surface))
-    # Colliders: the floor round it, the basin's own floor and walls.
+    # Colliders: the floor round it, the basin's own floor and walls. The walkways are solid down to
+    # the basin's floor, so they are its walls too (as in the Cistern): a swimmer at the edge has
+    # something to mantle up, and nothing can swim under them out of the water.
     for obj in [o for o in room.root.children if o.name.split(".")[0] == "col-floor"]:
         bpy.data.objects.remove(obj, do_unlink=True)
     hw, hd = room.hw, room.hd
-    col_box(room.coll, room.root, "col-walk-s", (-hw, -hd, z - 0.2), (hw, y0, z))
-    col_box(room.coll, room.root, "col-walk-n", (-hw, y1, z - 0.2), (hw, hd, z))
-    col_box(room.coll, room.root, "col-walk-w", (-hw, y0, z - 0.2), (x0, y1, z))
-    col_box(room.coll, room.root, "col-walk-e", (x1, y0, z - 0.2), (hw, y1, z))
+    col_box(room.coll, room.root, "col-walk-s", (-hw, -hd, low - 0.2), (hw, y0, z))
+    col_box(room.coll, room.root, "col-walk-n", (-hw, y1, low - 0.2), (hw, hd, z))
+    col_box(room.coll, room.root, "col-walk-w", (-hw, y0, low - 0.2), (x0, y1, z))
+    col_box(room.coll, room.root, "col-walk-e", (x1, y0, low - 0.2), (hw, y1, z))
     col_box(room.coll, room.root, "col-basin-floor", (x0, y0, low - 0.2), (x1, y1, low))
 
 
@@ -658,20 +660,24 @@ def build_rumors_walk(force=False):
 
 def build_rumors_vault(force=False):
     """3x12 cells: the training vault. In from the walk at the south end (a vault socket), an arch
-    off each side near it (a web across one, rubble in the other: dead ends, in the game's data).
+    off each side near it (a web across one, rubble in the other: dead ends, in the game's data), a
+    ledge to hammer a piton into.
     Dummies down the long room at 5, 10, 20 and 40 m from where you stand (spot-range), one on a
     track off to the side, bricks by the door, and the way out up a ladder at the far end."""
     room = Room(
         "rumors-vault",
         3,
         12,
-        3.6,
+        5.0,
         "mat-wall-chapel",
         "mat-floor-chapel",
         [("s", 0), ("w", -22.0), ("e", -22.0)],
         force=force,
     )
     _retype_socket(room, 0, "vault")
+    # Taller than a level, for room to stand on the piton ledge: only ever in the training map,
+    # where nothing is built over it.
+    room.root["headroom"] = 1.4
     ix, iy = room.ix, room.iy
     stand = -iy + 3.5
     _spot(room, "range", 0.0, stand)
@@ -682,6 +688,7 @@ def build_rumors_vault(force=False):
     # The track the moving dummy runs along: a rail across the floor.
     room.props.box((0.2, stand + 14.9, 0.0), (ix - 0.2, stand + 15.1, 0.06), "mat-iron")
     room.rubble_markers([(-ix + 1.0, -iy + 1.2), (-ix + 1.6, -iy + 2.0)])
+    _piton_ledge(room, stand + 24.0)
     # The way out: a ladder up the far wall.
     xm = MeshBuilder("rumors-vault-ladder")
     kit.extraction_ladder(xm, 0.0, iy - 0.14, 0.0, 3.6, axis="x", half_w=0.22)
@@ -689,6 +696,21 @@ def build_rumors_vault(force=False):
     marker(room.coll, room.root, "extract-0", (0.0, iy - 0.7, 0.0), display="SPHERE", size=0.6)
     _spot(room, "step-out", 0.0, iy - 3.0)
     return room.finish()
+
+
+def _piton_ledge(room, y0):
+    """The vault's ledge to practise climbing pitons on: 2.2 m up against the east wall, with
+    nothing to tie a rope to, and steps up to it from the south along the wall. Its north and west
+    edges are sheer drops: a piton goes in there. The pitons and a rope lie on it (spot-pitons);
+    Rumors says how at the foot of the steps (spot-step-piton)."""
+    top, rise, tread, steps = 2.2, 0.275, 0.4, 8
+    x0, x1, y1 = room.ix - 2.6, room.ix, y0 + 5.0
+    room.solid((x0, y0, 0.0), (x1, y1, top), "mat-floor-chapel", skip=())
+    stair_w = 1.2
+    for k in range(1, steps):
+        room.solid((x1 - stair_w, y0 - tread * (steps - k), 0.0), (x1, y0, rise * k), "mat-floor-chapel", skip=())
+    _spot(room, "pitons", x0 + 1.0, y1 - 1.2).location.z = top
+    _spot(room, "step-piton", x1 - 1.6, y0 - tread * steps - 0.8)
 
 
 BUILDERS = {
