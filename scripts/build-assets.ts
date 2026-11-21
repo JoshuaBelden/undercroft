@@ -87,7 +87,10 @@ const PROP_FIT: Record<string, { tris: number; scale?: number }> = {
 	corpse: { tris: 12000, scale: 0.6 },
 	// The locked trunk (docs/dev/items.md#locked-trunks): 1.9 m wide as generated; 0.47 makes it
 	// 0.9 m wide, 0.73 m high and 0.67 m deep (LOOTABLES.trunk.size), its front to +Z like the crate's.
-	trunk: { tris: 6000, scale: 0.47 }
+	trunk: { tris: 6000, scale: 0.47 },
+	// The drop box (LOOTABLES.dropBox): 1.9 m wide as generated; 0.26 makes it 0.5 m wide, 0.37 m
+	// high with its handle and 0.36 m deep, its hasp to +Z like the crate's front.
+	drop_box: { tris: 4000, scale: 0.26 }
 };
 const MANIFEST = path.join(ROOT, 'src', 'lib', 'shared', 'map', 'pieces.generated.ts');
 const MODEL_MANIFEST = path.join(ROOT, 'src', 'lib', 'content', 'models.generated.ts');

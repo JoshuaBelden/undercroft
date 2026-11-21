@@ -118,7 +118,8 @@ describe('the Blender script that places their markers (scripts/blender/lootable
 			])
 		);
 		for (const [id, def] of Object.entries(LOOTABLES)) {
-			if (id === 'crate') continue;
+			// The crate is checked below; a drop box is never placed by the script.
+			if (id === 'crate' || def.dropped) continue;
 			expect(sizes.get(id), id).toEqual(def.size);
 		}
 		expect(sizes.get('crate')).toEqual(LOOTABLES.crate.size);
@@ -128,7 +129,7 @@ describe('the Blender script that places their markers (scripts/blender/lootable
 		const set = script.match(/STEPPED_OVER = \{([^}]*)\}/)?.[1] ?? '';
 		const listed = new Set([...set.matchAll(/"(\w+)"/g)].map((m) => m[1]));
 		const stepped = Object.values(LOOTABLES)
-			.filter((def) => !def.solid)
+			.filter((def) => !def.solid && !def.dropped)
 			.map((def) => def.id);
 		expect(listed).toEqual(new Set(stepped));
 	});

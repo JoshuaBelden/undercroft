@@ -4,18 +4,18 @@ Everything in the map that is searched for loot: crates, the dead, locked trunks
 
 ## Files
 
-| File                                 | What                                                                                 |
-| ------------------------------------ | ------------------------------------------------------------------------------------ |
-| `src/lib/content/lootables.ts`       | `LOOTABLES` (every kind, as data), `PENDING_ITEMS`, `LOOT_BUDGET`                    |
-| `src/lib/content/loot.ts`            | `CRATES` (fill, reveal), `CORPSES` and `TRUNKS` (how many), `LOOSE_LOOT`             |
-| `src/lib/content/map/kit.ts`         | Each room's `lootables` mix, until its piece has lootable markers                    |
-| `src/lib/shared/items/lootables.ts`  | The rules: how one opens (`waysFor`, `bestWay`, `canUse`, `hasTool`), its middle     |
-| `src/lib/shared/items/loot.ts`       | `rollLootable`, `trimToBudget`, `rollLoose`                                          |
-| `src/lib/shared/map/crates.ts`       | `placeCrates`: which markers have a lootable, and what                               |
-| `server/crates.ts`                   | `Crates`: what each holds, sealed or not, keys, the budget, who has it open          |
-| `server/systems/crates.ts`           | `CrateSystem`: opening one (the way, its time and noise), going through it           |
-| `src/lib/game/items/Crates.ts`       | Their models (or placeholder boxes), lids, highlight                                 |
-| `src/lib/game/play/crates.svelte.ts` | The prompt (the same rule as the server), sounds, the loot screen's title and flavor |
+| File                                 | What                                                                                   |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |
+| `src/lib/content/lootables.ts`       | `LOOTABLES` (every kind, as data), `PENDING_ITEMS`, `LOOT_BUDGET`                      |
+| `src/lib/content/loot.ts`            | `CRATES` (fill, reveal), `CORPSES` and `TRUNKS` (how many), `LOOSE_LOOT`, `DROP_BOXES` |
+| `src/lib/content/map/kit.ts`         | Each room's `lootables` mix, until its piece has lootable markers                      |
+| `src/lib/shared/items/lootables.ts`  | The rules: how one opens (`waysFor`, `bestWay`, `canUse`, `hasTool`), its middle       |
+| `src/lib/shared/items/loot.ts`       | `rollLootable`, `trimToBudget`, `rollLoose`                                            |
+| `src/lib/shared/map/crates.ts`       | `placeCrates`: which markers have a lootable, and what                                 |
+| `server/crates.ts`                   | `Crates`: what each holds, sealed or not, keys, the budget, who has it open            |
+| `server/systems/crates.ts`           | `CrateSystem`: opening one (the way, its time and noise), going through it             |
+| `src/lib/game/items/Crates.ts`       | Their models (or placeholder boxes), lids, highlight                                   |
+| `src/lib/game/play/crates.svelte.ts` | The prompt (the same rule as the server), sounds, the loot screen's title and flavor   |
 
 ## A lootable (`LootableDef`)
 
@@ -95,11 +95,22 @@ Each kind has its own **table** (`loot`: item, how many come together, weight ne
 
 **Loose loot** is drawn from the crate's table (`rollLoose`, `LOOSE_LOOT.rarities`).
 
+## Drop boxes
+
+Not every item has a model to lie on the floor as (materials, treasure). Dropped underground, one of those goes into a **drop box** instead ([#104](https://github.com/JoshuaBelden/undercroft/issues/104)): `LOOTABLES.dropBox`, an iron strongbox (`drop_box.glb`), `dropped: true` so no map ever places one (the script and its tests leave it out).
+
+- **Where:** `CrateSystem.dropInBox`, called for every drop (`PackSystem.afterRequest`, from the pack screen or the loot screen). A new box goes on the floor `DROP_BOXES.ahead` in front of the player if the floor is there and nothing is in the way, else at their feet, its front to them.
+- **Near a box of your own,** anything you drop goes in it (into the first of yours within `DROP_BOXES.reach` with room), models or not; when they are full, a new one. Something with a model, away from any box of yours, lies on the floor as before.
+- **Whose:** each box is tagged with the player who dropped into it first (`Crate.box.owner`). Anyone can open and take from any box, but what you drop never goes into someone else's: by theirs, you get a box of your own. The prompt and the loot screen say whose it is ("Wanderer's drop box").
+- **Opened** like a crate (half a second, by hand), nothing in it hidden. Closed with nothing in it, it is gone (`Crates.tidy`).
+- **Kept apart:** boxes are in `Crates` beside the map's lootables, not among them, so nothing rolls, refills, stows or hides a key in one. They are in every tick (`CratesSnapshot.boxes`: id, position, turn, owner), and the client draws them as they come and go (`Crates.syncBoxes`). A `boxed` event plays `inventory.drop`.
+
 ## Admin
 
 - **Teleport** to `lootable-<kind>`: in front of the first of each kind in the map (`testPoints`), and `locked-trunk`, `stuck-crate`.
 - **Reset crates** refills everything (seals stay as they are); **Unlock crates** unjams and unlocks everything, finds every stash and fills every font.
 - **Give** a crowbar or a key to open what needs one.
+- **Clear drop boxes** (`clearDropBoxes`, Items tab): every drop box gone, with what is in it.
 
 ## Adding a kind
 

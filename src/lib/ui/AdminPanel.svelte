@@ -437,6 +437,11 @@
 			{@render action('Repair everything', () => onadmin({ kind: 'repairAll' }))}
 			{@render action('Reset crates', () => onadmin({ kind: 'resetCrates' }))}
 			{@render action(
+				'Clear drop boxes',
+				() => onadmin({ kind: 'clearDropBoxes' }),
+				'Every drop box gone, with what is in it.'
+			)}
+			{@render action(
 				'Unlock crates',
 				() => onadmin({ kind: 'unlockCrates' }),
 				"Unjams and unlocks every lootable, finds every smuggler's stash and fills every font."

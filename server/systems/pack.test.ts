@@ -8,22 +8,24 @@ const open = useSessions();
 describe('items on the floor', () => {
 	it('dropping from the pack puts it in front, and interact picks it back up', () => {
 		const session = open(SEED);
-		const diver = new Diver(session, 'A', kit(['coins', 5]));
+		// Something with a model of its own: it lies on the floor as itself, not in a drop box.
+		const diver = new Diver(session, 'A', kit(['battery', 2]));
+		const from = { area: 'quick', index: 0 } as const;
 		diver.hold({ pitch: -0.9 }, 0.3);
-		session.inventory(diver.id, { kind: 'drop', from: { area: 'backpack', index: 0 }, count: 5 });
-		expect(diver.state.inventory.backpack[0]).toBeNull();
+		session.inventory(diver.id, { kind: 'drop', from, count: 2 });
+		expect(diver.state.inventory.quick[0]).toBeNull();
 		diver.hold({ pitch: -0.9 }, 0.2);
-		const dropped = session['items'].snapshots().find((i) => i.item === 'coins')!;
+		const dropped = session['items'].snapshots().find((i) => i.item === 'battery')!;
 		expect(dropped).toBeDefined();
 		const look = diver.lookAt(dropped.position);
 		diver.hold(look, 0.1);
 		diver.press({ ...look, interact: true });
-		expect(diver.state.inventory.backpack[0]).toMatchObject({ item: 'coins', count: 5 });
+		expect(diver.state.inventory.quick[0]).toMatchObject({ item: 'battery', count: 2 });
 		const events = diver.socket.all('tick').flatMap((t) => t.events);
 		expect(events.find((e) => e.kind === 'pickup')).toMatchObject({
 			player: diver.id,
-			item: 'coins',
-			count: 5
+			item: 'battery',
+			count: 2
 		});
 	});
 

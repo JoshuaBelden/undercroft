@@ -24,6 +24,19 @@ export const CRATES = {
 };
 
 /**
+ * Drop boxes (docs/dev/lootables.md#drop-boxes; LOOTABLES.dropBox is what one is): what an
+ * explorer drops that has no model of its own goes in one, and so does anything they drop near a
+ * box of their own. Anyone can open any box; each is tagged with whoever dropped into it first, so
+ * nothing ends up by mistake in someone else's. A box closed empty is gone.
+ */
+export const DROP_BOXES = {
+	/** A box of your own this near your feet (m) takes what you drop. */
+	reach: 1.5,
+	/** A new box goes on the floor this far in front of you (m), and no nearer a wall than its half-width. */
+	ahead: 0.7
+};
+
+/**
  * The dead: lying by the walls in place of some of the crates (LOOTABLES.corpse is what one is).
  * Only where the body fits.
  */

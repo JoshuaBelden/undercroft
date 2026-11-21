@@ -14,7 +14,10 @@ import { bestWay, lootableOf, waysFor, firstKey } from '../../src/lib/shared/ite
 import { MAP_KIT } from '../../src/lib/content/map/kit.ts';
 import { addWear } from '../../src/lib/shared/items/durability.ts';
 import { workingGear } from '../../src/lib/shared/items/inventory.ts';
+import { DROP_BOXES } from '../../src/lib/content/loot.ts';
+import { floorHeightAt, segmentHit } from '../../src/lib/shared/map/collision.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
+import type { ItemStack } from '../../src/lib/shared/player/types.ts';
 import { applyCondition } from '../../src/lib/shared/player/conditions.ts';
 import { CRATE_REACH, markInSight } from '../../src/lib/shared/items/pickup.ts';
 import { aimRay } from '../../src/lib/shared/items/weapons.ts';
@@ -380,10 +383,51 @@ export class CrateSystem implements SessionSystem {
 		else this.ctx.send(player, { type: 'crate', id: null, slots: [], reveal: 0 });
 	}
 
+	/**
+	 * Something a player dropped (docs/dev/lootables.md#drop-boxes): into a drop box of theirs
+	 * nearby if there is one, else, if it has no model to lie on the floor as, into a new box of
+	 * theirs in front of them. Returns what is left to drop on the floor (null: all boxed).
+	 */
+	dropInBox(player: Player, stack: ItemStack): ItemStack | null {
+		const s = player.state;
+		const { origin, direction } = aimRay(s, eyeHeight(s));
+		const flat = Math.hypot(direction[0], direction[2]) || 1;
+		const [dx, dz] = [direction[0] / flat, direction[2] / flat];
+		// On the floor in front, if it is there and nothing is in the way; else at their feet.
+		const ahead: Vec3 = [
+			s.position[0] + dx * DROP_BOXES.ahead,
+			s.position[1],
+			s.position[2] + dz * DROP_BOXES.ahead
+		];
+		const floor = floorHeightAt(
+			this.ctx.world,
+			ahead[0],
+			ahead[2],
+			s.position[1] + 0.5,
+			s.position[1] - 0.5
+		);
+		const clear =
+			floor !== null &&
+			segmentHit(this.ctx.world, origin, [ahead[0], floor + 0.2, ahead[2]]) === null;
+		const at: Vec3 = clear ? [ahead[0], floor, ahead[2]] : [...s.position];
+		// Its front (the hasp) toward the one who put it down.
+		const yaw = Math.atan2(-dx, -dz);
+		const make = !ITEMS[stack.item]?.model;
+		const left = this.ctx.crates.drop(stack, player.id, s.position, at, yaw, make);
+		if (left < stack.count) {
+			this.ctx.events.push({ kind: 'boxed', player: player.id, item: stack.item, position: at });
+		}
+		return left > 0 ? { ...stack, count: left } : null;
+	}
+
 	private shut(player: Player): void {
 		if (!player.crate) return;
 		const crate = this.ctx.crates.get(player.crate);
-		if (crate) this.ctx.crates.close(crate);
+		if (crate) {
+			this.ctx.crates.close(crate);
+			// A drop box closed empty is gone.
+			this.ctx.crates.tidy(crate);
+		}
 		player.crate = null;
 		this.ctx.send(player, { type: 'crate', id: null, slots: [], reveal: 0 });
 	}
@@ -412,6 +456,13 @@ export class CrateSystem implements SessionSystem {
 		// Unjams every crate, unlocks every trunk, finds every smuggler's stash and fills every font.
 		unlockCrates: () => {
 			for (const { crate } of this.ctx.crates.list()) this.ctx.crates.free(crate);
+		},
+		// Every drop box gone, with what is in it.
+		clearDropBoxes: () => {
+			for (const player of this.ctx.players.values()) {
+				if (player.crate?.startsWith('box-')) this.shut(player);
+			}
+			this.ctx.crates.clearBoxes();
 		}
 	} satisfies SessionSystem['admin'];
 }

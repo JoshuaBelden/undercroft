@@ -138,5 +138,6 @@ export const MODELS = {
 		url: '/assets/shared/props/door-double.a9f9a35a.glb',
 		bytes: 336280
 	},
+	'shared/props/drop_box.glb': { url: '/assets/shared/props/drop_box.e72fc46b.glb', bytes: 348900 },
 	'shared/props/trunk.glb': { url: '/assets/shared/props/trunk.bd97c458.glb', bytes: 545528 }
 } as const;

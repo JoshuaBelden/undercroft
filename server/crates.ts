@@ -1,7 +1,7 @@
 import { ITEMS, rarityOf } from '../src/lib/content/items.ts';
-import { CRATES, TRUNKS } from '../src/lib/content/loot.ts';
+import { CRATES, DROP_BOXES, TRUNKS } from '../src/lib/content/loot.ts';
 import type { LootableDef } from '../src/lib/content/lootables.ts';
-import { newStack, type Slots } from '../src/lib/shared/items/inventory.ts';
+import { addToSlots, emptySlots, newStack, type Slots } from '../src/lib/shared/items/inventory.ts';
 import { lootableOf } from '../src/lib/shared/items/lootables.ts';
 import { rollLootable, trimToBudget } from '../src/lib/shared/items/loot.ts';
 import { lookedAtCrate } from '../src/lib/shared/items/pickup.ts';
@@ -47,6 +47,8 @@ export interface Crate {
 	fills: number;
 	/** Seconds spent on the slot being revealed. Lost when the crate is closed. */
 	progress: number;
+	/** A drop box (`kind: 'dropBox'`): the player who dropped into it first, and its turn. */
+	box?: { owner: string; yaw: number };
 }
 
 export class Crates {
@@ -59,6 +61,12 @@ export class Crates {
 	private fromStart = new Map<string, number>();
 	/** Counts fills, so refilling (admin) gives something new. */
 	private fills = 0;
+	/**
+	 * Drop boxes (docs/dev/lootables.md#drop-boxes): made where explorers drop things, kept apart
+	 * from the map's lootables so nothing rolls, stows or hides keys in them.
+	 */
+	private boxes = new Map<string, Crate>();
+	private nextBox = 1;
 
 	constructor(
 		private world: CollisionWorld,
@@ -248,11 +256,71 @@ export class Crates {
 	}
 
 	get(id: string): Crate | null {
-		return this.crates.get(id) ?? null;
+		return this.crates.get(id) ?? this.boxes.get(id) ?? null;
+	}
+
+	/**
+	 * Put a stack in a drop box: `player`'s own within DROP_BOXES.reach of `near` if there is one
+	 * with room, else a new one of theirs at `at` turned to `yaw` (only if `make`). Returns how
+	 * many didn't go in a box.
+	 */
+	drop(stack: ItemStack, player: string, near: Vec3, at: Vec3, yaw: number, make: boolean): number {
+		const own = [...this.boxes.values()].filter(
+			(box) =>
+				box.box?.owner === player &&
+				Math.abs(box.position[1] - near[1]) < 1 &&
+				Math.hypot(box.position[0] - near[0], box.position[2] - near[2]) <= DROP_BOXES.reach
+		);
+		let left = stack.count;
+		for (const box of own) {
+			if (left <= 0) break;
+			left = addToSlots(box.slots, { ...stack, count: left });
+		}
+		if (left > 0 && (make || own.length > 0)) {
+			const box = this.makeBox(at, yaw, player);
+			left = addToSlots(box.slots, { ...stack, count: left });
+		}
+		return left;
+	}
+
+	private makeBox(position: Vec3, yaw: number, owner: string): Crate {
+		const id = `box-${this.nextBox++}`;
+		const box: Crate = {
+			id,
+			position: [...position],
+			kind: 'dropBox',
+			lock: null,
+			jamFound: false,
+			sealed: false,
+			slots: emptySlots(lootableOf({ kind: 'dropBox' }).slots),
+			// What was dropped is known: nothing in a box is hidden.
+			hidden: new Set(),
+			user: null,
+			opened: false,
+			unseen: false,
+			fills: 0,
+			progress: 0,
+			box: { owner, yaw }
+		};
+		this.boxes.set(id, box);
+		return box;
+	}
+
+	/** Closed with nothing in it: a drop box is gone. Returns whether it was taken away. */
+	tidy(crate: Crate): boolean {
+		if (!crate.box || crate.user !== null || crate.slots.some((stack) => stack !== null)) {
+			return false;
+		}
+		return this.boxes.delete(crate.id);
+	}
+
+	/** Admin: every drop box gone, and what is in them. */
+	clearBoxes(): void {
+		this.boxes.clear();
 	}
 
 	snapshot(): CratesSnapshot {
-		const all = [...this.crates.values()];
+		const all = [...this.crates.values(), ...this.boxes.values()];
 		return {
 			open: all.filter((c) => c.opened).map((c) => c.id),
 			busy: all.filter((c) => c.user !== null).map((c) => c.id),
@@ -260,7 +328,13 @@ export class Crates {
 			jammed: all.filter((c) => c.lock === 'jammed' && c.jamFound).map((c) => c.id),
 			locked: all.filter((c) => c.lock === 'locked').map((c) => c.id),
 			noticed: all.filter((c) => !c.unseen && lootableOf(c).hidden).map((c) => c.id),
-			dry: all.filter((c) => lootableOf(c).fill && c.fills <= 0).map((c) => c.id)
+			dry: all.filter((c) => lootableOf(c).fill && c.fills <= 0).map((c) => c.id),
+			boxes: [...this.boxes.values()].map((c) => ({
+				id: c.id,
+				position: c.position,
+				yaw: c.box?.yaw ?? 0,
+				owner: c.box?.owner ?? ''
+			}))
 		};
 	}
 
@@ -290,7 +364,7 @@ export class Crates {
 			this.world,
 			eye,
 			look,
-			[...this.crates.values()].filter((c) => !c.unseen)
+			[...this.crates.values(), ...this.boxes.values()].filter((c) => !c.unseen)
 		);
 	}
 
@@ -320,7 +394,7 @@ export class Crates {
 	 */
 	step(dt: number): Crate[] {
 		const started: Crate[] = [];
-		for (const crate of this.crates.values()) {
+		for (const crate of [...this.crates.values(), ...this.boxes.values()]) {
 			if (crate.user === null || crate.hidden.size === 0) continue;
 			if (crate.progress === 0) started.push(crate);
 			crate.progress += dt;

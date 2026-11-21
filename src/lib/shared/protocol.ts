@@ -95,6 +95,8 @@ export type AdminCommand =
 	| { kind: 'discard'; from: SlotRef }
 	/** Throw away everything you carry, for good. */
 	| { kind: 'emptyInventory' }
+	/** Take every drop box out of the map, with what is in it. */
+	| { kind: 'clearDropBoxes' }
 	/** Fill your guns and add spare ammo. */
 	| { kind: 'refillAmmo' }
 	/**
