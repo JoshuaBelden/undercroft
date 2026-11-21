@@ -139,5 +139,9 @@ export const MODELS = {
 		bytes: 336280
 	},
 	'shared/props/drop_box.glb': { url: '/assets/shared/props/drop_box.e72fc46b.glb', bytes: 348900 },
+	'shared/props/spider-web.glb': {
+		url: '/assets/shared/props/spider-web.d8ec3a39.glb',
+		bytes: 617580
+	},
 	'shared/props/trunk.glb': { url: '/assets/shared/props/trunk.bd97c458.glb', bytes: 545528 }
 } as const;

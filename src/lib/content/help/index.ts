@@ -565,7 +565,7 @@ Deeper down a few of the lootables are iron-bound trunks, locked. Each holds som
 		category: 'Gear and loot',
 		body: `Some side passages are blocked by things you can see. They lead somewhere worth going.
 
-A sheet of web tears if you hit it: a few blows of anything you swing. A blade made for cutting, like a hatchet, goes through in one. Fire burns it away, so an oil bottle thrown near it clears it too.
+A web across the way tears if you hit it: a few blows of anything you swing ({action:attack}), and every blow tears more of it open. A blade made for cutting, like a hatchet, goes through in one. Fire burns it away, so an oil bottle thrown near it clears it too. Look at a web and it says what will get you through.
 
 A fall of rubble needs a pickaxe. Take it in your hand, look at the rubble and hold {action:interact}. It takes a few seconds and it is loud. A crowbar does nothing to rubble.`
 	},

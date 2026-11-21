@@ -352,8 +352,8 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 					spot: 'step-vault',
 					radius: 3,
 					title: 'The training vault',
-					line: 'Dummies at 5, 10, 20 and 40 m, one on a track. A web and a fall of rubble in the arches. Bricks by the door. Try what you brought.',
-					help: 'fighting-back'
+					line: 'Dummies at 5, 10, 20 and 40 m, one on a track. Bricks by the door. A web across one arch: swing at it to tear it down. Rubble in the other takes a pickaxe.',
+					help: 'webs-and-rubble'
 				},
 				{
 					spot: 'step-piton',

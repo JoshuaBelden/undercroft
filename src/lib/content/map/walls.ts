@@ -1,3 +1,5 @@
+import { modelUrl } from '../models.ts';
+
 /**
  * False walls (docs/dev/map-generation.md#false-walls): a few openings in each map are walled up
  * to look like any capped dead end, with a side passage hidden behind. A crowbar in the hand
@@ -50,5 +52,13 @@ export const WEBS = {
 	/** Blows of an ordinary weapon to tear one down. */
 	hits: 3,
 	/** A fire burns a web this far (m) beyond its own radius. */
-	burn: 1
+	burn: 1,
+	/** Its model (scripts/blender/props.py `build_spider_web`): two bowed sheets of strands. */
+	model: modelUrl('shared/props/spider-web.glb'),
+	/**
+	 * How torn it looks after each blow short of the last (0..1 of it cut away in holes), and how
+	 * long a blow shakes it (s).
+	 */
+	torn: 0.3,
+	shake: 0.6
 };
