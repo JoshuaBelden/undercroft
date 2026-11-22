@@ -133,7 +133,11 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'piton.hammer': ['/assets/shared/audio/piton.hammer.27867e60.webm'],
 	'laudanum.drink': ['/assets/shared/audio/laudanum.drink.4e6f7f2c.webm'],
 	'workshop.repair': ['/assets/shared/audio/workshop.repair.c8691664.webm'],
-	'workshop.salvage': ['/assets/shared/audio/workshop.salvage.0d03c075.webm']
+	'workshop.salvage': ['/assets/shared/audio/workshop.salvage.0d03c075.webm'],
+	'skills.unlock': ['/assets/shared/audio/skills.unlock.2f4e8a3c.webm'],
+	'skills.rank': ['/assets/shared/audio/skills.rank.cac76996.webm'],
+	'skills.mastered': ['/assets/shared/audio/skills.mastered.a53a4230.webm'],
+	'skills.denied': ['/assets/shared/audio/skills.denied.c2688bbb.webm']
 };
 
 /** Size in bytes of each built sound file, by URL (preload progress). */
@@ -253,7 +257,11 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/piton.hammer.27867e60.webm': 5937,
 	'/assets/shared/audio/laudanum.drink.4e6f7f2c.webm': 3532,
 	'/assets/shared/audio/workshop.repair.c8691664.webm': 20868,
-	'/assets/shared/audio/workshop.salvage.0d03c075.webm': 5368
+	'/assets/shared/audio/workshop.salvage.0d03c075.webm': 5368,
+	'/assets/shared/audio/skills.unlock.2f4e8a3c.webm': 7041,
+	'/assets/shared/audio/skills.rank.cac76996.webm': 9858,
+	'/assets/shared/audio/skills.mastered.a53a4230.webm': 26106,
+	'/assets/shared/audio/skills.denied.c2688bbb.webm': 6049
 };
 
 /**

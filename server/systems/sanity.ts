@@ -49,7 +49,9 @@ export class SanitySystem implements SessionSystem {
 			const calm = calmed(s);
 			if (!calm && !headlampOutput(s).on) {
 				const others = states.filter((o) => o !== s);
-				if (illumination(ctx.world, others, eye) < DARK) drain += SANITY.darknessDrain;
+				if (illumination(ctx.world, others, eye) < DARK) {
+					drain += SANITY.darknessDrain * s.mods.darkDrain;
+				}
 			}
 			if (!calm && bodies.some((b) => this.sees(s, eye, b.position, b.kind, states))) {
 				drain += SANITY.seeingDrain;

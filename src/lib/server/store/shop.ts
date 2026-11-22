@@ -22,7 +22,7 @@ export interface LedgerDoc {
 	explorer: string;
 	at: Date;
 	/** What happened: a purchase, a sale, something thrown away, an admin grant or reset. */
-	kind: 'buy' | 'sell' | 'discard' | 'grant' | 'reset' | 'craft' | 'repair' | 'salvage';
+	kind: 'buy' | 'sell' | 'discard' | 'grant' | 'reset' | 'craft' | 'repair' | 'salvage' | 'respec';
 	item?: string;
 	count?: number;
 	/** Money gained (negative: spent). */
@@ -194,7 +194,10 @@ export async function resetExplorer(db: Db, explorerId: string): Result {
 		// (Rumors to do again, the Gloaming locked until then). Their chalk wheel is a preference.
 		await db
 			.collection<ExplorerDoc>('explorers')
-			.updateOne({ _id: explorerId }, { $set: { discovered: {}, fresh: [], sold: 0 } });
+			.updateOne(
+				{ _id: explorerId },
+				{ $set: { discovered: {}, fresh: [], sold: 0 }, $unset: { progression: '' } }
+			);
 		await db.collection('progress').deleteMany({ player: explorerId });
 		await log(db, {
 			explorer: explorerId,

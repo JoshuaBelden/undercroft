@@ -19,6 +19,11 @@ export interface Recipe {
 	/** Can be made below, with the kit (else only in the Workshop). */
 	field: boolean;
 	ingredients: Ingredient[];
+	/**
+	 * Experience for making it below (docs/dev/progression.md#crafting): 5 a simple field craft, 10
+	 * a bigger one. The Workshop pays only the first time each recipe is made.
+	 */
+	xp: number;
 }
 
 const of = (spec: Record<string, number>): Ingredient[] =>
@@ -28,9 +33,10 @@ function recipe(
 	makes: string,
 	ingredients: Record<string, number>,
 	field = false,
-	count = 1
+	count = 1,
+	xp = field ? 10 : 0
 ): Recipe {
-	return { id: makes, makes, count, field, ingredients: of(ingredients) };
+	return { id: makes, makes, count, field, ingredients: of(ingredients), xp };
 }
 
 export const RECIPES: Recipe[] = [
@@ -52,13 +58,13 @@ export const RECIPES: Recipe[] = [
 	recipe('nail-club', { wood: 1, nails: 4 }, true),
 	recipe('throwing-knives', { metal: 2 }, true, 3),
 	recipe('oil-bottle', { 'glass-bottle': 1, 'lamp-oil': 1, rags: 1 }, true),
-	recipe('bolts', { wood: 1, nails: 2 }, true, 3),
-	recipe('bandage', { rags: 2 }, true),
+	recipe('bolts', { wood: 1, nails: 2 }, true, 3, 5),
+	recipe('bandage', { rags: 2 }, true, 1, 5),
 	recipe('pitons', { metal: 2 }, true, 3),
 	recipe('snare', { 'rope-length': 1, metal: 1 }, true),
 	recipe('tripwire-bell', { twine: 2, nails: 2 }, true),
 	recipe('blessed-salt', { 'rock-salt': 1, 'holy-water': 1 }, true),
-	recipe('candle', { wax: 2, twine: 1 }, true)
+	recipe('candle', { wax: 2, twine: 1 }, true, 1, 5)
 ];
 
 /** What mending each thing takes (plus coin: CRAFT.repairShare of its price, by the wear). */

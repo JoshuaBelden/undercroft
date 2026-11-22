@@ -7,6 +7,9 @@ import {
 	takeLoadout
 } from '../src/lib/server/store/explorers.ts';
 import { discover, discoveredOf } from '../src/lib/server/store/discoveries.ts';
+import { addExperience } from '../src/lib/server/store/progression.ts';
+import type { ExplorerDoc } from '../src/lib/server/store/accounts.ts';
+import { progressionOf, type Progression } from '../src/lib/shared/progression/progression.ts';
 import { emptyInventory } from '../src/lib/shared/items/inventory.ts';
 import type { Inventory } from '../src/lib/shared/player/types.ts';
 import { getDb } from './db.ts';
@@ -88,6 +91,37 @@ export async function discoveries(explorers: string[]): Promise<Map<string, Set<
 		log.warn(`Could not read discoveries: ${(error as Error).message}`);
 		return new Map();
 	}
+}
+
+/**
+ * Each of these explorers' experience and skills, read at descent (docs/dev/progression.md). A
+ * co-op guest's stay with their own save: they come down with none, and what they earn isn't kept.
+ */
+export async function progressions(explorers: string[]): Promise<Map<string, Progression>> {
+	const here = explorers.filter((explorer) => !isGuest(explorer));
+	const db = getDb();
+	const found = new Map<string, Progression>();
+	if (!db || here.length === 0) return found;
+	try {
+		const docs = await db
+			.collection<ExplorerDoc>('explorers')
+			.find({ _id: { $in: here } }, { projection: { progression: 1 } })
+			.toArray();
+		for (const doc of docs) found.set(doc._id, progressionOf(doc.progression));
+	} catch (error) {
+		log.warn(`Could not read progression: ${(error as Error).message}`);
+	}
+	return found;
+}
+
+/** A run is over for an explorer: the experience it earned is kept, however it ended. */
+export function keepExperience(explorer: string, earned: number, firsts: string[]): void {
+	if (isGuest(explorer)) return;
+	const db = getDb();
+	if (!db) return;
+	addExperience(db, explorer, earned, firsts).catch((error: Error) =>
+		log.warn(`Could not keep experience: ${error.message}`)
+	);
 }
 
 /** An explorer saw something in a lootable: kept for good. */

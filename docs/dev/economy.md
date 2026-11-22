@@ -183,7 +183,7 @@ Clicking an entry slides a light panel in from the right edge of the window, fro
 
 ### The ledger
 
-Every purchase, sale, grant and reset, and everything thrown away, writes a line to the `ledger` collection: `explorer`, `at`, `kind` (`buy`, `sell`, `discard`, `grant`, `reset`), `item`, `count`, `money` (the change) and `balance` (afterwards). It is the economy log: read it with any MongoDB client.
+Every purchase, sale, grant and reset, and everything thrown away, writes a line to the `ledger` collection: `explorer`, `at`, `kind` (`buy`, `sell`, `discard`, `grant`, `reset`, `craft`, `repair`, `salvage`, `respec`: every skill point back for coin, see [progression.md](progression.md#spending)), `item`, `count`, `money` (the change) and `balance` (afterwards). It is the economy log: read it with any MongoDB client.
 
 ### Admin
 

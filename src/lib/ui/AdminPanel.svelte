@@ -180,6 +180,7 @@
 	let seedInput = $state('');
 	let moneyInput = $state('100');
 	let trustInput = $state('1000');
+	let xpInput = $state('1000');
 	let sanityInput = $state('100');
 	let meterInput = $state('70');
 	let deadlineInput = $state('10');
@@ -675,6 +676,24 @@
 				</label>
 				<button type="submit">Set</button>
 			</form>
+			<form
+				class="setting"
+				onsubmit={(event) => {
+					event.preventDefault();
+					void account({ action: 'grantExperience', amount: Number(xpInput) || 0 });
+				}}
+			>
+				<label class="pill">
+					<span class="name">Experience (1000 a level)</span>
+					<input type="text" inputmode="numeric" autocomplete="off" bind:value={xpInput} />
+				</label>
+				<button type="submit">Grant</button>
+			</form>
+			{@render action(
+				'Reset levels and skills',
+				() => void account({ action: 'resetProgression' }),
+				'Level 0: no experience, no skills, no firsts paid.'
+			)}
 			<p class="hint" role="status">
 				{accountMessage || 'These work on the surface and are refused while underground.'}
 			</p>

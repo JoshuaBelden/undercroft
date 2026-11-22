@@ -12,6 +12,7 @@ import {
 import { EXPLORER_ERRORS } from '#lib/server/store/explorers.ts';
 import { discoverAll, resetDiscoveries, setTrust } from '#lib/server/store/discoveries.ts';
 import { grant, resetExplorer } from '#lib/server/store/shop.ts';
+import { addExperience, resetProgression } from '#lib/server/store/progression.ts';
 import type { RequestHandler } from './$types';
 
 /**
@@ -24,6 +25,8 @@ import type { RequestHandler } from './$types';
  * - `{ action: 'setTrust', sold }`: the merchant's trust (coin sold), which opens store tiers
  * - `{ action: 'completeTraining' }`: Rumors done (the Gloaming unlocked)
  * - `{ action: 'forgetAfflictions' }`: no progress against any Affliction (Rumors to do again)
+ * - `{ action: 'grantExperience', amount }`, `{ action: 'resetProgression' }`: your own levels
+ *   and skills (docs/dev/progression.md)
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!devMode) error(404, 'Not found');
@@ -61,6 +64,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 	if (body.action === 'forgetAfflictions') {
 		await db.collection('progress').deleteMany({ player: explorer._id });
+		return json(await accountView(db, account));
+	}
+	if (body.action === 'grantExperience') {
+		if (typeof body.amount !== 'number' || !Number.isFinite(body.amount)) error(400, 'Bad request');
+		await addExperience(db, explorer._id, body.amount, []);
+		return json(await accountView(db, account));
+	}
+	if (body.action === 'resetProgression') {
+		await resetProgression(db, explorer._id);
 		return json(await accountView(db, account));
 	}
 	if (body.action === 'setTrust') {

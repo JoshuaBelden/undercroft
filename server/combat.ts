@@ -102,7 +102,7 @@ function shoot(ctx: CombatContext, player: Prey, event: Extract<SimEvent, { kind
 	const def = ITEMS[event.item];
 	const gun = def?.firearm;
 	if (!gun) return;
-	const spread = event.aimed ? gun.spread.aimed : gun.spread.hip;
+	const spread = (event.aimed ? gun.spread.aimed : gun.spread.hip) * player.state.mods.spread;
 	if (gun.projectile) {
 		// A round in flight (a bolt, a pebble): it hits (or lands) when it gets there.
 		const [dir] = pelletDirections(event.direction, spread, 1, event.seed);
@@ -226,7 +226,7 @@ function swing(
 	let hit: 'creature' | 'wall' | null = null;
 	if (target) {
 		for (const body of melee.sweep ? swept : [target]) {
-			hurt(ctx, body.id, melee.damage, player, bodies);
+			hurt(ctx, body.id, melee.damage * player.state.mods.melee, player, bodies);
 			if (melee.stagger) ctx.creatures.stagger(body.id, melee.stagger);
 			// A wound that bleeds (a nail-studded club): it goes on hurting.
 			if (
@@ -264,7 +264,7 @@ function swing(
 	if (!hit) return;
 	ctx.creatures.hear(event.origin, melee.noise, player);
 	// Every hit wears what made it: a brick is used up at the last, anything else breaks.
-	const result = wearHeld(player.state.inventory, event.item);
+	const result = wearHeld(player.state.inventory, event.item, player.state.mods.wear);
 	if (result === 'broke' || result === 'usedUp') broke(ctx, player, event.item);
 }
 

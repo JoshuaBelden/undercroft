@@ -5,6 +5,8 @@
 	import { page } from '$app/state';
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { money } from '#lib/content/economy.ts';
+	import { LEVELS } from '#lib/content/progression.ts';
+	import { levelOf } from '#lib/shared/progression/progression.ts';
 	import { BACKDROP_IMAGE, imageUrl } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { menu } from '#lib/game/input/menus.ts';
@@ -40,13 +42,18 @@
 	const avatar = $derived(session.account?.avatar ?? null);
 
 	/** The dashboard's screens, in the order of the tabs. The store is reached from the money. */
-	const TABS = [
+	const ALL_TABS = [
 		{ path: '/(hub)', label: 'Expedition' },
 		{ path: '/(hub)/loadout', label: 'Loadout' },
 		{ path: '/(hub)/afflictions', label: 'Afflictions' },
 		{ path: '/(hub)/workshop', label: 'Workshop' },
 		{ path: '/(hub)/library', label: 'Library' }
 	] as const;
+	const TABS = ALL_TABS;
+	const level = $derived(levelOf(explorer?.progression.xp ?? 0));
+	/** The skill tree is hidden until level 1 (docs/dev/progression.md); the level beside the avatar opens it. */
+	const treeOpen = $derived(level >= LEVELS.treeAt);
+	const skillsPage = $derived(page.route.id === '/(hub)/skills');
 
 	/** The controller's B: back to the Expedition page. */
 	function up(): void {
@@ -154,6 +161,23 @@
 					{#if !store && !launch.free}
 						<ButtonHint code="PadY" hold />
 					{/if}
+				</a>
+			{/if}
+			{#if treeOpen}
+				<a
+					class="level"
+					class:current={skillsPage}
+					href={resolve('/(hub)/skills')}
+					aria-label="Skills: level {level}"
+					aria-current={skillsPage ? 'page' : undefined}
+					title="Skills"
+				>
+					<!-- The level's mark: two chevrons rising, as the sign is the money's. -->
+					<svg class="rank" viewBox="0 0 24 24" aria-hidden="true">
+						<path d="M5 13 L12 6 L19 13" />
+						<path d="M5 19 L12 12 L19 19" />
+					</svg>
+					<span aria-hidden="true">{level}</span>
 				</a>
 			{/if}
 			<AccountMenu {gamerTag} {avatar} />
@@ -424,6 +448,41 @@
 	.pill:hover,
 	.pill:focus-visible,
 	.pill.open {
+		border-color: var(--accent);
+	}
+
+	/* The explorer's level, shaped as the money: it opens the Skills page. */
+	.level {
+		display: flex;
+		align-items: center;
+		padding: 2px 14px;
+		border: 1px solid transparent;
+		border-radius: 999px;
+		color: var(--text);
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		font-weight: bold;
+		font-variant-numeric: tabular-nums;
+		text-decoration: none;
+	}
+
+	.level:hover,
+	.level:focus-visible {
+		background: rgb(255 255 255 / 0.1);
+	}
+
+	.level .rank {
+		width: 0.8em;
+		height: 0.8em;
+		margin-right: 6px;
+		fill: none;
+		stroke: var(--accent);
+		stroke-width: 3;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.level.current {
 		border-color: var(--accent);
 	}
 

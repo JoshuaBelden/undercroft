@@ -206,5 +206,10 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'laudanum.drink', file: 'drink.mp3' },
 	// Mending and breaking down at the Workshop.
 	{ id: 'workshop.repair', file: 'workshop.repair.mp3' },
-	{ id: 'workshop.salvage', file: 'item.salvage.mp3' }
+	{ id: 'workshop.salvage', file: 'item.salvage.mp3' },
+	// The skill tree (docs/dev/progression.md).
+	{ id: 'skills.unlock', file: 'skills.unlock.mp3' },
+	{ id: 'skills.rank', file: 'skills.rank.mp3' },
+	{ id: 'skills.mastered', file: 'skills.mastered.mp3' },
+	{ id: 'skills.denied', file: 'skills.denied.mp3' }
 ];

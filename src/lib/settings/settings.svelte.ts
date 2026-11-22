@@ -159,8 +159,7 @@ function defaults(): Settings {
 			brightness: 1,
 			quality: 'high',
 			cameraShake: 1,
-			// New players start fullscreen (taken up on their first click or key); a saved choice stays.
-			fullscreen: true,
+			fullscreen: false,
 			renderScale: 1,
 			frameCap: 0,
 			teammateShadows: 'all'

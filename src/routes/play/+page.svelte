@@ -94,6 +94,7 @@
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import ExpeditionClock from '#lib/ui/ExpeditionClock.svelte';
+	import ExperienceGain from '#lib/ui/ExperienceGain.svelte';
 	import AttractionBars from '#lib/ui/AttractionBars.svelte';
 	import Settings from '#lib/ui/Settings.svelte';
 	import SpectateBar from '#lib/ui/SpectateBar.svelte';
@@ -180,6 +181,20 @@
 	let playUi = (id: SoundId): void => {
 		void id;
 	};
+	/** Experience just earned, shown under the clock for a moment each (docs/dev/progression.md). */
+	let gains = $state<{ id: number; amount: number }[]>([]);
+	let nextGain = 0;
+	/** How long each "+X Experience" shows, ms (its fade is in ExperienceGain). */
+	const GAIN_MS = 2500;
+
+	function gained(amount: number): void {
+		const id = nextGain++;
+		gains = [...gains, { id, amount }];
+		setTimeout(() => {
+			gains = gains.filter((g) => g.id !== id);
+		}, GAIN_MS);
+	}
+
 	/** Set while downed: bleed-out time left (0..1), what happens next, and the hold to surrender. */
 	let downed = $state<{ remaining: number; message: string; surrender: number } | null>(null);
 	/** Set when this player has left the expedition (climbed out or died); shows the results. */
@@ -427,7 +442,8 @@
 								deepestLevel: message.deepestLevel,
 								kills: message.kills,
 								crates: message.crates,
-								clues: message.clues
+								clues: message.clues,
+								experience: message.experience
 							},
 							affliction: all.affliction.name,
 							// Out alive after banishing what the rite summoned; or lost when time ran out.
@@ -456,6 +472,9 @@
 						break;
 					case 'map':
 						loadMap(message.layout);
+						break;
+					case 'experience':
+						gained(message.amount);
 						break;
 					case 'tick':
 						// A tick still in flight after we left is not ours to show.
@@ -1337,6 +1356,9 @@
 	</div>
 	{#if features.affliction.deadline !== null}
 		<ExpeditionClock seconds={features.affliction.deadline} />
+	{/if}
+	{#if expedition}
+		<ExperienceGain {gains} />
 	{/if}
 	{#if devMode && showAttraction}
 		<AttractionBars

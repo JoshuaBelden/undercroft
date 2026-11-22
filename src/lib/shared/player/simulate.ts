@@ -33,6 +33,7 @@ import {
 import { crawlFactor, sprintFactor } from '../items/gear.ts';
 import { lookedAtTeammate, needs, tendKind, type TeammateSpot } from './tend.ts';
 import type { InputFrame, Inventory, PlayerState, SimEvent, Stance } from './types.ts';
+import { noModifiers } from '../progression/progression.ts';
 
 /**
  * The player simulation. A pure, fixed-step function run by the server (authoritative) and by
@@ -72,6 +73,7 @@ export function createPlayerState(
 			godMode: false,
 			infiniteAmmo: false
 		},
+		mods: noModifiers(),
 		swimming: false,
 		wading: false,
 		underwater: false,
@@ -117,6 +119,7 @@ export function clonePlayerState(s: PlayerState): PlayerState {
 		position: [...s.position],
 		velocity: [...s.velocity],
 		flags: { ...s.flags },
+		mods: { ...s.mods },
 		mantle: s.mantle ? { ...s.mantle, from: [...s.mantle.from], to: [...s.mantle.to] } : null,
 		climbing: s.climbing ? { ...s.climbing, side: [...s.climbing.side] } : null,
 		conditions: s.conditions.map((c) => ({ ...c })),
@@ -382,7 +385,7 @@ export function stepPlayer(
 	stepWeapon(s, input, dt, able, eyeHeight(s, t), events);
 	const heal = healing(s);
 	if (s.bandaging > 0) s.bandaging += dt;
-	if (heal && s.bandaging >= heal.seconds) {
+	if (heal && s.bandaging >= heal.seconds * s.mods.healTime) {
 		spendHeld(s.inventory);
 		s.sanity = Math.min(SANITY.max, s.sanity + heal.amount);
 		s.bandaging = 0;
@@ -544,7 +547,10 @@ function stopTending(s: PlayerState): void {
 /** Seconds it takes to use the item in the hand on someone (its heal or charge time). */
 export function tendSeconds(s: PlayerState): number | null {
 	const kind = tendKind(s);
-	if (kind === 'heal') return healing(s)?.seconds ?? null;
+	if (kind === 'heal') {
+		const heal = healing(s);
+		return heal ? heal.seconds * s.mods.healTime : null;
+	}
 	if (kind === 'charge') return charging(s)?.seconds ?? null;
 	return null;
 }
@@ -895,5 +901,7 @@ function updateBattery(s: PlayerState, dt: number, lamp: HeadlampModel): void {
 	const mode = s.headlamp ? lamp.modes[s.headlamp] : null;
 	if (!mode || s.battery <= 0) return;
 	s.lampClock += dt;
-	if (!s.flags.infiniteBattery) s.battery = Math.max(0, s.battery - mode.drain * dt);
+	if (!s.flags.infiniteBattery) {
+		s.battery = Math.max(0, s.battery - mode.drain * s.mods.batteryDrain * dt);
+	}
 }

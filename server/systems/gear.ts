@@ -56,7 +56,7 @@ export class GearSystem implements SessionSystem {
 
 	/** A tick's wear; at the last of it, it breaks, heard. */
 	private wear(player: Player, stack: ItemStack): void {
-		if (addWear(stack, TICK_DT) !== 'broke') return;
+		if (addWear(stack, TICK_DT * player.state.mods.wear) !== 'broke') return;
 		this.ctx.events.push({ kind: 'break', item: stack.item, position: [...player.state.position] });
 	}
 

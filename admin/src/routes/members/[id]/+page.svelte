@@ -211,6 +211,48 @@
 		<p>
 			Chalk wheel{explorer.customWheel ? '' : ' (default)'}: {explorer.markWheel.join(' · ')}
 		</p>
+		<h3>Level and skills</h3>
+		<p>
+			Level {explorer.progression.level} · {explorer.progression.xp} experience · {explorer
+				.progression.pointsLeft} points unspent · {explorer.progression.firsts} firsts paid
+		</p>
+		<p>
+			Skills: {explorer.progression.skills
+				.filter((s) => s.rank > 0)
+				.map((s) => `${s.name} ${s.rank}`)
+				.join(' · ') || 'none'}{explorer.progression.categories.length
+				? ` (open: ${explorer.progression.categories.join(', ')})`
+				: ''}
+		</p>
+		<div class="actions">
+			<Action action="setExperience" label="Set level">
+				<input
+					name="level"
+					type="number"
+					min="0"
+					max={data.maxLevel}
+					placeholder="Level"
+					aria-label="Level"
+				/>
+			</Action>
+			<Action action="setExperience" label="Set experience">
+				<input name="xp" type="number" min="0" placeholder="Experience" aria-label="Experience" />
+			</Action>
+			<Action action="setSkillRank" label="Set rank">
+				<select name="skill" aria-label="Skill">
+					{#each explorer.progression.skills as skill (skill.id)}
+						<option value={skill.id}>{skill.name} ({skill.rank})</option>
+					{/each}
+				</select>
+				<input name="rank" type="number" min="0" max="3" value="1" aria-label="Rank" />
+			</Action>
+			<Action
+				action="resetProgression"
+				label="Reset levels and skills"
+				danger
+				confirm="Put {member.gamerTag} back to level 0, with no skills and no firsts paid?"
+			/>
+		</div>
 		{#if explorer.customWheel}
 			<div class="actions">
 				<Action
@@ -282,7 +324,7 @@
 					<tr>
 						<th>When</th><th>How it ended</th><th>Time</th><th>Level</th><th>Kills</th><th
 							>Crates</th
-						><th>Carried out</th><th>Party</th><th>Seed</th>
+						><th>Carried out</th><th>XP</th><th>Party</th><th>Seed</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -295,6 +337,11 @@
 							<td>{run.kills}</td>
 							<td>{run.crates}</td>
 							<td>{run.carriedValue}</td>
+							<td
+								title={Object.entries(run.xpBySource ?? {})
+									.map(([source, xp]) => `${source} ${xp}`)
+									.join(', ')}>{run.xp ?? '–'}</td
+							>
 							<td>{run.partySize}</td>
 							<td><code>{run.seed}</code></td>
 						</tr>

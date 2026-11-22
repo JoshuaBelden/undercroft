@@ -99,6 +99,9 @@
 				runs.avgCarried
 			)} carried out
 		</span>
+		{#if runs.avgXp !== null}
+			<span class="muted small">{Math.round(runs.avgXp)} experience a run</span>
+		{/if}
 		{#if runs.avgManifestedAfter !== null}
 			<span class="muted small">It manifests after {duration(runs.avgManifestedAfter)}</span>
 		{/if}

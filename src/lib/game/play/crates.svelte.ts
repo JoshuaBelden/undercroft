@@ -231,7 +231,7 @@ export class Crates implements PlayFeature {
 				blocked: true
 			};
 		}
-		const progress = way.seconds > 0 ? state.opening / way.seconds : 0;
+		const progress = way.seconds > 0 ? state.opening / (way.seconds * state.mods.openTime) : 0;
 		// A drop box says whose it is: "to open Wanderer's drop box".
 		const verb = this.models.boxes.has(id)
 			? `${way.verb} ${this.title(id, def.name).replace(/^Your/, 'your')}`

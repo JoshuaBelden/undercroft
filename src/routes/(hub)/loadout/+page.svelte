@@ -3,8 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { session } from '#lib/account/account.svelte.ts';
-	import { FREE_LOADOUT } from '#lib/content/economy.ts';
-	import { ITEMS } from '#lib/content/items.ts';
 	import { allStacks } from '#lib/shared/items/inventory.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
@@ -23,10 +21,6 @@
 
 	/** Nothing in the loadout: the free one can be taken down instead (docs/dev/economy.md). */
 	const empty = $derived(!!explorer && allStacks(explorer.loadout).length === 0);
-	const freeKit = FREE_LOADOUT.map(
-		({ item, count }) =>
-			`${ITEMS[item]?.name.toLowerCase() ?? item}${count > 1 ? ` ×${count}` : ''}`
-	).join(', ');
 
 	$effect(() => {
 		launch.free = confirming && empty;
@@ -87,9 +81,7 @@
 	<Outfit bind:this={outfit} {explorer} {ready} onchange={changed} />
 	{#if confirming}
 		<div class="confirm" role="group" aria-label="Confirm your loadout">
-			{#if empty}
-				<p>Nothing to take down? The free loadout is a {freeKit}. It sells for nothing.</p>
-			{:else}
+			{#if !empty}
 				<p>This is what you take down. Change anything you like, then confirm.</p>
 			{/if}
 			<button type="button" class="back" onclick={back}>Back</button>

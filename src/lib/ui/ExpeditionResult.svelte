@@ -5,6 +5,7 @@
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExpeditionSummary } from '#lib/shared/protocol.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
+	import { levelOf } from '#lib/shared/progression/progression.ts';
 	import { slotMark, stackDetail } from './items.ts';
 	import { parallax } from './parallax.ts';
 	import Slot from './Slot.svelte';
@@ -53,8 +54,12 @@
 		{ label: 'Deepest level', value: String(summary.deepestLevel + 1) },
 		{ label: 'Creatures killed', value: String(summary.kills) },
 		{ label: 'Crates opened', value: String(summary.crates) },
-		{ label: 'Hints found', value: String(summary.clues) }
+		{ label: 'Hints found', value: String(summary.clues) },
+		{ label: 'Experience', value: `+${summary.experience.earned}` }
 	]);
+	/** Levels gained this expedition (docs/dev/progression.md). */
+	const levelBefore = $derived(levelOf(summary.experience.before));
+	const levelAfter = $derived(levelOf(summary.experience.before + summary.experience.earned));
 	/** What the haul would fetch if all of it were sold. */
 	const worth = $derived(
 		(carried ?? []).reduce((sum, stack) => sum + sellPrice(stack.item, stack) * stack.count, 0)
@@ -78,6 +83,13 @@
 				</div>
 			{/each}
 		</dl>
+		{#if levelAfter > levelBefore}
+			<p class="level">
+				Level {levelAfter} reached: {levelAfter - levelBefore === 1
+					? 'a skill point'
+					: `${levelAfter - levelBefore} skill points`} to spend on the surface.
+			</p>
+		{/if}
 
 		<div class="haul">
 			<h2>Brought out</h2>
@@ -189,6 +201,12 @@
 		margin: 0;
 		font: 700 1.8rem var(--font-display);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.level {
+		margin: -8px 0 0;
+		font: 700 1.05rem var(--font-display);
+		color: var(--accent);
 	}
 
 	.haul {
