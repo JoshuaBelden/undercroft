@@ -13,7 +13,7 @@
 	const audio = new AudioManager({ ...settings.audio });
 	const sounds = new SoundBank(audio);
 
-	function sound(kind: 'unlock' | 'rank' | 'mastered' | 'denied' | 'respec'): void {
+	function sound(kind: 'unlock' | 'rank' | 'mastered' | 'denied'): void {
 		for (const category of ['master', 'sfx'] as const) {
 			audio.setVolume(category, settings.audio[category]);
 		}

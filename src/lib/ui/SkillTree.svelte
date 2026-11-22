@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { ApiError, skills as changeSkills } from '#lib/account/account.svelte.ts';
 	import { money } from '#lib/content/economy.ts';
+	import Dialog from './Dialog.svelte';
 	import {
 		LEVELS,
 		RESPEC_COST,
@@ -40,7 +41,7 @@
 		/** Ready or underground: nothing can be changed. */
 		locked?: boolean;
 		/** Something happened, for its sound. */
-		onsound?: (kind: 'unlock' | 'rank' | 'mastered' | 'denied' | 'respec') => void;
+		onsound?: (kind: 'unlock' | 'rank' | 'mastered' | 'denied') => void;
 	}
 
 	let { explorer, locked = false, onsound }: Props = $props();
@@ -121,7 +122,6 @@
 		error = '';
 		try {
 			await changeSkills({ action: 'respec' });
-			onsound?.('respec');
 			confirming = false;
 		} catch (e) {
 			error = e instanceof ApiError ? e.message : 'Something went wrong';
@@ -335,21 +335,31 @@
 	</div>
 
 	<div class="respec">
-		{#if confirming}
-			<span>Put back all {pointsSpent(p)} points for {money(RESPEC_COST)}?</span>
-			<button type="button" class="pill" disabled={busy || locked} onclick={respec}>Respec</button>
-			<button type="button" class="pill quiet" onclick={() => (confirming = false)}>Cancel</button>
-		{:else}
-			<button
-				type="button"
-				class="pill quiet"
-				disabled={locked || pointsSpent(p) === 0}
-				onclick={() => (confirming = true)}
-			>
-				Respec ${RESPEC_COST}
-			</button>
-		{/if}
+		<button
+			type="button"
+			class="pill quiet"
+			disabled={locked || busy || pointsSpent(p) === 0 || explorer.money < RESPEC_COST}
+			title={explorer.money < RESPEC_COST ? `A respec costs ${money(RESPEC_COST)}` : undefined}
+			onclick={() => (confirming = true)}
+		>
+			Respec ${RESPEC_COST}
+		</button>
 	</div>
+
+	{#if confirming}
+		<Dialog title="Respec" onclose={() => (confirming = false)}>
+			<p>
+				Put back all {pointsSpent(p)} points for {money(RESPEC_COST)}? Your experience and level
+				stay.
+			</p>
+			{#snippet footer()}
+				<button type="button" onclick={() => (confirming = false)}>Cancel</button>
+				<button type="button" class="primary" disabled={busy || locked} onclick={respec}
+					>Respec</button
+				>
+			{/snippet}
+		</Dialog>
+	{/if}
 
 	{#if locked}
 		<p class="muted">Nothing can be changed while you're ready to descend or underground.</p>

@@ -780,28 +780,34 @@ export const SOUNDS = {
 		rate: 1.3,
 		caption: 'a card is drawn'
 	},
-	// The skill tree (docs/dev/progression.md), synthesized until recorded.
+	// The skill tree (docs/dev/progression.md).
 	/** A category opened. */
 	'skills.unlock': {
+		file: 'skills.unlock',
 		synth: { kind: 'bell', pitch: 440, length: 1.4 },
 		category: 'sfx',
 		volume: 0.45
 	},
 	/** A skill raised a rank. */
-	'skills.rank': { synth: { kind: 'bell', pitch: 660, length: 0.6 }, category: 'sfx', volume: 0.4 },
+	'skills.rank': {
+		file: 'skills.rank',
+		synth: { kind: 'bell', pitch: 660, length: 0.6 },
+		category: 'sfx',
+		volume: 0.4
+	},
 	/** A skill at its top rank. */
 	'skills.mastered': {
+		file: 'skills.mastered',
 		synth: { kind: 'bell', pitch: 988, length: 1.6 },
 		category: 'sfx',
 		volume: 0.45
 	},
 	/** A long press with no point to spend (or nowhere for it to go). */
-	'skills.denied': { synth: { kind: 'click' }, category: 'sfx', volume: 0.4, rate: 0.6 },
-	/** Every point put back. */
-	'skills.respec': {
-		synth: { kind: 'bell', pitch: 196, length: 2 },
+	'skills.denied': {
+		file: 'skills.denied',
+		synth: { kind: 'click' },
 		category: 'sfx',
-		volume: 0.45
+		volume: 0.4
 	},
 	// The Workshop and the store (docs/dev/crafting.md), synthesized until recorded.
 	'workshop.craft': {
