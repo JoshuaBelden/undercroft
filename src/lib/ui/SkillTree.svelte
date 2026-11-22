@@ -49,6 +49,8 @@
 	const level = $derived(levelOf(p.xp));
 	const left = $derived(pointsLeft(p));
 
+	/** The skill whose tooltip shows (hovered or focused). */
+	let tipped = $state<string | null>(null);
 	let error = $state('');
 	let busy = $state(false);
 	let confirming = $state(false);
@@ -171,19 +173,6 @@
 
 	onMount(() => () => cancelAnimationFrame(raf));
 
-	/** A skill's tooltip: what it does, and what it comes to now and at the next rank. */
-	function tip(skill: SkillDef): string {
-		const rank = p.skills[skill.id] ?? 0;
-		const l = lines(skill);
-		return [
-			`${skill.name}: rank ${rank} of ${MAX_RANK}`,
-			summaryAt(skill, rank || 1),
-			rank > 0 ? `Now: ${l.now} (was: ${l.base})` : `Now: ${l.base}`,
-			...(l.next ? [`Next rank: ${l.next}`] : []),
-			'Hold to spend a point.'
-		].join('\n');
-	}
-
 	/** What a skill comes to, without it, now, and at the next rank. */
 	function lines(skill: SkillDef): { now: string; next: string | null; base: string } {
 		const rank = p.skills[skill.id] ?? 0;
@@ -197,8 +186,8 @@
 
 	/** Where each of a category's four skills sits across its branch (0..100). */
 	const COLUMNS = [12.5, 37.5, 62.5, 87.5];
-	/** Heights in the branch (0..100, top down): the connector, the skills, the category. */
-	const ROW = { connector: 9, skill: 50, category: 88 };
+	/** Heights in the branch (0..100, top down): the connector, the skills, the category. The tree grows up from the bottom: room above for skills to come. */
+	const ROW = { connector: 38, skill: 66, category: 90 };
 	/** The rank ring: its radius (in the icon's 100-unit box), and the gap between its thirds. */
 	const RING_R = 46;
 	const RING = 2 * Math.PI * RING_R;
@@ -206,10 +195,10 @@
 
 	/** From the top of a skill's ring up to the connector. */
 	const upPath = (x: number): string =>
-		`M ${x} ${ROW.skill - 9} C ${x} ${ROW.skill - 26}, 50 ${ROW.connector + 20}, 50 ${ROW.connector + 7}`;
+		`M ${x} ${ROW.skill - 6} C ${x} ${ROW.skill - 16}, 50 ${ROW.connector + 14}, 50 ${ROW.connector + 5}`;
 	/** From under a skill's name down to its category. */
 	const downPath = (x: number): string =>
-		`M ${x} ${ROW.skill + 17} C ${x} ${ROW.skill + 30}, 50 ${ROW.category - 22}, 50 ${ROW.category - 6}`;
+		`M ${x} ${ROW.skill + 10} C ${x} ${ROW.skill + 16}, 50 ${ROW.category - 16}, 50 ${ROW.category - 8}`;
 </script>
 
 <section class="skills" {@attach menu({ key: 'skills', holding: padHolding })}>
@@ -268,8 +257,15 @@
 								? `${skill.name}, rank ${rank} of ${MAX_RANK}. Hold to spend a point.`
 								: `A ${c.name} skill, not yet open`}
 							disabled={locked}
-							title={open ? tip(skill) : undefined}
+							aria-describedby={open && tipped === skill.id ? 'skill-tip' : undefined}
+							onpointerenter={() => (tipped = skill.id)}
+							onpointerleave={() => tipped === skill.id && (tipped = null)}
+							onfocus={() => (tipped = skill.id)}
 							{...holdable(() => ({ skill: skill.id }))}
+							onblur={() => {
+								end();
+								if (tipped === skill.id) tipped = null;
+							}}
 						>
 							<svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
 								{#each [0, 1, 2] as third (third)}
@@ -286,6 +282,34 @@
 							<span class="glyph">{open ? skill.icon : '?'}</span>
 						</button>
 						<span class="name">{open ? skill.name : '?'}</span>
+						{#if open && tipped === skill.id}
+							{@const l = lines(skill)}
+							<div
+								class="tip"
+								id="skill-tip"
+								role="tooltip"
+								class:left={i === 3}
+								class:right={i === 0}
+							>
+								<h3>{skill.name} <span class="muted">Rank {rank} of {MAX_RANK}</span></h3>
+								<p>{summaryAt(skill, Math.max(rank, 1))}</p>
+								{#if rank > 0}
+									<p><span class="muted">Now:</span> <strong>{l.now}</strong></p>
+									<p class="muted">Without it: {l.base}</p>
+								{:else}
+									<p><span class="muted">Now:</span> {l.base}</p>
+								{/if}
+								{#if l.next}
+									<p class="next">
+										<span class="muted">Rank {rank + 1}:</span>
+										{summaryAt(skill, rank + 1)}<br /><strong>{l.next}</strong>
+									</p>
+								{:else}
+									<p class="muted">At its top rank.</p>
+								{/if}
+								{#if rank < MAX_RANK}<p class="muted hint">Hold to spend a point.</p>{/if}
+							</div>
+						{/if}
 					</div>
 				{/each}
 
@@ -391,7 +415,7 @@
 
 	.branch {
 		position: relative;
-		height: 400px;
+		height: 560px;
 	}
 
 	.lines {
@@ -533,6 +557,53 @@
 		font: 700 1rem var(--font-display);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
+	}
+
+	/* A skill's tooltip: above its icon, over the lines and the connector. */
+	.tip {
+		position: absolute;
+		bottom: calc(100% + 8px);
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 5;
+		width: 280px;
+		padding: 12px 14px;
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		background: rgb(8 7 6 / 0.97);
+		text-align: left;
+		pointer-events: none;
+		font-size: 0.85rem;
+	}
+
+	.tip.right {
+		left: 0;
+		transform: none;
+	}
+
+	.tip.left {
+		left: auto;
+		right: 0;
+		transform: none;
+	}
+
+	.tip h3 {
+		margin: 0 0 6px;
+		font: 700 0.95rem var(--font-ui);
+	}
+
+	.tip p {
+		margin: 4px 0;
+	}
+
+	.tip .next {
+		margin-top: 8px;
+		padding-top: 8px;
+		border-top: 1px solid var(--border);
+	}
+
+	.tip .hint {
+		font-size: 0.75rem;
 	}
 
 	.respec {
