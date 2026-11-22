@@ -30,6 +30,9 @@ export interface RunDoc {
 	partySize: number;
 	/** Seconds from the start of the expedition until the Affliction manifested; null if it didn't. */
 	manifestedAfter: number | null;
+	/** Experience earned, and where from (docs/dev/progression.md). Missing on older runs. */
+	xp?: number;
+	xpBySource?: Record<string, number>;
 	at: Date;
 }
 
@@ -101,6 +104,8 @@ export interface RunTotals {
 	avgKills: number;
 	avgCrates: number;
 	avgCarried: number;
+	/** Experience earned, on average (runs from before it was logged left out). */
+	avgXp: number | null;
 	/** Of the runs whose Affliction manifested: when, on average (seconds from the start). */
 	avgManifestedAfter: number | null;
 	solo: number;
@@ -126,6 +131,7 @@ export async function runSummary(
 					avgKills: { $avg: '$kills' },
 					avgCrates: { $avg: '$crates' },
 					avgCarried: { $avg: '$carriedValue' },
+					avgXp: { $avg: '$xp' },
 					avgManifestedAfter: { $avg: '$manifestedAfter' },
 					solo: { $sum: { $cond: [{ $eq: ['$partySize', 1] }, 1, 0] } },
 					coop: { $sum: { $cond: [{ $gt: ['$partySize', 1] }, 1, 0] } }
@@ -166,6 +172,7 @@ export async function runSummary(
 			avgKills: totals?.avgKills ?? 0,
 			avgCrates: totals?.avgCrates ?? 0,
 			avgCarried: totals?.avgCarried ?? 0,
+			avgXp: totals?.avgXp ?? null,
 			avgManifestedAfter: totals?.avgManifestedAfter ?? null,
 			solo: totals?.solo ?? 0,
 			coop: totals?.coop ?? 0

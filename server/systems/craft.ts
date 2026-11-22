@@ -74,9 +74,9 @@ export class CraftSystem implements SessionSystem {
 			const before = s.crafting;
 			s.crafting += TICK_DT;
 			if (before <= 1e-5 || Math.floor(s.crafting / every) !== Math.floor(before / every)) {
-				ctx.creatures.hear([...s.position], noise, { id: player.id, state: s });
+				ctx.creatures.hear([...s.position], noise * s.mods.craftNoise, { id: player.id, state: s });
 			}
-			if (s.crafting < seconds) continue;
+			if (s.crafting < seconds * s.mods.craftTime) continue;
 			this.finish(player, job);
 			this.stop(player);
 		}
@@ -107,6 +107,7 @@ export class CraftSystem implements SessionSystem {
 			const left = addItem(s.inventory, made);
 			if (left > 0) ctx.items.dropAll([{ ...made, count: left }], s.position);
 			ctx.send(player, { type: 'crafted', item: recipe.makes, count: recipe.count });
+			ctx.experience.crafted(player, recipe);
 			log.info(`${player.name} made ${recipe.makes} below in ${ctx.id.slice(0, 8)}`);
 		} else {
 			const stack = getSlot({ inventory: s.inventory }, job.repair);
@@ -117,7 +118,7 @@ export class CraftSystem implements SessionSystem {
 			if (stack.worn === 0) delete stack.worn;
 			ctx.send(player, { type: 'crafted', item: stack.item, count: 0 });
 		}
-		if (addWear(kit) === 'broke') {
+		if (addWear(kit, s.mods.wear) === 'broke') {
 			ctx.events.push({ kind: 'break', item: kit.item, position: [...s.position] });
 		}
 	}

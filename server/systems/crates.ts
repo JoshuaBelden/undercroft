@@ -101,6 +101,7 @@ export class CrateSystem implements SessionSystem {
 			}
 			player.crate = crate.id;
 			const first = ctx.crates.open(crate, player.id);
+			if (first) this.scrounge(player, crate);
 			this.reachIn(player, crate, first);
 			if (way.breaks) this.shatter(crate, way.breaks);
 			if (first) {
@@ -230,7 +231,7 @@ export class CrateSystem implements SessionSystem {
 		// What kept something off wears a use for it (gloves).
 		const kept = (against: string): void => {
 			const by = gear.find((stack) => ITEMS[stack.item]?.protects?.includes(against));
-			if (by && addWear(by) === 'broke')
+			if (by && addWear(by, s.mods.wear) === 'broke')
 				ctx.events.push({ kind: 'break', item: by.item, position: [...s.position] });
 		};
 		const position: Vec3 = crateCentre(crate);
@@ -297,6 +298,21 @@ export class CrateSystem implements SessionSystem {
 	}
 
 	/**
+	 * Scrounger (docs/dev/progression.md): the first to open it may find one more material, from
+	 * what it can hold, in a slot it has free. Materials only, so each level's treasure budget holds.
+	 */
+	private scrounge(player: Player, crate: Crate): void {
+		const chance = player.state.mods.scrounge;
+		if (chance <= 0 || Math.random() >= chance || !crate.slots.includes(null)) return;
+		const def = lootableOf(crate);
+		if (def.dropped) return;
+		const materials = def.loot.filter((entry) => ITEMS[entry.item]?.category === 'material');
+		if (materials.length === 0) return;
+		const pick = materials[Math.floor(Math.random() * materials.length)];
+		this.ctx.crates.stowIn(crate.id, newStack(pick.item, 1));
+	}
+
+	/**
 	 * Holding interact on it, one way: `opening` counts to the way's seconds. A way with noise is
 	 * heard as it starts and every `every` seconds while it goes on (prying, smashing), with the
 	 * player as the source; a crowbar at work raises `pry`. Returns true once it is done.
@@ -318,9 +334,9 @@ export class CrateSystem implements SessionSystem {
 		const again =
 			Number.isFinite(every) && Math.floor(s.opening / every) !== Math.floor(before / every);
 		if (way.noise && (before === 0 || again)) {
-			ctx.creatures.hear(crate.position, way.noise, { id: player.id, state: s });
+			ctx.creatures.hear(crate.position, way.noise * s.mods.openNoise, { id: player.id, state: s });
 		}
-		if (s.opening < way.seconds) return false;
+		if (s.opening < way.seconds * s.mods.openTime) return false;
 		s.opening = 0;
 		return true;
 	}

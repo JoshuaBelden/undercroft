@@ -30,7 +30,15 @@ import {
 	sendMail,
 	setGamerTag,
 	setRole,
-	suspendAccount
+	suspendAccount,
+	LEVELS,
+	SKILLS,
+	levelOf,
+	pointsLeft,
+	progressionOf,
+	resetProgression,
+	setExperience,
+	setRank
 } from '#lib/server/store.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -66,8 +74,20 @@ export const load: PageServerLoad = async ({ params }) => {
 			stashSlots: explorer.stash.length,
 			underground: explorer.underground !== null,
 			markWheel: markWheel(explorer.markWheel).map((id) => MARK_SYMBOLS[id]?.name ?? id),
-			customWheel: explorer.markWheel !== undefined
+			customWheel: explorer.markWheel !== undefined,
+			progression: (() => {
+				const p = progressionOf(explorer.progression);
+				return {
+					xp: p.xp,
+					level: levelOf(p.xp),
+					pointsLeft: pointsLeft(p),
+					categories: p.categories,
+					skills: SKILLS.map((s) => ({ id: s.id, name: s.name, rank: p.skills[s.id] ?? 0 })),
+					firsts: p.firsts.length
+				};
+			})()
 		})),
+		maxLevel: LEVELS.max,
 		ledger: ledger.map((line) => ({ ...line, _id: String(line._id) })),
 		runs: await runsOf(
 			db,
@@ -143,6 +163,50 @@ export const actions: Actions = {
 		for (const explorer of explorers) await resetMarkWheel(db, explorer._id);
 		await audit(db, admin, 'resetMarkWheel', account._id);
 		return { notice: 'Chalk wheel back to the default (from their next descent)' };
+	},
+
+	setExperience: async ({ params, request, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const form = await request.formData();
+		const level = String(form.get('level') ?? '').trim();
+		const xpField = String(form.get('xp') ?? '').trim();
+		const xp = level ? Number(level) * LEVELS.xpPerLevel : Number(xpField);
+		if (!Number.isFinite(xp) || xp < 0 || xp > LEVELS.max * LEVELS.xpPerLevel * 10) {
+			return fail(400, { error: `Give a level (0 to ${LEVELS.max}) or an amount of experience` });
+		}
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) await setExperience(db, explorer._id, xp);
+		await audit(db, admin, 'setExperience', account._id, String(Math.round(xp)));
+		return { notice: `Experience set to ${Math.round(xp)} (level ${levelOf(xp)})` };
+	},
+
+	setSkillRank: async ({ params, request, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const form = await request.formData();
+		const skill = String(form.get('skill') ?? '');
+		const rank = Number(form.get('rank') ?? 0);
+		if (!Number.isInteger(rank) || rank < 0 || rank > 3)
+			return fail(400, { error: 'Rank is 0 to 3' });
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) {
+			if (!(await setRank(db, explorer._id, skill, rank)))
+				return fail(400, { error: 'No such skill' });
+		}
+		await audit(db, admin, 'setSkillRank', account._id, `${skill} ${rank}`);
+		return {
+			notice: rank === 0 ? `${skill} cleared` : `${skill} at rank ${rank} (from their next descent)`
+		};
+	},
+
+	resetProgression: async ({ params, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) await resetProgression(db, explorer._id);
+		await audit(db, admin, 'resetProgression', account._id);
+		return { notice: 'Back to level 0: no experience, no skills, no firsts paid' };
 	},
 
 	resetExplorer: async ({ params, request, locals }) => {

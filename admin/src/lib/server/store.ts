@@ -16,6 +16,17 @@ export * from '../../../../src/lib/server/store/runs.ts';
 export { EXPLORER_ERRORS, resetMarkWheel } from '../../../../src/lib/server/store/explorers.ts';
 export { MARK_SYMBOLS, markWheel } from '../../../../src/lib/content/marks.ts';
 export {
+	resetProgression,
+	setExperience,
+	setRank
+} from '../../../../src/lib/server/store/progression.ts';
+export {
+	levelOf,
+	pointsLeft,
+	progressionOf
+} from '../../../../src/lib/shared/progression/progression.ts';
+export { LEVELS, SKILLS } from '../../../../src/lib/content/progression.ts';
+export {
 	BOARD_STATUSES,
 	IDEA,
 	IDEA_STATUSES,

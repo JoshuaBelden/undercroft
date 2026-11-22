@@ -234,7 +234,7 @@ export function stepWeapon(
 			if (loaded > 0) {
 				if (!s.flags.infiniteAmmo) stack.loaded = loaded - 1;
 				// Every shot wears the gun; the one that breaks it still goes off.
-				if (addWear(stack) === 'broke') emit({ kind: 'broke', item: stack.item });
+				if (addWear(stack, s.mods.wear) === 'broke') emit({ kind: 'broke', item: stack.item });
 				w.shots++;
 				const { origin, direction } = ray();
 				emit({

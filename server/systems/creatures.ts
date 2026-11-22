@@ -17,7 +17,7 @@ export class CreatureSystem implements SessionSystem {
 			if (!player) continue;
 			const s = player.state;
 			if (s.flags.godMode || s.downed || s.dead) continue;
-			const { through, broke } = absorbBlow(s.inventory, hit.damage);
+			const { through, broke } = absorbBlow(s.inventory, hit.damage * s.mods.blowSanity);
 			if (broke) ctx.events.push({ kind: 'break', item: broke, position: [...s.position] });
 			ctx.hurt(player, through);
 			if (hit.condition && !s.dead) applyCondition(s, hit.condition.id, hit.condition.seconds);

@@ -177,6 +177,16 @@ export async function workshop(
 	session.account = await api<AccountView>('/api/explorer/workshop', 'POST', change);
 }
 
+/** The skill tree (docs/dev/progression.md): spend a point, or put every one back for coin. */
+export async function skills(
+	change:
+		| { action: 'spend'; category: string }
+		| { action: 'spend'; skill: string }
+		| { action: 'respec' }
+): Promise<void> {
+	session.account = await api<AccountView>('/api/explorer/progression', 'POST', change);
+}
+
 /** Discoveries looked at: their slots stop shimmering. */
 export async function markSeen(items: string[]): Promise<void> {
 	if (!items.length) return;
@@ -195,6 +205,8 @@ export async function adminAccount(
 		| { action: 'setTrust'; sold: number }
 		| { action: 'completeTraining' }
 		| { action: 'forgetAfflictions' }
+		| { action: 'grantExperience'; amount: number }
+		| { action: 'resetProgression' }
 ): Promise<void> {
 	session.account = await api<AccountView>('/api/admin', 'POST', change);
 	if (change.action === 'grantItem') {

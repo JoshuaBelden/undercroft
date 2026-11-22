@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
+import { progressionOf, type Progression } from '../../shared/progression/progression.ts';
 import { discoveriesOf } from './discoveries.ts';
 import { ECONOMY, openTiers } from '../../content/economy.ts';
 import type { Collection, Db } from 'mongodb';
@@ -143,6 +144,11 @@ export interface ExplorerDoc {
 	fresh?: string[];
 	/** The merchant's trust: coin sold to the store, in all. */
 	sold?: number;
+	/**
+	 * Experience, the skill points spent and the firsts paid (docs/dev/progression.md); unset until
+	 * the first is earned. Read through `progressionOf`.
+	 */
+	progression?: Partial<Progression>;
 	createdAt: Date;
 }
 
@@ -569,6 +575,9 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 		discovered: discoveriesOf(explorer),
 		fresh: explorer.fresh ?? [],
 		sold: explorer.sold ?? 0,
+		progression: (({ xp, categories, skills }) => ({ xp, categories, skills }))(
+			progressionOf(explorer.progression)
+		),
 		tiers: openTiers(
 			explorer.sold ?? 0,
 			progress.filter((doc) => doc.resolved).map((doc) => doc.affliction)

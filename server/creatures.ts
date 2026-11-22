@@ -546,6 +546,11 @@ export class CreatureDirector {
 		return !!this.creatures.find((x) => x.id === id)?.bleed;
 	}
 
+	/** What kind of creature this is (CREATURES), dead or alive, while it is in the map. */
+	kindOf(id: string): string | undefined {
+		return this.creatures.find((x) => x.id === id)?.def.id;
+	}
+
 	/** Admin: kill every creature. */
 	killAll(): void {
 		for (const c of this.living()) if (!c.def.invulnerable) this.kill(c);
@@ -1291,7 +1296,8 @@ export class CreatureDirector {
 	private sees(c: Creature, s: PlayerState, d: number, front: boolean): boolean {
 		const { agro } = c.def.perception;
 		const lit = s.headlamp > 0 && s.battery > 0;
-		if (d > (lit ? agro.litRange : agro.darkRange) * this.boldness) return false;
+		const range = lit ? agro.litRange : agro.darkRange * s.mods.darkSpotted;
+		if (d > range * this.boldness) return false;
 		const chest: Vec3 = [
 			s.position[0],
 			s.position[1] + MOVEMENT.stances[s.stance].eye * 0.8,

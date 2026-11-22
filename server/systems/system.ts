@@ -15,6 +15,7 @@ import type { WorldItems } from '../items.ts';
 import type { RiteDirector } from '../rite.ts';
 import type { SessionHooks } from '../session.ts';
 import type { Systems } from './index.ts';
+import type { Experience, PlayerExperience } from '../experience.ts';
 
 /**
  * The plug-in seam of the game server (docs/dev/session.md). A `Session` owns the map, the
@@ -60,6 +61,8 @@ export interface Player {
 	discovered: Set<string>;
 	/** Where they have seen things this run: `item:lootable`, so each is recorded once. */
 	seenIn: Set<string>;
+	/** What they have earned this run, and the firsts they had (docs/dev/progression.md). */
+	experience: PlayerExperience;
 }
 
 /** One input frame a player's movement was just simulated for (`SessionSystem.simulated`). */
@@ -97,6 +100,8 @@ export interface SessionContext {
 	readonly events: GameEvent[];
 	/** The other systems, by name, for the few things one asks of another. */
 	readonly systems: Systems;
+	/** Experience: what each player earns down here (server/experience.ts). */
+	readonly experience: Experience;
 	send(player: Player, message: ServerMessage): void;
 	/** To everyone down here, and the dead who are watching. */
 	broadcast(message: ServerMessage): void;

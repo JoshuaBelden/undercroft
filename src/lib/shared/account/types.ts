@@ -1,6 +1,7 @@
 import type { StoreTier } from '../../content/economy.ts';
 import type { Slots } from '../items/inventory.ts';
 import type { Inventory } from '../player/types.ts';
+import type { Progression } from '../progression/progression.ts';
 
 /** An account as its own browser sees it (`GET /api/account`). See docs/dev/accounts.md. */
 export interface AccountView {
@@ -50,4 +51,6 @@ export interface ExplorerView {
 	sold: number;
 	/** The store's tiers open to them. */
 	tiers: StoreTier[];
+	/** Experience and the skills spent on (docs/dev/progression.md). */
+	progression: Pick<Progression, 'xp' | 'categories' | 'skills'>;
 }

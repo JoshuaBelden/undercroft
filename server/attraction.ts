@@ -85,7 +85,7 @@ export class Attraction {
 			const lamp = s.battery <= 0 ? 0 : s.headlamp;
 			const glow = lamp === 2 ? light.bright : lamp === 1 ? light.low : light.off;
 			this.add('light', e.id, glow * TICK_DT, boldness);
-			this.add('noise', e.id, noise.move[e.movement] * TICK_DT, boldness);
+			this.add('noise', e.id, noise.move[e.movement] * e.state.mods.moveNoise * TICK_DT, boldness);
 		}
 		for (const n of noises) {
 			// A noise nobody made (a crate, a door) is put down to whoever's nearest it.

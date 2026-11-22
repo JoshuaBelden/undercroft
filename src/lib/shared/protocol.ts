@@ -254,6 +254,8 @@ export type ServerMessage =
 	| { type: 'crafted'; item: string; count: number }
 	/** You discovered an item (docs/dev/crafting.md#discovery): it is used in `recipes` recipes. */
 	| { type: 'discovered'; item: string; recipes: number }
+	/** You earned experience (docs/dev/progression.md): shown under the clock. */
+	| { type: 'experience'; amount: number }
 	/** You read a recipe fragment: what it taught you (an ingredient now discovered), or nothing. */
 	| { type: 'fragment'; item: string | null }
 	/** Points added to ropes being laid since the last tick. */
@@ -314,6 +316,8 @@ export interface ExpeditionSummary {
 	crates: number;
 	/** Rite clues they found. */
 	clues: number;
+	/** Experience earned this expedition, and what they had before it (docs/dev/progression.md). */
+	experience: { earned: number; before: number };
 }
 
 export function encode(message: ClientMessage | ServerMessage): string {
@@ -354,6 +358,7 @@ const CLIENT_TYPE_TABLE: Record<ClientMessage['type'], true> = {
 	vault: true
 };
 const SERVER_TYPE_TABLE: Record<ServerMessage['type'], true> = {
+	experience: true,
 	party: true,
 	partyError: true,
 	social: true,

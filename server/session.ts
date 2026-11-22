@@ -61,6 +61,8 @@ import { WorldItems } from './items.ts';
 import { createSystems } from './systems/index.ts';
 import type { AdminHandlers, Player, SessionContext, SessionSystem } from './systems/system.ts';
 import { log } from './log.ts';
+import { Experience, playerExperience } from './experience.ts';
+import { modifiersFor, type Progression } from '../src/lib/shared/progression/progression.ts';
 
 export type { Player } from './systems/system.ts';
 
@@ -106,6 +108,11 @@ export interface SessionHooks {
 	onDiscovered?: (owner: string, item: string, source: string) => void;
 	/** A player got out of a training ground (Rumors): done, for what it unlocks. */
 	onTrained?: (owner: string) => void;
+	/**
+	 * A player's run is over: the experience they earned, and the firsts paid, to keep
+	 * (docs/dev/progression.md). Once per player, however the run ended.
+	 */
+	onExperience?: (owner: string, earned: number, firsts: string[]) => void;
 }
 
 /**
@@ -131,6 +138,7 @@ export class Session implements SessionContext {
 	doors!: Doors;
 	affliction!: AfflictionDirector;
 	rite!: RiteDirector;
+	readonly experience: Experience = new Experience(this);
 	/** Which level of the map each occupied cell is on (deepest level reached). */
 	private tiers = new Map<string, number>();
 	/** Items not put in this map: quest items someone in the party already owns. */
@@ -360,7 +368,8 @@ export class Session implements SessionContext {
 		owner: string,
 		inventory: Inventory,
 		markWheel: readonly string[] = DEFAULT_MARK_WHEEL,
-		discovered: ReadonlySet<string> = new Set()
+		discovered: ReadonlySet<string> = new Set(),
+		progression: Progression | null = null
 	): Player {
 		const player: Player = {
 			id: randomUUID(),
@@ -380,8 +389,10 @@ export class Session implements SessionContext {
 			lastInput: null,
 			crate: null,
 			crateLatch: false,
-			markWheel
+			markWheel,
+			experience: playerExperience(progression)
 		};
+		player.state.mods = modifiersFor(progression?.skills ?? {});
 		this.players.set(player.id, player);
 		this.itemsSent = null;
 		this.hadPlayers = true;
@@ -468,6 +479,7 @@ export class Session implements SessionContext {
 		const player = this.players.get(playerId);
 		if (!player || player.state.dead || player.state.extracted) return;
 		this.items.dropAll(allStacks(player.state.inventory), player.state.position);
+		this.experience.finish(player, 'abandoned');
 		this.send(player, { type: 'abandoned', ...this.summary(player) });
 		this.logRun(player, 'abandoned', null);
 		log.info(`Player ${player.name} abandoned session ${this.id.slice(0, 8)}`);
@@ -634,6 +646,7 @@ export class Session implements SessionContext {
 		this.tally();
 		this.leaving();
 		if (this.players.size === 0) return;
+		this.experience.flush();
 		this.broadcastTick();
 		this.events = [];
 		this.tallied = 0;
@@ -677,6 +690,7 @@ export class Session implements SessionContext {
 		this.hooks.onDiscovered?.(player.owner, item, source);
 		if (player.discovered.has(item)) return;
 		player.discovered.add(item);
+		this.experience.discovered(player, item);
 		this.send(player, { type: 'discovered', item, recipes: recipesUsing(item).length });
 	}
 
@@ -715,6 +729,11 @@ export class Session implements SessionContext {
 				this.items.dropAll(allStacks(player.state.inventory), player.state.position);
 			}
 			if (!player.state.extracted && !player.state.dead) continue;
+			this.experience.finish(
+				player,
+				player.state.dead ? (timedOut ? 'lost' : 'died') : 'extracted'
+			);
+			this.experience.tell(player);
 			const result = this.summary(player);
 			if (player.state.dead) {
 				this.send(player, {
@@ -804,6 +823,7 @@ export class Session implements SessionContext {
 			else if (event.kind === 'crateOpen') stats.crates++;
 			else if (event.kind === 'clue') stats.clues++;
 		}
+		this.experience.count(this.events.slice(this.tallied));
 		this.tallied = this.events.length;
 	}
 
@@ -813,7 +833,8 @@ export class Session implements SessionContext {
 		return {
 			seconds: Math.round((Date.now() - player.joinedAt) / 1000),
 			deepestLevel: player.deepestLevel,
-			...player.stats
+			...player.stats,
+			experience: { earned: player.experience.earned, before: player.experience.before }
 		};
 	}
 
@@ -821,7 +842,9 @@ export class Session implements SessionContext {
 	private logRun(player: Player, outcome: RunOutcome, carried: Inventory | null): void {
 		if (this.logged.has(player.id)) return;
 		this.logged.add(player.id);
-		const summary = this.summary(player);
+		this.experience.finish(player, outcome);
+		const { experience, ...summary } = this.summary(player);
+		this.hooks.onExperience?.(player.owner, experience.earned, player.experience.added);
 		const earned = achievementsForRun(outcome, this.joined);
 		if (earned.length > 0) this.send(player, { type: 'achievement', ids: earned });
 		const startedAt = this.systems.deadline.startedAt;
@@ -834,6 +857,8 @@ export class Session implements SessionContext {
 			outcome,
 			...summary,
 			carriedValue: carriedValue(carried),
+			xp: experience.earned,
+			xpBySource: player.experience.bySource,
 			partySize: this.joined,
 			manifestedAfter:
 				manifestedAt && startedAt ? Math.round((manifestedAt - startedAt) / 1000) : null

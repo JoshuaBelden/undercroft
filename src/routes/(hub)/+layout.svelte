@@ -5,6 +5,8 @@
 	import { page } from '$app/state';
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { money } from '#lib/content/economy.ts';
+	import { LEVELS } from '#lib/content/progression.ts';
+	import { levelOf } from '#lib/shared/progression/progression.ts';
 	import { BACKDROP_IMAGE, imageUrl } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { menu } from '#lib/game/input/menus.ts';
@@ -40,13 +42,17 @@
 	const avatar = $derived(session.account?.avatar ?? null);
 
 	/** The dashboard's screens, in the order of the tabs. The store is reached from the money. */
-	const TABS = [
+	const ALL_TABS = [
 		{ path: '/(hub)', label: 'Expedition' },
 		{ path: '/(hub)/loadout', label: 'Loadout' },
 		{ path: '/(hub)/afflictions', label: 'Afflictions' },
 		{ path: '/(hub)/workshop', label: 'Workshop' },
+		{ path: '/(hub)/skills', label: 'Skills' },
 		{ path: '/(hub)/library', label: 'Library' }
 	] as const;
+	/** The skill tree is hidden until level 1 (docs/dev/progression.md). */
+	const treeOpen = $derived(levelOf(explorer?.progression.xp ?? 0) >= LEVELS.treeAt);
+	const TABS = $derived(ALL_TABS.filter((tab) => tab.path !== '/(hub)/skills' || treeOpen));
 
 	/** The controller's B: back to the Expedition page. */
 	function up(): void {

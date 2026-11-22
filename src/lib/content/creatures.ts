@@ -58,6 +58,11 @@ export interface CreatureDef {
 	dread: boolean;
 	/** How much killing one feeds the Affliction meter (one per witch). */
 	killWeight: number;
+	/**
+	 * Experience for killing one (docs/dev/progression.md#killing), to the killer; teammates near
+	 * get a share. 0 for what must never pay (moths come to every bright beam).
+	 */
+	xp: number;
 	/** Its own sounds, by what it's doing; the rest are the shared creature ones. */
 	sounds?: Partial<Record<CreatureSound, SoundId>>;
 	/** It makes no sound at all (not even the shared ones). */
@@ -238,6 +243,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		reach: UPRIGHT,
 		dread: true,
 		killWeight: 1,
+		xp: 75,
 		// The model has no melee, jump, dodge, climb or crawl clip; those slots fall back or are
 		// skipped. Its strike is the spell cast, standing in for melee_attack. Also in the file and
 		// unused: 'Standard_Forward_Charge_inplace' (another run).
@@ -296,6 +302,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		reach: ANYWHERE,
 		dread: false,
 		killWeight: 0,
+		xp: 2,
 		// Clips keyed by scripts/blender/critters.py.
 		animations: {
 			idle: { clip: 'Idle' },
@@ -354,6 +361,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		reach: ANYWHERE,
 		dread: false,
 		killWeight: 0,
+		xp: 0,
 		dummy: true,
 		animations: {},
 		gait: { patrol: 'idle', alert: 'idle', stalk: 'idle', burst: 'idle' },
@@ -391,6 +399,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		reach: ANYWHERE,
 		dread: false,
 		killWeight: 0,
+		xp: 2,
 		animations: SPIDER_CLIPS,
 		gait: { patrol: 'walking', alert: 'idle', stalk: 'walking', burst: 'running' },
 		movement: small(1.1, 3.5),
@@ -447,6 +456,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		reach: UPRIGHT,
 		dread: false,
 		killWeight: 0,
+		xp: 8,
 		// Sitting, it crouches and looks about; seen, it walks off (running, if hit).
 		animations: {
 			idle: { clip: 'CrouchLookAroundBow' },
@@ -506,6 +516,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		reach: ANYWHERE,
 		dread: false,
 		killWeight: 0,
+		xp: 0,
 		// Clips keyed by scripts/blender/critters.py: wingbeats at three rates.
 		animations: {
 			idle: { clip: 'Hover' },
@@ -562,6 +573,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		reach: UPRIGHT,
 		dread: false,
 		killWeight: 0,
+		xp: 0,
 		// He walks from corner to corner, crouching to look about at each.
 		animations: {
 			idle: { clip: 'CrouchLookAroundBow' },
@@ -623,6 +635,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 		reach: { crouch: true, crawl: false, swim: false },
 		dread: true,
 		killWeight: 1,
+		xp: 40,
 		animations: SPIDER_CLIPS,
 		gait: { patrol: 'walking', alert: 'idle', stalk: 'walking', burst: 'running' },
 		movement: { ...small(1.2, 5), radius: MOVEMENT.radius },

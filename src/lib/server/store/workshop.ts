@@ -1,4 +1,5 @@
 import type { Db } from 'mongodb';
+import { workshopCrafted } from './progression.ts';
 import { ITEMS } from '../../content/items.ts';
 import { RECIPES, type Ingredient } from '../../content/recipes.ts';
 import {
@@ -73,6 +74,7 @@ export async function craft(db: Db, explorerId: string, recipeId: unknown, times
 			money: 0,
 			balance: result.explorer.money
 		});
+		await workshopCrafted(db, explorerId, recipe.id);
 	}
 	return result;
 }

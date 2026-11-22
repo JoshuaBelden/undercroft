@@ -1,4 +1,5 @@
 import type { Vec3 } from '../map/types.ts';
+import type { Modifiers } from '../progression/progression.ts';
 
 /**
  * Player simulation types, shared by server (authoritative) and client (prediction).
@@ -71,6 +72,11 @@ export interface PlayerState {
 	 */
 	gloom: number;
 	flags: PlayerFlags;
+	/**
+	 * What the explorer's skills change (docs/dev/progression.md): set by the server as they come
+	 * down, and read by the shared simulation too, so prediction agrees.
+	 */
+	mods: Modifiers;
 	/** In water deeper than the swim threshold. */
 	swimming: boolean;
 	/** In shallower water: slowed, splashy footsteps. */

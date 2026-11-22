@@ -112,7 +112,10 @@ export class Vitals implements PlayFeature {
 	prompt(state: PlayerState): Prompt | null {
 		const heal = healing(state);
 		if (heal && state.bandaging > 0) {
-			return { prompt: 'Bandaging...', progress: state.bandaging / heal.seconds };
+			return {
+				prompt: 'Bandaging...',
+				progress: state.bandaging / (heal.seconds * state.mods.healTime)
+			};
 		}
 		const charge = charging(state);
 		if (charge && state.charging > 0) {
@@ -122,7 +125,7 @@ export class Vitals implements PlayFeature {
 			const name = ITEMS[state.craftingItem ?? '']?.name ?? 'something';
 			return {
 				prompt: `Working on ${name.toLowerCase()}...`,
-				progress: state.crafting / CRAFT.field.seconds
+				progress: state.crafting / (CRAFT.field.seconds * state.mods.craftTime)
 			};
 		}
 		if (this.downedNearby(state)) {
