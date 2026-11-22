@@ -1,6 +1,6 @@
 {
 	"name": "undercroft-desktop",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"private": true,
 	"description": "Undercroft's desktop app: the game in an Electron window, with Steam. See docs/dev/desktop.md.",
 	"license": "AGPL-3.0-only",
