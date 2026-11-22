@@ -185,20 +185,22 @@
 	}
 
 	/** Where each of a category's four skills sits across its branch (0..100). */
-	const COLUMNS = [12.5, 37.5, 62.5, 87.5];
+	const COLUMNS = [20, 40, 60, 80];
+	/** How far up the branch the middle two sit above the outer two, so the row arcs. */
+	const LIFT = [0, 5, 5, 0];
 	/** Heights in the branch (0..100, top down): the connector, the skills, the category. The tree grows up from the bottom: room above for skills to come. */
-	const ROW = { connector: 38, skill: 66, category: 90 };
+	const ROW = { connector: 42, skill: 72, category: 93 };
 	/** The rank ring: its radius (in the icon's 100-unit box), and the gap between its thirds. */
 	const RING_R = 46;
 	const RING = 2 * Math.PI * RING_R;
 	const THIRD = RING / 3 - 14;
 
 	/** From the top of a skill's ring up to the connector. */
-	const upPath = (x: number): string =>
-		`M ${x} ${ROW.skill - 6} C ${x} ${ROW.skill - 16}, 50 ${ROW.connector + 14}, 50 ${ROW.connector + 5}`;
+	const upPath = (x: number, y: number): string =>
+		`M ${x} ${y - 6} C ${x} ${y - 16}, 50 ${ROW.connector + 14}, 50 ${ROW.connector + 5}`;
 	/** From under a skill's name down to its category. */
-	const downPath = (x: number): string =>
-		`M ${x} ${ROW.skill + 10} C ${x} ${ROW.skill + 16}, 50 ${ROW.category - 16}, 50 ${ROW.category - 8}`;
+	const downPath = (x: number, y: number): string =>
+		`M ${x} ${y + 10} C ${x} ${y + 16}, 50 ${ROW.category - 16}, 50 ${ROW.category - 8}`;
 </script>
 
 <section class="skills" {@attach menu({ key: 'skills', holding: padHolding })}>
@@ -233,9 +235,9 @@
 			{@const catKey = `category:${c.id}`}
 			<div class="branch" class:open aria-label="{c.name} skills" role="group">
 				<svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-					{#each COLUMNS as x (x)}
-						<path class="up" d={upPath(x)} />
-						<path class="down" class:lit={open} d={downPath(x)} />
+					{#each COLUMNS as x, i (x)}
+						<path class="up" d={upPath(x, ROW.skill - LIFT[i])} />
+						<path class="down" class:lit={open} d={downPath(x, ROW.skill - LIFT[i])} />
 					{/each}
 				</svg>
 
@@ -246,7 +248,7 @@
 				{#each tree as skill, i (skill.id)}
 					{@const rank = p.skills[skill.id] ?? 0}
 					{@const key = `skill:${skill.id}`}
-					<div class="spot" style:left="{COLUMNS[i]}%" style:top="{ROW.skill}%">
+					<div class="spot" style:left="{COLUMNS[i]}%" style:top="{ROW.skill - LIFT[i]}%">
 						<button
 							type="button"
 							class="icon"
@@ -344,7 +346,7 @@
 				disabled={locked || pointsSpent(p) === 0}
 				onclick={() => (confirming = true)}
 			>
-				Respec ({money(RESPEC_COST)})
+				Respec ${RESPEC_COST}
 			</button>
 		{/if}
 	</div>
@@ -358,11 +360,14 @@
 </section>
 
 <style>
+	/* The page fills the window's height, the branches taking what the rest leaves. */
 	.skills {
+		flex: 1;
 		width: min(1240px, 100%);
 		margin: 0 auto;
-		padding: 24px 16px 40px;
-		display: grid;
+		padding: 24px 16px 72px;
+		display: flex;
+		flex-direction: column;
 		gap: 20px;
 	}
 
@@ -409,13 +414,14 @@
 
 	.branches {
 		display: grid;
+		flex: 1;
 		grid-template-columns: repeat(3, 1fr);
 		gap: 12px;
 	}
 
 	.branch {
 		position: relative;
-		height: 560px;
+		min-height: 480px;
 	}
 
 	.lines {
@@ -610,7 +616,7 @@
 		display: flex;
 		gap: 10px;
 		align-items: center;
-		justify-content: flex-end;
+		justify-content: flex-start;
 		flex-wrap: wrap;
 	}
 

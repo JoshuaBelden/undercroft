@@ -446,23 +446,26 @@
 		border-color: var(--accent);
 	}
 
-	/* The explorer's level, round as the pill: it opens the Skills page. */
+	/* The explorer's level, shaped as the money: it opens the Skills page. */
 	.level {
-		width: 44px;
-		height: 44px;
-		display: grid;
-		place-items: center;
-		border: 1px solid var(--border);
-		border-radius: 50%;
-		background: rgb(4 3 3 / 0.92);
+		display: flex;
+		align-items: center;
+		padding: 2px 14px;
+		border: 1px solid transparent;
+		border-radius: 999px;
 		color: var(--text);
-		font: 700 1.1rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		font-weight: bold;
 		font-variant-numeric: tabular-nums;
 		text-decoration: none;
 	}
 
 	.level:hover,
-	.level:focus-visible,
+	.level:focus-visible {
+		background: rgb(255 255 255 / 0.1);
+	}
+
 	.level.current {
 		border-color: var(--accent);
 	}
