@@ -172,7 +172,12 @@
 					aria-current={skillsPage ? 'page' : undefined}
 					title="Skills"
 				>
-					{level}
+					<!-- The level's mark: two chevrons rising, as the sign is the money's. -->
+					<svg class="rank" viewBox="0 0 24 24" aria-hidden="true">
+						<path d="M5 13 L12 6 L19 13" />
+						<path d="M5 19 L12 12 L19 19" />
+					</svg>
+					<span aria-hidden="true">{level}</span>
 				</a>
 			{/if}
 			<AccountMenu {gamerTag} {avatar} />
@@ -464,6 +469,17 @@
 	.level:hover,
 	.level:focus-visible {
 		background: rgb(255 255 255 / 0.1);
+	}
+
+	.level .rank {
+		width: 0.8em;
+		height: 0.8em;
+		margin-right: 6px;
+		fill: none;
+		stroke: var(--accent);
+		stroke-width: 3;
+		stroke-linecap: round;
+		stroke-linejoin: round;
 	}
 
 	.level.current {
