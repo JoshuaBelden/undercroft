@@ -294,7 +294,7 @@ Every 1000 experience is a level, up to 60, and every level is a skill point. Yo
 		id: 'skill-tree',
 		title: 'The skill tree',
 		category: 'The surface',
-		body: `Once you reach level 1, the Skills tab opens on the dashboard. Three categories sit at the bottom: Nerve (the dark and the mind), Grit (the fight and the body) and Craft (the hands and the route). Opening one costs a point and shows its four skills. Each skill has three ranks, a point each, and each rank does more. Pointing at a skill shows what it does now and at the next rank, in the game's own numbers.
+		body: `Once you reach level 1, your level shows in a round button beside your avatar at the top of the dashboard: it opens the Skills page. Three categories sit at the bottom: Nerve (the dark and the mind), Grit (the fight and the body) and Craft (the hands and the route). Opening one costs a point and shows its four skills. Each skill has three ranks, a point each, and each rank does more. Pointing at a skill shows what it does now and at the next rank, in the game's own numbers.
 
 Hold a skill (or a closed category) to spend a point on it: the mouse button, a finger, Enter, or {button:PadX} on a controller with it focused. A quick press does nothing, so a point is never spent by accident.
 

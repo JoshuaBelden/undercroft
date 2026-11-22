@@ -49,22 +49,10 @@
 	const level = $derived(levelOf(p.xp));
 	const left = $derived(pointsLeft(p));
 
-	/** What the panel shows (focused or hovered): a skill, or a category. */
-	let shown = $state<{ skill: string } | { category: SkillCategory } | null>(null);
 	let error = $state('');
 	let busy = $state(false);
 	let confirming = $state(false);
 
-	const shownSkill = $derived.by(() => {
-		const s = shown;
-		return s && 'skill' in s ? (SKILLS.find((k) => k.id === s.skill) ?? null) : null;
-	});
-	const shownCategory = $derived.by(() => {
-		const s = shown;
-		return s && 'category' in s
-			? (SKILL_CATEGORIES.find((c) => c.id === s.category) ?? null)
-			: null;
-	});
 	const weapon = $derived(explorer.loadout.equipment.primary?.item ?? null);
 
 	/** A hold under way: what it spends on and when it began, and how far it has got (0..1). */
@@ -183,6 +171,19 @@
 
 	onMount(() => () => cancelAnimationFrame(raf));
 
+	/** A skill's tooltip: what it does, and what it comes to now and at the next rank. */
+	function tip(skill: SkillDef): string {
+		const rank = p.skills[skill.id] ?? 0;
+		const l = lines(skill);
+		return [
+			`${skill.name}: rank ${rank} of ${MAX_RANK}`,
+			summaryAt(skill, rank || 1),
+			rank > 0 ? `Now: ${l.now} (was: ${l.base})` : `Now: ${l.base}`,
+			...(l.next ? [`Next rank: ${l.next}`] : []),
+			'Hold to spend a point.'
+		].join('\n');
+	}
+
 	/** What a skill comes to, without it, now, and at the next rank. */
 	function lines(skill: SkillDef): { now: string; next: string | null; base: string } {
 		const rank = p.skills[skill.id] ?? 0;
@@ -197,7 +198,7 @@
 	/** Where each of a category's four skills sits across its branch (0..100). */
 	const COLUMNS = [12.5, 37.5, 62.5, 87.5];
 	/** Heights in the branch (0..100, top down): the connector, the skills, the category. */
-	const ROW = { connector: 9, skill: 50, category: 92 };
+	const ROW = { connector: 9, skill: 50, category: 88 };
 	/** The rank ring: its radius (in the icon's 100-unit box), and the gap between its thirds. */
 	const RING_R = 46;
 	const RING = 2 * Math.PI * RING_R;
@@ -267,8 +268,7 @@
 								? `${skill.name}, rank ${rank} of ${MAX_RANK}. Hold to spend a point.`
 								: `A ${c.name} skill, not yet open`}
 							disabled={locked}
-							onfocus={() => (shown = { skill: skill.id })}
-							onpointerenter={() => (shown = { skill: skill.id })}
+							title={open ? tip(skill) : undefined}
 							{...holdable(() => ({ skill: skill.id }))}
 						>
 							<svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
@@ -298,45 +298,14 @@
 						data-category={open ? undefined : c.id}
 						aria-label={open ? `${c.name}: open` : `${c.name}: hold to open for a point`}
 						disabled={locked && !open}
-						onfocus={() => (shown = { category: c.id })}
-						onpointerenter={() => (shown = { category: c.id })}
+						title={open ? c.blurb : `${c.blurb}. Hold to open it for a point.`}
 						{...holdable(() => ({ category: c.id }))}
 					>
 						<span class="cat-name">{c.name}</span>
-						<span class="cat-blurb">{open ? c.blurb : 'Hold to open: 1 point'}</span>
 					</button>
 				</div>
 			</div>
 		{/each}
-	</div>
-
-	<div class="detail" aria-live="polite">
-		{#if shownSkill && p.categories.includes(shownSkill.category)}
-			{@const rank = p.skills[shownSkill.id] ?? 0}
-			{@const l = lines(shownSkill)}
-			<h2>{shownSkill.name} <span class="muted">rank {rank} of {MAX_RANK}</span></h2>
-			<p>{summaryAt(shownSkill, rank || 1)}</p>
-			<p>
-				{#if rank > 0}
-					<strong>{l.now}</strong> <span class="muted">(was: {l.base})</span>
-				{:else}
-					Now: {l.base}
-				{/if}
-			</p>
-			{#if l.next}
-				<p>Next rank: <strong>{l.next}</strong></p>
-			{/if}
-		{:else if shownCategory || shownSkill}
-			{@const c = shownCategory ?? SKILL_CATEGORIES.find((k) => k.id === shownSkill?.category)}
-			<h2>{c?.name}: {c?.blurb}</h2>
-			{#if c && p.categories.includes(c.id)}
-				<p>Open. Hold one of its skills to raise it a rank.</p>
-			{:else}
-				<p>Hold it to open it for a point, and its four skills show.</p>
-			{/if}
-		{:else}
-			<p class="muted">Point at a skill to see what it does. Hold it to spend a point.</p>
-		{/if}
 	</div>
 
 	<div class="respec">
@@ -423,8 +392,6 @@
 	.branch {
 		position: relative;
 		height: 400px;
-		border: 1px solid var(--border);
-		background: rgb(10 9 8 / 0.4);
 	}
 
 	.lines {
@@ -537,11 +504,12 @@
 	.category {
 		position: relative;
 		display: grid;
-		justify-items: center;
-		gap: 2px;
-		padding: 8px 18px;
+		place-items: center;
+		width: 84px;
+		height: 84px;
+		padding: 0;
 		border: 2px solid var(--border);
-		border-radius: 6px;
+		border-radius: 50%;
 		background: var(--panel);
 		touch-action: none;
 		user-select: none;
@@ -565,27 +533,6 @@
 		font: 700 1rem var(--font-display);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-	}
-
-	.cat-blurb {
-		font-size: 0.75rem;
-		color: var(--muted);
-	}
-
-	.detail {
-		min-height: 110px;
-		padding: 14px 16px;
-		border: 1px solid var(--border);
-		background: rgb(10 9 8 / 0.6);
-	}
-
-	.detail h2 {
-		margin: 0 0 8px;
-		font: 600 1rem var(--font-ui);
-	}
-
-	.detail p {
-		margin: 4px 0;
 	}
 
 	.respec {

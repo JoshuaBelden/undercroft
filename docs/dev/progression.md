@@ -18,7 +18,7 @@ What explorers earn across expeditions, and what they spend it on (issue #18). P
 
 ## Levels
 
-1000 XP a level (`LEVELS.xpPerLevel`), capped at level 60, one skill point per level. The Skills tab appears in the hub at level 1 (`LEVELS.treeAt`). `levelOf(xp)` and `pointsLeft(p)` are the only places this is worked out.
+1000 XP a level (`LEVELS.xpPerLevel`), capped at level 60, one skill point per level. From level 1 (`LEVELS.treeAt`) the hub bar shows the explorer's level, a round button left of the avatar, which opens the Skills page. `levelOf(xp)` and `pointsLeft(p)` are the only places this is worked out.
 
 ## Earning
 
@@ -76,7 +76,7 @@ A skill (`SkillDef` in `SKILLS`) names its `ranks` (the bonus at each, as a frac
 
 ### Spending
 
-The Skills page (`SkillTree.svelte`) shows all three categories side by side, each at the foot of its branch with its four skills tied to it by lines; a skill's ranks fill thirds of the ring round its icon. It spends on a hold, never a click: the mouse or a finger held on a skill or closed category, Enter or Space held, or the controller's X held with it focused (the menu's `holding` option, `HOLD_TIME` long). It calls `POST /api/explorer/progression` with `{ action: 'spend', category | skill }`. The store (`spendPoint`) checks `canSpend` again and writes only the categories and skills, matched on what it read, so it never loses experience the game server adds meanwhile. Nothing can be spent while ready or underground.
+The Skills page (`SkillTree.svelte`) shows all three categories side by side, each a round button at the foot of its branch with its four skills tied to it by lines; a skill's ranks fill thirds of the ring round its icon, and its tooltip gives what it does now and at the next rank. It spends on a hold, never a click: the mouse or a finger held on a skill or closed category, Enter or Space held, or the controller's X held with it focused (the menu's `holding` option, `HOLD_TIME` long). It calls `POST /api/explorer/progression` with `{ action: 'spend', category | skill }`. The store (`spendPoint`) checks `canSpend` again and writes only the categories and skills, matched on what it read, so it never loses experience the game server adds meanwhile. Nothing can be spent while ready or underground.
 
 **Respec** (`{ action: 'respec' }`) puts every point back for `RESPEC_COST` coin, written to the ledger as `respec`. Experience and firsts stay.
 

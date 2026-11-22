@@ -47,12 +47,13 @@
 		{ path: '/(hub)/loadout', label: 'Loadout' },
 		{ path: '/(hub)/afflictions', label: 'Afflictions' },
 		{ path: '/(hub)/workshop', label: 'Workshop' },
-		{ path: '/(hub)/skills', label: 'Skills' },
 		{ path: '/(hub)/library', label: 'Library' }
 	] as const;
-	/** The skill tree is hidden until level 1 (docs/dev/progression.md). */
-	const treeOpen = $derived(levelOf(explorer?.progression.xp ?? 0) >= LEVELS.treeAt);
-	const TABS = $derived(ALL_TABS.filter((tab) => tab.path !== '/(hub)/skills' || treeOpen));
+	const TABS = ALL_TABS;
+	const level = $derived(levelOf(explorer?.progression.xp ?? 0));
+	/** The skill tree is hidden until level 1 (docs/dev/progression.md); the level beside the avatar opens it. */
+	const treeOpen = $derived(level >= LEVELS.treeAt);
+	const skillsPage = $derived(page.route.id === '/(hub)/skills');
 
 	/** The controller's B: back to the Expedition page. */
 	function up(): void {
@@ -160,6 +161,18 @@
 					{#if !store && !launch.free}
 						<ButtonHint code="PadY" hold />
 					{/if}
+				</a>
+			{/if}
+			{#if treeOpen}
+				<a
+					class="level"
+					class:current={skillsPage}
+					href={resolve('/(hub)/skills')}
+					aria-label="Skills: level {level}"
+					aria-current={skillsPage ? 'page' : undefined}
+					title="Skills"
+				>
+					{level}
 				</a>
 			{/if}
 			<AccountMenu {gamerTag} {avatar} />
@@ -430,6 +443,27 @@
 	.pill:hover,
 	.pill:focus-visible,
 	.pill.open {
+		border-color: var(--accent);
+	}
+
+	/* The explorer's level, round as the pill: it opens the Skills page. */
+	.level {
+		width: 44px;
+		height: 44px;
+		display: grid;
+		place-items: center;
+		border: 1px solid var(--border);
+		border-radius: 50%;
+		background: rgb(4 3 3 / 0.92);
+		color: var(--text);
+		font: 700 1.1rem var(--font-display);
+		font-variant-numeric: tabular-nums;
+		text-decoration: none;
+	}
+
+	.level:hover,
+	.level:focus-visible,
+	.level.current {
 		border-color: var(--accent);
 	}
 
