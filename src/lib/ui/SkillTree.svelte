@@ -28,11 +28,12 @@
 	} from '#lib/shared/progression/progression.ts';
 
 	/**
-	 * The skill tree (docs/dev/progression.md#the-skill-tree). The categories sit at the bottom
-	 * with the points left; the chosen one's four skills rise above them, joined to the connector
-	 * skill at the top (not in the game yet: a "?"). Holding a skill (or a closed category) spends
-	 * a point on it: the mouse or a finger held on it, Enter or Space held, or the controller's X
-	 * held with it focused. Every change is the server's.
+	 * The skill tree (docs/dev/progression.md#the-skill-tree): all three categories side by side,
+	 * each at the foot of its branch, its four skills tied to it by lines and rising to the
+	 * connector skill (not in the game yet: a "?"). A skill's ranks fill thirds of the ring round
+	 * it. Holding a skill (or a closed category) spends a point on it: the mouse or a finger held
+	 * on it, Enter or Space held, or the controller's X held with it focused. Every change is the
+	 * server's.
 	 */
 	interface Props {
 		explorer: ExplorerView;
@@ -48,16 +49,22 @@
 	const level = $derived(levelOf(p.xp));
 	const left = $derived(pointsLeft(p));
 
-	let category = $state<SkillCategory>('nerve');
-	/** The skill shown in the panel (focused or hovered), or null for the category. */
-	let shown = $state<string | null>(null);
+	/** What the panel shows (focused or hovered): a skill, or a category. */
+	let shown = $state<{ skill: string } | { category: SkillCategory } | null>(null);
 	let error = $state('');
 	let busy = $state(false);
 	let confirming = $state(false);
 
-	const opened = $derived(p.categories.includes(category));
-	const tree = $derived(SKILLS.filter((s) => s.category === category));
-	const shownSkill = $derived(tree.find((s) => s.id === shown) ?? null);
+	const shownSkill = $derived.by(() => {
+		const s = shown;
+		return s && 'skill' in s ? (SKILLS.find((k) => k.id === s.skill) ?? null) : null;
+	});
+	const shownCategory = $derived.by(() => {
+		const s = shown;
+		return s && 'category' in s
+			? (SKILL_CATEGORIES.find((c) => c.id === s.category) ?? null)
+			: null;
+	});
 	const weapon = $derived(explorer.loadout.equipment.primary?.item ?? null);
 
 	/** A hold under way: what it spends on and when it began, and how far it has got (0..1). */
@@ -187,10 +194,21 @@
 		};
 	}
 
-	/** Three slots around each icon, from the top, filled as it ranks up. */
-	const SLOT_ANGLES = [-90, 30, 150];
-	/** Where each of the four skills sits across the tree (0..100), and the connector. */
+	/** Where each of a category's four skills sits across its branch (0..100). */
 	const COLUMNS = [12.5, 37.5, 62.5, 87.5];
+	/** Heights in the branch (0..100, top down): the connector, the skills, the category. */
+	const ROW = { connector: 9, skill: 50, category: 92 };
+	/** The rank ring: its radius (in the icon's 100-unit box), and the gap between its thirds. */
+	const RING_R = 46;
+	const RING = 2 * Math.PI * RING_R;
+	const THIRD = RING / 3 - 14;
+
+	/** From the top of a skill's ring up to the connector. */
+	const upPath = (x: number): string =>
+		`M ${x} ${ROW.skill - 9} C ${x} ${ROW.skill - 26}, 50 ${ROW.connector + 20}, 50 ${ROW.connector + 7}`;
+	/** From under a skill's name down to its category. */
+	const downPath = (x: number): string =>
+		`M ${x} ${ROW.skill + 17} C ${x} ${ROW.skill + 30}, 50 ${ROW.category - 22}, 50 ${ROW.category - 6}`;
 </script>
 
 <section class="skills" {@attach menu({ key: 'skills', holding: padHolding })}>
@@ -204,6 +222,7 @@
 					{p.xp % LEVELS.xpPerLevel} / {LEVELS.xpPerLevel} to level {level + 1}
 				{/if}
 			</span>
+			<span class="points"><strong>{left}</strong> {left === 1 ? 'point' : 'points'} to spend</span>
 		</div>
 		<div
 			class="bar"
@@ -217,58 +236,82 @@
 		</div>
 	</header>
 
-	<div class="tree" aria-label="{SKILL_CATEGORIES.find((c) => c.id === category)?.name} skills">
-		<svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-			{#each COLUMNS as x (x)}
-				<path d="M {x} 78 C {x} 45, 50 50, 50 18" class:lit={opened} />
-			{/each}
-		</svg>
-
-		<div class="connector" style:left="50%">
-			<span class="icon unknown" title="Not in the game yet">?</span>
-		</div>
-
-		{#each tree as skill, i (skill.id)}
-			{@const rank = p.skills[skill.id] ?? 0}
-			{@const key = `skill:${skill.id}`}
-			<div class="node" style:left="{COLUMNS[i]}%">
-				<button
-					type="button"
-					class="icon"
-					class:closed={!opened}
-					class:ranked={rank > 0}
-					class:holding={hold?.key === key}
-					style:--hold={hold?.key === key ? progress : 0}
-					data-skill={skill.id}
-					aria-label={opened
-						? `${skill.name}, rank ${rank} of ${MAX_RANK}. Hold to spend a point.`
-						: 'A skill not yet open'}
-					disabled={locked}
-					onfocus={() => (shown = skill.id)}
-					onpointerenter={() => (shown = skill.id)}
-					{...holdable(() => ({ skill: skill.id }))}
-				>
-					<span class="glyph">{opened ? skill.icon : '?'}</span>
-					{#each SLOT_ANGLES as angle, slot (angle)}
-						<span
-							class="slot"
-							class:filled={slot < rank}
-							style:--angle="{angle}deg"
-							aria-hidden="true"
-						></span>
+	<div class="branches">
+		{#each SKILL_CATEGORIES as c (c.id)}
+			{@const open = p.categories.includes(c.id)}
+			{@const tree = SKILLS.filter((s) => s.category === c.id)}
+			{@const catKey = `category:${c.id}`}
+			<div class="branch" class:open aria-label="{c.name} skills" role="group">
+				<svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+					{#each COLUMNS as x (x)}
+						<path class="up" d={upPath(x)} />
+						<path class="down" class:lit={open} d={downPath(x)} />
 					{/each}
-				</button>
-				<span class="name">{opened ? skill.name : '?'}</span>
+				</svg>
+
+				<div class="spot" style:left="50%" style:top="{ROW.connector}%">
+					<span class="icon unknown" title="Not in the game yet">?</span>
+				</div>
+
+				{#each tree as skill, i (skill.id)}
+					{@const rank = p.skills[skill.id] ?? 0}
+					{@const key = `skill:${skill.id}`}
+					<div class="spot" style:left="{COLUMNS[i]}%" style:top="{ROW.skill}%">
+						<button
+							type="button"
+							class="icon"
+							class:closed={!open}
+							style:--hold={hold?.key === key ? progress : 0}
+							data-skill={skill.id}
+							aria-label={open
+								? `${skill.name}, rank ${rank} of ${MAX_RANK}. Hold to spend a point.`
+								: `A ${c.name} skill, not yet open`}
+							disabled={locked}
+							onfocus={() => (shown = { skill: skill.id })}
+							onpointerenter={() => (shown = { skill: skill.id })}
+							{...holdable(() => ({ skill: skill.id }))}
+						>
+							<svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+								{#each [0, 1, 2] as third (third)}
+									<circle
+										cx="50"
+										cy="50"
+										r={RING_R}
+										class:filled={third < rank}
+										stroke-dasharray="{THIRD} {RING}"
+										transform="rotate({-90 + 120 * third + 8} 50 50)"
+									/>
+								{/each}
+							</svg>
+							<span class="glyph">{open ? skill.icon : '?'}</span>
+						</button>
+						<span class="name">{open ? skill.name : '?'}</span>
+					</div>
+				{/each}
+
+				<div class="spot category-spot" style:left="50%" style:top="{ROW.category}%">
+					<button
+						type="button"
+						class="category"
+						class:open
+						style:--hold={hold?.key === catKey ? progress : 0}
+						data-category={open ? undefined : c.id}
+						aria-label={open ? `${c.name}: open` : `${c.name}: hold to open for a point`}
+						disabled={locked && !open}
+						onfocus={() => (shown = { category: c.id })}
+						onpointerenter={() => (shown = { category: c.id })}
+						{...holdable(() => ({ category: c.id }))}
+					>
+						<span class="cat-name">{c.name}</span>
+						<span class="cat-blurb">{open ? c.blurb : 'Hold to open: 1 point'}</span>
+					</button>
+				</div>
 			</div>
 		{/each}
 	</div>
 
 	<div class="detail" aria-live="polite">
-		{#if !opened}
-			{@const c = SKILL_CATEGORIES.find((k) => k.id === category)}
-			<h2>{c?.name}: {c?.blurb}</h2>
-			<p>Hold the category below to open it for a point, and its four skills show.</p>
-		{:else if shownSkill}
+		{#if shownSkill && p.categories.includes(shownSkill.category)}
 			{@const rank = p.skills[shownSkill.id] ?? 0}
 			{@const l = lines(shownSkill)}
 			<h2>{shownSkill.name} <span class="muted">rank {rank} of {MAX_RANK}</span></h2>
@@ -283,58 +326,18 @@
 			{#if l.next}
 				<p>Next rank: <strong>{l.next}</strong></p>
 			{/if}
+		{:else if shownCategory || shownSkill}
+			{@const c = shownCategory ?? SKILL_CATEGORIES.find((k) => k.id === shownSkill?.category)}
+			<h2>{c?.name}: {c?.blurb}</h2>
+			{#if c && p.categories.includes(c.id)}
+				<p>Open. Hold one of its skills to raise it a rank.</p>
+			{:else}
+				<p>Hold it to open it for a point, and its four skills show.</p>
+			{/if}
 		{:else}
 			<p class="muted">Point at a skill to see what it does. Hold it to spend a point.</p>
 		{/if}
 	</div>
-
-	<footer class="bottom">
-		<div class="categories" role="group" aria-label="Categories">
-			{#each SKILL_CATEGORIES as c (c.id)}
-				{@const open = p.categories.includes(c.id)}
-				{@const key = `category:${c.id}`}
-				<button
-					type="button"
-					class="category"
-					class:active={category === c.id}
-					class:open
-					class:holding={hold?.key === key}
-					style:--hold={hold?.key === key ? progress : 0}
-					data-category={open ? undefined : c.id}
-					aria-pressed={category === c.id}
-					onfocus={() => {
-						category = c.id;
-						shown = null;
-					}}
-					onpointerenter={() => (shown = null)}
-					{...open
-						? {
-								onclick: () => {
-									category = c.id;
-									shown = null;
-								}
-							}
-						: {
-								...holdable(() => ({ category: c.id })),
-								onpointerdown: (event: PointerEvent) => {
-									category = c.id;
-									shown = null;
-									if (event.button !== 0 || locked) return;
-									(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-									begin({ category: c.id });
-								}
-							}}
-				>
-					<span class="cat-name">{c.name}</span>
-					<span class="cat-blurb">{open ? c.blurb : 'Hold to open: 1 point'}</span>
-				</button>
-			{/each}
-		</div>
-		<div class="points">
-			<span class="big">{left}</span>
-			<span class="muted">{left === 1 ? 'point' : 'points'} to spend</span>
-		</div>
-	</footer>
 
 	<div class="respec">
 		{#if confirming}
@@ -363,7 +366,7 @@
 
 <style>
 	.skills {
-		width: min(820px, 100%);
+		width: min(1240px, 100%);
 		margin: 0 auto;
 		padding: 24px 16px 40px;
 		display: grid;
@@ -378,8 +381,16 @@
 	.numbers {
 		display: flex;
 		align-items: baseline;
-		justify-content: space-between;
-		gap: 12px;
+		gap: 16px;
+		flex-wrap: wrap;
+	}
+
+	.numbers .points {
+		margin-left: auto;
+	}
+
+	.points strong {
+		font: 700 1.3rem var(--font-display);
 	}
 
 	.big {
@@ -403,9 +414,17 @@
 		background: var(--accent);
 	}
 
-	.tree {
+	.branches {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 12px;
+	}
+
+	.branch {
 		position: relative;
-		height: 320px;
+		height: 400px;
+		border: 1px solid var(--border);
+		background: rgb(10 9 8 / 0.4);
 	}
 
 	.lines {
@@ -418,102 +437,143 @@
 	.lines path {
 		fill: none;
 		stroke: var(--border);
-		stroke-width: 0.6;
+		stroke-width: 3;
 		vector-effect: non-scaling-stroke;
-		stroke-dasharray: 4 4;
 	}
 
-	.lines path.lit {
-		stroke: var(--muted);
-		stroke-dasharray: none;
+	.lines .up {
+		stroke-dasharray: 6 6;
 	}
 
-	.node,
-	.connector {
+	.lines .down.lit {
+		stroke: var(--accent);
+	}
+
+	.spot {
 		position: absolute;
-		transform: translateX(-50%);
+		transform: translate(-50%, -50%);
 		display: grid;
 		justify-items: center;
-		gap: 6px;
+		gap: 4px;
 	}
 
-	.node {
-		bottom: 8%;
-	}
-
-	.connector {
-		top: 4%;
+	/* A skill's name hangs below its icon without moving the icon off its line. */
+	.spot:has(.name) {
+		transform: translate(-50%, calc(-1 * var(--size, 56px) / 2));
 	}
 
 	.icon {
-		--size: 64px;
+		--size: 56px;
 		position: relative;
 		width: var(--size);
 		height: var(--size);
 		border-radius: 50%;
-		border: 2px solid var(--border);
-		background: radial-gradient(circle, rgb(30 26 22) 0%, rgb(14 12 10) 100%);
+		border: none;
+		padding: 0;
+		background: radial-gradient(circle, rgb(30 26 22) 0%, rgb(14 12 10) 70%);
 		display: grid;
 		place-items: center;
-		font-size: 1.6rem;
+		font-size: 1.4rem;
 		color: var(--text);
 		touch-action: none;
 		user-select: none;
 	}
 
-	/* The hold, filling round the edge. */
+	.icon.unknown {
+		border: 2px dashed var(--border);
+		color: var(--muted);
+	}
+
+	.icon.closed {
+		color: var(--muted);
+	}
+
+	.ring {
+		position: absolute;
+		inset: -6px;
+		width: calc(100% + 12px);
+		height: calc(100% + 12px);
+		overflow: visible;
+	}
+
+	.ring circle {
+		fill: none;
+		stroke: rgb(255 255 255 / 0.12);
+		stroke-width: 6;
+		stroke-linecap: round;
+	}
+
+	.ring circle.filled {
+		stroke: var(--accent);
+	}
+
+	.icon:hover .ring circle:not(.filled),
+	.icon:focus-visible .ring circle:not(.filled) {
+		stroke: rgb(255 255 255 / 0.3);
+	}
+
+	/* The hold, filling the face of the button. */
 	.icon::after,
 	.category::after {
 		content: '';
 		position: absolute;
-		inset: -4px;
+		inset: 0;
 		border-radius: inherit;
-		background: conic-gradient(var(--accent) calc(var(--hold, 0) * 360deg), transparent 0);
-		mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+		background: conic-gradient(rgb(0 129 157 / 0.45) calc(var(--hold, 0) * 360deg), transparent 0);
 		pointer-events: none;
 	}
 
-	.icon.ranked {
-		border-color: var(--accent);
-	}
-
-	.icon.closed,
-	.icon.unknown {
-		color: var(--muted);
-	}
-
-	.icon:focus-visible,
-	.icon:hover {
-		border-color: var(--text);
-	}
-
-	.slot {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 10px;
-		height: 10px;
-		margin: -5px;
-		border-radius: 50%;
-		border: 1px solid var(--muted);
-		background: var(--panel);
-		transform: rotate(var(--angle)) translateX(calc(var(--size) / 2 + 2px));
-	}
-
-	.slot.filled {
-		background: var(--accent);
-		border-color: var(--accent);
+	.glyph {
+		position: relative;
 	}
 
 	.name {
-		font: 600 0.8rem var(--font-ui);
-		letter-spacing: 0.06em;
+		font: 600 0.75rem var(--font-ui);
+		letter-spacing: 0.04em;
 		text-align: center;
-		max-width: 110px;
+		width: 90px;
+	}
+
+	.category {
+		position: relative;
+		display: grid;
+		justify-items: center;
+		gap: 2px;
+		padding: 8px 18px;
+		border: 2px solid var(--border);
+		border-radius: 6px;
+		background: var(--panel);
+		touch-action: none;
+		user-select: none;
+		white-space: nowrap;
+	}
+
+	.category.open {
+		border-color: var(--accent);
+	}
+
+	.category:not(.open) .cat-name {
+		color: var(--muted);
+	}
+
+	.category:hover,
+	.category:focus-visible {
+		border-color: var(--text);
+	}
+
+	.cat-name {
+		font: 700 1rem var(--font-display);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.cat-blurb {
+		font-size: 0.75rem;
+		color: var(--muted);
 	}
 
 	.detail {
-		min-height: 120px;
+		min-height: 110px;
 		padding: 14px 16px;
 		border: 1px solid var(--border);
 		background: rgb(10 9 8 / 0.6);
@@ -526,59 +586,6 @@
 
 	.detail p {
 		margin: 4px 0;
-	}
-
-	.bottom {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-		flex-wrap: wrap;
-	}
-
-	.categories {
-		display: flex;
-		gap: 8px;
-		flex: 1;
-		flex-wrap: wrap;
-	}
-
-	.category {
-		position: relative;
-		flex: 1;
-		min-width: 140px;
-		display: grid;
-		gap: 2px;
-		padding: 10px 12px;
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		text-align: left;
-		touch-action: none;
-		user-select: none;
-	}
-
-	.category.active {
-		border-color: var(--accent);
-		background: rgb(255 255 255 / 0.06);
-	}
-
-	.category:not(.open) .cat-name {
-		color: var(--muted);
-	}
-
-	.cat-name {
-		font: 700 1rem var(--font-display);
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-
-	.cat-blurb {
-		font-size: 0.8rem;
-		color: var(--muted);
-	}
-
-	.points {
-		display: grid;
-		justify-items: center;
 	}
 
 	.respec {
@@ -606,15 +613,21 @@
 		color: #e0544a;
 	}
 
-	@media (max-width: 560px) {
+	@media (max-width: 1000px) {
+		.branches {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 480px) {
 		.icon {
-			--size: 48px;
-			font-size: 1.2rem;
+			--size: 44px;
+			font-size: 1.1rem;
 		}
 
 		.name {
-			font-size: 0.7rem;
-			max-width: 76px;
+			width: 70px;
+			font-size: 0.68rem;
 		}
 	}
 </style>

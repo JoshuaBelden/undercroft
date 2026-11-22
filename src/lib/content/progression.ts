@@ -199,7 +199,7 @@ export const SKILLS: SkillDef[] = [
 		id: 'heavy-hand',
 		category: 'grit',
 		name: 'Heavy Hand',
-		icon: '✊',
+		icon: '✥',
 		ranks: [0.15, 0.3, 0.45],
 		effects: [{ key: 'melee', how: 'more' }],
 		summary: 'Melee hits deal {n} more damage, bare-handed or with a weapon.',
