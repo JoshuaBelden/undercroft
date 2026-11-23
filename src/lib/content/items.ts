@@ -180,6 +180,11 @@ export interface PlaceSpec {
 	 * away, and the party is told. It sets itself again, a use of its wear each time.
 	 */
 	tripwire?: { length: number; noise: number };
+	/**
+	 * A charge (the quarryman's): `fuse` seconds after it is set it goes off, heard `noise` away,
+	 * and blows open a barred door within `radius` m (docs/dev/quests.md#the-barred-stair).
+	 */
+	blast?: { fuse: number; radius: number; noise: number };
 }
 
 export interface HealSpec {
@@ -930,6 +935,68 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: modelUrl('shared/items/pendant.glb'),
 		maxStack: 1,
 		weight: 0.2
+	},
+	// Quest items (docs/dev/quests.md): what Fontaine asks for, and what opens the way.
+	'powder-flask': {
+		id: 'powder-flask',
+		name: 'Powder flask',
+		kind: 'material',
+		category: 'material',
+		flavor: "A horn flask of black powder, Fontaine's father's. For emergencies.",
+		model: null,
+		placeholder: { size: [0.08, 0.16, 0.05], color: 0x5a4632 },
+		maxStack: 1,
+		weight: 0.4,
+		price: 120
+	},
+	'oath-rubbing': {
+		id: 'oath-rubbing',
+		name: 'Rubbing of the oath',
+		kind: 'rite',
+		category: 'other',
+		quest: true,
+		flavor: 'Charcoal on paper, taken from a wall of bone. Words cut by a careful hand.',
+		model: null,
+		placeholder: { size: [0.3, 0.01, 0.4], color: 0xd8d0bc },
+		maxStack: 1,
+		weight: 0.05
+	},
+	'carters-ledger': {
+		id: 'carters-ledger',
+		name: "The Carters' ledger",
+		kind: 'rite',
+		category: 'other',
+		quest: true,
+		flavor: 'Swollen with water, sealed in a strongbox. Columns of goods, and names.',
+		model: null,
+		placeholder: { size: [0.2, 0.05, 0.28], color: 0x4a3626 },
+		maxStack: 1,
+		weight: 0.6
+	},
+	'hand-of-glory': {
+		id: 'hand-of-glory',
+		name: 'Hand of Glory',
+		kind: 'rite',
+		category: 'other',
+		quest: true,
+		flavor:
+			'A dried hand, its fingers dipped in tallow and burned down to the knuckle. A thief kept sleepers sleeping with it.',
+		model: null,
+		placeholder: { size: [0.1, 0.2, 0.06], color: 0x6e5a44 },
+		maxStack: 1,
+		weight: 0.4
+	},
+	'lamplighters-lantern': {
+		id: 'lamplighters-lantern',
+		name: "The Lamplighter's Lantern",
+		kind: 'rite',
+		category: 'other',
+		quest: true,
+		flavor: 'Iron and horn, and still burning. It is very cold to hold.',
+		model: null,
+		placeholder: { size: [0.16, 0.3, 0.16], color: 0xe0b050 },
+		maxStack: 1,
+		weight: 1.5
 	},
 	// A clue is read where it lies and never carried: nothing can be added to an inventory.
 	clue: {
