@@ -91,6 +91,7 @@
 	import { holdDark, reveal } from '#lib/ui/descent.svelte.ts';
 	import { preloadRun, type LoadProgress } from '#lib/game/preload.ts';
 	import Hud from '#lib/ui/Hud.svelte';
+	import QuestPanel from '#lib/ui/QuestPanel.svelte';
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import ExpeditionClock from '#lib/ui/ExpeditionClock.svelte';
@@ -1355,6 +1356,9 @@
 			open={settings.interface.ritePanel}
 			toggleKey={promptCode('toggleRitePanel')}
 		/>
+		{#if settings.interface.ritePanel}
+			<QuestPanel quests={features.quests.briefs} />
+		{/if}
 	</div>
 	{#if features.affliction.deadline !== null}
 		<ExpeditionClock seconds={features.affliction.deadline} />

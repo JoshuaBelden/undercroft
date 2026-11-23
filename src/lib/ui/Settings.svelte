@@ -416,13 +416,13 @@
 			hint="While a throw is drawn back, shows its arc and where it will land."
 		/>
 		<StepperField
-			label="Show rite panel"
+			label="Show rite and quest panel"
 			text={onOff(settings.interface.ritePanel)}
 			onstep={() => {
 				settings.interface.ritePanel = !settings.interface.ritePanel;
 				saveSettings();
 			}}
-			hint="Underground, what the rite needs, down the left. Off, only the Affliction's name stays at the left edge."
+			hint="Underground, what the rite needs and your open quests, down the left. Off, only the Affliction's name stays at the left edge."
 		/>
 		<StepperField
 			label="Gamer tags"

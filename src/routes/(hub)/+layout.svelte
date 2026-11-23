@@ -7,6 +7,8 @@
 	import { money } from '#lib/content/economy.ts';
 	import { LEVELS } from '#lib/content/progression.ts';
 	import { levelOf } from '#lib/shared/progression/progression.ts';
+	import { QUEST_ORDER } from '#lib/content/quests.ts';
+	import { status } from '#lib/shared/quests/engine.ts';
 	import { BACKDROP_IMAGE, imageUrl } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { menu } from '#lib/game/input/menus.ts';
@@ -38,6 +40,14 @@
 	let bar = $state(0);
 
 	const explorer = $derived(session.account?.explorer ?? null);
+	/** Quests ready to report: the number on the People tab. */
+	const toReport = $derived.by(() => {
+		if (!explorer) return 0;
+		const context = {
+			resolved: (id: string) => explorer.afflictions.some((a) => a.id === id && a.resolved)
+		};
+		return QUEST_ORDER.filter((id) => status(explorer.quests, id, context) === 'ready').length;
+	});
 	const gamerTag = $derived(session.account?.gamerTag ?? data.account?.gamerTag ?? '');
 	const avatar = $derived(session.account?.avatar ?? null);
 
@@ -45,6 +55,7 @@
 	const ALL_TABS = [
 		{ path: '/(hub)', label: 'Expedition' },
 		{ path: '/(hub)/loadout', label: 'Loadout' },
+		{ path: '/(hub)/people', label: 'People' },
 		{ path: '/(hub)/afflictions', label: 'Afflictions' },
 		{ path: '/(hub)/workshop', label: 'Workshop' },
 		{ path: '/(hub)/library', label: 'Library' }
@@ -130,6 +141,9 @@
 					aria-current={page.route.id === tab.path ? 'page' : undefined}
 				>
 					{tab.label}
+					{#if tab.path === '/(hub)/people' && toReport > 0}
+						<span class="badge" aria-label="{toReport} ready to report">{toReport}</span>
+					{/if}
 				</a>
 			{/each}
 			<ButtonHint code="PadRB" />
