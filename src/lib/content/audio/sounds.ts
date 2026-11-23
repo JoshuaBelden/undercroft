@@ -910,7 +910,7 @@ export const SOUNDS = {
 		caption: 'someone rummages through a pack',
 		captionOthers: true
 	},
-	// Lootables opening (docs/dev/lootables.md): placeholders in code until each is recorded.
+	// Lootables opening (docs/dev/lootables.md): silent until each is recorded.
 	'lootable.niche': {
 		file: 'lootable.niche',
 		category: 'sfx',
