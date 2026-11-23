@@ -487,12 +487,28 @@
 			{@render action('Make it charge', () => onadmin({ kind: 'bossRush' }))}
 			{@render action('Make it vanish', () => onadmin({ kind: 'bossVanish' }))}
 			{@render action('Banish (resolves it)', () => onadmin({ kind: 'banish' }))}
+			{@render action(
+				'Put him down (leaves his lantern)',
+				() => onadmin({ kind: 'fell' }),
+				'Summons and banishes it: his lantern lies by you, to lay in his tomb.'
+			)}
 		{:else if group === 'Rite'}
 			{@render action('Reveal all clues', () => onadmin({ kind: 'revealClues' }))}
 			{@render action('Reset rite progress', () => onadmin({ kind: 'resetRite' }))}
+			{@render action(
+				'Finish quest objectives',
+				() => onadmin({ kind: 'questObjectives' }),
+				'Every open quest of yours: report them on the surface.'
+			)}
+			{@render action(
+				'Open the barred stair for good',
+				() => onadmin({ kind: 'questFlag', flag: 'gloaming.level-3-open' }),
+				'Everyone down here keeps it open from the next descent.'
+			)}
 			<p class="hint">
-				Give 5 Candles, Chalk and "The Pendant" under Items; teleport to gloaming-chapel to perform
-				it.
+				The Gloaming's rite is begun by whoever has The Last Procession open (finish quests on the
+				admin site). Teleport to tomb to begin it, lantern to find his lantern, task-… to a room
+				task.
 			</p>
 		{:else if group === 'Creatures'}
 			<StepperField label="Kind" text={spawnKind} onstep={stepKind} />

@@ -97,7 +97,7 @@ export const TREASURE: Record<string, ItemDef> = {
 	'black-candle': treasure(
 		'black-candle',
 		'Black candle',
-		'Thick, black and unlit, and older than the chapel. The rite needs only this.',
+		'Thick, black and unlit, and older than the chapel.',
 		{
 			value: 280,
 			rarity: 'epic',

@@ -97,7 +97,7 @@ Keeping your distance isn't safe either.
 ### Banishing (weapons)
 
 - **Damage:** every weapon hit comes off its health: `health` by party size (`[500, 650, 800]`), set when it appears. There is no light condition: lamps on it only slow it (`speed`). It's a combat target with id `manifestation` (`server/combat.ts` `targets()` and `hurt()`), so shots, swings and thrown items all work.
-- **Banished:** at 0 health it fades away (`state: 'banished'`), and `AfflictionDirector.defeated` is set. That **resolves the Affliction**: the director calms itself (below), and in its next `stepAffliction` the session marks the rite `resolved`, raises a `resolved` event (`rite.resolve` and a banner) and calls `SessionHooks.onResolved`. Nobody is carried out: everyone still has to extract past the creatures, before the deadline.
+- **Banished:** at 0 health it fades away (`state: 'banished'`), and `AfflictionDirector.defeated` is set, and the director calms itself (below). Without `RiteSpec.laid` that **resolves the Affliction**: in its next step `AfflictionSystem` marks the rite `resolved`, raises a `resolved` event (`rite.resolve` and a banner) and calls `SessionHooks.onResolved`. With it (the Gloaming), it only **falls**: what it leaves (his lantern) lies where it fell, the room stays sealed, and laying it where the rite was performed resolves it ([rite.md](rite.md#a-quests-rite)). Nobody is carried out: everyone still has to extract past the creatures, before the deadline.
 
 ### Stunned (the strobe)
 
@@ -179,4 +179,5 @@ These need `DEV_MODE`:
 - **Make it fire its ray** (`bossRay`): at the nearest player, whatever the range, line or cooldown;
 - **Make it charge** (`bossRush`): at the nearest player, whatever the range or wait;
 - **Make it vanish** (`bossVanish`): it comes back as it would;
-- **Banish (resolves it)** (`banish`): as a weapon would, so the Affliction is resolved.
+- **Banish** (`banish`): as a weapon would, so the Affliction is resolved (or, for a quest's rite, falls and leaves its lantern);
+- **Put him down** (`fell`): summon and banish at once, for a quest's rite, so the lantern lies by you.

@@ -197,3 +197,47 @@ export async function setQuests(
 		record ? { $set: { quests: record } } : { $unset: { quests: '' } }
 	);
 }
+
+/**
+ * Admin: one quest's state for an explorer. `done`: reported (no reward paid); `met`: every
+ * objective met and everything committed, ready to report for its reward; `open`: back to the
+ * start (its progress forgotten).
+ */
+export async function adminSetQuest(
+	db: Db,
+	explorerId: string,
+	quest: string,
+	state: 'done' | 'met' | 'open'
+): Promise<boolean> {
+	const def = QUESTS[quest];
+	const explorer = await explorers(db).findOne({ _id: explorerId });
+	if (!def || !explorer) return false;
+	const record = structuredClone(questsOf(explorer, await resolvedBy(db, explorerId)));
+	if (state === 'open') delete record.quests[quest];
+	else {
+		record.quests[quest] = {
+			counts: def.objectives.map((o) => ('count' in o ? o.count : 1)),
+			committed: Object.fromEntries(def.commit.map((c) => [c.item, c.count])),
+			...(state === 'done' ? { done: Date.now() } : {})
+		};
+		if (state === 'done')
+			for (const flag of def.sets ?? []) if (!record.flags.includes(flag)) record.flags.push(flag);
+	}
+	await setQuests(db, explorerId, record);
+	return true;
+}
+
+/** Admin: set or clear a flag on an explorer. */
+export async function adminSetFlag(
+	db: Db,
+	explorerId: string,
+	flag: string,
+	on: boolean
+): Promise<void> {
+	const explorer = await explorers(db).findOne({ _id: explorerId });
+	if (!explorer || !flag) return;
+	const record = structuredClone(questsOf(explorer, await resolvedBy(db, explorerId)));
+	record.flags = record.flags.filter((f) => f !== flag);
+	if (on) record.flags.push(flag);
+	await setQuests(db, explorerId, record);
+}

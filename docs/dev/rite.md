@@ -1,6 +1,9 @@
 # The rite: hints, the holder, resolution
 
-The rite is how an Affliction is resolved ([affliction.md](affliction.md)). Players learn what it needs and where it is held from written hints, bring the items to that room, and one of them performs it. The Gloaming's rite needs 5 candles, 1 chalk and the Pendant, performed in the Gloaming Chapel, and has four hints.
+The rite is how an Affliction is resolved ([affliction.md](affliction.md)). The engine supports two kinds, and an Affliction's `RiteSpec` can use either or both:
+
+- **Carried things and hints:** players learn what it needs and where it is held from written hints, bring the items to that room, and one of them performs it. No Affliction uses this today (the tests keep it working on a fixture, `HINTED_RITE` in `server/testing/rites.ts`).
+- **A quest's rite** (`begin` and `laid`): the Gloaming's. It is Fontaine's last quest ([quests.md](quests.md)): what it needed was committed on the surface, so nothing is carried and nothing is hinted. Those whose last quest is open begin it at the chapel's altar; put down, he leaves his lantern, and laying it in his tomb under the altar resolves it. See [A quest's rite](#a-quests-rite).
 
 ## Files
 
@@ -21,20 +24,22 @@ The rite is how an Affliction is resolved ([affliction.md](affliction.md)). Play
 
 `AfflictionDef.rite` is a `RiteSpec`:
 
-- `requirements`: `{ item, count, place? }[]`, what the holder must carry. `place` says where the map holds it: `'crate'` in a loot crate, `'room'` on the floor of a major room, `'altar'` on the altar of the rite's own room (the Pendant). Without `place` it isn't put in the map at all: players buy it or find it as loot (candles, chalk).
+- `requirements`: `{ item, count, place? }[]`, what the holder must carry. `place` says where the map holds it: `'crate'` in a loot crate, `'room'` on the floor of a major room, `'altar'` on the altar of the rite's own room (the Pendant, in the fixture). Without `place` it isn't put in the map at all: players buy it or find it as loot (candles, chalk).
 - `room`: piece id of the room it is performed in (`gloaming-chapel`).
 - `seconds`: how long the holder holds interact.
 - `clues`: the hints, in the order they are learned: `{ text, reveals }[]`. `reveals` is a requirement's item id, or `'room'`. Any number of hints and requirements works; once every hint is found everything is known, even a requirement no hint names (`revealed` in `rite.ts`).
 - `clueCopies`: hint items placed in the map per hint. They are all alike: whichever is read reveals the next hint (`RiteDirector.find`), so 4 hints × 3 copies puts 12 in the map and any 4 of them tell everything.
 - `atStart`: testing aid. When true, the hints go in the crate nearest the start and every placed requirement is laid out a few steps from it. Off for the Gloaming.
+- `begin` (optional): a quest `Condition` ([quests.md](quests.md#the-vocabulary)) saying who may begin it. The Gloaming's: The Last Procession open, and the Gloaming not yet resolved.
+- `laid` (optional): `{ item, seconds, reach }`, what the manifestation leaves when it is put down, to be laid where the rite is performed. The Gloaming's: the Lamplighter's Lantern, 3 s, within 3 m of the chapel's `rite-0` marker.
 
-Changing what a rite needs is a change to this data. A new requirement needs an `ItemDef`. One there is only one of is also a quest item (`quest: true`, see [items.md](items.md#quest-items)): the Pendant.
+Changing what a rite needs is a change to this data. A new requirement needs an `ItemDef`. One there is only one of is also a quest item (`quest: true`, see [items.md](items.md#quest-items)). The Pendant, which the Gloaming's rite once needed, is plain treasure now.
 
 ## In the map
 
 `scatterRite` (called from `Session.populate`, seeded by the map seed) places:
 
-- **Required items** with a `place`. `'crate'`: `Crates.stow` puts it in one of the map's crates, after whatever the crate rolled, so it is the last thing revealed (in a map with no crates it lies in a major room). `'altar'`: on the room's `altar-0` marker (`altarSpot`; the Gloaming Chapel's is on the altar's top before the angel, between its inner candles), so the Pendant's hint can say exactly where it is. A room without the marker uses the furniture top nearest its `rite-0` marker (`furnitureSpots`), and one with nothing to lay it on a major room's floor. Never a crate or a corpse. `'room'`: on a standing, dry nav point in a major room other than the rite's own.
+- **Required items** with a `place`. `'crate'`: `Crates.stow` puts it in one of the map's crates, after whatever the crate rolled, so it is the last thing revealed (in a map with no crates it lies in a major room). `'altar'`: on the room's `altar-0` marker (`altarSpot`; the Gloaming Chapel's is on the altar's top before the angel, between its inner candles), so a hint can say exactly where it is. A room without the marker uses the furniture top nearest its `rite-0` marker (`furnitureSpots`), and one with nothing to lay it on a major room's floor. Never a crate or a corpse. `'room'`: on a standing, dry nav point in a major room other than the rite's own.
 - **Withheld items:** a requirement in `Session.withhold` is left out. `Parties.begin` withholds every quest requirement that anyone in the party owns: in their stash or loadout on the surface (`owned` in `belongings.ts`, `itemsOwned` in the explorer store) or in the kit they are taking down. That is checked before anyone arrives, and whatever was already placed is taken out again.
 - **Hints:** `clues.length × clueCopies` hint items. **Never on a floor.** `server/hints.ts` gathers every spot outside the rite's room, of four kinds:
   - `crate` and `corpse`: every loot crate and corpse (`crateSpots`). The hint goes in last (`Crates.stowIn`). A full crate loses its commonest thing to make room, never a hint or quest item, and a refill keeps both.
@@ -50,7 +55,7 @@ A hint is read, never carried (`maxStack: 0`):
 
 Either way `RiteSystem.readClue` (`server/systems/rite.ts`) calls `RiteDirector.find()` and raises the `clue` game event, with the hint's `text` and the requirements and room it revealed, to every player. The hint item is then removed. Once everything is known, the remaining copies are removed from the floor, the walls and the crates (`clearHints`). A copy read when there is nothing left to learn is left alone.
 
-The Pendant has its model (`shared/items/pendant.glb`, about 7 cm across, lying flat: its frame is in `scripts/items.config.ts`). The hint has none yet: it is drawn as a pale sheet from `ItemDef.placeholder` (standing upright against a wall when mounted).
+The hint item has no model yet: it is drawn as a pale sheet from `ItemDef.placeholder` (standing upright against a wall when mounted).
 
 ## What clients know
 
@@ -114,6 +119,14 @@ Nobody is carried out: they still have to extract before the deadline (see [expe
 
 The client shows "[E] to perform the rite" under the same conditions, with its progress. Once performed, the rite panel adds a last step under the room: "Banish it" (with how: every hit wears it down, flick the lamp to stun it), then "Banished" once resolved. The pill says "Resolved" only then.
 
+## A quest's rite
+
+With `begin` and `laid` (the Gloaming's), the steps above change:
+
+- **Who may begin it:** only a player `begin` holds for (`RiteSystem.mayBegin`, tested against their quest record). Nobody else's hold does anything, so a party with none of them in it never raises him: once resolved, it is done for good for that player, though the map can still be run. The client prompts "to begin the rite" only when the player's last quest is open (from the `quests` message), and the rite panel says "Whoever was sent for it begins it here" (`RiteSnapshot.gated`).
+- **Put down:** at 0 health he falls (`AfflictionSystem.fall`): the Affliction calms, his lantern lies where he fell (a `fallen` event and an "It falls" banner), and **the chapel stays sealed**. The snapshot's `laid` gives the item and where it is to be laid. Killing him and getting out resolves nothing, and the lantern doesn't keep (`spoils`): it is gone when you come up.
+- **Laid to rest:** whoever carries the lantern, within `reach` of the rite marker (his tomb under the altar), holds interact for `seconds` (`RiteDirector.canLay`; `PlayerState.performing` again). The lantern is used up and `AfflictionSystem.resolve` runs **for the eligible only**: those down there whom `begin` holds for. Only they get `resolved` saved (`onResolved(owners)`) and their last quest's `resolve` objective; the door opens and the ladder comes down for everyone.
+
 ## Progress across runs
 
 `Progress` (`server/progress.ts`) keeps, per player and Affliction, the number of hints found and whether the rite has been performed. Hints are always learned in order, so a count is enough. It is stored in the MongoDB collection `progress` (`_id` is `<player>:<affliction>`). Without a database it is kept in memory until the server restarts.
@@ -131,5 +144,6 @@ These need `DEV_MODE`:
 
 - **Reveal all clues** (`revealClues`);
 - **Reset rite progress** (`resetRite`): forgets the hints in this expedition and in the stored progress of everyone in it. It does not put hint items back in the map.
-- **Give** 5 Candles, Chalk and the Pendant, and **teleport** to `gloaming-chapel`, with the existing commands.
-- **Summon manifestation**, **Make it swing / cast a bolt / vanish** and **Banish (resolves it)** in the Affliction group, to try the fight or the resolution without performing it.
+- **Teleport** to `tomb` (where the rite is begun and the lantern laid) and `lantern` (wherever it lies).
+- **Summon manifestation**, **Make it swing / cast a bolt / vanish** and **Banish** in the Affliction group, to try the fight without performing it. Banishing a quest's rite's manifestation leaves its lantern; **Put him down** (`fell`) summons and banishes it in one, so the lantern lies by you.
+- **Finish quest objectives** and the admin site's quest actions ([quests.md](quests.md#admin)) to open The Last Procession.

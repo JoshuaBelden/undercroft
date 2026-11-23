@@ -10,7 +10,15 @@ import {
 	getAccount,
 	type ExplorerDoc
 } from './accounts.ts';
-import { advanceQuests, buyFromNpc, commitQuest, reportQuest, setQuests } from './quests.ts';
+import {
+	adminSetFlag,
+	adminSetQuest,
+	advanceQuests,
+	buyFromNpc,
+	commitQuest,
+	reportQuest,
+	setQuests
+} from './quests.ts';
 
 /** Quests on the surface, on LocalDb (docs/dev/quests.md). */
 
@@ -128,5 +136,20 @@ describe('quests on the surface', () => {
 			true
 		);
 		expect((await doc()).money).toBe(380);
+	});
+});
+
+describe('admin', () => {
+	it('sets a quest done, met or open, and flags on and off', async () => {
+		await adminSetQuest(db, explorer._id, 'fontaine', 'done');
+		await adminSetQuest(db, explorer._id, 'by-candle', 'met');
+		expect('explorer' in (await reportQuest(db, explorer._id, 'by-candle'))).toBe(true);
+		await adminSetQuest(db, explorer._id, 'by-candle', 'open');
+		expect((await doc()).quests?.quests['by-candle']).toBeUndefined();
+		await adminSetFlag(db, explorer._id, 'gloaming.level-3-open', true);
+		expect((await doc()).quests?.flags).toEqual(['gloaming.level-3-open']);
+		await adminSetFlag(db, explorer._id, 'gloaming.level-3-open', false);
+		expect((await doc()).quests?.flags).toEqual([]);
+		expect(await adminSetQuest(db, explorer._id, 'nope', 'done')).toBe(false);
 	});
 });

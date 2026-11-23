@@ -38,7 +38,15 @@ import {
 	progressionOf,
 	resetProgression,
 	setExperience,
-	setRank
+	setRank,
+	adminSetFlag,
+	adminSetQuest,
+	questsOf,
+	questStatus,
+	resolvedBy,
+	setQuests,
+	QUESTS,
+	QUEST_ORDER
 } from '#lib/server/store.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -49,6 +57,9 @@ export const load: PageServerLoad = async ({ params }) => {
 	if (!account) error(404, 'No such member');
 	const suspension = activeSuspension(account);
 	const { explorers, ledger } = await explorersOf(db, account._id);
+	const resolved = new Map(
+		await Promise.all(explorers.map(async (e) => [e._id, await resolvedBy(db, e._id)] as const))
+	);
 	return {
 		member: memberRow(account),
 		avatar: {
@@ -75,6 +86,19 @@ export const load: PageServerLoad = async ({ params }) => {
 			underground: explorer.underground !== null,
 			markWheel: markWheel(explorer.markWheel).map((id) => MARK_SYMBOLS[id]?.name ?? id),
 			customWheel: explorer.markWheel !== undefined,
+			quests: (() => {
+				const done = resolved.get(explorer._id) ?? [];
+				const record = questsOf(explorer, done);
+				const context = { resolved: (id: string) => done.includes(id) };
+				return {
+					list: QUEST_ORDER.map((id) => ({
+						id,
+						title: QUESTS[id].title,
+						status: questStatus(record, id, context) ?? 'locked'
+					})),
+					flags: record.flags
+				};
+			})(),
 			progression: (() => {
 				const p = progressionOf(explorer.progression);
 				return {
@@ -198,6 +222,55 @@ export const actions: Actions = {
 		return {
 			notice: rank === 0 ? `${skill} cleared` : `${skill} at rank ${rank} (from their next descent)`
 		};
+	},
+
+	setQuest: async ({ params, request, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const form = await request.formData();
+		const quest = String(form.get('quest') ?? '');
+		const state = String(form.get('state') ?? '');
+		if (state !== 'done' && state !== 'met' && state !== 'open')
+			return fail(400, { error: 'Done, met or open' });
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) {
+			if (explorer.underground !== null)
+				return fail(400, { error: 'They are underground: try again once they are up' });
+			if (!(await adminSetQuest(db, explorer._id, quest, state)))
+				return fail(400, { error: 'No such quest' });
+		}
+		await audit(db, admin, 'setQuest', account._id, `${quest} ${state}`);
+		return {
+			notice:
+				state === 'done'
+					? `${QUESTS[quest].title} done (no reward paid)`
+					: state === 'met'
+						? `${QUESTS[quest].title} ready to report`
+						: `${QUESTS[quest].title} back to the start`
+		};
+	},
+
+	setQuestFlag: async ({ params, request, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const form = await request.formData();
+		const flag = String(form.get('flag') ?? '').trim();
+		const on = form.get('on') === 'on';
+		if (!/^[a-z0-9.-]+$/.test(flag))
+			return fail(400, { error: 'A flag like gloaming.level-3-open' });
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) await adminSetFlag(db, explorer._id, flag, on);
+		await audit(db, admin, 'setQuestFlag', account._id, `${flag} ${on ? 'on' : 'off'}`);
+		return { notice: `${flag} ${on ? 'set' : 'cleared'}` };
+	},
+
+	resetQuests: async ({ params, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) await setQuests(db, explorer._id, null);
+		await audit(db, admin, 'resetQuests', account._id);
+		return { notice: 'Quests start again from Fontaine' };
 	},
 
 	resetProgression: async ({ params, locals }) => {

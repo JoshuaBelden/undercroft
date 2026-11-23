@@ -228,7 +228,7 @@ Each `tick` carries `items`, `projectiles` and `events` (`GameEvent`): shots wit
 
 ## Quest items
 
-An item with `quest: true` is one of a kind and needed for a rite: the Pendant. It is not a rarity and not in the loot tables. In the interface (`src/lib/ui/items.ts`):
+An item with `quest: true` is one of a kind and wanted by a quest: what Fontaine asks to be brought back (the rubbing of the oath, the Carters' ledger, the Hand of Glory) and his lantern ([quests.md](quests.md)). It is not a rarity and not in the loot tables. In the interface (`src/lib/ui/items.ts`):
 
 - its slot has a purple left and bottom edge in place of a rarity's (`--quest` in `src/app.css`; `Slot`'s `quest` prop) and a purple star in the bottom-left corner (`slotMark`, `FILTER_ICONS.quest`);
 - it is listed under the Quest items filter (`ItemFilters`, `matchesFilter`), not under Other;

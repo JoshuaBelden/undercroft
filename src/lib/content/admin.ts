@@ -35,7 +35,10 @@ export const AUDIT_ACTIONS = {
 	resetExplorer: 'Reset to a new player (account kept)',
 	setExperience: 'Set the experience',
 	setSkillRank: 'Set a skill rank',
-	resetProgression: 'Reset levels and skills'
+	resetProgression: 'Reset levels and skills',
+	setQuest: 'Set a quest',
+	setQuestFlag: 'Set a quest flag',
+	resetQuests: 'Reset quests'
 } satisfies Record<string, string>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
