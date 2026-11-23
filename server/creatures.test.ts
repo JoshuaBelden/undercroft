@@ -367,6 +367,18 @@ describe('spiders', () => {
 		});
 	});
 
+	it('bite someone who comes right up to them, unhit', () => {
+		const creatures = director();
+		const player = prey('p', map.start, 0);
+		creatures.spawnNear(player.state, 'spider');
+		const [spider] = creatures.hitBodies();
+		// Stood right by it, in the dark and quiet.
+		player.state.position = [spider.position[0] + 0.5, spider.position[1], spider.position[2]];
+		const hits = run(creatures, 6, [player]);
+		expect(hits[0]?.playerId).toBe('p');
+		expect(SPIDER.perception.near).toBeLessThan(CREATURES.rat.perception.agro.darkRange);
+	});
+
 	it('a giant appears at most once', () => {
 		for (const seed of [1, 2, 3, 4, 5, 6]) {
 			const creatures = new CreatureDirector(

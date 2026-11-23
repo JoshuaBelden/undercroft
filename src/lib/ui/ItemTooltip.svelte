@@ -2,7 +2,7 @@
 	import { imageUrl } from '#lib/content/images.ts';
 	import { ITEMS, RARITIES, rarityOf } from '#lib/content/items.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
-	import { categoryLabel, stackCondition } from './items.ts';
+	import { categoryLabel, keyStat, stackCondition } from './items.ts';
 
 	/**
 	 * What an item is, shown beside the slot it sits in: its picture, name, rarity and type, a line
@@ -29,6 +29,8 @@
 	const wear = $derived(forSale ? null : stackCondition(stack));
 	const lasts = $derived(forSale && stackCondition(stack) !== null);
 	const rarity = $derived(rarityOf(stack.item));
+	/** A weapon's damage, or what is worn for defense's protection. */
+	const key = $derived(keyStat(stack, forSale));
 	const rarityName = $derived(RARITIES.find((r) => r.id === rarity)?.name ?? '');
 	const left = $derived(
 		anchor.right + GAP + WIDTH > window.innerWidth
@@ -37,11 +39,21 @@
 	);
 	// Level with the slot, pulled up where it would run off the bottom of the window.
 	const top = $derived(Math.max(GAP, Math.min(anchor.top, window.innerHeight - height - GAP)));
+
+	/**
+	 * Placed on the body: inside a panel with a `backdrop-filter` (the Workshop's, the Library's),
+	 * `position: fixed` would be the panel's, not the window's, and the tooltip would land astray.
+	 */
+	function onBody(node: HTMLElement): () => void {
+		document.body.append(node);
+		return () => node.remove();
+	}
 </script>
 
 <div
 	class="tooltip"
 	role="tooltip"
+	{@attach onBody}
 	style:left="{left}px"
 	style:top="{top}px"
 	style:width="{WIDTH}px"
@@ -70,6 +82,9 @@
 	{#if def?.flavor}
 		<p class="flavor">{def.flavor}</p>
 	{/if}
+	{#if key}
+		<p class="key"><span class="label">{key.label}</span> <strong>{key.value}</strong></p>
+	{/if}
 	{#if wear}
 		<div class="durability" class:broken={wear.broken}>
 			<span class="label">{wear.broken ? 'Broken' : 'Durability'}</span>
@@ -85,9 +100,6 @@
 			<span class="percent">New</span>
 			<span class="bar" aria-hidden="true"><span style:width="100%"></span></span>
 		</div>
-	{/if}
-	{#if stack.free && !forSale}
-		<p class="note">From the free loadout: it sells for nothing.</p>
 	{/if}
 </div>
 
@@ -231,5 +243,15 @@
 		margin-top: 6px;
 		font-size: 0.85rem;
 		color: var(--broken);
+	}
+
+	/* The figure that matters: a weapon's damage, a coat's protection. */
+	.key {
+		margin: 10px 0 0;
+		font-size: 0.9rem;
+	}
+
+	.key .label {
+		color: var(--muted);
 	}
 </style>

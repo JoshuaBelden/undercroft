@@ -98,6 +98,6 @@ describe('tooltips read the game data', () => {
 		expect(at('heavy-hand', 0)).toContain('8');
 		expect(at('heavy-hand', 0.45)).toContain('12');
 		expect(at('tinker', 0.45)).toContain('3.3 s');
-		expect(at('light-fingers', 0.15)).toContain('8.5 s');
+		expect(at('light-fingers', 0.15)).toContain('5.1 s');
 	});
 });

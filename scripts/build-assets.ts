@@ -98,7 +98,10 @@ const PROP_FIT: Record<string, { tris: number; scale?: number; turn?: number }> 
 	// The cistern winch: 0.5 makes it 0.95 m wide, 0.7 m high and 0.9 m deep with its chain.
 	cistern_winch: { tris: 10000, scale: 0.5 },
 	// The oath on its tablet (the rubbing's model): 0.53 makes it 1 m square, 5 cm thick.
-	oath_carving: { tris: 6000, scale: 0.53 }
+	oath_carving: { tris: 6000, scale: 0.53 },
+	// The bone pile (LOOTABLES.bonePile): 1.9 m across as generated; 0.5 makes it 0.91 m wide (simplified),
+	// 0.21 m high and 0.88 m deep, about the spot its markers were placed for (1 x 0.8).
+	bone_pile: { tris: 6000, scale: 0.5 }
 };
 /**
  * Props whose texture needs more than PROP_TEXTURE: the spider web's strands are a pixel or two

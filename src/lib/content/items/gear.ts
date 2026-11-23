@@ -41,8 +41,9 @@ export const GEAR: Record<string, ItemDef> = {
 		weight: 3.5,
 		price: 160,
 		rarity: 'rare',
-		durability: { max: 70, per: 'point' },
-		defense: { shield: 70 },
+		// Scaled with the coat (120): it outlasts it, and slows a sprint for it.
+		durability: { max: 210, per: 'point' },
+		defense: { shield: 210 },
 		// About 5% slower at a sprint.
 		sprint: 0.95
 	},

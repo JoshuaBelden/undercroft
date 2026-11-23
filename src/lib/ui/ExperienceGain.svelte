@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * "+X Experience" just under the clock while underground, each line fading as it goes. Plain
-	 * text, no box. See docs/dev/progression.md.
+	 * "+X Experience" a third of the way down the screen while underground, in the lore face at the
+	 * size of a contact's name, each line fading as it goes. Plain text, no box. See docs/dev/progression.md.
 	 */
 	interface Props {
 		/** Gains still showing, oldest first. */
@@ -20,20 +20,22 @@
 <style>
 	.gains {
 		position: fixed;
-		top: 46px;
+		top: 33%;
 		left: 50%;
 		transform: translateX(-50%);
 		display: grid;
 		justify-items: center;
-		gap: 2px;
+		gap: 4px;
 		pointer-events: none;
 		z-index: 6;
 	}
 
 	.gain {
-		font-weight: 700;
-		font-size: 0.95rem;
+		/* As a contact's name (Contact.svelte), with a shadow to read over the dark. */
+		font: 400 2rem var(--font-lore);
+		letter-spacing: 0.08em;
 		color: #fff;
+		text-shadow: 0 2px 6px rgb(0 0 0 / 0.85);
 		white-space: nowrap;
 		animation: fade 2.5s ease-in forwards;
 	}

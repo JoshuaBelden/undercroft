@@ -1,10 +1,11 @@
 import { ITEMS } from '#lib/content/items.ts';
 import { raise } from '#lib/game/alerts.svelte.ts';
-import { discoveries } from '#lib/game/discoveries.svelte.ts';
+import { discoveries, made } from '#lib/game/discoveries.svelte.ts';
 import { LOOTABLES } from '#lib/content/lootables.ts';
 import { Crates as CrateModels } from '#lib/game/items/Crates.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
 import { bestWay, flavorOf, lootableOf, wayNeeds, waysFor } from '#lib/shared/items/lootables.ts';
+import { recipeFor } from '#lib/shared/items/crafting.ts';
 import { allStacks } from '#lib/shared/items/inventory.ts';
 import { lookedAtCrate } from '#lib/shared/items/pickup.ts';
 import type { CrateSlot, GameEvent } from '#lib/shared/items/types.ts';
@@ -12,6 +13,7 @@ import type { MapLayout } from '#lib/shared/map/types.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 import type { ServerMessage } from '#lib/shared/protocol.ts';
 import type { Aim, PlayContext, PlayFeature, Prompt, TickMessage } from './feature.ts';
+import { HeldSounds } from './heldSounds.ts';
 import { prize } from './pack.ts';
 import { keyPrompt } from './prompt.ts';
 
@@ -41,6 +43,8 @@ export class Crates implements PlayFeature {
 	 * until then is old news, and must not open the screen again.
 	 */
 	private leaving = false;
+	/** Prying a crate: cut short when they let go. */
+	private prying = new HeldSounds((state) => state.opening > 0);
 
 	constructor(private ctx: PlayContext) {
 		ctx.engine.scene.add(this.models.root);
@@ -55,6 +59,7 @@ export class Crates implements PlayFeature {
 		this.models.syncBoxes(tick.crates.boxes);
 		this.noticed = tick.crates.noticed;
 		this.dry = tick.crates.dry;
+		this.prying.check(tick.players);
 	}
 
 	/** Hidden lootables (a smuggler's stash) someone has noticed: the rest can't be opened. */
@@ -72,6 +77,9 @@ export class Crates implements PlayFeature {
 		}
 		if (message.type === 'crafted') {
 			if (message.count > 0) {
+				// Made once: what this recipe makes is known from now on.
+				const recipe = recipeFor(message.item);
+				if (recipe) made.add(recipe.id);
 				raise({ kind: 'item', item: message.item, count: message.count, source: 'craft' });
 			} else {
 				const name = ITEMS[message.item]?.name ?? message.item;
@@ -172,7 +180,7 @@ export class Crates implements PlayFeature {
 		} else if (event.kind === 'crateUnlock') {
 			sounds.playAt('key.unlock', event.position, 1, 4);
 		} else if (event.kind === 'pry' && event.target === 'crate') {
-			sounds.playAt('crowbar.pry', event.position, 1, 10);
+			this.prying.start(event.player, sounds.playAtHeld('crowbar.pry', event.position, 1, 10));
 		} else if (event.kind === 'rummage') {
 			// Your own hands are right there; someone else's are heard from where they are.
 			if (event.player === client.playerId) sounds.play('inventory.rummage');
@@ -248,6 +256,7 @@ export class Crates implements PlayFeature {
 	}
 
 	clear(): void {
+		this.prying.clear();
 		this.open = null;
 		this.leaving = false;
 		this.models.clear();

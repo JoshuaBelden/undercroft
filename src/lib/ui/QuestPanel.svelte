@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ITEMS } from '#lib/content/items.ts';
 	import { trackedQuest } from '#lib/shared/quests/engine.ts';
 	import type { QuestBrief } from '#lib/shared/quests/types.ts';
 
@@ -14,9 +15,11 @@
 		chosen?: string | null;
 		/** How many to show at once. */
 		max?: number;
+		/** How many of an item the player carries (to tick off what they are to bring back). */
+		carried?: (item: string) => number;
 	}
 
-	let { quests, chosen = null, max = 3 }: Props = $props();
+	let { quests, chosen = null, max = 3, carried = () => 0 }: Props = $props();
 
 	const tracked = $derived(
 		trackedQuest(
@@ -37,8 +40,12 @@
 	);
 	const shown = $derived(ordered.slice(0, max));
 
+	/** Objectives not yet met, and things to bring back not yet carried. */
 	function left(quest: QuestBrief): number {
-		return quest.objectives.filter((o) => o.count < o.of).length;
+		return (
+			quest.objectives.filter((o) => o.count < o.of).length +
+			quest.bring.filter((b) => carried(b.item) < b.count).length
+		);
 	}
 </script>
 
@@ -59,9 +66,18 @@
 									<span class="count">{objective.count}/{objective.of}</span>{/if}
 							</li>
 						{/each}
+						{#each quest.bring as b (b.item)}
+							{@const have = Math.min(carried(b.item), b.count)}
+							<li class:met={have >= b.count}>
+								Bring back {ITEMS[b.item]?.name ?? b.item}{#if b.count > 1}
+									<span class="count">{have}/{b.count}</span>{/if}
+							</li>
+						{/each}
 						{#if left(quest) === 0}
 							<li class="back">
-								{quest.bring.length ? 'Bring it back to commit' : 'Report back on the surface'}
+								{quest.bring.length
+									? 'Head back to the surface: you have everything'
+									: 'Report back on the surface'}
 							</li>
 						{/if}
 					</ul>

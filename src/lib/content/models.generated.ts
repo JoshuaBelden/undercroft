@@ -156,6 +156,10 @@ export const MODELS = {
 		url: '/assets/shared/player/explorer.bc7919c1.glb',
 		bytes: 1876424
 	},
+	'shared/props/bone_pile.glb': {
+		url: '/assets/shared/props/bone_pile.f3d6da34.glb',
+		bytes: 722900
+	},
 	'shared/props/bricked-niche-open.glb': {
 		url: '/assets/shared/props/bricked-niche-open.6303ea9f.glb',
 		bytes: 308128

@@ -45,7 +45,7 @@
 				{#if member.downed}<span class="state">Downed</span>{/if}
 			</div>
 			{#if member.shield !== null}
-				<div class="bar shield" aria-label="Shield">
+				<div class="bar shield" aria-label="Protection">
 					<div class="fill" style:width="{member.shield * 100}%"></div>
 				</div>
 			{/if}

@@ -4,17 +4,27 @@
 	import { ITEMS } from '#lib/content/items.ts';
 	import { RECIPES } from '#lib/content/recipes.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
-	import { hasIngredients, recipeStatus, repairCost } from '#lib/shared/items/crafting.ts';
+	import {
+		hasIngredients,
+		materialSlots,
+		onHand,
+		productKnown,
+		recipeStatus,
+		repairCost
+	} from '#lib/shared/items/crafting.ts';
 	import { condition } from '#lib/shared/items/durability.ts';
 	import { getSlot } from '#lib/shared/items/inventory.ts';
 	import type { SlotRef } from '#lib/shared/items/types.ts';
 	import { GEAR_SLOTS, type ItemStack } from '#lib/shared/player/types.ts';
 	import IngredientSlots from './IngredientSlots.svelte';
+	import Slot from './Slot.svelte';
 	import TipSlot from './TipSlot.svelte';
 
 	/**
-	 * The Workshop (docs/dev/crafting.md#the-workshop): make any available recipe from the stash,
-	 * or mend what is worn (materials from the stash, and coin). Breaking things down is Salvage,
+	 * The Workshop (docs/dev/crafting.md#the-workshop): every recipe with any ingredient discovered,
+	 * what it takes as slots (? for what isn't discovered yet), and Craft for those that can be made;
+	 * or mend what is worn. Materials come from the stash, then what was carried back up (the
+	 * backpack and quick slots), and mending costs coin too. Breaking things down is Salvage,
 	 * in an item's menu on the Loadout page. Every change is the server's; the page shows the
 	 * account it sends back.
 	 */
@@ -24,13 +34,11 @@
 		locked?: boolean;
 		/** A slot to mend, chosen on the Loadout page (Repair in its menu). */
 		preselect?: SlotRef | null;
-		/** A recipe to make, chosen in the Library. */
-		recipe?: string | null;
 		/** Something was made or mended (for a sound). */
 		onchange?: (kind: 'craft' | 'repair') => void;
 	}
 
-	let { explorer, locked = false, preselect = null, recipe = null, onchange }: Props = $props();
+	let { explorer, locked = false, preselect = null, onchange }: Props = $props();
 
 	let tab = $state<'craft' | 'repair'>('craft');
 	let error = $state('');
@@ -42,13 +50,38 @@
 	});
 
 	const discovered = $derived(new Set(Object.keys(explorer.discovered)));
-	const inStash = (item: string): number =>
-		explorer.stash.reduce((n, stack) => n + (stack?.item === item ? stack.count : 0), 0);
+	/** Recipes made at least once: until then what one makes is ? and ??? (even when it can be made). */
+	const made = $derived(new Set(explorer.made));
+	const slots = $derived(materialSlots(explorer.stash, explorer.loadout));
+	const inStash = (item: string): number => onHand(slots, item);
 
-	/** Every recipe that can be made: every ingredient discovered. */
-	const available = $derived(
-		RECIPES.filter((r) => !r.learned && recipeStatus(r, discovered) === 'available')
+	/** Every recipe with any ingredient discovered, those that can be made first. */
+	const recipes = $derived(
+		RECIPES.filter((r) => !r.learned)
+			.map((recipe) => ({ recipe, status: recipeStatus(recipe, discovered) }))
+			.filter((r) => r.status !== 'hidden')
+			.sort((a, b) => Number(b.status === 'available') - Number(a.status === 'available'))
 	);
+
+	/** Materials chosen to filter the list by: only recipes that take every one of them. */
+	let materials = $state<string[]>([]);
+	/** What can be chosen: every discovered thing the listed recipes take, by name. */
+	const filterable = $derived(
+		[...new Set(recipes.flatMap(({ recipe }) => recipe.ingredients.map((i) => i.item)))]
+			.filter((item) => discovered.has(item) && ITEMS[item])
+			.sort((a, b) => ITEMS[a].name.localeCompare(ITEMS[b].name))
+	);
+	const listed = $derived(
+		recipes.filter(({ recipe }) =>
+			materials.every((item) => recipe.ingredients.some((i) => i.item === item))
+		)
+	);
+
+	function toggle(item: string): void {
+		materials = materials.includes(item)
+			? materials.filter((m) => m !== item)
+			: [...materials, item];
+	}
 
 	/** Every slot of the stash and loadout with something in it. */
 	const owned = $derived.by(() => {
@@ -88,13 +121,6 @@
 		return a.area === b.area && a.index === b.index;
 	}
 
-	/** The recipe chosen in the Library is brought into view. */
-	function chosen(id: string) {
-		return (row: HTMLElement): void => {
-			if (id === recipe) row.scrollIntoView({ block: 'center' });
-		};
-	}
-
 	async function run(kind: 'craft' | 'repair', change: Parameters<typeof workshop>[0]) {
 		if (busy || locked) return;
 		busy = true;
@@ -130,44 +156,80 @@
 	{#if error}<p class="error" role="alert">{error}</p>{/if}
 
 	{#if tab === 'craft'}
-		{#if available.length === 0}
-			<p class="note">
-				No recipe is known yet. Discover everything that goes into one, by finding it below, and it
-				shows here.
-			</p>
+		{#if recipes.length === 0}
+			<p class="note">No known recipes.</p>
+		{:else if filterable.length > 1}
+			<!-- Pick materials to see only the recipes that take them. -->
+			<div class="materials" role="group" aria-label="Filter by material">
+				{#each filterable as item (item)}
+					<button
+						type="button"
+						class="chip"
+						aria-pressed={materials.includes(item)}
+						onclick={() => toggle(item)}>{ITEMS[item].name}</button
+					>
+				{/each}
+				{#if materials.length}
+					<button type="button" class="chip clear" onclick={() => (materials = [])}>Clear</button>
+				{/if}
+			</div>
+			{#if listed.length === 0}
+				<p class="note">No recipe you know takes all of those.</p>
+			{/if}
 		{/if}
 		<ul class="rows">
-			{#each available as r (r.id)}
+			{#each listed as { recipe: r, status } (r.id)}
 				{@const def = ITEMS[r.makes]}
+				{@const ready = status === 'available'}
 				{@const n = times[r.id] ?? 1}
-				{@const can = hasIngredients(r, inStash, n)}
-				<li class="row" class:chosen={r.id === recipe} {@attach chosen(r.id)}>
-					<TipSlot stack={{ item: r.makes, count: r.count * n }} />
+				{@const can = ready && hasIngredients(r, inStash, n)}
+				{@const known = productKnown(r, made)}
+				<li class="row">
+					{#if known}
+						<TipSlot stack={{ item: r.makes, count: r.count * n }} />
+					{:else}
+						<Slot name={null} />
+					{/if}
 					<div class="what">
-						<strong>{def?.name ?? r.makes}{r.count > 1 ? ` ×${r.count}` : ''}</strong>
-						{#if r.field}<span class="tag">Also below, with the field crafting kit</span>{/if}
-						<IngredientSlots ingredients={r.ingredients} have={inStash} times={n} />
-					</div>
-					<div class="act">
-						<label class="times">
-							<span class="hidden">How many</span>
-							<input
-								type="number"
-								min="1"
-								max="20"
-								value={n}
-								oninput={(event) =>
-									(times[r.id] = Math.max(1, Math.min(20, Number(event.currentTarget.value) || 1)))}
-							/>
-						</label>
-						<button
-							type="button"
-							class="pill go"
-							disabled={!can || busy || locked}
-							onclick={() => void run('craft', { action: 'craft', recipe: r.id, times: n })}
-							>Craft</button
+						<strong
+							>{known
+								? `${def?.name ?? r.makes}${r.count > 1 ? ` ×${r.count}` : ''}`
+								: '???'}</strong
 						>
+						{#if ready && r.field}<span class="tag">Also below, with the field crafting kit</span
+							>{/if}
+						<IngredientSlots
+							ingredients={r.ingredients}
+							have={inStash}
+							known={(item) => discovered.has(item)}
+							times={n}
+						/>
 					</div>
+					{#if ready}
+						<div class="act">
+							<label class="times">
+								<span class="hidden">How many</span>
+								<input
+									type="number"
+									min="1"
+									max="20"
+									value={n}
+									oninput={(event) =>
+										(times[r.id] = Math.max(
+											1,
+											Math.min(20, Number(event.currentTarget.value) || 1)
+										))}
+								/>
+							</label>
+							<button
+								type="button"
+								class="pill go"
+								disabled={!can || busy || locked}
+								onclick={() => void run('craft', { action: 'craft', recipe: r.id, times: n })}
+								>Craft</button
+							>
+						</div>
+					{/if}
 				</li>
 			{/each}
 		</ul>
@@ -273,6 +335,39 @@
 		padding-right: 6px;
 		scrollbar-width: thin;
 		scrollbar-color: var(--border) transparent;
+	}
+
+	/* The material filter: a wrapping row of small toggles. */
+	.materials {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-bottom: 14px;
+	}
+
+	.chip {
+		padding: 4px 12px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: none;
+		color: var(--muted);
+		font: 0.8rem var(--font-ui);
+		cursor: pointer;
+	}
+
+	.chip:hover,
+	.chip:focus-visible {
+		color: var(--text);
+	}
+
+	.chip[aria-pressed='true'] {
+		border-color: var(--accent);
+		background: rgb(0 129 157 / 0.18);
+		color: var(--text);
+	}
+
+	.chip.clear {
+		border-style: dashed;
 	}
 
 	.row {

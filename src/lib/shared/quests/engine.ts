@@ -96,6 +96,21 @@ export function objectivesMet(record: QuestRecord, def: QuestDef): boolean {
 	return def.objectives.every((o, i) => (progress.counts[i] ?? 0) >= objectiveCount(o));
 }
 
+/**
+ * Done below and everything still to commit in hand: `have(item)` counts what could be committed
+ * (the stash and the loadout, nothing lent). The quest waits only for Commit and Report, so the
+ * Contacts tab counts it with those ready to report.
+ */
+export function canComplete(
+	record: QuestRecord,
+	def: QuestDef,
+	have: (item: string) => number
+): boolean {
+	return (
+		objectivesMet(record, def) && stillToCommit(record, def).every((c) => have(c.item) >= c.count)
+	);
+}
+
 /** Still to commit, by item. */
 export function stillToCommit(
 	record: QuestRecord,

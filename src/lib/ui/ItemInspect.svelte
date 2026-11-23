@@ -26,7 +26,7 @@
 	const stats = $derived(itemStats(stack));
 </script>
 
-<Dialog title="Inspect" {onclose}>
+<Dialog title="Inspect" solid {onclose}>
 	<div class="head">
 		<div class="picture">
 			{#if def?.image}

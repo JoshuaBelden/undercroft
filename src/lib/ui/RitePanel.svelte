@@ -27,9 +27,22 @@
 		open?: boolean;
 		/** The binding that hides and shows it ("KeyH", "PadR3"); empty when unbound. */
 		toggleKey?: string;
+		/**
+		 * Only the name: a quest's rite (`gated`) this player wasn't sent for, so what the rite
+		 * needs isn't theirs to follow (the HUD; the quest panel under it says what is).
+		 */
+		nameOnly?: boolean;
 	}
 
-	let { affliction, rite, carriers, interactKey, open = true, toggleKey = '' }: Props = $props();
+	let {
+		affliction,
+		rite,
+		carriers,
+		interactKey,
+		open = true,
+		toggleKey = '',
+		nameOnly = false
+	}: Props = $props();
 
 	const room = $derived(rite.room ? (MAP_KIT[rite.room]?.title ?? rite.room) : null);
 	const laid = $derived(rite.laid ? (ITEMS[rite.laid.item]?.name ?? rite.laid.item) : null);
@@ -58,7 +71,7 @@
 			>{/if}
 	</h2>
 
-	{#if open}
+	{#if open && !nameOnly}
 		{#if rite.hints.length}
 			<ol class="said">
 				{#each rite.hints as hint, index (index)}

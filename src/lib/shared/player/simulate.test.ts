@@ -470,6 +470,21 @@ describe('the headlamp and what is in the hand', () => {
 		expect(s.inventory.quick[0]?.count ?? 0).toBeLessThan(2);
 	});
 
+	it('one bandage a hold: holding on after one is done starts no other, letting go does', () => {
+		const inv = emptyInventory();
+		addItem(inv, newStack('bandage', 3));
+		const s = run(createPlayerState([0, 0, 0], 0, inv), { select: HAND.quick }, seconds(1));
+		s.sanity = 5;
+		// Long enough for three, held all the way.
+		run(s, { select: HAND.quick, attack: true }, seconds(20));
+		expect(s.inventory.quick[0]?.count).toBe(2);
+		expect(s.bandaging).toBe(-1);
+		run(s, { select: HAND.quick, attack: false }, seconds(0.1));
+		expect(s.bandaging).toBe(0);
+		run(s, { select: HAND.quick, attack: true }, seconds(20));
+		expect(s.inventory.quick[0]?.count).toBe(1);
+	});
+
 	it('a medkit fills sanity all the way back up', () => {
 		const inv = emptyInventory();
 		addItem(inv, newStack('medkit'));

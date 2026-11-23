@@ -43,7 +43,7 @@ A way (`OpenWay`) is `seconds` of holding interact, the `verb` the prompt shows,
 
 | Kind                                     | Opens                    | Sealed                                               |
 | ---------------------------------------- | ------------------------ | ---------------------------------------------------- |
-| Crate                                    | 1 s                      | A quarter, jammed (hidden): crowbar, 10 s, loud      |
+| Crate                                    | 1 s                      | A quarter, jammed (hidden): crowbar, 6 s, loud       |
 | Dead explorer                            | 2 s                      | —                                                    |
 | Locked trunk                             | 1 s, once unlocked       | Always: a key, picks (6 s, silent) or a sledgehammer |
 | Wall niche                               | 1 s                      | A third, sealed: crowbar, 4 s; better burial goods   |
@@ -56,7 +56,7 @@ A way (`OpenWay`) is `seconds` of holding interact, the `verb` the prompt shows,
 | Rat nest                                 | 4 s                      | —                                                    |
 | Cocoon                                   | 5 s, or 2 s with a blade | —                                                    |
 | Smuggler's stash                         | Crowbar, 3 s, if noticed | —                                                    |
-| Reliquary alcove                         | Crowbar, 8 s             | —                                                    |
+| Reliquary alcove                         | Crowbar, 6 s             | —                                                    |
 | Font                                     | Fill a bottle, 2 s       | —                                                    |
 
 What goes wrong reaching into some of them (a rat nest's bite, a cocoon's poison, a bone pile's rats, a sarcophagus's spiders, the alcove's meter cost, the Plague Pit's toll), the stash's chalk sign and the font: [world.md](world.md).

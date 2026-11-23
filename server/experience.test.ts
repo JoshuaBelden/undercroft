@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CREATURES } from '../src/lib/content/creatures.ts';
-import { LOOTABLES } from '../src/lib/content/lootables.ts';
 import { XP } from '../src/lib/content/progression.ts';
 import { RECIPES } from '../src/lib/content/recipes.ts';
 import { newStack } from '../src/lib/shared/items/inventory.ts';
@@ -31,7 +30,7 @@ function crateWith(session: Session, ...items: string[]): Crate {
 const told = (diver: Diver): number[] => diver.socket.all('experience').map((m) => m.amount);
 
 describe('looting', () => {
-	it('the first opener earns the lootable, its best find, and the first-of-its-kind bonus once', () => {
+	it('the first opener of any lootable earns the same, every time, whatever it holds', () => {
 		const session = quiet();
 		const diver = new Diver(session);
 		const crate = crateWith(session, 'rags');
@@ -43,21 +42,21 @@ describe('looting', () => {
 		};
 		session.experience.count([event]);
 		session.experience.flush();
-		expect(told(diver)).toEqual([LOOTABLES.crate.xp + XP.firstLootable]);
+		expect(told(diver)).toEqual([XP.lootable]);
 		session.experience.count([event]);
-		expect(diver.player.experience.earned).toBe(2 * LOOTABLES.crate.xp + XP.firstLootable);
+		expect(diver.player.experience.earned).toBe(2 * XP.lootable);
+		expect(XP.lootable).toBe(25);
 	});
 
-	it('a sealed one pays for the work', () => {
+	it('a sealed one pays the same', () => {
 		const session = quiet();
 		const diver = new Diver(session);
-		diver.player.experience.firsts.add('loot:crate');
 		const crate = crateWith(session, 'rags');
 		crate.sealed = true;
 		session.experience.count([
 			{ kind: 'crateOpen', id: crate.id, player: diver.id, position: crate.position }
 		]);
-		expect(diver.player.experience.earned).toBe(LOOTABLES.crate.sealed!.xp);
+		expect(diver.player.experience.earned).toBe(XP.lootable);
 	});
 
 	it('a first discovery pays', () => {
@@ -174,6 +173,16 @@ describe('the run ends', () => {
 		const diver = new Diver(session);
 		session.experience.finish(diver.player, 'extracted');
 		expect(diver.player.experience.earned).toBe(XP.firstExtract);
+		// A lootable: the first of its kind only.
+		const crate = crateWith(session, 'rags');
+		const open = {
+			kind: 'crateOpen' as const,
+			id: crate.id,
+			player: diver.id,
+			position: crate.position
+		};
+		session.experience.count([open, open]);
+		expect(diver.player.experience.earned).toBe(XP.firstExtract + XP.lootable);
 	});
 });
 

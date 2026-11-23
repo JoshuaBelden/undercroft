@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { session } from '#lib/account/account.svelte.ts';
-	import { allStacks } from '#lib/shared/items/inventory.ts';
+	import { ApiError, session, takeFreeLoadout } from '#lib/account/account.svelte.ts';
+	import { raise } from '#lib/game/alerts.svelte.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
 	import { connection, me, send } from '#lib/game/net/connection.svelte.ts';
@@ -19,11 +19,8 @@
 		launch.confirming && !ready && !!connection.party?.affliction && !connection.party.expedition
 	);
 
-	/** Nothing in the loadout: the free one can be taken down instead (docs/dev/economy.md). */
-	const empty = $derived(!!explorer && allStacks(explorer.loadout).length === 0);
-
 	$effect(() => {
-		launch.free = confirming && empty;
+		launch.free = confirming;
 	});
 
 	let outfit = $state<Outfit | null>(null);
@@ -52,12 +49,30 @@
 			);
 	}
 
-	/** This loadout is the one: ready to descend, and back to the party. */
+	/**
+	 * This loadout is the one: ready to descend, and back to the party. `free`: the free loadout
+	 * instead (docs/dev/economy.md#free-loadout): what is in the loadout goes into the stash first,
+	 * and if the stash can't take it all, nothing changes and an alert says so.
+	 */
 	async function confirm(free = false): Promise<void> {
 		if (busy) return;
 		busy = true;
 		// Changes still on their way to the server go first: being ready locks the loadout.
 		await outfit?.settled();
+		if (free) {
+			try {
+				await takeFreeLoadout();
+			} catch (failed) {
+				busy = false;
+				raise({
+					kind: 'note',
+					title: 'Free loadout',
+					line:
+						failed instanceof ApiError ? `${failed.message}.` : 'Something went wrong. Try again.'
+				});
+				return;
+			}
+		}
 		send({ type: 'ready', ready: true, ...(free ? { free: true } : {}) });
 		launch.confirming = false;
 		await goto(resolve('/(hub)'));
@@ -81,25 +96,20 @@
 	<Outfit bind:this={outfit} {explorer} {ready} onchange={changed} />
 	{#if confirming}
 		<div class="confirm" role="group" aria-label="Confirm your loadout">
-			{#if !empty}
-				<p>This is what you take down. Change anything you like, then confirm.</p>
-			{/if}
 			<button type="button" class="back" onclick={back}>Back</button>
-			{#if empty}
-				<!-- Held Y takes the free loadout from anywhere on the page. -->
-				<button
-					type="button"
-					class="free"
-					disabled={busy}
-					data-pad-hold="y"
-					onclick={() => void confirm(true)}
-				>
-					Use free loadout
-					{#if !busy}
-						<ButtonHint code="PadY" hold />
-					{/if}
-				</button>
-			{/if}
+			<!-- Held Y takes the free loadout from anywhere on the page: the loadout goes to the stash. -->
+			<button
+				type="button"
+				class="free"
+				disabled={busy}
+				data-pad-hold="y"
+				onclick={() => void confirm(true)}
+			>
+				Use free loadout
+				{#if !busy}
+					<ButtonHint code="PadY" hold />
+				{/if}
+			</button>
 			<!-- Held X confirms from anywhere on the page; a quick X still sends an item. -->
 			<button
 				type="button"
@@ -135,16 +145,11 @@
 		display: flex;
 		align-items: center;
 		gap: 14px;
-		padding: 10px 12px 10px 22px;
+		padding: 10px 12px;
 		border: 1px solid var(--border);
 		border-radius: 999px;
 		background: rgb(14 12 10 / 0.9);
 		backdrop-filter: blur(6px);
-	}
-
-	.confirm p {
-		margin: 0;
-		color: var(--muted);
 	}
 
 	.confirm button {

@@ -92,7 +92,7 @@ In your pack, a crate or the Loadout page, {button:PadA} picks an item up and th
 
 With a notebook in your pack, your pack has a Map tab: {button:PadLB} and {button:PadRB} go to it. On the map, hold {button:PadX} to sketch and {button:PadY} to show your map to a teammate. The Up and Down buttons at the top change level, {pad:mapZoomIn} and {pad:mapZoomOut} zoom, and the right stick moves the page. {button:PadB} puts it away.
 
-On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready; while you confirm an empty loadout, holding it takes the free loadout instead), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
+On the dashboard, {button:PadLB} and {button:PadRB} switch tabs, {pad:inventory} goes to your Loadout and {pad:toggleSocial} opens Social; {button:PadB} comes back. Hold {button:PadX} to launch an expedition, then hold it again to confirm your loadout. Hold {button:PadY} to open the store from any page (it is closed once you are ready; while you confirm your loadout, holding it takes the free loadout instead), and in the store to purchase the item you picked. The button fills from left to right as you hold it: let go early and nothing happens. Each shortcut shows its button wherever it works.
 
 Settings > Controller has look sensitivity, invert Y, the dead zone, vibration, sprint (toggle or hold) and the button icons. A controller the game doesn't recognise has to be mapped to the standard layout in your system's or Steam's own controller settings.`
 	},
@@ -220,7 +220,7 @@ If your connection drops underground, your place is held for a minute. You're st
 		category: 'The surface',
 		body: `You start with a headlamp, your hands and 100 coin for the store.
 
-Nothing to take down? When your loadout is empty, Use free loadout (beside Confirm loadout, or hold {button:PadY}) takes you down with a crowbar, a padded coat and 3 bandages instead. You keep them if you get out, but they sell for nothing and can't be salvaged.
+Nothing to take down, or nothing you want to risk? Use free loadout (beside Confirm loadout, or hold {button:PadY}) puts everything in your loadout into your stash and takes you down with a crowbar, a padded coat and 3 bandages instead. If your stash has no room for it all, nothing moves: empty your backpack first. You keep the free things if you get out, but they sell for only 1 coin each and can't be salvaged.
 
 Whatever you carry out of the catacombs is yours. You come back to your loadout packed the way you carried it, with what you found still in your backpack. Move it to your stash, or sell it, before the next descent.
 
@@ -276,7 +276,7 @@ At first the store sells only the basics. The more you sell to the merchant, the
 		category: 'The surface',
 		body: `You learn what things are by finding them. Everything you see in a crate, a dead explorer, a tomb or anything else you open below is discovered: the first time, a chime and a note say so, and how many recipes it goes into. Everyone in your party who looks in discovers what is there. Buying something, or breaking something down into it, doesn't count: you have to find it.
 
-The Library, on the dashboard, lists everything you have discovered and where you saw it. It also lists every recipe you know any part of: what it makes, and what goes into it, with a ? for each part you haven't found yet. When every part is known, the recipe is yours.
+The Library, on the dashboard, lists everything you have discovered, where you saw it and how many recipes it goes into. The recipes themselves are in the Workshop: every one you know any part of, with a ? for each part you haven't found yet. When every part is known, the recipe is yours.
 
 Now and then you find a recipe fragment: a torn page of someone's notes. Read it where it lies and it tells you one thing you haven't found yet for a recipe you have started.
 
@@ -288,9 +288,9 @@ Newly discovered things shimmer in your stash and loadout until you look at them
 		category: 'The surface',
 		body: `The Workshop, on the dashboard, is where things are made and mended.
 
-Craft: any recipe you know, made at once from what is in your stash. Each thing it takes is a slot: dim with none on hand, the count red with too few. Choosing a recipe you can make in the Library brings you here with it. Something you made sells only for what went into it.
+Craft: every recipe you know any part of, with a ? for each part you haven't found yet. What a recipe makes stays a mystery, a ? named ???, until you have made it once. One whose parts are all known can be made at once, from your stash and what you carried back up in your backpack and quick slots. Each thing it takes is a slot: dim with none on hand, the count red with too few. Pick materials above the list to see only the recipes that take them. Something you made sells only for what went into it.
 
-Repair: mend something worn or broken. It takes a few materials from your stash and some coin, more the more worn it is. You can also choose Repair from anything's menu on the Loadout page.
+Repair: mend something worn or broken. It takes a few materials (from your stash, then what you carried up) and some coin, more the more worn it is. You can also choose Repair from anything's menu on the Loadout page.
 
 Salvage, in anything's menu in your stash or loadout (right-click it): break it down into the materials it was made from, into your stash. Salvaging never teaches you anything new: only finding things does.
 
@@ -300,11 +300,11 @@ Guns and rounds are never made. They are mended, and broken down.`
 		id: 'explorer-levels',
 		title: 'Experience and levels',
 		category: 'The surface',
-		body: `Everything you do down there earns experience: "+ Experience" shows under the clock as it comes. Being the first to open a lootable pays, more for one that takes work or a lock and more again for something rare inside. So does making things below, killing what hunts you (a teammate near a kill gets a share), being there for the rite and for laying it to rest, and getting out: more the deeper you went. The first time you do each thing (each kind of lootable, recipe, creature, hint, each level you get out from) pays extra, once.
+		body: `Everything you do down there earns experience: "+ Experience" shows on screen as it comes. Being the first to open any lootable pays 25, whatever it is and whatever is inside, so open everything. So does making things below, killing what hunts you (a teammate near a kill gets a share), being there for the rite and for laying it to rest, and getting out: more the deeper you went. The first time you do each thing (each recipe, creature, hint, each level you get out from) pays extra, once.
 
 Experience is kept as you earn it. If you die you lose what you carried, not what you learned: dying pays a quarter of what getting out would have, and abandoning pays nothing for the way out. Rumors pays only its firsts.
 
-Every 1000 experience is a level, up to 60, and every level is a skill point. Your experience shows on the results screen after each expedition.`
+Every 1000 experience is a level, up to 60, and every level is a skill point. The results screen after each expedition shows what you earned, your level and how far you are to the next. Your level sits beside your avatar on the dashboard; while you have skill points to spend it turns yellow and pulses. It opens the Skills page, where hovering a category tells you what it is good for.`
 	},
 	{
 		id: 'skill-tree',
@@ -321,6 +321,8 @@ Sixty levels won't buy everything, so choose. Respec puts every point back to sp
 		title: 'Crafting below',
 		category: 'Gear and loot',
 		body: `With the field crafting kit worn in a gear slot, some recipes can be made down there: bandages, candles, snares, oil bottles, bolts and more. Open the menu ({action:inventory}) and choose the Craft tab. Pick something you have the materials for and you kneel over it for a few seconds. You need your lamp lit, it makes a little noise, and moving stops it. What you make goes in your pack.
+
+As in the Workshop, a recipe you have never made shows only as ???: make it to find out what it is.
 
 The Craft tab can also mend something you carry a little of the way, with its materials. Each thing made or mended wears the kit.`
 	},
@@ -420,7 +422,7 @@ Once one has you, it comes slowly, then all at once. Put your lamp out and get o
 		category: 'Surviving',
 		body: `Rats nest all through the catacombs, a few together. They come for noise and light, and bite whoever they find. In the dark they only notice you right beside them. One bite is nothing much; a few add up. One stab finishes one.
 
-Spiders sit in clusters all over the catacombs and leave you alone unless you hit one, and then they all bite back. Every bite poisons you: for a full minute you can go no faster than a crouch, and you can't run. Nothing cures it yet.
+Spiders sit in clusters all over the catacombs and leave you alone unless you hit one, or come right up to one, and then they bite. Every bite poisons you: for a full minute you can go no faster than a crouch, and you can't run. Nothing cures it yet.
 
 Sometimes there is a much bigger spider. It hunts like the things in the dark do, its bite poisons, and it takes a lot more killing.`
 	},
@@ -592,7 +594,7 @@ You can't tell a false wall by looking. Take a crowbar in your hand and walk up 
 		category: 'Gear and loot',
 		body: `Some crates won't open: the lid is jammed fast. You only find out by trying one. After that the prompt reads Pry, and anyone can see the crate is stuck.
 
-To pry one open, take a crowbar in your hand, look at the crate and hold {action:interact}. It takes ten seconds and it is loud: anything nearby will hear it and come to look. Let go and you start over. Without a crowbar in your hand the prompt shows in red.
+To pry one open, take a crowbar in your hand, look at the crate and hold {action:interact}. It takes six seconds and it is loud: anything nearby will hear it and come to look. Let go and you start over. Without a crowbar in your hand the prompt shows in red.
 
 Deeper down a few of the lootables are iron-bound trunks, locked. Each holds something epic or legendary, among other things. To open one you need a key: somewhere in the map, in something you can open by hand, there is one key for every trunk and every locked gate. Look at the trunk and press {action:interact} to unlock it. The key is used up, and it doesn't need to be in your hand. Then hold {action:interact} to search the trunk like any crate. Without a key the prompt shows in red. A key you carry out is yours to bring down again.`
 	},

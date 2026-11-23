@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { ApiError, api, loadAccount, markSeen, session } from '#lib/account/account.svelte.ts';
-	import { money, sellPrice } from '#lib/content/economy.ts';
+	import { money, stackSale } from '#lib/content/economy.ts';
 	import { ITEMS, SLOTS } from '#lib/content/items.ts';
 	import type { AccountView, ExplorerView } from '#lib/shared/account/types.ts';
 	import { applyAction } from '#lib/shared/items/inventory.ts';
@@ -60,7 +60,7 @@
 				held,
 				order,
 				({ stack }) => stack.item,
-				({ stack }) => sellPrice(stack.item, stack) * stack.count
+				({ stack }) => stackSale(stack)
 			),
 			...slots.filter(({ stack }) => !stack)
 		];
@@ -73,7 +73,7 @@
 		for (const stack of explorer.stash) {
 			if (!stack || !ITEMS[stack.item]?.treasure) continue;
 			count += stack.count;
-			worth += sellPrice(stack.item, stack) * stack.count;
+			worth += stackSale(stack);
 		}
 		return { count, worth };
 	});

@@ -324,11 +324,29 @@
 						data-category={open ? undefined : c.id}
 						aria-label={open ? `${c.name}: open` : `${c.name}: hold to open for a point`}
 						disabled={locked && !open}
-						title={open ? c.blurb : `${c.blurb}. Hold to open it for a point.`}
+						aria-describedby={tipped === catKey ? 'category-tip' : undefined}
+						onpointerenter={() => (tipped = catKey)}
+						onpointerleave={() => tipped === catKey && (tipped = null)}
+						onfocus={() => (tipped = catKey)}
 						{...holdable(() => ({ category: c.id }))}
+						onblur={() => {
+							end();
+							if (tipped === catKey) tipped = null;
+						}}
 					>
 						<span class="cat-name">{c.name}</span>
 					</button>
+					{#if tipped === catKey}
+						<div class="tip" id="category-tip" role="tooltip">
+							<h3>{c.name} <span class="muted">{c.blurb}</span></h3>
+							<p>{c.pitch}</p>
+							{#if open}
+								<p class="muted">Open: each of its skills takes a point a rank.</p>
+							{:else}
+								<p class="muted hint">Hold to open it for a point.</p>
+							{/if}
+						</div>
+					{/if}
 				</div>
 			</div>
 		{/each}
@@ -462,6 +480,14 @@
 		display: grid;
 		justify-items: center;
 		gap: 4px;
+	}
+
+	/*
+	 * Each spot's transform makes it a stacking context, so a tooltip's z-index counts only inside
+	 * its own spot: the spot showing one is lifted over its neighbours (and their lines and names).
+	 */
+	.spot:has(.tip) {
+		z-index: 10;
 	}
 
 	/* A skill's name hangs below its icon without moving the icon off its line. */

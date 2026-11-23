@@ -1011,6 +1011,14 @@ export const SOUNDS = {
 		variation: 0.04,
 		caption: 'iron grinds on stone'
 	},
+	// The crowbar's swing: heavy iron through the air (its hit is the shared `melee.hit`).
+	'crowbar.swing': {
+		file: 'crowbar.swing',
+		synth: { kind: 'whoosh' },
+		category: 'sfx',
+		volume: 0.7,
+		variation: 0.06
+	},
 	// A false wall coming down.
 	'crowbar.rocks': {
 		file: 'crowbar.rocks',

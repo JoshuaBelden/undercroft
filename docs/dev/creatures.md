@@ -6,7 +6,7 @@ Things that share the catacombs with the players. In code and docs they are **cr
 | -------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `witch`        | Hunts (patrol, alert, investigate, chase, attack). Won't crawl, squeeze or swim.                | Drawn by the party's noise and light (Attraction), omens, dwellers that turn |
 | `rat`          | Nests in small groups; noise and light draw it; a minor bite.                                   | Scattered at the start: 4-7 groups of 1-4                                    |
-| `spider`       | Ignores everyone until hit (`passive`); its bite poisons.                                       | Scattered: 6-10 groups of 2-5                                                |
+| `spider`       | Ignores everyone until hit or crowded (`passive`, `near` 1 m); its bite poisons.                | Scattered: 6-10 groups of 2-5                                                |
 | `giant-spider` | Hunts like a witch at shorter ranges; its bite poisons. Can't fit a crawl.                      | 60% of maps, one only, in a far corner                                       |
 | `dweller`      | Sits in corners (`shy`); come upon, walks off to a far corner; one in five turns into a witch.  | Scattered: 3-6, in corners                                                   |
 | `moth`         | Flutters at headlamps (`flight`); harmless.                                                     | Comes to a high beam on for 5 s: one every 3 s, up to 15                     |
@@ -209,7 +209,7 @@ Behaviour beyond the shared states is keyed by def fields, never by kind name.
 
 ### Rats and spiders
 
-Small (`small(speed, sprint)` movement: as quick through a crawl as in the open, a 0.2 m body) and go anywhere. The **rat** perceives like a witch at short range: a lamp in sight within 6 m, or anyone within 1.5 m in the dark, and noise alerts it. Its bite is 6. The **spider** is `passive`: noise and light don't reach it, and only a hit sets it (and only it) on the attacker. The **giant spider** hunts with full perception. Every spider bite carries `condition: { id: 'poisoned' }` (no faster than a crouch, no sprinting, 60 s), which `CreatureSystem` applies to whoever it lands on after the coat takes its share.
+Small (`small(speed, sprint)` movement: as quick through a crawl as in the open, a 0.2 m body) and go anywhere. The **rat** perceives like a witch at short range: a lamp in sight within 6 m, or anyone within 1.5 m in the dark, and noise alerts it. Its bite is 6. The **spider** is `passive`: noise and light don't reach it, and only a hit, or someone right by it (`perception.near`, 1 m, inside the rat's 1.5 m in the dark), sets it (and only it) on them. The **giant spider** hunts with full perception. Every spider bite carries `condition: { id: 'poisoned' }` (no faster than a crouch, no sprinting, 60 s), which `CreatureSystem` applies to whoever it lands on after the coat takes its share.
 
 ### Dwellers (`shy`)
 

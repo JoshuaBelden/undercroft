@@ -1,4 +1,4 @@
-import { sellPrice } from '#lib/content/economy.ts';
+import { saleTotal, sellPrice } from '#lib/content/economy.ts';
 import { CONDITIONS } from '#lib/content/player/conditions.ts';
 import { ITEMS, type ItemCategory, type WearUnit } from '#lib/content/items.ts';
 import { condition, isBroken, lasting, wearAmount, wearOf } from '#lib/shared/items/durability.ts';
@@ -200,6 +200,28 @@ function seconds(value: number): string {
 }
 
 /**
+ * The one figure that says what a thing is for, on its tooltip: a weapon's damage (per pellet for
+ * a shotgun), what is worn for defense's protection (what is left of it, for one you own). Null
+ * for anything else.
+ */
+export function keyStat(stack: ItemStack, forSale = false): ItemStat | null {
+	const def = ITEMS[stack.item];
+	if (!def) return null;
+	if (def.firearm) {
+		const gun = def.firearm;
+		const value = gun.pellets > 1 ? `${gun.damage} × ${gun.pellets}` : `${gun.damage}`;
+		return { label: 'Damage', value, coins: false };
+	}
+	if (def.melee) return { label: 'Damage', value: `${def.melee.damage}`, coins: false };
+	if (def.defense) {
+		const max = def.defense.shield;
+		const left = forSale ? max : Math.max(0, max - wearOf(stack));
+		return { label: 'Protection', value: left < max ? `${left} / ${max}` : `${max}`, coins: false };
+	}
+	return null;
+}
+
+/**
  * Every figure of a stack, for the Inspect panel and the store's details: only those that apply
  * to it (damage, spread, time between shots, reload, range, noise, wear per use...). `forSale` is a
  * stack in the store, not one you own: what it holds and stacks to, not what is in it now.
@@ -296,7 +318,7 @@ export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 	if (def.rope) {
 		add('Rope', `${def.rope.length} m`);
 	}
-	if (def.defense) add('Shield', `${def.defense.shield}`);
+	if (def.defense) add('Protection', `${def.defense.shield}`);
 	const last = lasting(def);
 	if (last) {
 		const left = Math.max(0, last.max - (forSale ? 0 : wearOf(stack)));
@@ -309,10 +331,11 @@ export function itemStats(stack: ItemStack, forSale = false): ItemStat[] {
 		if (forSale) add('Stacks to', `${def.maxStack}`);
 		else add('Stack', `${stack.count} / ${def.maxStack}`);
 	}
-	// One's price, with the coin sign of the top bar in front; a worn one sells for less.
+	// What it sells for, whole coin rounded up (a stack's all together), with the coin sign of the
+	// top bar in front; a worn one sells for less.
 	const price = sellPrice(stack.item, forSale ? undefined : stack);
 	if (!forSale) {
-		if (price > 0) add('Sells for', `${price}`, true);
+		if (price > 0) add('Sells for', `${saleTotal(price, stack.count)}`, true);
 		else if (isBroken(stack) && sellPrice(stack.item) > 0) add('Sells for', 'Nothing, broken');
 	}
 	return stats;

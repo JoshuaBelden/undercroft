@@ -148,8 +148,8 @@ function defaults(): Settings {
 			mapZoom: SURVEY.zoom.initial,
 			alerts: true,
 			trackedQuest: null,
-			stashSort: 'placed',
-			storeSort: 'placed'
+			stashSort: 'type',
+			storeSort: 'type'
 		},
 		controls: { mouseSensitivity: 1, invertY: false },
 		controller: {

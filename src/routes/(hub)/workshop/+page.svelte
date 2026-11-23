@@ -12,9 +12,7 @@
 	const ready = $derived(me()?.ready ?? false);
 	/** Repair in an item's menu sends it here with the slot to mend (taken once). */
 	const preselect = workshopAsk.repair;
-	const recipe = workshopAsk.recipe;
 	workshopAsk.repair = null;
-	workshopAsk.recipe = null;
 
 	const audio = new AudioManager({ ...settings.audio });
 	const sounds = new SoundBank(audio);
@@ -30,13 +28,7 @@
 </script>
 
 {#if explorer}
-	<Workshop
-		{explorer}
-		locked={ready || explorer.underground}
-		{preselect}
-		{recipe}
-		onchange={changed}
-	/>
+	<Workshop {explorer} locked={ready || explorer.underground} {preselect} onchange={changed} />
 {:else}
 	<p class="muted">Loading...</p>
 {/if}

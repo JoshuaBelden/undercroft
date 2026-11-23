@@ -17,7 +17,8 @@ import {
 	itemsOwned,
 	markReady,
 	returnFromExpedition,
-	takeLoadout
+	takeLoadout,
+	useFreeLoadout
 } from './explorers.ts';
 
 /** The stash and loadout store on LocalDb: descending, coming back, and the hub's locks. */
@@ -74,11 +75,12 @@ describe('the free loadout', () => {
 		expect(allStacks(kit).map((stack) => stack.item)).toEqual(['knife']);
 	});
 
-	it('is never coin: it sells for nothing, salvages to nothing, and keeps apart', async () => {
+	it('is barely coin: it sells for a token, salvages to nothing, and keeps apart', async () => {
 		await empty();
 		const kit = await takeLoadout(db, explorer._id, 's', true);
 		const coat = kit.equipment.defense!;
-		expect(sellPrice(coat.item, coat)).toBe(0);
+		expect(sellPrice(coat.item, coat)).toBe(ECONOMY.freeSell);
+		expect(ECONOMY.freeSell).toBe(1);
 		expect(sellPrice('coat', newStack('coat'))).toBeGreaterThan(0);
 		expect(salvageOf(coat)).toEqual([]);
 		// Free bandages and bought ones don't merge.
@@ -92,6 +94,35 @@ describe('the free loadout', () => {
 			[2, false],
 			[3, true]
 		]);
+	});
+
+	it('used, puts the loadout in the stash and the free loadout in its place', async () => {
+		expect('explorer' in (await useFreeLoadout(db, explorer._id))).toBe(true);
+		const now = await read();
+		expect(now.stash.filter((s) => s?.item === 'knife')).toHaveLength(1);
+		expect(allStacks(now.loadout).map((s) => [s.item, !!s.free])).toEqual([
+			['crowbar', true],
+			['coat', true],
+			['bandage', true]
+		]);
+		// Used again: the free kit is given back, not stashed, so it never piles up.
+		await useFreeLoadout(db, explorer._id);
+		const again = await read();
+		expect(again.stash.filter((s) => s?.free)).toEqual([]);
+		expect(allStacks(again.loadout)).toHaveLength(3);
+		// And what goes down is that kit.
+		const kit = await takeLoadout(db, explorer._id, 's', true);
+		expect(allStacks(kit).every((s) => s.free)).toBe(true);
+	});
+
+	it('used with a stash too full for the loadout, changes nothing', async () => {
+		await changeExplorer(db, explorer._id, (doc) => {
+			doc.stash = doc.stash.map(() => newStack('rags', 1));
+			return null;
+		});
+		expect(await useFreeLoadout(db, explorer._id)).toEqual({ error: 'backpackFirst' });
+		const now = await read();
+		expect(allStacks(now.loadout).map((s) => s.item)).toEqual(['knife']);
 	});
 });
 

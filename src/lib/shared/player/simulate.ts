@@ -389,14 +389,15 @@ export function stepPlayer(
 	if (heal && s.bandaging >= heal.seconds * s.mods.healTime) {
 		spendHeld(s.inventory);
 		s.sanity = Math.min(SANITY.max, s.sanity + heal.amount);
-		s.bandaging = 0;
+		// Done: let go before the next (holding on doesn't start another).
+		s.bandaging = -1;
 	}
 	const charge = charging(s);
 	if (s.charging > 0) s.charging += dt;
 	if (charge && s.charging >= charge.seconds) {
 		spendHeld(s.inventory);
 		s.battery = Math.min(1, s.battery + charge.volts / lamp.volts);
-		s.charging = 0;
+		s.charging = -1;
 	}
 	if (s.tending > 0) s.tending += dt;
 	const tend = tendSeconds(s);
@@ -477,9 +478,14 @@ export function healing(s: PlayerState): HealSpec | undefined {
 
 /**
  * Start or interrupt applying the healing item in the hand: hold attack, standing still, hurt.
- * Taking something else in the hand interrupts it.
+ * Taking something else in the hand interrupts it. One done (-1) waits for attack to be let go,
+ * so holding on neither starts another nor swings the empty hand.
  */
 function updateBandage(s: PlayerState, input: InputFrame, moving: boolean): void {
+	if (s.bandaging < 0) {
+		if (!input.attack) s.bandaging = 0;
+		return;
+	}
 	const ready =
 		input.attack && !moving && s.grounded && !s.swimming && !!healing(s) && s.sanity < SANITY.max;
 	if (!ready) s.bandaging = 0;
@@ -497,6 +503,11 @@ export function charging(s: PlayerState): { volts: number; seconds: number } | u
  * still, with the lamp not already full. Taking something else in the hand interrupts it.
  */
 function updateCharge(s: PlayerState, input: InputFrame, moving: boolean): void {
+	// One done (-1) waits for attack to be let go, as a bandage does.
+	if (s.charging < 0) {
+		if (!input.attack) s.charging = 0;
+		return;
+	}
 	const ready =
 		input.attack && !moving && s.grounded && !s.swimming && !!charging(s) && s.battery < 1;
 	if (!ready) s.charging = 0;

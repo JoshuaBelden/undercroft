@@ -1,6 +1,12 @@
 import type { Collection, Db } from 'mongodb';
 import { FREE_LOADOUT } from '../../content/economy.ts';
-import { allStacks, applyAction, emptyInventory, newStack } from '../../shared/items/inventory.ts';
+import {
+	addToSlots,
+	allStacks,
+	applyAction,
+	emptyInventory,
+	newStack
+} from '../../shared/items/inventory.ts';
 import type { InventoryAction } from '../../shared/items/types.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
 import type { ExplorerDoc } from './accounts.ts';
@@ -30,7 +36,8 @@ export type ExplorerError =
 	| 'unsalvageable'
 	| 'unwanted'
 	| 'lent'
-	| 'notReady';
+	| 'notReady'
+	| 'backpackFirst';
 
 export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	underground: "You can't do that while you're underground",
@@ -50,7 +57,8 @@ export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	unsalvageable: "That can't be broken down into anything",
 	unwanted: "That isn't wanted for this",
 	lent: 'That was lent to you for the descent: bring your own',
-	notReady: "That isn't done yet"
+	notReady: "That isn't done yet",
+	backpackFirst: 'Empty your backpack first to use the free loadout'
 };
 
 const explorers = (db: Db): Collection<ExplorerDoc> => db.collection<ExplorerDoc>('explorers');
@@ -118,6 +126,25 @@ export async function arrange(
 		return null;
 	});
 	return 'explorer' in result ? { ...result, dropped: thrown } : result;
+}
+
+/**
+ * Use free loadout (docs/dev/economy.md#free-loadout): everything in the loadout goes into the
+ * stash, and the free loadout takes its place. What was lent before (`free` stacks) is given
+ * back, not stashed. All of it or none: `backpackFirst` if the stash can't take it all.
+ */
+export async function useFreeLoadout(
+	db: Db,
+	explorerId: string
+): Promise<{ explorer: ExplorerDoc } | { error: ExplorerError }> {
+	return changeExplorer(db, explorerId, (explorer) => {
+		for (const stack of allStacks(explorer.loadout)) {
+			if (stack.free) continue;
+			if (addToSlots(explorer.stash, stack) > 0) return 'backpackFirst';
+		}
+		explorer.loadout = freeLoadout();
+		return null;
+	});
 }
 
 /**

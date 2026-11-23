@@ -67,6 +67,8 @@
 		discovered: ReadonlySet<string>;
 		/** Recipes quests have taught them (the quarryman's charge), for the Craft tab. */
 		learned?: readonly string[];
+		/** Recipes made at least once (the Craft tab names what they make). */
+		made?: ReadonlySet<string>;
 		/** Make or mend something below (the Craft tab). */
 		oncraft: (change: { recipe: string } | { repair: SlotRef }) => void;
 		onclose: () => void;
@@ -84,6 +86,7 @@
 		survey,
 		discovered,
 		learned = [],
+		made,
 		oncraft,
 		onclose
 	}: Props = $props();
@@ -167,7 +170,7 @@
 			</div>
 			{#if crafting}
 				<div class="pane" aria-label="Craft" inert={current !== 'Craft'}>
-					<CraftPanel {inventory} {discovered} {learned} {oncraft} />
+					<CraftPanel {inventory} {discovered} {learned} {made} {oncraft} />
 				</div>
 			{/if}
 			{#if current === 'Map' && survey && view}

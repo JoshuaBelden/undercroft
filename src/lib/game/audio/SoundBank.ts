@@ -97,6 +97,37 @@ export class SoundBank {
 	}
 
 	/**
+	 * A one-shot from a point in the world, as `playAt`, that can be cut short: the handle (null if
+	 * audio is locked or the sound won't load). For work that can be given up halfway (prying).
+	 */
+	async playAtHeld(
+		id: SoundId,
+		position: Vec3,
+		volume = 1,
+		refDistance?: number
+	): Promise<SoundHandle | null> {
+		this.cue(id, volume, position, refDistance);
+		if (!this.audio.unlocked) return null;
+		const def: SoundDef = SOUNDS[id];
+		const spread = def.variation ?? 0;
+		try {
+			const buffers = await this.buffers(id);
+			return this.audio.playBufferAt(
+				buffers[Math.floor(Math.random() * buffers.length)],
+				position,
+				{
+					category: def.category,
+					volume: def.volume * volume,
+					rate: (def.rate ?? 1) * (1 + (Math.random() * 2 - 1) * spread),
+					refDistance
+				}
+			);
+		} catch {
+			return null;
+		}
+	}
+
+	/**
 	 * Start a looping sound (first variant); adjust or stop it through the handle. A file built
 	 * to keep its opening (loopFrom) plays from its start once, then loops from where it says.
 	 */

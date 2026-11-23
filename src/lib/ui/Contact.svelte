@@ -6,8 +6,11 @@
 	import { QUEST_ORDER, QUESTS } from '#lib/content/quests.ts';
 	import { saveSettings, settings } from '#lib/settings/settings.svelte.ts';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
+	import { committable } from '#lib/shared/items/inventory.ts';
 	import type { SlotRef } from '#lib/shared/items/types.ts';
+	import type { ItemStack } from '#lib/shared/player/types.ts';
 	import {
+		canComplete,
 		objectiveCount,
 		research,
 		status,
@@ -52,7 +55,7 @@
 	let error = $state('');
 	let busy = $state(false);
 	/** The stash slot being dragged. */
-	let dragging = $state<number | null>(null);
+	let dragging = $state<SlotRef | null>(null);
 
 	const npc = $derived(NPCS[npcId]);
 	const record = $derived(explorer.quests);
@@ -71,6 +74,40 @@
 	const finished = $derived(shown.filter((q) => q.status === 'done'));
 	const listed = $derived(showDone ? shown : open);
 	const selected = $derived(listed.find((q) => q.def.id === chosen) ?? listed[0] ?? null);
+	/** The stash, beside Quests only while the chosen quest still wants something from it; always for Store. */
+	const showStash = $derived(
+		tab === 'store' ||
+			(tab === 'quests' &&
+				!!selected &&
+				selected.status !== 'done' &&
+				stillToCommit(record, selected.def).length > 0)
+	);
+	/** How many slots the quest's stash shows. */
+	const OFFERED = 5;
+	/**
+	 * Beside a quest, not the whole stash: five slots holding only what the chosen quest still
+	 * wants, from the stash, then the backpack and quick slots (nothing lent); the rest empty.
+	 */
+	const offered = $derived.by(() => {
+		const out: ({ ref: SlotRef; stack: ItemStack } | null)[] = [];
+		if (tab === 'quests' && selected && selected.status !== 'done') {
+			const wanted = new Set(stillToCommit(record, selected.def).map((c) => c.item));
+			const areas: [SlotRef['area'], (ItemStack | null)[]][] = [
+				['stash', explorer.stash],
+				['backpack', explorer.loadout.backpack],
+				['quick', explorer.loadout.quick]
+			];
+			for (const [area, slots] of areas) {
+				slots.forEach((stack, index) => {
+					if (stack && !stack.free && wanted.has(stack.item) && out.length < OFFERED) {
+						out.push({ ref: { area, index } as SlotRef, stack });
+					}
+				});
+			}
+		}
+		while (out.length < OFFERED) out.push(null);
+		return out;
+	});
 	/** Everyone's open quests, not only this contact's: one is followed across them all. */
 	const openIds = $derived(
 		QUEST_ORDER.filter((id) => {
@@ -105,10 +142,23 @@
 		}
 	}
 
-	/** The first stash slot holding `item` (not lent), to commit without dragging. */
+	/** Open, done below, and what is still wanted in hand: only Commit is left before Report. */
+	function inHand(def: QuestDef): boolean {
+		return canComplete(record, def, (item) => committable(explorer.stash, explorer.loadout, item));
+	}
+
+	/**
+	 * The first slot holding `item` (not lent), to commit without dragging: the stash, then what was
+	 * carried back up (the backpack and quick slots).
+	 */
 	function firstOf(item: string): SlotRef | null {
-		const index = explorer.stash.findIndex((s) => s?.item === item && !s.free);
-		return index < 0 ? null : { area: 'stash', index };
+		const usable = (s: (typeof explorer.stash)[number]) => s?.item === item && !s.free;
+		const stash = explorer.stash.findIndex(usable);
+		if (stash >= 0) return { area: 'stash', index: stash };
+		const pack = explorer.loadout.backpack.findIndex(usable);
+		if (pack >= 0) return { area: 'backpack', index: pack };
+		const quick = explorer.loadout.quick.findIndex(usable);
+		return quick >= 0 ? { area: 'quick', index: quick } : null;
 	}
 
 	function commit(quest: string, from: SlotRef | null): void {
@@ -118,15 +168,15 @@
 	function dropOn(quest: string, item: string) {
 		return (event: DragEvent): void => {
 			event.preventDefault();
-			const index = dragging;
+			const from = dragging;
 			dragging = null;
-			if (index === null || explorer.stash[index]?.item !== item) return;
-			commit(quest, { area: 'stash', index });
+			if (!from || offered.find((o) => o?.ref === from)?.stack.item !== item) return;
+			commit(quest, from);
 		};
 	}
 </script>
 
-<section class="contact" class:wide={tab !== 'research'} aria-labelledby="contact-name">
+<section class="contact" class:wide={showStash} aria-labelledby="contact-name">
 	<aside class="who">
 		<ContactPortrait {npc} />
 		<h2 id="contact-name">{npc.name}</h2>
@@ -170,12 +220,14 @@
 												title="Tracked"
 											></span>{/if}{q.def.title}</span
 									>
-									<span class="state {q.status}"
+									<span class="state {q.status === 'open' && inHand(q.def) ? 'ready' : q.status}"
 										>{q.status === 'ready'
 											? 'Ready to report'
 											: q.status === 'done'
 												? 'Done'
-												: q.def.teaches}</span
+												: inHand(q.def)
+													? 'Ready to commit'
+													: q.def.teaches}</span
 									>
 								</button>
 							</li>
@@ -251,10 +303,28 @@
 										{#if left > 0 && selected.status !== 'done'}
 											<button
 												type="button"
+												class="pill commit"
 												disabled={locked || busy || !firstOf(wanted.item)}
 												onclick={() => commit(def.id, firstOf(wanted.item))}>Commit</button
 											>
 										{/if}
+									</li>
+								{/each}
+							</ul>
+						{/if}
+						{#if def.reward && selected.status !== 'done'}
+							<h4>Rewards</h4>
+							<ul class="rewards">
+								{#if def.reward.coins}
+									<li><span class="amount">{money(def.reward.coins)}</span></li>
+								{/if}
+								{#if def.reward.xp}
+									<li><span class="amount">{def.reward.xp}</span> experience</li>
+								{/if}
+								{#each def.reward.items ?? [] as r (r.item)}
+									<li class="item">
+										<TipSlot stack={{ item: r.item, count: r.count }} />
+										<span>{ITEMS[r.item]?.name ?? r.item}</span>
 									</li>
 								{/each}
 							</ul>
@@ -269,17 +339,6 @@
 							>
 						{:else if selected.status === 'open' && stillToCommit(record, def).length === 0 && def.commit.length}
 							<p class="muted">Everything is committed. Finish what is asked above, then report.</p>
-						{/if}
-						{#if def.reward && selected.status !== 'done'}
-							<p class="reward">
-								Pays {[
-									def.reward.coins ? money(def.reward.coins) : null,
-									...(def.reward.items ?? []).map((r) => ITEMS[r.item]?.name ?? r.item),
-									def.reward.xp ? `${def.reward.xp} experience` : null
-								]
-									.filter(Boolean)
-									.join(', ')}
-							</p>
 						{/if}
 					</article>
 				{/if}
@@ -317,16 +376,28 @@
 		{/if}
 	</div>
 
-	{#if tab !== 'research'}
+	{#if showStash && tab === 'quests'}
+		<!-- Only what the quest wants, if you have it: drag one onto its slot to commit it. -->
+		<div class="stash" aria-label="What you have for it">
+			<h3>Stash</h3>
+			<ul class="grid">
+				{#each offered as slot, i (i)}
+					<li
+						draggable={!!slot && !locked}
+						ondragstart={() => (dragging = slot?.ref ?? null)}
+						ondragend={() => (dragging = null)}
+					>
+						{#if slot}<TipSlot stack={slot.stack} />{:else}<Slot name={null} empty />{/if}
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{:else if showStash}
 		<div class="stash" aria-label="Stash">
 			<h3>Stash</h3>
 			<ul class="grid">
 				{#each explorer.stash as stack, index (index)}
-					<li
-						draggable={!!stack && !stack.free && !locked && tab === 'quests'}
-						ondragstart={() => (dragging = index)}
-						ondragend={() => (dragging = null)}
-					>
+					<li>
 						{#if stack}<TipSlot {stack} />{:else}<Slot name={null} empty />{/if}
 					</li>
 				{/each}
@@ -644,9 +715,41 @@
 		cursor: pointer;
 	}
 
-	.reward {
+	/* What the quest pays: coin and experience as lines, items as slots with their tooltip. */
+	.rewards {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px 20px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		--slot-size: 52px;
+	}
+
+	.rewards li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 		color: var(--muted);
-		font-size: 0.9rem;
+	}
+
+	.rewards .amount {
+		color: var(--text);
+		font: 700 1.05rem var(--font-display);
+	}
+
+	/* Commit: a pill, in the accent while it can be pressed. */
+	.commit {
+		flex: none;
+		color: var(--text);
+		border-color: var(--accent);
+	}
+
+	.commit:disabled {
+		opacity: 0.45;
+		cursor: default;
+		border-color: var(--border);
 	}
 
 	.research {

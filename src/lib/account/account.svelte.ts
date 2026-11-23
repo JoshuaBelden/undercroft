@@ -143,6 +143,14 @@ export async function changeLoadout(action: InventoryAction): Promise<void> {
 	session.account = await api<AccountView>('/api/explorer/loadout', 'POST', action);
 }
 
+/**
+ * Use free loadout: everything in the loadout goes into the stash and the free loadout takes its
+ * place (docs/dev/economy.md#free-loadout). Throws `ApiError` if the stash can't take it all.
+ */
+export async function takeFreeLoadout(): Promise<void> {
+	session.account = await api<AccountView>('/api/explorer/loadout/free', 'POST');
+}
+
 /** Buy from the shop, or sell from a stash or loadout slot. Throws `ApiError` if it is refused. */
 export async function trade(
 	change:

@@ -4,6 +4,7 @@ import { upTo } from '../testing/quests.ts';
 import {
 	advance,
 	briefs,
+	canComplete,
 	research,
 	commit,
 	emptyRecord,
@@ -98,6 +99,23 @@ describe('advancing', () => {
 		expect(once.flags).toEqual(['gloaming.level-3-open']);
 		expect(advance(once, { kind: 'flag', flag: 'gloaming.level-3-open' })).toBeNull();
 		expect(holds({ kind: 'flag', flag: 'gloaming.level-3-open' }, once)).toBe(true);
+	});
+});
+
+describe('complete but for committing', () => {
+	it('is objectives met and what is still wanted in hand', () => {
+		const def = QUESTS['moved-dead'];
+		const searched = apply(
+			upTo('moved-dead'),
+			...Array.from({ length: 8 }, (): QuestEvent => ({ kind: 'loot', affliction: 'gloaming' }))
+		);
+		const rosaries = (n: number) => (item: string) => (item === 'rosary' ? n : 0);
+		expect(canComplete(upTo('moved-dead'), def, rosaries(1))).toBe(false);
+		expect(canComplete(searched, def, rosaries(0))).toBe(false);
+		expect(canComplete(searched, def, rosaries(1))).toBe(true);
+		expect(canComplete(commit(searched, 'moved-dead', 'rosary', 1).record, def, rosaries(0))).toBe(
+			true
+		);
 	});
 });
 

@@ -8,7 +8,7 @@ import {
 	type Ingredient,
 	type Recipe
 } from '../../content/recipes.ts';
-import type { ItemStack } from '../player/types.ts';
+import type { Inventory, ItemStack } from '../player/types.ts';
 import { lasting, wearOf } from './durability.ts';
 
 /**
@@ -51,6 +51,20 @@ export function recipesUsing(item: string): Recipe[] {
 	return RECIPES.filter((r) => r.ingredients.some((i) => i.item === item));
 }
 
+/**
+ * The recipes an explorer has made at least once (in the Workshop or below), from the firsts their
+ * progression keeps (`recipe:<id>`, docs/dev/progression.md). Until a recipe is made, what it makes
+ * is a secret: a ? and ??? (docs/dev/crafting.md#what-a-recipe-makes).
+ */
+export function madeRecipes(firsts: readonly string[]): string[] {
+	return firsts.filter((first) => first.startsWith('recipe:')).map((first) => first.slice(7));
+}
+
+/** Whether what a recipe makes is known: made once, or taught by a quest. */
+export function productKnown(recipe: Recipe, made: ReadonlySet<string>): boolean {
+	return !!recipe.learned || made.has(recipe.id);
+}
+
 /** Whether `count(item)` covers a recipe's ingredients `times` over. */
 export function hasIngredients(
 	recipe: Recipe,
@@ -58,6 +72,24 @@ export function hasIngredients(
 	times = 1
 ): boolean {
 	return recipe.ingredients.every((i) => count(i.item) >= i.count * times);
+}
+
+/**
+ * Where the Workshop takes materials from, in the order it uses them: the stash, then the
+ * loadout's backpack and quick slots (what came back up from below). Never what is equipped.
+ */
+export function materialSlots(
+	stash: (ItemStack | null)[],
+	loadout: Pick<Inventory, 'backpack' | 'quick'>
+): (ItemStack | null)[][] {
+	return [stash, loadout.backpack, loadout.quick];
+}
+
+/** How many of an item those slots hold. */
+export function onHand(slots: (ItemStack | null)[][], item: string): number {
+	let n = 0;
+	for (const area of slots) for (const stack of area) if (stack?.item === item) n += stack.count;
+	return n;
 }
 
 /**

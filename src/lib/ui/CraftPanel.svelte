@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ITEMS, rarityOf } from '#lib/content/items.ts';
 	import { CRAFT, RECIPES, REPAIRS } from '#lib/content/recipes.ts';
-	import { hasIngredients, recipeStatus } from '#lib/shared/items/crafting.ts';
+	import { hasIngredients, productKnown, recipeStatus } from '#lib/shared/items/crafting.ts';
 	import { condition, lasting, wearOf } from '#lib/shared/items/durability.ts';
 	import { wornGear } from '#lib/shared/items/gear.ts';
 	import { carriedCount, getSlot } from '#lib/shared/items/inventory.ts';
@@ -19,15 +19,26 @@
 		discovered: ReadonlySet<string>;
 		/** Recipes quests have taught (docs/dev/quests.md): made below only, never in the Library. */
 		learned?: readonly string[];
+		/** Recipes made at least once: until then what one makes shows as ? and ???. */
+		made?: ReadonlySet<string>;
 		oncraft: (change: { recipe: string } | { repair: SlotRef }) => void;
 	}
 
-	let { inventory, discovered, learned = [], oncraft }: Props = $props();
+	let { inventory, discovered, learned = [], made = new Set(), oncraft }: Props = $props();
 
 	const kit = $derived(wornGear(inventory).some((def) => def.crafting));
 	const count = (item: string): number => carriedCount(inventory, item);
+	/**
+	 * Field recipes known in full, with at least one thing they take carried in enough: the rest
+	 * would only be a list of what isn't to hand.
+	 */
 	const recipes = $derived(
-		RECIPES.filter((r) => r.field && recipeStatus(r, discovered, learned) === 'available')
+		RECIPES.filter(
+			(r) =>
+				r.field &&
+				recipeStatus(r, discovered, learned) === 'available' &&
+				r.ingredients.some((i) => count(i.item) >= i.count)
+		)
 	);
 
 	/** Carried things worn enough to mend, with their materials. */
@@ -59,20 +70,27 @@
 			moving stops it.
 		</p>
 		<h3>Make</h3>
-		{#if recipes.length === 0}<p class="note">No field recipe is known yet.</p>{/if}
+		{#if recipes.length === 0}<p class="note">
+				Nothing you carry goes into a recipe you know.
+			</p>{/if}
 		<ul class="rows">
 			{#each recipes as recipe (recipe.id)}
 				{@const def = ITEMS[recipe.makes]}
 				{@const can = hasIngredients(recipe, count)}
+				{@const known = productKnown(recipe, made)}
 				<li class="row">
-					<Slot
-						name={def?.name ?? recipe.makes}
-						image={def?.image}
-						count={recipe.count}
-						rarity={rarityOf(recipe.makes)}
-					/>
+					{#if known}
+						<Slot
+							name={def?.name ?? recipe.makes}
+							image={def?.image}
+							count={recipe.count}
+							rarity={rarityOf(recipe.makes)}
+						/>
+					{:else}
+						<Slot name={null} />
+					{/if}
 					<div class="what">
-						<strong>{def?.name ?? recipe.makes}</strong>
+						<strong>{known ? (def?.name ?? recipe.makes) : '???'}</strong>
 						<span class="needs">
 							{#each recipe.ingredients as i (i.item)}
 								<span class:short={count(i.item) < i.count}

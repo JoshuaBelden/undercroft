@@ -14,11 +14,11 @@ What explorers earn across expeditions, and what they spend it on (issue #18). P
 | Reading it at descent, keeping it after                                         | `server/belongings.ts` (`progressions`, `keepExperience`), `server/parties.ts`      |
 | Spending points                                                                 | `POST /api/explorer/progression`, `skills()` in `src/lib/account/account.svelte.ts` |
 | The Skills page                                                                 | `src/routes/(hub)/skills/+page.svelte`, `src/lib/ui/SkillTree.svelte`               |
-| "+X Experience" under the clock                                                 | `src/lib/ui/ExperienceGain.svelte`, the `experience` message                        |
+| "+X Experience" on screen                                                       | `src/lib/ui/ExperienceGain.svelte`, the `experience` message                        |
 
 ## Levels
 
-1000 XP a level (`LEVELS.xpPerLevel`), capped at level 60, one skill point per level. From level 1 (`LEVELS.treeAt`) the hub bar shows the explorer's level, a round button left of the avatar, which opens the Skills page. `levelOf(xp)` and `pointsLeft(p)` are the only places this is worked out.
+1000 XP a level (`LEVELS.xpPerLevel`), capped at level 60, one skill point per level. From level 1 (`LEVELS.treeAt`) the hub bar shows the explorer's level, a round button left of the avatar, which opens the Skills page. While there are points to spend (`pointsLeft`) it is yellow (`--launch-bright`) and throbs gently (still, for reduced motion). `levelOf(xp)` and `pointsLeft(p)` are the only places this is worked out.
 
 ## Earning
 
@@ -26,7 +26,7 @@ What explorers earn across expeditions, and what they spend it on (issue #18). P
 
 What pays, and from where:
 
-- **Looting** (`crateOpen` events, counted in `Session.tally`): the first opener gets the lootable's `xp` (its `sealed.xp` if it was sealed: a jammed crate), plus `XP.rarity` for the best thing inside, plus `XP.firstLootable` the first time they open that kind. A drop box pays nothing.
+- **Looting** (`crateOpen` events, counted in `Session.tally`): the first opener of any lootable gets `XP.lootable` (25), whatever it is, sealed or not, and whatever it holds: every one is worth opening. A drop box pays nothing. In a training ground it is a first (`loot:<kind>`), once for each kind, ever.
 - **Discovery**: `Session.discover`, when an item is new to the player: `XP.discovery`, as a first.
 - **Field crafting**: `CraftSystem.finish` calls `Experience.crafted`. The recipe's `xp`, for its first `XP.recipeRepeats` makes in a run, and `XP.firstRecipe` once. The Workshop pays only that first-time bonus (`workshopCrafted` in the store): crafting from the stash is safe and unlimited.
 - **Kills** (`creatureDie`, with `by`): the creature's `xp` to the killer, with `XP.firstKill` once; teammates within `XP.shareRange` m get `XP.killShare` of it. Moths, the surveyor and training dummies are 0. Banishing the manifestation (`resolved`) pays `XP.banish` to everyone still down there.
@@ -34,7 +34,7 @@ What pays, and from where:
 - **The way out**: `Experience.finish(player, outcome)`, once per player, from `leaving`, `abandon` and `logRun`. Getting out pays `XP.extract` by the deepest level reached, with `XP.firstExtract` the first time from that level. Dying or running out of time pays `XP.died` of it; abandoning or leaving the party, nothing.
 - **A training ground** (Rumors) pays its firsts and nothing else, so the safe map can't be farmed.
 
-Awards build up in `PlayerExperience.pending`. `Experience.flush` sends each player one `experience` message a tick, and the play page shows it under the clock (`ExperienceGain`). When the run ends, `ExpeditionSummary.experience` (earned, and what they had before) goes to the results screen, which also says when a level was reached. The `onExperience` hook keeps it (`addExperience`: `$inc` the XP, `$addToSet` the firsts) for every outcome, so experience survives a death, and the run log gets `xp` and `xpBySource`.
+Awards build up in `PlayerExperience.pending`. `Experience.flush` sends each player one `experience` message a tick, and the play page shows it a third of the way down the screen (`ExperienceGain`). When the run ends, `ExpeditionSummary.experience` (earned, and what they had before) goes to the results screen (`ExpeditionResult`): the experience earned, the level they are at now, a bar of the way to the next (`levelProgress`), and the skill points a level gained gives. A level gained also rises over the screen as a Level up banner that fades after a few seconds, with the `skills.mastered` sting (the play page's `playUi`). The `onExperience` hook keeps it (`addExperience`: `$inc` the XP, `$addToSet` the firsts) for every outcome, so experience survives a death, and the run log gets `xp` and `xpBySource`.
 
 A co-op guest on someone's desktop game (docs/dev/hosting.md) comes down with no skills and keeps nothing: their save is their own.
 
@@ -44,7 +44,7 @@ Every value is data: the `XP` table, and `xp` on lootables, recipes and creature
 
 ## The skill tree
 
-Three categories (`SKILL_CATEGORIES`): Nerve, Grit and Craft. Opening one costs a point; each of its four skills has three ranks, a point each. The connector skill above them isn't designed yet: the page shows it as a "?".
+Three categories (`SKILL_CATEGORIES`): Nerve, Grit and Craft. Each has a `blurb` and a `pitch`: hovering or focusing a category's button shows a tooltip with the pitch, the case for opening it, written so as not to name its skills before it is open. Opening one costs a point; each of its four skills has three ranks, a point each. The connector skill above them isn't designed yet: the page shows it as a "?".
 
 A skill (`SkillDef` in `SKILLS`) names its `ranks` (the bonus at each, as a fraction) and its `effects`: which modifiers it changes, and how (`less` multiplies by `1 - bonus`, `more` by `1 + bonus`, `chance` sets it). Its `detail(bonus, context)` writes the tooltip from the game data (the headlamp's drain, the witch's dark range, the held weapon's damage...), so a balance change updates it.
 

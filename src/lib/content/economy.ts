@@ -61,14 +61,16 @@ export const ECONOMY = {
 	currency: 'coin',
 	/** Gear sells back for this fraction of what it costs. */
 	sellBack: 0.4,
+	/** What one thing from the free loadout sells for: an early boost, not worth farming later. */
+	freeSell: 1,
 	/** What a new explorer (or one reset to new) starts with. */
 	startingMoney: 100
 };
 
 /**
- * What Use Free Loadout takes down, for an explorer whose own loadout is empty
- * (docs/dev/economy.md#free-loadout): each a slot of the loadout. What comes back is `free`: it
- * sells for nothing and can't be salvaged, so the free loadout is never coin.
+ * What Use Free Loadout takes down (docs/dev/economy.md#free-loadout): each a slot of the
+ * loadout. What comes back is `free`: it sells for `ECONOMY.freeSell` each (nothing broken)
+ * and can't be salvaged.
  */
 export const FREE_LOADOUT: {
 	item: string;
@@ -137,13 +139,14 @@ export function forSale(tiers: readonly StoreTier[] = OPEN_TIERS): ShopEntry[] {
 /**
  * What one of an item sells for: loot its `value`, anything else a share (`ECONOMY.sellBack`) of
  * its `price`, else 0. Give the stack to count its wear: a worn thing sells for what is left of it,
- * and a broken one for nothing.
+ * and a broken one for nothing. It can be a fraction (nails are a tenth each): what a sale pays
+ * is `saleTotal`, always whole coin.
  */
 export function sellPrice(item: string, stack?: ItemStack): number {
 	const def = ITEMS[item];
 	if (!def) return 0;
-	// From the free loadout: never coin.
-	if (stack?.free) return 0;
+	// From the free loadout: a token amount, nothing once broken.
+	if (stack?.free) return (condition(stack) ?? 1) > 0 ? ECONOMY.freeSell : 0;
 	// Made from materials: it sells for them, never more (or making things would make coin).
 	if (stack?.crafted) {
 		const left = condition(stack) ?? 1;
@@ -151,7 +154,20 @@ export function sellPrice(item: string, stack?: ItemStack): number {
 	}
 	if (def.value !== undefined) return def.value;
 	const left = stack ? (condition(stack) ?? 1) : 1;
-	return Math.floor((def.price ?? 0) * ECONOMY.sellBack * left);
+	return (def.price ?? 0) * ECONOMY.sellBack * left;
+}
+
+/**
+ * What selling `count` at `each` pays: whole coin, rounded up, so nothing sells for a fraction
+ * (one nail a coin, ten nails a coin). 0 for what is worth nothing.
+ */
+export function saleTotal(each: number, count: number): number {
+	return each > 0 && count > 0 ? Math.ceil(each * count - 1e-9) : 0;
+}
+
+/** What a whole stack sells for (`saleTotal` of its `sellPrice`). */
+export function stackSale(stack: ItemStack): number {
+	return saleTotal(sellPrice(stack.item, stack), stack.count);
 }
 
 /** "25 coin". */

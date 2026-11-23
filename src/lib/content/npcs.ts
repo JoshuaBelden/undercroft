@@ -10,9 +10,7 @@ const LIST: NpcDef[] = [
 		name: 'Fontaine',
 		role: 'Dr. Margaux Fontaine: archaeologist, historian, and student of things that should stay buried',
 		portrait: 'npc-margaux-fontaine',
-		greeting: [
-			{ id: 'fontaine.greeting.1', text: 'Back again. Sit, if you like. Tell me what you saw.' }
-		],
+		greeting: [],
 		// One of her four greetings, no more than once every three and a half minutes.
 		voice: { sound: 'fontaine.greeting', every: 210 },
 		quests: [

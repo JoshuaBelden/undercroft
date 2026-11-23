@@ -52,7 +52,6 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 	// Lootables: each with its states, like the crate and trunk.
 	...group('model', 'Lootables', 2, [
 		[prop('wall-niche'), 'Wall niche: open, sealed, emptied'],
-		[prop('bone-pile'), 'Bone pile: whole, rummaged'],
 		[prop('sarcophagus'), 'Sarcophagus: lid on, pushed aside'],
 		[prop('tool-chest'), "Quarrymen's tool chest: closed, pried open"],
 		[prop('locker'), "Workman's locker: closed, open"],

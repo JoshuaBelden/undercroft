@@ -1,5 +1,12 @@
 import type { Db } from 'mongodb';
-import { ECONOMY, forSale, openTiers, sellPrice, type StoreTier } from '../../content/economy.ts';
+import {
+	ECONOMY,
+	forSale,
+	openTiers,
+	saleTotal,
+	sellPrice,
+	type StoreTier
+} from '../../content/economy.ts';
 import { ITEMS, SLOTS } from '../../content/items.ts';
 import {
 	addToSlots,
@@ -90,8 +97,8 @@ export async function sell(db: Db, explorerId: string, from: unknown, count: unk
 		if (!stack) return 'missing';
 		const each = sellPrice(stack.item, stack);
 		if (each <= 0) return 'worthless';
-		// A whole stack at once: nails are worth a tenth each, a lot of ten a coin.
-		const total = Math.floor(each * stack.count + 1e-9);
+		// A whole stack at once, rounded up: nails are worth a tenth each, one or ten a coin.
+		const total = saleTotal(each, stack.count);
 		if (total <= 0) return 'worthless';
 		explorer.money += total;
 		sold = { item: stack.item, count: stack.count, money: total };
@@ -137,9 +144,9 @@ export async function sellTreasure(db: Db, explorerId: string): Result {
 			const line = sold.find((entry) => entry.item === stack.item);
 			if (line) {
 				line.count += stack.count;
-				line.money += each * stack.count;
+				line.money += saleTotal(each, stack.count);
 			} else {
-				sold.push({ item: stack.item, count: stack.count, money: each * stack.count });
+				sold.push({ item: stack.item, count: stack.count, money: saleTotal(each, stack.count) });
 			}
 			return null;
 		});

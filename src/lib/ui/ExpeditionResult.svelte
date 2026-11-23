@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { money, sellPrice } from '#lib/content/economy.ts';
+	import { money, stackSale } from '#lib/content/economy.ts';
 	import { BACKDROP_IMAGE } from '#lib/content/images.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { menu } from '#lib/game/input/menus.ts';
 	import type { ExpeditionSummary } from '#lib/shared/protocol.ts';
 	import type { ItemStack } from '#lib/shared/player/types.ts';
-	import { levelOf } from '#lib/shared/progression/progression.ts';
+	import { onMount } from 'svelte';
+	import type { SoundId } from '#lib/content/audio/sounds.ts';
+	import { LEVELS } from '#lib/content/progression.ts';
+	import { levelOf, levelProgress } from '#lib/shared/progression/progression.ts';
 	import { slotMark, stackDetail } from './items.ts';
 	import { parallax } from './parallax.ts';
 	import Slot from './Slot.svelte';
@@ -22,9 +25,11 @@
 		carried: ItemStack[] | null;
 		/** Back to the surface, on the loadout. */
 		oncontinue: () => void;
+		/** Play an interface sound (the level-up sting). */
+		play?: (id: SoundId) => void;
 	}
 
-	let { summary, affliction, outcome, escaped = null, carried, oncontinue }: Props = $props();
+	let { summary, affliction, outcome, escaped = null, carried, oncontinue, play }: Props = $props();
 
 	const TITLES = {
 		extracted: 'You made it out',
@@ -54,20 +59,34 @@
 		{ label: 'Deepest level', value: String(summary.deepestLevel + 1) },
 		{ label: 'Creatures killed', value: String(summary.kills) },
 		{ label: 'Crates opened', value: String(summary.crates) },
-		{ label: 'Hints found', value: String(summary.clues) },
-		{ label: 'Experience', value: `+${summary.experience.earned}` }
+		{ label: 'Hints found', value: String(summary.clues) }
 	]);
-	/** Levels gained this expedition (docs/dev/progression.md). */
+	/** Experience now, and the level it makes (docs/dev/progression.md). */
+	const xpAfter = $derived(summary.experience.before + summary.experience.earned);
 	const levelBefore = $derived(levelOf(summary.experience.before));
-	const levelAfter = $derived(levelOf(summary.experience.before + summary.experience.earned));
+	const levelAfter = $derived(levelOf(xpAfter));
+	const gained = $derived(levelAfter - levelBefore);
+	const capped = $derived(levelAfter >= LEVELS.max);
+	/** Into the level they are at, and what the next takes. */
+	const into = $derived(Math.round(levelProgress(xpAfter) * LEVELS.xpPerLevel));
+
+	// A level gained: the sting, as the banner rises.
+	onMount(() => {
+		if (levelAfter > levelBefore) play?.('skills.mastered');
+	});
 	/** What the haul would fetch if all of it were sold. */
-	const worth = $derived(
-		(carried ?? []).reduce((sum, stack) => sum + sellPrice(stack.item, stack) * stack.count, 0)
-	);
+	const worth = $derived((carried ?? []).reduce((sum, stack) => sum + stackSale(stack), 0));
 </script>
 
 <!-- The whole window, like the screens on the surface: the expedition is over. -->
 <main class="screen backdrop-art" style:--backdrop-image={BACKDROP_IMAGE} use:parallax>
+	{#if gained > 0}
+		<!-- Rewarded: rises over everything, then fades. -->
+		<div class="levelled" role="status">
+			<span class="up">Level up</span>
+			<span class="to">Level {levelAfter}</span>
+		</div>
+	{/if}
 	<section class="recap" aria-labelledby="recap-title" {@attach menu()}>
 		<p class="kicker">{affliction ? `${affliction} · ` : ''}Expedition over</p>
 		<h1 id="recap-title">{TITLES[outcome]}</h1>
@@ -83,13 +102,21 @@
 				</div>
 			{/each}
 		</dl>
-		{#if levelAfter > levelBefore}
-			<p class="level">
-				Level {levelAfter} reached: {levelAfter - levelBefore === 1
-					? 'a skill point'
-					: `${levelAfter - levelBefore} skill points`} to spend on the surface.
+		<div class="progress" aria-label="Experience">
+			<p class="gain">+{summary.experience.earned} experience</p>
+			<p class="now">Level {levelAfter}</p>
+			<div class="bar" aria-hidden="true">
+				<span style:width="{levelProgress(xpAfter) * 100}%"></span>
+			</div>
+			<p class="next">
+				{capped ? 'The highest level' : `${into} / ${LEVELS.xpPerLevel} to level ${levelAfter + 1}`}
 			</p>
-		{/if}
+			{#if gained > 0}
+				<p class="points">
+					{gained === 1 ? 'A skill point' : `${gained} skill points`} to spend on the surface.
+				</p>
+			{/if}
+		</div>
 
 		<div class="haul">
 			<h2>Brought out</h2>
@@ -203,10 +230,130 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	.level {
-		margin: -8px 0 0;
-		font: 700 1.05rem var(--font-display);
+	/* Experience: what was earned, the level now, and the way to the next. */
+	.progress {
+		width: 100%;
+		display: grid;
+		justify-items: center;
+		gap: 6px;
+	}
+
+	.progress p {
+		margin: 0;
+	}
+
+	.gain {
+		font: 700 1.2rem var(--font-display);
 		color: var(--accent);
+	}
+
+	.now {
+		font: 400 2rem var(--font-lore);
+		letter-spacing: 0.08em;
+	}
+
+	.bar {
+		width: min(360px, 100%);
+		height: 6px;
+		border-radius: 3px;
+		background: rgb(255 255 255 / 0.1);
+		overflow: hidden;
+	}
+
+	.bar span {
+		display: block;
+		height: 100%;
+		background: var(--launch-bright);
+		animation: fill 1.2s ease-out;
+	}
+
+	@keyframes fill {
+		from {
+			width: 0;
+		}
+	}
+
+	.next {
+		font: 0.8rem var(--font-ui);
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.points {
+		font: 700 1rem var(--font-display);
+		color: var(--launch-bright);
+	}
+
+	/* A level gained: over the screen, rising in, then fading away. */
+	.levelled {
+		position: fixed;
+		top: 30%;
+		left: 50%;
+		translate: -50% -50%;
+		z-index: 1;
+		display: grid;
+		justify-items: center;
+		gap: 4px;
+		padding: 20px 48px;
+		border: 1px solid var(--launch-bright);
+		background: rgb(20 17 15 / 0.92);
+		box-shadow: 0 0 40px rgb(205 164 42 / 0.35);
+		pointer-events: none;
+		animation: levelled 3.5s ease-out forwards;
+	}
+
+	.up {
+		font: 600 0.85rem var(--font-ui);
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--launch-bright);
+	}
+
+	.to {
+		font: 400 2.4rem var(--font-lore);
+		letter-spacing: 0.08em;
+	}
+
+	@keyframes levelled {
+		0% {
+			opacity: 0;
+			scale: 0.85;
+		}
+		12% {
+			opacity: 1;
+			scale: 1.04;
+		}
+		20% {
+			scale: 1;
+		}
+		70% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+			visibility: hidden;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.levelled {
+			animation-name: fade;
+		}
+
+		.bar span {
+			animation: none;
+		}
+
+		@keyframes fade {
+			0%,
+			70% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0;
+				visibility: hidden;
+			}
+		}
 	}
 
 	.haul {

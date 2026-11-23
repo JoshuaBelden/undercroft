@@ -24,7 +24,13 @@ On the explorer, `discovered` maps each item to the lootable kinds it was seen i
 
 ## The Library
 
-The Library page lists what is discovered (with where it was seen and how many recipes use it) and every recipe with any ingredient discovered (`recipeStatus`: `hidden`, `started`, `available`): the product (its slot with the item tooltip, a silhouette until it can be made) and a slot per ingredient (`IngredientSlots`: dim with none in the stash, the count red with too few, on hand / needed; `?` for one not discovered). Available, Make opens the Workshop with it chosen (`workshopAsk.recipe`), and it can be made below too if it is a `field` recipe. Discovered items are slots with the item tooltip (`TipSlot`).
+The Library page lists what is discovered, the full width of the page: each item as a slot with the item tooltip (`TipSlot`), where it was seen and how many recipes use it. The recipes are on the Workshop's Craft tab.
+
+## What a recipe makes
+
+What a recipe makes is a secret until it has been made once. In the Workshop's Craft tab and the in-game Craft tab, a recipe never made shows its product as a grey ? slot named ???, even when every ingredient is known and it can be crafted; its ingredients show as usual. Once made, its product slot (with the item tooltip) and name show from then on.
+
+Made means a `recipe:<id>` first in the explorer's progression (docs/dev/progression.md: `workshopCrafted` in the Workshop, `Experience.crafted` below, kept at the end of a run whatever the outcome). `madeRecipes(firsts)` reads them, and the account view sends them as `ExplorerView.made`. Below, the play page starts from the account's (`knowMade`, `made` in `src/lib/game/discoveries.svelte.ts`) and adds a recipe when its `crafted` message comes. A recipe taught by a quest (`learned`) is known from the start (`productKnown`). Resetting an explorer's levels and skills (admin) clears the firsts, so what their recipes make is secret again.
 
 ## Fragments
 
@@ -32,13 +38,13 @@ The Library page lists what is discovered (with where it was seen and how many r
 
 ## The Workshop
 
-Everything is from the stash and into it, in one change to the explorer (all of it or none):
+Materials come from the stash, then the loadout's backpack and quick slots (`materialSlots`, `onHand` in `src/lib/shared/items/crafting.ts`: what was carried back up counts without being moved first; equipped things never do). What is made goes into the stash. Each is one change to the explorer (all of it or none):
 
-- **Craft** a recipe up to 20 times. It must be available. What is made is marked `crafted`.
-- **Repair** a stack in the stash or the loadout: its `REPAIRS` materials from the stash, and coin: `CRAFT.repairShare` (20%) of its price, by the share of it worn. A broken one can be mended. Repair in an item's menu on the Loadout page opens the Workshop with it chosen (`workshopAsk`).
+- **Craft**: the tab lists every recipe with any ingredient discovered (`recipeStatus`: `hidden`, `started`, `available`), those that can be made first: the product (its slot with the item tooltip, a silhouette until it can be made) and a slot per ingredient (`IngredientSlots`: each with the item tooltip, dim with none on hand, the count red with too few, on hand / needed; `?` for one not discovered). An available one has a count (up to 20) and Craft. Above the list, a pill for every discovered material the listed recipes take filters it: pick one or more and only the recipes that take all of them stay (Clear resets it; not kept between visits). What is made is marked `crafted`; a `field` recipe can be made below too.
+- **Repair** a stack in the stash or the loadout: its `REPAIRS` materials, and coin: `CRAFT.repairShare` (20%) of its price, by the share of it worn. A broken one can be mended. Repair in an item's menu on the Loadout page opens the Workshop with it chosen (`workshopAsk`).
 - **Salvage** a stack into its `SALVAGE` materials (rope: a length per 5 m). Never treasure, never a discovery. It is not a Workshop tab: it is Salvage in an item's menu in the stash and loadout (`ItemBoard`'s `salvage`, asked first in `ItemOverlays`).
 
-The Workshop page shows each recipe or repair as its product (`TipSlot`) and the same ingredient slots as the Library.
+The Workshop page shows each recipe or repair as its product (`TipSlot`) and its ingredient slots. Item tooltips (`ItemTooltip`) are moved onto the body as they open: these panels have a `backdrop-filter`, which would otherwise make `position: fixed` the panel's and put the tooltip in the wrong place.
 
 Each is a ledger line (`craft`, `repair`, `salvage`).
 
@@ -48,7 +54,7 @@ A `crafted` stack sells for what its recipe's materials sell for (a share, for a
 
 ## Field crafting
 
-With a working `crafting` gear (the field crafting kit) worn, the in-game menu has a Craft tab. A `field` recipe the player has discovered all of, with its materials carried, sends `craft { recipe }`; something worn they carry the materials to mend sends `craft { repair }`. `CraftSystem` kneels them (`PlayerState.crafting`, which `kneeling` reads: the medkit's pose) for `CRAFT.field.seconds`, heard `noise` away every `every` seconds, while their lamp is lit. Moving, the dark, being downed or the kit breaking stops it, and nothing is used. Done: the materials go and the thing is made into the pack (`crafted`), or the stack's wear goes down by `CRAFT.fieldRepair` (30%) of the most it takes; the kit wears a use. `crafted` tells them (an alert).
+With a working `crafting` gear (the field crafting kit) worn, the in-game menu has a Craft tab. It lists the `field` recipes known in full that the player carries enough of at least one ingredient for (`carriedCount`); the rest would only list what isn't to hand. A `field` recipe the player has discovered all of, with its materials carried, sends `craft { recipe }`; something worn they carry the materials to mend sends `craft { repair }`. `CraftSystem` kneels them (`PlayerState.crafting`, which `kneeling` reads: the medkit's pose) for `CRAFT.field.seconds`, heard `noise` away every `every` seconds, while their lamp is lit. Moving, the dark, being downed or the kit breaking stops it, and nothing is used. Done: the materials go and the thing is made into the pack (`crafted`), or the stack's wear goes down by `CRAFT.fieldRepair` (30%) of the most it takes; the kit wears a use. `crafted` tells them (an alert).
 
 ## Learned recipes
 

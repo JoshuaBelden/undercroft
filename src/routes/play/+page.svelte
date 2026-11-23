@@ -82,7 +82,7 @@
 	import MarkLabel from '#lib/ui/MarkLabel.svelte';
 	import Bearings from '#lib/ui/Bearings.svelte';
 	import TrainingOverlay from '#lib/ui/TrainingOverlay.svelte';
-	import { discoveries, knowDiscoveries } from '#lib/game/discoveries.svelte.ts';
+	import { discoveries, knowDiscoveries, knowMade, made } from '#lib/game/discoveries.svelte.ts';
 	import { wheelChoice } from '#lib/ui/wheel.ts';
 	import DownedScreen from '#lib/ui/DownedScreen.svelte';
 	import ExpeditionResult from '#lib/ui/ExpeditionResult.svelte';
@@ -182,7 +182,7 @@
 	let playUi = (id: SoundId): void => {
 		void id;
 	};
-	/** Experience just earned, shown under the clock for a moment each (docs/dev/progression.md). */
+	/** Experience just earned, shown a third of the way down for a moment each (docs/dev/progression.md). */
 	let gains = $state<{ id: number; amount: number }[]>([]);
 	let nextGain = 0;
 	/** How long each "+X Experience" shows, ms (its fade is in ExperienceGain). */
@@ -350,7 +350,10 @@
 	});
 
 	// What they have discovered so far (the Craft tab): the account's, then what they find below.
-	onMount(() => knowDiscoveries(Object.keys(session.account?.explorer.discovered ?? {})));
+	onMount(() => {
+		knowDiscoveries(Object.keys(session.account?.explorer.discovered ?? {}));
+		knowMade(session.account?.explorer.made ?? []);
+	});
 
 	// Alerts down here (docs/dev/alerts.md): an item one opens the pack. A social one goes nowhere,
 	// since the Social page would leave the expedition.
@@ -1355,9 +1358,16 @@
 			interactKey={promptCode('interact')}
 			open={settings.interface.ritePanel}
 			toggleKey={promptCode('toggleRitePanel')}
+			nameOnly={features.rite.known.gated &&
+				!features.rite.known.performed &&
+				!features.quests.resolves(features.affliction.id)}
 		/>
 		{#if settings.interface.ritePanel}
-			<QuestPanel quests={features.quests.briefs} chosen={settings.interface.trackedQuest} />
+			<QuestPanel
+				quests={features.quests.briefs}
+				chosen={settings.interface.trackedQuest}
+				carried={(item) => (inventory ? carriedCount(inventory, item) : 0)}
+			/>
 		{/if}
 	</div>
 	{#if features.affliction.deadline !== null}
@@ -1400,6 +1410,7 @@
 		outcome={result.outcome}
 		escaped={result.escaped}
 		carried={result.carried}
+		play={(id) => playUi(id)}
 		oncontinue={() => {
 			result = null;
 			void loadAccount();
@@ -1459,6 +1470,7 @@
 		onaction={(action) => sendInventory(action)}
 		discovered={discoveries}
 		learned={features.quests.learned}
+		{made}
 		oncraft={(change) => {
 			panel = null;
 			send({ type: 'craft', ...change });

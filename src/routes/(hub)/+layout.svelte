@@ -6,9 +6,10 @@
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { money } from '#lib/content/economy.ts';
 	import { LEVELS } from '#lib/content/progression.ts';
-	import { levelOf } from '#lib/shared/progression/progression.ts';
-	import { QUEST_ORDER } from '#lib/content/quests.ts';
-	import { status } from '#lib/shared/quests/engine.ts';
+	import { levelOf, pointsLeft } from '#lib/shared/progression/progression.ts';
+	import { QUEST_ORDER, QUESTS } from '#lib/content/quests.ts';
+	import { committable } from '#lib/shared/items/inventory.ts';
+	import { canComplete, status } from '#lib/shared/quests/engine.ts';
 	import { BACKDROP_IMAGE, imageUrl } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { menu } from '#lib/game/input/menus.ts';
@@ -40,13 +41,20 @@
 	let bar = $state(0);
 
 	const explorer = $derived(session.account?.explorer ?? null);
-	/** Quests ready to report: the number on the Contacts tab. */
+	/**
+	 * Quests ready to report, or done but for committing what is already in hand: the number on
+	 * the Contacts tab.
+	 */
 	const toReport = $derived.by(() => {
 		if (!explorer) return 0;
 		const context = {
 			resolved: (id: string) => explorer.afflictions.some((a) => a.id === id && a.resolved)
 		};
-		return QUEST_ORDER.filter((id) => status(explorer.quests, id, context) === 'ready').length;
+		const have = (item: string) => committable(explorer.stash, explorer.loadout, item);
+		return QUEST_ORDER.filter((id) => {
+			const s = status(explorer.quests, id, context);
+			return s === 'ready' || (s === 'open' && canComplete(explorer.quests, QUESTS[id], have));
+		}).length;
 	});
 	const gamerTag = $derived(session.account?.gamerTag ?? data.account?.gamerTag ?? '');
 	const avatar = $derived(session.account?.avatar ?? null);
@@ -64,6 +72,8 @@
 	const level = $derived(levelOf(explorer?.progression.xp ?? 0));
 	/** The skill tree is hidden until level 1 (docs/dev/progression.md); the level beside the avatar opens it. */
 	const treeOpen = $derived(level >= LEVELS.treeAt);
+	/** Skill points not yet spent: the level turns yellow and throbs until they are. */
+	const unspent = $derived(explorer ? pointsLeft({ ...explorer.progression, firsts: [] }) : 0);
 	const skillsPage = $derived(page.route.id === '/(hub)/skills');
 
 	/** The tab a page is under: its own, or the one it is a page of (a contact under Contacts). */
@@ -188,17 +198,15 @@
 				<a
 					class="level"
 					class:current={skillsPage}
+					class:unspent={unspent > 0}
 					href={resolve('/(hub)/skills')}
-					aria-label="Skills: level {level}"
+					aria-label={unspent > 0
+						? `Skills: level ${level}, ${unspent} skill point${unspent === 1 ? '' : 's'} to spend`
+						: `Skills: level ${level}`}
 					aria-current={skillsPage ? 'page' : undefined}
 					title="Skills"
 				>
-					<!-- The level's mark: two chevrons rising, as the sign is the money's. -->
-					<svg class="rank" viewBox="0 0 24 24" aria-hidden="true">
-						<path d="M5 13 L12 6 L19 13" />
-						<path d="M5 19 L12 12 L19 19" />
-					</svg>
-					<span aria-hidden="true">{level}</span>
+					<span aria-hidden="true"><span class="word">Level</span> {level}</span>
 				</a>
 			{/if}
 			<AccountMenu {gamerTag} {avatar} />
@@ -492,19 +500,37 @@
 		background: rgb(255 255 255 / 0.1);
 	}
 
-	.level .rank {
-		width: 0.8em;
-		height: 0.8em;
-		margin-right: 6px;
-		fill: none;
-		stroke: var(--accent);
-		stroke-width: 3;
-		stroke-linecap: round;
-		stroke-linejoin: round;
+	/* "Level", smaller than the number it names. */
+	.level .word {
+		font-size: 0.6em;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 	}
 
 	.level.current {
 		border-color: var(--accent);
+	}
+
+	/* Skill points to spend: yellow, and a slow throb until they are. */
+	.level.unspent {
+		color: var(--launch-bright);
+		animation: throb 1.6s ease-in-out infinite;
+	}
+
+	@keyframes throb {
+		0%,
+		100% {
+			scale: 1;
+		}
+		50% {
+			scale: 1.08;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.level.unspent {
+			animation: none;
+		}
 	}
 
 	.pill svg {

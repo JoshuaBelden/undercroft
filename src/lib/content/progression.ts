@@ -5,7 +5,6 @@ import { DEFAULT_HEADLAMP } from './items/headlamps.ts';
 import { LOOTABLES } from './lootables.ts';
 import { SANITY } from './player/sanity.ts';
 import { CRAFT } from './recipes.ts';
-import type { Rarity } from './items.ts';
 
 /**
  * Explorer progression (docs/dev/progression.md, issue #18): what explorers earn across
@@ -23,10 +22,11 @@ export const LEVELS = {
 
 /** What the rest of an expedition pays (lootables, recipes and creatures carry their own). */
 export const XP = {
-	/** Added for the best thing found in a lootable first opened. */
-	rarity: { common: 0, uncommon: 3, rare: 8, epic: 20, legendary: 50 } as Record<Rarity, number>,
-	/** First time an explorer opens each kind of lootable. */
-	firstLootable: 25,
+	/**
+	 * Opening any lootable first, whatever it is or holds, so every one is worth opening. A drop
+	 * box pays nothing. A training ground pays it once for each kind of lootable, ever.
+	 */
+	lootable: 25,
 	/** An item seen for the first time (as discovery works). */
 	discovery: 25,
 	/** First time each recipe is made, below or in the Workshop. */
@@ -58,11 +58,34 @@ export const RESPEC_COST = 1000;
 
 export type SkillCategory = 'nerve' | 'grit' | 'craft';
 
-export const SKILL_CATEGORIES: { id: SkillCategory; name: string; blurb: string }[] = [
-	{ id: 'nerve', name: 'Nerve', blurb: 'The dark and the mind' },
-	{ id: 'grit', name: 'Grit', blurb: 'The fight and the body' },
-	{ id: 'craft', name: 'Craft', blurb: 'The hands and the route' }
-];
+/**
+ * The three categories. `pitch` is the tooltip's case for opening one (the Skills page): what
+ * kind of explorer it suits, in words that don't name its skills before it is open.
+ */
+export const SKILL_CATEGORIES: { id: SkillCategory; name: string; blurb: string; pitch: string }[] =
+	[
+		{
+			id: 'nerve',
+			name: 'Nerve',
+			blurb: 'The dark and the mind',
+			pitch:
+				'For the one who goes ahead into the dark. Your lamp lasts longer, the dark wears on your mind less, and what hunts down there hears and sees less of you.'
+		},
+		{
+			id: 'grit',
+			name: 'Grit',
+			blurb: 'The fight and the body',
+			pitch:
+				'For the one who stands and fights. You hit harder and shoot straighter, blows shake you less, and you patch yourself and the others up faster.'
+		},
+		{
+			id: 'craft',
+			name: 'Craft',
+			blurb: 'The hands and the route',
+			pitch:
+				'For the one who lives off what they find. You make and open things faster and quieter, your gear lasts longer, and you turn up more to work with.'
+		}
+	];
 
 /**
  * What a skill changes: each is a multiplier on a game value (1 does nothing), except `scrounge`,

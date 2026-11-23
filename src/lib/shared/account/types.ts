@@ -54,6 +54,8 @@ export interface ExplorerView {
 	tiers: StoreTier[];
 	/** Experience and the skills spent on (docs/dev/progression.md). */
 	progression: Pick<Progression, 'xp' | 'categories' | 'skills'>;
+	/** Recipes made at least once: what they make is known (`madeRecipes`). */
+	made: string[];
 	/** Quests (docs/dev/quests.md): each one's progress and what is committed, and flags. */
 	quests: QuestRecord;
 }

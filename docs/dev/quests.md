@@ -102,13 +102,13 @@ The setting has the feel of Paris's catacombs without naming them: limestone qua
 
 ## On the surface: the Contacts pages
 
-The Contacts tab (`src/routes/(hub)/contacts`, which shows how many quests are ready to report) renders `Contacts.svelte`: each NPC as only their portrait (`NpcDef.portrait`, a picture with a transparent background, in `art/images`: Fontaine's is `npc-margaux-fontaine`) and name, centred. Choosing one opens their page, `/contacts/<npc id>` (`contacts/[npc]`, a 404 for an id not in `NPCS`), which renders `Contact.svelte` across the whole page: a large portrait at the upper left with their name, role and greeting, and over the rest three pills. The controller's B goes back to Contacts from there. Both draw the portrait with `ContactPortrait.svelte`: head and shoulders cut off at the bottom, with a bronze trim (`contact.profile.footer`, the same for every contact) laid over the cut.
+The Contacts tab (`src/routes/(hub)/contacts`, which shows how many quests are ready to report, or would be once committed: done below with what is still wanted in the stash or loadout, `canComplete` with `committable`) renders `Contacts.svelte`: each NPC as only their portrait (`NpcDef.portrait`, a picture with a transparent background, in `art/images`: Fontaine's is `npc-margaux-fontaine`) and name, centred. Choosing one opens their page, `/contacts/<npc id>` (`contacts/[npc]`, a 404 for an id not in `NPCS`), which renders `Contact.svelte` across the whole page: a large portrait at the upper left with their name, role and greeting, and over the rest three pills. The controller's B goes back to Contacts from there. Both draw the portrait with `ContactPortrait.svelte`: head and shoulders cut off at the bottom, with a bronze trim (`contact.profile.footer`, the same for every contact) laid over the cut.
 
-- **Quests:** open ones, ready to report first. Done ones are listed under them only with the Show completed pill at the bottom of the list. Each shows its offer, its objectives with counts, a slot per thing to bring back (a drop target for the stash beside it, and a Commit button for keyboard and controller), what it pays, and Report when ready.
+- **Quests:** open ones, ready to report first. Done ones are listed under them only with the Show completed pill at the bottom of the list. Each shows its offer, its objectives with counts, a slot per thing to bring back (a drop target for the stash beside it, and a Commit pill for keyboard and controller), a Rewards section (coin and experience as lines, items as slots with their tooltip), and Report when ready.
 - **Research:** what they have learned: the pages earned, in the order earned (`research`). Each stands on its own, so quests can later be opened together without breaking the story.
 - **Store:** what they sell whose `when` holds.
 
-The stash is on the right for Quests and Store, its slots a little smaller than the Loadout's (`--slot-size`), one slot to a cell.
+The stash is on the right for Store (the whole of it), and for Quests only while the chosen quest still has something to commit (none asked, all given, or done: no stash, and the quest takes its width). For a quest it is not the whole stash: five slots (`OFFERED`) holding only the stacks the quest still wants, from the stash, then the backpack and quick slots (nothing lent), the rest empty. Its slots are a little smaller than the Loadout's (`--slot-size`), one slot to a cell.
 
 Committing plays `quest.commit`, reporting `quest.done`.
 
@@ -118,7 +118,7 @@ One open quest is followed: the one the player chose with Track on the contact's
 
 ## Underground
 
-The server sends each player a `quests` message (their open quests as `QuestBrief`s, and the recipes quests taught them) on arriving and whenever they change. `QuestPanel` shows up to three under the rite panel, those with something left to do below first, objectives ticked off, then "Bring it back to commit" or "Report back on the surface". It follows the rite panel's setting and binding (Settings > Interface > Show rite and quest panel, `toggleRitePanel`).
+The server sends each player a `quests` message (their open quests as `QuestBrief`s, and the recipes quests taught them) on arriving and whenever they change. `QuestPanel` shows up to three under the rite panel (only the Affliction's name, for a quest's rite the player wasn't sent for: [rite.md](rite.md#a-quests-rite)), those with something left to do below first, objectives ticked off, then a line per thing to bring back (`QuestBrief.bring`), ticked off when the player carries enough of it (`carriedCount`). With every objective met and everything carried it says "Head back to the surface: you have everything", or, with nothing to bring, "Report back on the surface". On the contact's page such a quest is labelled Ready to commit, and Commit takes the first stack from the stash, then the backpack and quick slots. It follows the rite panel's setting and binding (Settings > Interface > Show rite and quest panel, `toggleRitePanel`).
 
 ## Adding
 

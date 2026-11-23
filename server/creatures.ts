@@ -1241,8 +1241,16 @@ export class CreatureDirector {
 		const bold = this.boldness;
 		const alertRange = p.alertRange * bold;
 		const chasing = c.mode === 'agro' || c.mode === 'attack';
-		// Left alone, a passive kind notices no one.
-		if (p.passive && !chasing) return;
+		// Left alone, a passive kind notices no one: only someone right by it (`near`), if it minds that.
+		if (p.passive && !chasing) {
+			if (p.near) {
+				const close = targets.find(
+					(prey) => distance3(prey.state.position, c.body.position) <= p.near!
+				);
+				if (close) this.chase(c, close);
+			}
+			return;
+		}
 		let seen: Prey | null = null;
 		let seenD = Infinity;
 		let heard: Prey | null = null;

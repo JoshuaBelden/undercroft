@@ -174,8 +174,11 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	// Knotting a rope to an anchor, untying it, coiling it up.
 	// The recording runs 13.7 s; tying takes a few seconds, so only its start.
 	{ id: 'rope.tie', file: 'sfx_rope_tying.mp3', crop: { start: 0, length: 3.5 } },
-	// Levering at a jammed crate or a wall with a crowbar (played as the prying starts).
-	{ id: 'crowbar.pry', file: 'sfx_crowbar_pry.mp3', crop: { start: 0, length: 10 } },
+	// Levering at a jammed crate or a wall with a crowbar (played as the prying starts; cut short
+	// when the prying stops).
+	{ id: 'crowbar.pry', file: 'sfx_metal_pry.mp3' },
+	// The crowbar's own swing: the recording is 1.6 s of swing and a second and a half of silence.
+	{ id: 'crowbar.swing', file: 'sfx_crowbar_attack.mp3', crop: { start: 0, length: 1.6 } },
 	// A false wall coming down under the crowbar.
 	{ id: 'crowbar.rocks', file: 'sfx_crowbar_rocks.mp3' },
 	// A key turning in a trunk's lock.

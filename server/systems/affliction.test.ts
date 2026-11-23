@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AFFLICTIONS } from '../../src/lib/content/afflictions.ts';
+import { ITEMS } from '../../src/lib/content/items.ts';
 import { SANITY } from '../../src/lib/content/player/sanity.ts';
 import { isBroken } from '../../src/lib/shared/items/durability.ts';
 import { newStack } from '../../src/lib/shared/items/inventory.ts';
@@ -27,9 +28,13 @@ describe('the manifestation', () => {
 	it('a landed blow goes through what is worn first, and nothing else wears sanity down', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);
-		diver.state.inventory.equipment.defense = newStack('coat');
-		const m = face(session, diver);
 		const blow = AFFLICTIONS.gloaming.manifestation!.strikeDamage[0];
+		// A coat with one blow's worth of shield left.
+		diver.state.inventory.equipment.defense = {
+			...newStack('coat'),
+			worn: ITEMS.coat.defense!.shield - blow
+		};
+		const m = face(session, diver);
 		// The first blow is all taken by the coat, which breaks: still worn, but it takes nothing now.
 		diver.hold({}, AFFLICTIONS.gloaming.manifestation!.strikeAt + 0.2);
 		expect(m.strikes).toBe(1);

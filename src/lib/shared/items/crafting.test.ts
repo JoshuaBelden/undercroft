@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { openTiers, sellPrice } from '../../content/economy.ts';
+import { openTiers, saleTotal, sellPrice, stackSale } from '../../content/economy.ts';
 import { ITEMS } from '../../content/items.ts';
 import { RECIPES, REPAIRS, SALVAGE } from '../../content/recipes.ts';
 import {
@@ -7,6 +7,10 @@ import {
 	discoverable,
 	foundIn,
 	fragmentFinds,
+	madeRecipes,
+	materialSlots,
+	onHand,
+	productKnown,
 	recipeFor,
 	recipeStatus,
 	repairCost,
@@ -131,5 +135,53 @@ describe('store tiers', () => {
 			['start', 'trusted', 'gloaming', 'valued'].sort()
 		);
 		expect(openTiers(0, ['gloaming'])).toEqual(['start', 'gloaming']);
+	});
+});
+
+describe('what a recipe makes', () => {
+	it('is known once made (a first kept in progression), or when a quest taught it', () => {
+		const made = new Set(madeRecipes(['loot:crate', 'recipe:bandage', 'kill:witch']));
+		expect([...made]).toEqual(['bandage']);
+		const bandage = RECIPES.find((r) => r.id === 'bandage')!;
+		const other = RECIPES.find((r) => r.id !== 'bandage' && !r.learned)!;
+		const taught = RECIPES.find((r) => r.learned)!;
+		expect(productKnown(bandage, made)).toBe(true);
+		expect(productKnown(other, made)).toBe(false);
+		expect(productKnown(taught, new Set())).toBe(true);
+	});
+});
+
+describe('Workshop materials', () => {
+	it('count the stash, then the backpack and quick slots; never what is equipped', () => {
+		const slots = materialSlots([newStack('rags', 1), null], {
+			backpack: [newStack('rags', 3)],
+			quick: [newStack('rags', 2)]
+		});
+		expect(onHand(slots, 'rags')).toBe(6);
+		expect(onHand(slots, 'wax')).toBe(0);
+	});
+});
+
+describe('sell prices', () => {
+	it('a sale is always whole coin, rounded up: new, worn, made, one or many', () => {
+		for (const def of Object.values(ITEMS)) {
+			const max = def.durability?.max ?? 0;
+			const stacks = [
+				newStack(def.id),
+				{ ...newStack(def.id), worn: max / 3 },
+				{ ...newStack(def.id), crafted: true },
+				{ ...newStack(def.id), crafted: true, worn: max / 3 }
+			];
+			for (const stack of stacks) {
+				const total = stackSale(stack);
+				expect(Number.isInteger(total), def.id).toBe(true);
+				expect(total, def.id).toBeGreaterThanOrEqual(sellPrice(def.id, stack) * stack.count - 1e-6);
+			}
+		}
+		// Nails are a tenth each: one sells for a coin, ten for a coin, eleven for two.
+		expect(saleTotal(0.1, 1)).toBe(1);
+		expect(saleTotal(0.1, 10)).toBe(1);
+		expect(saleTotal(0.1, 11)).toBe(2);
+		expect(saleTotal(0, 5)).toBe(0);
 	});
 });

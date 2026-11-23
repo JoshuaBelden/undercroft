@@ -125,6 +125,11 @@ export interface CreatureDef {
 		 * someone, and then it tracks them as usual.
 		 */
 		passive?: boolean;
+		/**
+		 * Passive, but not to be crowded: anyone this close (m) sets it on them, as a hit does.
+		 * Noise and light still don't reach it.
+		 */
+		near?: number;
 	};
 	/**
 	 * Damage it takes to kill, by party size: the first entry for one explorer, the next for two,
@@ -424,8 +429,9 @@ export const CREATURES: Record<string, CreatureDef> = {
 			agro: { litRange: 4, darkRange: 1.5 },
 			touch: 1,
 			evadeTime: 4,
-			// Drawn to nothing: it bites back only once it's been hit.
-			passive: true
+			// Drawn to nothing: it bites back once it's been hit, or someone comes right up to it.
+			passive: true,
+			near: 1
 		},
 		health: [10],
 		stagger: { threshold: 1, seconds: 0.3 },

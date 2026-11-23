@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import { progressionOf, type Progression } from '../../shared/progression/progression.ts';
+import { madeRecipes } from '../../shared/items/crafting.ts';
 import { discoveriesOf } from './discoveries.ts';
 import { ECONOMY, openTiers } from '../../content/economy.ts';
 import type { Collection, Db } from 'mongodb';
@@ -585,6 +586,7 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 		progression: (({ xp, categories, skills }) => ({ xp, categories, skills }))(
 			progressionOf(explorer.progression)
 		),
+		made: madeRecipes(progressionOf(explorer.progression).firsts),
 		tiers: openTiers(
 			explorer.sold ?? 0,
 			progress.filter((doc) => doc.resolved).map((doc) => doc.affliction)

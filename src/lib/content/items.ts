@@ -422,7 +422,7 @@ export const DEFAULT_STACK = 5;
  * The pictures (static/assets/ui/images, built from art/images by `pnpm asset:images`) of the
  * round's items, by item id: the art's file names, which mostly follow the ids.
  */
-const PICTURES: Record<string, string> = {
+export const PICTURES: Record<string, string> = {
 	'recipe-fragment': 'recipe_fragment',
 	hatchet: 'hatchet',
 	'trench-spade': 'trench_spade',
@@ -498,7 +498,8 @@ function pictured(defs: Record<string, ItemDef>): Record<string, ItemDef> {
 	);
 }
 
-export const ITEMS: Record<string, ItemDef> = {
+/** Every item. Each in PICTURES gets its picture, wherever it is defined (one a def names itself wins). */
+export const ITEMS: Record<string, ItemDef> = pictured({
 	knife: {
 		id: 'knife',
 		name: 'Knife',
@@ -534,13 +535,15 @@ export const ITEMS: Record<string, ItemDef> = {
 		price: 60,
 		durability: { max: 200, per: 'hit' },
 		melee: {
-			damage: 40,
+			// Below the revolver's 32 a shot: a tool first, a weapon at a pinch.
+			damage: 24,
 			range: 1.8,
 			arc: 0.6,
 			windup: 0.45,
 			recovery: 0.65,
 			noise: 6,
-			stamina: 10
+			stamina: 10,
+			sound: { swing: 'crowbar.swing', hit: 'melee.hit' }
 		},
 		pry: true
 	},
@@ -822,8 +825,9 @@ export const ITEMS: Record<string, ItemDef> = {
 		maxStack: 1,
 		weight: 2,
 		price: 90,
-		durability: { max: 40, per: 'point' },
-		defense: { shield: 40 }
+		// Three of a witch's blows (40 each) before it is torn through.
+		durability: { max: 120, per: 'point' },
+		defense: { shield: 120 }
 	},
 	// Loot: what is carried out and sold (see docs/dev/economy.md). None has a model yet.
 	coins: {
@@ -1031,12 +1035,12 @@ export const ITEMS: Record<string, ItemDef> = {
 		weight: 0,
 		fragment: true
 	},
-	...pictured(WEAPONS),
-	...pictured(GEAR),
-	...pictured(QUICK),
-	...pictured(MATERIALS),
-	...pictured(TREASURE)
-};
+	...WEAPONS,
+	...GEAR,
+	...QUICK,
+	...MATERIALS,
+	...TREASURE
+});
 
 /**
  * Bare hands: what swings when nothing is in the hand (an empty weapon slot, or an empty quick-use

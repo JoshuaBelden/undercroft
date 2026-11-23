@@ -1,3 +1,4 @@
+import { QUESTS } from '#lib/content/quests.ts';
 import type { ServerMessage } from '#lib/shared/protocol.ts';
 import type { QuestBrief } from '#lib/shared/quests/types.ts';
 import type { PlayFeature } from './feature.ts';
@@ -14,6 +15,13 @@ export class Quests implements PlayFeature {
 		if (message.type !== 'quests') return;
 		this.briefs = message.quests;
 		this.learned = message.learned;
+	}
+
+	/** One of your open quests asks you to resolve this Affliction: its rite is yours to follow. */
+	resolves(affliction: string): boolean {
+		return this.briefs.some((brief) =>
+			QUESTS[brief.id]?.objectives.some((o) => o.kind === 'resolve' && o.affliction === affliction)
+		);
 	}
 
 	clear(): void {

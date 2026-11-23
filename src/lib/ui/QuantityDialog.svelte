@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { saleTotal } from '#lib/content/economy.ts';
 	import Dialog from './Dialog.svelte';
 
 	/**
@@ -25,7 +26,8 @@
 	// Splitting starts at half; selling at all of it. The slider then moves it.
 	let count = $derived(each === undefined ? Math.max(1, Math.floor(max / 2)) : max);
 
-	const total = $derived(each === undefined ? null : each * count);
+	// Whole coin, rounded up (saleTotal), as the sale pays.
+	const total = $derived(each === undefined ? null : saleTotal(each, count));
 </script>
 
 <Dialog {title} {onclose}>

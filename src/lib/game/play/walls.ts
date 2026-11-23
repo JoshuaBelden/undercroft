@@ -12,6 +12,7 @@ import type { MapLayout, WallPlacement } from '#lib/shared/map/types.ts';
 import { lookedAtPrySpot, prySpots, wallSpots, type PrySpot } from '#lib/shared/map/walls.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 import type { Aim, PlayContext, PlayFeature, Prompt, TickMessage } from './feature.ts';
+import { HeldSounds } from './heldSounds.ts';
 import { keyPrompt } from './prompt.ts';
 
 /**
@@ -41,6 +42,9 @@ export class Walls implements PlayFeature {
 		{ root: THREE.Object3D; torn: { value: number }; target: number; shake: number; hits: number }
 	>();
 	private buildId = 0;
+
+	/** Prying at a wall: cut short when they let go (done, it is -1 and plays out). */
+	private prying = new HeldSounds((state) => state.prying !== 0);
 
 	constructor(private ctx: PlayContext) {
 		this.root.name = 'false-walls';
@@ -87,6 +91,7 @@ export class Walls implements PlayFeature {
 	}
 
 	tick(tick: TickMessage): void {
+		this.prying.check(tick.players);
 		for (const id of tick.walls) {
 			if (this.down.has(id)) continue;
 			this.down.add(id);
@@ -114,7 +119,10 @@ export class Walls implements PlayFeature {
 				web.shake = WEBS.shake;
 			}
 		} else if (event.kind === 'pry' && event.target === 'wall') {
-			sounds.playAt('crowbar.pry', event.position, 1, FALSE_WALLS.pryNoise);
+			this.prying.start(
+				event.player,
+				sounds.playAtHeld('crowbar.pry', event.position, 1, FALSE_WALLS.pryNoise)
+			);
 		}
 	}
 
@@ -196,6 +204,7 @@ export class Walls implements PlayFeature {
 	}
 
 	clear(): void {
+		this.prying.clear();
 		this.buildId++;
 		for (const model of this.models.values()) model.removeFromParent();
 		for (const web of this.webState.values()) {

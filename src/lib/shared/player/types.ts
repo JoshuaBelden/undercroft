@@ -122,9 +122,9 @@ export interface PlayerState {
 	inventory: Inventory;
 	/** The held item's action in progress (swing, shot, reload...). */
 	weapon: WeaponState;
-	/** Seconds spent applying the healing item in the hand (resets if interrupted). */
+	/** Seconds spent applying the healing item in the hand (resets if interrupted); -1 done, until attack is let go. */
 	bandaging: number;
-	/** Seconds spent putting the battery in the hand into the headlamp (resets if interrupted). */
+	/** Seconds spent putting the battery in the hand into the headlamp (resets if interrupted); -1 done, until let go. */
 	charging: number;
 	/**
 	 * Seconds spent using the item in the hand on a teammate (bandaging them, changing their
@@ -178,7 +178,7 @@ export interface ItemStack {
 	ammo?: string;
 	/** Made, not found or bought: it sells for its materials (docs/dev/crafting.md#selling). */
 	crafted?: boolean;
-	/** From the free loadout: it sells for nothing and can't be salvaged (docs/dev/economy.md). */
+	/** From the free loadout: it sells for `ECONOMY.freeSell` and can't be salvaged (docs/dev/economy.md). */
 	free?: boolean;
 	/** Hits taken by a breakable melee item (a brick: gone at the last); marks drawn with chalk. */
 	uses?: number;

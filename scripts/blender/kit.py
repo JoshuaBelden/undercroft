@@ -374,7 +374,9 @@ def sweep(mb, profile, frames, wall_mat, floor_mat=None, jitter=0.0, seed=0.0, p
         (x0, z0), (x1, z1) = profile[i - 1], profile[i]
         arclen.append(arclen[-1] + math.hypot(x1 - x0, z1 - z0))
     wall_tile = tile_of(wall_mat)
-    top = max(z for _, z in profile)
+    # Each ring's own height: a morphed cross-section (a crawl's roof at about 1 m) has a lower
+    # apex than the base profile, and the axis faces are turned towards must stay inside it.
+    tops = [max(z for _, z in (profiles[i] if profiles else profile)) for i in range(len(frames))]
     rings = []
     for i, (origin, lateral, _dist) in enumerate(frames):
         ring = []
@@ -382,7 +384,7 @@ def sweep(mb, profile, frames, wall_mat, floor_mat=None, jitter=0.0, seed=0.0, p
         for x, z in profiles[i] if profiles else profile:
             p = origin + lateral * x + up * z
             if jitter and interior and z > 0.01:
-                axis = origin + up * min(z, top - HALL_HALF_W)
+                axis = origin + up * min(z, tops[i] - HALL_HALF_W)
                 out = p - axis
                 if out.length > 1e-6:
                     n = noise.noise(p * 0.9 + Vector((seed, seed * 2, 0)))
@@ -395,7 +397,7 @@ def sweep(mb, profile, frames, wall_mat, floor_mat=None, jitter=0.0, seed=0.0, p
     for i in range(len(rings) - 1):
         o0, _, d0 = frames[i]
         o1, _, d1 = frames[i + 1]
-        mid_axis = (o0 + o1) * 0.5 + up * (top * 0.5)
+        mid_axis = (o0 + o1) * 0.5 + up * (min(tops[i], tops[i + 1]) * 0.5)
         for j in range(len(profile) - 1):
             quad = [rings[i][j], rings[i][j + 1], rings[i + 1][j + 1], rings[i + 1][j]]
             center = sum(quad, Vector()) / 4

@@ -899,8 +899,8 @@ export const PIECES: Record<string, PieceDef> = {
 	},
 	'hall-crawl': {
 		name: 'hall-crawl',
-		url: '/assets/shared/map/hall-crawl.bd499966.gltf',
-		bytes: 1273821,
+		url: '/assets/shared/map/hall-crawl.26499221.gltf',
+		bytes: 1273181,
 		footprint: [1, 2],
 		levels: 1,
 		sockets: [

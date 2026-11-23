@@ -107,11 +107,6 @@ export interface LootableDef {
 	wet?: boolean;
 	/** Slots on the loot screen. */
 	slots: number;
-	/**
-	 * Experience for the first explorer to open it (docs/dev/progression.md#looting): 3 a quick
-	 * search, 5 standard, 10 work or risk, 15 locked. 0 pays nothing (a drop box).
-	 */
-	xp: number;
 	/** How it opens. Empty: only when sealed (`sealed`). */
 	open: OpenWay[];
 	/**
@@ -123,8 +118,6 @@ export interface LootableDef {
 		chance: number;
 		hidden: boolean;
 		note: string;
-		/** Experience for opening a sealed one, in place of `xp` (a jammed crate takes work). */
-		xp?: number;
 		open: OpenWay[];
 		rarity?: RarityCounts[];
 	};
@@ -265,15 +258,13 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [0.94, 0.55, 0.64],
 		solid: true,
 		slots: 8,
-		xp: 5,
 		open: [{ seconds: 1, verb: 'to search' }],
 		// About a quarter are jammed: it takes a crowbar in the hand (docs/dev/items.md#jammed-crates).
 		sealed: {
-			xp: 10,
 			chance: 0.25,
 			hidden: true,
 			note: 'crate stuck',
-			open: [{ tool: 'pry', seconds: 10, verb: 'Pry', noise: 10, every: 2 }]
+			open: [{ tool: 'pry', seconds: 6, verb: 'Pry', noise: 10, every: 2 }]
 		},
 		noise: 6,
 		lootNoise: 4,
@@ -296,7 +287,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: false,
 		lookHeight: 0.2,
 		slots: 8,
-		xp: 5,
 		open: [{ seconds: 2, verb: 'Search the body' }],
 		noise: 3,
 		lootNoise: 3,
@@ -352,7 +342,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [0.9, 0.73, 0.67],
 		solid: true,
 		slots: 8,
-		xp: 15,
 		open: [{ seconds: 1, verb: 'to search' }],
 		// Always locked: a key, picks, or a sledgehammer (docs/dev/items.md#locked-trunks).
 		sealed: {
@@ -401,11 +390,9 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [0.7, 0.45, 0.35],
 		solid: true,
 		slots: 4,
-		xp: 3,
 		open: [{ seconds: 1, verb: 'Search the niche' }],
 		// Sealed ones need a crowbar, and hold better burial goods.
 		sealed: {
-			xp: 10,
 			chance: 0.3,
 			hidden: false,
 			note: 'sealed',
@@ -468,12 +455,12 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 			'Femurs, skulls, the small bones of hands. Not all of it is old.',
 			'It shifts as you touch it, and keeps shifting after.'
 		],
-		model: null,
+		model: modelUrl('shared/props/bone_pile.glb'),
 		color: 0xbdb39a,
-		size: [1.0, 0.4, 0.8],
+		// Matching the built model (PROP_FIT).
+		size: [0.91, 0.21, 0.88],
 		solid: false,
 		slots: 4,
-		xp: 3,
 		open: [{ seconds: 3, verb: 'Rummage' }],
 		catches: [{ kind: 'spawn', creature: 'rat', count: [3, 5], chance: 0.2 }],
 		noise: 10,
@@ -516,7 +503,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [2.0, 0.8, 0.9],
 		solid: true,
 		slots: 6,
-		xp: 10,
 		// A crowbar under the lid, or two players pushing it together.
 		open: [
 			{ tool: 'pry', seconds: 6, verb: 'Push the lid', noise: 12, every: 3 },
@@ -564,7 +550,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [1.0, 0.6, 0.55],
 		solid: true,
 		slots: 8,
-		xp: 5,
 		open: [{ seconds: 3, verb: 'Pry it open' }],
 		noise: 8,
 		lootNoise: 4,
@@ -619,7 +604,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: true,
 		lookHeight: 1.1,
 		slots: 6,
-		xp: 5,
 		open: [{ seconds: 0.5, verb: 'Open the locker' }],
 		noise: 4,
 		lootNoise: 3,
@@ -662,7 +646,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: false,
 		wet: true,
 		slots: 4,
-		xp: 3,
 		open: [{ seconds: 2, verb: 'Search the satchel' }],
 		noise: 1,
 		lootNoise: 1,
@@ -706,7 +689,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [0.4, 0.5, 0.3],
 		solid: true,
 		slots: 3,
-		xp: 5,
 		// No way in by hand: picks, quietly, or smashing it.
 		open: [
 			{ tool: 'picks', seconds: 6, verb: 'Pick the lock' },
@@ -739,7 +721,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: true,
 		lookHeight: 1,
 		slots: 6,
-		xp: 5,
 		open: [{ seconds: 0.5, verb: 'Open the cabinet' }],
 		noise: 3,
 		lootNoise: 2,
@@ -780,7 +761,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [0.9, 0.35, 0.8],
 		solid: false,
 		slots: 4,
-		xp: 10,
 		open: [{ seconds: 4, verb: 'Reach in' }],
 		catches: [{ kind: 'bite', damage: 8, unless: 'bites' }],
 		noise: 6,
@@ -810,7 +790,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: false,
 		lookHeight: 0.3,
 		slots: 6,
-		xp: 10,
 		// Bare hands, slowly; a blade, quickly.
 		open: [
 			{ seconds: 5, verb: 'Cut it open' },
@@ -864,7 +843,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [0.4, 0.3, 0.3],
 		solid: false,
 		slots: 4,
-		xp: 15,
 		open: [{ tool: 'pry', seconds: 3, verb: 'Pry the brick loose', noise: 8 }],
 		// You have to notice the chalk sign.
 		hidden: { reach: 2.5, seconds: 1.2 },
@@ -911,7 +889,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [0.5, 0.35, 0.35],
 		solid: false,
 		slots: 4,
-		xp: 15,
 		open: [{ seconds: 0.5, verb: 'Open the satchel' }],
 		noise: 2,
 		lootNoise: 2,
@@ -941,8 +918,7 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		solid: true,
 		lookHeight: 0.9,
 		slots: 2,
-		xp: 3,
-		open: [{ tool: 'pry', seconds: 8, verb: 'Pry open the alcove', noise: 6, every: 2 }],
+		open: [{ tool: 'pry', seconds: 6, verb: 'Pry open the alcove', noise: 6, every: 2 }],
 		// Taking a saint's relic does not go unnoticed.
 		meter: 0.04,
 		noise: 6,
@@ -967,7 +943,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		size: [0.7, 1.0, 0.7],
 		solid: true,
 		slots: 0,
-		xp: 0,
 		// Nothing to open: it is filled from (`fill`).
 		open: [],
 		fill: {
@@ -997,7 +972,6 @@ export const LOOTABLES: Record<LootableId, LootableDef> = {
 		// Stepped over: it appears and goes in the middle of a game, and the map's collision doesn't.
 		solid: false,
 		slots: 8,
-		xp: 0,
 		open: [{ seconds: 0.5, verb: 'to open' }],
 		noise: 0,
 		lootNoise: 2,

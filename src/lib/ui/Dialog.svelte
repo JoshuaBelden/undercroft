@@ -20,9 +20,14 @@
 		footer: Snippet;
 		/** Room for a form (a bug report): wider than a question. */
 		wide?: boolean;
+		/**
+		 * Solid and dark, like the panels and tooltips (Inspect): nothing behind shows through, so
+		 * the moving scene underground can't wash it grey.
+		 */
+		solid?: boolean;
 	}
 
-	let { title, onclose, children, footer, wide = false }: Props = $props();
+	let { title, onclose, children, footer, wide = false, solid = false }: Props = $props();
 
 	/** Opens the dialog as a modal, and keeps its key presses from reaching the game's input map. */
 	function modal(dialog: HTMLDialogElement): () => void {
@@ -46,6 +51,7 @@
 	{@attach modal}
 	{@attach menu({ back: onclose })}
 	class:wide
+	class:solid
 	aria-labelledby="dialog-title"
 	oncancel={cancelled}
 >
@@ -154,5 +160,19 @@
 	footer :global(button.primary:focus-visible) {
 		border-color: var(--text);
 		background: var(--accent);
+	}
+
+	/* Solid and dark (Inspect): as the panels and tooltips it opens from. */
+	dialog.solid {
+		background: var(--panel);
+	}
+
+	dialog.solid .content {
+		background: var(--panel);
+		color: var(--text);
+	}
+
+	dialog.solid footer {
+		background: rgb(255 255 255 / 0.04);
 	}
 </style>

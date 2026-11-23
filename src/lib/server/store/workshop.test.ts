@@ -90,6 +90,24 @@ describe('the Workshop', () => {
 		expect(await craft(db, explorer._id, 'bandage', 1)).toEqual({ error: 'materials' });
 	});
 
+	it('takes materials carried back up (backpack, quick slots) after the stash', async () => {
+		await discover(db, explorer._id, [{ item: 'rags', source: 'crate' }]);
+		await stash(newStack('rags', 1));
+		const backpack = [
+			newStack('rags', 3),
+			...new Array(explorer.loadout.backpack.length - 1).fill(null)
+		];
+		await db
+			.collection<ExplorerDoc>('explorers')
+			.updateOne({ _id: explorer._id }, { $set: { 'loadout.backpack': backpack } });
+		expect('explorer' in (await craft(db, explorer._id, 'bandage', 2))).toBe(true);
+		const now = await doc();
+		expect(now.stash.some((s) => s?.item === 'rags')).toBe(false);
+		expect(now.loadout.backpack[0]).toBeNull();
+		expect(now.stash.find((s) => s?.item === 'bandage')?.count).toBe(2);
+		expect(await craft(db, explorer._id, 'bandage', 1)).toEqual({ error: 'materials' });
+	});
+
 	it('mends a worn thing for its materials and coin', async () => {
 		const crowbar = { ...newStack('crowbar'), worn: ITEMS.crowbar.durability!.max };
 		await stash(crowbar, newStack('metal', 1));

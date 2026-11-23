@@ -1,5 +1,4 @@
 import { CREATURES } from '../src/lib/content/creatures.ts';
-import { rarityOf, RARITIES, type Rarity } from '../src/lib/content/items.ts';
 import { XP } from '../src/lib/content/progression.ts';
 import type { Recipe } from '../src/lib/content/recipes.ts';
 import { lootableOf } from '../src/lib/shared/items/lootables.ts';
@@ -47,18 +46,6 @@ export function playerExperience(progression: Progression | null | undefined): P
 		pending: 0,
 		finished: false
 	};
-}
-
-const RANK = new Map(RARITIES.map((r, i) => [r.id, i]));
-
-/** The rarest thing in a lootable. */
-function bestRarity(crate: Crate): Rarity {
-	let best: Rarity = 'common';
-	for (const stack of crate.slots) {
-		const rarity = stack ? rarityOf(stack.item) : 'common';
-		if ((RANK.get(rarity) ?? 0) > (RANK.get(best) ?? 0)) best = rarity;
-	}
-	return best;
 }
 
 export class Experience {
@@ -117,19 +104,14 @@ export class Experience {
 		return [...this.ctx.players.values()].filter((p) => !p.state.dead && !p.state.extracted);
 	}
 
-	/** The first to open a lootable: what kind it is, and the best thing in it. */
+	/**
+	 * The first to open a lootable: `XP.lootable`, whatever it is. A training ground pays only
+	 * firsts, so there it is the first of each kind, ever.
+	 */
 	private looted(player: Player, crate: Crate): void {
 		const def = lootableOf(crate);
 		if (def.dropped) return;
-		const base = crate.sealed && def.sealed?.xp !== undefined ? def.sealed.xp : def.xp;
-		if (base <= 0) return;
-		this.award(
-			player,
-			'loot',
-			base + XP.rarity[bestRarity(crate)],
-			`loot:${def.id}`,
-			XP.firstLootable
-		);
+		this.award(player, 'loot', XP.lootable, `loot:${def.id}`, this.training ? XP.lootable : 0);
 	}
 
 	/** To the killer; teammates near get a share (a first kill pays only the killer its bonus). */

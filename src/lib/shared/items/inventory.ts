@@ -244,6 +244,18 @@ export function allStacks(inv: Inventory): ItemStack[] {
 	return stacks;
 }
 
+/**
+ * How many of an item could be given up for a quest: in the stash or anywhere in the loadout, not
+ * lent (`free`). See `canComplete` (docs/dev/quests.md).
+ */
+export function committable(stash: Slots, loadout: Inventory, item: string): number {
+	let n = 0;
+	for (const stack of [...stash, ...allStacks(loadout)]) {
+		if (stack?.item === item && !stack.free) n += stack.count;
+	}
+	return n;
+}
+
 /** Everything carried, the stacks themselves (to change them in place: admin repairs). */
 export function allStacksLive(inv: Inventory): ItemStack[] {
 	const worn = EQUIPMENT.map((slot) => inv.equipment[slot] ?? null);

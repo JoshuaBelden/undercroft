@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { ITEMS, rarityOf } from '#lib/content/items.ts';
+	import { ITEMS } from '#lib/content/items.ts';
 	import type { Ingredient } from '#lib/content/recipes.ts';
 	import Slot from './Slot.svelte';
+	import TipSlot from './TipSlot.svelte';
 
 	/**
 	 * What something takes, as a slot for each kind of thing it needs (docs/dev/crafting.md): the
 	 * icon dim with none on hand, the count on hand red with some but not enough, and on hand /
-	 * needed under it. One not yet discovered is a ? with no count.
+	 * needed under it, and the item tooltip on hover or focus. One not yet discovered is a ? with no count.
 	 */
 	interface Props {
 		ingredients: Ingredient[];
@@ -28,7 +29,7 @@
 		{@const got = have(i.item)}
 		{#if known(i.item)}
 			<li class:none={got === 0} aria-label="{def?.name ?? i.item}: {got} of {need}">
-				<Slot name={def?.name ?? i.item} image={def?.image} rarity={rarityOf(i.item)} />
+				<TipSlot stack={{ item: i.item, count: 1 }} />
 				<span class="count"><span class:short={got > 0 && got < need}>{got}</span> / {need}</span>
 			</li>
 		{:else}
