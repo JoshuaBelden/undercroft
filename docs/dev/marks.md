@@ -65,7 +65,7 @@ Each symbol has one material: a `MeshStandardMaterial` in chalk white whose text
 
 ## Tuning
 
-`MARKS` in `src/lib/content/marks.ts`: `reach`, `size`, `tolerance`, `minSpacing`, `max`, `labelRange`, `eraseSeconds`, `eraseAngle`, `noise`. Sounds: `chalk.draw` and `chalk.rub` in `src/lib/content/audio/sounds.ts` (synth placeholders for now).
+`MARKS` in `src/lib/content/marks.ts`: `reach`, `size`, `tolerance`, `minSpacing`, `max`, `labelRange`, `eraseSeconds`, `eraseAngle`, `noise`. Sounds: `chalk.draw` and `chalk.rub` in `src/lib/content/audio/sounds.ts` (not recorded yet: silent).
 
 ## Admin
 

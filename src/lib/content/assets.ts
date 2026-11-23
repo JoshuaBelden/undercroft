@@ -6,7 +6,7 @@ import type { AnimSlot } from './animations.ts';
  */
 
 export type AssetKind = 'model' | 'piece' | 'image' | 'sound' | 'animation' | 'file';
-export type AssetStatus = 'ok' | 'missing' | 'placeholder' | 'synthesized' | 'unused';
+export type AssetStatus = 'ok' | 'missing' | 'placeholder' | 'unused';
 
 export const ASSET_KINDS: { id: AssetKind; label: string }[] = [
 	{ id: 'model', label: 'Models' },
@@ -21,7 +21,6 @@ export const ASSET_STATUSES: { id: AssetStatus; label: string; hint: string }[] 
 	{ id: 'ok', label: 'OK', hint: 'Used and present' },
 	{ id: 'missing', label: 'Missing', hint: 'Named by the game, but no file' },
 	{ id: 'placeholder', label: 'Placeholder', hint: 'A stand-in: a box, a held pose' },
-	{ id: 'synthesized', label: 'Synthesized', hint: 'No recording: made in code' },
 	{ id: 'unused', label: 'Unused', hint: 'A file nothing uses' }
 ];
 

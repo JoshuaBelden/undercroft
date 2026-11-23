@@ -2,7 +2,6 @@ import { AUDIO_FILES, AUDIO_LOOP_STARTS } from '#lib/content/audio/files.generat
 import { SOUNDS, type SoundDef, type SoundId } from '#lib/content/audio/sounds.ts';
 import type { AudioManager, SoundHandle } from './AudioManager.ts';
 import { captionDirection, type CaptionCue } from './captions.svelte.ts';
-import { synthesize } from './synth.ts';
 
 type Vec3 = [number, number, number];
 
@@ -11,10 +10,14 @@ const CAPTION_THRESHOLD = 0.04;
 /** Seconds between caption refreshes for a loop that stays audible. */
 const LOOP_CAPTION_INTERVAL = 0.5;
 
+/** The handle of a loop with no recording: it plays nothing. */
+const SILENT: SoundHandle = { setVolume: () => {}, setRate: () => {}, stop: () => {} };
+
 /**
  * Plays registered sounds by id (see src/lib/content/audio/sounds.ts). Each sound resolves to its
- * built recording variants, or to its synthesized placeholder if none are built, and plays
- * through the AudioManager's category buses.
+ * built recording variants and plays through the AudioManager's category buses. A sound with no
+ * recording built plays nothing (the admin Art & Assets page lists it as missing); a loop of one
+ * hands back a silent handle, so callers needn't know.
  *
  * Every audible sound that has a `caption` also raises a cue on `oncaption`, whether or not
  * audio is running, so captions work with the sound off.
@@ -44,7 +47,7 @@ export class SoundBank {
 		});
 	}
 
-	/** The built files of a sound, its variants in order (none if it is synthesized). */
+	/** The built files of a sound, its variants in order (none if it isn't recorded yet). */
 	private urls(id: SoundId): string[] {
 		const def: SoundDef = SOUNDS[id];
 		const ids = def.file === undefined ? [] : Array.isArray(def.file) ? def.file : [def.file];
@@ -54,15 +57,15 @@ export class SoundBank {
 	private buffers(id: SoundId): Promise<AudioBuffer[]> {
 		let pending = this.variants.get(id);
 		if (!pending) {
-			const def: SoundDef = SOUNDS[id];
-			const urls = this.urls(id);
-			if (urls.length) pending = Promise.all(urls.map((url) => this.audio.load(url)));
-			else if (def.synth)
-				pending = Promise.resolve([synthesize(this.audio.audioContext, def.synth)]);
-			else pending = Promise.reject(new Error(`Sound "${id}" has no built file or synth`));
+			pending = Promise.all(this.urls(id).map((url) => this.audio.load(url)));
 			this.variants.set(id, pending);
 		}
 		return pending;
+	}
+
+	/** A random variant, or undefined for a sound with no recording (it plays nothing). */
+	private pick(buffers: AudioBuffer[]): AudioBuffer | undefined {
+		return buffers[Math.floor(Math.random() * buffers.length)];
 	}
 
 	/** Fire-and-forget one-shot. `volume` multiplies the sound's own volume. */
@@ -71,13 +74,15 @@ export class SoundBank {
 		if (!this.audio.unlocked) return;
 		const def: SoundDef = SOUNDS[id];
 		const spread = def.variation ?? 0;
-		void this.buffers(id).then((buffers) =>
-			this.audio.playBuffer(buffers[Math.floor(Math.random() * buffers.length)], {
+		void this.buffers(id).then((buffers) => {
+			const buffer = this.pick(buffers);
+			if (!buffer) return;
+			this.audio.playBuffer(buffer, {
 				category: def.category,
 				volume: def.volume * volume,
 				rate: (def.rate ?? 1) * (1 + (Math.random() * 2 - 1) * spread)
-			})
-		);
+			});
+		});
 	}
 
 	/** One-shot from a point in the world (3D panned, quieter with distance). */
@@ -86,19 +91,22 @@ export class SoundBank {
 		if (!this.audio.unlocked) return;
 		const def: SoundDef = SOUNDS[id];
 		const spread = def.variation ?? 0;
-		void this.buffers(id).then((buffers) =>
-			this.audio.playBufferAt(buffers[Math.floor(Math.random() * buffers.length)], position, {
+		void this.buffers(id).then((buffers) => {
+			const buffer = this.pick(buffers);
+			if (!buffer) return;
+			this.audio.playBufferAt(buffer, position, {
 				category: def.category,
 				volume: def.volume * volume,
 				rate: (def.rate ?? 1) * (1 + (Math.random() * 2 - 1) * spread),
 				refDistance
-			})
-		);
+			});
+		});
 	}
 
 	/**
 	 * A one-shot from a point in the world, as `playAt`, that can be cut short: the handle (null if
-	 * audio is locked or the sound won't load). For work that can be given up halfway (prying).
+	 * audio is locked, the sound isn't recorded or won't load). For work that can be given up
+	 * halfway (prying).
 	 */
 	async playAtHeld(
 		id: SoundId,
@@ -111,17 +119,14 @@ export class SoundBank {
 		const def: SoundDef = SOUNDS[id];
 		const spread = def.variation ?? 0;
 		try {
-			const buffers = await this.buffers(id);
-			return this.audio.playBufferAt(
-				buffers[Math.floor(Math.random() * buffers.length)],
-				position,
-				{
-					category: def.category,
-					volume: def.volume * volume,
-					rate: (def.rate ?? 1) * (1 + (Math.random() * 2 - 1) * spread),
-					refDistance
-				}
-			);
+			const buffer = this.pick(await this.buffers(id));
+			if (!buffer) return null;
+			return this.audio.playBufferAt(buffer, position, {
+				category: def.category,
+				volume: def.volume * volume,
+				rate: (def.rate ?? 1) * (1 + (Math.random() * 2 - 1) * spread),
+				refDistance
+			});
 		} catch {
 			return null;
 		}
@@ -129,19 +134,22 @@ export class SoundBank {
 
 	/**
 	 * Start a looping sound (first variant); adjust or stop it through the handle. A file built
-	 * to keep its opening (loopFrom) plays from its start once, then loops from where it says.
+	 * to keep its opening (loopFrom) plays from its start once, then loops from where it says. A
+	 * sound with no recording gives a silent handle (still captioned while "audible").
 	 */
 	async loop(id: SoundId, volume = 0): Promise<SoundHandle> {
 		const def: SoundDef = SOUNDS[id];
 		const [buffer] = await this.buffers(id);
 		const [url] = this.urls(id);
-		const handle = this.audio.playBuffer(buffer, {
-			category: def.category,
-			volume: volume * def.volume,
-			rate: def.rate ?? 1,
-			loop: true,
-			loopStart: url === undefined ? undefined : AUDIO_LOOP_STARTS[url]
-		});
+		const handle: SoundHandle = buffer
+			? this.audio.playBuffer(buffer, {
+					category: def.category,
+					volume: volume * def.volume,
+					rate: def.rate ?? 1,
+					loop: true,
+					loopStart: url === undefined ? undefined : AUDIO_LOOP_STARTS[url]
+				})
+			: SILENT;
 		return {
 			setVolume: (value, seconds) => {
 				handle.setVolume(value * def.volume, seconds);

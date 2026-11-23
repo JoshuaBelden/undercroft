@@ -292,10 +292,9 @@ The view changes nothing on the server: you still move, aim and shoot from the e
 Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 
 - a built recording (`file`, an id from `pnpm asset:audio`; see [asset-pipeline.md](asset-pipeline.md#audio));
-- a `synth` placeholder generated in code (`src/lib/game/audio/synth.ts`), used when no recording is built for it;
 - a volume and category, plus optional `rate` and `variation`.
 
-`SoundBank` plays sounds by id through the `AudioManager` category buses. When a file has several variants (sliced footsteps), a random one plays each time.
+`SoundBank` plays sounds by id through the `AudioManager` category buses. A sound with no recording built plays nothing (a loop of one gets a silent handle) and shows as **Missing** on the admin [Art & Assets page](admin.md#art-and-assets). Sounds are never synthesized in code: a new sound goes in with its `file` and stays silent until the recording is built. When a file has several variants (sliced footsteps), a random one plays each time.
 
 - **Footsteps:**
   - fire every `stride` metres travelled while grounded (per stance; sprint uses `sprintStride` and the running recording);
@@ -313,7 +312,7 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
   - every 25–70 s, a distant knock, rockfall or creak from a random direction;
   - every 60–150 s, an unsettling ambient swell (`ambience.creepy`) around the listener, not from a point;
   - a lapping loop that fades in near water volumes.
-  - All of it plays on the ambience bus, so the Ambience volume slider controls it. All of them now use recordings; the synthesized versions remain as fallbacks.
+  - All of it plays on the ambience bus, so the Ambience volume slider controls it. All of them use recordings.
 - **Sneaking** plays no footsteps.
 - **Expedition stingers:** `expedition.intro` (`sfx_expedition_intro.mp3`) on arriving underground and `expedition.outro` (`sfx_extraction_outro.mp3`) on leaving alive, both on the music bus. Banishing what the rite summoned plays `rite.resolve` (`sfx_boss_fight_won.mp3`), the fight won, on the music bus too. See [expedition.md](expedition.md#leaving-and-results).
 - **Menu navigation:** `ui.nav` (`sfx_menu_nav.mp3`) plays on every move between pages off the expedition: the dashboard tabs, store, social, settings, the keys that switch them, and back/forward. The root layout (`src/routes/+layout.svelte`) plays it from `onNavigate`, so any new page gets it for free. It skips navigation into or out of `/play`, query-only changes, and a move a button press just started (within `PRESS_LEADS`, 300 ms), which already sounded as the press.
@@ -326,7 +325,7 @@ Sounds are registered in `src/lib/content/audio/sounds.ts`. Each entry names:
 
 ### Mix
 
-Every built file is peak-normalized (-1 dBFS), so how loud it sounds depends on the recording. The registry `volume` sets where it sits in the mix. `pnpm asset:levels` measures every sound: the file's loudness (EBU R128, LUFS) plus its `volume`, which is the level it plays at the source, before distance and the player's volume settings. It also lists the sounds that are still synthesized placeholders, and writes the levels to `src/lib/content/audio/levels.generated.ts` for the admin app's [Art & Assets page](admin.md#art-and-assets), which shows them beside each sound (and the placeholders, without running anything). Fit a new sound into these bands:
+Every built file is peak-normalized (-1 dBFS), so how loud it sounds depends on the recording. The registry `volume` sets where it sits in the mix. `pnpm asset:levels` measures every sound: the file's loudness (EBU R128, LUFS) plus its `volume`, which is the level it plays at the source, before distance and the player's volume settings. It also lists the sounds not recorded yet, and writes the levels to `src/lib/content/audio/levels.generated.ts` for the admin app's [Art & Assets page](admin.md#art-and-assets), which shows them beside each sound (and the sounds still to record, without running anything). Fit a new sound into these bands:
 
 | Plays at (LUFS) | What                                                                                                              |
 | --------------- | ----------------------------------------------------------------------------------------------------------------- |
