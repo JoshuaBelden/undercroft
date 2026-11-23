@@ -16,8 +16,10 @@ export interface OmenStage {
 	at: number;
 	/** Baseline lamp failure for everyone (0..1, see PlayerState.gloom). */
 	gloom: number;
-	/** Ambience: multipliers on distant knocks and creepy swells, whispers per minute, drone 0..1. */
-	ambience: { knocks: number; swells: number; whispers: number; drone: number };
+	/** Ambience: multipliers on distant knocks and creepy swells, and whispers per minute. */
+	ambience: { knocks: number; swells: number; whispers: number };
+	/** A sound everyone hears once, as this stage begins (not again for a late joiner). */
+	sting?: SoundId;
 	/** Creatures perceive and hear further by this factor, and creep for less time. */
 	boldness: number;
 	/** Extra creatures that appear when this stage begins (far from players). */
@@ -407,28 +409,30 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			{
 				at: 0.25,
 				gloom: 0,
-				ambience: { knocks: 1.6, swells: 1.5, whispers: 0, drone: 0 },
+				ambience: { knocks: 1.6, swells: 1.5, whispers: 0 },
 				boldness: 1.1,
 				spawn: 0
 			},
 			{
 				at: 0.5,
 				gloom: 0.15,
-				ambience: { knocks: 2.2, swells: 2, whispers: 0.6, drone: 0 },
+				ambience: { knocks: 2.2, swells: 2, whispers: 0.6 },
 				boldness: 1.2,
 				spawn: 0
 			},
 			{
 				at: 0.75,
 				gloom: 0.3,
-				ambience: { knocks: 2.8, swells: 2.5, whispers: 1.2, drone: 0.5 },
+				ambience: { knocks: 2.8, swells: 2.5, whispers: 1.2 },
+				// Three quarters full: a low drone rolls through the catacombs, once.
+				sting: 'omen.drone',
 				boldness: 1.3,
 				spawn: 1
 			},
 			{
 				at: 0.9,
 				gloom: 0.45,
-				ambience: { knocks: 3.5, swells: 3, whispers: 2, drone: 0.9 },
+				ambience: { knocks: 3.5, swells: 3, whispers: 2 },
 				boldness: 1.4,
 				spawn: 0
 			}

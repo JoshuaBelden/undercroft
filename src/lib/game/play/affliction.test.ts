@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 import type { ManifestationSnapshot } from '#lib/shared/affliction/types.ts';
 import type { PlayContext, TickMessage } from './feature.ts';
 
@@ -20,10 +21,15 @@ vi.stubGlobal('$state', <T>(value: T): T => value);
 const { Affliction } = await import('./affliction.svelte.ts');
 
 /** A play context that records which loops start and stop. */
-function context(): { ctx: PlayContext; loops: { id: string; stopped: boolean }[] } {
+function context(): {
+	ctx: PlayContext;
+	loops: { id: string; stopped: boolean }[];
+	played: string[];
+} {
 	const loops: { id: string; stopped: boolean }[] = [];
+	const played: string[] = [];
 	const sounds = {
-		play: () => {},
+		play: (id: string) => played.push(id),
 		playAt: () => {},
 		loop: (id: string) => {
 			const loop = { id, stopped: false };
@@ -42,7 +48,7 @@ function context(): { ctx: PlayContext; loops: { id: string; stopped: boolean }[
 		client: { playerId: 'p1' },
 		ui: { banner: () => {} }
 	} as unknown as PlayContext;
-	return { ctx, loops };
+	return { ctx, loops, played };
 }
 
 function tick(state: ManifestationSnapshot['state'] | null): TickMessage {
@@ -97,5 +103,26 @@ describe('Affliction fight music', () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+});
+
+describe('Omen stings', () => {
+	it('play the omen drone once, as the Gloaming reaches three quarters', () => {
+		const { ctx, played } = context();
+		const affliction = new Affliction(ctx);
+		affliction.tick(tick(null));
+		for (const stage of [1, 2]) affliction.event({ kind: 'omen', stage });
+		expect(played).toEqual([]);
+		affliction.event({ kind: 'omen', stage: 3 });
+		expect(played).toEqual(['omen.drone']);
+		affliction.event({ kind: 'omen', stage: 4 });
+		expect(played).toEqual(['omen.drone']);
+	});
+
+	it('the three-quarters stage is the one that stings', () => {
+		const stages = AFFLICTIONS.gloaming.stages;
+		expect(stages.filter((stage) => stage.sting).map((stage) => [stage.at, stage.sting])).toEqual([
+			[0.75, 'omen.drone']
+		]);
 	});
 });
