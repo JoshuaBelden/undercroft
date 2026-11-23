@@ -911,6 +911,7 @@
 				all.pack.prompt(state) ??
 				all.hazards.prompt(state) ??
 				all.doors.prompt(state) ??
+				all.tasks.prompt(state) ??
 				all.walls.prompt(state) ??
 				all.surveyor.prompt(state) ??
 				all.marks.prompt(state) ??
@@ -1452,6 +1453,7 @@
 		interactKey={promptCode('interact')}
 		onaction={(action) => sendInventory(action)}
 		discovered={discoveries}
+		learned={features.quests.learned}
 		oncraft={(change) => {
 			panel = null;
 			send({ type: 'craft', ...change });

@@ -68,6 +68,11 @@ export interface GenerateOptions {
 	affliction: string | null;
 	/** A training map (Rumors): only the start, these two pieces and dead ends (`tryTraining`). */
 	training: { walk: string; vault: string } | null;
+	/**
+	 * Rooms (kit entry ids) the map must have, on the main route like a major room, on a level
+	 * their `levels` allow: a room a quest's task is in (docs/dev/quests.md#room-tasks).
+	 */
+	require: string[];
 }
 
 const DEFAULTS: GenerateOptions = {
@@ -84,7 +89,8 @@ const DEFAULTS: GenerateOptions = {
 	deadEndChance: 0.55,
 	attempts: 64,
 	affliction: null,
-	training: null
+	training: null,
+	require: []
 };
 
 interface OpenSocket extends WorldSocket {
@@ -419,8 +425,8 @@ function tryTraining(
 }
 
 /**
- * The rooms on each level's main route, in order: the major rooms shared out evenly (in random
- * order, each on a level its `levels` allows, the emptiest of those), then the level's last room:
+ * The rooms on each level's main route, in order: the major rooms (and any the map is required to
+ * have) shared out evenly (in random order, each on a level its `levels` allows, the emptiest of those), then the level's last room:
  * an extraction room, or on the deepest level the final room. A room with no level it may go on
  * in this map is left out.
  */
@@ -473,7 +479,12 @@ function tryGenerate(
 	const extractions = state.role('extraction');
 	const descents = state.role('descent');
 	const tiers = extractions.length && descents.length ? Math.max(1, options.tiers) : 1;
-	const route = planRoute(rng, kit, state.role('major'), extractions, tiers);
+	const majors = state.role('major');
+	const required = options.require
+		.filter((name) => kit[name] && !majors.some((m) => m.name === name))
+		.map((name) => pieces[name])
+		.filter((piece) => piece !== undefined);
+	const route = planRoute(rng, kit, [...majors, ...required], extractions, tiers);
 
 	// Start room, its first cell on world cell [0, 0], then its fixed exit piece.
 	const start = rng.pick(state.role('start'));

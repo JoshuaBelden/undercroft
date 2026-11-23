@@ -12,7 +12,8 @@ import { keyPrompt } from './prompt.ts';
 /**
  * Doors between levels (docs/dev/map-generation.md): drawn barred until the tick says one is
  * open, unbarred by holding interact on it. The final room's slams shut at the rite and can't be
- * opened until what it summoned is banished.
+ * opened until what it summoned is banished. A barred one (docs/dev/quests.md#the-barred-stair)
+ * only rattles: a charge blows it open.
  */
 export class Doors implements PlayFeature {
 	private models = new DoorModels();
@@ -20,6 +21,8 @@ export class Doors implements PlayFeature {
 	private aimedAt: string | null = null;
 	/** Whether that is a locked gate. */
 	private gate = false;
+	/** Doors barred from the far side, as the tick last said. */
+	private barred = new Set<string>();
 
 	constructor(private ctx: PlayContext) {
 		ctx.engine.scene.add(this.models.root);
@@ -31,6 +34,7 @@ export class Doors implements PlayFeature {
 
 	tick(tick: TickMessage): void {
 		this.models.apply(tick.doors, tick.sealed);
+		this.barred = new Set(tick.barred);
 	}
 
 	event(event: GameEvent): void {
@@ -38,6 +42,15 @@ export class Doors implements PlayFeature {
 		if (event.kind === 'doorSeal') {
 			if (event.open) sounds.playAt('door.slam', event.position, 1, 12);
 			sounds.playAt('door.seal', event.position, 1, 8);
+			return;
+		}
+		if (event.kind === 'doorRattle') {
+			sounds.playAt('door.rattle', event.position, 1, 8);
+			return;
+		}
+		if (event.kind === 'blast') {
+			// The barred door blown in: it swings open (the blast itself is the hazards').
+			if (event.door) sounds.playAt('door.open', event.position, 1, 10);
 			return;
 		}
 		if (event.kind !== 'doorOpen' && event.kind !== 'doorRelease') return;
@@ -64,6 +77,13 @@ export class Doors implements PlayFeature {
 
 	prompt(state: PlayerState): Prompt | null {
 		if (!this.aimedAt) return null;
+		if (this.barred.has(this.aimedAt)) {
+			return {
+				...keyPrompt('interact', 'to try the door'),
+				after: '(barred from the far side)',
+				blocked: true
+			};
+		}
 		if (this.gate) {
 			const seconds = gateSeconds(state.inventory);
 			if (seconds === null) {

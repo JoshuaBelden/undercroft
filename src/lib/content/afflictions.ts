@@ -259,6 +259,12 @@ export interface AfflictionDef {
 	training?: TrainingSpec;
 	/** It stays locked until this Affliction has been done (resolved, or for training: got out of). */
 	requires?: string;
+	/**
+	 * The long stair down to this level (1 is the top) is barred from the far side
+	 * (docs/dev/quests.md#the-barred-stair): it won't open by hand, only to a charge, unless
+	 * someone down there has `flag` (set the first time they blow it, for everyone there).
+	 */
+	barred?: { level: number; flag: string };
 	/** The order shown on the Afflictions page. */
 	order: number;
 }
@@ -376,6 +382,7 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 		id: 'gloaming',
 		order: 1,
 		requires: 'rumors',
+		barred: { level: 3, flag: 'gloaming.level-3-open' },
 		name: 'The Gloaming',
 		flavor:
 			'Long ago, the keepers of the dead held back the dusk each evening with a rite. It worked for as long as anyone remembered how to say it. The last keeper died with the rite unspoken, and the robbers who broke into his grave took more than they knew. What he had kept shut away came down into the dark with them.',

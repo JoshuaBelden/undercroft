@@ -103,6 +103,8 @@ export interface HazardsSnapshot {
 	baits: { id: string; item: string; position: Vec3 }[];
 	/** Tripwire bells set across the way. */
 	tripwires: { id: string; item: string; a: Vec3; b: Vec3 }[];
+	/** Charges set down, their fuses burning (docs/dev/quests.md#the-barred-stair). */
+	charges: { id: string; item: string; position: Vec3 }[];
 }
 
 /** A thrown item in flight. */
@@ -173,6 +175,14 @@ export type GameEvent =
 	| { kind: 'crateOpen'; id: string; player: string; position: Vec3 }
 	/** A door between levels was opened (it stays open). */
 	| { kind: 'doorOpen'; id: string; player: string; position: Vec3 }
+	/** A barred door tried by hand: it rattles, and stays shut (docs/dev/quests.md). */
+	| { kind: 'doorRattle'; id: string; player: string; position: Vec3 }
+	/** A charge went off: heard all over the level; `door` if it blew a barred one open. */
+	| { kind: 'blast'; item: string; position: Vec3; door: string | null }
+	/** A room task is being worked: heard as it goes (each noise pulse). */
+	| { kind: 'taskWork'; id: string; position: Vec3 }
+	/** A room task was finished (docs/dev/quests.md#room-tasks). */
+	| { kind: 'taskDone'; id: string; player: string; position: Vec3 }
 	/** The rite slammed the final room's door shut and sealed it (`open`: it had stood open). */
 	| { kind: 'doorSeal'; id: string; position: Vec3; open: boolean }
 	/** What the rite summoned was banished: the sealed door opens by itself. */

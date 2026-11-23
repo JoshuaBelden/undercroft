@@ -8,9 +8,11 @@ import type { PlayContext, PlayFeature } from './feature.ts';
 import { Hazards } from './hazards.ts';
 import { Marks } from './marks.svelte.ts';
 import { Pack } from './pack.ts';
+import { Quests } from './quests.svelte.ts';
 import { Rite } from './rite.svelte.ts';
 import { Ropes } from './ropes.ts';
 import { Survey } from './survey.svelte.ts';
+import { Tasks } from './tasks.ts';
 import { Surveyor } from './surveyor.ts';
 import { Tend } from './tend.ts';
 import { Training } from './training.svelte.ts';
@@ -20,7 +22,8 @@ import { Walls } from './walls.ts';
 /**
  * Every feature on the play page, by name (docs/dev/play.md). Their hooks run in this order.
  * For `target` the order is the rule for what interact takes (as on the server): a floor item,
- * then a crate, a door, a dead end's wall (crowbar in hand), the surveyor, your own chalk mark.
+ * then a crate, a door, a room task's object, a dead end's wall (crowbar in hand), the surveyor,
+ * your own chalk mark.
  */
 export function createFeatures(ctx: PlayContext) {
 	const affliction = new Affliction(ctx);
@@ -33,6 +36,8 @@ export function createFeatures(ctx: PlayContext) {
 		pack: new Pack(ctx),
 		crates: new Crates(ctx),
 		doors: new Doors(ctx),
+		tasks: new Tasks(ctx),
+		quests: new Quests(),
 		walls: new Walls(ctx),
 		surveyor: new Surveyor(ctx),
 		candles: new Candles(ctx),

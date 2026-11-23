@@ -213,6 +213,20 @@ describe('levels', () => {
 		}
 	});
 
+	it('a room the map is required to have is always there, on a level it may go on', () => {
+		for (let seed = 1; seed <= 12; seed++) {
+			const layout = generateLayout(seed, PIECES, MAP_KIT, {
+				affliction: 'gloaming',
+				require: ['saints-crypt']
+			});
+			const crypts = layout.placements.filter((p) => p.piece === 'saints-crypt');
+			expect(crypts.length, `seed ${seed}`).toBeGreaterThan(0);
+			for (const crypt of crypts) expect(crypt.tier, `seed ${seed}`).toBe(2);
+			const links = pieceLinks(layout, PIECES);
+			expect(unreached(layout, links), `seed ${seed}`).toEqual([]);
+		}
+	});
+
 	it('a connector kept off a level never appears on it', () => {
 		const kit: MapKit = { ...MAP_KIT, 'room-vault': { ...MAP_KIT['room-vault'], levels: [1] } };
 		for (let seed = 1; seed <= 10; seed++) {

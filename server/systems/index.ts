@@ -14,6 +14,7 @@ import { RiteSystem } from './rite.ts';
 import { RopeSystem } from './ropes.ts';
 import { SanitySystem } from './sanity.ts';
 import { SurveySystem } from './survey.ts';
+import { TaskSystem } from './tasks.ts';
 import { SurveyorSystem } from './surveyor.ts';
 import { TarotSystem } from './tarot.ts';
 import { TendSystem } from './tend.ts';
@@ -38,6 +39,7 @@ export function createSystems(ctx: SessionContext) {
 		crates: new CrateSystem(ctx),
 		craft: new CraftSystem(ctx),
 		doors: new DoorSystem(ctx),
+		tasks: new TaskSystem(ctx),
 		walls: new WallSystem(ctx),
 		marks: new MarkSystem(ctx),
 		ropes: new RopeSystem(ctx),

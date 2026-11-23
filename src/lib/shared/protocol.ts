@@ -218,6 +218,10 @@ export type ServerMessage =
 			doors: string[];
 			/** Doors sealed shut: the final room's, from the rite until it is banished. */
 			sealed: string[];
+			/** Doors barred from the far side: only a charge opens them (docs/dev/quests.md). */
+			barred: string[];
+			/** Room tasks finished (where they stand is in the layout, docs/dev/quests.md). */
+			tasks: string[];
 			/** False walls brought down (where they stood is in the layout). */
 			walls: string[];
 			/** Fires burning, snares set, lines of salt (server/systems/hazards.ts). */

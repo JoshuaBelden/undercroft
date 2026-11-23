@@ -74,8 +74,11 @@ const MAX_BANKED = SIM_RATE / 2;
 const MAX_QUEUE = SIM_RATE * 2;
 const MAX_FRAMES_PER_MESSAGE = 30;
 
-/** The map for a seed: the layout, and which of its crate markers have a crate. */
-function generate(seed: number, affliction: string): MapLayout {
+/**
+ * The map for a seed: the layout, and which of its crate markers have a crate. `require`: rooms
+ * it must have (those of the party's room tasks, docs/dev/quests.md#room-tasks).
+ */
+function generate(seed: number, affliction: string, require: string[] = []): MapLayout {
 	// A training ground (Rumors): its own small map, and only the tutorial's crates.
 	const training = AFFLICTIONS[affliction]?.training;
 	if (training) {
@@ -86,7 +89,7 @@ function generate(seed: number, affliction: string): MapLayout {
 		layout.crates = trainingCrates(layout, PIECES, training.walk);
 		return layout;
 	}
-	const layout = generateLayout(seed, PIECES, MAP_KIT, { affliction });
+	const layout = generateLayout(seed, PIECES, MAP_KIT, { affliction, require });
 	layout.crates = placeCrates(layout, PIECES, seed);
 	return layout;
 }
@@ -187,7 +190,7 @@ export class Session implements SessionContext {
 
 	/** Generate the map for a seed (with the chosen Affliction's own pieces) and fill it. */
 	private build(seed: number): void {
-		this.layout = generate(seed, this.chosen);
+		this.layout = generate(seed, this.chosen, this.systems.tasks.wantedRooms);
 		this.world = buildCollisionWorld(this.layout, PIECES);
 		this.nav = this.buildNav();
 		this.doors = new Doors(this.world, this.nav, this.layout.doors);
@@ -345,6 +348,16 @@ export class Session implements SessionContext {
 	/** Which Affliction this expedition is against (key into AFFLICTIONS). */
 	get afflictionId(): string {
 		return this.affliction.def.id;
+	}
+
+	/**
+	 * Before anyone comes down: the room tasks the party's quests need (docs/dev/quests.md). The
+	 * map is made again, from the same seed, with their rooms and their objects in it.
+	 */
+	questTasks(tasks: string[]): void {
+		if (tasks.length === 0 || this.players.size > 0 || this.affliction.def.training) return;
+		this.systems.tasks.want(tasks);
+		this.build(this.seed);
 	}
 
 	/** Start from the clues the party already found on earlier runs. */
@@ -800,6 +813,8 @@ export class Session implements SessionContext {
 			crates: this.crates.snapshot(),
 			doors: this.doors.snapshot(),
 			sealed: this.doors.sealedSnapshot(),
+			barred: this.doors.barredSnapshot(),
+			tasks: this.systems.tasks.snapshot(),
 			walls: this.systems.walls.snapshot(),
 			hazards: this.systems.hazards.snapshot(),
 			// For the admin bars only: never sent outside dev mode.
@@ -931,6 +946,7 @@ export class Session implements SessionContext {
 		s.erasing = 0;
 		s.roping = 0;
 		s.unbarring = 0;
+		s.tasking = 0;
 		s.sketching = 0;
 		s.sharing = 0;
 		for (const system of this.ordered) system.downed?.(player);

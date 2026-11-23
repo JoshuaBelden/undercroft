@@ -5,6 +5,8 @@ import { PARTY } from '../src/lib/content/party.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
 import { markWheel } from '../src/lib/content/marks.ts';
 import { allStacks } from '../src/lib/shared/items/inventory.ts';
+import { contextOf } from '../src/lib/server/store/quests.ts';
+import { openTasks } from '../src/lib/shared/quests/engine.ts';
 import { allReady, type PartyState } from '../src/lib/shared/party/types.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
 import type { FriendStatus } from '../src/lib/shared/social/types.ts';
@@ -378,6 +380,13 @@ export class Parties {
 		]);
 		// A training ground's tutorial holds its lessons for anyone's first time through.
 		session.tutorial(done.some((d) => !d.resolved));
+		// The rooms and objects of the party's open room tasks (docs/dev/quests.md#room-tasks).
+		session.questTasks(
+			going.flatMap((m) => {
+				const q = quests.get(m.explorer);
+				return q ? openTasks(q.record, contextOf(q.resolved)) : [];
+			})
+		);
 		// A quest item someone already owns (kept on the surface, or brought down) isn't put in the map.
 		const quest =
 			AFFLICTIONS[session.afflictionId]?.rite.requirements
