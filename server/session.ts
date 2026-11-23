@@ -59,6 +59,8 @@ import { Doors } from './doors.ts';
 import { CreatureDirector } from './creatures.ts';
 import { WorldItems } from './items.ts';
 import { createSystems } from './systems/index.ts';
+import type { PlayerQuests } from './systems/quests.ts';
+import type { QuestRecord } from '../src/lib/shared/quests/types.ts';
 import type { AdminHandlers, Player, SessionContext, SessionSystem } from './systems/system.ts';
 import { log } from './log.ts';
 import { Experience, playerExperience } from './experience.ts';
@@ -113,6 +115,8 @@ export interface SessionHooks {
 	 * (docs/dev/progression.md). Once per player, however the run ended.
 	 */
 	onExperience?: (owner: string, earned: number, firsts: string[]) => void;
+	/** A player's quests moved on (docs/dev/quests.md): kept at once, the whole record. */
+	onQuests?: (owner: string, record: QuestRecord) => void;
 }
 
 /**
@@ -369,7 +373,8 @@ export class Session implements SessionContext {
 		inventory: Inventory,
 		markWheel: readonly string[] = DEFAULT_MARK_WHEEL,
 		discovered: ReadonlySet<string> = new Set(),
-		progression: Progression | null = null
+		progression: Progression | null = null,
+		quests: PlayerQuests | null = null
 	): Player {
 		const player: Player = {
 			id: randomUUID(),
@@ -394,6 +399,7 @@ export class Session implements SessionContext {
 		};
 		player.state.mods = modifiersFor(progression?.skills ?? {});
 		this.players.set(player.id, player);
+		this.systems.quests.set(player, quests);
 		this.itemsSent = null;
 		this.hadPlayers = true;
 		this.joined++;
@@ -824,6 +830,7 @@ export class Session implements SessionContext {
 			else if (event.kind === 'clue') stats.clues++;
 		}
 		this.experience.count(this.events.slice(this.tallied));
+		this.systems.quests.count(this.events.slice(this.tallied));
 		this.tallied = this.events.length;
 	}
 

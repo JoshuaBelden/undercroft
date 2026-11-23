@@ -3,6 +3,7 @@
  * All messages are JSON with a `type` discriminator.
  */
 import type { AfflictionSnapshot } from './affliction/types.ts';
+import type { QuestBrief } from './quests/types.ts';
 import type { Alert } from './alerts/types.ts';
 import type { CreatureSnapshot } from './creature/types.ts';
 import type {
@@ -148,6 +149,10 @@ export type AdminCommand =
 	| { kind: 'teleportTo'; position: Vec3 }
 	/** Open every door between levels. */
 	| { kind: 'openDoors' }
+	/** Quests (docs/dev/quests.md): finish an open quest's objectives (all open ones, without `quest`). */
+	| { kind: 'questObjectives'; quest?: string }
+	/** Set a quest flag on everyone down here. */
+	| { kind: 'questFlag'; flag: string }
 	/** Shut every loot crate and fill them again, hidden. */
 	| { kind: 'resetCrates' }
 	| { kind: 'unlockCrates' }
@@ -252,6 +257,8 @@ export type ServerMessage =
 	| { type: 'tutorial'; firstTime: boolean }
 	/** You made something below (`count`), or mended it (`count` 0). */
 	| { type: 'crafted'; item: string; count: number }
+	/** Your open quests, in short, and the recipes quests have taught you: on arriving and as they change. */
+	| { type: 'quests'; quests: QuestBrief[]; learned: string[] }
 	/** You discovered an item (docs/dev/crafting.md#discovery): it is used in `recipes` recipes. */
 	| { type: 'discovered'; item: string; recipes: number }
 	/** You earned experience (docs/dev/progression.md): shown under the clock. */
@@ -385,6 +392,7 @@ const SERVER_TYPE_TABLE: Record<ServerMessage['type'], true> = {
 	discovered: true,
 	fragment: true,
 	crafted: true,
+	quests: true,
 	tutorial: true
 };
 const CLIENT_TYPES = new Set<string>(Object.keys(CLIENT_TYPE_TABLE));

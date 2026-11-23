@@ -39,7 +39,9 @@ export class CraftSystem implements SessionSystem {
 		if (!this.kit(player)) return;
 		if (typeof raw.recipe === 'string') {
 			const recipe = RECIPES.find((r) => r.id === raw.recipe);
-			if (!recipe?.field || recipeStatus(recipe, player.discovered) !== 'available') return;
+			const learned = this.ctx.systems.quests.learned(player);
+			if (!recipe?.field || recipeStatus(recipe, player.discovered, learned) !== 'available')
+				return;
 			if (!hasIngredients(recipe, (item) => carriedCount(s.inventory, item))) return;
 			this.begin(player, { recipe: recipe.id }, recipe.makes);
 			return;
@@ -108,6 +110,7 @@ export class CraftSystem implements SessionSystem {
 			if (left > 0) ctx.items.dropAll([{ ...made, count: left }], s.position);
 			ctx.send(player, { type: 'crafted', item: recipe.makes, count: recipe.count });
 			ctx.experience.crafted(player, recipe);
+			ctx.systems.quests.happened({ kind: 'craft', recipe: recipe.id });
 			log.info(`${player.name} made ${recipe.makes} below in ${ctx.id.slice(0, 8)}`);
 		} else {
 			const stack = getSlot({ inventory: s.inventory }, job.repair);

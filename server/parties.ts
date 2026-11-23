@@ -16,7 +16,9 @@ import {
 	markWheels,
 	owned,
 	keepExperience,
+	keepQuests,
 	progressions,
+	questRecords,
 	recordFind,
 	takeKit
 } from './belongings.ts';
@@ -327,6 +329,7 @@ export class Parties {
 			onRiteReset: () => void this.progress.reset(descended(), session.afflictionId),
 			onDiscovered: (explorer, item, source) => recordFind(explorer, item, source),
 			onExperience: (explorer, earned, firsts) => keepExperience(explorer, earned, firsts),
+			onQuests: (explorer, record) => keepQuests(explorer, record),
 			// Out of a training ground (Rumors): done, which opens what it unlocks.
 			onTrained: (explorer) =>
 				this.progress.record([explorer], session.afflictionId, { resolved: true }),
@@ -364,13 +367,14 @@ export class Parties {
 	 */
 	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
 		const going = [...party.members];
-		const [kits, onSurface, wheels, known, done, levels] = await Promise.all([
+		const [kits, onSurface, wheels, known, done, levels, quests] = await Promise.all([
 			Promise.all(going.map((m) => takeKit(m.explorer, session.id, m.free))),
 			owned(going.map((m) => m.explorer)),
 			markWheels(going.map((m) => m.explorer)),
 			discoveries(going.map((m) => m.explorer)),
 			Promise.all(going.map((m) => this.progress.of(m.explorer, session.afflictionId))),
-			progressions(going.map((m) => m.explorer))
+			progressions(going.map((m) => m.explorer)),
+			questRecords(going.map((m) => m.explorer))
 		]);
 		// A training ground's tutorial holds its lessons for anyone's first time through.
 		session.tutorial(done.some((d) => !d.resolved));
@@ -395,7 +399,8 @@ export class Parties {
 				kits[i],
 				wheel,
 				known.get(m.explorer),
-				levels.get(m.explorer) ?? null
+				levels.get(m.explorer) ?? null,
+				quests.get(m.explorer) ?? null
 			).id;
 		});
 		if (party.session !== session) return;

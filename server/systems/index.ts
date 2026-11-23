@@ -9,6 +9,7 @@ import { GearSystem } from './gear.ts';
 import { HazardSystem } from './hazards.ts';
 import { MarkSystem } from './marks.ts';
 import { PackSystem } from './pack.ts';
+import { QuestSystem } from './quests.ts';
 import { RiteSystem } from './rite.ts';
 import { RopeSystem } from './ropes.ts';
 import { SanitySystem } from './sanity.ts';
@@ -43,6 +44,7 @@ export function createSystems(ctx: SessionContext) {
 		survey: new SurveySystem(ctx),
 		surveyor: new SurveyorSystem(ctx),
 		tarot: new TarotSystem(ctx),
+		quests: new QuestSystem(ctx),
 		cheats: new CheatSystem(ctx)
 	} satisfies Record<string, SessionSystem>;
 }
