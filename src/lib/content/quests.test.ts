@@ -4,6 +4,7 @@ import { AFFLICTIONS } from './afflictions.ts';
 import { CREATURES } from './creatures.ts';
 import { ITEMS } from './items.ts';
 import { MAP_KIT } from './map/kit.ts';
+import { PIECES } from '../shared/map/pieces.generated.ts';
 import { NPCS } from './npcs.ts';
 import { QUESTS, RITE_QUEST } from './quests.ts';
 import { RECIPES } from './recipes.ts';
@@ -74,6 +75,11 @@ describe('quest data', () => {
 	it('puts each task in a room the kit has, and yields a real item', () => {
 		for (const task of Object.values(TASKS)) {
 			expect(MAP_KIT[task.room], task.id).toBeDefined();
+			// Its object's place in the room (scripts/blender/task_spots.py).
+			expect(
+				PIECES[task.room]?.spots?.map((s) => s.name),
+				task.id
+			).toContain(task.spot);
 			if (task.yields) expect(ITEMS[task.yields.item], task.id).toBeDefined();
 		}
 	});

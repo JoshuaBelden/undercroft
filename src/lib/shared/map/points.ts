@@ -135,10 +135,8 @@ export function testPoints(
 		seen.add(crate.kind);
 		points.push({ name: `lootable-${crate.kind}`, position: inFront(crate) });
 	}
-	for (const task of layout.tasks ?? []) {
-		const [x, y, z] = task.position;
-		points.push({ name: `task-${task.id}`, position: [x + 1.4, y + 0.05, z] });
-	}
+	for (const task of layout.tasks ?? [])
+		points.push({ name: `task-${task.id}`, position: inFront(task) });
 	return points;
 }
 

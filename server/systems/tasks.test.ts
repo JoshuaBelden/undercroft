@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { TASKS } from '../../src/lib/content/tasks.ts';
 import { doorBox } from '../../src/lib/shared/map/doors.ts';
+import { inFront } from '../../src/lib/shared/map/points.ts';
 import type { TaskPlacement, Vec3 } from '../../src/lib/shared/map/types.ts';
 import { emptyRecord } from '../../src/lib/shared/quests/engine.ts';
 import { taskCentre } from '../../src/lib/shared/quests/tasks.ts';
@@ -37,8 +38,7 @@ function facing(
 	diver: Diver,
 	task: TaskPlacement
 ): { yaw: number; pitch: number } {
-	const [x, y, z] = task.position;
-	diver.put(session['freeSpot']([x + 1.4, y + 0.05, z]));
+	diver.put(session['freeSpot'](inFront(task)));
 	diver.hold({}, 0.3);
 	const look = diver.lookAt(taskCentre(task));
 	diver.state.yaw = look.yaw;

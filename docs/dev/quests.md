@@ -64,7 +64,7 @@ Fontaine's order: the first quest alone, then the eight in `MIDDLE` all at once,
 A `task` objective names a room task (`TASKS`): something in a named room to hold interact on for 10 to 15 s. The whole time it is loud: heard `noise` away every `every` seconds through creature hearing (`CreatureDirector.hear`, with the worker as the prey), and each pulse is a `taskWork` event the client plays the task's sound for. One works while the others hold the door.
 
 - **The map has the room.** At descent (`Parties.begin`) the party's open tasks go to `Session.questTasks`, which builds the map again from the same seed with `require` (the generator's required rooms, [map-generation.md](map-generation.md#required-rooms)) and the tasks' objects in it. Not in a training map.
-- **Where:** at the room's `spot-<name>` marker (`TaskDef.spot`); without one, on the dry standing floor nearest the room's middle. `layout.tasks` carries them to clients.
+- **Where:** at the room's `spot-<name>` marker (`TaskDef.spot`, placed by `scripts/blender/task_spots.py`: on the floor, back to a wall, the Cistern's on its walkway); without one, on the dry standing floor nearest the room's middle. `layout.tasks` carries them to clients.
 - **Working it:** `TaskSystem.step`, with `PlayerState.tasking`. Interact takes a floor item, a crate or a door first, as on the client. Letting go starts it over. Done (`taskDone`, and `tick.tasks`), it stays done for the run; what it `yields` lies on the floor in front of it, toward whoever did it.
 - **Placeholders:** each object is a box of `TaskDef.placeholder` until it has a model.
 
@@ -116,7 +116,7 @@ The server sends each player a `quests` message (their open quests as `QuestBrie
 
 - **A quest:** add a `QuestDef` to `LIST` in `src/lib/content/quests.ts` and its id to its NPC's `quests`. Run the tests: `quests.test.ts` checks every reference.
 - **An NPC:** add an `NpcDef` to `src/lib/content/npcs.ts`, and their portrait to `art/images` (`pnpm asset:images`).
-- **A room task:** add a `TaskDef` to `src/lib/content/tasks.ts` (a room in `MAP_KIT`, and a sound), a `spot-<name>` marker in that room's piece in Blender, and a `task` objective naming it.
+- **A room task:** add a `TaskDef` to `src/lib/content/tasks.ts` (a room in `MAP_KIT`, and a sound) and a `task` objective naming it. Give its room the `spot-<name>` marker: add it to `TASKS` in `scripts/blender/task_spots.py` and run it headless (`blender --background art/blender/catacomb-kit.blend --python scripts/blender/task_spots.py`, which finds a place the way lootable markers are found and saves the .blend), then `pnpm asset:export` and `pnpm asset:build`. `quests.test.ts` checks every task's room has its spot. Commit the .blend in the art repo.
 - **An objective kind:** add it to `Objective` and, if new events feed it, to `QuestEvent`; match them in `matches` (`engine.ts`); feed the event from the server (`QuestSystem.happened`). The engine tests cover the rules.
 - **A condition kind:** add it to `Condition` and `test` (`engine.ts`), and to `conditions` in `quests.test.ts` if it nests.
 
