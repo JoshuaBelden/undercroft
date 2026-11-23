@@ -1,4 +1,5 @@
 import type { AnimSlot } from './animations.ts';
+import type { SynthSpec } from './audio/sounds.ts';
 
 /**
  * The Art & Assets list's kinds, statuses and rows (the admin app's /assets page; built by
@@ -50,6 +51,8 @@ export interface AssetRow {
 	note?: string;
 	/** Sounds: how loud it plays (LUFS, from `pnpm asset:levels`); stale when its files changed. */
 	level?: { lufs: number; peak: number; stale: boolean } | null;
+	/** Sounds: the placeholder made in code, and the volume and rate it plays at, so it can be heard. */
+	synth?: { spec: SynthSpec; volume: number; rate: number };
 	/** Animations: every standard slot. */
 	slots?: SlotUse[];
 	/** Art not made yet (content/planned.ts): the first phase of the handoff that needs it. */

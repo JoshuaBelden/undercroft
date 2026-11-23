@@ -91,6 +91,37 @@ describe('buildCatalog', () => {
 		expect(row(catalog, 'sound', 'recording: spare')?.status).toBe('unused');
 	});
 
+	it('carries each sound synth, at its volume and rate, so the page can play it', () => {
+		const content: CatalogContent = {
+			...GAME_CONTENT,
+			sounds: {
+				made: { synth: { kind: 'bell', pitch: 440, length: 1 }, category: 'sfx', volume: 0.5 },
+				both: {
+					file: 'rec',
+					synth: { kind: 'click' },
+					category: 'sfx',
+					volume: 0.8,
+					rate: 1.3
+				},
+				recorded: { file: 'rec', category: 'sfx', volume: 1 }
+			},
+			audioFiles: { rec: ['/assets/shared/audio/rec.1.webm'] },
+			audioLevels: {}
+		};
+		const catalog = buildCatalog(diskFor(content), content);
+		expect(row(catalog, 'sound', 'made')?.synth).toEqual({
+			spec: { kind: 'bell', pitch: 440, length: 1 },
+			volume: 0.5,
+			rate: 1
+		});
+		expect(row(catalog, 'sound', 'both')?.synth).toEqual({
+			spec: { kind: 'click' },
+			volume: 0.8,
+			rate: 1.3
+		});
+		expect(row(catalog, 'sound', 'recorded')?.synth).toBeUndefined();
+	});
+
 	it('lists a file nothing uses once, and keeps what a glTF loads', () => {
 		const disk = diskFor(GAME_CONTENT);
 		const piece = assetPath(Object.values(GAME_CONTENT.pieces)[0].url);

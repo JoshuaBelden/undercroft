@@ -263,7 +263,8 @@ export function buildCatalog(
 						peak: measured.peak,
 						stale: measured.urls.join() !== urls.join()
 					}
-				: null
+				: null,
+			synth: def.synth && { spec: def.synth, volume: def.volume, rate: def.rate ?? 1 }
 		});
 	}
 	for (const [id, urls] of Object.entries(content.audioFiles)) {
