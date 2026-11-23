@@ -66,6 +66,8 @@ MATERIALS = {
     "mat-wall-chapel": {"set": "Road015C", "tile": 2.5},
     "mat-prop-planks": {"set": "Planks025A", "tile": 1.0},
     "mat-prop-door": {"set": "PaintedWood007B", "tile": 1.2},
+    # About twenty courses to a repeat: 7.5 cm bricks.
+    "mat-prop-brick": {"set": "Bricks073C", "tile": 1.5},
     "mat-rope": {"color": (0.32, 0.24, 0.15), "roughness": 0.95},
     "mat-wax": {"color": (0.86, 0.80, 0.66), "roughness": 0.55},
     # The unlit inside of a shaft or hatch: reads as a hole going on up into the dark.

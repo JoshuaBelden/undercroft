@@ -282,7 +282,7 @@ Whatever its source, an item over 6,000 triangles is simplified down to that, an
 
 ### Props
 
-Things that stand in the map but aren't part of a piece: the loot crate and the corpse. `scripts/blender/props.py` builds them in the kit .blend, each in a `prop-<name>` collection under a root empty; as with pieces and items, building skips a collection that exists.
+Things that stand in the map but aren't part of a piece: the loot crate, the corpse, room tasks' objects. `scripts/blender/props.py` builds them in the kit .blend, each in a `prop-<name>` collection under a root empty; as with pieces and items, building skips a collection that exists.
 
 - **Origin:** on the floor, centred. The front faces -Y; the back (+Y) goes against a wall.
 - **Moving parts** are their own objects with the origin on the pivot. The crate's lid, `crate-lid`, has its origin on the back top edge; the game turns it about its X axis.
@@ -290,7 +290,7 @@ Things that stand in the map but aren't part of a piece: the loot crate and the 
 
 `props.export_all()` writes `art/export/props/<name>.glb`. `pnpm asset:build` re-encodes the textures to WebP at 512 px and writes `static/assets/shared/props/<name>.<hash>.glb`, keeping node names (the game looks the lid up by name).
 
-**Props from elsewhere** (scanned or generated, like `corpse.glb`: heavy, sitting anywhere) go in `art/export/props/` as they are, with an entry in `PROP_FIT` in `scripts/build-assets.ts`. The build scales them by the entry's `scale` (to life size: the corpse scan came in about 1.7x too big, so 0.6), stands them on the floor (lowest point at y = 0), centres them on the origin and simplifies them to the entry's `tris` (the corpse: 2 million to 12,000 triangles, 64.7 MB to about 600 KB). A static model belongs here, not in `art/export/creatures/` (that pass is for rigged, animated models and simplifies nothing).
+**Props from elsewhere** (scanned or generated, like `corpse.glb`: heavy, sitting anywhere) go in `art/export/props/` as they are, with an entry in `PROP_FIT` in `scripts/build-assets.ts`. The build scales them by the entry's `scale` (to life size: the corpse scan came in about 1.7x too big, so 0.6), stands them on the floor (lowest point at y = 0), centres them on the origin and simplifies them to the entry's `tris`. `turn` turns one that many degrees about the vertical first (the Carters' bell, so its beam runs out from the wall) (the corpse: 2 million to 12,000 triangles, 64.7 MB to about 600 KB). A static model belongs here, not in `art/export/creatures/` (that pass is for rigged, animated models and simplifies nothing).
 
 ### Decor
 
@@ -300,7 +300,7 @@ Models from elsewhere that are built into a piece rather than standing in the ma
 
 Raw recordings go in `art/sfx/` (in undercroft-art, see [Raw art](#raw-art)), named as downloaded. `pnpm asset:audio` (`scripts/build-audio.ts`) builds the entries listed in `scripts/audio.config.ts`:
 
-1. Reads 16-bit PCM WAV or MP3 (any channel count or sample rate; MP3 is decoded with `mpg123-decoder`, mpg123 compiled to WebAssembly) and mixes to mono.
+1. Reads 16-bit PCM or 32-bit float WAV, or MP3 (any channel count or sample rate; MP3 is decoded with `mpg123-decoder`, mpg123 compiled to WebAssembly) and mixes to mono.
 2. Low-pass filters and resamples to 32 kHz, or to the entry's `rate` (22050 for long, dark ambience: about half the size).
 3. Optionally `crop`s to a section. Then it trims silence relative to the peak, or slices a recording of several hits into one file per hit (`maxClips` keeps at most that many, spread through the recording). `loopCrossfade` crossfades a clip's end into its start, for seamless loops such as water lapping. That blends the end into the opening, so for music add `loopFrom` (seconds): the clip keeps its opening and plays from its start once, its end crossfades into `loopFrom`, and later passes loop from there. The point each loop returns to is written to `AUDIO_LOOP_STARTS` in the generated file list. An entry can also list several source files, each becoming a variant of the same sound. Slicing uses onset detection (`slice: { minGap, maxLength, threshold }`), for example one footstep per file from a walking recording. Loops can set `keepSilence`.
 4. Normalizes to -1 dBFS, adds short fades, and encodes mono Opus in WebM (48 kbps, 64 kbps for loops) to `static/assets/shared/audio/<id>.<hash>.webm` (or `<id>-<n>.<hash>.webm` for slices). The encoder is the ffmpeg binary from the `ffmpeg-static` dev dependency, so nothing needs installing.

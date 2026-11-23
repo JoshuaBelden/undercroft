@@ -2,6 +2,7 @@ import type { Db } from 'mongodb';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { newStack } from '../../shared/items/inventory.ts';
 import { LocalDb } from '../localdb/LocalDb.ts';
+import { upTo } from '../../shared/testing/quests.ts';
 import {
 	accountView,
 	createAccount,
@@ -84,10 +85,7 @@ describe('quests on the surface', () => {
 	});
 
 	it('commits only what is wanted, uses it up, and never what was lent', async () => {
-		await setQuests(db, explorer._id, {
-			quests: { fontaine: { counts: [1], committed: {}, done: 1 } },
-			flags: []
-		});
+		await setQuests(db, explorer._id, upTo('by-candle'));
 		await stash(newStack('candle', 3), newStack('rosary', 1), {
 			...newStack('candle', 2),
 			free: true
@@ -109,10 +107,7 @@ describe('quests on the surface', () => {
 		expect(await commitQuest(db, explorer._id, 'moved-dead', STASH(0))).toEqual({
 			error: 'unwanted'
 		});
-		await setQuests(db, explorer._id, {
-			quests: { fontaine: { counts: [1], committed: {}, done: 1 } },
-			flags: []
-		});
+		await setQuests(db, explorer._id, upTo('moved-dead'));
 		await db
 			.collection<ExplorerDoc>('explorers')
 			.updateOne({ _id: explorer._id }, { $set: { underground: 'run' } });
@@ -128,10 +123,7 @@ describe('quests on the surface', () => {
 		expect(await buyFromNpc(db, explorer._id, 'fontaine', 'powder-flask')).toEqual({
 			error: 'unsold'
 		});
-		await setQuests(db, explorer._id, {
-			quests: { fontaine: { counts: [1], committed: {}, done: 1 } },
-			flags: []
-		});
+		await setQuests(db, explorer._id, upTo('what-they-took'));
 		expect('explorer' in (await buyFromNpc(db, explorer._id, 'fontaine', 'powder-flask'))).toBe(
 			true
 		);
@@ -142,6 +134,7 @@ describe('quests on the surface', () => {
 describe('admin', () => {
 	it('sets a quest done, met or open, and flags on and off', async () => {
 		await adminSetQuest(db, explorer._id, 'fontaine', 'done');
+		await adminSetQuest(db, explorer._id, 'moved-dead', 'done');
 		await adminSetQuest(db, explorer._id, 'by-candle', 'met');
 		expect('explorer' in (await reportQuest(db, explorer._id, 'by-candle'))).toBe(true);
 		await adminSetQuest(db, explorer._id, 'by-candle', 'open');

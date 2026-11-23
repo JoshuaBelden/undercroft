@@ -1,5 +1,5 @@
 """Undercroft props (things standing in the map that aren't part of a piece): the loot crate, the
-double door, the spider web.
+double door, the spider web, and the bricked niche of a room task (whole, and broken open).
 
 Bootstraps the models inside the kit .blend. Like pieces and items, the .blend is the source of
 truth once they exist: building skips a prop collection that already exists unless force=True,
@@ -32,7 +32,7 @@ import kit
 
 EXPORT = os.path.join(kit.EXPORT, "props")
 
-PROPS = ["crate", "door-double", "spider-web"]
+PROPS = ["crate", "door-double", "spider-web", "bricked-niche", "bricked-niche-open"]
 
 # The spider web across a side passage's arch (docs/dev/world.md#webs): its size (m), how far it
 # bows toward you, and the texture: colour with the strands' opacity in its alpha (made from the
@@ -222,7 +222,116 @@ def build_spider_web(force=False):
     return root
 
 
-BUILDERS = {"crate": build_crate, "door-double": build_door_double, "spider-web": build_spider_web}
+# The bricked niche (docs/dev/quests.md#room-tasks, the Saints' Crypt): a stone frame against the
+# wall, bricked up. Broken open, a ragged hole shows the dark inside and bricks lie on the floor.
+NICHE_W = 1.0
+NICHE_H = 1.4
+NICHE_D = 0.4
+NICHE_FRAME = 0.15
+# The bricks' face is set back from the frame's; they are this thick; then the hollow behind.
+NICHE_INSET = 0.05
+NICHE_BRICK_T = 0.12
+# The infill is a grid of half bricks and courses, so a hole's edge breaks along the joints of
+# the texture (mat-prop-brick: 20.5 cm bricks, 7.5 cm courses).
+NICHE_CELL = (0.1025, 0.075)
+NICHE_HOLLOW = (0.32, 1.15)  # bottom and top of the hollow inside
+FRAME_STONE = "mat-trim-marble"
+BRICK = "mat-prop-brick"
+DARK = "mat-shaft-dark"
+
+
+def _niche_frame(mb):
+    """The stone surround: two jambs, a lintel and a sill, the back (+Y) left open against the wall."""
+    hw, hd, f = NICHE_W / 2, NICHE_D / 2, NICHE_FRAME
+    mb.box((-hw, -hd, 0), (-hw + f, hd, NICHE_H), FRAME_STONE, skip=("+y", "-z"))
+    mb.box((hw - f, -hd, 0), (hw, hd, NICHE_H), FRAME_STONE, skip=("+y", "-z"))
+    mb.box((-hw, -hd, NICHE_H - f), (hw, hd, NICHE_H), FRAME_STONE, skip=("+y",))
+    # The sill stands a little proud at the foot.
+    mb.box((-hw - 0.02, -hd - 0.03, 0), (hw + 0.02, hd, 0.08), FRAME_STONE, skip=("+y", "-z"))
+
+
+def _hole(i, j, cols, rows):
+    """Whether cell (i, j) is knocked out: a ragged oval in the middle of the infill."""
+    cx, cy = (cols - 1) / 2, rows * 0.55
+    dx, dy = (i - cx) / (cols * 0.42), (j - cy) / (rows * 0.33)
+    # Deterministic raggedness: bricks come out along the courses, unevenly.
+    wobble = 0.22 * math.sin(i * 2.3 + j * 1.7) + 0.12 * math.cos(j * 3.1 - i)
+    return dx * dx + dy * dy < 1 + wobble
+
+
+def _niche_infill(mb, broken):
+    """The brick infill between the jambs, on the sill and up to the lintel: whole, or with the
+    hole knocked through it (each cell kept or not; edges get the bricks' thickness)."""
+    hw, hd, f = NICHE_W / 2, NICHE_D / 2, NICHE_FRAME
+    x0, x1 = -hw + f, hw - f
+    z0, z1 = 0.08, NICHE_H - f
+    y_face = -hd + NICHE_INSET
+    y_back = y_face + NICHE_BRICK_T
+    cw, ch = NICHE_CELL
+    cols = max(1, round((x1 - x0) / cw))
+    rows = max(1, round((z1 - z0) / ch))
+    cw, ch = (x1 - x0) / cols, (z1 - z0) / rows
+
+    def gone(i, j):
+        if not broken or i < 0 or j < 0 or i >= cols or j >= rows:
+            return False
+        z = z0 + (j + 0.5) * ch
+        return NICHE_HOLLOW[0] < z < NICHE_HOLLOW[1] and _hole(i, j, cols, rows)
+
+    for j in range(rows):
+        for i in range(cols):
+            if gone(i, j):
+                continue
+            a, b = x0 + i * cw, x0 + (i + 1) * cw
+            c, d = z0 + j * ch, z0 + (j + 1) * ch
+            mb.face([(a, y_face, c), (b, y_face, c), (b, y_face, d), (a, y_face, d)], BRICK, facing=(0, -1, 0))
+            # The broken edge: the bricks' thickness, facing into the hole.
+            if gone(i - 1, j):
+                mb.face([(a, y_face, c), (a, y_back, c), (a, y_back, d), (a, y_face, d)], BRICK, facing=(-1, 0, 0))
+            if gone(i + 1, j):
+                mb.face([(b, y_face, c), (b, y_back, c), (b, y_back, d), (b, y_face, d)], BRICK, facing=(1, 0, 0))
+            if gone(i, j - 1):
+                mb.face([(a, y_face, c), (b, y_face, c), (b, y_back, c), (a, y_back, c)], BRICK, facing=(0, 0, -1))
+            if gone(i, j + 1):
+                mb.face([(a, y_face, d), (b, y_face, d), (b, y_back, d), (a, y_back, d)], BRICK, facing=(0, 0, 1))
+    if broken:
+        # The hollow behind: dark on every side, its floor a little dusty stone.
+        mb.box((x0, y_back, NICHE_HOLLOW[0]), (x1, hd, NICHE_HOLLOW[1]), DARK, skip=("-y",), inward=True)
+
+
+def _rubble(mb):
+    """Bricks knocked out onto the floor in front, some broken in half."""
+    hd = NICHE_D / 2
+    bricks = [
+        (-0.28, -0.42, 0.205, 0.10, 0), (0.05, -0.5, 0.1, 0.205, 0), (0.3, -0.38, 0.205, 0.10, 0),
+        (-0.08, -0.33, 0.1, 0.1, 0), (0.18, -0.62, 0.1, 0.1, 0), (-0.05, -0.43, 0.205, 0.10, 0.075),
+        (-0.4, -0.6, 0.1, 0.205, 0), (0.42, -0.55, 0.1, 0.1, 0),
+    ]
+    for x, y, w, d, z in bricks:
+        y = y - hd + 0.2
+        mb.box((x - w / 2, y - d / 2, z), (x + w / 2, y + d / 2, z + 0.075), BRICK, skip=("-z",))
+
+
+def build_bricked_niche(force=False, broken=False):
+    """A bricked-up niche against a wall: origin on the floor in the middle, front -Y, back +Y."""
+    name = "bricked-niche-open" if broken else "bricked-niche"
+    coll, root = prop_collection(name, force)
+    mb = kit.MeshBuilder(name)
+    _niche_frame(mb)
+    _niche_infill(mb, broken)
+    if broken:
+        _rubble(mb)
+    mb.finish(coll, root)
+    return coll
+
+
+BUILDERS = {
+    "crate": build_crate,
+    "door-double": build_door_double,
+    "spider-web": build_spider_web,
+    "bricked-niche": build_bricked_niche,
+    "bricked-niche-open": lambda force=False: build_bricked_niche(force, broken=True),
+}
 
 
 # ---------------------------------------------------------------------------

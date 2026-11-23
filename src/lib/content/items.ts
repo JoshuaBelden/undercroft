@@ -478,7 +478,14 @@ const PICTURES: Record<string, string> = {
 	astrolabe: 'brass_astrolabe',
 	doll: 'porcelain_doll',
 	'crozier-head': 'crozier_head',
-	'sealed-reliquary-jar': 'sealed_reliquary_jar'
+	'sealed-reliquary-jar': 'sealed_reliquary_jar',
+	// Quests (docs/dev/quests.md).
+	'powder-flask': 'powder_flask',
+	'oath-rubbing': 'oath_rubbing',
+	'carters-ledger': 'carters_ledger',
+	'hand-of-glory': 'hand_of_glory',
+	'lamplighters-lantern': 'lamplighters_lantern',
+	'quarrymans-charge': 'quarrymans_charge'
 };
 
 /** Item defs with their pictures from PICTURES (one a def names itself wins). */
@@ -945,8 +952,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		kind: 'material',
 		category: 'material',
 		flavor: "A horn flask of black powder, Fontaine's father's. For emergencies.",
-		model: null,
-		placeholder: { size: [0.08, 0.16, 0.05], color: 0x5a4632 },
+		model: modelUrl('shared/items/powder_flask.glb'),
 		maxStack: 1,
 		weight: 0.4,
 		price: 120
@@ -958,8 +964,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		quest: true,
 		flavor: 'Charcoal on paper, taken from a wall of bone. Words cut by a careful hand.',
-		model: null,
-		placeholder: { size: [0.3, 0.01, 0.4], color: 0xd8d0bc },
+		model: modelUrl('shared/items/oath_rubbing.glb'),
 		maxStack: 1,
 		weight: 0.05
 	},
@@ -970,8 +975,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		quest: true,
 		flavor: 'Swollen with water, sealed in a strongbox. Columns of goods, and names.',
-		model: null,
-		placeholder: { size: [0.2, 0.05, 0.28], color: 0x4a3626 },
+		model: modelUrl('shared/items/carters_ledger.glb'),
 		maxStack: 1,
 		weight: 0.6
 	},
@@ -983,8 +987,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		quest: true,
 		flavor:
 			'A dried hand, its fingers dipped in tallow and burned down to the knuckle. A thief kept sleepers sleeping with it.',
-		model: null,
-		placeholder: { size: [0.1, 0.2, 0.06], color: 0x6e5a44 },
+		model: modelUrl('shared/items/hand_of_glory.glb'),
 		maxStack: 1,
 		weight: 0.4
 	},
@@ -995,8 +998,7 @@ export const ITEMS: Record<string, ItemDef> = {
 		category: 'other',
 		quest: true,
 		flavor: 'Iron and horn, and still burning. It is very cold to hold.',
-		model: null,
-		placeholder: { size: [0.16, 0.3, 0.16], color: 0xe0b050 },
+		model: modelUrl('shared/items/lamplighters_lantern.glb'),
 		maxStack: 1,
 		weight: 1.5,
 		// It belongs in his tomb: it doesn't come up with you.

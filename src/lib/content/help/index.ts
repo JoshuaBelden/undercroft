@@ -242,16 +242,17 @@ Press {action:toggleFullscreen} on any screen, or choose Display under Graphics 
 		id: 'fontaine',
 		title: 'Fontaine and her quests',
 		category: 'The surface',
-		body: `Fontaine hired you. She is an archaeologist, a historian, and a student of things that should stay buried, and she pays for what comes up from under the city. She never goes down herself. Find her on the People page of the dashboard.
+		body: `Fontaine hired you. She is an archaeologist, a historian, and a student of things that should stay buried, and she pays for what comes up from under the city. She never goes down herself. Find her under Contacts on the dashboard.
 
-Her first quest is the first thing to do: go down into Rumors and get back out. After that she has eight more at once, to do in any order, and the last once those are done.
+Her first quest is the first thing to do: go down into Rumors and get back out. After that she has nine more, one at a time: each comes once you have reported the one before.
 
 - Each quest says what to do below. A search, a kill, something made or a task done counts for everyone down there with you who has that quest, and it counts the moment it happens, even if you die after.
-- Most also ask you to bring something back. Each of you brings your own. On the People page, drag it from your stash onto the quest, or choose Commit: it is given up for good. What you were lent for a descent can't be.
-- When everything is done and committed, Report to Fontaine for what she pays. The People tab shows how many are ready.
-- Each quest you report adds a page to her casebook: what she has learned. Some of her quests teach you something new, like a recipe you won't find in the Library.
+- Most also ask you to bring something back. Each of you brings your own. On her page under Contacts, drag it from your stash onto the quest, or choose Commit: it is given up for good. What you were lent for a descent can't be.
+- When everything is done and committed, Report to Fontaine for what she pays. The Contacts tab shows how many are ready.
+- With more than one open, choose Track on the one you want to follow: it has a yellow dot, and it is the first one shown at the left of your view below.
+- Each quest you report adds a page to her Research: what she has learned. Some of her quests teach you something new, like a recipe you won't find in the Library.
 
-She sells things too, once she has asked you for them.`
+She sells things too, in her Store, once she has asked you for them.`
 	},
 	{
 		id: 'the-shop',
@@ -741,7 +742,7 @@ Turn your lamp off and back on ({action:headlamp}) with it in the beam, and the 
 
 Banish it and the Gloaming is resolved: the omens lift and the dark lets go. The other things down here don't, and you still have to get out before time runs out.
 
-Why it walks is what Fontaine wants to know. Her quests, and the pages of her casebook, tell it a piece at a time.`
+Why it walks is what Fontaine wants to know. Her quests, and the pages of her research, tell it a piece at a time.`
 	},
 	{
 		id: 'room-tasks',

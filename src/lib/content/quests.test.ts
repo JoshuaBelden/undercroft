@@ -8,6 +8,7 @@ import { PIECES } from '../shared/map/pieces.generated.ts';
 import { NPCS } from './npcs.ts';
 import { QUESTS, RITE_QUEST } from './quests.ts';
 import { RECIPES } from './recipes.ts';
+import { SOUNDS } from './audio/sounds.ts';
 import { TASKS } from './tasks.ts';
 
 function conditions(condition: Condition | undefined): Condition[] {
@@ -89,6 +90,7 @@ describe('quest data', () => {
 			for (const q of npc.quests) expect(QUESTS[q], `${npc.id} gives ${q}`).toBeDefined();
 			for (const sale of npc.sells)
 				expect(ITEMS[sale.item], `${npc.id} sells ${sale.item}`).toBeDefined();
+			if (npc.voice) expect(SOUNDS, `${npc.id}'s voice`).toHaveProperty([npc.voice.sound]);
 		}
 		for (const [affliction, quest] of Object.entries(RITE_QUEST)) {
 			expect(AFFLICTIONS[affliction]).toBeDefined();

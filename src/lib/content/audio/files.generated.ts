@@ -137,7 +137,23 @@ export const AUDIO_FILES: Record<string, string[]> = {
 	'skills.unlock': ['/assets/shared/audio/skills.unlock.2f4e8a3c.webm'],
 	'skills.rank': ['/assets/shared/audio/skills.rank.cac76996.webm'],
 	'skills.mastered': ['/assets/shared/audio/skills.mastered.a53a4230.webm'],
-	'skills.denied': ['/assets/shared/audio/skills.denied.c2688bbb.webm']
+	'skills.denied': ['/assets/shared/audio/skills.denied.c2688bbb.webm'],
+	'quest.commit': ['/assets/shared/audio/quest.commit.bd9a0813.webm'],
+	'quest.done': ['/assets/shared/audio/quest.done.6ca0a517.webm'],
+	'task.bell': ['/assets/shared/audio/task.bell.1e1be26f.webm'],
+	'task.hammer': ['/assets/shared/audio/task.hammer.6db745d0.webm'],
+	'task.scrape': ['/assets/shared/audio/task.scrape.393ad9e5.webm'],
+	'task.winch': ['/assets/shared/audio/task.winch.c94cd734.webm'],
+	'door.rattle': ['/assets/shared/audio/door.rattle.446419ea.webm'],
+	'charge.fuse': ['/assets/shared/audio/charge.fuse.167829cd.webm'],
+	'charge.blast': ['/assets/shared/audio/charge.blast.8e52f99c.webm'],
+	'lantern.laid': ['/assets/shared/audio/lantern.laid.6600d420.webm'],
+	'fontaine.voice': [
+		'/assets/shared/audio/fontaine.voice-1.901d82f2.webm',
+		'/assets/shared/audio/fontaine.voice-2.b4dd752e.webm',
+		'/assets/shared/audio/fontaine.voice-3.b7845c9a.webm',
+		'/assets/shared/audio/fontaine.voice-4.692214a3.webm'
+	]
 };
 
 /** Size in bytes of each built sound file, by URL (preload progress). */
@@ -261,7 +277,21 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/skills.unlock.2f4e8a3c.webm': 7041,
 	'/assets/shared/audio/skills.rank.cac76996.webm': 9858,
 	'/assets/shared/audio/skills.mastered.a53a4230.webm': 26106,
-	'/assets/shared/audio/skills.denied.c2688bbb.webm': 6049
+	'/assets/shared/audio/skills.denied.c2688bbb.webm': 6049,
+	'/assets/shared/audio/quest.commit.bd9a0813.webm': 10234,
+	'/assets/shared/audio/quest.done.6ca0a517.webm': 9427,
+	'/assets/shared/audio/task.bell.1e1be26f.webm': 12830,
+	'/assets/shared/audio/task.hammer.6db745d0.webm': 10485,
+	'/assets/shared/audio/task.scrape.393ad9e5.webm': 13403,
+	'/assets/shared/audio/task.winch.c94cd734.webm': 17609,
+	'/assets/shared/audio/door.rattle.446419ea.webm': 20633,
+	'/assets/shared/audio/charge.fuse.167829cd.webm': 32184,
+	'/assets/shared/audio/charge.blast.8e52f99c.webm': 16232,
+	'/assets/shared/audio/lantern.laid.6600d420.webm': 57746,
+	'/assets/shared/audio/fontaine.voice-1.901d82f2.webm': 35797,
+	'/assets/shared/audio/fontaine.voice-2.b4dd752e.webm': 33881,
+	'/assets/shared/audio/fontaine.voice-3.b7845c9a.webm': 40603,
+	'/assets/shared/audio/fontaine.voice-4.692214a3.webm': 28375
 };
 
 /**

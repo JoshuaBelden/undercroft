@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { MIDDLE } from '../../content/quests.ts';
+import { MIDDLE, QUESTS } from '../../content/quests.ts';
+import { upTo } from '../testing/quests.ts';
 import {
 	advance,
 	briefs,
-	casebook,
+	research,
 	commit,
 	emptyRecord,
 	includedRooms,
@@ -13,9 +14,10 @@ import {
 	openTasks,
 	report,
 	status,
-	test as holds
+	test as holds,
+	trackedQuest
 } from './engine.ts';
-import type { QuestEvent, QuestRecord } from './types.ts';
+import type { QuestDef, QuestEvent, QuestRecord } from './types.ts';
 
 function apply(record: QuestRecord, ...events: QuestEvent[]): QuestRecord {
 	for (const event of events) record = advance(record, event) ?? record;
@@ -32,14 +34,30 @@ function doneWith(...quests: string[]): QuestRecord {
 }
 
 describe('quest order', () => {
-	it('opens the first quest alone, then the eight together, then the last', () => {
+	it('opens them one at a time, in order', () => {
 		expect(openQuests(emptyRecord()).map((q) => q.id)).toEqual(['fontaine']);
-		const afterFirst = doneWith('fontaine');
-		expect(openQuests(afterFirst).map((q) => q.id)).toEqual(MIDDLE);
-		const almost = doneWith('fontaine', ...MIDDLE.slice(1));
-		expect(isOpen(almost, 'last-procession')).toBe(false);
-		const all = doneWith('fontaine', ...MIDDLE);
-		expect(openQuests(all).map((q) => q.id)).toEqual(['last-procession']);
+		const order = ['fontaine', ...MIDDLE, 'last-procession'];
+		order.slice(1).forEach((id, i) => {
+			const before = doneWith(...order.slice(0, i + 1));
+			expect(openQuests(before).map((q) => q.id)).toEqual([id]);
+		});
+		expect(isOpen(doneWith('fontaine', ...MIDDLE.slice(0, -1)), 'last-procession')).toBe(false);
+	});
+
+	it('opens several together when they ask for the same thing', () => {
+		// Fontaine's middle eight as if each needed only the first: all open at once.
+		const together: Record<string, QuestDef> = Object.fromEntries(
+			Object.entries(QUESTS).map(([id, def]) => [
+				id,
+				MIDDLE.includes(id) ? { ...def, requires: { kind: 'done', quest: 'fontaine' } } : def
+			])
+		);
+		const record = doneWith('fontaine');
+		expect(openQuests(record, undefined, together).map((q) => q.id)).toEqual(MIDDLE);
+		const event: QuestEvent = { kind: 'reach', affliction: 'gloaming', level: 3 };
+		const moved = advance(record, event, undefined, together)!;
+		expect(moved.quests['carters-road'].counts).toEqual([1, 0]);
+		expect(moved.quests['what-they-took'].counts).toEqual([0, 1, 0]);
 	});
 
 	it('never shows a locked quest', () => {
@@ -50,11 +68,11 @@ describe('quest order', () => {
 
 describe('advancing', () => {
 	it('counts matching events for open quests only, up to the count', () => {
-		let record = doneWith('fontaine');
+		let record = upTo('moved-dead');
 		for (let i = 0; i < 10; i++) record = apply(record, { kind: 'loot', affliction: 'gloaming' });
 		expect(record.quests['moved-dead'].counts).toEqual([8]);
 		// Rumors loot counts for nothing that asks for the Gloaming's.
-		expect(advance(doneWith('fontaine'), { kind: 'loot', affliction: 'rumors' })).toBeNull();
+		expect(advance(upTo('moved-dead'), { kind: 'loot', affliction: 'rumors' })).toBeNull();
 		// A locked quest doesn't count.
 		expect(
 			advance(emptyRecord(), { kind: 'kill', creature: 'witch', affliction: 'gloaming' })
@@ -62,14 +80,14 @@ describe('advancing', () => {
 	});
 
 	it('reaching a level counts any objective at or above it', () => {
-		const record = apply(doneWith('fontaine'), { kind: 'reach', affliction: 'gloaming', level: 3 });
-		expect(record.quests['carters-road'].counts).toEqual([1, 0]);
-		expect(record.quests['what-they-took'].counts).toEqual([0, 1, 0]);
+		const deep: QuestEvent = { kind: 'reach', affliction: 'gloaming', level: 3 };
+		expect(apply(upTo('carters-road'), deep).quests['carters-road'].counts).toEqual([1, 0]);
+		expect(apply(upTo('what-they-took'), deep).quests['what-they-took'].counts).toEqual([0, 1, 0]);
 	});
 
 	it('the same event moves everyone in a party on (objectives are shared)', () => {
-		const a = doneWith('fontaine');
-		const b = doneWith('fontaine');
+		const a = upTo('carters-road');
+		const b = upTo('carters-road');
 		const event: QuestEvent = { kind: 'task', task: 'carters-bell' };
 		expect(advance(a, event)!.quests['carters-road'].counts).toEqual([0, 1]);
 		expect(advance(b, event)!.quests['carters-road'].counts).toEqual([0, 1]);
@@ -85,7 +103,7 @@ describe('advancing', () => {
 
 describe('committing and reporting', () => {
 	it('takes only what is still wanted, and readies the quest once objectives are met', () => {
-		let record = doneWith('fontaine');
+		let record = upTo('by-candle');
 		const first = commit(record, 'by-candle', 'candle', 3);
 		expect(first.taken).toBe(3);
 		const second = commit(first.record, 'by-candle', 'candle', 9);
@@ -110,20 +128,29 @@ describe('committing and reporting', () => {
 
 	it('pages come in the order earned', () => {
 		const record = doneWith('fontaine', 'carriers', 'moved-dead');
-		expect(casebook(record)).toEqual(['fontaine', 'carriers', 'moved-dead']);
+		expect(research(record)).toEqual(['fontaine', 'carriers', 'moved-dead']);
+	});
+});
+
+describe('tracking', () => {
+	it('follows the chosen quest while it is open, else the first open', () => {
+		expect(trackedQuest(['a', 'b'], 'b')).toBe('b');
+		expect(trackedQuest(['a', 'b'], null)).toBe('a');
+		expect(trackedQuest(['a', 'b'], 'gone')).toBe('a');
+		expect(trackedQuest([], 'a')).toBeNull();
 	});
 });
 
 describe('what the map and the kit need', () => {
 	it('open room tasks name their rooms, until done', () => {
-		const record = doneWith('fontaine');
-		expect(openTasks(record)).toEqual([
-			'oath-rubbing',
-			'carters-bell',
-			'cistern-winch',
-			'bricked-niche'
-		]);
+		expect(openTasks(upTo('carters-road'))).toEqual(['carters-bell']);
+		const record = upTo('what-they-took');
+		expect(openTasks(record)).toEqual(['bricked-niche']);
 		expect(includedRooms([record])).toContain('saints-crypt');
+		// A party with different quests open needs every one's rooms.
+		expect(includedRooms([upTo('sunken-box'), record]).sort()).toEqual(
+			['cistern', 'saints-crypt'].sort()
+		);
 		const niche = apply(record, { kind: 'task', task: 'bricked-niche' });
 		expect(includedRooms([niche])).not.toContain('saints-crypt');
 		expect(includedRooms([emptyRecord()])).toEqual([]);
@@ -131,7 +158,8 @@ describe('what the map and the kit need', () => {
 
 	it('the charge is taught once its quest is open, and stays known', () => {
 		expect(learnedRecipes(emptyRecord())).toEqual([]);
-		expect(learnedRecipes(doneWith('fontaine'))).toEqual(['quarrymans-charge']);
-		expect(learnedRecipes(doneWith('fontaine', 'what-they-took'))).toEqual(['quarrymans-charge']);
+		expect(learnedRecipes(upTo('sunken-box'))).toEqual([]);
+		expect(learnedRecipes(upTo('what-they-took'))).toEqual(['quarrymans-charge']);
+		expect(learnedRecipes(upTo('last-procession'))).toEqual(['quarrymans-charge']);
 	});
 });

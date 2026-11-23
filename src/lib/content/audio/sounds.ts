@@ -1390,11 +1390,24 @@ export const SOUNDS = {
 	/** Finding something epic, legendary or a quest item (revealed in a crate, or picked up). */
 	'loot.found': { file: 'loot.found', category: 'music', volume: 0.65 },
 	'shop.buy': { synth: { kind: 'click' }, category: 'sfx', volume: 0.6 },
+	// A contact greeting you as you open their page (NpcDef.voice): one of their lines at random.
+	'fontaine.greeting': { file: 'fontaine.voice', category: 'sfx', volume: 0.9 },
 	// Quests (docs/dev/quests.md): committing on an NPC's page, and a quest reported done.
-	'quest.commit': { synth: { kind: 'thud', cutoff: 1800 }, category: 'sfx', volume: 0.5 },
-	'quest.done': { synth: { kind: 'bell', pitch: 660, length: 1.2 }, category: 'sfx', volume: 0.5 },
+	'quest.commit': {
+		file: 'quest.commit',
+		synth: { kind: 'thud', cutoff: 1800 },
+		category: 'sfx',
+		volume: 0.5
+	},
+	'quest.done': {
+		file: 'quest.done',
+		synth: { kind: 'bell', pitch: 660, length: 1.2 },
+		category: 'sfx',
+		volume: 0.5
+	},
 	// Room tasks: what each sounds like while it's worked, over and over (heard a long way).
 	'task.bell': {
+		file: 'task.bell',
 		synth: { kind: 'bell', pitch: 220, length: 2.5 },
 		category: 'sfx',
 		volume: 0.9,
@@ -1403,15 +1416,16 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'task.winch': {
+		file: 'task.winch',
 		synth: { kind: 'groan' },
 		category: 'sfx',
 		volume: 0.8,
-		rate: 1.8,
 		variation: 0.1,
 		caption: 'a winch creaks',
 		captionOthers: true
 	},
 	'task.hammer': {
+		file: 'task.hammer',
 		synth: { kind: 'crack' },
 		category: 'sfx',
 		volume: 0.9,
@@ -1420,6 +1434,7 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'task.scrape': {
+		file: 'task.scrape',
 		synth: { kind: 'scrape' },
 		category: 'sfx',
 		volume: 0.6,
@@ -1429,6 +1444,7 @@ export const SOUNDS = {
 	},
 	// The barred stair to the lowest level, and the charge that blows it.
 	'door.rattle': {
+		file: 'door.rattle',
 		synth: { kind: 'knock' },
 		category: 'sfx',
 		volume: 0.8,
@@ -1437,15 +1453,15 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'charge.fuse': {
-		file: 'firecrackers.fuse',
+		file: 'charge.fuse',
 		synth: { kind: 'hiss' },
 		category: 'sfx',
 		volume: 0.6,
-		rate: 0.8,
 		caption: 'a long fuse hisses',
 		captionOthers: true
 	},
 	'charge.blast': {
+		file: 'charge.blast',
 		synth: { kind: 'gunshot', boom: 30, length: 2.5, bright: 1800 },
 		category: 'sfx',
 		volume: 1,
@@ -1454,6 +1470,7 @@ export const SOUNDS = {
 	},
 	// His lantern laid in his tomb: the rite resolved.
 	'lantern.laid': {
+		file: 'lantern.laid',
 		synth: { kind: 'bell', pitch: 440, length: 3 },
 		category: 'sfx',
 		volume: 0.7,

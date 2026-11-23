@@ -10,10 +10,12 @@ import type { TaskPlacement, Vec3 } from '../map/types.ts';
 /** How near (m, from the eye to its middle) and how directly (radians) it must be looked at. */
 export const TASK_REACH = { range: 2.6, angle: 0.6 };
 
-/** The middle of a task's object (it stands on the floor at `position`). */
+/** The middle of a task's object (it stands on the floor at `position`, or `lift` above it). */
 export function taskCentre(task: TaskPlacement): Vec3 {
-	const height = TASKS[task.id]?.placeholder.size[1] ?? 1;
-	return [task.position[0], task.position[1] + height / 2, task.position[2]];
+	const def = TASKS[task.id];
+	const height = def?.size[1] ?? 1;
+	const lift = def?.model?.lift ?? 0;
+	return [task.position[0], task.position[1] + lift + height / 2, task.position[2]];
 }
 
 export function lookedAtTask(

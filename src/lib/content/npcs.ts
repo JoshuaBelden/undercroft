@@ -1,6 +1,6 @@
 /**
  * The people on the surface (docs/dev/quests.md#npcs): who they are, the quests they give, and
- * what they sell. They never go down. Shown on the People page.
+ * what they sell. They never go down. Shown on the Contacts page.
  */
 import type { NpcDef } from '../shared/quests/types.ts';
 
@@ -9,10 +9,12 @@ const LIST: NpcDef[] = [
 		id: 'fontaine',
 		name: 'Fontaine',
 		role: 'Dr. Margaux Fontaine: archaeologist, historian, and student of things that should stay buried',
-		portrait: 'fontaine',
+		portrait: 'npc-margaux-fontaine',
 		greeting: [
 			{ id: 'fontaine.greeting.1', text: 'Back again. Sit, if you like. Tell me what you saw.' }
 		],
+		// One of her four greetings, no more than once every three and a half minutes.
+		voice: { sound: 'fontaine.greeting', every: 210 },
 		quests: [
 			'fontaine',
 			'moved-dead',

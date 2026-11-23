@@ -140,6 +140,7 @@ export const QUICK: Record<string, ItemDef> = {
 		"Quarryman's charge",
 		'Powder, firecrackers and oil, bound tight in twine. Set it against something and run.',
 		{
+			model: modelUrl('shared/items/quarrymans_charge.glb'),
 			weight: 1.2,
 			maxStack: 1,
 			value: 40,

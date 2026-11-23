@@ -1357,7 +1357,7 @@
 			toggleKey={promptCode('toggleRitePanel')}
 		/>
 		{#if settings.interface.ritePanel}
-			<QuestPanel quests={features.quests.briefs} />
+			<QuestPanel quests={features.quests.briefs} chosen={settings.interface.trackedQuest} />
 		{/if}
 	</div>
 	{#if features.affliction.deadline !== null}

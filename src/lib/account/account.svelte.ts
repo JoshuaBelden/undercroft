@@ -178,7 +178,7 @@ export async function workshop(
 }
 
 /**
- * Quests and the people on the surface (docs/dev/quests.md): commit a stash or loadout slot to a
+ * Quests and the contacts on the surface (docs/dev/quests.md): commit a stash or loadout slot to a
  * quest, report a ready one, or buy from an NPC.
  */
 export async function quests(

@@ -68,7 +68,7 @@ export interface QuestDef {
 	objectives: Objective[];
 	/** What must be brought back and committed (from the stash) before it can be reported. */
 	commit: { item: string; count: number }[];
-	/** The casebook page it earns: what the NPC learned. Must stand on its own. */
+	/** The research page it earns: what the NPC learned. Must stand on its own. */
 	page: Line[];
 	reward?: Reward;
 	/** Recipes it teaches while open and after (field recipes kept out of the Library). */
@@ -93,6 +93,11 @@ export interface NpcDef {
 	portrait: string;
 	/** What they say when you come by. */
 	greeting: Line[];
+	/**
+	 * Spoken when you open their page: `sound` (a SOUNDS id; its files are variants, one at random),
+	 * at most once every `every` seconds, so going back and forth doesn't repeat it.
+	 */
+	voice?: { sound: string; every: number };
 	/** Their quests, in the order listed. */
 	quests: string[];
 	sells: NpcSale[];

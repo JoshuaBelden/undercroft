@@ -1,33 +1,33 @@
 # Quests, people on the surface, and the Gloaming's story
 
-Quests are what the people on the surface ask of the explorers. The first person is **Fontaine** (Dr. Margaux Fontaine), an archaeologist of history and the occult who hired them. Her ten quests teach the game (the basics, rummaging, crafting, room tasks, going deeper, combat) and, one casebook page at a time, tell why the Gloaming is there. The tenth is the Gloaming's rite. The design is in [#17](https://github.com/JoshuaBelden/undercroft/issues/17).
+Quests are what the people on the surface ask of the explorers. The first person is **Fontaine** (Dr. Margaux Fontaine), an archaeologist of history and the occult who hired them. Her ten quests teach the game (the basics, rummaging, crafting, room tasks, going deeper, combat) and, one research page at a time, tell why the Gloaming is there. The tenth is the Gloaming's rite. The design is in [#17](https://github.com/JoshuaBelden/undercroft/issues/17).
 
 Everything is data, read by one engine. A new quest is data only; a new kind of objective, condition or effect is added to the engine once, and every quest can use it.
 
 ## Files
 
-| File                                                  | What                                                                                                              |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `src/lib/shared/quests/types.ts`                      | The vocabulary: `Condition`, `Objective`, `QuestDef`, `NpcDef`, `Line`, `QuestRecord`, `QuestEvent`, `QuestBrief` |
-| `src/lib/shared/quests/engine.ts`                     | The engine: pure rules (what is open, advancing, committing, reporting, learned recipes, rooms needed)            |
-| `src/lib/shared/quests/tasks.ts`                      | Which room task's object a player is looking at (client and server alike)                                         |
-| `src/lib/content/quests.ts`                           | Fontaine's ten quests (`QUESTS`, `QUEST_ORDER`, `MIDDLE`, `RITE_QUEST`)                                           |
-| `src/lib/content/npcs.ts`                             | The people on the surface (`NPCS`): who, their lines, their quests, what they sell                                |
-| `src/lib/content/tasks.ts`                            | Room tasks (`TASKS`): room, spot, verb, seconds, noise, sound, what it yields                                     |
-| `src/lib/content/quests.test.ts`                      | Every item, recipe, creature, room, task, quest and Affliction the data names exists                              |
-| `src/lib/server/store/quests.ts`                      | The surface: commit, report, buy from an NPC; `advanceQuests`; older explorers brought in (`questsOf`)            |
-| `src/routes/api/quests/+server.ts`                    | `POST { action: 'commit' \| 'report' \| 'buy' }`                                                                  |
-| `server/systems/quests.ts`                            | `QuestSystem`: below, events become quest progress, kept at once                                                  |
-| `server/systems/tasks.ts`                             | `TaskSystem`: room tasks' objects, working them, noise                                                            |
-| `server/systems/doors.ts`                             | The barred stair (rattles; a charge blows it)                                                                     |
-| `server/systems/hazards.ts`                           | The quarryman's charge (a placed fuse with `place.blast`)                                                         |
-| `src/lib/ui/People.svelte`, `src/routes/(hub)/people` | The People page                                                                                                   |
-| `src/lib/ui/QuestPanel.svelte`                        | Your open quests on the HUD, under the rite panel                                                                 |
-| `src/lib/game/play/quests.svelte.ts`, `tasks.ts`      | The play page's side: quests from the server, room tasks' objects                                                 |
+| File                                                                        | What                                                                                                              |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `src/lib/shared/quests/types.ts`                                            | The vocabulary: `Condition`, `Objective`, `QuestDef`, `NpcDef`, `Line`, `QuestRecord`, `QuestEvent`, `QuestBrief` |
+| `src/lib/shared/quests/engine.ts`                                           | The engine: pure rules (what is open, advancing, committing, reporting, learned recipes, rooms needed)            |
+| `src/lib/shared/quests/tasks.ts`                                            | Which room task's object a player is looking at (client and server alike)                                         |
+| `src/lib/content/quests.ts`                                                 | Fontaine's ten quests (`QUESTS`, `QUEST_ORDER`, `MIDDLE`, `RITE_QUEST`)                                           |
+| `src/lib/content/npcs.ts`                                                   | The people on the surface (`NPCS`): who, their lines, their quests, what they sell                                |
+| `src/lib/content/tasks.ts`                                                  | Room tasks (`TASKS`): room, spot, verb, seconds, noise, sound, what it yields                                     |
+| `src/lib/content/quests.test.ts`                                            | Every item, recipe, creature, room, task, quest and Affliction the data names exists                              |
+| `src/lib/server/store/quests.ts`                                            | The surface: commit, report, buy from an NPC; `advanceQuests`; older explorers brought in (`questsOf`)            |
+| `src/routes/api/quests/+server.ts`                                          | `POST { action: 'commit' \| 'report' \| 'buy' }`                                                                  |
+| `server/systems/quests.ts`                                                  | `QuestSystem`: below, events become quest progress, kept at once                                                  |
+| `server/systems/tasks.ts`                                                   | `TaskSystem`: room tasks' objects, working them, noise                                                            |
+| `server/systems/doors.ts`                                                   | The barred stair (rattles; a charge blows it)                                                                     |
+| `server/systems/hazards.ts`                                                 | The quarryman's charge (a placed fuse with `place.blast`)                                                         |
+| `src/lib/ui/Contacts.svelte`, `Contact.svelte`, `src/routes/(hub)/contacts` | The Contacts pages                                                                                                |
+| `src/lib/ui/QuestPanel.svelte`                                              | Your open quests on the HUD, under the rite panel                                                                 |
+| `src/lib/game/play/quests.svelte.ts`, `tasks.ts`                            | The play page's side: quests from the server, room tasks' objects                                                 |
 
 ## The vocabulary
 
-**Lines.** Everything someone says or writes is a `Line { id, text }`: an offer, an objective's text, a casebook page, a greeting. Ids are `<quest>.<part>.<n>` (`moved-dead.offer.2`). An id stays put when its text changes, so a voice can be added later through the audio manager keyed by line id, without touching the data. Add lines at the end of a part, never in between.
+**Lines.** Everything someone says or writes is a `Line { id, text }`: an offer, an objective's text, a research page, a greeting. Ids are `<quest>.<part>.<n>` (`moved-dead.offer.2`). An id stays put when its text changes, so a voice can be added later through the audio manager keyed by line id, without touching the data. Add lines at the end of a part, never in between.
 
 **Conditions** (`Condition`), true or not of one explorer: `done` (a quest reported), `open` (offered and not done), `flag`, `resolved` (an Affliction), and `all`, `any`, `not` to combine them. Used by a quest's `requires`, an NPC sale's `when`, and a rite's `begin` ([rite.md](rite.md)).
 
@@ -43,19 +43,21 @@ Everything is data, read by one engine. A new quest is data only; a new kind of 
 | `task`    | a room task done                                                | `TaskSystem`                                               |
 | `resolve` | the Affliction's rite resolved                                  | `AfflictionSystem.resolve` (eligible players only)         |
 
-**Quests** (`QuestDef`): `npc`, `title`, `teaches` (the label on the list), `requires`, `offer`, `objectives`, `commit` (items brought back), `page` (the casebook page), `reward` (`coins`, `xp`, `items`), `teachesRecipes` (recipes kept out of the Library, known while the quest is open and after), `sets` (flags set when it is done).
+**Quests** (`QuestDef`): `npc`, `title`, `teaches` (the label on the list), `requires`, `offer`, `objectives`, `commit` (items brought back), `page` (the research page), `reward` (`coins`, `xp`, `items`), `teachesRecipes` (recipes kept out of the Library, known while the quest is open and after), `sets` (flags set when it is done).
 
-**NPCs** (`NpcDef`): `name`, `role`, `portrait` (a picture name; a letter stands in until it exists), `greeting`, `quests` (in the order listed), `sells` (`{ item, price, when? }`).
+**NPCs** (`NpcDef`): `name`, `role`, `portrait` (a picture name; a letter stands in until it exists), `greeting`, `voice` (optional: `{ sound, every }`, spoken as their page opens), `quests` (in the order listed), `sells` (`{ item, price, when? }`).
+
+**Voice.** Opening a contact's page plays their `voice.sound` (a `SOUNDS` id in the SFX category whose files are variants, one at random: Fontaine's `fontaine.greeting` is the four recordings `fontaine.voice.1` to `.4`), at most once every `voice.every` seconds per contact (Fontaine: 210), so going back and forth doesn't repeat it. When each last spoke is kept in the browser's storage (`src/lib/ui/greetings.ts`), so a reload doesn't reset it either. To give a contact a voice, add the recordings to `art/sfx`, one `AUDIO_SOURCES` entry with them all as `file`, a sound, and `voice` on the `NpcDef`.
 
 ## How a quest goes
 
 1. **Offered** once its `requires` holds. Only open and done quests are ever shown, never a locked one (`status` returns null for those).
 2. **Objectives** are met below. **They are shared:** a search, a kill, a craft, a level reached or a room task counts for everyone still down there with a quest that wants it. Getting out counts only for whoever got out.
 3. **Kept at once.** Every change is written as it happens (`SessionHooks.onQuests` → `keepQuests` in `server/belongings.ts`, writes in order per explorer). A task done stays done even if its doer dies after. The hub can't change an explorer's quests while they are underground, so the game server writing the whole record is safe.
-4. **Committed** on the People page: dragging a stack from the stash onto the quest's slot (or Commit, which takes the first stack of it in the stash) gives up as much of it as is still wanted, for good (`commitQuest`, through `changeExplorer`, which now guards `quests` too). **Commitments are each player's own:** everyone brings back their own. What was lent for the descent (the free loadout) can't be committed.
-5. **Ready** when every objective is met and everything committed. **Reported** (Report to Fontaine): done, the casebook page earned, the reward paid (`reportQuest`; experience through `addExperience`, a first `quest:<id>`).
+4. **Committed** on the contact's page: dragging a stack from the stash onto the quest's slot (or Commit, which takes the first stack of it in the stash) gives up as much of it as is still wanted, for good (`commitQuest`, through `changeExplorer`, which now guards `quests` too). **Commitments are each player's own:** everyone brings back their own. What was lent for the descent (the free loadout) can't be committed.
+5. **Ready** when every objective is met and everything committed. **Reported** (Report to Fontaine): done, the research page earned, the reward paid (`reportQuest`; experience through `addExperience`, a first `quest:<id>`).
 
-Fontaine's order: the first quest alone, then the eight in `MIDDLE` all at once, in any order, then the last once all eight are done (`requires: all(done ...)`).
+Fontaine's order: one at a time, in `QUEST_ORDER`: each `requires` the one before it done (`MIDDLE` is the eight between the first and the last). The engine still allows several open at once: give them the same `requires` (or an `all`/`any`), and the list shows them together.
 
 **Older explorers** (`questsOf`): one with no quest record starts at the first quest, with its objective already met if they have been through Rumors, so they report it for the flask. Having resolved the Gloaming before skips nothing.
 
@@ -66,7 +68,7 @@ A `task` objective names a room task (`TASKS`): something in a named room to hol
 - **The map has the room.** At descent (`Parties.begin`) the party's open tasks go to `Session.questTasks`, which builds the map again from the same seed with `require` (the generator's required rooms, [map-generation.md](map-generation.md#required-rooms)) and the tasks' objects in it. Not in a training map.
 - **Where:** at the room's `spot-<name>` marker (`TaskDef.spot`, placed by `scripts/blender/task_spots.py`: on the floor, back to a wall, the Cistern's on its walkway); without one, on the dry standing floor nearest the room's middle. `layout.tasks` carries them to clients.
 - **Working it:** `TaskSystem.step`, with `PlayerState.tasking`. Interact takes a floor item, a crate or a door first, as on the client. Letting go starts it over. Done (`taskDone`, and `tick.tasks`), it stays done for the run; what it `yields` lies on the floor in front of it, toward whoever did it.
-- **Placeholders:** each object is a box of `TaskDef.placeholder` until it has a model.
+- **Models:** `TaskDef.model` is its object in `shared/props`, standing at the spot with its front to the room: `lift` raises it off the floor (the bell, hung from a beam run out from the wall), `back` moves it toward the wall (or out, negative) to sit against it, and `done` is what stands there once the task is done (the niche broken open, `bricked-niche-open`; without one the object stays as it was). `TaskDef.size` is the object's size: its middle (`taskCentre`, `lift` included) is what a player looks at, and without a model it is drawn as a box in `color`. The bell, the winch and the oath's tablet (`oath_carving`, the rubbing's model) are generated props fitted by `PROP_FIT`; the niche is built by `props.py` ([asset-pipeline.md](asset-pipeline.md#props)).
 
 ## The barred stair
 
@@ -98,15 +100,21 @@ The last quest's objective is `resolve gloaming`. The Gloaming's rite (`RiteSpec
 
 The setting has the feel of Paris's catacombs without naming them: limestone quarries, the dead of the city's cemeteries carried down by night under black cloth, by candlelight. Two centuries ago Father Lenoir, the Lamplighter, walked at the front of every procession with a lantern, and swore on his hand that none of the dead would lie in the dark. The Night Carters who drove the carts turned smugglers, robbed his tomb and made his hand a Hand of Glory; the parish barred the stair. With his oath torn from him he rose: every dusk the procession walks again. The omens are its approach, what hunts is its carriers, the dwellers are the Carters who never got out; he takes your light because the dead need it.
 
-## On the surface: the People page
+## On the surface: the Contacts pages
 
-`src/routes/(hub)/people` (the People tab, which shows how many quests are ready to report) renders `People.svelte`: the NPC's portrait, role and greeting, then three tabs.
+The Contacts tab (`src/routes/(hub)/contacts`, which shows how many quests are ready to report) renders `Contacts.svelte`: each NPC as only their portrait (`NpcDef.portrait`, a picture with a transparent background, in `art/images`: Fontaine's is `npc-margaux-fontaine`) and name, centred. Choosing one opens their page, `/contacts/<npc id>` (`contacts/[npc]`, a 404 for an id not in `NPCS`), which renders `Contact.svelte` across the whole page: a large portrait at the upper left with their name, role and greeting, and over the rest three pills. The controller's B goes back to Contacts from there. Both draw the portrait with `ContactPortrait.svelte`: head and shoulders cut off at the bottom, with a bronze trim (`contact.profile.footer`, the same for every contact) laid over the cut.
 
-- **Quests:** open ones (ready to report first) then done ones. Each shows its offer, its objectives with counts, a slot per thing to bring back (a drop target for the stash beside it, and a Commit button for keyboard and controller), what it pays, and Report when ready.
-- **Casebook:** the pages earned, in the order earned (`casebook`). Each stands on its own, since the middle eight can be done in any order.
-- **Buy:** what they sell whose `when` holds.
+- **Quests:** open ones, ready to report first. Done ones are listed under them only with the Show completed pill at the bottom of the list. Each shows its offer, its objectives with counts, a slot per thing to bring back (a drop target for the stash beside it, and a Commit button for keyboard and controller), what it pays, and Report when ready.
+- **Research:** what they have learned: the pages earned, in the order earned (`research`). Each stands on its own, so quests can later be opened together without breaking the story.
+- **Store:** what they sell whose `when` holds.
+
+The stash is on the right for Quests and Store, its slots a little smaller than the Loadout's (`--slot-size`), one slot to a cell.
 
 Committing plays `quest.commit`, reporting `quest.done`.
+
+## Tracking
+
+One open quest is followed: the one the player chose with Track on the contact's page (shown only with more than one open), kept in the settings store (`interface.trackedQuest`), or, when that is unset or no longer open, the first open one (`trackedQuest`). It has a yellow dot (`--launch-bright`) before its title in the list and in `QuestPanel`, which shows it first. A contact's list shows selected quests in bold; done ones only with Show completed.
 
 ## Underground
 

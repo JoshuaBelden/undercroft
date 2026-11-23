@@ -278,12 +278,20 @@ export function includedRooms(records: QuestRecord[], context: QuestContext[] = 
 	return [...rooms];
 }
 
-/** Casebook pages earned, in the order earned. */
-export function casebook(record: QuestRecord, defs: Record<string, QuestDef> = QUESTS): string[] {
+/** Research pages earned (what the NPC has learned), in the order earned. */
+export function research(record: QuestRecord, defs: Record<string, QuestDef> = QUESTS): string[] {
 	return Object.entries(record.quests)
 		.filter(([id, p]) => p.done !== undefined && defs[id])
 		.sort((a, b) => a[1].done! - b[1].done!)
 		.map(([id]) => id);
+}
+
+/**
+ * The quest followed (on the HUD, marked on the contact's page): the one the player chose while it
+ * is still open, else the first open one. Null with none open.
+ */
+export function trackedQuest(open: string[], chosen: string | null): string | null {
+	return chosen !== null && open.includes(chosen) ? chosen : (open[0] ?? null);
 }
 
 /** The open (and ready) quests in short form, for the HUD. */

@@ -3,9 +3,9 @@ import { TASKS } from '../../src/lib/content/tasks.ts';
 import { doorBox } from '../../src/lib/shared/map/doors.ts';
 import { inFront } from '../../src/lib/shared/map/points.ts';
 import type { TaskPlacement, Vec3 } from '../../src/lib/shared/map/types.ts';
-import { emptyRecord } from '../../src/lib/shared/quests/engine.ts';
 import { taskCentre } from '../../src/lib/shared/quests/tasks.ts';
 import type { QuestRecord } from '../../src/lib/shared/quests/types.ts';
+import { upTo } from '../../src/lib/shared/testing/quests.ts';
 import type { Session } from '../session.ts';
 import { Diver, useSessions } from '../testing/harness.ts';
 
@@ -17,13 +17,6 @@ function quiet(): Session {
 	const session = open(1);
 	session.admin('x', { kind: 'clearCreatures' });
 	return session;
-}
-
-/** Past the first quest: the eight in the middle are open. */
-function started(): QuestRecord {
-	const record = emptyRecord();
-	record.quests.fontaine = { counts: [1], committed: {}, done: 1 };
-	return record;
 }
 
 function questing(session: Session, name: string, record: QuestRecord | null): Diver {
@@ -58,8 +51,8 @@ describe('room tasks', () => {
 	it('held on, it is loud the whole time; done, it yields its thing and counts for everyone', () => {
 		const session = quiet();
 		session.questTasks(['cistern-winch']);
-		const a = questing(session, 'A', started());
-		const b = questing(session, 'B', started());
+		const a = questing(session, 'A', upTo('sunken-box'));
+		const b = questing(session, 'B', upTo('sunken-box'));
 		const task = session.layout.tasks![0];
 		const look = facing(session, a, task);
 		const hear = vi.spyOn(session['creatures'], 'hear');
@@ -109,7 +102,7 @@ describe('the barred stair', () => {
 		const kept = vi.fn();
 		const session = open(1, { onQuests: kept });
 		session.admin('x', { kind: 'clearCreatures' });
-		const diver = questing(session, 'A', started());
+		const diver = questing(session, 'A', upTo('what-they-took'));
 		const door = barredDoor(session);
 		expect(diver.socket.last('tick')?.barred ?? session['doors'].barredSnapshot()).toContain(
 			door.id
@@ -145,7 +138,7 @@ describe('the barred stair', () => {
 
 	it("isn't barred for a party with someone who has blown it before", () => {
 		const session = quiet();
-		const record = started();
+		const record = upTo('what-they-took');
 		record.flags.push('gloaming.level-3-open');
 		const diver = new Diver(session);
 		session.systems.quests.set(diver.player, { record, resolved: [] });

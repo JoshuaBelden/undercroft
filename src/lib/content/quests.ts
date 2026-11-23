@@ -1,7 +1,7 @@
 /**
  * Fontaine's quests (docs/dev/quests.md): the basics, rummaging, crafting and combat, and one by
- * one the story of the Gloaming. The first comes first; the next eight are open together, in any
- * order; the last opens once those eight are done. Read by the engine
+ * one the story of the Gloaming. One at a time, in order: each opens when the one
+ * before it is done. (The engine allows several open at once: give them the same `requires`.) Read by the engine
  * (src/lib/shared/quests/engine.ts); checked by quests.test.ts.
  *
  * Every line has an id, so a voice can be added later: ids are `<quest>.<part>.<n>`, and a line
@@ -20,7 +20,7 @@ function line(id: string, text: string): Line {
 
 const done = (quest: string): Condition => ({ kind: 'done', quest });
 
-/** The eight in the middle, open together once the first is done. */
+/** The eight in the middle, in order: each opens once the one before it is done. */
 export const MIDDLE = [
 	'moved-dead',
 	'by-candle',
@@ -91,7 +91,7 @@ const LIST: QuestDef[] = [
 		npc: 'fontaine',
 		title: 'By Candle, Never Torch',
 		teaches: 'Crafting',
-		requires: done('fontaine'),
+		requires: done('moved-dead'),
 		offer: say(
 			'by-candle.offer',
 			'The old accounts all say the same thing: they went down by candle, never by torch. Torches were for workmen.',
@@ -118,7 +118,7 @@ const LIST: QuestDef[] = [
 		npc: 'fontaine',
 		title: 'The Walls of Bone',
 		teaches: 'Room tasks',
-		requires: done('fontaine'),
+		requires: done('by-candle'),
 		offer: say(
 			'walls-of-bone.offer',
 			"The great walls in the Ossuary Hall weren't heaped. They were built, skull by skull, by someone who knew what he was doing.",
@@ -144,7 +144,7 @@ const LIST: QuestDef[] = [
 		npc: 'fontaine',
 		title: "The Carters' Road",
 		teaches: 'Going deeper',
-		requires: done('fontaine'),
+		requires: done('walls-of-bone'),
 		offer: say(
 			'carters-road.offer',
 			"Someone drove the death carts. Below the first stair there's a gallery with a bell hung over the old cart road.",
@@ -176,7 +176,7 @@ const LIST: QuestDef[] = [
 		npc: 'fontaine',
 		title: 'Salt for the Carts',
 		teaches: 'Crafting',
-		requires: done('fontaine'),
+		requires: done('carters-road'),
 		offer: say(
 			'salt-for-carts.offer',
 			'The carts were salted every night before they went down, and a priest blessed the salt.',
@@ -203,7 +203,7 @@ const LIST: QuestDef[] = [
 		npc: 'fontaine',
 		title: 'The Sunken Box',
 		teaches: 'Room tasks',
-		requires: done('fontaine'),
+		requires: done('salt-for-carts'),
 		offer: say(
 			'sunken-box.offer',
 			'Smugglers keep books. The quarrymen say the Carters sank a strongbox in the Cistern, on a chain, where no customs man would wade.',
@@ -229,7 +229,7 @@ const LIST: QuestDef[] = [
 		npc: 'fontaine',
 		title: 'What They Took',
 		teaches: 'Crafting, going deeper',
-		requires: done('fontaine'),
+		requires: done('sunken-box'),
 		offer: say(
 			'what-they-took.offer',
 			"After the robbery the parish barred the stair to the lowest level, from the far side. It won't open for you.",
@@ -269,7 +269,7 @@ const LIST: QuestDef[] = [
 		npc: 'fontaine',
 		title: 'The Carriers',
 		teaches: 'Combat',
-		requires: done('fontaine'),
+		requires: done('what-they-took'),
 		offer: say(
 			'carriers.offer',
 			"Something hunts in the Gloaming. The ones who've seen it close won't say what.",
@@ -296,7 +296,7 @@ const LIST: QuestDef[] = [
 		npc: 'fontaine',
 		title: 'The Last Procession',
 		teaches: 'Everything',
-		requires: { kind: 'all', of: MIDDLE.map(done) },
+		requires: done('carriers'),
 		offer: say(
 			'last-procession.offer',
 			'Here it is, then, all of it. Two hundred years ago the dead were carried into the quarries by night, and Father Lenoir lit their way.',

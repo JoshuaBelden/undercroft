@@ -82,7 +82,7 @@ const LEGACY_DIRS = ['map', 'creatures', 'player', 'items', 'props'];
  * centred on the origin, scaled by `scale` (to life size) and simplified to `tris`. Props built
  * by scripts/blender/props.py are already in their frame and need no entry.
  */
-const PROP_FIT: Record<string, { tris: number; scale?: number }> = {
+const PROP_FIT: Record<string, { tris: number; scale?: number; turn?: number }> = {
 	// The scan came in at about 1.7x life size: 0.6 matches the living explorer.
 	corpse: { tris: 12000, scale: 0.6 },
 	// The locked trunk (docs/dev/items.md#locked-trunks): 1.9 m wide as generated; 0.47 makes it
@@ -90,7 +90,15 @@ const PROP_FIT: Record<string, { tris: number; scale?: number }> = {
 	trunk: { tris: 6000, scale: 0.47 },
 	// The drop box (LOOTABLES.dropBox): 1.9 m wide as generated; 0.26 makes it 0.5 m wide, 0.37 m
 	// high with its handle and 0.36 m deep, its hasp to +Z like the crate's front.
-	drop_box: { tris: 4000, scale: 0.26 }
+	drop_box: { tris: 4000, scale: 0.26 },
+	// Room tasks' objects (docs/dev/quests.md#room-tasks), generated about 1.9 m tall, front to +Z.
+	// The Carters' bell under its beam, rope and all: 0.52 makes it 1 m tall, and a quarter turn
+	// (`turn`, degrees about the vertical) runs the 0.66 m beam out from the wall like a bracket.
+	carters_bell: { tris: 8000, scale: 0.52, turn: 90 },
+	// The cistern winch: 0.5 makes it 0.95 m wide, 0.7 m high and 0.9 m deep with its chain.
+	cistern_winch: { tris: 10000, scale: 0.5 },
+	// The oath on its tablet (the rubbing's model): 0.53 makes it 1 m square, 5 cm thick.
+	oath_carving: { tris: 6000, scale: 0.53 }
 };
 /**
  * Props whose texture needs more than PROP_TEXTURE: the spider web's strands are a pixel or two
@@ -675,12 +683,14 @@ async function buildItems(io: NodeIO): Promise<void> {
 }
 
 /** Scale a prop, then put its lowest point on the floor (y = 0) and its middle over the origin. */
-function standOnFloor(doc: Document, name: string, scale = 1): void {
+function standOnFloor(doc: Document, name: string, scale = 1, turn = 0): void {
 	const scene = doc.getRoot().listScenes()[0];
 	const holder = doc.createNode(name);
 	for (const child of scene.listChildren()) holder.addChild(child);
 	scene.addChild(holder);
 	holder.setScale([scale, scale, scale]);
+	const half = (turn * Math.PI) / 360;
+	if (turn) holder.setRotation([0, Math.sin(half), 0, Math.cos(half)]);
 	const b = getBounds(scene);
 	holder.setTranslation([-(b.min[0] + b.max[0]) / 2, -b.min[1], -(b.min[2] + b.max[2]) / 2]);
 }
@@ -703,7 +713,7 @@ async function buildProps(io: NodeIO): Promise<void> {
 		const id = path.basename(f, '.glb');
 		const fit = PROP_FIT[id];
 		const tris = triangleCount(doc);
-		if (fit) standOnFloor(doc, id, fit.scale);
+		if (fit) standOnFloor(doc, id, fit.scale, fit.turn);
 		await doc.transform(dedup(), weld());
 		if (fit && tris > fit.tris) {
 			await doc.transform(

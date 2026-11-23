@@ -3,6 +3,7 @@ import { CRAFT } from '../../src/lib/content/recipes.ts';
 import { carriedCount, newStack } from '../../src/lib/shared/items/inventory.ts';
 import { emptyRecord } from '../../src/lib/shared/quests/engine.ts';
 import type { QuestRecord } from '../../src/lib/shared/quests/types.ts';
+import { upTo } from '../../src/lib/shared/testing/quests.ts';
 import type { Session } from '../session.ts';
 import { Diver, kit, useSessions } from '../testing/harness.ts';
 
@@ -16,13 +17,6 @@ function quiet(hooks = {}, affliction = 'gloaming'): Session {
 	return session;
 }
 
-/** Past the first quest: the eight in the middle are open. */
-function started(): QuestRecord {
-	const record = emptyRecord();
-	record.quests.fontaine = { counts: [1], committed: {}, done: 1 };
-	return record;
-}
-
 function questing(session: Session, name: string, record: QuestRecord | null, inventory = kit()) {
 	const diver = new Diver(session, name, inventory);
 	session.systems.quests.set(diver.player, record ? { record, resolved: [] } : null);
@@ -33,8 +27,8 @@ describe('quests below', () => {
 	it('a search counts for everyone down here, and each change is kept at once', () => {
 		const kept = vi.fn();
 		const session = quiet({ onQuests: kept });
-		const a = questing(session, 'A', started());
-		const b = questing(session, 'B', started());
+		const a = questing(session, 'A', upTo('moved-dead'));
+		const b = questing(session, 'B', upTo('moved-dead'));
 		const crate = session['crates'].list()[0].crate;
 		session.systems.quests.count([
 			{ kind: 'crateOpen', id: crate.id, player: a.id, position: crate.position }
@@ -66,7 +60,7 @@ describe('quests below', () => {
 	it('reaching a level counts once', () => {
 		const kept = vi.fn();
 		const session = quiet({ onQuests: kept });
-		const a = questing(session, 'A', started());
+		const a = questing(session, 'A', upTo('carters-road'));
 		a.player.deepestLevel = 1;
 		session.systems.quests.count([]);
 		session.systems.quests.count([]);
@@ -94,7 +88,7 @@ describe('quests below', () => {
 		const untaught = crafter('U', emptyRecord());
 		session.craft(untaught.id, { recipe: 'quarrymans-charge' });
 		expect(untaught.state.crafting).toBe(0);
-		const taught = crafter('T', started());
+		const taught = crafter('T', upTo('what-they-took'));
 		session.craft(taught.id, { recipe: 'quarrymans-charge' });
 		expect(taught.state.crafting).toBeGreaterThan(0);
 		taught.hold({}, CRAFT.field.seconds + 0.3);

@@ -116,6 +116,11 @@ export interface Settings {
 		mapZoom: number;
 		/** Notices at the right edge: friend requests, invites, items received (docs/dev/alerts.md). */
 		alerts: boolean;
+		/**
+		 * The quest the player chose to follow (docs/dev/quests.md#tracking). Null, or no longer
+		 * open: the first open one is followed.
+		 */
+		trackedQuest: string | null;
 		/** How the Stash and the Store are ordered, each as last left (`ItemSort`). */
 		stashSort: ItemSortOrder;
 		storeSort: ItemSortOrder;
@@ -142,6 +147,7 @@ function defaults(): Settings {
 			gamerTags: true,
 			mapZoom: SURVEY.zoom.initial,
 			alerts: true,
+			trackedQuest: null,
 			stashSort: 'placed',
 			storeSort: 'placed'
 		},
