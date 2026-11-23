@@ -106,7 +106,7 @@ export interface SessionHooks {
 	/** A clue was found (or revealed by an admin): this many are now known. */
 	onClues?: (clues: number) => void;
 	/** The rite was performed: the Affliction is resolved for everyone in the expedition. */
-	onResolved?: () => void;
+	onResolved?: (owners: string[]) => void;
 	/** An admin wiped what is known about the rite. */
 	onRiteReset?: () => void;
 	/** A player saw something in a lootable: where (docs/dev/crafting.md#discovery). */

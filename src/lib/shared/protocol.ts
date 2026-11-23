@@ -151,6 +151,8 @@ export type AdminCommand =
 	| { kind: 'openDoors' }
 	/** Quests (docs/dev/quests.md): finish an open quest's objectives (all open ones, without `quest`). */
 	| { kind: 'questObjectives'; quest?: string }
+	/** Put down what the rite summoned and leave what it leaves (his lantern) by you. */
+	| { kind: 'fell' }
 	/** Set a quest flag on everyone down here. */
 	| { kind: 'questFlag'; flag: string }
 	/** Shut every loot crate and fill them again, hidden. */

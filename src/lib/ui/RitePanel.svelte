@@ -9,7 +9,9 @@
 	 * What is known about the rite, at the middle of the left edge while underground (the play page
 	 * places it) and on the Rite tab of the in-game menu (GameMenu): the Affliction's name, the
 	 * hints found so far, then a line down the left joining each thing the rite needs and the room.
-	 * Once performed, one last step: banish what it summoned. Hidden (`open` false), only the name
+	 * Once performed, one last step: banish what it summoned (and, for a rite that leaves something
+	 * to lay to rest, lay it where the rite began: docs/dev/quests.md#the-rite). A rite that is a
+	 * quest's (`gated`) is begun only by those the quest sent. Hidden (`open` false), only the name
 	 * stays, with the binding that brings the rest back. Nothing in it can be clicked. See
 	 * docs/dev/rite.md.
 	 */
@@ -30,6 +32,7 @@
 	let { affliction, rite, carriers, interactKey, open = true, toggleKey = '' }: Props = $props();
 
 	const room = $derived(rite.room ? (MAP_KIT[rite.room]?.title ?? rite.room) : null);
+	const laid = $derived(rite.laid ? (ITEMS[rite.laid.item]?.name ?? rite.laid.item) : null);
 
 	/** This player carries some of it: its picture is in full colour. */
 	function held(index: number): boolean {
@@ -88,7 +91,10 @@
 					<span class="text">
 						<span class="name">{room}</span>
 						<span class="who"
-							>One of you carries it all here and holds {#if interactKey}<KeyCap
+							>{rite.gated
+								? 'Whoever was sent for it begins it here, holding'
+								: 'One of you carries it all here and holds'}
+							{#if interactKey}<KeyCap
 									code={interactKey}
 									tint="control"
 								/>{:else}interact{/if}</span
@@ -98,7 +104,19 @@
 					<span class="mark">Location: Unknown</span>
 				{/if}
 			</li>
-			{#if rite.performed}
+			{#if rite.performed && laid && !rite.resolved}
+				<li class="banish">
+					<span class="text">
+						<span class="name">Lay {laid} to rest</span>
+						<span class="who"
+							>Carry it to where the rite began, and hold {#if interactKey}<KeyCap
+									code={interactKey}
+									tint="control"
+								/>{:else}interact{/if}</span
+						>
+					</span>
+				</li>
+			{:else if rite.performed}
 				<li class="banish" class:after={rite.resolved}>
 					<span class="text">
 						<span class="name">{rite.resolved ? 'Banished' : 'Banish it'}</span>

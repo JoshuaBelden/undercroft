@@ -923,18 +923,20 @@ export const ITEMS: Record<string, ItemDef> = {
 		value: 800,
 		rarity: 'legendary'
 	},
-	// Rite items (see docs/dev/rite.md).
+	// Once the Gloaming's rite needed it (docs/dev/rite.md); now it is only worth something.
 	pendant: {
 		id: 'pendant',
 		name: 'The Pendant',
-		kind: 'rite',
+		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor: 'Heavier than it should be, and never quite warm.',
 		image: 'pendant',
-		quest: true,
 		model: modelUrl('shared/items/pendant.glb'),
 		maxStack: 1,
-		weight: 0.2
+		weight: 0.2,
+		value: 150,
+		rarity: 'rare'
 	},
 	// Quest items (docs/dev/quests.md): what Fontaine asks for, and what opens the way.
 	'powder-flask': {
@@ -996,7 +998,9 @@ export const ITEMS: Record<string, ItemDef> = {
 		model: null,
 		placeholder: { size: [0.16, 0.3, 0.16], color: 0xe0b050 },
 		maxStack: 1,
-		weight: 1.5
+		weight: 1.5,
+		// It belongs in his tomb: it doesn't come up with you.
+		spoils: true
 	},
 	// A clue is read where it lies and never carried: nothing can be added to an inventory.
 	clue: {

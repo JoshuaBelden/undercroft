@@ -13,6 +13,7 @@ function conditions(condition: Condition | undefined): Condition[] {
 	if (!condition) return [];
 	if (condition.kind === 'all' || condition.kind === 'any')
 		return [condition, ...condition.of.flatMap(conditions)];
+	if (condition.kind === 'not') return [condition, ...conditions(condition.of)];
 	return [condition];
 }
 

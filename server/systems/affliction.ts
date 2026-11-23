@@ -1,5 +1,5 @@
 import { achievementsForBanishing } from '../../src/lib/content/achievements.ts';
-import { absorbBlow } from '../../src/lib/shared/items/inventory.ts';
+import { absorbBlow, newStack } from '../../src/lib/shared/items/inventory.ts';
 import { unsealExtracts } from '../../src/lib/shared/map/collision.ts';
 import { doorBox } from '../../src/lib/shared/map/doors.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
@@ -40,8 +40,12 @@ export class AfflictionSystem implements SessionSystem {
 			ctx.events.push({ kind: 'ray', from: [...shot.from], to: [...shot.to], player: shot.player });
 		}
 		ctx.affliction.shots = [];
-		// Banished by a weapon or an admin earlier this tick.
-		if (ctx.affliction.defeated) this.resolve();
+		// Banished by a weapon or an admin earlier this tick: resolved, or (with something to lay
+		// to rest) fallen, leaving it.
+		if (ctx.affliction.defeated) {
+			if (ctx.affliction.def.rite.laid) this.fall();
+			else this.resolve(null);
+		}
 		if (ctx.affliction.stage !== this.omen) {
 			this.omen = ctx.affliction.stage;
 			ctx.events.push({ kind: 'omen', stage: this.omen });
@@ -95,10 +99,27 @@ export class AfflictionSystem implements SessionSystem {
 	}
 
 	/**
-	 * What the rite summoned was banished: the Affliction is resolved for everyone who went down,
-	 * and calmed (omens lift). They still have to get out past the creatures.
+	 * Put down, with something to be laid to rest (RiteSpec.laid): it lies where it fell, and the
+	 * room stays sealed until it is laid where the rite was performed (RiteSystem).
 	 */
-	private resolve(): void {
+	private fall(): void {
+		const ctx = this.ctx;
+		if (ctx.rite.fallen || ctx.rite.resolved) return;
+		ctx.rite.fallen = true;
+		const laid = ctx.affliction.def.rite.laid!;
+		const at = ctx.affliction.snapshot().manifestation?.position ?? ctx.rite.tomb ?? [0, 0, 0];
+		const floor = ctx.freeSpot([at[0], at[1], at[2]]);
+		ctx.items.place(newStack(laid.item), [floor[0], floor[1] + 0.05, floor[2]], 0);
+		ctx.events.push({ kind: 'fallen', item: laid.item, position: [...floor] });
+		log.info(`The Affliction fell in ${ctx.id.slice(0, 8)}, leaving ${laid.item}`);
+	}
+
+	/**
+	 * The rite is done: the Affliction is resolved, for `eligible` (those who could begin it;
+	 * null: everyone who went down), and calmed (omens lift). They still have to get out past the
+	 * creatures.
+	 */
+	resolve(eligible: Player[] | null): void {
 		const ctx = this.ctx;
 		if (ctx.rite.resolved) return;
 		ctx.rite.resolved = true;
@@ -109,7 +130,11 @@ export class AfflictionSystem implements SessionSystem {
 			ctx.events.push({ kind: 'doorRelease', id: door.id, position: doorBox(door).center });
 		}
 		unsealExtracts(ctx.world);
-		ctx.hooks.onResolved?.();
+		const owners = (eligible ?? [...ctx.players.values()]).map((p) => p.owner);
+		ctx.hooks.onResolved?.(owners);
+		for (const player of eligible ?? []) {
+			ctx.systems.quests.happened({ kind: 'resolve', affliction: ctx.affliction.def.id }, player);
+		}
 		ctx.awardEveryoneDown(achievementsForBanishing());
 		log.info(`The Affliction was resolved in ${ctx.id.slice(0, 8)}`);
 	}
@@ -121,6 +146,11 @@ export class AfflictionSystem implements SessionSystem {
 		},
 		manifest: (player) => this.summon(player.state.position),
 		banish: () => this.ctx.affliction.banish(),
+		fell: (player) => {
+			if (!this.ctx.affliction.def.rite.laid) return false;
+			this.summon(player.state.position);
+			this.ctx.affliction.banish();
+		},
 		stun: () => this.ctx.affliction.stun(),
 		bossStrike: () => this.ctx.affliction.forceStrike(this.prey()),
 		bossRay: () => this.ctx.affliction.forceRay(this.prey()),

@@ -214,6 +214,8 @@ export type GameEvent =
 	| { kind: 'rite'; player: string; position: Vec3 }
 	/** The manifestation the rite summoned was banished: the Affliction is resolved and calmed. */
 	| { kind: 'resolved'; position: Vec3 }
+	/** Put down, what the rite summoned left `item` where it fell, to be laid to rest. */
+	| { kind: 'fallen'; item: string; position: Vec3 }
 	/** A player tried to swing with too little stamina: a gasp. */
 	| { kind: 'winded'; player: string; position: Vec3 }
 	/** A hit set a creature bleeding. */

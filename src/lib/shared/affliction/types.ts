@@ -42,6 +42,13 @@ export interface RiteSnapshot {
 	performed: boolean;
 	/** The manifestation the rite summoned has been banished: the Affliction is resolved. */
 	resolved: boolean;
+	/** Who may begin it is a matter of quests (RiteSpec.begin): only some of the party can. */
+	gated: boolean;
+	/**
+	 * What it summoned left something to be laid where the rite was performed (RiteSpec.laid),
+	 * and it lies there now: the item, how long to lay it, and where (null until it falls).
+	 */
+	laid: { item: string; seconds: number; reach: number; at: Vec3 } | null;
 }
 
 /**

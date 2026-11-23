@@ -622,7 +622,8 @@
 				...testPoints(layout, PIECES),
 				// Only the server knows these (server/systems/cheats.ts).
 				{ name: 'stuck-crate' },
-				{ name: 'pendant' }
+				{ name: 'tomb' },
+				{ name: 'lantern' }
 			].map((room) => room.name);
 			const id = ++loadId;
 			loading = { loaded: 0, total: 0 };

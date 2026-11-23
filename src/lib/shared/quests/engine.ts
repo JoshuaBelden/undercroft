@@ -64,6 +64,8 @@ export function test(
 			return condition.of.every((c) => test(c, record, context, defs));
 		case 'any':
 			return condition.of.some((c) => test(c, record, context, defs));
+		case 'not':
+			return !test(condition.of, record, context, defs);
 	}
 }
 

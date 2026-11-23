@@ -107,8 +107,9 @@ export function roomPoints(
  * Admin teleports for trying things out (docs/dev/admin.md), apart from the rooms (the benchmark
  * walks those): the first ledge hall, on its upper half; in front of each false wall, on the side
  * it is seen from; in front of the first locked trunk, and of the first of each other kind of
- * lootable (`lootable-<kind>`). The server adds `stuck-crate` and
- * `pendant`, which only it knows (server/systems/cheats.ts).
+ * lootable (`lootable-<kind>`); in front of each room task's object (`task-<id>`,
+ * docs/dev/quests.md). The server adds `stuck-crate`, `tomb` and `lantern`, which only it
+ * knows (server/systems/cheats.ts).
  */
 export function testPoints(
 	layout: MapLayout,
@@ -133,6 +134,10 @@ export function testPoints(
 		if (!crate.kind || seen.has(crate.kind)) continue;
 		seen.add(crate.kind);
 		points.push({ name: `lootable-${crate.kind}`, position: inFront(crate) });
+	}
+	for (const task of layout.tasks ?? []) {
+		const [x, y, z] = task.position;
+		points.push({ name: `task-${task.id}`, position: [x + 1.4, y + 0.05, z] });
 	}
 	return points;
 }

@@ -24,7 +24,9 @@ export type Condition =
 	/** All of these. */
 	| { kind: 'all'; of: Condition[] }
 	/** Any of these. */
-	| { kind: 'any'; of: Condition[] };
+	| { kind: 'any'; of: Condition[] }
+	/** Not this. */
+	| { kind: 'not'; of: Condition };
 
 /** What a quest asks to be done below. Each counts up to `count` (1 when left out). */
 export type Objective =

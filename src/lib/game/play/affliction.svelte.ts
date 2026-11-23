@@ -18,6 +18,8 @@ const FIGHT_FADES = { in: 0.5, out: 3 };
 export class Affliction implements PlayFeature {
 	/** Its name, as it is underground (kept after leaving, for the results). */
 	name = $state('');
+	/** Its id (AFFLICTIONS), as it is underground. */
+	id = $state('');
 	meter = $state<number | null>(null);
 	omen = $state(0);
 	/** Seconds left before anyone still underground is lost. */
@@ -39,6 +41,7 @@ export class Affliction implements PlayFeature {
 		this.manifestation.apply(affliction.manifestation, def?.manifestation);
 		this.fightMusic(def?.manifestation?.music, affliction.manifestation?.state);
 		this.name = def?.name ?? '';
+		this.id = affliction.id;
 		this.omen = affliction.omen;
 		this.meter = affliction.meter;
 		this.deadline = affliction.deadline;

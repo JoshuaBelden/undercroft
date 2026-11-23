@@ -3,6 +3,7 @@ import { ITEMS } from '../src/lib/content/items.ts';
 import {
 	carriesAll,
 	revealed,
+	riteCount,
 	riteSnapshot,
 	takeForRite
 } from '../src/lib/shared/affliction/rite.ts';
@@ -44,8 +45,12 @@ export class RiteDirector {
 	performed = false;
 	/** What it summoned has been banished: the Affliction is resolved. */
 	resolved = false;
+	/** Put down, it left what is to be laid (RiteSpec.laid): it lies there to be carried home. */
+	fallen = false;
 	/** Cells of the room the rite is held in. */
 	private cells: Set<string>;
+	/** Where the rite is performed (its room's first rite marker): where `laid` is laid. */
+	readonly tomb: Vec3 | null;
 
 	constructor(
 		private spec: RiteSpec,
@@ -53,6 +58,9 @@ export class RiteDirector {
 		pieces: Record<string, PieceDef>
 	) {
 		this.cells = cellsOf(layout, pieces, spec.room);
+		const placement = layout.placements.find((p) => p.piece === spec.room);
+		const marker = placement ? pieces[placement.piece]?.rites[0] : undefined;
+		this.tomb = placement && marker ? toWorld(placement, marker) : null;
 	}
 
 	/** Every hint has been found: nothing is hidden any more. */
@@ -93,7 +101,13 @@ export class RiteDirector {
 	}
 
 	snapshot(): RiteSnapshot {
-		return riteSnapshot(this.spec, this.clues, this.performed, this.resolved);
+		return riteSnapshot(
+			this.spec,
+			this.clues,
+			this.performed,
+			this.resolved,
+			this.fallen ? this.tomb : null
+		);
 	}
 
 	/** Cells (cell keys) of the room it is held in. */
@@ -113,6 +127,18 @@ export class RiteDirector {
 			this.inRoom(state.position) &&
 			carriesAll(state.inventory, this.spec.requirements)
 		);
+	}
+
+	/**
+	 * Laying what it left (RiteSpec.laid): fallen, not yet resolved, standing within reach of where
+	 * the rite is performed, carrying it.
+	 */
+	canLay(state: PlayerState): boolean {
+		const laid = this.spec.laid;
+		if (!laid || !this.fallen || this.resolved || !this.tomb) return false;
+		const [x, y, z] = this.tomb;
+		const near = Math.hypot(state.position[0] - x, state.position[2] - z) <= laid.reach;
+		return near && Math.abs(state.position[1] - y) < 2 && riteCount(state.inventory, laid.item) > 0;
 	}
 
 	/** The rite uses up what it needed. */

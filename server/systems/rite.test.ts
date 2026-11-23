@@ -1,12 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AFFLICTIONS } from '../../src/lib/content/afflictions.ts';
+import { MIDDLE } from '../../src/lib/content/quests.ts';
+import { addItem, carriedCount, newStack } from '../../src/lib/shared/items/inventory.ts';
+import { emptyRecord } from '../../src/lib/shared/quests/engine.ts';
+import type { QuestRecord } from '../../src/lib/shared/quests/types.ts';
+import type { Session } from '../session.ts';
 import { useSessions, kit, Diver } from '../testing/harness.ts';
+import { HINTED_RITE, useRite } from '../testing/rites.ts';
 
 const SEED = 1;
-const RITE = AFFLICTIONS.gloaming.rite;
+const RITE = HINTED_RITE;
 const open = useSessions();
 
-describe('the rite', () => {
+describe('a rite of carried things and hints', () => {
+	useRite(HINTED_RITE);
+
 	it('carrying everything into its room and holding interact performs it', () => {
 		const resolved = vi.fn();
 		const session = open(SEED, { onResolved: resolved });
@@ -113,5 +121,97 @@ describe('the rite', () => {
 		expect(inMap()).toBe(true);
 		session.withhold(['pendant']);
 		expect(inMap()).toBe(false);
+	});
+});
+
+describe("the Gloaming's rite (docs/dev/quests.md#the-rite)", () => {
+	const GLOAMING = AFFLICTIONS.gloaming.rite;
+
+	/** Every quest before the last done: the last is open, and they may begin the rite. */
+	function ready(): QuestRecord {
+		const record = emptyRecord();
+		['fontaine', ...MIDDLE].forEach((id, i) => {
+			record.quests[id] = { counts: [], committed: {}, done: i + 1 };
+		});
+		return record;
+	}
+
+	function diver(session: Session, name: string, record: QuestRecord | null): Diver {
+		const d = new Diver(session, name);
+		session.systems.quests.set(d.player, record ? { record, resolved: [] } : null);
+		return d;
+	}
+
+	/** In the chapel, at the altar, with the creatures gone. */
+	function inChapel(session: Session, ...divers: Diver[]): void {
+		session.admin(divers[0].id, { kind: 'clearCreatures' });
+		for (const d of divers) {
+			session.admin(d.id, { kind: 'teleport', room: 'tomb' });
+			d.hold({}, 0.3);
+		}
+	}
+
+	it('only those whose last quest is open can begin it; with none of them there it never starts', () => {
+		const session = open(SEED);
+		const a = diver(session, 'A', emptyRecord());
+		inChapel(session, a);
+		a.hold({ interact: true }, GLOAMING.seconds + 0.5);
+		expect(session['rite'].performed).toBe(false);
+		expect(a.socket.last('tick')!.affliction.rite.gated).toBe(true);
+	});
+
+	it('put down, he leaves his lantern; laid in his tomb it is resolved, for those who could begin it', () => {
+		const resolved = vi.fn();
+		const session = open(SEED, { onResolved: resolved });
+		const a = diver(session, 'A', ready());
+		const b = diver(session, 'B', emptyRecord());
+		inChapel(session, a, b);
+		a.hold({ interact: true }, GLOAMING.seconds + 0.5);
+		expect(session['rite'].performed).toBe(true);
+		session.admin(a.id, { kind: 'banish' });
+		a.hold({}, 0.2);
+		// Fallen, not resolved: the door stays sealed, and his lantern lies where he fell.
+		let tick = a.socket.last('tick')!;
+		expect(tick.affliction.rite.resolved).toBe(false);
+		expect(tick.affliction.rite.laid).toMatchObject({ item: GLOAMING.laid!.item });
+		expect(tick.sealed.length).toBeGreaterThan(0);
+		expect(resolved).not.toHaveBeenCalled();
+		expect(session['items'].snapshots().some((i) => i.item === GLOAMING.laid!.item)).toBe(true);
+		// Carried to his tomb and laid there.
+		addItem(a.state.inventory, newStack(GLOAMING.laid!.item));
+		session['items'].removeAll(GLOAMING.laid!.item);
+		session.admin(a.id, { kind: 'teleport', room: 'tomb' });
+		a.hold({}, 0.3);
+		a.hold({ interact: true }, GLOAMING.laid!.seconds + 0.3);
+		tick = a.socket.last('tick')!;
+		expect(tick.affliction.rite.resolved).toBe(true);
+		expect(tick.sealed).toEqual([]);
+		expect(carriedCount(a.state.inventory, GLOAMING.laid!.item)).toBe(0);
+		expect(resolved).toHaveBeenCalledWith([a.player.owner]);
+		const quest = session.systems.quests.of(a.player)!.record.quests['last-procession'];
+		expect(quest.counts).toEqual([1]);
+		expect(session.systems.quests.of(b.player)!.record.quests['last-procession']).toBeUndefined();
+	});
+
+	it('killing him and getting out resolves nothing', () => {
+		const resolved = vi.fn();
+		const session = open(SEED, { onResolved: resolved });
+		const a = diver(session, 'A', ready());
+		inChapel(session, a);
+		a.hold({ interact: true }, GLOAMING.seconds + 0.5);
+		session.admin(a.id, { kind: 'banish' });
+		a.hold({}, 0.2);
+		a.state.extracted = true;
+		a.hold({}, 0.2);
+		expect(resolved).not.toHaveBeenCalled();
+	});
+
+	it('resolved once, he never rises for them again', () => {
+		const session = open(SEED);
+		const d = new Diver(session, 'A');
+		session.systems.quests.set(d.player, { record: ready(), resolved: ['gloaming'] });
+		inChapel(session, d);
+		d.hold({ interact: true }, GLOAMING.seconds + 0.5);
+		expect(session['rite'].performed).toBe(false);
 	});
 });

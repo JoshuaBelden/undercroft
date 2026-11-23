@@ -327,7 +327,8 @@ export class Parties {
 			party.members.filter((m) => m.playerId).map((m) => m.explorer);
 		const session = new Session(party.affliction, {
 			onClues: (clues) => this.progress.record(descended(), session.afflictionId, { clues }),
-			onResolved: () => this.progress.record(descended(), session.afflictionId, { resolved: true }),
+			onResolved: (owners) =>
+				this.progress.record(owners, session.afflictionId, { resolved: true }),
 			onRiteReset: () => void this.progress.reset(descended(), session.afflictionId),
 			onDiscovered: (explorer, item, source) => recordFind(explorer, item, source),
 			onExperience: (explorer, earned, firsts) => keepExperience(explorer, earned, firsts),

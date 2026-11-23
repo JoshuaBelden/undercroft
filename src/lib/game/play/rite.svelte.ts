@@ -35,7 +35,9 @@ export class Rite implements PlayFeature {
 	constructor(
 		private ctx: PlayContext,
 		/** The Affliction's name, for the banners. */
-		private afflictionName: () => string
+		private afflictionName: () => string,
+		/** Whether this player may begin a rite that is a quest's (RiteSpec.begin). */
+		private mayBegin: () => boolean = () => true
 	) {}
 
 	mapLoaded(_layout: unknown, world: CollisionWorld): void {
@@ -78,6 +80,10 @@ export class Rite implements PlayFeature {
 		} else if (event.kind === 'rite') {
 			sounds.play('rite.perform');
 			ui.banner('The rite is done', `Something answers it. Banish ${name || 'the Affliction'}.`);
+		} else if (event.kind === 'fallen') {
+			sounds.play('rite.perform');
+			const item = ITEMS[event.item]?.name ?? event.item;
+			ui.banner('It falls', `${item} lies where it fell. Lay it to rest where the rite began.`);
 		} else if (event.kind === 'resolved') {
 			sounds.play('rite.resolve');
 			ui.banner(
@@ -88,18 +94,35 @@ export class Rite implements PlayFeature {
 		}
 	}
 
-	/** In its room, carrying all it needs: hold interact to perform it. */
+	/**
+	 * In its room, carrying all it needs (and sent for it, for a quest's rite): hold interact to
+	 * perform it. Fallen, with what it left in hand by where the rite began: lay it to rest.
+	 */
 	prompt(state: PlayerState): Prompt | null {
 		const rite = this.known;
+		if (!rite) return null;
+		const laid = rite.laid;
+		if (laid && !rite.resolved && riteCount(state.inventory, laid.item) > 0) {
+			const near =
+				Math.hypot(state.position[0] - laid.at[0], state.position[2] - laid.at[2]) <= laid.reach &&
+				Math.abs(state.position[1] - laid.at[1]) < 2;
+			if (!near) return null;
+			const name = ITEMS[laid.item]?.name ?? laid.item;
+			return keyPrompt('interact', `to lay ${name} to rest`, state.performing / laid.seconds);
+		}
 		if (
-			!rite ||
 			rite.performed ||
 			!this.inRoom(state) ||
-			!carriesAll(state.inventory, rite.requirements)
+			!carriesAll(state.inventory, rite.requirements) ||
+			(rite.gated && !this.mayBegin())
 		) {
 			return null;
 		}
-		return keyPrompt('interact', 'to perform the rite', state.performing / rite.seconds);
+		return keyPrompt(
+			'interact',
+			rite.gated ? 'to begin the rite' : 'to perform the rite',
+			state.performing / rite.seconds
+		);
 	}
 
 	/** Standing in the room the rite is held in (once a clue has told where that is). */
