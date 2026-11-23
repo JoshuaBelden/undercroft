@@ -5,6 +5,8 @@ import { ECONOMY, openTiers } from '../../content/economy.ts';
 import type { Collection, Db } from 'mongodb';
 import { ACCOUNT, cleanEmail, cleanTag } from '../../content/account.ts';
 import type { AccountView, ExplorerView } from '../../shared/account/types.ts';
+import type { QuestRecord } from '../../shared/quests/types.ts';
+import { questsOf } from './quests.ts';
 import { SLOTS } from '../../content/items.ts';
 import { markWheel } from '../../content/marks.ts';
 import {
@@ -149,6 +151,11 @@ export interface ExplorerDoc {
 	 * the first is earned. Read through `progressionOf`.
 	 */
 	progression?: Partial<Progression>;
+	/**
+	 * Quests (docs/dev/quests.md): each one's progress, what is committed, and flags. Unset until
+	 * the first change: read through `questsOf`, which also brings older explorers in.
+	 */
+	quests?: QuestRecord;
 	createdAt: Date;
 }
 
@@ -580,6 +587,10 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 		),
 		tiers: openTiers(
 			explorer.sold ?? 0,
+			progress.filter((doc) => doc.resolved).map((doc) => doc.affliction)
+		),
+		quests: questsOf(
+			explorer,
 			progress.filter((doc) => doc.resolved).map((doc) => doc.affliction)
 		)
 	};

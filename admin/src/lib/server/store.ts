@@ -27,6 +27,15 @@ export {
 } from '../../../../src/lib/shared/progression/progression.ts';
 export { LEVELS, SKILLS } from '../../../../src/lib/content/progression.ts';
 export {
+	adminSetFlag,
+	adminSetQuest,
+	questsOf,
+	resolvedBy,
+	setQuests
+} from '../../../../src/lib/server/store/quests.ts';
+export { QUESTS, QUEST_ORDER } from '../../../../src/lib/content/quests.ts';
+export { status as questStatus } from '../../../../src/lib/shared/quests/engine.ts';
+export {
 	BOARD_STATUSES,
 	IDEA,
 	IDEA_STATUSES,

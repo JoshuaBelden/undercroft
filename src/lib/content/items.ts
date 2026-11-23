@@ -180,6 +180,11 @@ export interface PlaceSpec {
 	 * away, and the party is told. It sets itself again, a use of its wear each time.
 	 */
 	tripwire?: { length: number; noise: number };
+	/**
+	 * A charge (the quarryman's): `fuse` seconds after it is set it goes off, heard `noise` away,
+	 * and blows open a barred door within `radius` m (docs/dev/quests.md#the-barred-stair).
+	 */
+	blast?: { fuse: number; radius: number; noise: number };
 }
 
 export interface HealSpec {
@@ -473,7 +478,14 @@ const PICTURES: Record<string, string> = {
 	astrolabe: 'brass_astrolabe',
 	doll: 'porcelain_doll',
 	'crozier-head': 'crozier_head',
-	'sealed-reliquary-jar': 'sealed_reliquary_jar'
+	'sealed-reliquary-jar': 'sealed_reliquary_jar',
+	// Quests (docs/dev/quests.md).
+	'powder-flask': 'powder_flask',
+	'oath-rubbing': 'oath_rubbing',
+	'carters-ledger': 'carters_ledger',
+	'hand-of-glory': 'hand_of_glory',
+	'lamplighters-lantern': 'lamplighters_lantern',
+	'quarrymans-charge': 'quarrymans_charge'
 };
 
 /** Item defs with their pictures from PICTURES (one a def names itself wins). */
@@ -918,18 +930,79 @@ export const ITEMS: Record<string, ItemDef> = {
 		value: 800,
 		rarity: 'legendary'
 	},
-	// Rite items (see docs/dev/rite.md).
+	// Once the Gloaming's rite needed it (docs/dev/rite.md); now it is only worth something.
 	pendant: {
 		id: 'pendant',
 		name: 'The Pendant',
-		kind: 'rite',
+		kind: 'loot',
 		category: 'other',
+		treasure: true,
 		flavor: 'Heavier than it should be, and never quite warm.',
 		image: 'pendant',
-		quest: true,
 		model: modelUrl('shared/items/pendant.glb'),
 		maxStack: 1,
-		weight: 0.2
+		weight: 0.2,
+		value: 150,
+		rarity: 'rare'
+	},
+	// Quest items (docs/dev/quests.md): what Fontaine asks for, and what opens the way.
+	'powder-flask': {
+		id: 'powder-flask',
+		name: 'Powder flask',
+		kind: 'material',
+		category: 'material',
+		flavor: "A horn flask of black powder, Fontaine's father's. For emergencies.",
+		model: modelUrl('shared/items/powder_flask.glb'),
+		maxStack: 1,
+		weight: 0.4,
+		price: 120
+	},
+	'oath-rubbing': {
+		id: 'oath-rubbing',
+		name: 'Rubbing of the oath',
+		kind: 'rite',
+		category: 'other',
+		quest: true,
+		flavor: 'Charcoal on paper, taken from a wall of bone. Words cut by a careful hand.',
+		model: modelUrl('shared/items/oath_rubbing.glb'),
+		maxStack: 1,
+		weight: 0.05
+	},
+	'carters-ledger': {
+		id: 'carters-ledger',
+		name: "The Carters' ledger",
+		kind: 'rite',
+		category: 'other',
+		quest: true,
+		flavor: 'Swollen with water, sealed in a strongbox. Columns of goods, and names.',
+		model: modelUrl('shared/items/carters_ledger.glb'),
+		maxStack: 1,
+		weight: 0.6
+	},
+	'hand-of-glory': {
+		id: 'hand-of-glory',
+		name: 'Hand of Glory',
+		kind: 'rite',
+		category: 'other',
+		quest: true,
+		flavor:
+			'A dried hand, its fingers dipped in tallow and burned down to the knuckle. A thief kept sleepers sleeping with it.',
+		model: modelUrl('shared/items/hand_of_glory.glb'),
+		maxStack: 1,
+		weight: 0.4
+	},
+	'lamplighters-lantern': {
+		id: 'lamplighters-lantern',
+		name: "The Lamplighter's Lantern",
+		kind: 'rite',
+		category: 'other',
+		quest: true,
+		flavor: 'Iron and horn, and still burning. It is very cold to hold.',
+		model: modelUrl('shared/items/lamplighters_lantern.glb'),
+		maxStack: 1,
+		weight: 1.5,
+		// It belongs in his tomb: it doesn't come up with you.
+		spoils: true
 	},
 	// A clue is read where it lies and never carried: nothing can be added to an inventory.
 	clue: {

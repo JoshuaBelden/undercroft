@@ -9,7 +9,7 @@
 
 export interface AudioSource {
 	id: string;
-	/** File name(s) in art/sfx (16-bit PCM .wav or .mp3). Several files become variants. */
+	/** File name(s) in art/sfx (16-bit PCM or 32-bit float .wav, or .mp3). Several files become variants. */
 	file: string | string[];
 	slice?: {
 		/** Minimum seconds between hits. */
@@ -211,5 +211,30 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	{ id: 'skills.unlock', file: 'skills.unlock.mp3' },
 	{ id: 'skills.rank', file: 'skills.rank.mp3' },
 	{ id: 'skills.mastered', file: 'skills.mastered.mp3' },
-	{ id: 'skills.denied', file: 'skills.denied.mp3' }
+	{ id: 'skills.denied', file: 'skills.denied.mp3' },
+	// Quests (docs/dev/quests.md). Room tasks play their sound once each `every` seconds while
+	// worked, so each is cut to about that long and the pulses run on into one another.
+	{ id: 'quest.commit', file: 'quest.commit.mp3' },
+	{ id: 'quest.done', file: 'quest.done.mp3' },
+	{ id: 'task.bell', file: 'task.bell.mp3' },
+	// Three blows, 0.6 s apart: the next pulse (every 2 s) keeps the rhythm.
+	{ id: 'task.hammer', file: 'task.hammer.mp3', crop: { start: 0.15, length: 1.75 } },
+	{ id: 'task.scrape', file: 'task.scrape.mp3', crop: { start: 0.5, length: 2.1 } },
+	// The haul itself, without the second and a half of nothing before it.
+	{ id: 'task.winch', file: 'task.winch.mp3', crop: { start: 1.4, length: 2.6 } },
+	// The hard shake of the bar, not the first tentative tug or the long settle after.
+	{ id: 'door.rattle', file: 'door.rattle.mp3', crop: { start: 2.0, length: 2.8 } },
+	{ id: 'charge.fuse', file: 'charge.fuse.mp3' },
+	{ id: 'charge.blast', file: 'charge.blast.mp3' },
+	{ id: 'lantern.laid', file: 'lantern.laid.mp3' },
+	// Fontaine's greetings (NpcDef.voice): four lines, one played at random.
+	{
+		id: 'fontaine.voice',
+		file: [
+			'fontaine.voice.1.wav',
+			'fontaine.voice.2.wav',
+			'fontaine.voice.3.wav',
+			'fontaine.voice.4.wav'
+		]
+	}
 ];

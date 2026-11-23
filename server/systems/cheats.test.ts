@@ -11,7 +11,7 @@ function flat(a: Vec3, b: Vec3): number {
 }
 
 describe('admin teleports to things to try out', () => {
-	it('lands by the ledge hall, each false wall, a locked trunk, a stuck crate and the Pendant', () => {
+	it('lands by the ledge hall, each false wall, a locked trunk, a stuck crate, the tomb and the lantern', () => {
 		// Seed 4's map has a trunk, a ledge hall and false walls.
 		const session = open(4);
 		const diver = new Diver(session);
@@ -34,10 +34,15 @@ describe('admin teleports to things to try out', () => {
 		session.admin(diver.id, { kind: 'teleport', room: 'stuck-crate' });
 		expect(flat(diver.state.position, jammed.position)).toBeLessThan(2.5);
 
-		// The Pendant lies on the chapel's altar: in front of it, where the rite is performed.
-		session.admin(diver.id, { kind: 'teleport', room: 'pendant' });
-		const pendant = session['items'].snapshots().find((i) => i.item === 'pendant')!;
-		expect(flat(diver.state.position, pendant.position)).toBeLessThan(2.5);
-		expect(pendant.position[1] - diver.state.position[1]).toBeGreaterThan(1);
+		// Where the rite is performed, and his lantern is laid to rest.
+		session.admin(diver.id, { kind: 'teleport', room: 'tomb' });
+		expect(flat(diver.state.position, session['rite'].tomb!)).toBeLessThan(1.5);
+		// His lantern, wherever it fell (admin: put him down by you).
+		session.admin(diver.id, { kind: 'fell' });
+		diver.hold({}, 0.2);
+		session.admin(diver.id, { kind: 'teleport', room: 'stuck-crate' });
+		session.admin(diver.id, { kind: 'teleport', room: 'lantern' });
+		const lantern = session['items'].snapshots().find((i) => i.item === 'lamplighters-lantern')!;
+		expect(flat(diver.state.position, lantern.position)).toBeLessThan(1.5);
 	});
 });

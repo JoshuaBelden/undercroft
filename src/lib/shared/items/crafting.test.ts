@@ -32,6 +32,8 @@ describe('the recipe data', () => {
 					r.id
 				).toBe(true);
 			}
+			// A recipe a quest teaches is known without discovering its ingredients (a quest gives them).
+			if (r.learned) continue;
 			for (const i of r.ingredients) expect(discoverable(i.item), `${r.id}: ${i.item}`).toBe(true);
 		}
 		for (const [item, list] of [...Object.entries(REPAIRS), ...Object.entries(SALVAGE)]) {

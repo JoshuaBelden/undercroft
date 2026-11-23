@@ -23,6 +23,8 @@ interface Fuse {
 	position: Vec3;
 	left: number;
 	noise: number;
+	/** A charge (`place.blast`): set down, not thrown; it blows open a barred door this near. */
+	blast?: { id: string; radius: number };
 }
 
 interface Fire {
@@ -202,6 +204,16 @@ export class HazardSystem implements SessionSystem {
 					wait: 0
 				});
 			}
+			if (spec.blast) {
+				// A charge: its fuse lit as it is set, and nothing to pick back up.
+				this.fuses.push({
+					item: event.item,
+					position: ahead,
+					left: spec.blast.fuse,
+					noise: spec.blast.noise,
+					blast: { id: `c${this.nextId++}`, radius: spec.blast.radius }
+				});
+			}
 			if (spec.ward) {
 				// Across the way the player faces, centred in front of them.
 				const half = spec.ward.length / 2;
@@ -277,6 +289,11 @@ export class HazardSystem implements SessionSystem {
 			fuse.left -= TICK_DT;
 			if (fuse.left > 0) continue;
 			ctx.creatures.hear(fuse.position, fuse.noise, null);
+			if (fuse.blast) {
+				const door = ctx.systems.doors.blast(fuse.position, fuse.blast.radius);
+				ctx.events.push({ kind: 'blast', item: fuse.item, position: fuse.position, door });
+				continue;
+			}
 			ctx.events.push({ kind: 'fuseBang', item: fuse.item, position: fuse.position });
 		}
 		this.fuses = this.fuses.filter((fuse) => fuse.left > 0);
@@ -371,6 +388,9 @@ export class HazardSystem implements SessionSystem {
 				seconds
 			})),
 			baits: this.baits.map(({ id, item, position }) => ({ id, item, position })),
+			charges: this.fuses.flatMap(({ item, position, blast }) =>
+				blast ? [{ id: blast.id, item, position }] : []
+			),
 			tripwires: this.tripwires.map(({ id, item, a, b }) => ({ id, item, a, b }))
 		};
 	}

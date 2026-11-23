@@ -1,3 +1,4 @@
+import type { Condition } from '../shared/quests/types.ts';
 /**
  * Affliction definitions (data): how fast the meter fills, what each omen stage does, the
  * manifestation the rite summons, and the rite. The meter is never shown to players; they read
@@ -201,6 +202,17 @@ export interface RiteSpec {
 	 * steps from it, instead of out in the map.
 	 */
 	atStart: boolean;
+	/**
+	 * Who may begin it (docs/dev/quests.md#the-rite): those this holds for (a quest open). It is
+	 * resolved only for them; with none of them down there, it can't be begun at all.
+	 */
+	begin?: Condition;
+	/**
+	 * Put down, what it summoned leaves this behind (his lantern): carried to where the rite is
+	 * performed (within `reach` m of its marker) and laid there, holding interact `seconds`, it
+	 * resolves the rite. Without it, banishing what it summoned resolves it.
+	 */
+	laid?: { item: string; seconds: number; reach: number };
 }
 
 /**
@@ -259,6 +271,12 @@ export interface AfflictionDef {
 	training?: TrainingSpec;
 	/** It stays locked until this Affliction has been done (resolved, or for training: got out of). */
 	requires?: string;
+	/**
+	 * The long stair down to this level (1 is the top) is barred from the far side
+	 * (docs/dev/quests.md#the-barred-stair): it won't open by hand, only to a charge, unless
+	 * someone down there has `flag` (set the first time they blow it, for everyone there).
+	 */
+	barred?: { level: number; flag: string };
 	/** The order shown on the Afflictions page. */
 	order: number;
 }
@@ -376,6 +394,7 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 		id: 'gloaming',
 		order: 1,
 		requires: 'rumors',
+		barred: { level: 3, flag: 'gloaming.level-3-open' },
 		name: 'The Gloaming',
 		flavor:
 			'Long ago, the keepers of the dead held back the dusk each evening with a rite. It worked for as long as anyone remembered how to say it. The last keeper died with the rite unspoken, and the robbers who broke into his grave took more than they knew. What he had kept shut away came down into the dark with them.',
@@ -481,33 +500,24 @@ export const AFFLICTIONS: Record<string, AfflictionDef> = {
 			hitRadius: 1,
 			hitHeight: 2.2
 		},
-		// Candles and chalk are bought or looted; the Pendant lies on the chapel's altar (unless
-		// someone owns it).
+		// Fontaine's last quest (docs/dev/quests.md): what it asked for is committed already, so
+		// nothing is carried. Begun at the altar; put down, he leaves his lantern, and laying it in
+		// his tomb under the altar lets him rest.
 		rite: {
-			requirements: [
-				{ item: 'candle', count: 5 },
-				{ item: 'chalk', count: 1 },
-				{ item: 'pendant', count: 1, place: 'altar' }
-			],
+			requirements: [],
 			room: 'gloaming-chapel',
 			seconds: 5,
-			clues: [
-				{ text: 'He lit five candles every night, never four.', reveals: 'candle' },
-				{
-					text: "The keeper's line was drawn in chalk, the way you'd mark your way home.",
-					reveals: 'chalk'
-				},
-				{
-					text: "The robbers never got his pendant out. It still lies on the altar, at the angel's feet.",
-					reveals: 'pendant'
-				},
-				{
-					text: "In the Gloaming Chapel, don't look at the corner until it's done.",
-					reveals: 'room'
-				}
-			],
-			clueCopies: 3,
-			atStart: false
+			clues: [],
+			clueCopies: 0,
+			atStart: false,
+			begin: {
+				kind: 'all',
+				of: [
+					{ kind: 'open', quest: 'last-procession' },
+					{ kind: 'not', of: { kind: 'resolved', affliction: 'gloaming' } }
+				]
+			},
+			laid: { item: 'lamplighters-lantern', seconds: 3, reach: 3 }
 		}
 	}
 };

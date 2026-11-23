@@ -253,6 +253,38 @@
 				confirm="Put {member.gamerTag} back to level 0, with no skills and no firsts paid?"
 			/>
 		</div>
+		<h3>Quests</h3>
+		<p>
+			{explorer.quests.list
+				.filter((q) => q.status !== 'locked')
+				.map((q) => `${q.title} (${q.status})`)
+				.join(' · ') || 'none open'}
+		</p>
+		<p>Flags: {explorer.quests.flags.join(' · ') || 'none'}</p>
+		<div class="actions">
+			<Action action="setQuest" label="Set quest">
+				<select name="quest" aria-label="Quest">
+					{#each explorer.quests.list as quest (quest.id)}
+						<option value={quest.id}>{quest.title} ({quest.status})</option>
+					{/each}
+				</select>
+				<select name="state" aria-label="State">
+					<option value="met">Ready to report</option>
+					<option value="done">Done</option>
+					<option value="open">Back to the start</option>
+				</select>
+			</Action>
+			<Action action="setQuestFlag" label="Set flag">
+				<input name="flag" placeholder="gloaming.level-3-open" aria-label="Flag" />
+				<label><input name="on" type="checkbox" checked /> on</label>
+			</Action>
+			<Action
+				action="resetQuests"
+				label="Reset quests"
+				danger
+				confirm="Start {member.gamerTag}'s quests again from Fontaine? What they committed is not given back."
+			/>
+		</div>
 		{#if explorer.customWheel}
 			<div class="actions">
 				<Action

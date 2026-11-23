@@ -24,6 +24,11 @@ export interface Recipe {
 	 * a bigger one. The Workshop pays only the first time each recipe is made.
 	 */
 	xp: number;
+	/**
+	 * Taught by a quest, not found: it never shows in the Library or the Workshop, and is known
+	 * only to explorers a quest has taught it (QuestDef.teachesRecipes). Field only.
+	 */
+	learned?: boolean;
 }
 
 const of = (spec: Record<string, number>): Ingredient[] =>
@@ -64,7 +69,18 @@ export const RECIPES: Recipe[] = [
 	recipe('snare', { 'rope-length': 1, metal: 1 }, true),
 	recipe('tripwire-bell', { twine: 2, nails: 2 }, true),
 	recipe('blessed-salt', { 'rock-salt': 1, 'holy-water': 1 }, true),
-	recipe('candle', { wax: 2, twine: 1 }, true, 1, 5)
+	recipe('candle', { wax: 2, twine: 1 }, true, 1, 5),
+	// Taught by a quest (docs/dev/quests.md), never in the Library: made below only.
+	{
+		...recipe(
+			'quarrymans-charge',
+			{ 'powder-flask': 1, firecrackers: 1, 'lamp-oil': 1, twine: 1 },
+			true,
+			1,
+			10
+		),
+		learned: true
+	}
 ];
 
 /** What mending each thing takes (plus coin: CRAFT.repairShare of its price, by the wear). */

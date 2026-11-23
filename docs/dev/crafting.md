@@ -50,6 +50,10 @@ A `crafted` stack sells for what its recipe's materials sell for (a share, for a
 
 With a working `crafting` gear (the field crafting kit) worn, the in-game menu has a Craft tab. A `field` recipe the player has discovered all of, with its materials carried, sends `craft { recipe }`; something worn they carry the materials to mend sends `craft { repair }`. `CraftSystem` kneels them (`PlayerState.crafting`, which `kneeling` reads: the medkit's pose) for `CRAFT.field.seconds`, heard `noise` away every `every` seconds, while their lamp is lit. Moving, the dark, being downed or the kit breaking stops it, and nothing is used. Done: the materials go and the thing is made into the pack (`crafted`), or the stack's wear goes down by `CRAFT.fieldRepair` (30%) of the most it takes; the kit wears a use. `crafted` tells them (an alert).
 
+## Learned recipes
+
+A recipe with `learned: true` (the quarryman's charge) is taught by a quest (`QuestDef.teachesRecipes`, [quests.md](quests.md#the-barred-stair)), never found: it is left out of the Library and the Workshop, and `recipeStatus(recipe, discovered, learned)` calls it available only to those taught, whatever they have discovered. It is field only. Below, the `quests` message tells the client what was taught, for the Craft tab; `CraftSystem.start` asks `QuestSystem.learned`.
+
 ## Admin
 
 The F10 Account group (dev mode): **Discover everything**, **Forget discoveries** and **Trust (coin sold)**, which opens store tiers ([economy.md](economy.md#store-tiers)).

@@ -44,6 +44,7 @@ export class Hazards implements PlayFeature {
 		{ group: THREE.Group; light: THREE.PointLight; left: number; seconds: number }
 	>();
 	private baits = new Map<string, THREE.Object3D>();
+	private charges = new Map<string, THREE.Object3D>();
 	private tripwires = new Map<string, THREE.Object3D>();
 	/** What was set down that can be taken up again (snares, tripwire bells), as the tick says. */
 	private takeable: { id: string; item: string; position: Vec3 }[] = [];
@@ -145,6 +146,15 @@ export class Hazards implements PlayFeature {
 			this.baits,
 			hazards.baits,
 			(bait) => this.snare(bait.item, bait.position, 0),
+			(shown) => {
+				this.root.remove(shown);
+				dispose(shown);
+			}
+		);
+		sync(
+			this.charges,
+			hazards.charges,
+			(charge) => this.snare(charge.item, charge.position, 0),
 			(shown) => {
 				this.root.remove(shown);
 				dispose(shown);
@@ -357,6 +367,10 @@ export class Hazards implements PlayFeature {
 				if (fuse) sounds.playAt(fuse.hiss, event.position, 1, 4);
 				break;
 			}
+			case 'blast':
+				// Heard all over the level.
+				sounds.playAt('charge.blast', event.position, 1, 40);
+				break;
 			case 'fuseBang': {
 				const fuse = ITEMS[event.item]?.throwable?.fuse;
 				if (fuse) sounds.playAt(fuse.bang, event.position, 1, fuse.noise);
@@ -477,7 +491,15 @@ export class Hazards implements PlayFeature {
 	}
 
 	clear(): void {
-		this.apply({ fires: [], snares: [], wards: [], glows: [], baits: [], tripwires: [] });
+		this.apply({
+			fires: [],
+			snares: [],
+			wards: [],
+			glows: [],
+			baits: [],
+			tripwires: [],
+			charges: []
+		});
 		this.arc.visible = this.mark.visible = false;
 	}
 

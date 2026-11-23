@@ -129,5 +129,25 @@ export const ITEM_FRAMES: Record<string, ItemFrame> = {
 	// A censer lying on its side in its file, the lid toward -Z and the point toward +Z, its chain
 	// out to -X: stood up (its top -Z) and held hanging. Its diameter along Y is scaled to 13 cm,
 	// which makes it about 22 cm tall.
-	censer: { forward: '+y', up: '-z', length: 0.13, grip: [0.5, 0.9] }
+	censer: { forward: '+y', up: '-z', length: 0.13, grip: [0.5, 0.9] },
+
+	// Fontaine's quests (docs/dev/quests.md): generated, each standing about 1.9 m tall along +Y,
+	// its face toward +Z.
+	// A horn flask standing on its base. Its depth along Z is scaled to 11.8 cm, which makes it
+	// 20 cm tall; held round its middle.
+	powder_flask: { forward: '-z', up: '+y', length: 0.118, grip: [0.5, 0.45] },
+	// A sheet of paper upright: laid on its back, the rubbing up. 40 cm tall; held in the middle.
+	oath_rubbing: { forward: '+y', up: '+z', length: 0.4, grip: [0.5, 0.5] },
+	// A book standing on end: laid on its back cover. 28 cm tall; held in the middle.
+	carters_ledger: { forward: '+y', up: '+z', length: 0.28, grip: [0.5, 0.5] },
+	// A hand upright, fingers at +Y, its back toward +Z: laid back up, fingers forward. 22 cm from
+	// wrist to fingertip; held by the bound wrist.
+	hand_of_glory: { forward: '+y', up: '+z', length: 0.22, grip: [0.12, 0.5] },
+	// A lantern standing on its base, its ring at the top. Its depth along Z is scaled to 17.7 cm,
+	// which makes it 36 cm tall; held hanging by the ring.
+	lamplighters_lantern: { forward: '-z', up: '+y', length: 0.177, grip: [0.5, 0.96] },
+	// A bundle of crackers, a flask and an oil can bound in twine, standing, its fuse looped over
+	// the top. Its depth along Z is scaled to 21 cm, which makes it 27 cm tall with the loop; held
+	// round the bundle.
+	quarrymans_charge: { forward: '-z', up: '+y', length: 0.21, grip: [0.5, 0.35] }
 };

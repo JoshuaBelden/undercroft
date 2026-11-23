@@ -1,6 +1,7 @@
 import type { RiteSpec } from '../../content/afflictions.ts';
 import { ITEMS } from '../../content/items.ts';
 import { allStacks, carriedCount, removeItem } from '../items/inventory.ts';
+import type { Vec3 } from '../map/types.ts';
 import type { Inventory } from '../player/types.ts';
 import type { RiteSnapshot } from './types.ts';
 
@@ -30,7 +31,8 @@ export function riteSnapshot(
 	spec: RiteSpec,
 	clues: number,
 	performed = false,
-	resolved = false
+	resolved = false,
+	tomb: Vec3 | null = null
 ): RiteSnapshot {
 	const known = revealed(spec, clues);
 	return {
@@ -41,7 +43,9 @@ export function riteSnapshot(
 		seconds: spec.seconds,
 		hints: known.hints,
 		performed,
-		resolved
+		resolved,
+		gated: !!spec.begin,
+		laid: spec.laid && tomb ? { ...spec.laid, at: tomb } : null
 	};
 }
 

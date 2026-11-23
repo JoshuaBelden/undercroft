@@ -43,6 +43,10 @@ export const MODELS = {
 	'shared/items/bandage.glb': { url: '/assets/shared/items/bandage.b2e18a60.glb', bytes: 513268 },
 	'shared/items/battery.glb': { url: '/assets/shared/items/battery.ad35751b.glb', bytes: 211712 },
 	'shared/items/brick.glb': { url: '/assets/shared/items/brick.ae689e8c.glb', bytes: 139748 },
+	'shared/items/carters_ledger.glb': {
+		url: '/assets/shared/items/carters_ledger.7238b69f.glb',
+		bytes: 228336
+	},
 	'shared/items/censer.glb': { url: '/assets/shared/items/censer.6ea7c691.glb', bytes: 236904 },
 	'shared/items/chalk.glb': { url: '/assets/shared/items/chalk.0a8b2783.glb', bytes: 174972 },
 	'shared/items/crossbow.glb': { url: '/assets/shared/items/crossbow.d014204e.glb', bytes: 228680 },
@@ -63,9 +67,17 @@ export const MODELS = {
 		url: '/assets/shared/items/grave_dirt.6fcb325d.glb',
 		bytes: 195088
 	},
+	'shared/items/hand_of_glory.glb': {
+		url: '/assets/shared/items/hand_of_glory.b3281e9c.glb',
+		bytes: 170432
+	},
 	'shared/items/hatchet.glb': { url: '/assets/shared/items/hatchet.4ac5296c.glb', bytes: 185932 },
 	'shared/items/key.glb': { url: '/assets/shared/items/key.26f3dc9c.glb', bytes: 195592 },
 	'shared/items/knife.glb': { url: '/assets/shared/items/knife.1a50d07f.glb', bytes: 205208 },
+	'shared/items/lamplighters_lantern.glb': {
+		url: '/assets/shared/items/lamplighters_lantern.042b963a.glb',
+		bytes: 258520
+	},
 	'shared/items/laudanum.glb': { url: '/assets/shared/items/laudanum.f4756f54.glb', bytes: 233704 },
 	'shared/items/lockpicks.glb': {
 		url: '/assets/shared/items/lockpicks.74c03d43.glb',
@@ -78,6 +90,10 @@ export const MODELS = {
 	},
 	'shared/items/note.glb': { url: '/assets/shared/items/note.387d1475.glb', bytes: 209852 },
 	'shared/items/notebook.glb': { url: '/assets/shared/items/notebook.473493c6.glb', bytes: 341384 },
+	'shared/items/oath_rubbing.glb': {
+		url: '/assets/shared/items/oath_rubbing.94d28d82.glb',
+		bytes: 224532
+	},
 	'shared/items/oil_bottle.glb': {
 		url: '/assets/shared/items/oil_bottle.8328279b.glb',
 		bytes: 210336
@@ -88,6 +104,14 @@ export const MODELS = {
 	'shared/items/pocket_compass.glb': {
 		url: '/assets/shared/items/pocket_compass.71ef6800.glb',
 		bytes: 244340
+	},
+	'shared/items/powder_flask.glb': {
+		url: '/assets/shared/items/powder_flask.82077b9b.glb',
+		bytes: 198908
+	},
+	'shared/items/quarrymans_charge.glb': {
+		url: '/assets/shared/items/quarrymans_charge.b9f0c651.glb',
+		bytes: 368772
 	},
 	'shared/items/revolver.glb': { url: '/assets/shared/items/revolver.fb05cf75.glb', bytes: 224000 },
 	'shared/items/rifle.glb': { url: '/assets/shared/items/rifle.64a1358e.glb', bytes: 204316 },
@@ -132,6 +156,22 @@ export const MODELS = {
 		url: '/assets/shared/player/explorer.bc7919c1.glb',
 		bytes: 1876424
 	},
+	'shared/props/bricked-niche-open.glb': {
+		url: '/assets/shared/props/bricked-niche-open.6303ea9f.glb',
+		bytes: 308128
+	},
+	'shared/props/bricked-niche.glb': {
+		url: '/assets/shared/props/bricked-niche.e3078da3.glb',
+		bytes: 298788
+	},
+	'shared/props/carters_bell.glb': {
+		url: '/assets/shared/props/carters_bell.57885409.glb',
+		bytes: 405004
+	},
+	'shared/props/cistern_winch.glb': {
+		url: '/assets/shared/props/cistern_winch.cd9b4c0e.glb',
+		bytes: 907336
+	},
 	'shared/props/corpse.glb': { url: '/assets/shared/props/corpse.975b2223.glb', bytes: 598344 },
 	'shared/props/crate.glb': { url: '/assets/shared/props/crate.aef763a7.glb', bytes: 97380 },
 	'shared/props/door-double.glb': {
@@ -139,6 +179,10 @@ export const MODELS = {
 		bytes: 336280
 	},
 	'shared/props/drop_box.glb': { url: '/assets/shared/props/drop_box.e72fc46b.glb', bytes: 348900 },
+	'shared/props/oath_carving.glb': {
+		url: '/assets/shared/props/oath_carving.c4e052bc.glb',
+		bytes: 381968
+	},
 	'shared/props/spider-web.glb': {
 		url: '/assets/shared/props/spider-web.d8ec3a39.glb',
 		bytes: 617580

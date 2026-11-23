@@ -177,6 +177,19 @@ export async function workshop(
 	session.account = await api<AccountView>('/api/explorer/workshop', 'POST', change);
 }
 
+/**
+ * Quests and the contacts on the surface (docs/dev/quests.md): commit a stash or loadout slot to a
+ * quest, report a ready one, or buy from an NPC.
+ */
+export async function quests(
+	change:
+		| { action: 'commit'; quest: string; from: SlotRef }
+		| { action: 'report'; quest: string }
+		| { action: 'buy'; npc: string; item: string }
+): Promise<void> {
+	session.account = await api<AccountView>('/api/quests', 'POST', change);
+}
+
 /** The skill tree (docs/dev/progression.md): spend a point, or put every one back for coin. */
 export async function skills(
 	change:

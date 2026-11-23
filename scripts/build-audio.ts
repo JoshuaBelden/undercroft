@@ -3,7 +3,7 @@
  * See docs/dev/asset-pipeline.md.
  *
  * For each entry in scripts/audio.config.ts:
- *  1. Reads 16-bit PCM WAV or MP3 (any channel count / sample rate) and mixes it to mono.
+ *  1. Reads 16-bit PCM or 32-bit float WAV, or MP3 (any channel count / sample rate) and mixes it to mono.
  *  2. Low-pass filters and resamples to OUTPUT_RATE.
  *  3. Optionally crops; trims leading/trailing silence (unless keepSilence) or slices it into one
  *     file per hit; optionally crossfades the ends into a seamless loop.
@@ -63,20 +63,30 @@ function readWav(file: string): Pcm {
 			channels = b.readUInt16LE(offset + 10);
 			rate = b.readUInt32LE(offset + 12);
 			bits = b.readUInt16LE(offset + 22);
+			// WAVE_FORMAT_EXTENSIBLE: the real format is the first two bytes of its subformat.
+			if (format === 0xfffe && length >= 40) format = b.readUInt16LE(offset + 32);
 		} else if (id === 'data') {
 			data = b.subarray(offset + 8, offset + 8 + length);
 		}
 		offset += 8 + length + (length % 2);
 	}
-	if (!data || format !== 1 || bits !== 16) {
-		throw new Error(`${file}: only 16-bit PCM WAV is supported (format ${format}, ${bits}-bit)`);
+	// 16-bit PCM, or 32-bit float (what many editors and voice tools write).
+	const float = format === 3 && bits === 32;
+	if (!data || !((format === 1 && bits === 16) || float)) {
+		throw new Error(
+			`${file}: only 16-bit PCM or 32-bit float WAV is supported (format ${format}, ${bits}-bit)`
+		);
 	}
-	const frames = Math.floor(data.length / (2 * channels));
+	const size = bits / 8;
+	const frames = Math.floor(data.length / (size * channels));
 	const samples = new Float32Array(frames);
 	for (let i = 0; i < frames; i++) {
 		let sum = 0;
-		for (let c = 0; c < channels; c++) sum += data.readInt16LE((i * channels + c) * 2);
-		samples[i] = sum / channels / 32768;
+		for (let c = 0; c < channels; c++) {
+			const at = (i * channels + c) * size;
+			sum += float ? data.readFloatLE(at) : data.readInt16LE(at) / 32768;
+		}
+		samples[i] = sum / channels;
 	}
 	return { rate, samples };
 }
@@ -190,7 +200,7 @@ function slice(pcm: Pcm, options: NonNullable<AudioSource['slice']>): Pcm[] {
 	});
 }
 
-/** Read a recording: 16-bit PCM WAV, or MP3 (decoded with mpg123 compiled to WebAssembly). */
+/** Read a recording: 16-bit PCM or 32-bit float WAV, or MP3 (decoded with mpg123 compiled to WebAssembly). */
 async function readAudio(file: string): Promise<Pcm> {
 	if (!file.toLowerCase().endsWith('.mp3')) return readWav(file);
 	const decoder = new MPEGDecoder();

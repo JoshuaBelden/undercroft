@@ -239,6 +239,22 @@ What you take down and don't bring back is gone. If you die, everything you carr
 Press {action:toggleFullscreen} on any screen, or choose Display under Graphics in the settings, to fill the whole screen. The game remembers it.`
 	},
 	{
+		id: 'fontaine',
+		title: 'Fontaine and her quests',
+		category: 'The surface',
+		body: `Fontaine hired you. She is an archaeologist, a historian, and a student of things that should stay buried, and she pays for what comes up from under the city. She never goes down herself. Find her under Contacts on the dashboard.
+
+Her first quest is the first thing to do: go down into Rumors and get back out. After that she has nine more, one at a time: each comes once you have reported the one before.
+
+- Each quest says what to do below. A search, a kill, something made or a task done counts for everyone down there with you who has that quest, and it counts the moment it happens, even if you die after.
+- Most also ask you to bring something back. Each of you brings your own. On her page under Contacts, drag it from your stash onto the quest, or choose Commit: it is given up for good. What you were lent for a descent can't be.
+- When everything is done and committed, Report to Fontaine for what she pays. The Contacts tab shows how many are ready.
+- With more than one open, choose Track on the one you want to follow: it has a yellow dot, and it is the first one shown at the left of your view below.
+- Each quest you report adds a page to her Research: what she has learned. Some of her quests teach you something new, like a recipe you won't find in the Library.
+
+She sells things too, in her Store, once she has asked you for them.`
+	},
+	{
 		id: 'the-shop',
 		title: 'The store',
 		category: 'The surface',
@@ -284,7 +300,7 @@ Guns and rounds are never made. They are mended, and broken down.`
 		id: 'explorer-levels',
 		title: 'Experience and levels',
 		category: 'The surface',
-		body: `Everything you do down there earns experience: "+ Experience" shows under the clock as it comes. Being the first to open a lootable pays, more for one that takes work or a lock and more again for something rare inside. So does making things below, killing what hunts you (a teammate near a kill gets a share), every hint you learn, being there for the rite and for banishing what it summons, and getting out: more the deeper you went. The first time you do each thing (each kind of lootable, recipe, creature, hint, each level you get out from) pays extra, once.
+		body: `Everything you do down there earns experience: "+ Experience" shows under the clock as it comes. Being the first to open a lootable pays, more for one that takes work or a lock and more again for something rare inside. So does making things below, killing what hunts you (a teammate near a kill gets a share), being there for the rite and for laying it to rest, and getting out: more the deeper you went. The first time you do each thing (each kind of lootable, recipe, creature, hint, each level you get out from) pays extra, once.
 
 Experience is kept as you earn it. If you die you lose what you carried, not what you learned: dying pays a quarter of what getting out would have, and abandoning pays nothing for the way out. Rumors pays only its firsts.
 
@@ -560,7 +576,7 @@ Bait doesn't keep: whatever you bring back up is gone.`
 		category: 'Gear and loot',
 		body: `Most treasure is only worth what it sells for. A few pieces are worth more than that, if you dare.
 
-Carry a tarot deck down and you draw a card as you arrive: a small blessing, or a small curse. The black candle counts as all five candles the rite needs. The custodian's key ring opens any one lock, and is gone. The porcelain doll sells for a great deal, but it is cursed. And an apothecary jar or a sealed reliquary jar won't survive a hard fall.`
+Carry a tarot deck down and you draw a card as you arrive: a small blessing, or a small curse. The custodian's key ring opens any one lock, and is gone. The porcelain doll sells for a great deal, but it is cursed. And an apothecary jar or a sealed reliquary jar won't survive a hard fall.`
 	},
 	{
 		id: 'false-walls',
@@ -726,27 +742,45 @@ Turn your lamp off and back on ({action:headlamp}) with it in the beam, and the 
 
 Banish it and the Gloaming is resolved: the omens lift and the dark lets go. The other things down here don't, and you still have to get out before time runs out.
 
-Long ago, the keepers of the dead held back the dusk each evening with a rite. The last keeper died with it unspoken, and the robbers who broke into his grave brought down what he had kept shut away.`
+Why it walks is what Fontaine wants to know. Her quests, and the pages of her research, tell it a piece at a time.`
+	},
+	{
+		id: 'room-tasks',
+		title: 'Room tasks',
+		category: 'The Gloaming',
+		body: `Some of Fontaine's quests want something done in a particular room: a bell rung, a winch hauled, a wall broken open, a rubbing taken. While you have that quest, the room is always in the map, and the thing is there.
+
+Look at it and hold {action:interact}. It takes a while, and the whole time it is loud: everything that hears it comes. Let go and it starts over. One of you works while the others hold the door.
+
+When it's done it stays done, for everyone with you. If it leaves something behind, it lies at your feet: pick it up and bring it back.`
+	},
+	{
+		id: 'barred-stair',
+		title: 'The barred stair',
+		category: 'The Gloaming',
+		body: `The stair down to the Gloaming's third level is barred from the far side. Hold {action:interact} on the door and it only rattles.
+
+Fontaine knows the quarrymen's way through: a quarryman's charge, made below with the field crafting kit from her powder flask, firecrackers, lamp oil and twine. You won't find it in the Library: her quest What They Took teaches it, and the Craft tab shows it from then on.
+
+Put the charge in a quick-use slot, take it in hand at the door, and hold {action:attack} to set it down. Then get well back. Eight seconds later it goes off, and everything on the level hears it.
+
+The door stays open for good, for everyone who was there: on later descents it isn't barred for any party with one of them in it. The flask is used up, and Fontaine sells more.`
 	},
 	{
 		id: 'the-rite',
 		title: 'The rite',
 		category: 'The Gloaming',
-		body: `The rite is what ends it. What is known about it is always at the left of your view down here, and on the Rite tab of the menu: press {action:inventory} and choose Rite ({button:PadRB} with a controller). It shows the Affliction's name, the hints you have found, then a line joining everything the rite needs and where it must be done. Once a hint has told you what a thing is, its picture appears beside it, greyed out until you carry it yourself.
+		body: `The rite is what ends it, and it is Fontaine's last quest, The Last Procession. It opens once you have done the eight before it: everything she asked you to bring back is committed already, so there is nothing to carry down for it.
 
-If it covers too much of your screen, press {action:toggleRitePanel} to hide it. Only the Affliction's name stays at the left edge, with the button that brings the rest back, and the menu still shows all of it. It stays hidden on your next descent until you press it again, or turn Show rite panel back on under Interface in the settings.
+What is known about it is always at the left of your view down here, and on the Rite tab of the menu: press {action:inventory} and choose Rite ({button:PadRB} with a controller). Your open quests are under it. If it covers too much of your screen, press {action:toggleRitePanel} to hide it. Only the Affliction's name stays at the left edge, with the button that brings the rest back, and the menu still shows all of it. It stays hidden on your next descent until you press it again, or turn Show rite and quest panel back on under Interface in the settings.
 
-At first, nothing is. Scraps of writing were left about the catacombs by those who came before: pinned to the walls of the great rooms, lying on coffins and altars, stuffed in crates, in the pockets of the dead. Never just dropped on the floor. Press {action:interact} on one to read it (in a crate, right-click it and choose Read). Whichever scrap you find, it tells you the next thing, always in the same order, until you know everything the rite needs and where it must be done. Everyone with you learns it too, and what you've learned stays learned on your next descent.
+The Gloaming Chapel is the last room of all, on the third level, past the barred stair and behind a great double door: hold {action:interact} on the door to open it. It is vast, with a hall either side and stairs up to a balcony over the door.
 
-The Afflictions page on the surface shows the hints you have found and what the rite needs. A thing is greyed out there until you have enough of it in your stash or loadout. Reset forgets everything you know of an Affliction, if you want to find it all again.
+Whoever has The Last Procession open goes to the altar and holds {action:interact} to begin it. When it's done, he comes, and the door slams shut behind you: nobody gets in or out until it is over. Be ready before you begin, and bring everyone in first.
 
-For the Gloaming, the rite needs five candles, a stick of chalk and the Pendant. Candles and chalk can be bought, or found. The Pendant lies on the altar in the Gloaming Chapel, at the angel's feet, and there is only one: things like it are edged in purple and marked with a star in the corner of their slot. If someone in your party already owns it, it isn't down there: bring it.
+Put him down and he falls, but it isn't over. He leaves his lantern, still burning, where he fell. Carry it to his tomb under the altar and hold {action:interact} to lay it there. Then it is resolved, the door opens, and a ladder comes down from a hatch over the dais: your way out. Killing him and getting out without laying the lantern resolves nothing, and the lantern doesn't come up with you.
 
-The Gloaming Chapel is the last room of all, on the third level, behind a great double door: hold {action:interact} on it to open it. It is vast, with a hall either side and stairs up to a balcony over the door.
-
-One person has to carry everything the rite needs. If it's spread between you, drop things for that person to pick up. If they die, what they carried lies where they fell.
-
-That person goes to the place and holds {action:interact}. Nothing has to be set down. When it's done, the Affliction comes, and the door slams shut behind you: nobody gets in or out until it is banished. Banish it and it is resolved, the door opens, and a ladder comes down from a hatch over the dais: your way out. Be ready before you begin, and bring everyone in first.`
+It is resolved only for those of you who could begin it. Once it is, it's done for good: you can still go down into the Gloaming, but he won't rise for you again. In a party where nobody can still begin it, the altar does nothing.`
 	},
 	{
 		id: 'account',

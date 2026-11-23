@@ -32,12 +32,15 @@ export function discoverable(item: string): boolean {
 
 /**
  * How far along a recipe is: `hidden` (no ingredient discovered: not in the Library), `started`
- * (some: listed, the rest shown as ?) or `available` (all: it can be made).
+ * (some: listed, the rest shown as ?) or `available` (all: it can be made). A recipe a quest
+ * teaches (`Recipe.learned`) is available only to those it was taught (`learned`), else hidden.
  */
 export function recipeStatus(
 	recipe: Recipe,
-	discovered: ReadonlySet<string>
+	discovered: ReadonlySet<string>,
+	learned: readonly string[] = []
 ): 'hidden' | 'started' | 'available' {
+	if (recipe.learned) return learned.includes(recipe.id) ? 'available' : 'hidden';
 	const known = recipe.ingredients.filter((i) => discovered.has(i.item)).length;
 	if (known === 0) return 'hidden';
 	return known === recipe.ingredients.length ? 'available' : 'started';
@@ -110,10 +113,11 @@ export function fragmentFinds(
 ): string | null {
 	const missing = (r: Recipe) =>
 		r.ingredients.map((i) => i.item).filter((item) => !discovered.has(item) && discoverable(item));
-	const started = RECIPES.filter(
+	const found = RECIPES.filter((r) => !r.learned);
+	const started = found.filter(
 		(r) => recipeStatus(r, discovered) === 'started' && missing(r).length
 	);
-	const pool = started.length ? started : RECIPES.filter((r) => missing(r).length);
+	const pool = started.length ? started : found.filter((r) => missing(r).length);
 	if (!pool.length) return null;
 	return pick(missing(pick(pool)));
 }

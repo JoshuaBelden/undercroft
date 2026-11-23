@@ -139,6 +139,7 @@ export class RopeSystem implements SessionSystem {
 			s.performing > 0 ||
 			s.extracting > 0 ||
 			s.unbarring > 0 ||
+			s.tasking > 0 ||
 			!s.grounded;
 		const action = busy
 			? null

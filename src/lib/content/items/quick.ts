@@ -134,6 +134,24 @@ export const QUICK: Record<string, ItemDef> = {
 			place: { seconds: 1, sound: 'salt.pour', ward: { length: 3, seconds: 30 } }
 		}
 	),
+	// Made below only, from a recipe a quest teaches (docs/dev/quests.md#the-barred-stair).
+	'quarrymans-charge': quick(
+		'quarrymans-charge',
+		"Quarryman's charge",
+		'Powder, firecrackers and oil, bound tight in twine. Set it against something and run.',
+		{
+			model: modelUrl('shared/items/quarrymans_charge.glb'),
+			weight: 1.2,
+			maxStack: 1,
+			value: 40,
+			color: 0x7a3a22,
+			place: {
+				seconds: 2,
+				sound: 'charge.fuse',
+				blast: { fuse: 8, radius: 4, noise: 80 }
+			}
+		}
+	),
 	firecrackers: quick(
 		'firecrackers',
 		'Firecrackers',

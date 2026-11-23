@@ -32,7 +32,8 @@
 			.sort((a, b) => ITEMS[a].name.localeCompare(ITEMS[b].name))
 	);
 	const recipes = $derived(
-		RECIPES.map((recipe) => ({ recipe, status: recipeStatus(recipe, discovered) }))
+		RECIPES.filter((r) => !r.learned)
+			.map((recipe) => ({ recipe, status: recipeStatus(recipe, discovered) }))
 			.filter((r) => r.status !== 'hidden')
 			.sort((a, b) => Number(b.status === 'available') - Number(a.status === 'available'))
 	);

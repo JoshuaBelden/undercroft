@@ -121,6 +121,13 @@ const NAMED = [
 	'key',
 	'clue',
 	'recipe-fragment',
+	// Quests (docs/dev/quests.md), not in the handoff
+	'powder-flask',
+	'quarrymans-charge',
+	'oath-rubbing',
+	'carters-ledger',
+	'hand-of-glory',
+	'lamplighters-lantern',
 	// Treasure
 	'coins',
 	'rosary',

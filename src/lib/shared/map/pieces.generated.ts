@@ -266,6 +266,7 @@ export const PIECES: Record<string, PieceDef> = {
 		altars: [],
 		crates: [],
 		doors: [],
+		spots: [{ name: 'winch', position: [-5, 4, 3.32], yaw: 3.142 }],
 		rubble: [],
 		ropes: [],
 		anchors: [],
@@ -1385,6 +1386,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'ratNest', position: [-2.5, 0, -2.968], yaw: 0 }
 		],
 		doors: [],
+		spots: [{ name: 'oath', position: [-3.5, 0, -3.23], yaw: 0 }],
 		rubble: [],
 		ropes: [],
 		anchors: [],
@@ -1602,6 +1604,7 @@ export const PIECES: Record<string, PieceDef> = {
 			{ type: 'toolChest', position: [4.5, 0, -5.445], yaw: 0 }
 		],
 		doors: [],
+		spots: [{ name: 'bell', position: [2.5, 0, -1.514], yaw: 0 }],
 		rubble: [],
 		ropes: [],
 		anchors: [],
@@ -2176,6 +2179,7 @@ export const PIECES: Record<string, PieceDef> = {
 		crates: [{ position: [2, 0, -1.4], yaw: 0 }],
 		lootables: [{ type: 'alcove', position: [0, 0, 1.52], yaw: 3.142 }],
 		doors: [],
+		spots: [{ name: 'niche', position: [-2, 0, -1.57], yaw: 0 }],
 		rubble: [],
 		ropes: [],
 		anchors: [],

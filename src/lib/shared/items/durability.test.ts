@@ -163,6 +163,6 @@ describe('selling worn things', () => {
 	it('loot sells at its value whatever happens to it, things not sold at a share of their price', () => {
 		expect(sellPrice('relic')).toBe(ITEMS.relic.value);
 		expect(sellPrice('test.kneepads')).toBe(16);
-		expect(sellPrice('pendant')).toBe(0);
+		expect(sellPrice('hand-of-glory')).toBe(0);
 	});
 });

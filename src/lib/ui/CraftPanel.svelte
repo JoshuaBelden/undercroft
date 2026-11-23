@@ -17,15 +17,17 @@
 	interface Props {
 		inventory: Inventory;
 		discovered: ReadonlySet<string>;
+		/** Recipes quests have taught (docs/dev/quests.md): made below only, never in the Library. */
+		learned?: readonly string[];
 		oncraft: (change: { recipe: string } | { repair: SlotRef }) => void;
 	}
 
-	let { inventory, discovered, oncraft }: Props = $props();
+	let { inventory, discovered, learned = [], oncraft }: Props = $props();
 
 	const kit = $derived(wornGear(inventory).some((def) => def.crafting));
 	const count = (item: string): number => carriedCount(inventory, item);
 	const recipes = $derived(
-		RECIPES.filter((r) => r.field && recipeStatus(r, discovered) === 'available')
+		RECIPES.filter((r) => r.field && recipeStatus(r, discovered, learned) === 'available')
 	);
 
 	/** Carried things worn enough to mend, with their materials. */

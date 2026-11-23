@@ -91,6 +91,7 @@
 	import { holdDark, reveal } from '#lib/ui/descent.svelte.ts';
 	import { preloadRun, type LoadProgress } from '#lib/game/preload.ts';
 	import Hud from '#lib/ui/Hud.svelte';
+	import QuestPanel from '#lib/ui/QuestPanel.svelte';
 	import RitePanel from '#lib/ui/RitePanel.svelte';
 	import RoomBanner from '#lib/ui/RoomBanner.svelte';
 	import ExpeditionClock from '#lib/ui/ExpeditionClock.svelte';
@@ -622,7 +623,8 @@
 				...testPoints(layout, PIECES),
 				// Only the server knows these (server/systems/cheats.ts).
 				{ name: 'stuck-crate' },
-				{ name: 'pendant' }
+				{ name: 'tomb' },
+				{ name: 'lantern' }
 			].map((room) => room.name);
 			const id = ++loadId;
 			loading = { loaded: 0, total: 0 };
@@ -911,6 +913,7 @@
 				all.pack.prompt(state) ??
 				all.hazards.prompt(state) ??
 				all.doors.prompt(state) ??
+				all.tasks.prompt(state) ??
 				all.walls.prompt(state) ??
 				all.surveyor.prompt(state) ??
 				all.marks.prompt(state) ??
@@ -1353,6 +1356,9 @@
 			open={settings.interface.ritePanel}
 			toggleKey={promptCode('toggleRitePanel')}
 		/>
+		{#if settings.interface.ritePanel}
+			<QuestPanel quests={features.quests.briefs} chosen={settings.interface.trackedQuest} />
+		{/if}
 	</div>
 	{#if features.affliction.deadline !== null}
 		<ExpeditionClock seconds={features.affliction.deadline} />
@@ -1452,6 +1458,7 @@
 		interactKey={promptCode('interact')}
 		onaction={(action) => sendInventory(action)}
 		discovered={discoveries}
+		learned={features.quests.learned}
 		oncraft={(change) => {
 			panel = null;
 			send({ type: 'craft', ...change });

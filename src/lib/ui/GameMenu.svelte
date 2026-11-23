@@ -65,6 +65,8 @@
 		survey: MenuMap | null;
 		/** What they have discovered: the Craft tab's recipes (shown with the field crafting kit worn). */
 		discovered: ReadonlySet<string>;
+		/** Recipes quests have taught them (the quarryman's charge), for the Craft tab. */
+		learned?: readonly string[];
 		/** Make or mend something below (the Craft tab). */
 		oncraft: (change: { recipe: string } | { repair: SlotRef }) => void;
 		onclose: () => void;
@@ -81,6 +83,7 @@
 		onabandon,
 		survey,
 		discovered,
+		learned = [],
 		oncraft,
 		onclose
 	}: Props = $props();
@@ -164,7 +167,7 @@
 			</div>
 			{#if crafting}
 				<div class="pane" aria-label="Craft" inert={current !== 'Craft'}>
-					<CraftPanel {inventory} {discovered} {oncraft} />
+					<CraftPanel {inventory} {discovered} {learned} {oncraft} />
 				</div>
 			{/if}
 			{#if current === 'Map' && survey && view}

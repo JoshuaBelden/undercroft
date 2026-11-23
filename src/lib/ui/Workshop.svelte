@@ -46,7 +46,9 @@
 		explorer.stash.reduce((n, stack) => n + (stack?.item === item ? stack.count : 0), 0);
 
 	/** Every recipe that can be made: every ingredient discovered. */
-	const available = $derived(RECIPES.filter((r) => recipeStatus(r, discovered) === 'available'));
+	const available = $derived(
+		RECIPES.filter((r) => !r.learned && recipeStatus(r, discovered) === 'available')
+	);
 
 	/** Every slot of the stash and loadout with something in it. */
 	const owned = $derived.by(() => {

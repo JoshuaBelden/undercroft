@@ -8,6 +8,9 @@ import {
 } from '../src/lib/server/store/explorers.ts';
 import { discover, discoveredOf } from '../src/lib/server/store/discoveries.ts';
 import { addExperience } from '../src/lib/server/store/progression.ts';
+import { questsOf, resolvedBy, setQuests } from '../src/lib/server/store/quests.ts';
+import type { QuestRecord } from '../src/lib/shared/quests/types.ts';
+import type { PlayerQuests } from './systems/quests.ts';
 import type { ExplorerDoc } from '../src/lib/server/store/accounts.ts';
 import { progressionOf, type Progression } from '../src/lib/shared/progression/progression.ts';
 import { emptyInventory } from '../src/lib/shared/items/inventory.ts';
@@ -182,4 +185,45 @@ export async function releaseAll(): Promise<void> {
 	} catch (error) {
 		log.warn(`Could not release explorers: ${(error as Error).message}`);
 	}
+}
+
+/**
+ * Each of these explorers' quests (docs/dev/quests.md), read at descent, with the Afflictions
+ * they had resolved. A co-op guest's quests stay with their own save: they have none here.
+ */
+export async function questRecords(explorers: string[]): Promise<Map<string, PlayerQuests>> {
+	const here = explorers.filter((explorer) => !isGuest(explorer));
+	const db = getDb();
+	const found = new Map<string, PlayerQuests>();
+	if (!db || here.length === 0) return found;
+	try {
+		const docs = await db
+			.collection<ExplorerDoc>('explorers')
+			.find({ _id: { $in: here } }, { projection: { quests: 1 } })
+			.toArray();
+		for (const doc of docs) {
+			const resolved = await resolvedBy(db, doc._id);
+			found.set(doc._id, { record: questsOf(doc, resolved), resolved });
+		}
+	} catch (error) {
+		log.warn(`Could not read quests: ${(error as Error).message}`);
+	}
+	return found;
+}
+
+/** Writes of each explorer's quests, one after another, so a later one never lands first. */
+const questWrites = new Map<string, Promise<void>>();
+
+/** An explorer's quests moved on below: kept at once (the hub can't change them meanwhile). */
+export function keepQuests(explorer: string, record: QuestRecord): void {
+	if (isGuest(explorer)) return;
+	const db = getDb();
+	if (!db) return;
+	const write = (questWrites.get(explorer) ?? Promise.resolve())
+		.then(() => setQuests(db, explorer, record))
+		.catch((error: Error) => log.warn(`Could not keep quests: ${error.message}`));
+	questWrites.set(explorer, write);
+	void write.then(() => {
+		if (questWrites.get(explorer) === write) questWrites.delete(explorer);
+	});
 }

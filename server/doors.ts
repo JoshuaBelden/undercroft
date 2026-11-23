@@ -7,11 +7,15 @@ import type { DoorPlacement, Vec3 } from '../src/lib/shared/map/types.ts';
  * The doors between levels in the current map. Each starts shut: solid in the collision world and
  * closing its doorway in the nav grid, so neither players nor creatures get through. Opening one
  * is for everyone, and for good, but for the final room's: the rite slams that shut and seals it
- * until what it summoned is banished. See docs/dev/map-generation.md#doors.
+ * until what it summoned is banished. A barred door (the stair to the Gloaming's lowest level,
+ * docs/dev/quests.md#the-barred-stair) won't open by hand at all: only a charge blows it open.
+ * See docs/dev/map-generation.md#doors.
  */
 export class Doors {
 	/** Shut and not to be opened (the final room's, during the fight). */
 	private sealed = new Set<string>();
+	/** Barred from the far side: holding interact only rattles it; a charge blows it open. */
+	private barred = new Set<string>();
 
 	constructor(
 		private world: CollisionWorld,
@@ -27,6 +31,26 @@ export class Doors {
 		return this.sealed.has(id);
 	}
 
+	isBarred(id: string): boolean {
+		return this.barred.has(id);
+	}
+
+	/** Bar a shut door (it stays as it is if already open). */
+	bar(id: string): void {
+		if (!this.isOpen(id) && this.placements.some((door) => door.id === id)) this.barred.add(id);
+	}
+
+	/** Take the bar off: it opens by hand again. */
+	unbar(id: string): void {
+		this.barred.delete(id);
+	}
+
+	/** A charge went off: a barred door blown open, for good. False if it wasn't barred. */
+	blowOpen(id: string): boolean {
+		if (!this.barred.delete(id)) return false;
+		return this.open(id);
+	}
+
 	/** The shut door in reach along this aim, if any (a sealed one can't be opened: it isn't). */
 	lookedAt(origin: Vec3, direction: Vec3): DoorPlacement | null {
 		return lookedAtDoor(
@@ -38,9 +62,14 @@ export class Doors {
 		);
 	}
 
-	/** Open a door. False if there is no such door, it was open already, or it is sealed. */
+	/** Open a door. False if there is no such door, it was open already, or it is sealed or barred. */
 	open(id: string): boolean {
-		if (this.isOpen(id) || this.isSealed(id) || !this.placements.some((door) => door.id === id)) {
+		if (
+			this.isOpen(id) ||
+			this.isSealed(id) ||
+			this.isBarred(id) ||
+			!this.placements.some((door) => door.id === id)
+		) {
 			return false;
 		}
 		openDoor(this.world, id);
@@ -72,9 +101,10 @@ export class Doors {
 		return this.placements.filter((door) => ids.includes(door.id) && this.open(door.id));
 	}
 
-	/** Admin: open every door (sealed ones too). */
+	/** Admin: open every door (sealed and barred ones too). */
 	openAll(): void {
 		this.sealed.clear();
+		this.barred.clear();
 		for (const door of this.placements) this.open(door.id);
 	}
 
@@ -86,5 +116,10 @@ export class Doors {
 	/** Ids of the sealed doors, for the tick. */
 	sealedSnapshot(): string[] {
 		return [...this.sealed];
+	}
+
+	/** Ids of the barred doors, for the tick. */
+	barredSnapshot(): string[] {
+		return [...this.barred];
 	}
 }

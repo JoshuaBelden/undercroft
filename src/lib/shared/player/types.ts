@@ -154,6 +154,8 @@ export interface PlayerState {
 	roping: number;
 	/** Seconds spent holding interact to open a door between levels (server-driven). */
 	unbarring: number;
+	/** Seconds spent holding interact on a room task's object (server-driven, docs/dev/quests.md). */
+	tasking: number;
 	/**
 	 * Seconds spent sketching into the map (server-driven). -1 once a sketch is done, until the
 	 * hold is let go, so a held button sketches once. See docs/dev/map.md.

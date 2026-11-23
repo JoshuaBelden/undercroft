@@ -283,4 +283,14 @@ export interface MapLayout {
 	doors: DoorPlacement[];
 	/** False walls (map-generation.md#false-walls); none in a layout made before them. */
 	walls?: WallPlacement[];
+	/** Room tasks' objects the party's quests need (docs/dev/quests.md#room-tasks). */
+	tasks?: TaskPlacement[];
+}
+
+/** Where a room task's object stands (on the floor), and which way it faces. */
+export interface TaskPlacement {
+	/** The task's id (TASKS). */
+	id: string;
+	position: Vec3;
+	yaw: number;
 }

@@ -42,7 +42,7 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 			{
 				name: 'ambientCG',
 				detail:
-					'Stone, tile, paving, marble, metal and wood textures (Rock061, Tiles093, Tiles133D, PavingStones127, Road015C, Marble023, MetalPlates013, Planks025A, PaintedWood007B)',
+					'Stone, tile, paving, marble, metal, wood and brick textures (Rock061, Tiles093, Tiles133D, PavingStones127, Road015C, Marble023, MetalPlates013, Planks025A, PaintedWood007B, Bricks073C)',
 				url: 'https://ambientcg.com',
 				license: 'CC0 1.0'
 			},

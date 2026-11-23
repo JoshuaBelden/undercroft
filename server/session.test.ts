@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { SANITY } from '../src/lib/content/player/sanity.ts';
@@ -9,6 +9,7 @@ import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { config } from './config.ts';
 import type { Session } from './session.ts';
 import { useSessions, kit, Diver, FakeSocket, wait } from './testing/harness.ts';
+import { HINTED_RITE } from './testing/rites.ts';
 
 /** The final room's way out, let down as banishing what the rite summoned would. */
 function wayOut(session: Session): Vec3 {
@@ -17,7 +18,11 @@ function wayOut(session: Session): Vec3 {
 }
 
 const SEED = 1;
-const RITE = AFFLICTIONS.gloaming.rite;
+const RITE = HINTED_RITE;
+const GLOAMING_RITE = AFFLICTIONS.gloaming.rite;
+afterEach(() => {
+	AFFLICTIONS.gloaming.rite = GLOAMING_RITE;
+});
 const open = useSessions();
 
 describe('joining and leaving', () => {
@@ -276,6 +281,8 @@ describe('getting out', () => {
 
 	it('banishing what was summoned resolves it, and nobody is carried out', () => {
 		const resolved = vi.fn();
+		// A rite resolved by banishing alone (the Gloaming's wants his lantern laid: rite.test.ts).
+		AFFLICTIONS.gloaming.rite = HINTED_RITE;
 		const session = open(SEED, { onResolved: resolved });
 		const a = new Diver(session, 'A');
 		const b = new Diver(session, 'B');
@@ -317,6 +324,7 @@ describe('achievements', () => {
 	});
 
 	it('a banishing earns it for everyone still down there, who then still have to get out', () => {
+		AFFLICTIONS.gloaming.rite = HINTED_RITE;
 		const session = open(SEED);
 		const a = new Diver(session, 'A');
 		const b = new Diver(session, 'B');
@@ -340,6 +348,7 @@ describe('achievements', () => {
 	});
 
 	it('performing the rite earns it for everyone still down there', () => {
+		AFFLICTIONS.gloaming.rite = HINTED_RITE;
 		const session = open(SEED);
 		const stacks = RITE.requirements.map((r): [string, number] => [r.item, r.count]);
 		const performer = new Diver(session, 'A', kit(...stacks));
@@ -455,6 +464,7 @@ describe('admin commands', () => {
 	it('reveal and reset the rite, and clear the marks', () => {
 		const clues = vi.fn();
 		const reset = vi.fn();
+		AFFLICTIONS.gloaming.rite = HINTED_RITE;
 		const session = open(SEED, { onClues: clues, onRiteReset: reset });
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'revealClues' });

@@ -14,7 +14,6 @@ import {
 	takeStack
 } from '../../src/lib/shared/items/inventory.ts';
 import { PIECES } from '../../src/lib/shared/map/pieces.generated.ts';
-import { toWorld } from '../../src/lib/shared/map/grid.ts';
 import { dropSpot, inFront, roomPoints, testPoints } from '../../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import type { ItemStack } from '../../src/lib/shared/player/types.ts';
@@ -139,7 +138,8 @@ export class CheatSystem implements SessionSystem {
 
 	/**
 	 * Teleports only the server can work out: `stuck-crate`, in front of the first jammed crate
-	 * (found or not); `pendant`, beside the Pendant wherever it lies (on the floor, or its crate).
+	 * (found or not); `tomb`, where the rite is performed and what it leaves is laid to rest;
+	 * `lantern`, beside his lantern wherever it lies (docs/dev/quests.md#the-rite).
 	 */
 	private secretPoint(name: string): Vec3 | null {
 		const { crates, items, layout } = this.ctx;
@@ -149,21 +149,14 @@ export class CheatSystem implements SessionSystem {
 			const at = jammed && placement(jammed.id);
 			return at ? inFront(at) : null;
 		}
-		if (name === 'pendant') {
-			const lying = items.snapshots().find((i) => i.item === 'pendant');
-			if (lying) {
-				const [x, y, z] = lying.position;
-				// On the altar: where the rite is performed, in front of it. Otherwise right there.
-				const rite = layout.placements
-					.flatMap((p) => (PIECES[p.piece]?.rites ?? []).map((r) => toWorld(p, r)))
-					.find((r) => Math.hypot(r[0] - x, r[2] - z) < 3 && Math.abs(r[1] - y) < 2.5);
-				return rite ?? [x, y + 0.05, z];
-			}
-			const holder = crates
-				.list()
-				.find(({ crate }) => crate.slots.some((s) => s?.item === 'pendant'))?.crate;
-			const at = holder && placement(holder.id);
-			return at ? inFront(at) : null;
+		if (name === 'tomb') {
+			const tomb = this.ctx.rite.tomb;
+			return tomb ? [tomb[0], tomb[1] + 0.05, tomb[2]] : null;
+		}
+		const laid = this.ctx.affliction.def.rite.laid;
+		if (name === 'lantern' && laid) {
+			const lying = items.snapshots().find((i) => i.item === laid.item);
+			return lying ? [lying.position[0], lying.position[1] + 0.05, lying.position[2]] : null;
 		}
 		return null;
 	}

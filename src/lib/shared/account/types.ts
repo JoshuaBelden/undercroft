@@ -1,3 +1,4 @@
+import type { QuestRecord } from '../quests/types.ts';
 import type { StoreTier } from '../../content/economy.ts';
 import type { Slots } from '../items/inventory.ts';
 import type { Inventory } from '../player/types.ts';
@@ -53,4 +54,6 @@ export interface ExplorerView {
 	tiers: StoreTier[];
 	/** Experience and the skills spent on (docs/dev/progression.md). */
 	progression: Pick<Progression, 'xp' | 'categories' | 'skills'>;
+	/** Quests (docs/dev/quests.md): each one's progress and what is committed, and flags. */
+	quests: QuestRecord;
 }

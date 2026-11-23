@@ -107,6 +107,7 @@ export function createPlayerState(
 		erasing: 0,
 		roping: 0,
 		unbarring: 0,
+		tasking: 0,
 		sketching: 0,
 		sharing: 0,
 		consulting: 0

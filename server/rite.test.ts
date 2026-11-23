@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AFFLICTIONS, type RiteSpec } from '../src/lib/content/afflictions.ts';
+import type { RiteSpec } from '../src/lib/content/afflictions.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { addItem, emptyInventory, newStack } from '../src/lib/shared/items/inventory.ts';
 import { rotateXZ } from '../src/lib/shared/map/grid.ts';
@@ -11,8 +11,10 @@ import { Crates } from './crates.ts';
 import { WorldItems } from './items.ts';
 import { RiteDirector, scatterRite } from './rite.ts';
 import { mapFixture } from './testing/harness.ts';
+import { HINTED_RITE } from './testing/rites.ts';
 
-const SPEC = AFFLICTIONS.gloaming.rite;
+// The machinery of hints and carried things, on a rite that has them.
+const SPEC = HINTED_RITE;
 const map = mapFixture(1);
 
 /** A world point in a placed piece's own frame. */
@@ -140,9 +142,9 @@ describe('Crates', () => {
 	it('refilling keeps what was put in on purpose', () => {
 		const store = new Crates(map.world, map.layout.crates, map.nav, map.start, map.seed);
 		const [{ crate }] = store.list();
-		store.stowIn(crate.id, newStack('pendant'));
+		store.stowIn(crate.id, newStack('hand-of-glory'));
 		store.fill();
-		expect(crate.slots.some((s) => s?.item === 'pendant')).toBe(true);
+		expect(crate.slots.some((s) => s?.item === 'hand-of-glory')).toBe(true);
 	});
 
 	it('with no crates there is nowhere to stow anything', () => {

@@ -7,6 +7,8 @@
 	import { money } from '#lib/content/economy.ts';
 	import { LEVELS } from '#lib/content/progression.ts';
 	import { levelOf } from '#lib/shared/progression/progression.ts';
+	import { QUEST_ORDER } from '#lib/content/quests.ts';
+	import { status } from '#lib/shared/quests/engine.ts';
 	import { BACKDROP_IMAGE, imageUrl } from '#lib/content/images.ts';
 	import { InputMap } from '#lib/game/input/InputMap.ts';
 	import { menu } from '#lib/game/input/menus.ts';
@@ -38,6 +40,14 @@
 	let bar = $state(0);
 
 	const explorer = $derived(session.account?.explorer ?? null);
+	/** Quests ready to report: the number on the Contacts tab. */
+	const toReport = $derived.by(() => {
+		if (!explorer) return 0;
+		const context = {
+			resolved: (id: string) => explorer.afflictions.some((a) => a.id === id && a.resolved)
+		};
+		return QUEST_ORDER.filter((id) => status(explorer.quests, id, context) === 'ready').length;
+	});
 	const gamerTag = $derived(session.account?.gamerTag ?? data.account?.gamerTag ?? '');
 	const avatar = $derived(session.account?.avatar ?? null);
 
@@ -45,6 +55,7 @@
 	const ALL_TABS = [
 		{ path: '/(hub)', label: 'Expedition' },
 		{ path: '/(hub)/loadout', label: 'Loadout' },
+		{ path: '/(hub)/contacts', label: 'Contacts' },
 		{ path: '/(hub)/afflictions', label: 'Afflictions' },
 		{ path: '/(hub)/workshop', label: 'Workshop' },
 		{ path: '/(hub)/library', label: 'Library' }
@@ -55,14 +66,21 @@
 	const treeOpen = $derived(level >= LEVELS.treeAt);
 	const skillsPage = $derived(page.route.id === '/(hub)/skills');
 
-	/** The controller's B: back to the Expedition page. */
+	/** The tab a page is under: its own, or the one it is a page of (a contact under Contacts). */
+	function under(path: string): boolean {
+		const at = page.route.id ?? '';
+		return at === path || (path !== '/(hub)' && at.startsWith(path + '/'));
+	}
+
+	/** The controller's B: from a contact back to Contacts, from anywhere else to the Expedition page. */
 	function up(): void {
-		if (page.route.id !== '/(hub)') void goto(resolve('/(hub)'));
+		if (page.route.id === '/(hub)/contacts/[npc]') void goto(resolve('/(hub)/contacts'));
+		else if (page.route.id !== '/(hub)') void goto(resolve('/(hub)'));
 	}
 
 	/** The controller's LB/RB: the tab before or after, round (from the store or social, the ends). */
 	function switchTab(by: -1 | 1): void {
-		const at = TABS.findIndex((tab) => tab.path === page.route.id);
+		const at = TABS.findIndex((tab) => under(tab.path));
 		const next = at < 0 ? (by > 0 ? 0 : TABS.length - 1) : (at + by + TABS.length) % TABS.length;
 		const tab = TABS[next];
 		if (tab) void goto(resolve(tab.path));
@@ -126,10 +144,13 @@
 			{#each TABS as tab (tab.path)}
 				<a
 					href={resolve(tab.path)}
-					class:current={page.route.id === tab.path}
-					aria-current={page.route.id === tab.path ? 'page' : undefined}
+					class:current={under(tab.path)}
+					aria-current={under(tab.path) ? 'page' : undefined}
 				>
 					{tab.label}
+					{#if tab.path === '/(hub)/contacts' && toReport > 0}
+						<span class="badge" aria-label="{toReport} ready to report">{toReport}</span>
+					{/if}
 				</a>
 			{/each}
 			<ButtonHint code="PadRB" />
