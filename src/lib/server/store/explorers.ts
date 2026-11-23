@@ -27,7 +27,10 @@ export type ExplorerError =
 	| 'undiscovered'
 	| 'materials'
 	| 'unrepairable'
-	| 'unsalvageable';
+	| 'unsalvageable'
+	| 'unwanted'
+	| 'lent'
+	| 'notReady';
 
 export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	underground: "You can't do that while you're underground",
@@ -44,7 +47,10 @@ export const EXPLORER_ERRORS: Record<ExplorerError, string> = {
 	undiscovered: "You haven't discovered everything that goes into that yet",
 	materials: "You don't have the materials for that in your stash",
 	unrepairable: "That can't be mended, or doesn't need it",
-	unsalvageable: "That can't be broken down into anything"
+	unsalvageable: "That can't be broken down into anything",
+	unwanted: "That isn't wanted for this",
+	lent: 'That was lent to you for the descent: bring your own',
+	notReady: "That isn't done yet"
 };
 
 const explorers = (db: Db): Collection<ExplorerDoc> => db.collection<ExplorerDoc>('explorers');
@@ -66,6 +72,8 @@ export async function changeExplorer(
 	const after: ExplorerDoc = structuredClone(before);
 	const error = change(after);
 	if (error) return { error };
+	// Quests (docs/dev/quests.md) change with the stash when something is committed.
+	const quests = before.quests === undefined ? { $exists: false } : before.quests;
 	const result = await explorers(db).updateOne(
 		{
 			_id: explorerId,
@@ -73,9 +81,17 @@ export async function changeExplorer(
 			ready: { $ne: true },
 			money: before.money,
 			stash: before.stash,
-			loadout: before.loadout
+			loadout: before.loadout,
+			quests
 		},
-		{ $set: { money: after.money, stash: after.stash, loadout: after.loadout } }
+		{
+			$set: {
+				money: after.money,
+				stash: after.stash,
+				loadout: after.loadout,
+				...(after.quests ? { quests: after.quests } : {})
+			}
+		}
 	);
 	return result.matchedCount === 1 ? { explorer: after } : { error: 'busy' };
 }

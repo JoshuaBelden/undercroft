@@ -22,7 +22,17 @@ export interface LedgerDoc {
 	explorer: string;
 	at: Date;
 	/** What happened: a purchase, a sale, something thrown away, an admin grant or reset. */
-	kind: 'buy' | 'sell' | 'discard' | 'grant' | 'reset' | 'craft' | 'repair' | 'salvage' | 'respec';
+	kind:
+		| 'buy'
+		| 'sell'
+		| 'discard'
+		| 'grant'
+		| 'reset'
+		| 'craft'
+		| 'repair'
+		| 'salvage'
+		| 'respec'
+		| 'quest';
 	item?: string;
 	count?: number;
 	/** Money gained (negative: spent). */
