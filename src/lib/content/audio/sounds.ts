@@ -204,7 +204,7 @@ export const SOUNDS = {
 		volume: 0.5,
 		caption: 'dying rattle'
 	},
-	// Rats (placeholders until there are recordings).
+	// Rats (silent until there are recordings).
 	'rat.step': {
 		category: 'sfx',
 		volume: 0.45,
@@ -228,7 +228,7 @@ export const SOUNDS = {
 		volume: 0.5,
 		caption: 'a squeal cut short'
 	},
-	// Spiders (placeholders until there are recordings).
+	// Spiders (silent until there are recordings).
 	'spider.step': {
 		category: 'sfx',
 		volume: 0.35,
@@ -261,14 +261,14 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'a deep hiss'
 	},
-	// The surveyor sharing his map: paper unfolding (placeholder until there's a recording).
+	// The surveyor sharing his map: paper unfolding (silent until there's a recording).
 	'surveyor.share': {
 		category: 'sfx',
 		volume: 0.7,
 		variation: 0.1,
 		caption: 'paper unfolding'
 	},
-	// Dwellers (placeholders until there are recordings).
+	// Dwellers (silent until there are recordings).
 	'dweller.step': {
 		category: 'sfx',
 		volume: 0.5,
@@ -369,7 +369,7 @@ export const SOUNDS = {
 		variation: 0.1,
 		caption: 'brick shatters'
 	},
-	// Combat (docs/dev/combat.md): placeholders in code until each is recorded.
+	// Combat (docs/dev/combat.md): silent until each is recorded.
 	// Too little stamina left to swing.
 	'player.winded': {
 		file: 'player.winded',
