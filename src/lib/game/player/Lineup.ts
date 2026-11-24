@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { emptyInventory } from '#lib/shared/items/inventory.ts';
 import { DEFAULT_LOOK, type Look } from '#lib/shared/player/look.ts';
 import { createPlayerState } from '#lib/shared/player/simulate.ts';
+import { WAITING_CLIPS } from '#lib/content/player/model.ts';
 import { PlayerBody } from './PlayerBody.ts';
 
 /** Where each stands (x right, z away from the camera, m): the first in front, then behind. */
@@ -11,7 +12,7 @@ const SPOTS: [number, number][] = [
 	[1.2, 1.3],
 	[2.3, 2.4]
 ];
-/** How far into `waiting` a body may start (s): its clip is about this long. */
+/** How far into its waiting clip a body may start (s): a loop wraps round, so any length works. */
 const WAIT_SPREAD = 8.6;
 
 /** Someone standing in the lineup: who, and how they look. */
@@ -22,9 +23,9 @@ export interface LineupMember {
 
 /**
  * The party standing about on the Expedition page (PartyLineup.svelte draws it and the names):
- * one `PlayerBody` per member, dressed in their look and playing `waiting` from its own point,
- * so nobody moves in step. The first stands in front in the middle, the rest behind: left,
- * right, further right. See docs/dev/expedition.md.
+ * one `PlayerBody` per member, dressed in their look and playing one of `WAITING_CLIPS` at
+ * random, from its own point, so nobody moves in step. The first stands in front in the middle,
+ * the rest behind: left, right, further right. See docs/dev/expedition.md.
  */
 export class Lineup {
 	readonly scene = new THREE.Scene();
@@ -58,7 +59,8 @@ export class Lineup {
 			let one = this.standing.get(member.id);
 			if (!one) {
 				const body = new PlayerBody(false, look);
-				body.idle('waiting', Math.random() * WAIT_SPREAD);
+				const clip = WAITING_CLIPS[Math.floor(Math.random() * WAITING_CLIPS.length)];
+				body.idle('waiting', Math.random() * WAIT_SPREAD, clip);
 				this.scene.add(body.root);
 				one = { body, spot: new THREE.Vector3() };
 				this.standing.set(member.id, one);

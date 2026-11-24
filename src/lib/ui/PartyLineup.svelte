@@ -65,7 +65,7 @@
 			const { clientWidth: w, clientHeight: h } = canvas;
 			for (const [id, label] of Object.entries(labels)) {
 				if (!label || !scene.feet(id, at)) continue;
-				label.style.transform = `translate(${at.x * w}px, ${at.y * h}px) translate(-50%, 8px)`;
+				label.style.transform = `translate(${at.x * w}px, ${at.y * h}px) translate(-50%, 58px)`;
 			}
 			frame = requestAnimationFrame(draw);
 		};

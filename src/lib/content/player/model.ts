@@ -37,7 +37,7 @@ export const PLAYER_MODEL: PlayerModelDef = {
 		// No idle clip yet: the walk's first frame (feet passing, nearly upright), held.
 		idle: { clip: 'Walking', speed: 0 },
 		// Shifting about, looking round (Mixamo's Bored, art/export/player/animations): the Expedition
-		// page's lineup.
+		// page's lineup, which picks from WAITING_CLIPS instead.
 		waiting: { clip: 'Bored' },
 		walking: { clip: 'Walking' },
 		running: { clip: 'Running' },
@@ -113,6 +113,12 @@ export function explorerFiles(): { models: string[]; clips: string[] } {
 		clips: bodies.map((b) => bodyFiles(b).anims)
 	};
 }
+
+/**
+ * What explorers do standing about on the Expedition page: each plays one, picked at random
+ * (Mixamo clips in art/export/player/animations; see docs/dev/asset-pipeline.md#the-explorer).
+ */
+export const WAITING_CLIPS = ['Bored', 'Arm_Stretching', 'Pointing', 'Warrior_Idle'];
 
 /** Over-the-shoulder camera: where it sits from the eye, in the look frame (m). */
 export const SHOULDER_CAMERA = {

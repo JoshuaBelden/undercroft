@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { AnimSlot } from '#lib/content/animations.ts';
+import type { AnimationMap, AnimSlot } from '#lib/content/animations.ts';
 import { HANDS, heldDef, ITEMS } from '#lib/content/items.ts';
 import { CONDITIONS } from '#lib/content/player/conditions.ts';
 import { CLIMB, FALL, MOVEMENT } from '#lib/content/player/movement.ts';
@@ -98,6 +98,8 @@ export class PlayerBody {
 	 * this many seconds in, so several bodies side by side don't move in step.
 	 */
 	private idleSlot: AnimSlot = 'idle';
+	/** The clips by slot: the explorer's, with the idle slot's clip swapped by `idle`. */
+	private animations: AnimationMap = PLAYER_MODEL.animations;
 	private idleFrom = 0;
 	/** The look worn, what it is drawn with, and the dressing in progress (newest wins). */
 	private wearing: string | null = null;
@@ -146,10 +148,16 @@ export class PlayerBody {
 		this.grip.visible = false;
 	}
 
-	/** Stand about with `slot` instead of the idle, starting `from` seconds into it. */
-	idle(slot: AnimSlot, from = 0): void {
+	/**
+	 * Stand about with `slot` instead of the idle, starting `from` seconds into it, playing `clip`
+	 * in that slot if given (one of WAITING_CLIPS). Call it before the body is dressed.
+	 */
+	idle(slot: AnimSlot, from = 0, clip?: string): void {
 		this.idleSlot = slot;
 		this.idleFrom = from;
+		this.animations = clip
+			? { ...PLAYER_MODEL.animations, [slot]: { clip } }
+			: PLAYER_MODEL.animations;
 	}
 
 	/**
@@ -173,7 +181,7 @@ export class PlayerBody {
 			scene.rotation.y = PLAYER_MODEL.yawOffset;
 			this.root.add(scene);
 			this.dressed = dressed;
-			this.animator = new Animator(scene, clips, PLAYER_MODEL.animations);
+			this.animator = new Animator(scene, clips, this.animations);
 			this.upper = new UpperBody(scene, clips, PLAYER_MODEL.upper);
 			// The held item hangs in the hand frame its grip was made in (the old explorer's).
 			this.handFrame.quaternion.copy(dressed.frames[PLAYER_MODEL.hand] ?? IDENTITY);

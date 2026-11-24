@@ -153,8 +153,8 @@ export const MODELS = {
 	},
 	'shared/items/whistle.glb': { url: '/assets/shared/items/whistle.ba599fdf.glb', bytes: 217736 },
 	'shared/player/female/anims.glb': {
-		url: '/assets/shared/player/female/anims.96bee5d8.glb',
-		bytes: 748912
+		url: '/assets/shared/player/female/anims.877a29f8.glb',
+		bytes: 1135848
 	},
 	'shared/player/female/body.glb': {
 		url: '/assets/shared/player/female/body.ce88c2ee.glb',
@@ -197,8 +197,8 @@ export const MODELS = {
 		bytes: 89948
 	},
 	'shared/player/male/anims.glb': {
-		url: '/assets/shared/player/male/anims.59f83f07.glb',
-		bytes: 748816
+		url: '/assets/shared/player/male/anims.63968162.glb',
+		bytes: 1135712
 	},
 	'shared/player/male/body.glb': {
 		url: '/assets/shared/player/male/body.59a21f75.glb',
