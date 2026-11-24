@@ -63,6 +63,7 @@
 	const ALL_TABS = [
 		{ path: '/(hub)', label: 'Expedition' },
 		{ path: '/(hub)/loadout', label: 'Loadout' },
+		{ path: '/(hub)/character', label: 'Character' },
 		{ path: '/(hub)/contacts', label: 'Contacts' },
 		{ path: '/(hub)/afflictions', label: 'Afflictions' },
 		{ path: '/(hub)/workshop', label: 'Workshop' },

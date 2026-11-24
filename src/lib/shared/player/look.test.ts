@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanLook, DEFAULT_LOOK, tintOf } from './look.ts';
+import { cleanLook, DEFAULT_LOOK, randomLook, tintOf } from './look.ts';
 
 describe('cleanLook', () => {
 	it('keeps a valid look as it is', () => {
@@ -48,5 +48,16 @@ describe('tintOf', () => {
 		// The hair's first swatch keeps the texture's own colour; the skin's is a colour.
 		expect(tintOf(DEFAULT_LOOK, 'hair')).toBeNull();
 		expect(tintOf(cleanLook({}), 'skin')).toBe('#e8c3a8');
+	});
+});
+
+describe('randomLook', () => {
+	it('is always a look cleanLook keeps as it is', () => {
+		let seed = 1;
+		const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+		for (let i = 0; i < 50; i++) {
+			const look = randomLook(random);
+			expect(cleanLook(look)).toEqual(look);
+		}
 	});
 });

@@ -17,7 +17,7 @@ import { buildNav, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { DEFAULT_MARK_WHEEL } from '../src/lib/content/marks.ts';
-import { DEFAULT_LOOK, type Look } from '../src/lib/shared/player/look.ts';
+import { cleanLook, DEFAULT_LOOK, type Look } from '../src/lib/shared/player/look.ts';
 import { tierAt, tierCells } from '../src/lib/shared/map/doors.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
@@ -317,6 +317,9 @@ export class Session implements SessionContext {
 		const handlers: Record<string, unknown> = {
 			throw: () => {
 				throw new Error('Test error from the admin panel');
+			},
+			look: (player: Player, command: AdminCommand & { kind: 'look' }) => {
+				player.look = cleanLook(command.look);
 			},
 			regenerate: (_player: Player, command: AdminCommand & { kind: 'regenerate' }) =>
 				this.regenerate(

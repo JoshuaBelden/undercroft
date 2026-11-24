@@ -17,6 +17,10 @@ import {
 	markWheel,
 	MARK_SYMBOLS,
 	resetMarkWheel,
+	resetLook,
+	cleanLook,
+	BODIES,
+	WEAR,
 	resetExplorer,
 	EXPLORER_ERRORS,
 	listFeedback,
@@ -86,6 +90,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			underground: explorer.underground !== null,
 			markWheel: markWheel(explorer.markWheel).map((id) => MARK_SYMBOLS[id]?.name ?? id),
 			customWheel: explorer.markWheel !== undefined,
+			look: describeLook(explorer.look),
+			customLook: explorer.look !== undefined,
 			quests: (() => {
 				const done = resolved.get(explorer._id) ?? [];
 				const record = questsOf(explorer, done);
@@ -187,6 +193,15 @@ export const actions: Actions = {
 		for (const explorer of explorers) await resetMarkWheel(db, explorer._id);
 		await audit(db, admin, 'resetMarkWheel', account._id);
 		return { notice: 'Chalk wheel back to the default (from their next descent)' };
+	},
+
+	resetLook: async ({ params, locals }) => {
+		const admin = requireAdmin(locals);
+		const { db, account } = await target(params.id);
+		const { explorers } = await explorersOf(db, account._id);
+		for (const explorer of explorers) await resetLook(db, explorer._id);
+		await audit(db, admin, 'resetLook', account._id);
+		return { notice: 'Look back to the default (from their next descent)' };
 	},
 
 	setExperience: async ({ params, request, locals }) => {
@@ -380,3 +395,10 @@ export const actions: Actions = {
 		redirect(303, '/members?deleted=' + encodeURIComponent(account.gamerTag));
 	}
 };
+
+/** A look in words, for the member page: "Masculine, face 2 · Short, Polo shirt, Cargo pants". */
+function describeLook(saved: unknown): string {
+	const look = cleanLook(saved);
+	const wear = Object.values(look.wear).map((id) => WEAR[id].label);
+	return `${BODIES[look.body].label}, face ${look.face + 1} · ${wear.join(', ')}`;
+}

@@ -211,6 +211,7 @@
 		<p>
 			Chalk wheel{explorer.customWheel ? '' : ' (default)'}: {explorer.markWheel.join(' · ')}
 		</p>
+		<p>Look{explorer.customLook ? '' : ' (default)'}: {explorer.look}</p>
 		<h3>Level and skills</h3>
 		<p>
 			Level {explorer.progression.level} · {explorer.progression.xp} experience · {explorer
@@ -285,6 +286,15 @@
 				confirm="Start {member.gamerTag}'s quests again from Fontaine? What they committed is not given back."
 			/>
 		</div>
+		{#if explorer.customLook}
+			<div class="actions">
+				<Action
+					action="resetLook"
+					label="Reset look"
+					confirm="Put {member.gamerTag}'s explorer back in the default look?"
+				/>
+			</div>
+		{/if}
 		{#if explorer.customWheel}
 			<div class="actions">
 				<Action

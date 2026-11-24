@@ -109,13 +109,13 @@ The guest's game connection is carried to the host over Steam's peer-to-peer pac
 
 A guest's stash and loadout are in **their own save**, on their PC. So the host's server asks their client for them (`server/guests.ts`), with `vault` messages over the same connection:
 
-| Server → guest's client              | Guest's client does (its own `/api/local/vault`)                           |
-| ------------------------------------ | -------------------------------------------------------------------------- |
-| `{ op: 'lock', ready }`              | Locks (or unlocks) its hub, as `markReady` does for local players          |
-| `{ op: 'take', id, session }`        | `takeLoadout`, then answers `{ type: 'vault', id, kit, owned, markWheel }` |
-| `{ op: 'return', session, carried }` | `returnFromExpedition`: what they carried out (null if lost) goes back     |
+| Server → guest's client              | Guest's client does (its own `/api/local/vault`)                                 |
+| ------------------------------------ | -------------------------------------------------------------------------------- |
+| `{ op: 'lock', ready }`              | Locks (or unlocks) its hub, as `markReady` does for local players                |
+| `{ op: 'take', id, session }`        | `takeLoadout`, then answers `{ type: 'vault', id, kit, owned, markWheel, look }` |
+| `{ op: 'return', session, carried }` | `returnFromExpedition`: what they carried out (null if lost) goes back           |
 
-`takeKit`, `owned`, `markWheels`, `giveBack` and `lockKit` in `server/belongings.ts` route to these for guests, so the party and session code doesn't know the difference.
+`takeKit`, `owned`, `markWheels`, `looks`, `giveBack` and `lockKit` in `server/belongings.ts` route to these for guests, so the party and session code doesn't know the difference.
 
 - **Timeout:** a guest whose client doesn't answer within `VAULT_TIMEOUT_MS` goes down with nothing.
 - **A return while disconnected:** it waits for them to reconnect.

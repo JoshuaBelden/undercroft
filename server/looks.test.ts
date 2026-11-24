@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LOOK, type Look } from '../src/lib/shared/player/look.ts';
+import { config } from './config.ts';
 import { Diver, useSessions, wait } from './testing/harness.ts';
 
 const open = useSessions();
@@ -24,5 +25,17 @@ describe('looks', () => {
 			expect(players.find((p) => p.id === a.id)?.look).toEqual(DRESSED);
 			expect(players.find((p) => p.id === b.id)?.look).toEqual(DEFAULT_LOOK);
 		}
+	});
+
+	it('the admin look command dresses a player for the rest of the run, for everyone', () => {
+		config.devMode = true;
+		const session = open(1);
+		const a = new Diver(session, 'A');
+		const b = new Diver(session, 'B');
+		session.admin(a.id, { kind: 'look', look: DRESSED });
+		wait(0.2);
+		const tick = b.socket.last('tick');
+		const players = tick?.type === 'tick' ? tick.players : [];
+		expect(players.find((p) => p.id === a.id)?.look).toEqual(DRESSED);
 	});
 });

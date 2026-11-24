@@ -13,7 +13,13 @@ export { resetMail, sendMail } from '../../../../src/lib/server/mail.ts';
 export * from '../../../../src/lib/server/store/reports.ts';
 export * from '../../../../src/lib/server/store/feedback.ts';
 export * from '../../../../src/lib/server/store/runs.ts';
-export { EXPLORER_ERRORS, resetMarkWheel } from '../../../../src/lib/server/store/explorers.ts';
+export {
+	EXPLORER_ERRORS,
+	resetLook,
+	resetMarkWheel
+} from '../../../../src/lib/server/store/explorers.ts';
+export { cleanLook } from '../../../../src/lib/shared/player/look.ts';
+export { BODIES, WEAR } from '../../../../src/lib/content/player/wardrobe.ts';
 export { MARK_SYMBOLS, markWheel } from '../../../../src/lib/content/marks.ts';
 export {
 	resetProgression,

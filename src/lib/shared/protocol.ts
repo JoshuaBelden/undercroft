@@ -169,7 +169,9 @@ export type AdminCommand =
 	/** New map; omit the seed for a random one. */
 	| { kind: 'regenerate'; seed?: number }
 	/** Throw an error on the game server, to try the crash prompt (docs/dev/reports.md). */
-	| { kind: 'throw' };
+	| { kind: 'throw' }
+	/** Wear this look for the rest of the run, not saved (docs/dev/player.md#the-look). */
+	| { kind: 'look'; look: unknown };
 
 export type ServerMessage =
 	/** Your party, sent on joining and whenever it changes. `you` is your member id. */

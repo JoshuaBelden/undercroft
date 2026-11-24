@@ -32,6 +32,7 @@ export const AUDIT_ACTIONS = {
 	mergeIdea: 'Merged an idea',
 	archiveFeedback: 'Archived feedback',
 	resetMarkWheel: 'Reset the chalk wheel',
+	resetLook: 'Reset the look',
 	resetExplorer: 'Reset to a new player (account kept)',
 	setExperience: 'Set the experience',
 	setSkillRank: 'Set a skill rank',

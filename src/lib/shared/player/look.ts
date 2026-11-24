@@ -69,6 +69,29 @@ export function cleanLook(raw: unknown): Look {
 	return { body, face, wear, tints };
 }
 
+/**
+ * A look picked at random (`random` gives 0..1): any body, face and pieces, and any colours. For
+ * the admin panel's Random look.
+ */
+export function randomLook(random: () => number): Look {
+	const pick = <T>(list: readonly T[]): T => list[Math.floor(random() * list.length) % list.length];
+	const body = pick(Object.keys(BODIES) as BodyId[]);
+	const wear: Look['wear'] = {};
+	for (const slot of WEAR_SLOTS) {
+		const pieces = (Object.keys(WEAR) as WearId[]).filter((id) => WEAR[id].slot === slot);
+		const choice = pick(OPTIONAL_SLOTS.has(slot) ? [null, ...pieces] : pieces);
+		if (choice) wear[slot] = choice;
+	}
+	const tints: Look['tints'] = {};
+	for (const part of TINT_PARTS) tints[part] = pick(TINTS[part]).id;
+	return {
+		body,
+		face: Math.floor(random() * BODIES[body].faces) % BODIES[body].faces,
+		wear,
+		tints
+	};
+}
+
 /** The swatch a part is tinted with: its chosen one, or its palette's first. */
 export function tintOf(look: Look, part: TintPart): string | null {
 	const palette = TINTS[part];
