@@ -24,13 +24,13 @@ export interface LineupMember {
 /**
  * The party standing about on the Expedition page (PartyLineup.svelte draws it and the names):
  * one `PlayerBody` per member, dressed in their look and playing one of `WAITING_CLIPS` at
- * random, from its own point, so nobody moves in step. The first stands in front in the middle,
+ * random that nobody else is (`freeClip`), from its own point, so nobody moves in step. The first stands in front in the middle,
  * the rest behind: left, right, further right. See docs/dev/expedition.md.
  */
 export class Lineup {
 	readonly scene = new THREE.Scene();
 	readonly camera = new THREE.PerspectiveCamera(28, 1, 0.1, 40);
-	private standing = new Map<string, { body: PlayerBody; spot: THREE.Vector3 }>();
+	private standing = new Map<string, { body: PlayerBody; spot: THREE.Vector3; clip: string }>();
 	private state = createPlayerState([0, 0, 0], 0, emptyInventory());
 	private aim = new THREE.Vector3();
 
@@ -59,10 +59,10 @@ export class Lineup {
 			let one = this.standing.get(member.id);
 			if (!one) {
 				const body = new PlayerBody(false, look);
-				const clip = WAITING_CLIPS[Math.floor(Math.random() * WAITING_CLIPS.length)];
+				const clip = this.freeClip();
 				body.idle('waiting', Math.random() * WAIT_SPREAD, clip);
 				this.scene.add(body.root);
-				one = { body, spot: new THREE.Vector3() };
+				one = { body, spot: new THREE.Vector3(), clip };
 				this.standing.set(member.id, one);
 			}
 			one.body.setLook(look);
@@ -70,6 +70,14 @@ export class Lineup {
 			one.spot.set(x, 0, z);
 			one.body.root.position.copy(one.spot);
 		});
+	}
+
+	/** A waiting clip nobody in the lineup is playing, at random (any, once all are taken). */
+	private freeClip(): string {
+		const taken = new Set([...this.standing.values()].map((one) => one.clip));
+		const free = WAITING_CLIPS.filter((clip) => !taken.has(clip));
+		const from = free.length ? free : WAITING_CLIPS;
+		return from[Math.floor(Math.random() * from.length)];
 	}
 
 	/** Animate everyone and frame them (the game faces -Z: the camera is on that side). */
