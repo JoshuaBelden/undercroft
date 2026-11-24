@@ -97,6 +97,24 @@ function characterSource(url: string): Promise<CharacterModel> {
 	return pending;
 }
 
+const clipCache = new Map<string, Promise<AnimationClip[]>>();
+
+/**
+ * Clips kept apart from any mesh (an explorer body's `anims.glb`: the skeleton and its clips),
+ * loaded once and shared. They play on any model whose bones have the same names. `root` is the
+ * root bone, whose horizontal motion is removed (as `loadCharacter` does).
+ */
+export function loadClips(url: string, root: string): Promise<AnimationClip[]> {
+	let pending = clipCache.get(url);
+	if (!pending) {
+		pending = loader
+			.loadAsync(url)
+			.then((gltf) => gltf.animations.map((clip) => stripRootMotion(clip, root)));
+		clipCache.set(url, pending);
+	}
+	return pending;
+}
+
 function rootBone(scene: Object3D): string | null {
 	let name: string | null = null;
 	scene.traverse((node) => {

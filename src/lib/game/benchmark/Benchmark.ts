@@ -2,11 +2,11 @@ import * as THREE from 'three';
 import { BENCHMARK, BENCHMARK_SECONDS, type BenchmarkStageDef } from '#lib/content/diagnostics.ts';
 import { CREATURES } from '#lib/content/creatures.ts';
 import { MAP_KIT } from '#lib/content/map/kit.ts';
-import { PLAYER_MODEL } from '#lib/content/player/model.ts';
 import { Animator } from '#lib/game/Animator.ts';
-import { loadCharacter, warmCharacter } from '#lib/game/assets.ts';
+import { loadCharacter } from '#lib/game/assets.ts';
 import { Engine } from '#lib/game/Engine.ts';
 import { MapRenderer } from '#lib/game/map/MapRenderer.ts';
+import { warmLook } from '#lib/game/player/dress.ts';
 import { Headlamp } from '#lib/game/player/Headlamp.ts';
 import { RemotePlayers } from '#lib/game/player/RemotePlayers.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
@@ -19,6 +19,7 @@ import {
 import { generateLayout } from '#lib/shared/map/generate.ts';
 import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 import type { Vec3 } from '#lib/shared/map/types.ts';
+import { DEFAULT_LOOK } from '#lib/shared/player/look.ts';
 import { createPlayerState, eyeHeight } from '#lib/shared/player/simulate.ts';
 import type { PlayerSnapshot } from '#lib/shared/player/types.ts';
 import { gpuCapabilities, textureMemory } from './device.ts';
@@ -94,7 +95,7 @@ export async function runBenchmark(
 		const creature = Object.values(CREATURES)[0];
 		await Promise.all([
 			map.build(layout),
-			warmCharacter(PLAYER_MODEL.model),
+			warmLook(DEFAULT_LOOK),
 			...BENCHMARK.creatures.map(async (distance) => {
 				const { scene, clips } = await loadCharacter(creature.model);
 				const { position, heading } = pointAlong(route, distance);

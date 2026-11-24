@@ -3,9 +3,9 @@ import { AUDIO_BYTES, AUDIO_FILES } from '#lib/content/audio/files.generated.ts'
 import { CREATURES } from '#lib/content/creatures.ts';
 import { ITEMS } from '#lib/content/items.ts';
 import { modelBytes, modelUrl } from '#lib/content/models.ts';
-import { PLAYER_MODEL } from '#lib/content/player/model.ts';
+import { explorerFiles, PLAYER_MODEL } from '#lib/content/player/model.ts';
 import type { AudioManager } from '#lib/game/audio/AudioManager.ts';
-import { warmCharacter, warmModel } from '#lib/game/assets.ts';
+import { loadClips, warmCharacter, warmModel } from '#lib/game/assets.ts';
 import { PIECES } from '#lib/shared/map/pieces.generated.ts';
 import type { MapLayout, PieceDef } from '#lib/shared/map/types.ts';
 
@@ -60,10 +60,16 @@ const characters = (urls: string[]): Task[] =>
 const models = (urls: string[]): Task[] =>
 	[...new Set(urls)].map((url) => ({ bytes: modelBytes(url), load: () => warmModel(url) }));
 
-/** Models every run uses, whatever the map: the explorer, creatures, items, crates, doors. */
+/** Models every run uses, whatever the map: the explorer's, creatures, items, crates, doors. */
 function sharedModels(): Task[] {
+	// Every body and piece: a teammate may wear any of them.
+	const explorer = explorerFiles();
 	return [
-		...characters([PLAYER_MODEL.model, ...Object.values(CREATURES).map((c) => c.model)]),
+		...characters([...explorer.models, ...Object.values(CREATURES).map((c) => c.model)]),
+		...explorer.clips.map((url) => ({
+			bytes: modelBytes(url),
+			load: () => loadClips(url, PLAYER_MODEL.root)
+		})),
 		...models([
 			modelUrl('shared/props/crate.glb'),
 			modelUrl('shared/props/corpse.glb'),

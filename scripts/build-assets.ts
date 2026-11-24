@@ -30,7 +30,7 @@ import { dedup, meshopt, prune, simplify, textureCompress, weld } from '@gltf-tr
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import * as prettier from 'prettier';
 import sharp from 'sharp';
-import { mergeClips } from './clips.ts';
+import { dropAnimations, mergeClips, skeletonMismatch, skeletonOnly } from './clips.ts';
 import { CLIP_DONORS, retargetClips } from './retarget.ts';
 import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
@@ -765,6 +765,83 @@ async function writeFormatted(file: string, source: string): Promise<void> {
 	writeFileSync(file, await prettier.format(source, { ...config, filepath: file }));
 }
 
+/**
+ * The explorer, dressed (scripts/blender/wardrobe.py): per body, its mesh
+ * (`body-<body>.glb`), each wardrobe piece fitted to it (`<body>/<piece>.glb`), and the clips,
+ * retargeted onto its skeleton. The clips come from the old explorer: its Mixamo clips
+ * (`explorer.glb`, whose mesh no longer ships) and the hand-keyed ones (`explorer-clips.glb`).
+ * Written to shared/player/<body>/: `body.glb`, `anims.glb` (skeleton and clips only) and one
+ * file per piece. See docs/dev/asset-pipeline.md#the-explorer.
+ */
+async function buildExplorer(io: NodeIO): Promise<void> {
+	const library = path.join(PLAYER_SOURCE, 'explorer.glb');
+	if (!existsSync(library)) return;
+	const clips = await io.read(library);
+	mergeClips(clips, await io.read(path.join(PLAYER_SOURCE, 'explorer' + CLIPS_SUFFIX)));
+	const names = clips
+		.getRoot()
+		.listAnimations()
+		.map((a) => a.getName());
+	const bodies = readdirSync(PLAYER_SOURCE)
+		.filter((f) => /^body-.+\.glb$/.test(f))
+		.map((f) => f.slice('body-'.length, -'.glb'.length))
+		.sort();
+	for (const body of bodies) {
+		const dir = `shared/player/${body}`;
+		const file = path.join(PLAYER_SOURCE, `body-${body}.glb`);
+		// The clips, on this body's skeleton.
+		const anims = await io.read(file);
+		dropAnimations(anims);
+		retargetClips(anims, clips, Object.fromEntries(names.map((n) => [n, n])));
+		skeletonOnly(anims);
+		await anims.transform(prune(), meshopt(MODEL_MESHOPT));
+		const animsKb = (await writeModel(io, anims, dir, 'anims')) / 1e3;
+		// The body, then each piece fitted to it.
+		const skeleton = await io.read(file);
+		const bodyKb = (await writeExplorerModel(io, await io.read(file), dir, 'body')) / 1e3;
+		console.log(
+			`  explorer ${body}: body ${bodyKb.toFixed(0)} KB, ${names.length} clips ${animsKb.toFixed(0)} KB`
+		);
+		const pieceDir = path.join(PLAYER_SOURCE, body);
+		if (!existsSync(pieceDir)) continue;
+		for (const f of readdirSync(pieceDir)
+			.filter((n) => n.endsWith('.glb'))
+			.sort()) {
+			const piece = await io.read(path.join(pieceDir, f));
+			const wrong = skeletonMismatch(skeleton, piece);
+			if (wrong.length) throw new Error(`${body}/${f} doesn't fit the body: ${wrong.join('; ')}`);
+			const kb = (await writeExplorerModel(io, piece, dir, path.basename(f, '.glb'))) / 1e3;
+			console.log(`    ${path.basename(f, '.glb')}: ${kb.toFixed(0)} KB`);
+		}
+	}
+}
+
+/**
+ * A body or a wardrobe piece: no clips, textures to WebP.
+ */
+async function writeExplorerModel(
+	io: NodeIO,
+	model: Document,
+	dir: string,
+	name: string
+): Promise<number> {
+	dropAnimations(model);
+	for (const s of model.getRoot().listScenes()) s.setExtras({});
+	await model.transform(
+		dedup(),
+		textureCompress({
+			encoder: sharp,
+			targetFormat: 'webp',
+			resize: [CREATURE_TEXTURE, CREATURE_TEXTURE],
+			quality: 85
+		}),
+		prune(),
+		// _HIDE (bit values over 1) is out of quantize's range and is left as floats.
+		meshopt(MODEL_MESHOPT)
+	);
+	return writeModel(io, model, dir, name);
+}
+
 /** Rigged creatures: the shared ones, then each Affliction's own. */
 async function buildCreatures(io: NodeIO): Promise<void> {
 	await buildCharacters(io, 'creature', CREATURE_SOURCE, 'shared/creatures');
@@ -815,7 +892,7 @@ async function main(): Promise<void> {
 	if (failed) process.exit(1);
 	await writeManifest(pieces);
 	await buildCreatures(io);
-	await buildCharacters(io, 'player', PLAYER_SOURCE, 'shared/player');
+	await buildExplorer(io);
 	await buildItems(io);
 	await buildProps(io);
 	await writeModelManifest();

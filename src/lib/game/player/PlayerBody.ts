@@ -6,7 +6,6 @@ import { CLIMB, FALL, MOVEMENT } from '#lib/content/player/movement.ts';
 import { PLAYER_MODEL } from '#lib/content/player/model.ts';
 import { Animator } from '#lib/game/Animator.ts';
 import { SteadyLight } from '#lib/game/flashing.ts';
-import { loadCharacter } from '#lib/game/assets.ts';
 import { itemModel } from '#lib/game/items/itemModel.ts';
 import { UpperBody } from '#lib/game/UpperBody.ts';
 import { held } from '#lib/shared/items/inventory.ts';
@@ -14,6 +13,8 @@ import { THROW_DRAW, THROW_FOLLOW } from '#lib/shared/items/weapons.ts';
 import { headlampOutput } from '#lib/shared/player/headlamp.ts';
 import { kneeling } from '#lib/shared/player/simulate.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
+import { DEFAULT_LOOK, sameLook, type Look } from '#lib/shared/player/look.ts';
+import { dress, type Dressed } from './dress.ts';
 import { upperBodyPose } from './pose.ts';
 
 /** Below this speed (m/s) a standing player is idle. */
@@ -90,7 +91,10 @@ export class PlayerBody {
 	/** Your own body's fill from the camera (`own`), following your lamp, and its materials. */
 	private fill = { value: 0 };
 	private steady = new SteadyLight();
-	private filled: THREE.Material[] = [];
+	/** The look worn, what it is drawn with, and the dressing in progress (newest wins). */
+	private wearing: Look | null = null;
+	private dressed: Dressed | null = null;
+	private dressing = 0;
 	/** Which way the body faces (null until the first frame): the look, once it moves. */
 	private facing: number | null = null;
 	/** Coming round on the spot after looking too far aside (HEAD_TURN). */
@@ -113,34 +117,64 @@ export class PlayerBody {
 	private action = 'none';
 	private actionTime = 0;
 
-	/** `own`: your own body, seen over the shoulder, lit from the camera (OWN_FILL). */
-	constructor(private own = false) {
+	/**
+	 * `own`: your own body, seen over the shoulder, lit from the camera (OWN_FILL). `look`: how
+	 * the player dressed their explorer (`setLook` changes it later).
+	 */
+	constructor(
+		private own = false,
+		look: Look = DEFAULT_LOOK
+	) {
 		this.root.name = 'player-body';
 		this.root.rotation.order = 'YXZ';
-		void loadCharacter(PLAYER_MODEL.model).then(({ scene, clips }) => {
-			if (this.disposed) return;
-			scene.rotation.y = PLAYER_MODEL.yawOffset;
-			scene.traverse((node) => {
-				if (!(node instanceof THREE.Mesh)) return;
-				// The headlamp sits inside the head: a body that cast shadows would block its own
-				// lamp (shadow passes draw back faces), and layers can't exempt a single light.
-				node.castShadow = false;
-				node.frustumCulled = false;
-				if (this.own) node.material = cameraFilled(node.material, this.fill, this.filled);
-			});
-			this.root.add(scene);
-			this.animator = new Animator(scene, clips, PLAYER_MODEL.animations);
-			this.upper = new UpperBody(scene, clips, PLAYER_MODEL.upper);
-			scene.getObjectByName(PLAYER_MODEL.hand)?.add(this.grip);
-			this.headBone = scene.getObjectByName(PLAYER_MODEL.head) ?? null;
-			this.neckBone = scene.getObjectByName(PLAYER_MODEL.neck) ?? null;
-		});
+		this.setLook(look);
 		this.grip.name = 'held-item';
 		this.floor.name = 'set-down-item';
 		this.floor.position.set(...FLOOR_SPOT);
 		this.floor.visible = false;
 		this.root.add(this.floor);
 		this.grip.visible = false;
+	}
+
+	/**
+	 * Dress the body in a look: the old one is taken off once the new one has loaded, and the clips
+	 * start over on it. The same look again does nothing.
+	 */
+	setLook(look: Look): void {
+		if (this.wearing && sameLook(this.wearing, look)) return;
+		this.wearing = look;
+		const token = ++this.dressing;
+		const fill = this.own ? { fill: this.fill, fillAmbient: OWN_FILL_AMBIENT } : {};
+		void dress(look, fill).then((dressed) => {
+			if (this.disposed || token !== this.dressing) {
+				for (const m of dressed.materials) m.dispose();
+				return;
+			}
+			this.undress();
+			const { scene, clips } = dressed;
+			scene.rotation.y = PLAYER_MODEL.yawOffset;
+			this.root.add(scene);
+			this.dressed = dressed;
+			this.animator = new Animator(scene, clips, PLAYER_MODEL.animations);
+			this.upper = new UpperBody(scene, clips, PLAYER_MODEL.upper);
+			scene.getObjectByName(PLAYER_MODEL.hand)?.add(this.grip);
+			this.headBone = scene.getObjectByName(PLAYER_MODEL.head) ?? null;
+			this.neckBone = scene.getObjectByName(PLAYER_MODEL.neck) ?? null;
+			this.turned.clear();
+		});
+	}
+
+	/** Take the current look off (its scene, clips and materials). */
+	private undress(): void {
+		const dressed = this.dressed;
+		if (!dressed) return;
+		this.animator?.dispose();
+		this.animator = null;
+		this.upper = null;
+		this.grip.removeFromParent();
+		dressed.scene.removeFromParent();
+		for (const m of dressed.materials) m.dispose();
+		this.dressed = null;
 	}
 
 	/**
@@ -397,37 +431,9 @@ export class PlayerBody {
 	dispose(): void {
 		this.disposed = true;
 		this.setItem(null);
-		this.animator?.dispose();
-		for (const material of this.filled) material.dispose();
+		this.undress();
 		this.root.removeFromParent();
 	}
-}
-
-/**
- * A copy of the body's material lit from the camera as well, by `fill` (a uniform): added as
- * emitted light, so no light in the scene changes, the headlamp's least of all.
- */
-function cameraFilled(
-	source: THREE.Material | THREE.Material[],
-	fill: { value: number },
-	made: THREE.Material[]
-): THREE.Material | THREE.Material[] {
-	if (Array.isArray(source))
-		return source.map((m) => cameraFilled(m, fill, made) as THREE.Material);
-	const material = source.clone();
-	made.push(material);
-	material.onBeforeCompile = (shader) => {
-		shader.uniforms.uOwnFill = fill;
-		shader.fragmentShader = shader.fragmentShader
-			.replace('#include <common>', '#include <common>\nuniform float uOwnFill;')
-			.replace(
-				'#include <emissivemap_fragment>',
-				`#include <emissivemap_fragment>
-totalEmissiveRadiance += diffuseColor.rgb * uOwnFill * (${OWN_FILL_AMBIENT.toFixed(2)} + ${(1 - OWN_FILL_AMBIENT).toFixed(2)} * max(normal.z, 0.0));`
-			);
-	};
-	material.customProgramCacheKey = () => 'own-body';
-	return material;
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
