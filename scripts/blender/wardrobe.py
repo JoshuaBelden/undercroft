@@ -196,6 +196,25 @@ def strip_helpers(body):
             bm.modifiers.remove(mod)
 
 
+def mark_alpha(body):
+    """
+    Tag each material with how its alpha is drawn, read by the asset build (`alpha` extra): MPFB
+    makes every material alpha-blended, which in a game sorts badly (the skin turns see-through in
+    patches, the body shows through clothes). Hair, brows and lashes are cut out (`MASK`); the
+    rest is opaque, and the skin single-sided.
+    """
+    spec = BODIES[body]
+    cutout = {spec["eyebrows"], spec["eyelashes"]} | {name for kind, name in WEAR.values() if kind == "hair"}
+    for obj in bpy.data.objects:
+        if obj.type != "MESH" or not obj.name.startswith(f"body-{body}"):
+            continue
+        asset = obj.name.split(".", 1)[1] if "." in obj.name else None
+        for slot in obj.material_slots:
+            if slot.material:
+                slot.material["alpha"] = "MASK" if asset in cutout else "OPAQUE"
+                slot.material["double_sided"] = asset is not None
+
+
 def export_objects(path, objects, armature):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     for obj in bpy.context.view_layer.objects:
@@ -214,6 +233,7 @@ def export_objects(path, objects, armature):
         export_animations=False,
         export_def_bones=False,
         export_image_format="AUTO",
+        export_extras=True,
     )
 
 
@@ -221,6 +241,7 @@ def export(body):
     """Write the body file and one file per wardrobe piece (see the module docstring)."""
     strip_helpers(body)
     mark_hidden(body)
+    mark_alpha(body)
     spec = BODIES[body]
     armature = rig(body)
     whole = [basemesh(body)] + [piece(body, n) for n in (EYES, spec["eyebrows"], spec["eyelashes"], BOOTS)]

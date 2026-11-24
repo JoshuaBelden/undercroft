@@ -31,7 +31,7 @@ import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer
 import * as prettier from 'prettier';
 import sharp from 'sharp';
 import { dropAnimations, mergeClips, skeletonMismatch, skeletonOnly } from './clips.ts';
-import { CLIP_DONORS, retargetClips } from './retarget.ts';
+import { CLIP_DONORS, LIMB_ALIGNMENT, retargetClips } from './retarget.ts';
 import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
 import { LOOTABLES, type LootableId } from '../src/lib/content/lootables.ts';
@@ -792,7 +792,7 @@ async function buildExplorer(io: NodeIO): Promise<void> {
 		// The clips, on this body's skeleton.
 		const anims = await io.read(file);
 		dropAnimations(anims);
-		retargetClips(anims, clips, Object.fromEntries(names.map((n) => [n, n])));
+		retargetClips(anims, clips, Object.fromEntries(names.map((n) => [n, n])), LIMB_ALIGNMENT);
 		skeletonOnly(anims);
 		await anims.transform(prune(), meshopt(MODEL_MESHOPT));
 		const animsKb = (await writeModel(io, anims, dir, 'anims')) / 1e3;
@@ -827,6 +827,14 @@ async function writeExplorerModel(
 ): Promise<number> {
 	dropAnimations(model);
 	for (const s of model.getRoot().listScenes()) s.setExtras({});
+	// How each material is drawn, as wardrobe.py tagged it (MPFB makes every one alpha-blended).
+	for (const material of model.getRoot().listMaterials()) {
+		const extras = material.getExtras() as { alpha?: string; double_sided?: boolean };
+		if (extras.alpha === 'MASK') material.setAlphaMode('MASK').setAlphaCutoff(0.5);
+		else if (extras.alpha === 'OPAQUE') material.setAlphaMode('OPAQUE');
+		if (extras.double_sided !== undefined) material.setDoubleSided(extras.double_sided);
+		material.setExtras({});
+	}
 	await model.transform(
 		dedup(),
 		textureCompress({

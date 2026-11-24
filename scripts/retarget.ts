@@ -39,16 +39,49 @@ export const CLIP_DONORS: Record<string, ClipDonor> = {
 	}
 };
 
-/** Retarget the donor's clips into `doc`. Returns the names they went in under. */
+/**
+ * Bones lined up with the donor's before its turns are copied: bone -> the child it points at
+ * and, optionally, two bones across it that fix its twist (a palm's width). Each named by its end
+ * (`LeftArm` matches `mixamorig:LeftArm`).
+ */
+export type BoneAlignment = Record<string, { to: string; across?: [string, string] }>;
+
+/**
+ * The explorer's limbs, for a body whose rest pose differs from the clips' rig (the explorer's
+ * arms and hands rest 15-25 degrees from MPFB's). The spine is left out: the clips' rig has its
+ * spine joints in a zigzag no body should copy.
+ */
+export const LIMB_ALIGNMENT: BoneAlignment = Object.fromEntries(
+	(['Left', 'Right'] as const).flatMap((s) => [
+		[`${s}Shoulder`, { to: `${s}Arm` }],
+		[`${s}Arm`, { to: `${s}ForeArm` }],
+		[`${s}ForeArm`, { to: `${s}Hand` }],
+		[`${s}Hand`, { to: `${s}HandMiddle1`, across: [`${s}HandIndex1`, `${s}HandPinky1`] }],
+		[`${s}UpLeg`, { to: `${s}Leg` }],
+		[`${s}Leg`, { to: `${s}Foot` }],
+		[`${s}Foot`, { to: `${s}ToeBase` }],
+		...['Thumb', 'Index', 'Middle', 'Ring', 'Pinky'].flatMap((f) => [
+			[`${s}Hand${f}1`, { to: `${s}Hand${f}2` }],
+			[`${s}Hand${f}2`, { to: `${s}Hand${f}3` }]
+		])
+	])
+);
+
+/**
+ * Retarget the donor's clips into `doc`. Returns the names they went in under. `align` lines up
+ * those bones' rest directions with the donor's first, so a limb points where the donor's does.
+ */
 export function retargetClips(
 	doc: Document,
 	donor: Document,
-	clips: Record<string, string>
+	clips: Record<string, string>,
+	align: BoneAlignment = {}
 ): string[] {
 	const root = doc.getRoot();
 	const buffer = root.listBuffers()[0] ?? doc.createBuffer();
 	const target = rig(doc);
 	const source = rig(donor);
+	const lineUp = alignments(target, source, align);
 	const taken = new Set(root.listAnimations().map((a) => a.getName()));
 	const out: string[] = [];
 	for (const clip of donor.getRoot().listAnimations()) {
@@ -84,7 +117,9 @@ export function retargetClips(
 				let world: Quat;
 				if (match && target.bones.has(node)) {
 					const delta = mul(sourceWorld.get(match)!, inv(source.restWorld.get(match)!));
-					world = mul(delta, target.restWorld.get(node)!);
+					const rest = target.restWorld.get(node)!;
+					const fix = lineUp.get(node);
+					world = mul(delta, fix ? mul(fix, rest) : rest);
 				} else {
 					world = mul(parentWorld, node.getRotation() as Quat);
 				}
@@ -151,6 +186,35 @@ export function retargetClips(
 	return out;
 }
 
+/**
+ * Per aligned bone of the model, the world turn that brings it from its rest onto the donor's:
+ * its direction (to its child) onto the donor's, then, about that, the bones across it.
+ */
+function alignments(target: Rig, source: Rig, align: BoneAlignment): Map<Node, Quat> {
+	const out = new Map<Node, Quat>();
+	const find = (r: Rig, end: string) =>
+		[...r.byName.values()].find((b) => b.getName().endsWith(end));
+	for (const [end, spec] of Object.entries(align)) {
+		const t = [end, spec.to, ...(spec.across ?? [])].map((e) => find(target, e));
+		const s = [end, spec.to, ...(spec.across ?? [])].map((e) => find(source, e));
+		if (t.some((b) => !b) || s.some((b) => !b)) continue;
+		const dir = (r: Rig, a: Node, b: Node) =>
+			normalizeV(sub(r.restPosition.get(b)!, r.restPosition.get(a)!));
+		const td = dir(target, t[0]!, t[1]!);
+		const sd = dir(source, s[0]!, s[1]!);
+		let q = fromTo(td, sd);
+		if (spec.across) {
+			// The twist: the across line, once turned, onto the donor's, both flattened square to the bone.
+			const flat = (v: Vec3) => normalizeV(sub(v, scale(sd, dot(v, sd))));
+			const ta = flat(rotate(q, dir(target, t[2]!, t[3]!)));
+			const sa = flat(dir(source, s[2]!, s[3]!));
+			q = mul(fromTo(ta, sa), q);
+		}
+		out.set(t[0]!, q);
+	}
+	return out;
+}
+
 interface Rig {
 	/** Every node under the scene, parents before children. */
 	order: Node[];
@@ -158,8 +222,9 @@ interface Rig {
 	/** The skin's joints. */
 	bones: Set<Node>;
 	byName: Map<string, Node>;
-	/** World rotation of every node at rest. */
+	/** World rotation and position of every node at rest. */
 	restWorld: Map<Node, Quat>;
+	restPosition: Map<Node, Vec3>;
 	hips: Node | null;
 }
 
@@ -177,8 +242,24 @@ function rig(doc: Document): Rig {
 	if (!skin) throw new Error('no skin to retarget onto');
 	const bones = new Set(skin.listJoints());
 	const byName = new Map([...bones].map((b) => [b.getName(), b]));
-	const r: Rig = { order, parent, bones, byName, restWorld: new Map(), hips: null };
+	const r: Rig = {
+		order,
+		parent,
+		bones,
+		byName,
+		restWorld: new Map(),
+		restPosition: new Map(),
+		hips: null
+	};
 	r.restWorld = worldRotations(r, (n) => n.getRotation() as Quat);
+	for (const node of order) {
+		const up = parent.get(node);
+		const local = node.getTranslation() as Vec3;
+		r.restPosition.set(
+			node,
+			up ? add(r.restPosition.get(up)!, rotate(r.restWorld.get(up)!, local)) : local
+		);
+	}
 	r.hips = [...bones].find((b) => b.getName().endsWith('Hips')) ?? null;
 	return r;
 }
@@ -265,4 +346,37 @@ function rotate(q: Quat, v: Vec3): Vec3 {
 
 function len(v: Vec3): number {
 	return Math.hypot(v[0], v[1], v[2]);
+}
+
+function add(a: Vec3, b: Vec3): Vec3 {
+	return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+}
+
+function sub(a: Vec3, b: Vec3): Vec3 {
+	return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+
+function scale(v: Vec3, k: number): Vec3 {
+	return [v[0] * k, v[1] * k, v[2] * k];
+}
+
+function dot(a: Vec3, b: Vec3): number {
+	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function normalizeV(v: Vec3): Vec3 {
+	const l = len(v) || 1;
+	return [v[0] / l, v[1] / l, v[2] / l];
+}
+
+/** The shortest turn taking direction `a` onto `b` (both unit length). */
+function fromTo(a: Vec3, b: Vec3): Quat {
+	const d = dot(a, b);
+	if (d < -0.999999) {
+		// Opposite: half a turn about any axis square to a.
+		const axis = normalizeV(Math.abs(a[0]) < 0.9 ? [0, -a[2], a[1]] : [a[2], 0, -a[0]]);
+		return [axis[0], axis[1], axis[2], 0];
+	}
+	const c: Vec3 = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+	return normalize([c[0], c[1], c[2], 1 + d]);
 }
