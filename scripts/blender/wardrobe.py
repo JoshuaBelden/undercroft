@@ -124,11 +124,18 @@ FACES = {
     ],
 }
 HIDE_BITS = {"boots": 0, **{wid: i + 1 for i, wid in enumerate(WEAR)}}
-# Pieces worn under others, and the pieces over them: where one over it covers it, it isn't drawn.
+# Pieces worn under others, and the pieces over them: tucked inside them (tuck_unders), the tops
+# pushed out over them (clear_tops).
 UNDER = {
     "pants-cargo": ["shirt", "jacket-sweater"],
     "pants-wool": ["shirt", "jacket-sweater"],
 }
+
+# How far (m) a top's hem is kept outside the pants under it (clear_tops), how far inside a top
+# the pants are tucked (tuck_unders), and how far from a top a pants vertex may be to be tucked.
+CLEAR = 0.008
+TUCK = 0.01
+REACH = 0.06
 
 # A piece a face moves less than this (m) gets no shape key for it: refitting's own noise.
 MOVED = 5e-4
@@ -303,19 +310,97 @@ def mark_hidden(body):
     attr.data.foreach_set("value", [float(b) for b in bits])
 
 
-def mark_layers(body):
+def clear_tops(body):
     """
-    Write `_HIDE` on each piece worn under others (`UNDER`): per vertex, the bits of every piece
-    over it that covers it, so a waistband never pokes through a hem.
+    Push each piece worn over others (`UNDER`'s values: the tops) out where it would sit inside
+    or against one under it (the pants' waistband): to CLEAR outside it, along the top's normal,
+    so the hem always hangs over the pants. Every shape key moves with the basis.
     """
+    deps = bpy.context.evaluated_depsgraph_get()
+    unders = {}
+    for wid in UNDER:
+        under = piece(body, WEAR[wid][1]).evaluated_get(deps)
+        mesh = under.to_mesh()
+        unders[wid] = BVHTree.FromPolygons(
+            [under.matrix_world @ v.co for v in mesh.vertices], [p.vertices[:] for p in mesh.polygons]
+        )
+        under.to_mesh_clear()
+    tops = {over for overs in UNDER.values() for over in overs}
+    for wid in tops:
+        top = piece(body, WEAR[wid][1])
+        trees = [unders[u] for u, overs in UNDER.items() if wid in overs]
+        inverse = top.matrix_world.inverted()
+        moves = {}
+        for v in top.data.vertices:
+            co = top.matrix_world @ v.co
+            normal = (top.matrix_world.to_3x3() @ v.normal).normalized()
+            push = 0.0
+            for tree in trees:
+                hit, hit_normal, _, dist = tree.find_nearest(co)
+                if hit is None or dist > CLEAR * 3:
+                    continue
+                # How far out along its normal the top must go to be CLEAR outside the pants there.
+                depth = (hit - co).dot(normal) + CLEAR
+                push = max(push, depth)
+            if push > 0:
+                moves[v.index] = inverse.to_3x3() @ (normal * push)
+        keys = top.data.shape_keys.key_blocks if top.data.shape_keys else []
+        for i, d in moves.items():
+            top.data.vertices[i].co += d
+            for key in keys:
+                key.data[i].co += d
+
+
+def tuck_unders(body):
+    """
+    Tuck each piece worn under others (`UNDER`: the pants) inside the tops over it: every vertex
+    above a top's hem that isn't at least TUCK inside it is pulled in to there, along the top's
+    normal. The pants are low-poly, so hiding their covered vertices left whole triangles poking
+    through between them, or a gap under the hem. Every shape key moves with the basis.
+    """
+    deps = bpy.context.evaluated_depsgraph_get()
+    skin = basemesh(body).evaluated_get(deps)
+    skin_mesh = skin.to_mesh()
+    flesh = BVHTree.FromPolygons(
+        [skin.matrix_world @ v.co for v in skin_mesh.vertices], [p.vertices[:] for p in skin_mesh.polygons]
+    )
+    skin.to_mesh_clear()
     for wid, overs in UNDER.items():
         under = piece(body, WEAR[wid][1])
-        bits = [0] * len(under.data.vertices)
-        for over in overs:
-            for i in covered(under, piece(body, WEAR[over][1])):
-                bits[i] |= 1 << HIDE_BITS[over]
-        attr = under.data.attributes.get("_HIDE") or under.data.attributes.new("_HIDE", "FLOAT", "POINT")
-        attr.data.foreach_set("value", [float(b) for b in bits])
+        moves = {}
+        for over_id in overs:
+            over = piece(body, WEAR[over_id][1]).evaluated_get(deps)
+            mesh = over.to_mesh()
+            points = [over.matrix_world @ v.co for v in mesh.vertices]
+            tree = BVHTree.FromPolygons(points, [p.vertices[:] for p in mesh.polygons])
+            hem = min(p.z for p in points)
+            over.to_mesh_clear()
+            for v in under.data.vertices:
+                co = under.matrix_world @ v.co
+                if co.z < hem + TUCK:
+                    continue
+                hit, normal, _, dist = tree.find_nearest(co)
+                if hit is None or dist > REACH:
+                    continue
+                # How far inside the top it should be: TUCK, or half the room between the top and
+                # the skin under it if that is less (never into the body).
+                inside = TUCK
+                skin_hit = flesh.ray_cast(hit, -normal, 0.1)[0]
+                if skin_hit is not None:
+                    inside = min(inside, (hit - skin_hit).length * 0.5)
+                # How far outside the top it is (negative: inside), and the pull to there.
+                outside = (co - hit).dot(normal)
+                if outside > -inside:
+                    pull = normal * -(outside + inside)
+                    if v.index not in moves or pull.length > moves[v.index].length:
+                        moves[v.index] = pull
+        inverse = under.matrix_world.inverted().to_3x3()
+        keys = under.data.shape_keys.key_blocks if under.data.shape_keys else []
+        for i, d in moves.items():
+            local = inverse @ d
+            under.data.vertices[i].co += local
+            for key in keys:
+                key.data[i].co += local
 
 
 def strip_helpers(body):
@@ -382,8 +467,9 @@ def export_objects(path, objects, armature):
 def export(body):
     """Write the body file and one file per wardrobe piece (see the module docstring)."""
     strip_helpers(body)
+    tuck_unders(body)
+    clear_tops(body)
     mark_hidden(body)
-    mark_layers(body)
     mark_alpha(body)
     spec = BODIES[body]
     armature = rig(body)

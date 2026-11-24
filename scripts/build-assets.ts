@@ -24,7 +24,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { NodeIO, getBounds, type Document, type Node } from '@gltf-transform/core';
+import { NodeIO, getBounds, type Document, type Node, type Texture } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, meshopt, prune, simplify, textureCompress, weld } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
@@ -840,6 +840,8 @@ async function writeExplorerModel(
 		else if (extras.alpha === 'OPAQUE') material.setAlphaMode('OPAQUE');
 		if (extras.double_sided !== undefined) material.setDoubleSided(extras.double_sided);
 		material.setExtras({});
+		const texture = material.getBaseColorTexture();
+		if (material.getAlphaMode() === 'OPAQUE' && texture) await fillHoles(texture);
 	}
 	await model.transform(
 		dedup(),
@@ -854,6 +856,37 @@ async function writeExplorerModel(
 		meshopt(MODEL_MESHOPT)
 	);
 	return writeModel(io, model, dir, name);
+}
+
+/**
+ * An opaque material's texture with see-through parts (the worn holes at the polo's hem) drawn
+ * opaque would show them black: fill them with the texture's own average colour, and drop the
+ * alpha. A texture with none is left as it is.
+ */
+async function fillHoles(texture: Texture): Promise<void> {
+	const image = texture.getImage();
+	if (!image) return;
+	const { data, info } = await sharp(image)
+		.ensureAlpha()
+		.raw()
+		.toBuffer({ resolveWithObject: true });
+	let r = 0;
+	let g = 0;
+	let b = 0;
+	let w = 0;
+	let holes = 0;
+	for (let i = 0; i < data.length; i += 4) {
+		const a = data[i + 3] / 255;
+		if (a < 1) holes++;
+		r += data[i] * a;
+		g += data[i + 1] * a;
+		b += data[i + 2] * a;
+		w += a;
+	}
+	if (!holes || !w) return;
+	const background = { r: Math.round(r / w), g: Math.round(g / w), b: Math.round(b / w) };
+	const filled = await sharp(data, { raw: info }).flatten({ background }).png().toBuffer();
+	texture.setImage(new Uint8Array(filled)).setMimeType('image/png');
 }
 
 /** Rigged creatures: the shared ones, then each Affliction's own. */
