@@ -20,12 +20,12 @@ function fakeAudio() {
 const settle = (): Promise<void> => new Promise((done) => setTimeout(done, 0));
 
 describe('SoundBank', () => {
-	// 'brick.throw' has no recording yet; 'footstep.stone' plays the built walking recording.
+	// 'rope.letgo' has no recording yet; 'footstep.stone' plays the built walking recording.
 	it('plays nothing for a sound with no recording, without throwing', async () => {
 		const { audio, bank } = fakeAudio();
-		bank.play('brick.throw');
-		bank.playAt('brick.throw', [1, 0, 1]);
-		expect(await bank.playAtHeld('brick.throw', [1, 0, 1])).toBeNull();
+		bank.play('rope.letgo');
+		bank.playAt('rope.letgo', [1, 0, 1]);
+		expect(await bank.playAtHeld('rope.letgo', [1, 0, 1])).toBeNull();
 		await settle();
 		expect(audio.load).not.toHaveBeenCalled();
 		expect(audio.playBuffer).not.toHaveBeenCalled();
@@ -34,7 +34,7 @@ describe('SoundBank', () => {
 
 	it('a loop with no recording hands back a silent handle', async () => {
 		const { audio, bank } = fakeAudio();
-		const loop = await bank.loop('brick.throw', 0.5);
+		const loop = await bank.loop('rope.letgo', 0.5);
 		expect(() => {
 			loop.setVolume(1);
 			loop.setRate(1.2);

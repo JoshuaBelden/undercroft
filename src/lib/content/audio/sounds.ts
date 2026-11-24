@@ -212,6 +212,7 @@ export const SOUNDS = {
 		caption: 'skittering claws'
 	},
 	'rat.squeak': {
+		file: 'rat.squeak',
 		category: 'sfx',
 		volume: 0.5,
 		variation: 0.2,
@@ -236,12 +237,14 @@ export const SOUNDS = {
 		caption: 'many legs'
 	},
 	'spider.hiss': {
+		file: 'spider.hiss',
 		category: 'sfx',
 		volume: 0.6,
 		variation: 0.2,
 		caption: 'a hiss'
 	},
 	'spider.die': {
+		file: 'spider.die',
 		category: 'sfx',
 		volume: 0.4,
 		variation: 0.2,
@@ -255,14 +258,22 @@ export const SOUNDS = {
 		caption: 'heavy legs on stone'
 	},
 	'spider.giant.hiss': {
+		file: 'spider.giant.hiss',
 		category: 'sfx',
 		volume: 0.9,
-		rate: 0.7,
 		variation: 0.1,
 		caption: 'a deep hiss'
 	},
+	'spider.giant.die': {
+		file: 'spider.giant.die',
+		category: 'sfx',
+		volume: 0.8,
+		variation: 0.05,
+		caption: 'something huge dies screeching'
+	},
 	// The surveyor sharing his map: paper unfolding (silent until there's a recording).
 	'surveyor.share': {
+		file: 'surveyor.share',
 		category: 'sfx',
 		volume: 0.7,
 		variation: 0.1,
@@ -270,13 +281,14 @@ export const SOUNDS = {
 	},
 	// Dwellers (silent until there are recordings).
 	'dweller.step': {
+		file: 'dweller.step',
 		category: 'sfx',
 		volume: 0.5,
-		rate: 1.2,
 		variation: 0.15,
 		caption: 'soft footsteps'
 	},
 	'dweller.murmur': {
+		file: 'dweller.murmur',
 		category: 'sfx',
 		volume: 0.5,
 		variation: 0.2,
@@ -333,11 +345,13 @@ export const SOUNDS = {
 		variation: 0.15
 	},
 	'melee.hit': {
+		file: 'melee.hit',
 		category: 'sfx',
 		volume: 0.7,
 		variation: 0.1
 	},
 	'melee.hit.creature': {
+		file: 'melee.hit.creature',
 		category: 'sfx',
 		volume: 0.9,
 		variation: 0.1
@@ -347,15 +361,17 @@ export const SOUNDS = {
 		volume: 0.5,
 		variation: 0.2
 	},
-	'brick.throw': { category: 'sfx', volume: 0.5, rate: 0.75 },
+	'brick.throw': { file: 'brick.throw', category: 'sfx', volume: 0.5 },
 	'brick.land': {
+		file: 'brick.land',
 		category: 'sfx',
 		volume: 0.9,
 		variation: 0.1,
 		caption: 'brick clatters'
 	},
-	'knife.throw': { category: 'sfx', volume: 0.4, rate: 1.3 },
+	'knife.throw': { file: 'knife.throw', category: 'sfx', volume: 0.4 },
 	'knife.land': {
+		file: 'knife.land',
 		category: 'sfx',
 		volume: 0.6,
 		variation: 0.1,
@@ -364,6 +380,7 @@ export const SOUNDS = {
 	/** Your own throw is drawn back all the way: let go to throw (docs/dev/items.md). */
 	'throw.ready': { category: 'sfx', volume: 0.3, rate: 0.8 },
 	'brick.break': {
+		file: 'brick.break',
 		category: 'sfx',
 		volume: 0.8,
 		variation: 0.1,
@@ -572,7 +589,6 @@ export const SOUNDS = {
 		file: 'salt.pour',
 		category: 'sfx',
 		volume: 0.4,
-		rate: 1.4,
 		variation: 0.1,
 		caption: 'salt pours'
 	},
@@ -580,7 +596,6 @@ export const SOUNDS = {
 		file: 'glowstick.crack',
 		category: 'sfx',
 		volume: 0.35,
-		rate: 1.6,
 		variation: 0.1
 	},
 	'oilbottle.shatter': {
@@ -589,6 +604,15 @@ export const SOUNDS = {
 		volume: 0.7,
 		variation: 0.1,
 		caption: 'glass shatters',
+		captionOthers: true
+	},
+	/** An oil bottle's rag lit, as its throw is drawn back (the throwable's `light`). */
+	'oilbottle.light': {
+		file: 'oilbottle.light',
+		category: 'sfx',
+		volume: 0.6,
+		variation: 0.05,
+		caption: 'a rag catches fire',
 		captionOthers: true
 	},
 	'whistle.blow': {
@@ -629,8 +653,15 @@ export const SOUNDS = {
 		file: 'tarot.draw',
 		category: 'sfx',
 		volume: 0.35,
-		rate: 1.3,
 		caption: 'a card is drawn'
+	},
+	/** A cursed item's phantom sound, close by, heard only by whoever carries it (`cursed.phantom`). */
+	'doll.phantom': {
+		file: 'doll.phantom',
+		category: 'sfx',
+		volume: 0.5,
+		variation: 0.1,
+		caption: 'something stirs close by'
 	},
 	// The skill tree (docs/dev/progression.md).
 	/** A category opened. */
@@ -760,7 +791,6 @@ export const SOUNDS = {
 		file: 'fire.burn',
 		category: 'sfx',
 		volume: 0.75,
-		rate: 0.6,
 		variation: 0.1,
 		caption: 'fire crackles'
 	},
@@ -769,7 +799,6 @@ export const SOUNDS = {
 		file: 'item.break',
 		category: 'sfx',
 		volume: 0.7,
-		rate: 0.8,
 		variation: 0.08,
 		caption: 'something breaks'
 	},
@@ -814,9 +843,9 @@ export const SOUNDS = {
 	// The lid of a loot crate, the first time it is lifted.
 	// A jammed crate or a locked trunk that won't give (docs/dev/items.md#jammed-crates).
 	'crate.stuck': {
+		file: 'crate.stuck',
 		category: 'sfx',
 		volume: 0.6,
-		rate: 1.4,
 		variation: 0.1,
 		caption: 'a lid rattles, stuck fast',
 		captionOthers: true
@@ -863,6 +892,7 @@ export const SOUNDS = {
 	},
 	// A door between levels: the bar thrown off, then the leaves dragging open on old hinges.
 	'door.unbar': {
+		file: 'door.unbar',
 		category: 'sfx',
 		volume: 0.9,
 		variation: 0.05,
@@ -875,6 +905,15 @@ export const SOUNDS = {
 		volume: 1,
 		variation: 0.05,
 		caption: 'a great door groans open',
+		captionOthers: true
+	},
+	// A locked gate (the Family Mausoleum's) opening: in place of the door's unbar and groan.
+	'gate.mausoleum': {
+		file: 'gate.mausoleum',
+		category: 'sfx',
+		volume: 0.9,
+		variation: 0.05,
+		caption: 'an iron gate swings open',
 		captionOthers: true
 	},
 	// The rite slams the final room's door shut and bars it, until what it summoned is banished.
@@ -914,7 +953,7 @@ export const SOUNDS = {
 	},
 	// Lootables opening (docs/dev/lootables.md): silent until each is recorded.
 	'lootable.niche': {
-		file: 'lootable.niche',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.5,
 		variation: 0.1,
@@ -922,25 +961,23 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'lootable.bones': {
-		file: 'lootable.bones',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.7,
-		rate: 1.6,
 		variation: 0.1,
 		caption: 'bones clatter',
 		captionOthers: true
 	},
 	'lootable.lid': {
-		file: 'lootable.lid',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.8,
-		rate: 1.4,
 		variation: 0.08,
 		caption: 'a stone lid grinds aside',
 		captionOthers: true
 	},
 	'lootable.chest': {
-		file: 'lootable.chest',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.65,
 		variation: 0.1,
@@ -948,16 +985,15 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'lootable.locker': {
-		file: 'lootable.locker',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.55,
-		rate: 1.8,
 		variation: 0.1,
 		caption: 'a metal door creaks',
 		captionOthers: true
 	},
 	'lootable.satchel': {
-		file: 'lootable.satchel',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.45,
 		variation: 0.1,
@@ -965,22 +1001,21 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'lootable.offering.pick': {
-		file: 'lootable.offering.pick',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.4,
 		variation: 0.1
 	},
 	'lootable.cabinet': {
-		file: 'lootable.cabinet',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.5,
-		rate: 1.2,
 		variation: 0.1,
 		caption: 'a cabinet door swings open',
 		captionOthers: true
 	},
 	'lootable.nest': {
-		file: 'lootable.nest',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.6,
 		variation: 0.15,
@@ -988,46 +1023,41 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'lootable.cocoon': {
-		file: 'lootable.cocoon',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.55,
-		rate: 0.8,
 		variation: 0.1,
 		caption: 'webbing tears',
 		captionOthers: true
 	},
 	'lootable.brick': {
-		file: 'lootable.brick',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.5,
-		rate: 1.3,
 		variation: 0.1,
 		caption: 'a brick scrapes loose',
 		captionOthers: true
 	},
 	'lootable.cache': {
-		file: 'lootable.cache',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.45,
-		rate: 1.2,
 		variation: 0.1,
 		caption: 'paper rustles',
 		captionOthers: true
 	},
 	// Filling a bottle at a font (docs/dev/world.md#fonts).
 	'lootable.font': {
-		file: 'lootable.font',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.4,
-		rate: 1.4,
 		variation: 0.1,
 		caption: 'water pours'
 	},
 	'lootable.alcove': {
-		file: 'lootable.alcove',
+		file: 'loot.open',
 		category: 'sfx',
 		volume: 0.65,
-		rate: 0.9,
 		variation: 0.08,
 		caption: 'an iron grille gives way',
 		captionOthers: true
@@ -1061,10 +1091,9 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'rope.grab': {
-		file: 'rope.tension',
+		file: 'rope.grab',
 		category: 'sfx',
 		volume: 0.4,
-		rate: 1.25,
 		variation: 0.1
 	},
 	/** Letting go of a rope, or slipping off it. */
@@ -1093,6 +1122,7 @@ export const SOUNDS = {
 	},
 	/** Landing from a fall that hurt; `hard` from high up. */
 	'fall.land': {
+		file: 'fall.land',
 		category: 'sfx',
 		volume: 0.9,
 		variation: 0.08,
@@ -1100,6 +1130,7 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'fall.land.hard': {
+		file: 'fall.land.hard',
 		category: 'sfx',
 		volume: 1,
 		variation: 0.05,
@@ -1116,15 +1147,15 @@ export const SOUNDS = {
 	},
 	// The map (docs/dev/map.md): the notebook opened and shut, the pencil, and a map shown.
 	'map.open': {
+		file: 'map.open',
 		category: 'sfx',
 		volume: 0.35,
-		rate: 1.2,
 		variation: 0.1
 	},
 	'map.close': {
+		file: 'map.close',
 		category: 'sfx',
 		volume: 0.3,
-		rate: 0.9,
 		variation: 0.1
 	},
 	'map.sketch': {
@@ -1184,7 +1215,7 @@ export const SOUNDS = {
 	'music.gloaming.fight': { file: 'music.gloaming.fight', category: 'music', volume: 0.35 },
 	/** Finding something epic, legendary or a quest item (revealed in a crate, or picked up). */
 	'loot.found': { file: 'loot.found', category: 'music', volume: 0.65 },
-	'shop.buy': { category: 'sfx', volume: 0.6 },
+	'shop.buy': { file: 'shop.buy', category: 'sfx', volume: 0.6 },
 	// A contact greeting you as you open their page (NpcDef.voice): one of their lines at random.
 	'fontaine.greeting': { file: 'fontaine.voice', category: 'sfx', volume: 0.9 },
 	// Quests (docs/dev/quests.md): committing on an NPC's page, and a quest reported done.
@@ -1269,6 +1300,7 @@ export const SOUNDS = {
 	},
 	// The rite.
 	'clue.sting': {
+		file: 'clue.sting',
 		category: 'sfx',
 		volume: 0.5,
 		caption: 'a clear, small chime'
@@ -1280,6 +1312,7 @@ export const SOUNDS = {
 	},
 	// The rite performed: it summons the manifestation (the fight music follows).
 	'rite.perform': {
+		file: 'rite.perform',
 		category: 'sfx',
 		volume: 0.8,
 		caption: 'a bell, and something stirs'
@@ -1292,6 +1325,7 @@ export const SOUNDS = {
 	},
 	// Your head under the water: a dull, close pressure under the muffled world (looped).
 	'underwater.drone': {
+		file: 'underwater.drone',
 		category: 'ambience',
 		volume: 0.35
 	},
@@ -1319,9 +1353,9 @@ export const SOUNDS = {
 	},
 	// Its ray striking: a dark rush of air where it left it...
 	'manifest.ray': {
+		file: 'manifest.ray',
 		category: 'sfx',
 		volume: 0.8,
-		rate: 0.45,
 		caption: 'something dark tears through the air'
 	},
 	// ...and a cold crack where it struck, on stone or on someone.
@@ -1370,7 +1404,7 @@ export const SOUNDS = {
 		caption: 'a sharp flash'
 	},
 	// Sanity.
-	'player.hurt': { category: 'sfx', volume: 0.8, variation: 0.08 },
+	'player.hurt': { file: 'player.hurt', category: 'sfx', volume: 0.8, variation: 0.08 },
 	// A blow taken by what you wear (no sanity lost), and the blow that tears it apart.
 	'player.shielded': {
 		category: 'sfx',
@@ -1406,11 +1440,13 @@ export const SOUNDS = {
 		caption: 'cloth tears'
 	},
 	heartbeat: {
+		file: 'heartbeat',
 		category: 'sfx',
 		volume: 0.8,
 		caption: 'heartbeat'
 	},
 	whisper: {
+		file: 'whisper',
 		category: 'ambience',
 		volume: 0.5,
 		variation: 0.15,

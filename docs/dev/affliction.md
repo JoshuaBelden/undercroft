@@ -118,7 +118,7 @@ Its other sounds, all through the sound bank:
 | Sound              | When                                                         | Source (for now)                             |
 | ------------------ | ------------------------------------------------------------ | -------------------------------------------- |
 | `manifest.cast`    | `casts` rose: the ray gathering                              | the attack recording, slowed (`rate` 0.7)    |
-| `manifest.ray`     | a `ray` event, at `from`: it strikes                         | not recorded yet: silent                     |
+| `manifest.ray`     | a `ray` event, at `from`: it strikes                         | `manifest.ray.mp3`                           |
 | `manifest.ray.hit` | a `ray` event, at `to`: where it struck                      | not recorded yet: silent                     |
 | `lamp.snuffed`     | a `ray` event on you: your lamp gutters out                  | the headlamp-off click, slowed (`rate` 0.55) |
 | `manifest.rush`    | `rushing` became true: it charges                            | the witch's burst, deeper (`rate` 0.75)      |

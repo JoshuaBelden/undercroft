@@ -136,6 +136,8 @@ export const SALVAGE: Record<string, Ingredient[]> = {
 	compass: of({ metal: 1, 'glass-bottle': 1 }),
 	lockpicks: of({ metal: 1 }),
 	snare: of({ 'rope-length': 1 }),
+	// Unpicked into its strands (worth what the length is: no recipe makes rope from twine).
+	'rope-length': of({ twine: 2 }),
 	'tripwire-bell': of({ twine: 1, nails: 1 }),
 	censer: of({ metal: 2 }),
 	whistle: of({ metal: 1 }),

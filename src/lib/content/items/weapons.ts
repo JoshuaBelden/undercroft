@@ -400,6 +400,7 @@ export const WEAPONS: Record<string, ItemDef> = {
 			landNoise: 6,
 			sound: 'brick.throw',
 			land: 'oilbottle.shatter',
+			light: 'oilbottle.light',
 			fire: { radius: 1.6, dps: 15, seconds: 5, sound: 'item.break' }
 		}
 	},

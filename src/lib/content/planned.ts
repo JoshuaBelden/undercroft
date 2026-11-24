@@ -108,20 +108,8 @@ export const PLANNED_ASSETS: PlannedAsset[] = [
 		['item.repair', 'An item repaired'],
 		['item.salvage', 'An item salvaged into materials']
 	]),
-	...group('sound', 'Lootables', 2, [
-		['lootable.offering.smash', 'An offering box smashed'],
-		['gate.mausoleum', 'The mausoleum gate']
-	]),
-	...group('sound', 'Melee', 4, [
-		['throwingKnife.throw', 'Throwing knife thrown'],
-		['throwingKnife.land', 'Throwing knife lands']
-	]),
-	...group('sound', 'Ranged', 4, [
-		['oilBottle.light', 'Oil bottle lit'],
-		['oilBottle.throw', 'Oil bottle thrown'],
-		['oilBottle.shatter', 'Oil bottle shatters']
-	]),
+	...group('sound', 'Lootables', 2, [['lootable.offering.smash', 'An offering box smashed']]),
+	...group('sound', 'Ranged', 4, [['oilBottle.throw', 'Oil bottle thrown']]),
 	...group('sound', 'Utility', 4, []),
-	...group('sound', 'World', 5, [['brick.scrape', "A smuggler's brick scraping"]]),
-	...group('sound', 'Items with a use', 6, [['doll.phantom', "The doll's phantom sounds"]])
+	...group('sound', 'World', 5, [['brick.scrape', "A smuggler's brick scraping"]])
 ];
