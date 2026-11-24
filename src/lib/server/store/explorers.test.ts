@@ -10,13 +10,17 @@ import {
 	emptyInventory,
 	newStack
 } from '../../shared/items/inventory.ts';
+import type { Look } from '../../shared/player/look.ts';
 import { createAccount, ensureIndexes, explorerFor, type ExplorerDoc } from './accounts.ts';
 import {
 	changeExplorer,
 	clearUnderground,
 	itemsOwned,
+	looksOf,
 	markReady,
+	resetLook,
 	returnFromExpedition,
+	setLook,
 	takeLoadout,
 	useFreeLoadout
 } from './explorers.ts';
@@ -198,5 +202,31 @@ describe('the hub', () => {
 		});
 		expect(second).toEqual({ error: 'busy' });
 		expect((await read()).money).toBe(9);
+	});
+});
+
+describe('looks', () => {
+	const look: Look = {
+		body: 'female',
+		face: 1,
+		wear: { hair: 'hair-bob', shirt: 'shirt', pants: 'pants-cargo' },
+		tints: { skin: 'tan' }
+	};
+
+	it('saves a look, even underground, and reads it back', async () => {
+		await takeLoadout(db, explorer._id, 'run-1');
+		expect('error' in (await setLook(db, explorer._id, look))).toBe(false);
+		expect((await looksOf(db, [explorer._id])).get(explorer._id)).toEqual(look);
+	});
+
+	it('leaves out explorers who never chose one, and forgets a reset one', async () => {
+		expect((await looksOf(db, [explorer._id])).size).toBe(0);
+		await setLook(db, explorer._id, look);
+		await resetLook(db, explorer._id);
+		expect((await looksOf(db, [explorer._id])).size).toBe(0);
+	});
+
+	it('refuses an explorer that does not exist', async () => {
+		expect(await setLook(db, 'nobody', look)).toEqual({ error: 'missing' });
 	});
 });

@@ -1,3 +1,4 @@
+import type { Look } from './look.ts';
 import type { Vec3 } from '../map/types.ts';
 import type { Modifiers } from '../progression/progression.ts';
 
@@ -334,6 +335,8 @@ export type SurveyHold = 'sketch' | 'share' | null;
 export interface PlayerSnapshot {
 	id: string;
 	name: string;
+	/** How they are drawn; absent, the default look (docs/dev/player.md#the-look). */
+	look?: Look;
 	state: PlayerState;
 	/** Last input frame `seq` the server has applied for this player. */
 	ack: number;

@@ -13,7 +13,7 @@ import { THROW_DRAW, THROW_FOLLOW } from '#lib/shared/items/weapons.ts';
 import { headlampOutput } from '#lib/shared/player/headlamp.ts';
 import { kneeling } from '#lib/shared/player/simulate.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
-import { DEFAULT_LOOK, sameLook, type Look } from '#lib/shared/player/look.ts';
+import { DEFAULT_LOOK, type Look } from '#lib/shared/player/look.ts';
 import { dress, type Dressed } from './dress.ts';
 import { upperBodyPose } from './pose.ts';
 
@@ -94,7 +94,7 @@ export class PlayerBody {
 	private fill = { value: 0 };
 	private steady = new SteadyLight();
 	/** The look worn, what it is drawn with, and the dressing in progress (newest wins). */
-	private wearing: Look | null = null;
+	private wearing: string | null = null;
 	private dressed: Dressed | null = null;
 	private dressing = 0;
 	/** Which way the body faces (null until the first frame): the look, once it moves. */
@@ -145,8 +145,10 @@ export class PlayerBody {
 	 * start over on it. The same look again does nothing.
 	 */
 	setLook(look: Look): void {
-		if (this.wearing && sameLook(this.wearing, look)) return;
-		this.wearing = look;
+		// Asked every tick for a teammate: a cheap check first.
+		const key = JSON.stringify(look);
+		if (key === this.wearing) return;
+		this.wearing = key;
 		const token = ++this.dressing;
 		const fill = this.own ? { fill: this.fill, fillAmbient: OWN_FILL_AMBIENT } : {};
 		void dress(look, fill).then((dressed) => {

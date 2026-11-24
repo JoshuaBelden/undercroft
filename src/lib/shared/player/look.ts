@@ -74,8 +74,3 @@ export function tintOf(look: Look, part: TintPart): string | null {
 	const palette = TINTS[part];
 	return (palette.find((s) => s.id === look.tints[part]) ?? palette[0]).color;
 }
-
-/** Whether two looks are the same (to skip redressing a body). */
-export function sameLook(a: Look, b: Look): boolean {
-	return JSON.stringify(cleanLook(a)) === JSON.stringify(cleanLook(b));
-}

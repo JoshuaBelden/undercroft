@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GAMER_TAGS } from '#lib/content/player/gamerTags.ts';
 import { PLAYER_MODEL } from '#lib/content/player/model.ts';
+import { DEFAULT_LOOK } from '#lib/shared/player/look.ts';
 import { eyeHeight } from '#lib/shared/player/simulate.ts';
 import type { PlayerSnapshot, PlayerState } from '#lib/shared/player/types.ts';
 import type { TeammateShadows } from '#lib/settings/settings.svelte.ts';
@@ -137,6 +138,8 @@ export class RemotePlayers {
 			}
 			remote.name = snap.name;
 			remote.tag.setName(snap.name);
+			// Redressed only if it changed (`setLook` compares).
+			remote.body.setLook(snap.look ?? DEFAULT_LOOK);
 			remote.state = snap.state;
 			remote.since = 0;
 			remote.samples.push(sample(time, snap.state));
@@ -268,7 +271,7 @@ export class RemotePlayers {
 		const root = new THREE.Group();
 		root.name = `remote-${snap.name}`;
 		root.position.set(...snap.state.position);
-		const body = new PlayerBody();
+		const body = new PlayerBody(false, snap.look ?? DEFAULT_LOOK);
 		root.add(body.root);
 		const head = new THREE.Object3D();
 		head.rotation.order = 'YXZ';

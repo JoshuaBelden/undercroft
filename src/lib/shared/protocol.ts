@@ -80,7 +80,7 @@ export type ClientMessage =
 	 * they take down from their own save, what they own (for the rite items) and their chalk
 	 * wheel. The host checks it all.
 	 */
-	| { type: 'vault'; id: number; kit: unknown; owned: unknown; markWheel: unknown };
+	| { type: 'vault'; id: number; kit: unknown; owned: unknown; markWheel: unknown; look?: unknown };
 
 export type AdminCommand =
 	| {

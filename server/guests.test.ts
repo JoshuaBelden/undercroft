@@ -1,4 +1,5 @@
 import type { IncomingMessage } from 'node:http';
+import { DEFAULT_LOOK } from '../src/lib/shared/player/look.ts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PARTY } from '../src/lib/content/party.ts';
 import { emptyInventory, newStack } from '../src/lib/shared/items/inventory.ts';
@@ -184,12 +185,16 @@ describe('the vault', () => {
 			id: ask.id,
 			kit,
 			owned: 'nope',
-			markWheel: ['?']
+			markWheel: ['?'],
+			look: { body: 'ogre', wear: { hair: 'hair-afro' } }
 		});
 		const reply = await taking;
 		expect(reply.kit.equipment.primary).toBeNull();
 		expect(reply.owned.size).toBe(0);
 		expect(reply.markWheel).toBeNull();
+		// What a guest wears is cleaned like any look: unknown parts fall back to the default.
+		expect(reply.look.body).toBe(DEFAULT_LOOK.body);
+		expect(reply.look.wear.hair).toBe('hair-afro');
 	});
 
 	it('what a guest carried out waits for them if their connection is down', () => {

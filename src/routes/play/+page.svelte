@@ -20,6 +20,7 @@
 	import { carriedCount, held, shieldOf } from '#lib/shared/items/inventory.ts';
 	import type { InventoryAction } from '#lib/shared/items/types.ts';
 	import { aimRay } from '#lib/shared/items/weapons.ts';
+	import { DEFAULT_LOOK, type Look } from '#lib/shared/player/look.ts';
 	import { eyeHeight } from '#lib/shared/player/simulate.ts';
 	import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
 	import { Engine, type FrameStats } from '#lib/game/Engine.ts';
@@ -251,6 +252,10 @@
 	let setMarkers = (enabled: boolean): void => {
 		markers = enabled;
 	};
+	/** Dress your own body as the server says you look (set once the body exists). */
+	let dressSelf = (look: Look): void => {
+		void look;
+	};
 	let setGripCheck = (item: string | null, pose: GripPose): void => {
 		gripItem = item;
 		gripPose = pose;
@@ -396,6 +401,7 @@
 		const headlamp = new Headlamp(head);
 		/** Your own body, drawn only when the camera is outside it. */
 		const body = new PlayerBody(true);
+		dressSelf = (look) => body.setLook(look);
 		body.root.visible = false;
 		engine.scene.add(body.root);
 		/** Dev: the Grip check's test explorer, in front of you (admin panel, Items). */
@@ -487,6 +493,7 @@
 							if (snap.id !== client.playerId) continue;
 							player.onSnapshot(snap);
 							selfName = snap.name;
+							dressSelf(snap.look ?? DEFAULT_LOOK);
 							flags = { ...snap.state.flags };
 						}
 						remote.apply(message.players, client.playerId, message.serverTime);

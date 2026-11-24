@@ -8,6 +8,7 @@ import {
 	newStack
 } from '../../shared/items/inventory.ts';
 import type { InventoryAction } from '../../shared/items/types.ts';
+import { cleanLook, type Look } from '../../shared/player/look.ts';
 import type { Inventory, ItemStack } from '../../shared/player/types.ts';
 import type { ExplorerDoc } from './accounts.ts';
 
@@ -264,6 +265,38 @@ export async function setMarkWheel(
 	const doc = await explorers(db).findOne({ _id: explorerId }, { projection: { underground: 1 } });
 	if (!doc) return { error: 'missing' };
 	return { error: doc.underground !== null ? 'underground' : 'ready' };
+}
+
+/**
+ * Save how an explorer looks (already checked with `cleanLook`). Any time, underground too: it is
+ * read at descent, so a change shows from the next expedition. See docs/dev/player.md#the-look.
+ */
+export async function setLook(
+	db: Db,
+	explorerId: string,
+	look: Look
+): Promise<{ explorer: ExplorerDoc } | { error: ExplorerError }> {
+	const result = await explorers(db).findOneAndUpdate(
+		{ _id: explorerId },
+		{ $set: { look: structuredClone(look) } },
+		{ returnDocument: 'after' }
+	);
+	return result ? { explorer: result } : { error: 'missing' };
+}
+
+/** Admin: back to the default look. It shows from their next descent. */
+export async function resetLook(db: Db, explorerId: string): Promise<void> {
+	await explorers(db).updateOne({ _id: explorerId }, { $unset: { look: '' } });
+}
+
+/** The saved look of each of these explorers (those who have saved one), cleaned. */
+export async function looksOf(db: Db, explorerIds: string[]): Promise<Map<string, Look>> {
+	const docs = await explorers(db)
+		.find({ _id: { $in: explorerIds } }, { projection: { look: 1 } })
+		.toArray();
+	const looks = new Map<string, Look>();
+	for (const doc of docs) if (doc.look) looks.set(doc._id, cleanLook(doc.look));
+	return looks;
 }
 
 /** Admin: back to the default wheel. Works any time; it counts from their next descent. */

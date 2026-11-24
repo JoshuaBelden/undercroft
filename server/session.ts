@@ -17,6 +17,7 @@ import { buildNav, type NavGrid } from '../src/lib/shared/map/nav.ts';
 import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
 import { occupiedCells } from '../src/lib/shared/map/grid.ts';
 import { DEFAULT_MARK_WHEEL } from '../src/lib/content/marks.ts';
+import { DEFAULT_LOOK, type Look } from '../src/lib/shared/player/look.ts';
 import { tierAt, tierCells } from '../src/lib/shared/map/doors.ts';
 import { DEFAULT_HEADLAMP } from '../src/lib/content/items/headlamps.ts';
 import { ITEMS } from '../src/lib/content/items.ts';
@@ -378,7 +379,10 @@ export class Session implements SessionContext {
 		return this.players.has(playerId);
 	}
 
-	/** `inventory` is what they bring down: their loadout. `markWheel`: their chalk symbols. */
+	/**
+	 * `inventory` is what they bring down: their loadout. `markWheel`: their chalk symbols. `look`:
+	 * how they are drawn, sent to everyone with their state.
+	 */
 	addPlayer(
 		socket: WebSocket,
 		name: string,
@@ -387,7 +391,8 @@ export class Session implements SessionContext {
 		markWheel: readonly string[] = DEFAULT_MARK_WHEEL,
 		discovered: ReadonlySet<string> = new Set(),
 		progression: Progression | null = null,
-		quests: PlayerQuests | null = null
+		quests: PlayerQuests | null = null,
+		look: Look = DEFAULT_LOOK
 	): Player {
 		const player: Player = {
 			id: randomUUID(),
@@ -408,6 +413,7 @@ export class Session implements SessionContext {
 			crate: null,
 			crateLatch: false,
 			markWheel,
+			look,
 			experience: playerExperience(progression)
 		};
 		player.state.mods = modifiersFor(progression?.skills ?? {});
@@ -789,6 +795,7 @@ export class Session implements SessionContext {
 		const players = [...this.players.values()].map((p) => ({
 			id: p.id,
 			name: p.name,
+			look: p.look,
 			state: p.state,
 			ack: p.ack
 		}));

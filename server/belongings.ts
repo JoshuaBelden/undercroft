@@ -2,6 +2,7 @@ import {
 	clearUnderground,
 	itemsOwned,
 	markReady,
+	looksOf,
 	markWheelsOf,
 	returnFromExpedition,
 	takeLoadout
@@ -14,6 +15,7 @@ import type { PlayerQuests } from './systems/quests.ts';
 import type { ExplorerDoc } from '../src/lib/server/store/accounts.ts';
 import { progressionOf, type Progression } from '../src/lib/shared/progression/progression.ts';
 import { emptyInventory } from '../src/lib/shared/items/inventory.ts';
+import type { Look } from '../src/lib/shared/player/look.ts';
 import type { Inventory } from '../src/lib/shared/player/types.ts';
 import { getDb } from './db.ts';
 import { guestLock, guestReturn, guestTake, guestTaken, isGuest } from './guests.ts';
@@ -78,6 +80,27 @@ export async function markWheels(explorers: string[]): Promise<Map<string, strin
 		log.warn(`Could not read chalk wheels: ${(error as Error).message}`);
 	}
 	return wheels;
+}
+
+/**
+ * How each of these explorers looks (those who never chose aren't in it: the default look). Read at
+ * descent; a guest's comes from their own save. See docs/dev/player.md#the-look.
+ */
+export async function looks(explorers: string[]): Promise<Map<string, Look>> {
+	const out = new Map<string, Look>();
+	for (const explorer of explorers.filter(isGuest)) {
+		const look = (await guestTaken(explorer))?.look;
+		if (look) out.set(explorer, look);
+	}
+	const here = explorers.filter((explorer) => !isGuest(explorer));
+	const db = getDb();
+	if (!db || here.length === 0) return out;
+	try {
+		for (const [explorer, look] of await looksOf(db, here)) out.set(explorer, look);
+	} catch (error) {
+		log.warn(`Could not read looks: ${(error as Error).message}`);
+	}
+	return out;
 }
 
 /**

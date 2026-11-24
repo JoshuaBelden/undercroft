@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanLook, DEFAULT_LOOK, sameLook, tintOf } from './look.ts';
+import { cleanLook, DEFAULT_LOOK, tintOf } from './look.ts';
 
 describe('cleanLook', () => {
 	it('keeps a valid look as it is', () => {
@@ -48,12 +48,5 @@ describe('tintOf', () => {
 		// The hair's first swatch keeps the texture's own colour; the skin's is a colour.
 		expect(tintOf(DEFAULT_LOOK, 'hair')).toBeNull();
 		expect(tintOf(cleanLook({}), 'skin')).toBe('#e8c3a8');
-	});
-});
-
-describe('sameLook', () => {
-	it('compares looks after cleaning them', () => {
-		expect(sameLook(DEFAULT_LOOK, cleanLook(structuredClone(DEFAULT_LOOK)))).toBe(true);
-		expect(sameLook(DEFAULT_LOOK, { ...DEFAULT_LOOK, face: 2 })).toBe(false);
 	});
 });
