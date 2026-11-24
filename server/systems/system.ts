@@ -1,3 +1,4 @@
+import type { Look } from '../../src/lib/shared/player/look.ts';
 import type { WebSocket } from 'ws';
 import { TICK_RATE } from '../../src/lib/shared/constants.ts';
 import type { CollisionWorld } from '../../src/lib/shared/map/collision.ts';
@@ -57,6 +58,8 @@ export interface Player {
 	crateLatch: boolean;
 	/** The chalk symbols on their wheel: the only ones they may draw. */
 	markWheel: readonly string[];
+	/** How they are drawn (docs/dev/player.md#the-look), sent with their state every tick. */
+	look: Look;
 	/** What they have discovered (read at descent, added to as they go). */
 	discovered: Set<string>;
 	/** Where they have seen things this run: `item:lootable`, so each is recorded once. */

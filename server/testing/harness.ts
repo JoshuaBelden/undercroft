@@ -1,3 +1,4 @@
+import type { Look } from '../../src/lib/shared/player/look.ts';
 import { afterEach, beforeEach, vi } from 'vitest';
 import type { WebSocket } from 'ws';
 import { SIM_RATE, TICK_RATE } from '../../src/lib/shared/constants.ts';
@@ -129,9 +130,20 @@ export class Diver {
 		readonly session: Session,
 		name = 'Diver',
 		inventory: Inventory = emptyInventory(),
-		markWheel?: readonly string[]
+		markWheel?: readonly string[],
+		look?: Look
 	) {
-		this.id = session.addPlayer(this.socket.ws, name, `explorer-${name}`, inventory, markWheel).id;
+		this.id = session.addPlayer(
+			this.socket.ws,
+			name,
+			`explorer-${name}`,
+			inventory,
+			markWheel,
+			undefined,
+			null,
+			null,
+			look
+		).id;
 	}
 
 	/** Their authoritative state (live: changes as the session runs). */

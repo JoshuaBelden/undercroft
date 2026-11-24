@@ -17,7 +17,7 @@ interface Handlers {
  * What we say on connecting: the ticket that proves who we are (from the site), and our gamer tag
  * (only used by a desktop game we join as a co-op guest: docs/dev/hosting.md).
  */
-export type Hello = () => { ticket: string; name?: string };
+export type Hello = () => { ticket: string; name?: string; look?: unknown };
 
 /**
  * WebSocket connection to the authoritative game server.

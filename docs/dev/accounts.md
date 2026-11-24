@@ -34,7 +34,7 @@ The whole game is behind sign-in. An account is a gamer tag and at least one way
 ## Data (MongoDB)
 
 - `accounts`: `_id`, `email` (lower-cased, unique among the accounts that have one: a partial index; missing on an account made with Steam until it adds one), `password` (`scrypt$<salt>$<hash>`, from `node:crypto`; missing on an account made with Discord or Steam until one is set), `gamerTag`, `tagKey` (lower-cased tag, unique, so tags can't differ only by case), `discord` (`{ id, username, avatar }`, as of the last Discord sign-in or link; `discord.id` unique), `steam` (`{ id, persona }`: the 64-bit SteamID and their Steam name as of the last Steam sign-in or link; `steam.id` unique), `avatar` (the version of the picture they uploaded, see [Avatars](#avatars)), `totp` (`secret`, `enabledAt`, `recovery`: the sha256 of each unused recovery code, `usedStep`: the last time step accepted), `totpPending` (a secret being set up), `role` (`'admin'`: can use the admin app, see [admin.md](admin.md)), `suspended` (`reason`, `until`, `by`, `at`: set by an admin, see [admin.md](admin.md#suspending)), `lastSeen` (when a game ticket was last issued), `createdAt`.
-- `explorers`: `_id`, `account`, `money`, `stash` (one entry per stash slot: a stack or null), `loadout` (an `Inventory`), `layout` (how those two are stored; older documents are converted when read, see [economy.md](economy.md)), `underground`. One per account today, created the first time it is needed (`explorerFor`). It is a separate collection, keyed by its own id, so an account can have several later.
+- `explorers`: `_id`, `account`, `money`, `stash` (one entry per stash slot: a stack or null), `loadout` (an `Inventory`), `layout` (how those two are stored; older documents are converted when read, see [economy.md](economy.md)), `underground`, `look` (how their explorer is dressed, unset until they choose: [player.md](player.md#the-look)). One per account today, created the first time it is needed (`explorerFor`). It is a separate collection, keyed by its own id, so an account can have several later.
 - `avatars`: `_id` is the account; `image` (the WebP), `version`, `updatedAt`. See [Avatars](#avatars).
 - `sessions`: `_id` is the cookie value; `account`, `expires` (30 days).
 - `tickets`: `_id` is the ticket; `account`, `expires` (12 hours).
@@ -107,7 +107,7 @@ Account things live only here, not in Settings, so the gamer tag can't be change
 
 ## Avatars
 
-The picture beside a player's gamer tag: at the top right of the dashboard (`AccountMenu`), on the Account screen, and on their pane on the Expedition page (`ExplorerPane`). Which one shows is `avatarUrl` (`src/lib/shared/account/avatar.ts`):
+The picture beside a player's gamer tag: at the top right of the dashboard (`AccountMenu`), on the Account screen. Which one shows is `avatarUrl` (`src/lib/shared/account/avatar.ts`):
 
 1. **A picture they uploaded**, if they have one: `/avatars/<account>?v=<version>`.
 2. **Otherwise their Discord avatar**, if they linked Discord and have one there: straight from Discord's image server (`cdn.discordapp.com`, a still WebP). The hash is kept on `accounts.discord.avatar` and refreshed each time they sign in with Discord or link it (`refreshDiscord`, `linkDiscord`), so a change on Discord shows from their next Discord sign-in. Only hashes that look like Discord's (`isDiscordAvatar`) are kept, as they go into a URL.

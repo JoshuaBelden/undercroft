@@ -47,9 +47,16 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 				license: 'CC0 1.0'
 			},
 			{
-				name: 'Explorer, creature, corpse and item models',
+				name: 'MakeHuman',
 				detail:
-					'Generated, rigged and animated with Meshy, then cleaned up and fitted in Blender. The catacombs, crates and remaining items are modelled by hand.',
+					"The explorer's bodies, faces, hair and clothes, built with MPFB in Blender from the MakeHuman system assets and the shirts01 and pants01 packs (the polo shirt by namuhekam, the cargo pants by Cortu, the wool trousers and sweater by Margaret Toigo)",
+				url: 'https://static.makehumancommunity.org',
+				license: 'CC0 1.0'
+			},
+			{
+				name: 'Creature, corpse and item models',
+				detail:
+					'Generated, rigged and animated with Meshy, then cleaned up and fitted in Blender; the explorer still moves with the clips of its first, Meshy-made body. The catacombs, crates and remaining items are modelled by hand.',
 				url: 'https://www.meshy.ai'
 			},
 			{

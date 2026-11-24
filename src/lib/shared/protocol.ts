@@ -32,7 +32,7 @@ export type ClientMessage =
 	 * otherwise one of your own. `name` is your gamer tag: only used when you join someone's
 	 * desktop game as a co-op guest, whose server has no account for you (docs/dev/hosting.md).
 	 */
-	| { type: 'hello'; protocol: number; ticket: string; name?: string }
+	| { type: 'hello'; protocol: number; ticket: string; name?: string; look?: unknown }
 	| { type: 'ping'; clientTime: number }
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
 	| { type: 'input'; frames: InputFrame[] }
@@ -80,7 +80,7 @@ export type ClientMessage =
 	 * they take down from their own save, what they own (for the rite items) and their chalk
 	 * wheel. The host checks it all.
 	 */
-	| { type: 'vault'; id: number; kit: unknown; owned: unknown; markWheel: unknown };
+	| { type: 'vault'; id: number; kit: unknown; owned: unknown; markWheel: unknown; look?: unknown };
 
 export type AdminCommand =
 	| {
@@ -169,7 +169,9 @@ export type AdminCommand =
 	/** New map; omit the seed for a random one. */
 	| { kind: 'regenerate'; seed?: number }
 	/** Throw an error on the game server, to try the crash prompt (docs/dev/reports.md). */
-	| { kind: 'throw' };
+	| { kind: 'throw' }
+	/** Wear this look for the rest of the run, not saved (docs/dev/player.md#the-look). */
+	| { kind: 'look'; look: unknown };
 
 export type ServerMessage =
 	/** Your party, sent on joining and whenever it changes. `you` is your member id. */

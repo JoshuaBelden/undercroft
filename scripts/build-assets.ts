@@ -24,14 +24,14 @@
  */
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { NodeIO, getBounds, type Document, type Node } from '@gltf-transform/core';
+import { NodeIO, getBounds, type Document, type Node, type Texture } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, meshopt, prune, simplify, textureCompress, weld } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import * as prettier from 'prettier';
 import sharp from 'sharp';
-import { mergeClips } from './clips.ts';
-import { CLIP_DONORS, retargetClips } from './retarget.ts';
+import { dropAnimations, mergeClips, skeletonMismatch, skeletonOnly } from './clips.ts';
+import { boneFrames, CLIP_DONORS, LIMB_ALIGNMENT, retargetClips } from './retarget.ts';
 import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
 import { LOOTABLES, type LootableId } from '../src/lib/content/lootables.ts';
@@ -765,6 +765,151 @@ async function writeFormatted(file: string, source: string): Promise<void> {
 	writeFileSync(file, await prettier.format(source, { ...config, filepath: file }));
 }
 
+/**
+ * The explorer, dressed (scripts/blender/wardrobe.py): per body, its mesh
+ * (`body-<body>.glb`), each wardrobe piece fitted to it (`<body>/<piece>.glb`), and the clips,
+ * retargeted onto its skeleton. The clips come from the old explorer: its Mixamo clips
+ * (`explorer.glb`, whose mesh no longer ships) and the hand-keyed ones (`explorer-clips.glb`).
+ * Written to shared/player/<body>/: `body.glb`, `anims.glb` (skeleton and clips only) and one
+ * file per piece. See docs/dev/asset-pipeline.md#the-explorer.
+ */
+async function buildExplorer(io: NodeIO): Promise<void> {
+	const library = path.join(PLAYER_SOURCE, 'explorer.glb');
+	if (!existsSync(library)) return;
+	const clips = await io.read(library);
+	mergeClips(clips, await io.read(path.join(PLAYER_SOURCE, 'explorer' + CLIPS_SUFFIX)));
+	const names = clips
+		.getRoot()
+		.listAnimations()
+		.map((a) => a.getName());
+	const extraDir = path.join(PLAYER_SOURCE, 'animations');
+	const extraClips = existsSync(extraDir)
+		? await Promise.all(
+				readdirSync(extraDir)
+					.filter((f) => f.endsWith('.glb'))
+					.sort()
+					.map((f) => io.read(path.join(extraDir, f)))
+			)
+		: [];
+	const bodies = readdirSync(PLAYER_SOURCE)
+		.filter((f) => /^body-.+\.glb$/.test(f))
+		.map((f) => f.slice('body-'.length, -'.glb'.length))
+		.sort();
+	for (const body of bodies) {
+		const dir = `shared/player/${body}`;
+		const file = path.join(PLAYER_SOURCE, `body-${body}.glb`);
+		// The clips, on this body's skeleton.
+		const anims = await io.read(file);
+		dropAnimations(anims);
+		retargetClips(anims, clips, Object.fromEntries(names.map((n) => [n, n])), {
+			align: LIMB_ALIGNMENT,
+			keyedOnly: true
+		});
+		// Clips from elsewhere (Mixamo), one per file in animations/ (scripts/blender/animations.py).
+		for (const donor of extraClips) {
+			const names = donor
+				.getRoot()
+				.listAnimations()
+				.map((a) => a.getName());
+			retargetClips(anims, donor, Object.fromEntries(names.map((n) => [n, n])), {
+				align: LIMB_ALIGNMENT,
+				keyedOnly: true
+			});
+		}
+		// Where the old explorer's hand frame is on this body's hand: the items' grips are in it.
+		const frames = boneFrames(anims, clips, LIMB_ALIGNMENT, ['RightHand']);
+		skeletonOnly(anims);
+		for (const scene of anims.getRoot().listScenes()) scene.setExtras({ boneFrames: frames });
+		await anims.transform(prune(), meshopt(MODEL_MESHOPT));
+		const animsKb = (await writeModel(io, anims, dir, 'anims')) / 1e3;
+		// The body, then each piece fitted to it.
+		const skeleton = await io.read(file);
+		const bodyKb = (await writeExplorerModel(io, await io.read(file), dir, 'body')) / 1e3;
+		const clipCount = anims.getRoot().listAnimations().length;
+		console.log(
+			`  explorer ${body}: body ${bodyKb.toFixed(0)} KB, ${clipCount} clips ${animsKb.toFixed(0)} KB`
+		);
+		const pieceDir = path.join(PLAYER_SOURCE, body);
+		if (!existsSync(pieceDir)) continue;
+		for (const f of readdirSync(pieceDir)
+			.filter((n) => n.endsWith('.glb'))
+			.sort()) {
+			const piece = await io.read(path.join(pieceDir, f));
+			const wrong = skeletonMismatch(skeleton, piece);
+			if (wrong.length) throw new Error(`${body}/${f} doesn't fit the body: ${wrong.join('; ')}`);
+			const kb = (await writeExplorerModel(io, piece, dir, path.basename(f, '.glb'))) / 1e3;
+			console.log(`    ${path.basename(f, '.glb')}: ${kb.toFixed(0)} KB`);
+		}
+	}
+}
+
+/**
+ * A body or a wardrobe piece: no clips, textures to WebP.
+ */
+async function writeExplorerModel(
+	io: NodeIO,
+	model: Document,
+	dir: string,
+	name: string
+): Promise<number> {
+	dropAnimations(model);
+	for (const s of model.getRoot().listScenes()) s.setExtras({});
+	// How each material is drawn, as wardrobe.py tagged it (MPFB makes every one alpha-blended).
+	for (const material of model.getRoot().listMaterials()) {
+		const extras = material.getExtras() as { alpha?: string; double_sided?: boolean };
+		if (extras.alpha === 'MASK') material.setAlphaMode('MASK').setAlphaCutoff(0.5);
+		else if (extras.alpha === 'OPAQUE') material.setAlphaMode('OPAQUE');
+		if (extras.double_sided !== undefined) material.setDoubleSided(extras.double_sided);
+		material.setExtras({});
+		const texture = material.getBaseColorTexture();
+		if (material.getAlphaMode() === 'OPAQUE' && texture) await fillHoles(texture);
+	}
+	await model.transform(
+		dedup(),
+		textureCompress({
+			encoder: sharp,
+			targetFormat: 'webp',
+			resize: [CREATURE_TEXTURE, CREATURE_TEXTURE],
+			quality: 85
+		}),
+		prune(),
+		// _HIDE (bit values over 1) is out of quantize's range and is left as floats.
+		meshopt(MODEL_MESHOPT)
+	);
+	return writeModel(io, model, dir, name);
+}
+
+/**
+ * An opaque material's texture with see-through parts (the worn holes at the polo's hem) drawn
+ * opaque would show them black: fill them with the texture's own average colour, and drop the
+ * alpha. A texture with none is left as it is.
+ */
+async function fillHoles(texture: Texture): Promise<void> {
+	const image = texture.getImage();
+	if (!image) return;
+	const { data, info } = await sharp(image)
+		.ensureAlpha()
+		.raw()
+		.toBuffer({ resolveWithObject: true });
+	let r = 0;
+	let g = 0;
+	let b = 0;
+	let w = 0;
+	let holes = 0;
+	for (let i = 0; i < data.length; i += 4) {
+		const a = data[i + 3] / 255;
+		if (a < 1) holes++;
+		r += data[i] * a;
+		g += data[i + 1] * a;
+		b += data[i + 2] * a;
+		w += a;
+	}
+	if (!holes || !w) return;
+	const background = { r: Math.round(r / w), g: Math.round(g / w), b: Math.round(b / w) };
+	const filled = await sharp(data, { raw: info }).flatten({ background }).png().toBuffer();
+	texture.setImage(new Uint8Array(filled)).setMimeType('image/png');
+}
+
 /** Rigged creatures: the shared ones, then each Affliction's own. */
 async function buildCreatures(io: NodeIO): Promise<void> {
 	await buildCharacters(io, 'creature', CREATURE_SOURCE, 'shared/creatures');
@@ -815,7 +960,7 @@ async function main(): Promise<void> {
 	if (failed) process.exit(1);
 	await writeManifest(pieces);
 	await buildCreatures(io);
-	await buildCharacters(io, 'player', PLAYER_SOURCE, 'shared/player');
+	await buildExplorer(io);
 	await buildItems(io);
 	await buildProps(io);
 	await writeModelManifest();

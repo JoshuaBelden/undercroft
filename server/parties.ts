@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DEFAULT_LOOK, type Look } from '../src/lib/shared/player/look.ts';
 import type { WebSocket } from 'ws';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { PARTY } from '../src/lib/content/party.ts';
@@ -15,6 +16,7 @@ import {
 	discoveries,
 	giveBack,
 	lockKit,
+	looks,
 	markWheels,
 	owned,
 	keepExperience,
@@ -40,6 +42,8 @@ export interface Member {
 	name: string;
 	/** Their avatar's URL, or null. */
 	avatar: string | null;
+	/** How their explorer is dressed, shown on everyone's Expedition page. */
+	look: Look;
 	socket: WebSocket;
 	/** Their loadout is confirmed and locked, and they are waiting to descend. */
 	ready: boolean;
@@ -115,6 +119,7 @@ export class Parties {
 			back.connected = true;
 			back.name = identity.gamerTag;
 			back.avatar = identity.avatar;
+			back.look = identity.look ?? DEFAULT_LOOK;
 			if (old !== socket && old.readyState === old.OPEN) {
 				old.send(encode({ type: 'reject', reason: 'You connected from somewhere else' }));
 				old.close();
@@ -129,6 +134,7 @@ export class Parties {
 			explorer: identity.explorer,
 			name: identity.gamerTag,
 			avatar: identity.avatar,
+			look: identity.look ?? DEFAULT_LOOK,
 			socket,
 			ready: false,
 			wantReady: false,
@@ -309,11 +315,18 @@ export class Parties {
 		this.changed(member.party);
 	}
 
-	/** Their gamer tag or avatar changed (on the site): the party sees the new ones. */
+	/** Their gamer tag, avatar or look changed (on the site): the party sees the new ones. */
 	updateProfile(member: Member, profile: Profile): void {
-		if (profile.gamerTag === member.name && profile.avatar === member.avatar) return;
+		const look = profile.look ?? DEFAULT_LOOK;
+		if (
+			profile.gamerTag === member.name &&
+			profile.avatar === member.avatar &&
+			JSON.stringify(look) === JSON.stringify(member.look)
+		)
+			return;
 		member.name = profile.gamerTag;
 		member.avatar = profile.avatar;
+		member.look = look;
 		this.changed(member.party);
 	}
 
@@ -370,14 +383,15 @@ export class Parties {
 	 */
 	private async begin(party: Party, session: Session, descended: () => string[]): Promise<void> {
 		const going = [...party.members];
-		const [kits, onSurface, wheels, known, done, levels, quests] = await Promise.all([
+		const [kits, onSurface, wheels, known, done, levels, quests, dressed] = await Promise.all([
 			Promise.all(going.map((m) => takeKit(m.explorer, session.id, m.free))),
 			owned(going.map((m) => m.explorer)),
 			markWheels(going.map((m) => m.explorer)),
 			discoveries(going.map((m) => m.explorer)),
 			Promise.all(going.map((m) => this.progress.of(m.explorer, session.afflictionId))),
 			progressions(going.map((m) => m.explorer)),
-			questRecords(going.map((m) => m.explorer))
+			questRecords(going.map((m) => m.explorer)),
+			looks(going.map((m) => m.explorer))
 		]);
 		// A training ground's tutorial holds its lessons for anyone's first time through.
 		session.tutorial(done.some((d) => !d.resolved));
@@ -410,7 +424,8 @@ export class Parties {
 				wheel,
 				known.get(m.explorer),
 				levels.get(m.explorer) ?? null,
-				quests.get(m.explorer) ?? null
+				quests.get(m.explorer) ?? null,
+				dressed.get(m.explorer)
 			).id;
 		});
 		if (party.session !== session) return;
@@ -643,6 +658,7 @@ export class Parties {
 				account: m.account,
 				name: m.name,
 				avatar: m.avatar,
+				look: m.look,
 				ready: m.ready,
 				inExpedition: !!m.playerId && !!party.session?.has(m.playerId),
 				connected: m.connected

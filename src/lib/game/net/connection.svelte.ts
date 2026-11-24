@@ -89,32 +89,41 @@ export function me(): PartyMember | null {
 
 /** The connection itself, for the code that sends input every frame. */
 export function gameClient(): GameClient {
-	client ??= new GameClient(gameServerUrl(), () => ({ ticket, name: session.account?.gamerTag }), {
-		onStatus: (next, detail) => {
-			connection.status = next;
-			connection.detail = detail ?? '';
-			if (next === 'connected') ticketRetried = false;
-			// An expired ticket: get a new one and try again, once.
-			if (next === 'rejected' && detail === 'Sign in to play' && !ticketRetried) {
-				ticketRetried = true;
-				connect();
-			} else if (next === 'rejected' && guest) {
-				// A co-op host sent us home (we left, were removed, or they can't have us).
-				connection.error = detail ?? '';
-				leaveFriendsGame();
+	client ??= new GameClient(
+		gameServerUrl(),
+		() => ({
+			ticket,
+			name: session.account?.gamerTag,
+			// A co-op guest's look is in their own save; the host's server takes it from here.
+			look: session.account?.explorer.look
+		}),
+		{
+			onStatus: (next, detail) => {
+				connection.status = next;
+				connection.detail = detail ?? '';
+				if (next === 'connected') ticketRetried = false;
+				// An expired ticket: get a new one and try again, once.
+				if (next === 'rejected' && detail === 'Sign in to play' && !ticketRetried) {
+					ticketRetried = true;
+					connect();
+				} else if (next === 'rejected' && guest) {
+					// A co-op host sent us home (we left, were removed, or they can't have us).
+					connection.error = detail ?? '';
+					leaveFriendsGame();
+				}
+				if (next !== 'connected') {
+					connection.party = null;
+					connection.launchAt = null;
+					connection.welcome = null;
+				}
+				for (const listener of listeners) listener.onStatus?.(next);
+			},
+			onMessage: (message) => {
+				receive(message);
+				for (const listener of listeners) listener.onMessage?.(message);
 			}
-			if (next !== 'connected') {
-				connection.party = null;
-				connection.launchAt = null;
-				connection.welcome = null;
-			}
-			for (const listener of listeners) listener.onStatus?.(next);
-		},
-		onMessage: (message) => {
-			receive(message);
-			for (const listener of listeners) listener.onMessage?.(message);
 		}
-	});
+	);
 	return client;
 }
 

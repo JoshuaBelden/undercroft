@@ -13,7 +13,7 @@ export async function answerVault(
 ): Promise<void> {
 	switch (message.op) {
 		case 'take': {
-			let reply: { kit: unknown; owned: unknown; markWheel: unknown } = {
+			let reply: { kit: unknown; owned: unknown; markWheel: unknown; look?: unknown } = {
 				kit: null,
 				owned: [],
 				markWheel: null

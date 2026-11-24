@@ -24,6 +24,7 @@
 	import { ACHIEVEMENTS } from '#lib/content/achievements.ts';
 	import { desktop } from '#lib/desktop.ts';
 	import type { LobbyStatus, SteamStatus } from '#lib/shared/desktop.ts';
+	import { randomLook } from '#lib/shared/player/look.ts';
 	import { ITEMS } from '#lib/content/items.ts';
 	import { CREATURES } from '#lib/content/creatures.ts';
 	import { raise } from '#lib/game/alerts.svelte.ts';
@@ -448,6 +449,11 @@
 				"Unjams and unlocks every lootable, finds every smuggler's stash and fills every font."
 			)}
 			{@render action('Clear chalk marks', () => onadmin({ kind: 'clearMarks' }))}
+			{@render action(
+				'Random look',
+				() => onadmin({ kind: 'look', look: randomLook(Math.random) }),
+				'Wear a random look for the rest of the run, as everyone sees you (not saved).'
+			)}
 			<StepperField
 				label="Grip check"
 				text={gripItem ? (ITEMS[gripItem]?.name ?? gripItem) : 'Off'}

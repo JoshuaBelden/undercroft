@@ -785,6 +785,18 @@ Put him down and he falls, but it isn't over. He leaves his lantern, still burni
 It is resolved only for those of you who could begin it. Once it is, it's done for good: you can still go down into the Gloaming, but he won't rise for you again. In a party where nobody can still begin it, the altar does nothing.`
 	},
 	{
+		id: 'look',
+		title: 'Your look',
+		category: 'The surface',
+		body: `The Explorer tab on the dashboard is how other players see your explorer underground. Your explorer turns on the left: drag it round, or use Turn (left and right on a controller). Motion shows it standing, walking, running, crouching or crawling.
+
+- Body and Face: two bodies, each with five faces.
+- Hair, Shirt, Pants and Outer layer: what you wear. The outer layer goes over your shirt; choose None to go without.
+- Colours: a row of colours for your skin and for each thing you wear. For hair and clothes, the first colour, split in two, is the way it was made.
+
+Your explorer shows each change at once; Apply keeps it, and your party sees it straight away on the Expedition page (Revert goes back to what you had). Choosing on a controller: move to a row, then left and right step through it; on a row of colours, A picks the one in focus.`
+	},
+	{
 		id: 'account',
 		title: 'Your account',
 		category: 'The surface',

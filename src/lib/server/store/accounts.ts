@@ -10,6 +10,7 @@ import type { QuestRecord } from '../../shared/quests/types.ts';
 import { questsOf } from './quests.ts';
 import { SLOTS } from '../../content/items.ts';
 import { markWheel } from '../../content/marks.ts';
+import { cleanLook, type Look } from '../../shared/player/look.ts';
 import {
 	addToSlots,
 	emptyInventory,
@@ -137,6 +138,8 @@ export interface ExplorerDoc {
 	ready?: boolean;
 	/** The eight chalk symbols they chose for their wheel; unset until they choose (the default). */
 	markWheel?: string[];
+	/** How they look (docs/dev/player.md#the-look); unset until they choose (the default look). */
+	look?: Look;
 	/**
 	 * What they have discovered (docs/dev/crafting.md#discovery): item id (stored with `~` for
 	 * its dots: `discoveriesOf` reads it back) to the lootable kinds
@@ -575,6 +578,7 @@ export async function accountView(db: Db, account: AccountDoc): Promise<AccountV
 		loadout: explorer.loadout,
 		underground: explorer.underground !== null,
 		markWheel: [...markWheel(explorer.markWheel)],
+		look: cleanLook(explorer.look),
 		afflictions: progress.map((doc) => ({
 			id: doc.affliction,
 			clues: doc.clues ?? 0,

@@ -4,26 +4,26 @@ A **party** is the group that descends together (one to `PARTY.maxSize` players;
 
 ## Files
 
-| What                                             | Where                                                                                  |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| Parties (ready, countdown, starting expeditions) | `server/parties.ts`                                                                    |
-| Session (map, players, simulation, extraction)   | `server/session.ts`; each feature in `server/systems/` ([session.md](session.md))      |
-| Connection routing                               | `server/connection.ts`                                                                 |
-| Party rules (size, countdown, reconnect times)   | `src/lib/content/party.ts`                                                             |
-| Party state sent to clients                      | `src/lib/shared/party/types.ts`                                                        |
-| Lobby: the Expedition page                       | `src/routes/(hub)/+page.svelte`, `ExplorerPane`, `AfflictionPicker`, `LaunchCountdown` |
-| Spectating bar                                   | `src/lib/ui/SpectateBar.svelte`                                                        |
-| Rules (extract time and radius)                  | `src/lib/content/expedition.ts`                                                        |
-| Extraction in the simulation                     | `src/lib/shared/player/simulate.ts` (`updateExtraction`, `nearExtract`)                |
-| Extract points                                   | `CollisionWorld.extracts` (`src/lib/shared/map/collision.ts`)                          |
-| Arriving: dark, then a fade into the start room  | `src/lib/ui/descent.svelte.ts`, `DescentVeil`, `EXPEDITION.arriveFadeSeconds`          |
-| Leaving fade ("Extracting")                      | `src/lib/ui/ExtractFade.svelte`, `EXPEDITION.leaveFadeSeconds`                         |
-| Results screen                                   | `src/lib/ui/ExpeditionResult.svelte`                                                   |
-| Room banner                                      | `src/lib/ui/RoomBanner.svelte`, titles in `MAP_KIT` (`src/lib/content/map/kit.ts`)     |
+| What                                             | Where                                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Parties (ready, countdown, starting expeditions) | `server/parties.ts`                                                                   |
+| Session (map, players, simulation, extraction)   | `server/session.ts`; each feature in `server/systems/` ([session.md](session.md))     |
+| Connection routing                               | `server/connection.ts`                                                                |
+| Party rules (size, countdown, reconnect times)   | `src/lib/content/party.ts`                                                            |
+| Party state sent to clients                      | `src/lib/shared/party/types.ts`                                                       |
+| Lobby: the Expedition page                       | `src/routes/(hub)/+page.svelte`, `PartyLineup`, `AfflictionPicker`, `LaunchCountdown` |
+| Spectating bar                                   | `src/lib/ui/SpectateBar.svelte`                                                       |
+| Rules (extract time and radius)                  | `src/lib/content/expedition.ts`                                                       |
+| Extraction in the simulation                     | `src/lib/shared/player/simulate.ts` (`updateExtraction`, `nearExtract`)               |
+| Extract points                                   | `CollisionWorld.extracts` (`src/lib/shared/map/collision.ts`)                         |
+| Arriving: dark, then a fade into the start room  | `src/lib/ui/descent.svelte.ts`, `DescentVeil`, `EXPEDITION.arriveFadeSeconds`         |
+| Leaving fade ("Extracting")                      | `src/lib/ui/ExtractFade.svelte`, `EXPEDITION.leaveFadeSeconds`                        |
+| Results screen                                   | `src/lib/ui/ExpeditionResult.svelte`                                                  |
+| Room banner                                      | `src/lib/ui/RoomBanner.svelte`, titles in `MAP_KIT` (`src/lib/content/map/kit.ts`)    |
 
 ## Parties
 
-Every connection is in exactly one party from its `hello` on. The server owns parties and sends each member the whole `PartyState` (`party` message) whenever anything in it changes; the client only renders it. The lobby is the dashboard's Expedition page: one `ExplorerPane` per member, and the launch panel in the lower right.
+Every connection is in exactly one party from its `hello` on. The server owns parties and sends each member the whole `PartyState` (`party` message) whenever anything in it changes; the client only renders it. The lobby is the dashboard's Expedition page: the party standing about in one scene (`PartyLineup`, `src/lib/ui/PartyLineup.svelte`), and the launch panel in the lower right. You stand in front in the middle; the others stand behind, the first on the left, the next two on the right. Each is dressed in their look (`PartyMember.look`, [player.md](player.md#the-look)) and plays one of `WAITING_CLIPS` (`src/lib/content/player/model.ts`: Mixamo's Bored, Arm Stretching, Pointing and Warrior Idle) at random, a different one each while there are enough, from a random point, so nobody moves in step; under each are only their gamer tag and whether they are ready.
 
 - **Creating:** `hello` puts you in a party of one. That is "not in a group": the page shows only you.
 - **Joining:** by accepting a friend's invite (see [social.md](social.md)), which moves you into their party (`Parties.join`). There are no invite codes. In the desktop app, friends join through Steam instead: a guest who arrives through the tunnel joins the host's party at once (`joinHost`), and leaving it sends them home to their own game. See [hosting.md](hosting.md#guests-on-the-hosts-game-server).

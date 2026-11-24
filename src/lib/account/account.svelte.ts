@@ -2,6 +2,7 @@ import { SHOP } from '#lib/content/economy.ts';
 import { raise } from '#lib/game/alerts.svelte.ts';
 import type { AccountView } from '#lib/shared/account/types.ts';
 import type { InventoryAction, SlotRef } from '#lib/shared/items/types.ts';
+import type { Look } from '#lib/shared/player/look.ts';
 
 /**
  * The signed-in account as the browser knows it: gamer tag, explorer, rite progress. Loaded from
@@ -50,6 +51,28 @@ export async function loadAccount(): Promise<AccountView | null> {
 		if (error instanceof ApiError && error.signedOut) session.account = null;
 	}
 	return session.account;
+}
+
+let lookSaves = 0;
+
+/**
+ * Dress your explorer (docs/dev/player.md#the-look). The look shows at once; the server's answer
+ * to the newest change is what stays, so quick clicks can't land out of order. Throws `ApiError`
+ * if refused (the look shown goes back to the saved one).
+ */
+export async function saveLook(look: Look): Promise<void> {
+	const account = session.account;
+	if (!account) return;
+	const before = account.explorer.look;
+	account.explorer.look = look;
+	const mine = ++lookSaves;
+	try {
+		const view = await api<AccountView>('/api/explorer/look', 'POST', { look });
+		if (mine === lookSaves) session.account = view;
+	} catch (error) {
+		if (mine === lookSaves && session.account) session.account.explorer.look = before;
+		throw error;
+	}
 }
 
 /** Change the gamer tag. Throws `ApiError` if it is taken or not allowed. */

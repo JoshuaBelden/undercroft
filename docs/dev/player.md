@@ -22,6 +22,10 @@ The player. The server is authoritative. The client predicts its own movement wi
 | Player body (model and animation)    | `src/lib/game/player/PlayerBody.ts`                                           |
 | Gamer tags above heads               | `src/lib/game/player/gamerTag.ts`, `src/lib/content/player/gamerTags.ts`      |
 | Explorer model and camera (data)     | `src/lib/content/player/model.ts`                                             |
+| Wardrobe: bodies, pieces, tints      | `src/lib/content/player/wardrobe.ts`, `scripts/blender/wardrobe.py`           |
+| The look (shared)                    | `src/lib/shared/player/look.ts`                                               |
+| Dressing a body                      | `src/lib/game/player/dress.ts`                                                |
+| Character screen                     | `src/lib/ui/CharacterScreen.svelte`, `src/lib/ui/CharacterPreview.svelte`     |
 | Footsteps, breathing, click          | `src/lib/game/player/PlayerAudio.ts`                                          |
 | HUD                                  | `src/lib/ui/Hud.svelte`                                                       |
 | Sanity tuning (data)                 | `src/lib/content/player/sanity.ts`                                            |
@@ -199,9 +203,9 @@ A lamp that is off has zero intensity rather than `visible = false`. Changing th
 
 ## Player model
 
-Every player is drawn with the explorer model (`PLAYER_MODEL` in `src/lib/content/player/model.ts`), built from `art/export/player/explorer.glb` by `pnpm asset:build`.
+Every player is drawn as the explorer, dressed in their look (see [The look](#the-look)): a body (male or female) with one of its faces, hair and clothes, all built in Blender from MakeHuman assets by `scripts/blender/wardrobe.py` (see [asset-pipeline.md](asset-pipeline.md#the-explorer)). `PLAYER_MODEL` in `src/lib/content/player/model.ts` holds what every body shares: the animation maps, the hand, head and neck bones, the lamp offset. Each body's files are `bodyFiles` / `wearFile`: `shared/player/<body>/body.glb`, `anims.glb` (its clips) and one file per piece.
 
-`PlayerBody` owns one copy of the model and animates it from that player's `PlayerState` alone, so the server sends nothing extra. `RemotePlayers` has one per other player; the play page has one for you, drawn only when the camera is outside your head. Each frame it picks an animation slot (see Animation maps in [creatures.md](creatures.md)):
+`PlayerBody` owns one dressed copy (`dress`, `src/lib/game/player/dress.ts`) and animates it from that player's `PlayerState` alone; the only other thing it needs is their look, which comes with the state. `RemotePlayers` has one per other player; the play page has one for you, drawn only when the camera is outside your head. Each frame it picks an animation slot (see Animation maps in [creatures.md](creatures.md)):
 
 | State                           | Slot             | Speed                                            |
 | ------------------------------- | ---------------- | ------------------------------------------------ |
@@ -240,7 +244,7 @@ The body doesn't cast shadows. The lamp is inside the head, so a shadow-casting 
 
 What is in a player's hand shows on their body: the item's model in the right hand, the arms posed for it, and using it plays on the arms.
 
-**The item in the hand.** `PlayerBody` hangs a group from the right hand bone (`PLAYER_MODEL.hand`, `mixamorigRightHand`: three.js drops the `:` from Mixamo's bone names) and puts the held item's model in it at the item's `grip` (`offset` and `rotation` in the hand bone's frame, in `src/lib/content/items.ts`; see [items.md](items.md#data)). It swaps when the held item changes, and is put away while the player is down, dead, on a rope or swimming. An item without a `grip` isn't drawn. The model comes from `itemModel` (`src/lib/game/items/itemModel.ts`).
+**The item in the hand.** `PlayerBody` hangs a group from the right hand bone (`PLAYER_MODEL.hand`, `mixamorigRightHand`: three.js drops the `:` from Mixamo's bone names) and puts the held item's model in it at the item's `grip` (`offset` and `rotation` in the hand's frame, in `src/lib/content/items.ts`; see [items.md](items.md#data)). The grips were made on the first explorer's hand, which rests turned about 64° from the MakeHuman bodies'; the build works out that turn per body (`boneFrames`, `scripts/retarget.ts`) and leaves it in the body's `anims.glb`, and the group is turned by it (`hand-frame`), so every grip holds on every body. It swaps when the held item changes, and is put away while the player is down, dead, on a rope or swimming. An item without a `grip` isn't drawn. The model comes from `itemModel` (`src/lib/game/items/itemModel.ts`).
 
 **Upper-body poses.** The legs keep playing the full-body clip above. Over it, `UpperBody` (`src/lib/game/UpperBody.ts`) plays clips that turn only arm and hand bones. Each frame, after the full-body clip has posed the skeleton, every bone an upper clip turns is slerped from that pose toward the clip's, so walking, running and crouching need no clip per hold. A bone the clip leaves alone (the free arm of a one-handed hold) follows the legs' clip. Poses fade in and out over 0.2 s; a shot or reload over 0.05 s, so the kick isn't lost. `upperBodyPose(state)` (`src/lib/game/player/pose.ts`) picks the slot from the state alone:
 
@@ -255,9 +259,32 @@ What is in a player's hand shows on their body: the item's model in the right ha
 
 The slots are `UPPER_SLOTS` in `src/lib/content/animations.ts`, mapped to clips in `PLAYER_MODEL.upper`. A swing or throw keeps the full-body `melee_attack`.
 
-**The clips** are hand-keyed in `art/blender/Explorer.blend` by `scripts/blender/explorer.py` and merged into the explorer at build time (see [asset-pipeline.md](asset-pipeline.md#the-explorer)). Each key there gives where each wrist goes and which way the hand faces; a temporary IK chain solves the arm and the result is baked to rotation keys, fingers curled by a `grip` amount. To change a pose, edit `CLIPS` there, run `explorer.build_all()` and `explorer.export()` in Blender, then `pnpm asset:build`. A clip found elsewhere (Mixamo) works the same, as long as it keys only the arms: put it in the .blend as an NLA track and name it in `PLAYER_MODEL.upper`.
+**The clips** are hand-keyed in `art/blender/Explorer.blend` by `scripts/blender/explorer.py`, on the first explorer's rig, and retargeted onto each body at build time with the rest of its clips (see [asset-pipeline.md](asset-pipeline.md#the-explorer)). Retargeted, a clip keeps only the bones it moved, so an arm pose still leaves the legs to the full-body clip. Each key there gives where each wrist goes and which way the hand faces; a temporary IK chain solves the arm and the result is baked to rotation keys, fingers curled by a `grip` amount. To change a pose, edit `CLIPS` there, run `explorer.build_all()` and `explorer.export()` in Blender, then `pnpm asset:build`. A clip found elsewhere (Mixamo) works the same, as long as it keys only the arms: put it in the .blend as an NLA track and name it in `PLAYER_MODEL.upper`.
 
 **Shots from the gun.** Another player's muzzle flare and smoke start at the barrel of the gun in their hands (`PlayerBody.muzzle`, the item's `muzzle` in its model's space, via `RemotePlayers.muzzle`), and so does yours over the shoulder. Until the body's gun is drawn they fall back to a point in front of the eyes. The shot itself still goes from the eye along the look direction on the server, so it lands where the crosshair is.
+
+## The look
+
+How a player's explorer looks, chosen on the hub's Explorer tab, so teammates can tell each other apart in the dark. A `Look` (`src/lib/shared/player/look.ts`) is a body, a face (0 is the body's own, n its shape key `face-<n>`), a piece in each slot (`hair`, `shirt`, `pants`, `jacket`: the outer layer, which may be empty) and a swatch per tintable part (`skin` and each slot). The choices are data in `src/lib/content/player/wardrobe.ts`: `BODIES`, `WEAR`, `TINTS`. `cleanLook` turns anything (a request, a saved document, a guest's save) into a valid look: unknown values fall back to `DEFAULT_LOOK`, a required slot left empty gets the default's piece.
+
+**Where it lives and how it travels.**
+
+- Saved on the explorer (`look`, unset until they choose), changed with `POST /api/explorer/look` (`saveLook` in `src/lib/account/account.svelte.ts`: shown at once, the newest answer kept). Allowed underground too; it is read at descent, so it shows from the next expedition.
+- At descent the game server reads it with the loadout (`looks`, `server/belongings.ts`; a co-op guest's comes from their own save in the vault's `take`, [hosting.md](hosting.md#the-vault)) and keeps it on the `Player`.
+- Every tick's `PlayerSnapshot` carries it, beside the name. `RemotePlayers` and your own body call `PlayerBody.setLook` with it; the same look again does nothing, a new one is dressed and swapped in once loaded.
+
+**Dressing** (`dress`, `src/lib/game/player/dress.ts`):
+
+- The body file, the body's clips and each piece worn load together (each file once, cloned per body). A piece another worn piece `covers` whole (the shirt under the sweater) isn't drawn.
+- Each piece's skinned mesh is bound to the body's bones by name, under the same node it had in its file, so the clips move it with the body.
+- The face's shape key is set to 1 on every mesh that has it: the body, the brows and every hair style were refitted to each face, so hair fits.
+- **Hidden under clothes.** The body carries `_HIDE`, a bit per piece that covers each vertex (`hideBit` in `WEAR`, `HIDE_BITS` in wardrobe.py: the two must agree; the boots, always worn, are bit 0). The skin's shader discards what any worn piece covers, so skin never shows through cloth however it bends. The pants are tucked inside the tops in the build, so their waistband stays under a hem (see [asset-pipeline.md](asset-pipeline.md#the-wardrobe)).
+- **Tints.** Every material is the body's own copy. A tinted one gets a colour that brings its texture's average to the swatch, channel by channel (`tint`), so the texture's light, dark and small colour shifts stay. A swatch with no colour (`own`, first for hair and clothes) leaves the texture as made. The skin always takes one of its swatches.
+- Your own body's materials also get the camera fill, in the same shader patch.
+
+**The Explorer tab** (changes are tried on in the preview; Apply saves them and sends `profile`, so the game server reads the look again and the party sees it on the Expedition page; Revert drops them) (`src/lib/ui/CharacterScreen.svelte`, route `/(hub)/explorer`): a stepper row per choice (left and right on a controller step it) and a row of swatches per part that can be coloured now. Beside it `CharacterPreview` stands a `PlayerBody` in the look under three lights in its own renderer, turned by dragging or the Turn stepper, and doing what the Motion stepper says (standing, walking, running, crouching, crawling: a made-up state's stance and speed, so the clips are the ones played underground).
+
+**Adding to the wardrobe.** A hair style or garment: add it to `WEAR` in wardrobe.py (its place there is its hide bit: add at the end), export, `pnpm asset:build`, then give it an entry in `WEAR` in wardrobe.ts with the same bit and its slot. A face: add its targets to `FACES` in wardrobe.py and raise the body's `faces` in `BODIES`. A colour: a swatch in `TINTS`. See [asset-pipeline.md](asset-pipeline.md#the-wardrobe).
 
 ## Gamer tags
 
@@ -410,4 +437,5 @@ Admin tools are in the admin panel (F10) and need `PUBLIC_DEV_MODE` on the clien
 | Set sanity                 | Sets your sanity (0 downs you; above 0 gets you up if downed).                                                                                                                                                                                                                                                                                                                                                       |
 | Creatures                  | Spawn one in front of you, remove all, show markers through walls (see creatures.md).                                                                                                                                                                                                                                                                                                                                |
 | Gamer tags through walls   | Client only: teammates' tags drawn over the rock (still fading), to find them. See Gamer tags.                                                                                                                                                                                                                                                                                                                       |
+| Random look                | Wear a random look (`randomLook`) for the rest of the run, as everyone sees you; not saved. To see how looks read in the dark.                                                                                                                                                                                                                                                                                       |
 | Grip check (Items tab)     | Client only: a test explorer 2 m in front of you holding an item, posed to hold, fire, reload or use it (`GripCheck`, `src/lib/game/player/GripCheck.ts`). Step through every item with a `grip`, to check where each sits in the hand.                                                                                                                                                                              |

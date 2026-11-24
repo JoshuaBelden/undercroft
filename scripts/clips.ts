@@ -73,6 +73,59 @@ export function mergeClips(doc: Document, clips: Document): string[] {
 	return merged;
 }
 
+/** A joint may sit this far (m) from where the body's same joint rests: float noise. */
+const SAME_PLACE = 1e-4;
+
+/**
+ * Check that a piece fitted to a body (hair, a garment) is skinned to the body's skeleton: each
+ * of its joints is one of the body's, resting where the body's does. The game binds the piece's
+ * mesh to the body's bones by name, so a joint that rests elsewhere would pull it out of shape.
+ * Returns what is wrong, empty when it fits.
+ */
+export function skeletonMismatch(body: Document, piece: Document): string[] {
+	const joints = new Map<string, Node>(
+		(body.getRoot().listSkins()[0]?.listJoints() ?? []).map((j) => [j.getName(), j])
+	);
+	if (!joints.size) return ['the body has no skin'];
+	const skin = piece.getRoot().listSkins()[0];
+	if (!skin) return ['the piece has no skin'];
+	const wrong: string[] = [];
+	for (const joint of skin.listJoints()) {
+		const name = joint.getName();
+		const own = joints.get(name);
+		if (!own) wrong.push(`${name} is not one of the body's bones`);
+		else if (
+			!sameRotation(joint.getRotation(), own.getRotation(), SAME_REST) ||
+			distance(joint.getTranslation(), own.getTranslation()) > SAME_PLACE
+		) {
+			wrong.push(`${name} rests differently from the body's`);
+		}
+	}
+	return wrong;
+}
+
+/** Remove every clip (a body or a garment: the clips ship on their own). */
+export function dropAnimations(doc: Document): void {
+	for (const anim of doc.getRoot().listAnimations()) anim.dispose();
+}
+
+/**
+ * Keep only the skeleton and its clips: every mesh and skin taken off its node. Prune afterwards
+ * to drop the materials, textures and buffers they leave behind.
+ */
+export function skeletonOnly(doc: Document): void {
+	for (const node of doc.getRoot().listNodes()) {
+		node.setMesh(null);
+		node.setSkin(null);
+	}
+	for (const mesh of doc.getRoot().listMeshes()) mesh.dispose();
+	for (const skin of doc.getRoot().listSkins()) skin.dispose();
+}
+
+function distance(a: ArrayLike<number>, b: ArrayLike<number>): number {
+	return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
+
 function sameRotation(a: ArrayLike<number>, b: ArrayLike<number>, within = SAME): boolean {
 	return Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]) > within;
 }

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_LOOK, type Look } from '../src/lib/shared/player/look.ts';
 import { PARTY } from '../src/lib/content/party.ts';
 import { Parties, type Member } from './parties.ts';
 import { FakeSocket, fakeTime } from './testing/harness.ts';
@@ -212,6 +213,17 @@ describe('Parties', () => {
 		expect(host.socket.sent.length).toBe(sent);
 		parties.updateProfile(guest.member, { gamerTag: 'Renamed', avatar: null });
 		expect(partyOf(host.socket).members.find((m) => m.id === guest.member.id)!.avatar).toBeNull();
+	});
+
+	it('a changed look reaches the whole party, and the same look again sends nothing', () => {
+		const { host, guest } = pair();
+		const look: Look = { ...DEFAULT_LOOK, body: 'female', face: 3 };
+		parties.updateProfile(guest.member, { gamerTag: 'Guest', avatar: null, look });
+		const seen = partyOf(host.socket).members.find((m) => m.id === guest.member.id)!;
+		expect(seen.look).toEqual(look);
+		const sent = host.socket.sent.length;
+		parties.updateProfile(guest.member, { gamerTag: 'Guest', avatar: null, look: { ...look } });
+		expect(host.socket.sent.length).toBe(sent);
 	});
 
 	it('a member starts with the avatar they connected with, and takes a new one on reconnecting', () => {

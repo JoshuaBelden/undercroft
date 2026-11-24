@@ -152,9 +152,93 @@ export const MODELS = {
 		bytes: 280072
 	},
 	'shared/items/whistle.glb': { url: '/assets/shared/items/whistle.ba599fdf.glb', bytes: 217736 },
-	'shared/player/explorer.glb': {
-		url: '/assets/shared/player/explorer.bc7919c1.glb',
-		bytes: 1876424
+	'shared/player/female/anims.glb': {
+		url: '/assets/shared/player/female/anims.877a29f8.glb',
+		bytes: 1135848
+	},
+	'shared/player/female/body.glb': {
+		url: '/assets/shared/player/female/body.ce88c2ee.glb',
+		bytes: 778484
+	},
+	'shared/player/female/hair-afro.glb': {
+		url: '/assets/shared/player/female/hair-afro.587146bd.glb',
+		bytes: 522692
+	},
+	'shared/player/female/hair-bob.glb': {
+		url: '/assets/shared/player/female/hair-bob.20da0806.glb',
+		bytes: 238588
+	},
+	'shared/player/female/hair-long.glb': {
+		url: '/assets/shared/player/female/hair-long.cf6b961b.glb',
+		bytes: 214468
+	},
+	'shared/player/female/hair-ponytail.glb': {
+		url: '/assets/shared/player/female/hair-ponytail.e081f853.glb',
+		bytes: 382944
+	},
+	'shared/player/female/hair-short.glb': {
+		url: '/assets/shared/player/female/hair-short.80fb5698.glb',
+		bytes: 201780
+	},
+	'shared/player/female/jacket-sweater.glb': {
+		url: '/assets/shared/player/female/jacket-sweater.426f90b7.glb',
+		bytes: 468460
+	},
+	'shared/player/female/pants-cargo.glb': {
+		url: '/assets/shared/player/female/pants-cargo.e43774ef.glb',
+		bytes: 154868
+	},
+	'shared/player/female/pants-wool.glb': {
+		url: '/assets/shared/player/female/pants-wool.06048d79.glb',
+		bytes: 115568
+	},
+	'shared/player/female/shirt.glb': {
+		url: '/assets/shared/player/female/shirt.cac8d000.glb',
+		bytes: 89948
+	},
+	'shared/player/male/anims.glb': {
+		url: '/assets/shared/player/male/anims.63968162.glb',
+		bytes: 1135712
+	},
+	'shared/player/male/body.glb': {
+		url: '/assets/shared/player/male/body.59a21f75.glb',
+		bytes: 751144
+	},
+	'shared/player/male/hair-afro.glb': {
+		url: '/assets/shared/player/male/hair-afro.3ec09ca4.glb',
+		bytes: 525116
+	},
+	'shared/player/male/hair-bob.glb': {
+		url: '/assets/shared/player/male/hair-bob.42278745.glb',
+		bytes: 240764
+	},
+	'shared/player/male/hair-long.glb': {
+		url: '/assets/shared/player/male/hair-long.13db2bce.glb',
+		bytes: 213916
+	},
+	'shared/player/male/hair-ponytail.glb': {
+		url: '/assets/shared/player/male/hair-ponytail.0a4e0bdc.glb',
+		bytes: 383116
+	},
+	'shared/player/male/hair-short.glb': {
+		url: '/assets/shared/player/male/hair-short.0a865e27.glb',
+		bytes: 203476
+	},
+	'shared/player/male/jacket-sweater.glb': {
+		url: '/assets/shared/player/male/jacket-sweater.0ac7a6e8.glb',
+		bytes: 464764
+	},
+	'shared/player/male/pants-cargo.glb': {
+		url: '/assets/shared/player/male/pants-cargo.b13f17e7.glb',
+		bytes: 154776
+	},
+	'shared/player/male/pants-wool.glb': {
+		url: '/assets/shared/player/male/pants-wool.a4f5aee8.glb',
+		bytes: 114160
+	},
+	'shared/player/male/shirt.glb': {
+		url: '/assets/shared/player/male/shirt.d85c3d44.glb',
+		bytes: 88400
 	},
 	'shared/props/bone_pile.glb': {
 		url: '/assets/shared/props/bone_pile.f3d6da34.glb',

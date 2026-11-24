@@ -1,6 +1,7 @@
 import type { QuestRecord } from '../quests/types.ts';
 import type { StoreTier } from '../../content/economy.ts';
 import type { Slots } from '../items/inventory.ts';
+import type { Look } from '../player/look.ts';
 import type { Inventory } from '../player/types.ts';
 import type { Progression } from '../progression/progression.ts';
 
@@ -42,6 +43,8 @@ export interface ExplorerView {
 	underground: boolean;
 	/** The eight chalk symbols on their wheel, top first and clockwise. */
 	markWheel: string[];
+	/** How their explorer looks (docs/dev/player.md#the-look). */
+	look: Look;
 	/** Rite progress per Affliction (only those with any). */
 	afflictions: { id: string; clues: number; resolved: boolean }[];
 	/** Discovered items, each with the lootable kinds it has been seen in. */

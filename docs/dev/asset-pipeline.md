@@ -220,13 +220,21 @@ Blender adds `.001` suffixes when names repeat across collections (`col-floor.00
 
 `art/export/creatures/*.glb` (skinned, with animations) skip the piece checks. Each one keeps its skin and animation clips, is deduplicated and pruned, has its textures re-encoded to WebP at 1024 px, and is meshopt-compressed and written to `static/assets/shared/creatures/<name>.<hash>.glb`. The witch drops from 53 MB to about 1.3 MB. Creatures in `art/export/afflictions/<id>/creatures/` go to `static/assets/afflictions/<id>/creatures/` (the Gloaming's boss, about 1 MB).
 
-The explorer (every player's body) goes through the same pass: `art/export/player/*.glb` to `static/assets/shared/player/<name>.<hash>.glb` (18.9 MB to about 1.9 MB). See [player.md](player.md#player-model).
+The explorer (every player's body) has its own pass: see [The explorer](#the-explorer).
 
 ### The explorer
 
-The explorer's source is `art/blender/Explorer.blend`: the rig, the mesh and every clip as an NLA track. `art/export/player/explorer.glb` is its Mixamo export, and isn't written again from Blender. The glTF exporter resamples every clip to whole frames, which changes each one's length (a loop then hitches), and it re-encodes the mesh.
+The explorer is dressed by each player (see [player.md](player.md#the-look)): a body and pieces worn over it, all skinned to MPFB's Mixamo rig, with the clips in a file of their own per body. `pnpm asset:build` builds it from `art/export/player/` (`buildExplorer`):
 
-The clips made since, for holding and using items (see [player.md](player.md#holding-and-using-items)), are built by `scripts/blender/explorer.py` and exported on their own, on the bare skeleton, to `art/export/player/explorer-clips.glb`:
+| Source                                                     | Built to `static/assets/shared/player/<body>/`                                                 |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `body-<body>.glb` (from wardrobe.py)                       | `body.glb`: the mesh, eyes, brows, lashes and boots, the face shape keys and `_HIDE`, no clips |
+| `<body>/<piece>.glb` (from wardrobe.py)                    | `<piece>.glb`, checked against the body's skeleton (`skeletonMismatch`, `scripts/clips.ts`)    |
+| `explorer.glb` + `explorer-clips.glb` (the first explorer) | `anims.glb`: every clip retargeted onto the body's skeleton; skeleton only, and the hand frame |
+
+Each material's alpha comes from wardrobe.py's `alpha` extra (MPFB makes every one alpha-blended, which sorts badly): hair, brows and lashes are cut out (`MASK`), the rest opaque, the skin single-sided.
+
+**The clips.** The first explorer (a Meshy model with Mixamo bone names) is no longer drawn, but its clips are the explorer's: its Mixamo clips in `explorer.glb` (its source is `art/blender/Explorer.blend`; the export isn't written again from Blender: the glTF exporter resamples every clip to whole frames, which changes each one's length, and a loop then hitches), and the clips made since for holding and using items, built by `scripts/blender/explorer.py` and exported on their own, on the bare skeleton, to `explorer-clips.glb`:
 
 ```python
 import sys, importlib
@@ -236,8 +244,35 @@ explorer.build_all()   # every clip in CLIPS, as actions and NLA tracks in the .
 explorer.export()      # art/export/player/explorer-clips.glb
 ```
 
-`pnpm asset:build` merges any `<name>-clips.glb` beside a rigged `<name>.glb` into it by bone name (`mergeClips`, `scripts/clips.ts`). It keeps a clip's rotation channels that move a bone off its rest pose, so a bone the clip leaves alone follows whatever else is playing. Both files must share the skeleton: a bone resting differently stops the build, and so does a clip already in the model.
+The build merges the two by bone name (`mergeClips`, `scripts/clips.ts`: it keeps a clip's rotation channels that move a bone off its rest pose, so a bone the clip leaves alone follows whatever else is playing), then retargets them onto each body (`retargetClips`, see [Borrowed clips](#borrowed-clips)) with two options:
 
+- `align: LIMB_ALIGNMENT`. The first explorer's arms, hands and feet rest 15-25 degrees from MPFB's, so each limb, hand and finger is first lined up with its rest direction (a hand's twist too, from the line across its knuckles). Without it the hands bend and the crouch flattens. The spine is left out: the first explorer's spine joints zigzag.
+- `keyedOnly`. A retargeted clip keeps only the bones the source clip moved, so the arm poses leave the legs to the full-body clip.
+
+**Clips from elsewhere.** A Mixamo clip (FBX, "Without Skin" is enough) goes in `art/export/player/animations/<name>.fbx`; `scripts/blender/animations.py` (`animations.convert_all()`) turns each into `<name>.glb` beside it, its one clip named for the file in TitleCase (`bored.fbx` -> `Bored`). The build retargets every clip there onto each body as above, and `PLAYER_MODEL` maps it to a slot (the Expedition page's lineup plays one of `WAITING_CLIPS` in the `waiting` slot). A clip with no mesh has no skin: the retargeter takes its named nodes as its bones.
+
+`boneFrames` works out the turn from each body's right hand into the first explorer's hand frame, where the items' grips were made, and leaves it on `anims.glb` (`boneFrames` in the scene's extras); `PlayerBody` hangs the held item in it.
+
+### The wardrobe
+
+`scripts/blender/wardrobe.py` builds every body and piece from MakeHuman assets with MPFB (Blender's MakeHuman add-on, from extensions.blender.org), so they can be rebuilt from scratch. It needs these CC0 asset packs loaded into MPFB (Settings, or `bpy.ops.mpfb.load_pack(filepath=...)` with the zip): `makehuman_system_assets`, `shirts01` and `pants01`, from static.makehumancommunity.org. Run it in an empty Blender scene (it clears it):
+
+```python
+import sys, importlib
+sys.path.insert(0, r"D:/Code/undercroft/scripts/blender")
+import wardrobe; importlib.reload(wardrobe)
+wardrobe.build("male")      # the body, its faces and its wardrobe, fitted, in the scene
+wardrobe.export("male")     # art/export/player/body-male.glb and male/*.glb
+wardrobe.build_all()        # both bodies, built and exported; then pnpm asset:build
+```
+
+- **Bodies** (`BODIES`): MakeHuman's macro sliders, a skin, brows and lashes. Each gets MPFB's `mixamo` rig with its weights: the bone names the clips use.
+- **Pieces** (`WEAR`): an MPFB hair or clothes asset each, fitted to every body. Its place in `WEAR` is its `_HIDE` bit (`HIDE_BITS`, after the boots' 0): add new pieces at the end, and give them the same `hideBit` in `src/lib/content/player/wardrobe.ts`.
+- **Faces** (`FACES`): per body, MakeHuman face targets with weights. Each is loaded, every fitted piece refitted, and the result kept as shape key `face-<n>` on the body and on each piece it moved by more than half a millimetre (brows, every hair style). Keep to the face and head: pulling the nose tip down drags the lips' colour onto it.
+- **Hidden under clothes** (`mark_hidden`): the boots, always worn, hide every vertex that moves mostly with a foot or toe bone (`feet`): near the shoe's surface alone left the heel showing. For each piece in `HIDES`, the body's vertices just under its surface (within 3 cm, behind the cloth), less a ring at its edges so a hem never opens a gap, get its bit in `_HIDE`.
+- **Under other pieces** (`UNDER`: the pants under the shirt and the outer layer). `tuck_unders` pulls each pants vertex above a top's hem to `TUCK` (1 cm) inside the top, or half the room between the top and the skin if that is less, so it never goes into the body. `clear_tops` then pushes the top out wherever it is still within `CLEAR` of the pants. The pants are low-poly: hiding their covered vertices instead left whole triangles poking through.
+
+A piece made elsewhere works too, as long as it is skinned to the body's rig (the same bones, resting in the same place: the build checks) and exported to `art/export/player/<body>/<piece>.glb`.
 The rat, spider and moth get theirs the same way, from `scripts/blender/critters.py` (procedural clips keyed from each rig's bones, run with `art/blender/<name>.blend` open) to `art/export/creatures/<name>-clips.glb`. See [creatures.md](creatures.md#clips-for-the-critters).
 
 The explorer script also places items in the hand for their `grip` (`GRIPS`, `show_item`, `grip_numbers`; see [items.md](items.md#data)).
@@ -252,6 +287,7 @@ A rigged model can borrow clips from another with the same bone names but its ow
 - Bones the donor lacks (extra finger joints) stay at rest relative to their parent.
 - The hips' movement (in place: a bob) is scaled by the two hips' heights, so a donor in centimetres works.
 - Linear and step clips; a cubic-spline one stops the build, as does a donor without a listed clip.
+- Options (the explorer uses both): `align` lines chosen bones up with the donor's rest first, so rests further apart than turning alone can bear still read; `keyedOnly` writes only the bones each donor clip moves. See [The explorer](#the-explorer).
 
 The Gloaming's manifestation (`gloaming_boss`) walks, charges, idles and casts with the witch's clips, as `Borrowed_Walking`, `Borrowed_Charge`, `Borrowed_Idle` and `Borrowed_Cast`: its own walk is a mincing strut. Check a new borrowing by eye: write the retargeted model out unoptimised and play the clips in Blender.
 

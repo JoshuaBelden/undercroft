@@ -2,6 +2,7 @@ import type { WebSocket } from 'ws';
 import { cleanMarkWheel } from '../src/lib/content/marks.ts';
 import { emptyInventory, sanitizeInventory } from '../src/lib/shared/items/inventory.ts';
 import { encode, type ServerMessage } from '../src/lib/shared/protocol.ts';
+import { cleanLook, type Look } from '../src/lib/shared/player/look.ts';
 import type { Inventory } from '../src/lib/shared/player/types.ts';
 import { log } from './log.ts';
 
@@ -21,6 +22,8 @@ interface TakeReply {
 	owned: Set<string>;
 	/** Null: they never chose one (the default wheel). */
 	markWheel: string[] | null;
+	/** How they look, from their own save (docs/dev/player.md#the-look). */
+	look: Look;
 }
 
 interface Guest {
@@ -133,7 +136,7 @@ export function guestReturn(explorer: string, session: string, carried: Inventor
 }
 
 function emptyTake(): TakeReply {
-	return { kit: emptyInventory(), owned: new Set(), markWheel: null };
+	return { kit: emptyInventory(), owned: new Set(), markWheel: null, look: cleanLook(null) };
 }
 
 /** A guest's answer, checked: a well-formed kit, item ids, and a wheel of known symbols. */
@@ -146,5 +149,5 @@ function readTake(message: Record<string, unknown>): TakeReply {
 	);
 	// A wheel that isn't eight known symbols is the default one.
 	const wheel = cleanMarkWheel(message.markWheel);
-	return { kit, owned, markWheel: wheel ? [...wheel] : null };
+	return { kit, owned, markWheel: wheel ? [...wheel] : null, look: cleanLook(message.look) };
 }

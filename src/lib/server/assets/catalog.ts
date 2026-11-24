@@ -8,7 +8,8 @@ import { IMAGE_URLS } from '../../content/images.generated.ts';
 import { ITEMS, type ItemDef } from '../../content/items.ts';
 import { MODELS } from '../../content/models.generated.ts';
 import { PLANNED_ASSETS, type PlannedAsset } from '../../content/planned.ts';
-import { PLAYER_MODEL } from '../../content/player/model.ts';
+import { bodyPaths, PLAYER_MODEL, wearPath } from '../../content/player/model.ts';
+import { BODIES, WEAR, type BodyId, type WearId } from '../../content/player/wardrobe.ts';
 import { PIECES } from '../../shared/map/pieces.generated.ts';
 import {
 	ASSET_KINDS,
@@ -49,7 +50,11 @@ export interface CatalogContent {
 	items: Record<string, ItemDef>;
 	creatures: Record<string, CreatureDef>;
 	afflictions: Record<string, AfflictionDef>;
-	explorer: { model: string; animations: AnimationMap };
+	/**
+	 * The explorer: per body, the model paths of its clips file (`anims`) and every file it is drawn
+	 * with (the body and each wardrobe piece), and the animation map they all share.
+	 */
+	explorer: { bodies: { id: string; anims: string; files: string[] }[]; animations: AnimationMap };
 	/** Art named before it is made (content/planned.ts). */
 	planned?: PlannedAsset[];
 }
@@ -64,7 +69,14 @@ export const GAME_CONTENT: CatalogContent = {
 	items: ITEMS,
 	creatures: CREATURES,
 	afflictions: AFFLICTIONS,
-	explorer: PLAYER_MODEL,
+	explorer: {
+		animations: PLAYER_MODEL.animations,
+		bodies: (Object.keys(BODIES) as BodyId[]).map((id) => ({
+			id,
+			anims: bodyPaths(id).anims,
+			files: [bodyPaths(id).body, ...(Object.keys(WEAR) as WearId[]).map((w) => wearPath(id, w))]
+		}))
+	},
 	planned: PLANNED_ASSETS
 };
 
@@ -134,7 +146,14 @@ export function buildCatalog(
 		const body = affliction.manifestation?.body;
 		if (body) addUser(body.model, `${affliction.name}: manifestation`);
 	}
-	addUser(content.explorer.model, 'Explorer');
+	const explorerMissing: { path: string; who: string }[] = [];
+	for (const body of content.explorer.bodies) {
+		for (const path of [body.anims, ...body.files]) {
+			const model = content.models[path];
+			if (model) addUser(model.url, `Explorer: ${body.id}`);
+			else explorerMissing.push({ path, who: `Explorer: ${body.id}` });
+		}
+	}
 	const modelCalls = scan(disk.sources, MODEL_CALL);
 	for (const [path, model] of Object.entries(content.models)) {
 		const file = assetPath(model.url);
@@ -148,6 +167,17 @@ export function buildCatalog(
 			bytes: present(file) ? size(file) : model.bytes,
 			status: !present(file) ? 'missing' : usedBy.length ? 'ok' : 'unused',
 			note: present(file) ? undefined : 'In the manifest, but the file is gone: pnpm asset:build'
+		});
+	}
+	for (const { path, who } of explorerMissing) {
+		rows.push({
+			kind: 'model',
+			id: path,
+			usedBy: [who],
+			files: [],
+			bytes: 0,
+			status: 'missing',
+			note: 'Not built: export it from scripts/blender/wardrobe.py, then pnpm asset:build'
 		});
 	}
 	for (const [id, item] of itemsWithoutModel) {
@@ -279,12 +309,12 @@ export function buildCatalog(
 
 	// Animations: each rigged model's standard slots.
 	const rigs: { id: string; who: string; model: string; map: AnimationMap }[] = [
-		{
-			id: 'explorer',
-			who: 'Explorer',
-			model: content.explorer.model,
+		...content.explorer.bodies.map((body) => ({
+			id: `explorer ${body.id}`,
+			who: `Explorer: ${body.id}`,
+			model: content.models[body.anims]?.url ?? '',
 			map: content.explorer.animations
-		},
+		})),
 		...Object.entries(content.creatures).map(([id, c]) => ({
 			id,
 			who: `Creature: ${id}`,

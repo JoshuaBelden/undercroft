@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { allReady, type PartyState } from './party/types.ts';
+import { DEFAULT_LOOK } from './player/look.ts';
 import { decodeClient, decodeServer, encode } from './protocol.ts';
 
 describe('protocol', () => {
@@ -46,7 +47,8 @@ describe('allReady', () => {
 		ready,
 		inExpedition: false,
 		connected,
-		avatar: null
+		avatar: null,
+		look: DEFAULT_LOOK
 	});
 	const party = (over: Partial<PartyState>): PartyState => ({
 		leader: 'm',

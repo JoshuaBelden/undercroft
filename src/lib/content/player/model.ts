@@ -1,11 +1,13 @@
 import type { AnimationMap, UpperMap } from '../animations.ts';
-import { modelUrl } from '../models.ts';
+import { modelUrl, type ModelPath } from '../models.ts';
+import { BODIES, WEAR, type BodyId, type WearId } from './wardrobe.ts';
 
 /**
  * The explorer: the body every player is drawn with. See docs/dev/player.md (Player model).
  */
 export interface PlayerModelDef {
-	model: string;
+	/** The skeleton's root bone: the clips' horizontal motion on it is removed. */
+	root: string;
 	/** Model faces +Z in its file; the game faces -Z at yaw 0, so it's turned by this much. */
 	yawOffset: number;
 	/** The model's animation map: its clip names by standard slot. */
@@ -26,7 +28,7 @@ export interface PlayerModelDef {
 }
 
 export const PLAYER_MODEL: PlayerModelDef = {
-	model: modelUrl('shared/player/explorer.glb'),
+	root: 'mixamorigHips',
 	yawOffset: Math.PI,
 	lampForward: 0.45,
 	// The model has no idle, jump, ledge-climb or dodge clip (holding and using items is in
@@ -34,6 +36,9 @@ export const PLAYER_MODEL: PlayerModelDef = {
 	animations: {
 		// No idle clip yet: the walk's first frame (feet passing, nearly upright), held.
 		idle: { clip: 'Walking', speed: 0 },
+		// Shifting about, looking round (Mixamo's Bored, art/export/player/animations): the Expedition
+		// page's lineup, which picks from WAITING_CLIPS instead.
+		waiting: { clip: 'Bored' },
 		walking: { clip: 'Walking' },
 		running: { clip: 'Running' },
 		crouch: { clip: 'Cautious_Crouch_Walk_Forward' },
@@ -71,6 +76,49 @@ export const PLAYER_MODEL: PlayerModelDef = {
 	head: 'mixamorigHead',
 	neck: 'mixamorigNeck'
 };
+
+/**
+ * The built files of a body (scripts/blender/wardrobe.py, built by `pnpm asset:build`): its mesh,
+ * its clips (the explorer's, retargeted onto its skeleton) and each wardrobe piece fitted to it.
+ * Every combination is checked to exist by model.test.ts.
+ */
+export function bodyPaths(body: BodyId): { body: ModelPath; anims: ModelPath } {
+	return {
+		body: `shared/player/${body}/body.glb` as ModelPath,
+		anims: `shared/player/${body}/anims.glb` as ModelPath
+	};
+}
+
+export function wearPath(body: BodyId, wear: WearId): ModelPath {
+	return `shared/player/${body}/${wear}.glb` as ModelPath;
+}
+
+export function bodyFiles(body: BodyId): { body: string; anims: string } {
+	const paths = bodyPaths(body);
+	return { body: modelUrl(paths.body), anims: modelUrl(paths.anims) };
+}
+
+export function wearFile(body: BodyId, wear: WearId): string {
+	return modelUrl(wearPath(body, wear));
+}
+
+/** Every file any explorer can be drawn with: each body's mesh and pieces, and its clips. */
+export function explorerFiles(): { models: string[]; clips: string[] } {
+	const bodies = Object.keys(BODIES) as BodyId[];
+	return {
+		models: bodies.flatMap((b) => [
+			bodyFiles(b).body,
+			...(Object.keys(WEAR) as WearId[]).map((w) => wearFile(b, w))
+		]),
+		clips: bodies.map((b) => bodyFiles(b).anims)
+	};
+}
+
+/**
+ * What explorers do standing about on the Expedition page: each plays one, picked at random
+ * (Mixamo clips in art/export/player/animations; see docs/dev/asset-pipeline.md#the-explorer).
+ */
+export const WAITING_CLIPS = ['Bored', 'Arm_Stretching', 'Pointing', 'Warrior_Idle'];
 
 /** Over-the-shoulder camera: where it sits from the eye, in the look frame (m). */
 export const SHOULDER_CAMERA = {

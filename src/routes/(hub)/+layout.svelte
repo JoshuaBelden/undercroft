@@ -18,6 +18,8 @@
 	import { settings } from '#lib/settings/settings.svelte.ts';
 	import AccountMenu from '#lib/ui/AccountMenu.svelte';
 	import ButtonHint from '#lib/ui/ButtonHint.svelte';
+	import KeyCap from '#lib/ui/KeyCap.svelte';
+	import { device } from '#lib/game/input/device.svelte.ts';
 	import HelpScreen from '#lib/ui/HelpScreen.svelte';
 	import { launch } from '#lib/ui/launch.svelte.ts';
 	import { parallax } from '#lib/ui/parallax.ts';
@@ -62,7 +64,7 @@
 	/** The dashboard's screens, in the order of the tabs. The store is reached from the money. */
 	const ALL_TABS = [
 		{ path: '/(hub)', label: 'Expedition' },
-		{ path: '/(hub)/loadout', label: 'Loadout' },
+		{ path: '/(hub)/explorer', label: 'Explorer' },
 		{ path: '/(hub)/contacts', label: 'Contacts' },
 		{ path: '/(hub)/afflictions', label: 'Afflictions' },
 		{ path: '/(hub)/workshop', label: 'Workshop' },
@@ -100,13 +102,14 @@
 		void loadAccount();
 		// Shared models and sounds download in the background, so the descent loads quickly.
 		startPrefetch();
-		// Only these actions: every other key and click is left to the page. `inventory` only from
-		// the controller: its key is Tab, which moves between buttons and fields up here.
-		const input = new InputMap(
-			window,
-			['toggleSettings', 'toggleHelp', 'toggleSocial'],
-			['inventory']
-		);
+		// Only these actions: every other key and click is left to the page. `inventory` (Tab) goes
+		// to the Loadout page, as its pill says; typing in a field keeps Tab for the field.
+		const input = new InputMap(window, [
+			'toggleSettings',
+			'toggleHelp',
+			'toggleSocial',
+			'inventory'
+		]);
 		const unsubscribe = input.onPressed((action, from) => {
 			// The key backs out one step: it closes Help, then returns to the Expedition page, and
 			// only from there opens the settings page.
@@ -123,7 +126,7 @@
 				if (!social) void goto(resolve('/(hub)/social'));
 				else if (from === 'keyboard') void goto(resolve('/(hub)'));
 			}
-			// The controller's View: the Loadout page. Not a toggle there either: B goes back.
+			// Its key (Tab) or the controller's View: the Loadout page. Not a toggle: B goes back.
 			if (action === 'inventory') {
 				help = false;
 				if (!loadout) void goto(resolve('/(hub)/loadout'));
@@ -237,6 +240,22 @@
 				<path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 10.5v6M12 7v1.2" />
 			</svg>
 			<span>Credits</span>
+		</a>
+		<!-- The Loadout page, out of the tabs: its key (Tab) on the pill, or the controller's View. -->
+		<a
+			class="pill"
+			class:open={loadout}
+			href={resolve('/(hub)/loadout')}
+			aria-current={loadout ? 'page' : undefined}
+			title="What you take down, and your stash"
+		>
+			{#if device.kind !== 'pad' && settings.bindings.inventory[0]}
+				<KeyCap code={settings.bindings.inventory[0]} tint="control" />
+			{/if}
+			<span>Loadout</span>
+			{#if !loadout}
+				<ButtonHint code={settings.padBindings.inventory[0] ?? ''} />
+			{/if}
 		</a>
 	</div>
 

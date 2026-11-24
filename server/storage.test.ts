@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_LOOK } from '../src/lib/shared/player/look.ts';
 import { addItem, emptyInventory, newStack } from '../src/lib/shared/items/inventory.ts';
 import { identify, currentProfile } from './accounts.ts';
 import { giveBack, lockKit, owned, releaseAll, takeKit } from './belongings.ts';
@@ -27,6 +28,7 @@ vi.mock('./db.ts', () => ({ getDb: () => db.current }));
 const store = vi.hoisted(() => ({
 	redeemTicket: vi.fn(),
 	getAccount: vi.fn(),
+	explorerFor: vi.fn(),
 	takeLoadout: vi.fn(),
 	itemsOwned: vi.fn(),
 	returnFromExpedition: vi.fn(),
@@ -42,6 +44,7 @@ const store = vi.hoisted(() => ({
 vi.mock('../src/lib/server/store/accounts.ts', () => ({
 	redeemTicket: store.redeemTicket,
 	getAccount: store.getAccount,
+	explorerFor: store.explorerFor,
 	suspendedAmong: store.suspendedAmong
 }));
 vi.mock('../src/lib/server/store/deletion.ts', () => ({ deletedAmong: store.deletedAmong }));
@@ -111,17 +114,29 @@ describe('with a database', () => {
 		db.current = fakeDb();
 	});
 
-	it('identifies a ticket and reads a gamer tag and avatar', async () => {
-		const identity = { account: 'a', explorer: 'e', gamerTag: 'Tag', avatar: '/avatars/a?v=5' };
+	it('identifies a ticket and reads a gamer tag, avatar and look', async () => {
+		const look = { ...DEFAULT_LOOK, body: 'female' as const };
+		const identity = {
+			account: 'a',
+			explorer: 'e',
+			gamerTag: 'Tag',
+			avatar: '/avatars/a?v=5',
+			look
+		};
 		store.redeemTicket.mockResolvedValue({
 			account: { _id: 'a', gamerTag: 'Tag', avatar: 5 },
-			explorer: { _id: 'e' }
+			explorer: { _id: 'e', look }
 		});
 		store.getAccount.mockResolvedValue({ _id: 'a', gamerTag: 'Tag' });
+		store.explorerFor.mockResolvedValue({ _id: 'e' });
 		expect(await identify('ticket')).toEqual(identity);
 		store.redeemTicket.mockResolvedValue(null);
 		expect(await identify('expired')).toBeNull();
-		expect(await currentProfile('a')).toEqual({ gamerTag: 'Tag', avatar: null });
+		expect(await currentProfile('a')).toEqual({
+			gamerTag: 'Tag',
+			avatar: null,
+			look: DEFAULT_LOOK
+		});
 		store.getAccount.mockResolvedValue(null);
 		expect(await currentProfile('a')).toBeNull();
 		store.redeemTicket.mockImplementation(boom);

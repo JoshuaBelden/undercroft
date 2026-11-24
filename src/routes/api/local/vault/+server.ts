@@ -16,7 +16,7 @@ import type { RequestHandler } from './$types';
  * The desktop app only: a co-op host's game server asking, through this player's own client, for
  * their belongings (docs/dev/hosting.md#the-vault). The same store calls the game server makes
  * for its own players, on this player's own save. Body: `{ op, session, ready, carried }`.
- * - `take`: their loadout leaves the save for the host's expedition: `{ kit, owned, markWheel }`.
+ * - `take`: their loadout leaves the save for the host's expedition: `{ kit, owned, markWheel, look }`.
  * - `lock`: ready (or not): the hub can't change their loadout meanwhile.
  * - `return`: what they carried out (null: lost) comes back.
  */
@@ -34,7 +34,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			// What they own, before the loadout leaves: the rite's items are kept out of the map.
 			const owned = [...(await itemsOwned(db, [explorer._id]))];
 			const kit = await takeLoadout(db, explorer._id, session);
-			return json({ kit, owned, markWheel: explorer.markWheel ?? null });
+			return json({
+				kit,
+				owned,
+				markWheel: explorer.markWheel ?? null,
+				look: explorer.look ?? null
+			});
 		}
 		case 'lock':
 			await markReady(db, explorer._id, body.ready === true);
