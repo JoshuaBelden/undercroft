@@ -7,6 +7,8 @@
 /** The standard animation slots. A model needn't fill them all: see ANIM_FALLBACKS. */
 export const ANIM_SLOTS = [
 	'idle',
+	/** Standing about, waiting: the explorer on the Expedition page. */
+	'waiting',
 	'walking',
 	'running',
 	'jumping',
@@ -50,6 +52,7 @@ export type AnimationMap = Partial<Record<AnimSlot, AnimClip>>;
 /** Slots that repeat; the rest play once and hold their last frame. */
 export const LOOPING_ANIMS: ReadonlySet<AnimSlot> = new Set([
 	'idle',
+	'waiting',
 	'walking',
 	'running',
 	'climb',
@@ -66,6 +69,7 @@ export const LOOPING_ANIMS: ReadonlySet<AnimSlot> = new Set([
  */
 export const ANIM_FALLBACKS: Record<AnimSlot, AnimSlot[]> = {
 	idle: [],
+	waiting: ['idle'],
 	walking: ['running', 'crouch'],
 	running: ['walking'],
 	jumping: ['running', 'walking'],

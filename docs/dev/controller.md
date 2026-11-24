@@ -157,7 +157,7 @@ Every screen is built from native buttons, links and inputs, so one focus system
 | Shortcut          | Button              | Where                                                                                |
 | ----------------- | ------------------- | ------------------------------------------------------------------------------------ |
 | Tabs              | LB / RB             | Every dashboard page; the icons sit either side of the tab bar                       |
-| Loadout           | View (`inventory`)  | Goes to the Loadout page. Not a toggle: B goes back                                  |
+| Loadout           | View (`inventory`)  | Goes to the Loadout page (its pill, bottom left). Not a toggle: B goes back          |
 | Social            | R3 (`toggleSocial`) | Opens the Social page. R3 doesn't close it, B does (its key, O, still toggles)       |
 | Launch Expedition | hold X              | Expedition page, while Launch can be pressed. Cancel, once ready, is a focus and A   |
 | Confirm loadout   | hold X              | Loadout page, while Confirm shows                                                    |

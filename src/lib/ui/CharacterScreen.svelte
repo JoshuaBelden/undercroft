@@ -15,16 +15,33 @@
 	/**
 	 * The Character screen (docs/dev/player.md#the-look): the explorer turning on the left, and on
 	 * the right a row per choice (body, face, what is worn in each slot) and a row of colours per
-	 * part that can be tinted. Every change goes to `onchange` at once.
+	 * part that can be tinted. A change goes to `onchange` at once (tried on, shown in the preview);
+	 * Apply keeps it.
 	 */
 	interface Props {
 		look: Look;
+		/** A choice was made: the look as it now is (tried on, not saved). */
 		onchange: (look: Look) => void;
-		/** Why the last change didn't save, if it didn't. */
+		/** Why the last Apply didn't save, if it didn't. */
 		error?: string;
+		/** The look shown differs from the saved one: Apply and Revert are on. */
+		changed?: boolean;
+		/** Apply is under way. */
+		saving?: boolean;
+		/** Save the look and show it to the party; or go back to the saved one. */
+		onapply: () => void;
+		onrevert: () => void;
 	}
 
-	let { look, onchange, error = '' }: Props = $props();
+	let {
+		look,
+		onchange,
+		error = '',
+		changed = false,
+		saving = false,
+		onapply,
+		onrevert
+	}: Props = $props();
 
 	const BODY_IDS = Object.keys(BODIES) as BodyId[];
 	/** The rows of things worn, in order, and what each is called. */
@@ -97,8 +114,16 @@
 		<CharacterPreview {look} />
 	</section>
 	<section class="panel choices" aria-labelledby="character-title">
-		<h2 id="character-title">Character</h2>
-		<p class="note">How others see you underground. A change shows from your next expedition.</p>
+		<h2 id="character-title">Explorer</h2>
+		<p class="note">
+			How your party sees you, on the Expedition page and underground. Apply to keep a change.
+		</p>
+		<div class="apply">
+			<button type="button" class="go" disabled={!changed || saving} onclick={onapply}>
+				{saving ? 'Saving...' : 'Apply'}
+			</button>
+			<button type="button" disabled={!changed || saving} onclick={onrevert}>Revert</button>
+		</div>
 		{#if error}<p class="error" role="alert">{error}</p>{/if}
 		<div class="rows">
 			<div class="row">
@@ -193,6 +218,31 @@
 	.note {
 		margin: 0 0 14px;
 		color: var(--muted);
+	}
+
+	.apply {
+		display: flex;
+		gap: 10px;
+		margin: 0 0 14px;
+	}
+
+	.apply button {
+		padding: 8px 22px;
+		border-radius: 999px;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+
+	.apply .go:not(:disabled) {
+		border-color: var(--launch);
+		background: var(--launch);
+		color: #14110f;
+	}
+
+	.apply button:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
 	}
 
 	.error {

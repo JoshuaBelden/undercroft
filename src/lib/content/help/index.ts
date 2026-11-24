@@ -788,13 +788,13 @@ It is resolved only for those of you who could begin it. Once it is, it's done f
 		id: 'look',
 		title: 'Your look',
 		category: 'The surface',
-		body: `The Character tab on the dashboard is how other players see your explorer underground. Your explorer turns on the left: drag it round, or use Turn (left and right on a controller). Motion shows it standing, walking, running, crouching or crawling.
+		body: `The Explorer tab on the dashboard is how other players see your explorer underground. Your explorer turns on the left: drag it round, or use Turn (left and right on a controller). Motion shows it standing, walking, running, crouching or crawling.
 
 - Body and Face: two bodies, each with five faces.
 - Hair, Shirt, Pants and Outer layer: what you wear. The outer layer goes over your shirt; choose None to go without.
 - Colours: a row of colours for your skin and for each thing you wear. For hair and clothes, the first colour, split in two, is the way it was made.
 
-Every change is saved as you make it, and shows from your next expedition. Choosing on a controller: move to a row, then left and right step through it; on a row of colours, A picks the one in focus.`
+Your explorer shows each change at once; Apply keeps it, and your party sees it straight away on the Expedition page (Revert goes back to what you had). Choosing on a controller: move to a row, then left and right step through it; on a row of colours, A picks the one in focus.`
 	},
 	{
 		id: 'account',

@@ -1,4 +1,5 @@
 import type { RawData, WebSocket } from 'ws';
+import { cleanLook } from '../src/lib/shared/player/look.ts';
 import { PROTOCOL_VERSION } from '../src/lib/shared/constants.ts';
 import { decodeClient, encode } from '../src/lib/shared/protocol.ts';
 import { cleanTag } from '../src/lib/content/account.ts';
@@ -44,6 +45,8 @@ export function serve(
 					explorer,
 					gamerTag: cleanTag(message.name) ?? 'Guest',
 					avatar: null,
+					// Their look is in their own save: their game sends it.
+					look: cleanLook(message.look),
 					remote: true
 				};
 				attachGuest(explorer, socket);

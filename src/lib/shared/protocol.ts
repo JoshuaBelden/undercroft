@@ -32,7 +32,7 @@ export type ClientMessage =
 	 * otherwise one of your own. `name` is your gamer tag: only used when you join someone's
 	 * desktop game as a co-op guest, whose server has no account for you (docs/dev/hosting.md).
 	 */
-	| { type: 'hello'; protocol: number; ticket: string; name?: string }
+	| { type: 'hello'; protocol: number; ticket: string; name?: string; look?: unknown }
 	| { type: 'ping'; clientTime: number }
 	/** Fixed-step input frames since the last send (see docs/dev/player.md). */
 	| { type: 'input'; frames: InputFrame[] }

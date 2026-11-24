@@ -285,9 +285,12 @@ function rig(doc: Document): Rig {
 		for (const child of node.listChildren()) walk(child, node);
 	};
 	for (const node of scene?.listChildren() ?? []) walk(node, null);
+	// A clip exported on its own (no mesh, so no skin): its bones are its named nodes.
 	const skin = doc.getRoot().listSkins()[0];
-	if (!skin) throw new Error('no skin to retarget onto');
-	const bones = new Set(skin.listJoints());
+	const bones = new Set(
+		skin ? skin.listJoints() : order.filter((n) => n.getName() && !n.getMesh())
+	);
+	if (!bones.size) throw new Error('no bones to retarget onto');
 	const byName = new Map([...bones].map((b) => [b.getName(), b]));
 	const r: Rig = {
 		order,

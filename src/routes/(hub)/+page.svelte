@@ -8,12 +8,12 @@
 	import { prefetch } from '#lib/game/prefetch.svelte.ts';
 	import AfflictionPicker from '#lib/ui/AfflictionPicker.svelte';
 	import ButtonHint from '#lib/ui/ButtonHint.svelte';
-	import { dragScroll } from '#lib/ui/dragScroll.ts';
-	import ExplorerPane from '#lib/ui/ExplorerPane.svelte';
+	import PartyLineup from '#lib/ui/PartyLineup.svelte';
 	import { launch } from '#lib/ui/launch.svelte.ts';
 
 	/*
-	 * The Expedition page: the party, one pane each, and the launch panel in the lower right. The
+	 * The Expedition page: the party standing about in their looks (PartyLineup), and the launch
+	 * panel in the lower right. The
 	 * host chooses the Affliction; anyone presses Launch, confirms their loadout on the Loadout
 	 * page and is then ready; once everyone is, the descent counts down (the countdown itself is
 	 * drawn by the root layout, over whatever page is open). See docs/dev/expedition.md.
@@ -53,11 +53,7 @@
 
 <div class="expedition">
 	{#if party && you}
-		<div class="track" use:dragScroll>
-			{#each party.members as member (member.id)}
-				<ExplorerPane {member} host={member.id === party.leader} you={member.id === you.id} />
-			{/each}
-		</div>
+		<PartyLineup members={party.members} you={you.id} />
 
 		<aside class="launch" aria-label="Launch">
 			<h2>Affliction</h2>
@@ -152,24 +148,6 @@
 		justify-content: center;
 		min-width: 0;
 		padding: 24px 0 84px;
-	}
-
-	/* The party, centred; it scrolls sideways (dragScroll, touch, the scrollbar) if it has to. */
-	.track {
-		flex: none;
-		display: flex;
-		justify-content: safe center;
-		gap: 20px;
-		padding: 0 0 14px;
-		overflow-x: auto;
-		cursor: grab;
-		user-select: none;
-		scrollbar-width: thin;
-		scrollbar-color: var(--border) transparent;
-	}
-
-	.track:global(.dragging) {
-		cursor: grabbing;
 	}
 
 	/* The launch panel: lower right, above the corner buttons. */

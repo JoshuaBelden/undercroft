@@ -93,6 +93,12 @@ export class PlayerBody {
 	/** Your own body's fill from the camera (`own`), following your lamp, and its materials. */
 	private fill = { value: 0 };
 	private steady = new SteadyLight();
+	/**
+	 * Standing still, this slot plays instead of `idle` (`waiting` on the Expedition page), from
+	 * this many seconds in, so several bodies side by side don't move in step.
+	 */
+	private idleSlot: AnimSlot = 'idle';
+	private idleFrom = 0;
 	/** The look worn, what it is drawn with, and the dressing in progress (newest wins). */
 	private wearing: string | null = null;
 	private dressed: Dressed | null = null;
@@ -138,6 +144,12 @@ export class PlayerBody {
 		this.floor.visible = false;
 		this.root.add(this.floor);
 		this.grip.visible = false;
+	}
+
+	/** Stand about with `slot` instead of the idle, starting `from` seconds into it. */
+	idle(slot: AnimSlot, from = 0): void {
+		this.idleSlot = slot;
+		this.idleFrom = from;
 	}
 
 	/**
@@ -410,7 +422,7 @@ export class PlayerBody {
 			anim = state.stance;
 			pace = speed / MOVEMENT.stances[state.stance].speed;
 		} else if (speed < STILL) {
-			anim = 'idle';
+			anim = this.idleSlot;
 			pace = 1;
 		} else if (speed > (MOVEMENT.stances.stand.speed + MOVEMENT.sprintSpeed) / 2) {
 			anim = 'running';
@@ -419,7 +431,7 @@ export class PlayerBody {
 			anim = 'walking';
 			pace = speed / MOVEMENT.stances.stand.speed;
 		}
-		animator.play(anim);
+		animator.play(anim, anim === this.idleSlot ? this.idleFrom : 0);
 		// Crouched or prone and not moving: the cycle stops where it is. A rope climb runs at the
 		// climbing pace, backwards on the way down.
 		const moving = anim === 'walking' || anim === 'running';

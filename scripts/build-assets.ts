@@ -782,6 +782,15 @@ async function buildExplorer(io: NodeIO): Promise<void> {
 		.getRoot()
 		.listAnimations()
 		.map((a) => a.getName());
+	const extraDir = path.join(PLAYER_SOURCE, 'animations');
+	const extraClips = existsSync(extraDir)
+		? await Promise.all(
+				readdirSync(extraDir)
+					.filter((f) => f.endsWith('.glb'))
+					.sort()
+					.map((f) => io.read(path.join(extraDir, f)))
+			)
+		: [];
 	const bodies = readdirSync(PLAYER_SOURCE)
 		.filter((f) => /^body-.+\.glb$/.test(f))
 		.map((f) => f.slice('body-'.length, -'.glb'.length))
@@ -796,6 +805,17 @@ async function buildExplorer(io: NodeIO): Promise<void> {
 			align: LIMB_ALIGNMENT,
 			keyedOnly: true
 		});
+		// Clips from elsewhere (Mixamo), one per file in animations/ (scripts/blender/animations.py).
+		for (const donor of extraClips) {
+			const names = donor
+				.getRoot()
+				.listAnimations()
+				.map((a) => a.getName());
+			retargetClips(anims, donor, Object.fromEntries(names.map((n) => [n, n])), {
+				align: LIMB_ALIGNMENT,
+				keyedOnly: true
+			});
+		}
 		// Where the old explorer's hand frame is on this body's hand: the items' grips are in it.
 		const frames = boneFrames(anims, clips, LIMB_ALIGNMENT, ['RightHand']);
 		skeletonOnly(anims);
@@ -805,8 +825,9 @@ async function buildExplorer(io: NodeIO): Promise<void> {
 		// The body, then each piece fitted to it.
 		const skeleton = await io.read(file);
 		const bodyKb = (await writeExplorerModel(io, await io.read(file), dir, 'body')) / 1e3;
+		const clipCount = anims.getRoot().listAnimations().length;
 		console.log(
-			`  explorer ${body}: body ${bodyKb.toFixed(0)} KB, ${names.length} clips ${animsKb.toFixed(0)} KB`
+			`  explorer ${body}: body ${bodyKb.toFixed(0)} KB, ${clipCount} clips ${animsKb.toFixed(0)} KB`
 		);
 		const pieceDir = path.join(PLAYER_SOURCE, body);
 		if (!existsSync(pieceDir)) continue;

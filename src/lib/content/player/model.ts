@@ -36,6 +36,9 @@ export const PLAYER_MODEL: PlayerModelDef = {
 	animations: {
 		// No idle clip yet: the walk's first frame (feet passing, nearly upright), held.
 		idle: { clip: 'Walking', speed: 0 },
+		// Shifting about, looking round (Mixamo's Bored, art/export/player/animations): the Expedition
+		// page's lineup.
+		waiting: { clip: 'Bored' },
 		walking: { clip: 'Walking' },
 		running: { clip: 'Running' },
 		crouch: { clip: 'Cautious_Crouch_Walk_Forward' },

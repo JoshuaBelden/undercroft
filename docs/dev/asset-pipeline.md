@@ -249,6 +249,8 @@ The build merges the two by bone name (`mergeClips`, `scripts/clips.ts`: it keep
 - `align: LIMB_ALIGNMENT`. The first explorer's arms, hands and feet rest 15-25 degrees from MPFB's, so each limb, hand and finger is first lined up with its rest direction (a hand's twist too, from the line across its knuckles). Without it the hands bend and the crouch flattens. The spine is left out: the first explorer's spine joints zigzag.
 - `keyedOnly`. A retargeted clip keeps only the bones the source clip moved, so the arm poses leave the legs to the full-body clip.
 
+**Clips from elsewhere.** A Mixamo clip (FBX, "Without Skin" is enough) goes in `art/export/player/animations/<name>.fbx`; `scripts/blender/animations.py` (`animations.convert_all()`) turns each into `<name>.glb` beside it, its one clip named for the file in TitleCase (`bored.fbx` -> `Bored`). The build retargets every clip there onto each body as above, and `PLAYER_MODEL` maps it to a slot (`waiting` is `Bored`, the Expedition page's lineup). A clip with no mesh has no skin: the retargeter takes its named nodes as its bones.
+
 `boneFrames` works out the turn from each body's right hand into the first explorer's hand frame, where the items' grips were made, and leaves it on `anims.glb` (`boneFrames` in the scene's extras); `PlayerBody` hangs the held item in it.
 
 ### The wardrobe
@@ -267,7 +269,7 @@ wardrobe.build_all()        # both bodies, built and exported; then pnpm asset:b
 - **Bodies** (`BODIES`): MakeHuman's macro sliders, a skin, brows and lashes. Each gets MPFB's `mixamo` rig with its weights: the bone names the clips use.
 - **Pieces** (`WEAR`): an MPFB hair or clothes asset each, fitted to every body. Its place in `WEAR` is its `_HIDE` bit (`HIDE_BITS`, after the boots' 0): add new pieces at the end, and give them the same `hideBit` in `src/lib/content/player/wardrobe.ts`.
 - **Faces** (`FACES`): per body, MakeHuman face targets with weights. Each is loaded, every fitted piece refitted, and the result kept as shape key `face-<n>` on the body and on each piece it moved by more than half a millimetre (brows, every hair style). Keep to the face and head: pulling the nose tip down drags the lips' colour onto it.
-- **Hidden under clothes** (`mark_hidden`): for each piece in `HIDES`, the body's vertices just under its surface (within 3 cm, behind the cloth), less a ring at its edges so a hem never opens a gap, get its bit in `_HIDE`.
+- **Hidden under clothes** (`mark_hidden`): the boots, always worn, hide every vertex that moves mostly with a foot or toe bone (`feet`): near the shoe's surface alone left the heel showing. For each piece in `HIDES`, the body's vertices just under its surface (within 3 cm, behind the cloth), less a ring at its edges so a hem never opens a gap, get its bit in `_HIDE`.
 - **Under other pieces** (`UNDER`: the pants under the shirt and the outer layer). `tuck_unders` pulls each pants vertex above a top's hem to `TUCK` (1 cm) inside the top, or half the room between the top and the skin if that is less, so it never goes into the body. `clear_tops` then pushes the top out wherever it is still within `CLEAR` of the pants. The pants are low-poly: hiding their covered vertices instead left whole triangles poking through.
 
 A piece made elsewhere works too, as long as it is skinned to the body's rig (the same bones, resting in the same place: the build checks) and exported to `art/export/player/<body>/<piece>.glb`.

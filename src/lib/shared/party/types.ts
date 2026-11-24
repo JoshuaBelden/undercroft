@@ -1,3 +1,5 @@
+import type { Look } from '../player/look.ts';
+
 /**
  * Parties: the group that descends together. The server owns them (server/parties.ts) and sends
  * every member the whole `PartyState` whenever it changes. See docs/dev/expedition.md.
@@ -11,6 +13,8 @@ export interface PartyMember {
 	name: string;
 	/** Their avatar's URL (an upload, or their Discord avatar), or null: none. */
 	avatar: string | null;
+	/** How their explorer is dressed (docs/dev/player.md#the-look). */
+	look: Look;
 	/** Has confirmed their loadout and is waiting to descend. */
 	ready: boolean;
 	/** Down in the catacombs right now (false once they have climbed out or died). */

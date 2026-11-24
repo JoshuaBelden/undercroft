@@ -296,6 +296,19 @@ def covered(body_obj, garment):
     return under - edge
 
 
+def feet(body_obj):
+    """The body's vertices that move mostly with a foot or toe bone: inside the boots."""
+    groups = {g.index for g in body_obj.vertex_groups if g.name.split(":")[-1] in FOOT_BONES}
+    out = set()
+    for v in body_obj.data.vertices:
+        if sum(g.weight for g in v.groups if g.group in groups) > 0.5:
+            out.add(v.index)
+    return out
+
+
+FOOT_BONES = {"LeftFoot", "LeftToeBase", "RightFoot", "RightToeBase"}
+
+
 def mark_hidden(body):
     """Write `_HIDE` on the body: per vertex, the bits of every garment covering it."""
     bm = basemesh(body)
@@ -304,7 +317,12 @@ def mark_hidden(body):
         if wid != "boots" and wid not in HIDES:
             continue
         name = BOOTS if wid == "boots" else WEAR[wid][1]
-        for i in covered(bm, piece(body, name)):
+        hidden = covered(bm, piece(body, name))
+        if wid == "boots":
+            # The boots are always worn: the whole foot is in them. Near the surface alone left the
+            # heel, which sits further from the shoe than the toes, showing through.
+            hidden |= feet(bm)
+        for i in hidden:
             bits[i] |= 1 << bit
     attr = bm.data.attributes.get("_HIDE") or bm.data.attributes.new("_HIDE", "FLOAT", "POINT")
     attr.data.foreach_set("value", [float(b) for b in bits])

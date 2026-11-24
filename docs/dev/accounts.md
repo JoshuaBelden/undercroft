@@ -107,7 +107,7 @@ Account things live only here, not in Settings, so the gamer tag can't be change
 
 ## Avatars
 
-The picture beside a player's gamer tag: at the top right of the dashboard (`AccountMenu`), on the Account screen, and on their pane on the Expedition page (`ExplorerPane`). Which one shows is `avatarUrl` (`src/lib/shared/account/avatar.ts`):
+The picture beside a player's gamer tag: at the top right of the dashboard (`AccountMenu`), on the Account screen. Which one shows is `avatarUrl` (`src/lib/shared/account/avatar.ts`):
 
 1. **A picture they uploaded**, if they have one: `/avatars/<account>?v=<version>`.
 2. **Otherwise their Discord avatar**, if they linked Discord and have one there: straight from Discord's image server (`cdn.discordapp.com`, a still WebP). The hash is kept on `accounts.discord.avatar` and refreshed each time they sign in with Discord or link it (`refreshDiscord`, `linkDiscord`), so a change on Discord shows from their next Discord sign-in. Only hashes that look like Discord's (`isDiscordAvatar`) are kept, as they go into a URL.
