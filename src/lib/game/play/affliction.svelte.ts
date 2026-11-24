@@ -51,6 +51,9 @@ export class Affliction implements PlayFeature {
 	event(event: GameEvent): void {
 		const { sounds, client, ui } = this.ctx;
 		switch (event.kind) {
+			case 'omen':
+				this.sting(event.stage);
+				break;
 			case 'creatureHit':
 				if (event.id === 'manifestation') this.manifestation.hit();
 				break;
@@ -72,6 +75,15 @@ export class Affliction implements PlayFeature {
 				ui.banner('Lost in the dark');
 				break;
 		}
+	}
+
+	/**
+	 * A new omen stage began: play its `sting`. The server sends `omen` once per stage, as it
+	 * begins (the meter only rises), so it plays once, and a late joiner hears none of the past.
+	 */
+	private sting(stage: number): void {
+		const sting = AFFLICTIONS[this.id]?.stages[stage - 1]?.sting;
+		if (sting) this.ctx.sounds.play(sting);
 	}
 
 	/**

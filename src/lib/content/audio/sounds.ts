@@ -787,8 +787,10 @@ export const SOUNDS = {
 		caption: 'something dropped',
 		captionOthers: true
 	},
-	// The Affliction.
+	// The Affliction: a low drone heard once, as the omen reaches three quarters (the stage's
+	// `sting`, src/lib/content/afflictions.ts). A one-shot, not a loop.
 	'omen.drone': {
+		file: 'omen.drone',
 		category: 'ambience',
 		volume: 0.6,
 		caption: 'low hum'

@@ -347,7 +347,7 @@ One setting (`settings.accessibility.captions`, off by default; `captionSize` se
 - `SoundBank` raises a cue on `oncaption` from `play`, `playAt` and a loop's `setVolume`, before the audio-unlocked check, so captions work with the sound off or muted.
 - **Audibility:** a cue is only raised when `level × volume × distance falloff` reaches `CAPTION_THRESHOLD`. The falloff is `AudioManager.distanceGain`, the same inverse curve the panner uses, so a sound is captioned about as far as it is heard.
 - **Direction:** positional cues carry `ahead`, `behind`, `left`, `right`, `above` or `below`, from `captionDirection` (listener position and facing from `AudioManager.listener`). Non-positional sounds and loops have none.
-- **Loops** (heartbeat, omen drone, the manifestation's rumble) re-raise their cue every 0.5 s while audible, which keeps the caption up.
+- **Loops** (heartbeat, the manifestation's rumble) re-raise their cue every 0.5 s while audible, which keeps the caption up.
 - `CaptionFeed` (`src/lib/game/audio/captions.svelte.ts`) holds up to 4 captions, one per sound id; a repeat refreshes its timer and direction instead of adding a line. `Captions.svelte` draws them at the bottom of the screen.
 
 **Adding a caption:** add `caption` to the sound in `sounds.ts`. Describe the sound, not its source; captions must not give away more than hearing it would. Never name creatures.
