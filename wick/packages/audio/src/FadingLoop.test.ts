@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SoundHandle } from './AudioManager.ts';
-import type { SoundBank } from './SoundBank.ts';
-import { FadingLoop } from './FadingLoop.ts';
+import { FadingLoop, type LoopSource } from './FadingLoop.ts';
 
 /** A loop that records what was asked of it. */
 interface FakeLoop extends SoundHandle {
@@ -10,10 +9,10 @@ interface FakeLoop extends SoundHandle {
 }
 
 /** A sound bank whose loops finish loading when the test says so. */
-function fakeBank(): { bank: SoundBank; loops: FakeLoop[]; load: () => Promise<void> } {
+function fakeBank(): { bank: LoopSource<string>; loops: FakeLoop[]; load: () => Promise<void> } {
 	const loops: FakeLoop[] = [];
 	const pending: (() => void)[] = [];
-	const bank = {
+	const bank: LoopSource<string> = {
 		loop: () =>
 			new Promise<SoundHandle>((done) => {
 				const loop: FakeLoop = {
@@ -26,7 +25,7 @@ function fakeBank(): { bank: SoundBank; loops: FakeLoop[]; load: () => Promise<v
 				loops.push(loop);
 				pending.push(() => done(loop));
 			})
-	} as unknown as SoundBank;
+	};
 	const load = async (): Promise<void> => {
 		for (const done of pending.splice(0)) done();
 		await Promise.resolve();

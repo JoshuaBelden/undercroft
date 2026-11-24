@@ -1,29 +1,15 @@
-import type { AudioCategory } from './categories.ts';
+import type { SoundDef as WickSoundDef } from '@wick/audio';
+import type { SoundCategory } from './categories.ts';
 
 /**
  * Sound registry. A sound plays a built recording (`file`: an id from `pnpm asset:audio`, see
  * scripts/audio.config.ts). One with no recording built (or no `file` yet) plays nothing and
  * shows as missing on the admin Art & Assets page. Sounds are never synthesized in code: every
- * one is a recording. See docs/dev/player.md.
+ * one is a recording. Captions are lowercase, with no brackets. See docs/dev/player.md.
  */
 
-export interface SoundDef {
-	/** Built recording id(s) (AUDIO_FILES); a random variant of all of them plays each time. */
-	file?: string | string[];
-	category: Exclude<AudioCategory, 'master'>;
-	volume: number;
-	/** Base playback rate; shifts pitch (used to vary one recording across surfaces). */
-	rate?: number;
-	/** Random playback-rate spread (0.1 = +-10%) so repeats don't sound identical. */
-	variation?: number;
-	/**
-	 * What the player reads when sound captions are on: lowercase, no brackets. Sounds without
-	 * one are never captioned (the player's own footsteps, breath, clicks).
-	 */
-	caption?: string;
-	/** Caption it only when it comes from the world, not when the player makes it themselves. */
-	captionOthers?: boolean;
-}
+/** A registered sound (WICK's `SoundDef`) on one of Undercroft's categories. */
+export type SoundDef = WickSoundDef<SoundCategory>;
 
 /**
  * Another explorer's gunshot: within `from` metres you hear the gun itself; over the next `span`

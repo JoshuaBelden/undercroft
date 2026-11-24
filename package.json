@@ -13,6 +13,7 @@
 		"dev": "vite dev --host",
 		"dev:server": "tsx watch --env-file-if-exists=.env server/index.ts",
 		"dev:admin": "pnpm -C admin dev",
+		"university:dev": "pnpm -C wick/university dev",
 		"dev:all": "docker compose up -d && concurrently --names site,game,admin --prefix-colors cyan,magenta,yellow \"pnpm dev\" \"pnpm dev:server\" \"pnpm dev:admin\"",
 		"desktop:dev": "pnpm -C desktop dev",
 		"desktop:build": "pnpm -C desktop dist",
@@ -24,7 +25,7 @@
 		"build:admin": "pnpm -C admin build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && pnpm -C admin check && pnpm -C desktop check",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && pnpm -C admin check && pnpm -C desktop check && pnpm -r --filter \"./wick/**\" check",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"release": "tsx scripts/release.ts",
 		"lint": "prettier --check . && eslint . --max-warnings 0",
@@ -77,6 +78,7 @@
 		"vitest": "^5.1.0"
 	},
 	"dependencies": {
+		"@wick/audio": "workspace:*",
 		"mongodb": "^7.8.0",
 		"qrcode": "^1.5.4",
 		"sharp": "^0.35.5",

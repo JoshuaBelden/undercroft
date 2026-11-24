@@ -1,7 +1,20 @@
-import type { SoundId } from '#lib/content/audio/sounds.ts';
 import type { SoundHandle } from './AudioManager.ts';
-import type { SoundBank } from './SoundBank.ts';
 
+/**
+ * What a fading loop plays through: a `SoundBank`, or anything that starts loops by id.
+ * @typeParam Id - The sound ids.
+ */
+export interface LoopSource<Id extends string> {
+	/**
+	 * Start a loop.
+	 * @param id - The sound.
+	 * @param volume - Its starting volume.
+	 * @returns A handle to fade and stop it.
+	 */
+	loop(id: Id, volume?: number): Promise<SoundHandle>;
+}
+
+/** How long a fading loop's fades take. */
 export interface Fades {
 	/** Seconds to come up when it starts or is wanted again. */
 	in: number;
@@ -10,13 +23,19 @@ export interface Fades {
 }
 
 /**
- * A looped sound that fades in while it is wanted and fades out, then stops, when it isn't: the
- * ambient bed on the surface (the root layout), the fight music underground (`play/affliction`).
- * See docs/dev/player.md#fading-loops.
+ * A looped sound that fades in while it is wanted, and fades out then stops when it isn't: an
+ * ambient bed under the menus, the music of a fight. Set whether it is wanted as often as you
+ * like; only a change does anything.
  *
  * It waits for `allow()` before it starts: until the browser lets the page make sound.
+ *
+ * @typeParam Id - The sound ids.
+ * @example
+ * const bed = new FadingLoop(sounds, 'menu.bed', { in: 3, out: 1.5 });
+ * startButton.onclick = async () => { await audio.unlock(); bed.allow(); };
+ * bed.setWanted(onMenus);
  */
-export class FadingLoop {
+export class FadingLoop<Id extends string = string> {
 	private handle: SoundHandle | null = null;
 	private wanted = false;
 	private allowed = false;
@@ -24,20 +43,29 @@ export class FadingLoop {
 	private generation = 0;
 	private stopTimer: ReturnType<typeof setTimeout> | null = null;
 
+	/**
+	 * @param sounds - What starts the loop (usually a `SoundBank`).
+	 * @param id - The sound to loop.
+	 * @param fades - How long fading in and out take.
+	 */
 	constructor(
-		private readonly sounds: SoundBank,
-		private readonly id: SoundId,
+		private readonly sounds: LoopSource<Id>,
+		private readonly id: Id,
 		private readonly fades: Fades
 	) {}
 
-	/** Should it be playing. Setting it to what it already is changes nothing. */
+	/**
+	 * Say whether it should be playing. Wanted, it starts (once allowed) or comes back up
+	 * mid-fade without restarting; unwanted, it fades out, then stops.
+	 * @param wanted - Whether it should be playing. The same value again changes nothing.
+	 */
 	setWanted(wanted: boolean): void {
 		if (wanted === this.wanted) return;
 		this.wanted = wanted;
 		this.update();
 	}
 
-	/** The audio is unlocked: it can start. */
+	/** Audio may play now (it has been unlocked): if it is wanted, it starts. */
 	allow(): void {
 		if (this.allowed) return;
 		this.allowed = true;

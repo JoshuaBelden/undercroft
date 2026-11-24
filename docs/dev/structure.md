@@ -29,8 +29,10 @@ src/
         actions.ts          action definitions and default bindings
         InputMap.ts         raw input -> actions
       audio/
-        AudioManager.ts     Web Audio buses and playback
-        captions.svelte.ts  sound caption feed and direction
+        AudioManager.ts     WICK's audio manager, set up with Undercroft's buses and settings
+        SoundBank.ts        WICK's sound bank, playing the sound registry
+        Ambience.ts         drips, distant sounds, lapping water, the space's acoustics
+        captions.svelte.ts  sound caption feed (direction is WICK's)
       play/                 the play page's features: ropes, marks, crates, the rite... (docs/dev/play.md)
       net/
         GameClient.ts       WebSocket client, reconnect, RTT
@@ -125,6 +127,9 @@ scripts/
 deploy/                     production: Caddyfile, provision.ts (DigitalOcean), deploy.ts
 static/assets/              built models, textures, audio, pictures (content-hashed), served at /assets
 art/                        raw art sources: the private undercroft-art repo (Git LFS), ignored here
+wick/                       WICK, the engine being drawn out of Undercroft (docs/wick-roadmap.md)
+  packages/audio/           @wick/audio: buses, muffle and reverb, positional sound, sound bank, fading loops
+  university/               the University: how each WICK system works, with live demos (pnpm university:dev)
 ```
 
 ## Imports
@@ -136,6 +141,8 @@ import { Engine } from '#lib/game/Engine.ts';
 import { settings } from '#lib/settings/settings.svelte.ts';
 import Panel from '#lib/ui/Panel.svelte';
 ```
+
+WICK's packages are imported by package name: `import { FadingLoop } from '@wick/audio';`. Code inside `wick/` never imports Undercroft (`#lib`, or any path out of `wick/`); ESLint enforces it (see `docs/wick-roadmap.md`).
 
 The server cannot use `#lib`-only SvelteKit features. It imports shared code by relative path: `../src/lib/shared/protocol.ts`. Keep `src/lib/shared/` free of browser, Svelte, and SvelteKit imports.
 

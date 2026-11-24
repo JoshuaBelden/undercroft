@@ -4,7 +4,12 @@ import { defineConfig } from 'vitest/config';
 // under test needs none, and leaving it out keeps the runs fast.
 export default defineConfig({
 	test: {
-		include: ['src/**/*.test.ts', 'server/**/*.test.ts', 'desktop/src/**/*.test.ts'],
+		include: [
+			'src/**/*.test.ts',
+			'server/**/*.test.ts',
+			'desktop/src/**/*.test.ts',
+			'wick/packages/*/src/**/*.test.ts'
+		],
 		environment: 'node',
 		// Session tests play out seconds of an expedition: alone they take one or two seconds, but a
 		// full parallel run on a busy machine can push some past vitest's 5 s default.
@@ -21,7 +26,8 @@ export default defineConfig({
 				'src/lib/server/store/**/*.ts',
 				'desktop/src/frames.ts',
 				'desktop/src/tunnel.ts',
-				'desktop/src/navigation.ts'
+				'desktop/src/navigation.ts',
+				'wick/packages/*/src/**/*.ts'
 			],
 			exclude: [
 				'**/*.test.ts',
