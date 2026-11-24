@@ -12,6 +12,11 @@ import { tintOf, type Look } from '#lib/shared/player/look.ts';
 export interface Dressed {
 	scene: THREE.Object3D;
 	clips: THREE.AnimationClip[];
+	/**
+	 * The turn from a bone into the frame the clips were made in (`boneFrames` in the clips file),
+	 * by bone name: the held item's grip is in the old explorer's hand frame.
+	 */
+	frames: Record<string, THREE.Quaternion>;
 	/** The materials made for it, to dispose with it. */
 	materials: THREE.Material[];
 }
@@ -35,7 +40,7 @@ export async function dress(look: Look, options: DressOptions = {}): Promise<Dre
 		const id = look.wear[slot];
 		return id ? [{ slot, id }] : [];
 	});
-	const [body, clips, ...pieces] = await Promise.all([
+	const [body, clipSet, ...pieces] = await Promise.all([
 		loadCharacter(files.body),
 		loadClips(files.anims, PLAYER_MODEL.root),
 		...worn.map((w) => loadCharacter(wearFile(look.body, w.id)))
@@ -94,7 +99,10 @@ export async function dress(look: Look, options: DressOptions = {}): Promise<Dre
 	});
 
 	setFace(scene, look.face);
-	return { scene, clips, materials };
+	const frames = Object.fromEntries(
+		Object.entries(clipSet.frames).map(([bone, q]) => [bone, new THREE.Quaternion(...q)])
+	);
+	return { scene, clips: clipSet.clips, frames, materials };
 }
 
 /** The face's shape key on, every other face's off, on every mesh that has them (hair too). */

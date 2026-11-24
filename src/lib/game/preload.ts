@@ -68,7 +68,7 @@ function sharedModels(): Task[] {
 		...characters([...explorer.models, ...Object.values(CREATURES).map((c) => c.model)]),
 		...explorer.clips.map((url) => ({
 			bytes: modelBytes(url),
-			load: () => loadClips(url, PLAYER_MODEL.root)
+			load: () => loadClips(url, PLAYER_MODEL.root).then(() => undefined)
 		})),
 		...models([
 			modelUrl('shared/props/crate.glb'),

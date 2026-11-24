@@ -67,15 +67,23 @@ export const LIMB_ALIGNMENT: BoneAlignment = Object.fromEntries(
 	])
 );
 
-/**
- * Retarget the donor's clips into `doc`. Returns the names they went in under. `align` lines up
- * those bones' rest directions with the donor's first, so a limb points where the donor's does.
- */
+export interface RetargetOptions {
+	/** Bones lined up with the donor's rest first, so a limb points where the donor's does. */
+	align?: BoneAlignment;
+	/**
+	 * Only the bones a donor clip moves get a channel; the rest follow whatever else is playing.
+	 * For clips played over others on part of the body (the explorer's arm poses): written whole,
+	 * they would hold the legs still too.
+	 */
+	keyedOnly?: boolean;
+}
+
+/** Retarget the donor's clips into `doc`. Returns the names they went in under. */
 export function retargetClips(
 	doc: Document,
 	donor: Document,
 	clips: Record<string, string>,
-	align: BoneAlignment = {}
+	{ align = {}, keyedOnly = false }: RetargetOptions = {}
 ): string[] {
 	const root = doc.getRoot();
 	const buffer = root.listBuffers()[0] ?? doc.createBuffer();
@@ -124,7 +132,11 @@ export function retargetClips(
 					world = mul(parentWorld, node.getRotation() as Quat);
 				}
 				targetWorld.set(node, world);
-				if (target.bones.has(node) && match) {
+				if (
+					target.bones.has(node) &&
+					match &&
+					(!keyedOnly || channels.has(`${match.getName()}/rotation`))
+				) {
 					const local = normalize(mul(inv(parentWorld), world));
 					const list = rotations.get(node.getName()) ?? [];
 					list.push(...local);
@@ -132,7 +144,8 @@ export function retargetClips(
 				}
 			}
 			// The hips: the donor's movement off its rest, into the model's frame, scaled.
-			if (target.hips && source.hips && hipsName) {
+			const hipsKeyed = !!source.hips && channels.has(`${source.hips.getName()}/translation`);
+			if (target.hips && source.hips && hipsName && (!keyedOnly || hipsKeyed)) {
 				const ch = channels.get(`${source.hips.getName()}/translation`);
 				const rest = source.hips.getTranslation() as Vec3;
 				const now = ch ? (sample(ch, t) as Vec3) : rest;
@@ -183,6 +196,40 @@ export function retargetClips(
 	}
 	const missing = Object.values(clips).filter((n) => !out.includes(n));
 	if (missing.length) throw new Error(`the donor has no clip for ${missing.join(', ')}`);
+	return out;
+}
+
+/**
+ * For each named bone (by its end, `RightHand`), the turn from the model's bone into the donor's
+ * same bone's frame, once the clips are retargeted with `align`: something hung from the donor's
+ * bone (a held item, at its grip) goes under the model's bone turned by this, and sits as it did.
+ * Keyed by the bone's name as three.js gives it (no ':').
+ */
+export function boneFrames(
+	doc: Document,
+	donor: Document,
+	align: BoneAlignment,
+	ends: string[]
+): Record<string, [number, number, number, number]> {
+	const target = rig(doc);
+	const source = rig(donor);
+	const lineUp = alignments(target, source, align);
+	const out: Record<string, Quat> = {};
+	for (const end of ends) {
+		const t = [...target.byName.values()].find((b) => b.getName().endsWith(end));
+		const s = [...source.byName.values()].find((b) => b.getName().endsWith(end));
+		if (!t || !s) continue;
+		// The model's bone moves as `fix * rest` does in the donor's place, so the donor's frame is
+		// inv(fix * targetRest) * sourceRest from it.
+		const fix = lineUp.get(t) ?? IDENTITY;
+		const frame = normalize(mul(inv(mul(fix, target.restWorld.get(t)!)), source.restWorld.get(s)!));
+		out[
+			t
+				.getName()
+				.replace(/[[\].:/]/g, '')
+				.replace(/\s/g, '_')
+		] = frame;
+	}
 	return out;
 }
 

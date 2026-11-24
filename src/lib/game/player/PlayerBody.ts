@@ -73,6 +73,8 @@ export class PlayerBody {
 	private upper: UpperBody | null = null;
 	/** Hangs from the right hand bone at the held item's grip; holds its model. */
 	private grip = new THREE.Group();
+	/** On the hand bone, turned into the hand frame the grips were made in; holds `grip`. */
+	private handFrame = new THREE.Group();
 	/** On the floor in front of them: where something worked on kneeling (a medkit) is set down. */
 	private floor = new THREE.Group();
 	/** How far the held model's origin sits above its lowest point, to stand it on the floor. */
@@ -129,6 +131,8 @@ export class PlayerBody {
 		this.root.rotation.order = 'YXZ';
 		this.setLook(look);
 		this.grip.name = 'held-item';
+		this.handFrame.name = 'hand-frame';
+		this.handFrame.add(this.grip);
 		this.floor.name = 'set-down-item';
 		this.floor.position.set(...FLOOR_SPOT);
 		this.floor.visible = false;
@@ -157,7 +161,9 @@ export class PlayerBody {
 			this.dressed = dressed;
 			this.animator = new Animator(scene, clips, PLAYER_MODEL.animations);
 			this.upper = new UpperBody(scene, clips, PLAYER_MODEL.upper);
-			scene.getObjectByName(PLAYER_MODEL.hand)?.add(this.grip);
+			// The held item hangs in the hand frame its grip was made in (the old explorer's).
+			this.handFrame.quaternion.copy(dressed.frames[PLAYER_MODEL.hand] ?? IDENTITY);
+			scene.getObjectByName(PLAYER_MODEL.hand)?.add(this.handFrame);
 			this.headBone = scene.getObjectByName(PLAYER_MODEL.head) ?? null;
 			this.neckBone = scene.getObjectByName(PLAYER_MODEL.neck) ?? null;
 			this.turned.clear();
@@ -171,7 +177,7 @@ export class PlayerBody {
 		this.animator?.dispose();
 		this.animator = null;
 		this.upper = null;
-		this.grip.removeFromParent();
+		this.handFrame.removeFromParent();
 		dressed.scene.removeFromParent();
 		for (const m of dressed.materials) m.dispose();
 		this.dressed = null;
@@ -437,6 +443,7 @@ export class PlayerBody {
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
+const IDENTITY = new THREE.Quaternion();
 
 /** The turn (rad) from `from` to `to`, the short way round. */
 function angleTo(from: number, to: number): number {

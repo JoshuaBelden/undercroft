@@ -31,7 +31,7 @@ import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer
 import * as prettier from 'prettier';
 import sharp from 'sharp';
 import { dropAnimations, mergeClips, skeletonMismatch, skeletonOnly } from './clips.ts';
-import { CLIP_DONORS, LIMB_ALIGNMENT, retargetClips } from './retarget.ts';
+import { boneFrames, CLIP_DONORS, LIMB_ALIGNMENT, retargetClips } from './retarget.ts';
 import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
 import { LOOTABLES, type LootableId } from '../src/lib/content/lootables.ts';
@@ -792,8 +792,14 @@ async function buildExplorer(io: NodeIO): Promise<void> {
 		// The clips, on this body's skeleton.
 		const anims = await io.read(file);
 		dropAnimations(anims);
-		retargetClips(anims, clips, Object.fromEntries(names.map((n) => [n, n])), LIMB_ALIGNMENT);
+		retargetClips(anims, clips, Object.fromEntries(names.map((n) => [n, n])), {
+			align: LIMB_ALIGNMENT,
+			keyedOnly: true
+		});
+		// Where the old explorer's hand frame is on this body's hand: the items' grips are in it.
+		const frames = boneFrames(anims, clips, LIMB_ALIGNMENT, ['RightHand']);
 		skeletonOnly(anims);
+		for (const scene of anims.getRoot().listScenes()) scene.setExtras({ boneFrames: frames });
 		await anims.transform(prune(), meshopt(MODEL_MESHOPT));
 		const animsKb = (await writeModel(io, anims, dir, 'anims')) / 1e3;
 		// The body, then each piece fitted to it.
