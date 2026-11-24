@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { bodyFiles, PLAYER_MODEL, wearFile } from '#lib/content/player/model.ts';
-import { BOOTS_HIDE_BIT, WEAR, WEAR_SLOTS, type TintPart } from '#lib/content/player/wardrobe.ts';
+import {
+	BOOTS_HIDE_BIT,
+	WEAR,
+	WEAR_SLOTS,
+	type TintPart,
+	type WearDef
+} from '#lib/content/player/wardrobe.ts';
 import { loadCharacter, loadClips, warmCharacter } from '#lib/game/assets.ts';
 import { tintOf, type Look } from '#lib/shared/player/look.ts';
 
@@ -36,10 +42,15 @@ const SKIN = /\.body$/;
 
 export async function dress(look: Look, options: DressOptions = {}): Promise<Dressed> {
 	const files = bodyFiles(look.body);
-	const worn = WEAR_SLOTS.flatMap((slot) => {
+	const all = WEAR_SLOTS.flatMap((slot) => {
 		const id = look.wear[slot];
 		return id ? [{ slot, id }] : [];
 	});
+	// A piece another covers whole (the shirt under the sweater) isn't drawn at all.
+	const covered = new Set(
+		all.flatMap((w) => ('covers' in WEAR[w.id] ? (WEAR[w.id] as WearDef).covers : undefined) ?? [])
+	);
+	const worn = all.filter((w) => !covered.has(w.id));
 	const [body, clipSet, ...pieces] = await Promise.all([
 		loadCharacter(files.body),
 		loadClips(files.anims, PLAYER_MODEL.root),

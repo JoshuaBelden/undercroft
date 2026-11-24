@@ -27,8 +27,8 @@ export interface WearDef {
 	 * worn. Set by `HIDE_BITS` in scripts/blender/wardrobe.py; the two must agree.
 	 */
 	hideBit: number;
-	/** Other pieces it covers, not drawn under it (a jacket over the shirt's torso). */
-	covers?: string[];
+	/** Other pieces it covers whole: not drawn while it is worn (the shirt under the sweater). */
+	covers?: readonly string[];
 }
 
 /** Every piece: its id is its file, `shared/player/<body>/<id>.glb`. */
@@ -40,7 +40,9 @@ export const WEAR = {
 	'hair-afro': { label: 'Afro', slot: 'hair', hideBit: 5 },
 	shirt: { label: 'Polo shirt', slot: 'shirt', hideBit: 6 },
 	'pants-cargo': { label: 'Cargo pants', slot: 'pants', hideBit: 7 },
-	'pants-wool': { label: 'Wool trousers', slot: 'pants', hideBit: 8 }
+	'pants-wool': { label: 'Wool trousers', slot: 'pants', hideBit: 8 },
+	// No CC0 jacket exists in the MakeHuman packs yet: the sweater is the outer layer.
+	'jacket-sweater': { label: 'Wool sweater', slot: 'jacket', hideBit: 9, covers: ['shirt'] }
 } as const satisfies Record<string, WearDef>;
 
 export type WearId = keyof typeof WEAR;

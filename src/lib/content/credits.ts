@@ -49,7 +49,7 @@ export const CREDIT_SECTIONS: CreditSection[] = [
 			{
 				name: 'MakeHuman',
 				detail:
-					"The explorer's bodies, faces, hair and clothes, built with MPFB in Blender from the MakeHuman system assets and the shirts01 and pants01 packs (the polo shirt by namuhekam, the cargo pants by Cortu, the wool trousers by Margaret Toigo)",
+					"The explorer's bodies, faces, hair and clothes, built with MPFB in Blender from the MakeHuman system assets and the shirts01 and pants01 packs (the polo shirt by namuhekam, the cargo pants by Cortu, the wool trousers and sweater by Margaret Toigo)",
 				url: 'https://static.makehumancommunity.org',
 				license: 'CC0 1.0'
 			},

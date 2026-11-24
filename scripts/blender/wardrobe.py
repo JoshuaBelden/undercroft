@@ -70,10 +70,63 @@ WEAR = {
     "shirt": ("clothes", "namuhekam_male_polo_shirt"),
     "pants-cargo": ("clothes", "cortu_cargo_pants"),
     "pants-wool": ("clothes", "toigo_wool_pants"),
+    # No CC0 jacket exists in the MakeHuman packs: the sweater is the outer layer for now.
+    "jacket-sweater": ("clothes", "toigo_fisherman_sweater"),
 }
 # Hair covers nothing of the body; clothes and boots hide what is under them.
-HIDES = {"shirt", "pants-cargo", "pants-wool"}
+HIDES = {"shirt", "pants-cargo", "pants-wool", "jacket-sweater"}
+
+# The faces after each body's own (face 0): MakeHuman face targets and how far each goes, 0..1.
+# Each becomes a shape key `face-<n>` on the body and on everything fitted to the head. Kept to
+# the face and head shape: the eyes stay where they are. Pulling the nose tip down drags the
+# lips' colour onto it, so no face does.
+FACES = {
+    "male": [
+        # Broad and square: wide jaw and chin, a wide flat nose, a thick neck.
+        {"head/head-square": 1.0, "chin/chin-width-incr": 1.0, "chin/chin-prominent-incr": 0.6,
+         "nose/nose-scale-horiz-incr": 0.8, "nose/nose-flaring-incr": 0.7, "nose/nose-compression-compress": 0.5,
+         "mouth/mouth-scale-horiz-incr": 0.6, "neck/neck-scale-horiz-incr": 0.6,
+         "cheek/l-cheek-bones-incr": 0.5, "cheek/r-cheek-bones-incr": 0.5},
+        # Long and gaunt: a long head, a long hooked nose, hollow cheeks, a long chin.
+        {"head/head-oval": 1.0, "head/head-scale-horiz-decr": 0.5, "nose/nose-scale-vert-incr": 1.0,
+         "nose/nose-hump-incr": 1.0, "chin/chin-height-incr": 0.9,
+         "cheek/l-cheek-inner-decr": 0.8, "cheek/r-cheek-inner-decr": 0.8, "mouth/mouth-scale-vert-decr": 0.5},
+        # Round and soft: full cheeks, a button nose, a small chin, full lips.
+        {"head/head-round": 1.0, "head/head-fat-incr": 0.8, "cheek/l-cheek-volume-incr": 1.0,
+         "cheek/r-cheek-volume-incr": 1.0, "nose/nose-volume-incr": 0.6, "nose/nose-scale-vert-decr": 0.6,
+         "nose/nose-point-up": 0.6, "chin/chin-prominent-decr": 0.7, "mouth/mouth-lowerlip-volume-incr": 0.8,
+         "mouth/mouth-upperlip-volume-incr": 0.6},
+        # Rugged: a jutting jaw, a heavy brow, high cheekbones, a broken nose, a thin mouth.
+        {"chin/chin-prognathism-incr": 0.8, "chin/chin-bones-incr": 0.8, "head/head-rectangular": 0.8,
+         "nose/nose-flaring-incr": 1.0, "nose/nose-point-width-incr": 0.8, "nose/nose-greek-decr": 0.8,
+         "cheek/l-cheek-bones-incr": 1.0, "cheek/r-cheek-bones-incr": 1.0, "eyebrows/eyebrows-trans-down": 0.8,
+         "eyebrows/eyebrows-angle-down": 0.6, "mouth/mouth-scale-horiz-decr": 0.5,
+         "mouth/mouth-lowerlip-volume-decr": 0.6, "mouth/mouth-upperlip-volume-decr": 0.6},
+    ],
+    "female": [
+        # Heart-shaped: a pointed chin, a small narrow nose, full lips, high cheekbones.
+        {"head/head-invertedtriangular": 1.0, "chin/chin-width-decr": 0.8, "chin/chin-triangle": 0.6,
+         "nose/nose-scale-horiz-decr": 0.7, "nose/nose-point-up": 0.5, "mouth/mouth-upperlip-volume-incr": 0.9,
+         "mouth/mouth-lowerlip-volume-incr": 0.8, "cheek/l-cheek-bones-incr": 0.7, "cheek/r-cheek-bones-incr": 0.7},
+        # Round: full cheeks, a snub nose, a soft chin.
+        {"head/head-round": 1.0, "head/head-fat-incr": 0.6, "cheek/l-cheek-volume-incr": 1.0,
+         "cheek/r-cheek-volume-incr": 1.0, "nose/nose-point-up": 0.9, "nose/nose-scale-vert-decr": 0.7,
+         "nose/nose-volume-incr": 0.4, "chin/chin-prominent-decr": 0.6, "mouth/mouth-scale-horiz-decr": 0.4},
+        # Long and angular: a long head, a strong aquiline nose, sharp cheekbones, a long chin.
+        {"head/head-oval": 1.0, "head/head-scale-horiz-decr": 0.4, "nose/nose-hump-incr": 1.0,
+         "nose/nose-scale-vert-incr": 0.8, "cheek/l-cheek-bones-incr": 1.0,
+         "cheek/r-cheek-bones-incr": 1.0, "cheek/l-cheek-inner-decr": 0.6, "cheek/r-cheek-inner-decr": 0.6,
+         "chin/chin-height-incr": 0.8},
+        # Strong and square: a wide jaw, a broad nose, a low brow, a wide mouth.
+        {"head/head-square": 1.0, "chin/chin-width-incr": 0.9, "chin/chin-prominent-incr": 0.5,
+         "nose/nose-flaring-incr": 0.9, "nose/nose-scale-horiz-incr": 0.7, "eyebrows/eyebrows-trans-down": 0.6,
+         "mouth/mouth-scale-horiz-incr": 0.6, "mouth/mouth-cupidsbow-incr": 0.7, "neck/neck-scale-horiz-incr": 0.4},
+    ],
+}
 HIDE_BITS = {"boots": 0, **{wid: i + 1 for i, wid in enumerate(WEAR)}}
+
+# A piece a face moves less than this (m) gets no shape key for it: refitting's own noise.
+MOVED = 5e-4
 
 # Body vertices this close (m) under a garment's surface are covered by it.
 COVER = 0.03
@@ -138,7 +191,69 @@ def build(body):
         HumanService.add_mhclo_asset(
             asset(kind, name, "mhclo"), bm, asset_type=atype, subdiv_levels=0, material_type="MAKESKIN"
         )
+    select_only(bm)
+    bpy.ops.mpfb.bake_shapekeys()
+    make_faces(body)
     return bm
+
+
+def select_only(obj):
+    bpy.context.view_layer.objects.active = obj
+    for other in bpy.context.view_layer.objects:
+        other.select_set(other == obj)
+
+
+def fitted(body):
+    """The body's mesh and every piece fitted to it."""
+    return [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith(f"body-{body}")]
+
+
+def make_faces(body):
+    """
+    Each face in FACES as a shape key `face-<n>` (n from 1) on the body and on every piece its
+    targets move once refitted (eyes, brows, lashes, hair). The body is left with its own face.
+    """
+    LocationService, HumanService, TargetService = mpfb()
+    bm = basemesh(body)
+    targets = os.path.join(LocationService.get_mpfb_data(), "targets")
+    if not bm.data.shape_keys:
+        bm.shape_key_add(name="Basis")
+    objects = fitted(body)
+    neutral = {o.name: [v.co.copy() for v in o.data.vertices] for o in objects if o != bm}
+    shapes = {}
+    for n, face in enumerate(FACES[body], start=1):
+        loaded = []
+        for target, weight in face.items():
+            path = os.path.join(targets, *target.split("/")) + ".target.gz"
+            keys = bm.data.shape_keys
+            before = {k.name for k in keys.key_blocks} if keys else set()
+            TargetService.load_target(bm, path, weight=weight)
+            loaded += [k.name for k in bm.data.shape_keys.key_blocks if k.name not in before]
+        HumanService.refit(bm)
+        key = bm.shape_key_add(name=f"face-{n}", from_mix=True)
+        key.value = 0.0
+        for o in objects:
+            if o != bm:
+                shapes.setdefault(o.name, {})[n] = [v.co.copy() for v in o.data.vertices]
+        for name in loaded:
+            bm.shape_key_remove(bm.data.shape_keys.key_blocks[name])
+    HumanService.refit(bm)
+    for o in objects:
+        if o == bm:
+            continue
+        rest = neutral[o.name]
+        for i, v in enumerate(o.data.vertices):
+            v.co = rest[i]
+        moved = {n: co for n, co in shapes.get(o.name, {}).items()
+                 if max((a - b).length for a, b in zip(co, rest)) > MOVED}
+        if not moved:
+            continue
+        if not o.data.shape_keys:
+            o.shape_key_add(name="Basis")
+        for n, co in moved.items():
+            key = o.shape_key_add(name=f"face-{n}")
+            for i, c in enumerate(co):
+                key.data[i].co = c
 
 
 def covered(body_obj, garment):
@@ -184,12 +299,9 @@ def mark_hidden(body):
 
 
 def strip_helpers(body):
-    """Bake the macro shape into the mesh and delete MakeHuman's helper geometry and masks."""
+    """Delete MakeHuman's helper geometry and the masks that hid it."""
     bm = basemesh(body)
-    bpy.context.view_layer.objects.active = bm
-    for obj in bpy.context.view_layer.objects:
-        obj.select_set(obj == bm)
-    bpy.ops.mpfb.bake_shapekeys()
+    select_only(bm)
     bpy.ops.mpfb.delete_helpers()
     for mod in list(bm.modifiers):
         if mod.type == "MASK":
