@@ -5,10 +5,12 @@
 	import { emptyInventory } from '#lib/shared/items/inventory.ts';
 	import type { Look } from '#lib/shared/player/look.ts';
 	import { createPlayerState } from '#lib/shared/player/simulate.ts';
+	import type { Stance } from '#lib/shared/player/types.ts';
+	import { MOVEMENT } from '#lib/content/player/movement.ts';
 
 	/**
-	 * The explorer in a look, standing and turnable: drag it round, or turn it with the buttons
-	 * below (left and right on a controller). It is a `PlayerBody`, so it is drawn just as
+	 * The explorer in a look, turnable and moving in place: drag it round, or turn it with the
+	 * buttons below (left and right on a controller), and pick what it does (`MOTIONS`). It is a `PlayerBody`, so it is drawn just as
 	 * teammates see it underground. See docs/dev/player.md#the-look.
 	 */
 	interface Props {
@@ -23,6 +25,19 @@
 	const EASE = 8;
 	/** Radians of turn per pixel dragged. */
 	const DRAG = 0.01;
+
+	/**
+	 * What it can be shown doing, played in place: the same clips as underground, picked from a
+	 * made-up state (stance and speed) just as for a teammate.
+	 */
+	const MOTIONS: { label: string; stance: Stance; speed: number }[] = [
+		{ label: 'Standing', stance: 'stand', speed: 0 },
+		{ label: 'Walking', stance: 'stand', speed: MOVEMENT.stances.stand.speed },
+		{ label: 'Running', stance: 'stand', speed: MOVEMENT.sprintSpeed },
+		{ label: 'Crouching', stance: 'crouch', speed: MOVEMENT.stances.crouch.speed },
+		{ label: 'Crawling', stance: 'crawl', speed: MOVEMENT.stances.crawl.speed }
+	];
+	let motion = $state(0);
 
 	let canvas: HTMLCanvasElement;
 	let body: PlayerBody | null = null;
@@ -82,6 +97,9 @@
 			last = now;
 			turn += (target - turn) * Math.min(1, delta * EASE);
 			turntable.rotation.y = turn;
+			const doing = MOTIONS[motion];
+			state.stance = doing.stance;
+			state.velocity = [0, 0, -doing.speed];
 			explorer.update(delta, state, 0, 0);
 			renderer.render(scene, camera);
 			frame = requestAnimationFrame(draw);
@@ -130,6 +148,19 @@
 		<span>Turn</span>
 		<button type="button" aria-label="Turn right" onclick={() => (target += STEP)}>▶</button>
 	</div>
+	<div class="turn" data-pad-stepper>
+		<button
+			type="button"
+			aria-label="Previous motion"
+			onclick={() => (motion = (motion + MOTIONS.length - 1) % MOTIONS.length)}>◀</button
+		>
+		<span class="motion">{MOTIONS[motion].label}</span>
+		<button
+			type="button"
+			aria-label="Next motion"
+			onclick={() => (motion = (motion + 1) % MOTIONS.length)}>▶</button
+		>
+	</div>
 </div>
 
 <style>
@@ -152,6 +183,11 @@
 
 	canvas:active {
 		cursor: grabbing;
+	}
+
+	.motion {
+		min-width: 6em;
+		text-align: center;
 	}
 
 	.turn {

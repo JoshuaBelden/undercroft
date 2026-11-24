@@ -788,7 +788,7 @@ It is resolved only for those of you who could begin it. Once it is, it's done f
 		id: 'look',
 		title: 'Your look',
 		category: 'The surface',
-		body: `The Character tab on the dashboard is how other players see your explorer underground. Your explorer turns on the left: drag it round, or use Turn (left and right on a controller).
+		body: `The Character tab on the dashboard is how other players see your explorer underground. Your explorer turns on the left: drag it round, or use Turn (left and right on a controller). Motion shows it standing, walking, running, crouching or crawling.
 
 - Body and Face: two bodies, each with five faces.
 - Hair, Shirt, Pants and Outer layer: what you wear. The outer layer goes over your shirt; choose None to go without.

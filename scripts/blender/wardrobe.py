@@ -124,6 +124,11 @@ FACES = {
     ],
 }
 HIDE_BITS = {"boots": 0, **{wid: i + 1 for i, wid in enumerate(WEAR)}}
+# Pieces worn under others, and the pieces over them: where one over it covers it, it isn't drawn.
+UNDER = {
+    "pants-cargo": ["shirt", "jacket-sweater"],
+    "pants-wool": ["shirt", "jacket-sweater"],
+}
 
 # A piece a face moves less than this (m) gets no shape key for it: refitting's own noise.
 MOVED = 5e-4
@@ -298,6 +303,21 @@ def mark_hidden(body):
     attr.data.foreach_set("value", [float(b) for b in bits])
 
 
+def mark_layers(body):
+    """
+    Write `_HIDE` on each piece worn under others (`UNDER`): per vertex, the bits of every piece
+    over it that covers it, so a waistband never pokes through a hem.
+    """
+    for wid, overs in UNDER.items():
+        under = piece(body, WEAR[wid][1])
+        bits = [0] * len(under.data.vertices)
+        for over in overs:
+            for i in covered(under, piece(body, WEAR[over][1])):
+                bits[i] |= 1 << HIDE_BITS[over]
+        attr = under.data.attributes.get("_HIDE") or under.data.attributes.new("_HIDE", "FLOAT", "POINT")
+        attr.data.foreach_set("value", [float(b) for b in bits])
+
+
 def strip_helpers(body):
     """
     Delete MakeHuman's helper geometry (and the masks that hid it), keeping the shape keys. Not
@@ -363,6 +383,7 @@ def export(body):
     """Write the body file and one file per wardrobe piece (see the module docstring)."""
     strip_helpers(body)
     mark_hidden(body)
+    mark_layers(body)
     mark_alpha(body)
     spec = BODIES[body]
     armature = rig(body)

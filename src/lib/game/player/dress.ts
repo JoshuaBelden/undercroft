@@ -105,7 +105,9 @@ export async function dress(look: Look, options: DressOptions = {}): Promise<Dre
 			parent.add(mesh);
 			mesh.bind(skeleton, mesh.bindMatrix);
 			prepare(mesh);
-			mesh.material = mapMaterials(mesh.material, (m) => own(m, slot, null));
+			// Worn under others (pants under a shirt's hem) it carries `_HIDE` too: what covers it goes.
+			const under = mesh.geometry.hasAttribute('_hide') ? hidden : null;
+			mesh.material = mapMaterials(mesh.material, (m) => own(m, slot, under));
 		}
 	});
 
@@ -211,7 +213,8 @@ function meanColor(texture: THREE.Texture): THREE.Color | null {
 
 /**
  * One shader patch for what a body's material needs: the camera fill on your own body, and on
- * the skin, the vertices under worn clothes (`_HIDE`, a bit per piece covering them) not drawn.
+ * the skin (and pieces worn under others), the vertices under worn clothes (`_HIDE`, a bit per
+ * piece covering them) not drawn.
  */
 function patch(material: THREE.Material, options: DressOptions, hidden: number | null): void {
 	const fill = options.fill;

@@ -185,12 +185,12 @@ export const MODELS = {
 		bytes: 468552
 	},
 	'shared/player/female/pants-cargo.glb': {
-		url: '/assets/shared/player/female/pants-cargo.ed63f1d3.glb',
-		bytes: 164860
+		url: '/assets/shared/player/female/pants-cargo.e87e78d4.glb',
+		bytes: 165304
 	},
 	'shared/player/female/pants-wool.glb': {
-		url: '/assets/shared/player/female/pants-wool.c72f7e06.glb',
-		bytes: 117544
+		url: '/assets/shared/player/female/pants-wool.b31b423b.glb',
+		bytes: 118492
 	},
 	'shared/player/female/shirt.glb': {
 		url: '/assets/shared/player/female/shirt.70027ca8.glb',
@@ -229,12 +229,12 @@ export const MODELS = {
 		bytes: 464668
 	},
 	'shared/player/male/pants-cargo.glb': {
-		url: '/assets/shared/player/male/pants-cargo.913d0405.glb',
-		bytes: 164760
+		url: '/assets/shared/player/male/pants-cargo.6462f8a8.glb',
+		bytes: 165216
 	},
 	'shared/player/male/pants-wool.glb': {
-		url: '/assets/shared/player/male/pants-wool.2177dea3.glb',
-		bytes: 116212
+		url: '/assets/shared/player/male/pants-wool.6639c158.glb',
+		bytes: 117092
 	},
 	'shared/player/male/shirt.glb': {
 		url: '/assets/shared/player/male/shirt.3b910587.glb',
