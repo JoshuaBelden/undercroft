@@ -137,6 +137,8 @@ export interface ThrowSpec {
 	sound: SoundId;
 	/** Sound where it lands. */
 	land: SoundId;
+	/** Lit before it's thrown (an oil bottle's rag): played to the thrower as the throw is drawn back. */
+	light?: SoundId;
 	/**
 	 * A lure on a fuse (firecrackers): `seconds` after it lands it goes off, heard `noise` away,
 	 * hissing (`hiss`) till then and banging (`bang`) when it does. Used up when it does.
@@ -371,10 +373,14 @@ export interface ItemDef {
 	/** It breaks on a hard fall (and may, inside something smashed open): gone. A jar. */
 	fragile?: boolean;
 	/**
-	 * Cursed: while it is carried, it takes `sanity` a second and whispers round its carrier (the
-	 * porcelain doll). See docs/dev/world.md#cursed-loot.
+	 * Cursed: while it is carried, it takes `sanity` a second and its `phantom` sound (or a
+	 * whisper) comes round its carrier (the porcelain doll). See docs/dev/world.md#cursed-loot.
 	 */
-	cursed?: { sanity: number };
+	cursed?: {
+		sanity: number;
+		/** What its carrier hears close by now and then (default the plain `whisper`). */
+		phantom?: SoundId;
+	};
 	/**
 	 * Held in the hand, attack takes it (laudanum, grave dirt): `seconds` standing still, then the
 	 * condition, and it is used up.

@@ -277,7 +277,7 @@ It's deterministic from player state. Every client draws the creature with the s
 
 A snapshot whose `kind` changes (a dweller turning) gets the new kind's model. `scale` and `lift` are applied to the model.
 
-Each sound is the def's own (`sounds`) or the shared one (`creatureSound`); `Creatures.soundOf(id, which)` gives the hurt and die sounds for combat events. A `silent` def (the moth) plays none. The rats', spiders', dwellers' and surveyor's have no recordings yet, so they are silent.
+Each sound is the def's own (`sounds`) or the shared one (`creatureSound`); `Creatures.soundOf(id, which)` gives the hurt and die sounds for combat events. A `silent` def (the moth) plays none. The rat's squeak, the spiders' hisses and deaths (the giant spider has its own, `spider.giant.die`), the dwellers' steps and murmurs (each sliced from a long take into variants) and the surveyor's are recorded; the rats' steps, bite and death and the spiders' steps are not yet (silent).
 
 The witch's sounds always play, visible or not: `creature.step` while in a moving slot (`sfx_creature_footsteps`, sliced into single steps), `creature.burst` on entering `gait.burst` (the `jump-scare` recording; at most once every `BURST_SOUND_GAP` (8) seconds per creature, since a stalking creature bursts every few seconds and the clip is 5 s long), and `creature.attack` on entering an attack slot (`sfx_witch_attack`). `creature.breath` is the `sfx_witch_breathing` loop; `creature.die` is `sfx_witch_death`; `creature.hurt` is not recorded yet (silent).
 

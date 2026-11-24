@@ -166,7 +166,7 @@ export const TREASURE: Record<string, ItemDef> = {
 			maxStack: 1,
 			color: 0xe8e0d8,
 			size: [0.1, 0.3, 0.08],
-			cursed: { sanity: 0.5 }
+			cursed: { sanity: 0.5, phantom: 'doll.phantom' }
 		}
 	),
 	'crozier-head': treasure(

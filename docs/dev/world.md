@@ -40,7 +40,7 @@ Also when it opens:
 ## Fragile and cursed loot
 
 - `fragile` (a jar): a hard landing (`FALL.hardSpeed` or faster) breaks every fragile stack carried, gone, with a `shatter` event (`item.break`). An `OpenWay` with `breaks` (smashing a trunk or an offering box open) breaks each fragile thing inside with that chance.
-- `cursed: { sanity }` (the porcelain doll): while it is carried anywhere, that much sanity a second, on top of darkness and sights. The carrier alone hears whispers close by now and then (`CURSE_WHISPER` in the client's hazards feature: the first after 6 s, then every 14 to 30 s).
+- `cursed: { sanity, phantom }` (the porcelain doll): while it is carried anywhere, that much sanity a second, on top of darkness and sights. The carrier alone hears its `phantom` sound (the doll's `doll.phantom`; a plain `whisper` for a cursed item without one) close by now and then (`CURSE_WHISPER` in the client's hazards feature: the first after 6 s, then every 14 to 30 s).
 
 ## Rubble walls and webs
 
@@ -59,7 +59,7 @@ A `gate-<n>` marker (the Family Mausoleum's `gate-0`, across the vault between t
 - a key carried anywhere (`unlocks`): `GATES.keySeconds`, and the key is used up;
 - or lockpicks (`picks`) in the hand: `GATES.picksSeconds`, silently, with `GATES.snap` chance of losing a pick.
 
-With neither, holding interact does nothing; the prompt is red ("needs a key or lockpicks"). `gateSeconds` is the shared rule. `Crates` hides one key for every gate, as for every locked trunk (the session passes it the count). The gate swings open toward the antechamber (`yaw` 0: leaves to +Z), heard `GATES.noise` away. The client draws a placeholder iron gate until `mausoleum-gate.glb`.
+With neither, holding interact does nothing; the prompt is red ("needs a key or lockpicks"). `gateSeconds` is the shared rule. `Crates` hides one key for every gate, as for every locked trunk (the session passes it the count). The gate swings open toward the antechamber (`yaw` 0: leaves to +Z), heard `GATES.noise` away, with its own iron swing (`gate.mausoleum`, in place of a door's `door.unbar` and `door.open`: the client's doors feature checks the placement's `kind`). The client draws a placeholder iron gate until `mausoleum-gate.glb`.
 
 ## Fonts
 

@@ -71,6 +71,11 @@ export class Combat implements PlayFeature {
 				const sound = swingSound(swung?.melee, 'swing', 'melee.swing');
 				if (sound) sounds.play(sound);
 			}
+			// Drawing back a throw that is lit first (an oil bottle's rag).
+			if (action === 'draw') {
+				const light = ITEMS[held(state.inventory)?.item ?? '']?.throwable?.light;
+				if (light) sounds.play(light);
+			}
 			this.lastAction = action;
 		}
 	}

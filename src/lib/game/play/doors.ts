@@ -54,6 +54,12 @@ export class Doors implements PlayFeature {
 			return;
 		}
 		if (event.kind !== 'doorOpen' && event.kind !== 'doorRelease') return;
+		// A locked gate (the Family Mausoleum's) has its own iron swing.
+		const gate = this.models.placements.find((door) => door.id === event.id)?.kind === 'gate';
+		if (gate) {
+			sounds.playAt('gate.mausoleum', event.position, 1, 10);
+			return;
+		}
 		// Heard far down the stair and back across the level.
 		sounds.playAt('door.unbar', event.position, 1, 6);
 		sounds.playAt('door.open', event.position, 1, 10);

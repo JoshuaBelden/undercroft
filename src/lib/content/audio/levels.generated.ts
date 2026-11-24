@@ -237,6 +237,70 @@ export const AUDIO_LEVELS: Record<
 		peak: -1.1,
 		urls: ['/assets/shared/audio/creature.die.094e493d.webm']
 	},
+	'rat.squeak': {
+		level: -22.7,
+		lufs: -16.7,
+		peak: -0.4,
+		urls: ['/assets/shared/audio/rat.squeak.eae1d7be.webm']
+	},
+	'spider.hiss': {
+		level: -26.9,
+		lufs: -22.5,
+		peak: -0.5,
+		urls: ['/assets/shared/audio/spider.hiss.c3f4ac6f.webm']
+	},
+	'spider.die': {
+		level: -25.6,
+		lufs: -17.6,
+		peak: -0.6,
+		urls: ['/assets/shared/audio/spider.die.9171755a.webm']
+	},
+	'spider.giant.hiss': {
+		level: -23.2,
+		lufs: -22.3,
+		peak: -1.7,
+		urls: ['/assets/shared/audio/spider.giant.hiss.2f6ae60b.webm']
+	},
+	'spider.giant.die': {
+		level: -19.5,
+		lufs: -17.6,
+		peak: -0.6,
+		urls: ['/assets/shared/audio/spider.giant.die.9171755a.webm']
+	},
+	'surveyor.share': {
+		level: -19.8,
+		lufs: -16.7,
+		peak: -1,
+		urls: ['/assets/shared/audio/surveyor.share.2488f4e6.webm']
+	},
+	'dweller.step': {
+		level: -32.7,
+		lufs: -26.6,
+		peak: -0.8,
+		urls: [
+			'/assets/shared/audio/dweller.step-1.72a003c7.webm',
+			'/assets/shared/audio/dweller.step-2.451b12db.webm',
+			'/assets/shared/audio/dweller.step-3.7c7749c3.webm',
+			'/assets/shared/audio/dweller.step-4.ff5909b2.webm',
+			'/assets/shared/audio/dweller.step-5.e2ac2658.webm',
+			'/assets/shared/audio/dweller.step-6.aa80a3be.webm',
+			'/assets/shared/audio/dweller.step-7.b07cf2ec.webm',
+			'/assets/shared/audio/dweller.step-8.71d111a6.webm'
+		]
+	},
+	'dweller.murmur': {
+		level: -24.7,
+		lufs: -18.6,
+		peak: -0.7,
+		urls: [
+			'/assets/shared/audio/dweller.murmur-1.add1cdc3.webm',
+			'/assets/shared/audio/dweller.murmur-2.4b1c2c0a.webm',
+			'/assets/shared/audio/dweller.murmur-3.bb511389.webm',
+			'/assets/shared/audio/dweller.murmur-4.6229c25a.webm',
+			'/assets/shared/audio/dweller.murmur-5.a30e2ec3.webm',
+			'/assets/shared/audio/dweller.murmur-6.6e8cc9e8.webm'
+		]
+	},
 	'revolver.fire': {
 		level: -19,
 		lufs: -13.8,
@@ -279,6 +343,48 @@ export const AUDIO_LEVELS: Record<
 		peak: -1,
 		urls: ['/assets/shared/audio/swoosh.0e896cfb.webm']
 	},
+	'melee.hit': {
+		level: -19.8,
+		lufs: -16.7,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/melee.hit.cdbe6887.webm']
+	},
+	'melee.hit.creature': {
+		level: -17.6,
+		lufs: -16.7,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/melee.hit.creature.cdbe6887.webm']
+	},
+	'brick.throw': {
+		level: -25.2,
+		lufs: -19.2,
+		peak: -0.7,
+		urls: ['/assets/shared/audio/brick.throw.b0ee02a9.webm']
+	},
+	'brick.land': {
+		level: -21.7,
+		lufs: -20.8,
+		peak: -1.9,
+		urls: ['/assets/shared/audio/brick.land.5bf366dc.webm']
+	},
+	'knife.throw': {
+		level: -27.2,
+		lufs: -19.2,
+		peak: -0.7,
+		urls: ['/assets/shared/audio/knife.throw.b0ee02a9.webm']
+	},
+	'knife.land': {
+		level: -29.5,
+		lufs: -25.1,
+		peak: -2.3,
+		urls: ['/assets/shared/audio/knife.land.a13e7de7.webm']
+	},
+	'brick.break': {
+		level: -25.9,
+		lufs: -24,
+		peak: -1.6,
+		urls: ['/assets/shared/audio/brick.break.6188524d.webm']
+	},
 	'hatchet.swing': {
 		level: -25.2,
 		lufs: -18.3,
@@ -309,11 +415,23 @@ export const AUDIO_LEVELS: Record<
 		peak: -1.5,
 		urls: ['/assets/shared/audio/spear.thrust.874ecbb8.webm']
 	},
+	'spear.hit': {
+		level: -20.4,
+		lufs: -16.7,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/spear.hit.cdbe6887.webm']
+	},
 	'club.swing': {
 		level: -24.3,
 		lufs: -18.3,
 		peak: -1,
 		urls: ['/assets/shared/audio/swoosh.0e896cfb.webm']
+	},
+	'club.hit': {
+		level: -19.2,
+		lufs: -16.7,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/club.hit.cdbe6887.webm']
 	},
 	'pickaxe.swing': {
 		level: -22.7,
@@ -321,11 +439,23 @@ export const AUDIO_LEVELS: Record<
 		peak: -1,
 		urls: ['/assets/shared/audio/swoosh.0e896cfb.webm']
 	},
+	'pickaxe.hit': {
+		level: -27.7,
+		lufs: -26.3,
+		peak: -1.6,
+		urls: ['/assets/shared/audio/pickaxe.hit.2f959af0.webm']
+	},
 	'sledge.swing': {
 		level: -22,
 		lufs: -18.3,
 		peak: -1,
 		urls: ['/assets/shared/audio/swoosh.0e896cfb.webm']
+	},
+	'sledge.hit': {
+		level: -21,
+		lufs: -21,
+		peak: -1.2,
+		urls: ['/assets/shared/audio/sledge.hit.33728594.webm']
 	},
 	'rifle.shot': {
 		level: -24,
@@ -345,6 +475,18 @@ export const AUDIO_LEVELS: Record<
 		peak: -0.8,
 		urls: ['/assets/shared/audio/rifle.load.6ad1080f.webm']
 	},
+	'derringer.shot': {
+		level: -26.6,
+		lufs: -20.6,
+		peak: -1.3,
+		urls: ['/assets/shared/audio/derringer.shot.fba1eae4.webm']
+	},
+	'derringer.reload': {
+		level: -23.7,
+		lufs: -18.5,
+		peak: -0.5,
+		urls: ['/assets/shared/audio/derringer.reload.0b985605.webm']
+	},
 	'crossbow.shot': {
 		level: -27.9,
 		lufs: -18.8,
@@ -357,11 +499,23 @@ export const AUDIO_LEVELS: Record<
 		peak: -1.3,
 		urls: ['/assets/shared/audio/crossbow.crank.85853072.webm']
 	},
+	'crossbow.hit': {
+		level: -21.1,
+		lufs: -16.7,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/crossbow.hit.cdbe6887.webm']
+	},
 	'slingshot.shot': {
 		level: -27.3,
 		lufs: -18.2,
 		peak: -1.1,
 		urls: ['/assets/shared/audio/slingshot.shot.1578516c.webm']
+	},
+	'pebble.land': {
+		level: -34,
+		lufs: -28.8,
+		peak: -1.6,
+		urls: ['/assets/shared/audio/pebble.land.5fa72853.webm']
 	},
 	'firecrackers.fuse': {
 		level: -19.7,
@@ -375,11 +529,29 @@ export const AUDIO_LEVELS: Record<
 		peak: -1.7,
 		urls: ['/assets/shared/audio/firecrackers.bang.155d9cec.webm']
 	},
+	'salt.pour': {
+		level: -31.4,
+		lufs: -23.4,
+		peak: -1.3,
+		urls: ['/assets/shared/audio/salt.pour.d26a9f78.webm']
+	},
+	'glowstick.crack': {
+		level: -34.3,
+		lufs: -25.2,
+		peak: -1.2,
+		urls: ['/assets/shared/audio/glowstick.crack.24670db4.webm']
+	},
 	'oilbottle.shatter': {
-		level: -27.3,
-		lufs: -24.2,
-		peak: -2,
-		urls: ['/assets/shared/audio/oilbottle.shatter.7b66766d.webm']
+		level: -24.4,
+		lufs: -21.3,
+		peak: -0.6,
+		urls: ['/assets/shared/audio/oilbottle.shatter.61dac4df.webm']
+	},
+	'oilbottle.light': {
+		level: -31.6,
+		lufs: -27.2,
+		peak: -0.2,
+		urls: ['/assets/shared/audio/oilbottle.light.1ddbeb67.webm']
 	},
 	'whistle.blow': {
 		level: -11.8,
@@ -398,6 +570,24 @@ export const AUDIO_LEVELS: Record<
 		lufs: -17.9,
 		peak: -1.2,
 		urls: ['/assets/shared/audio/laudanum.drink.4e6f7f2c.webm']
+	},
+	'compass.open': {
+		level: -35,
+		lufs: -25.9,
+		peak: -0.3,
+		urls: ['/assets/shared/audio/compass.open.fa5a7f15.webm']
+	},
+	'tarot.draw': {
+		level: -33.2,
+		lufs: -24.1,
+		peak: -1.9,
+		urls: ['/assets/shared/audio/tarot.draw.aa8ddad8.webm']
+	},
+	'doll.phantom': {
+		level: -20.6,
+		lufs: -14.6,
+		peak: -0.6,
+		urls: ['/assets/shared/audio/doll.phantom.3ea7a6f6.webm']
 	},
 	'skills.unlock': {
 		level: -26.5,
@@ -430,16 +620,34 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/workshop.repair.c8691664.webm']
 	},
 	'workshop.salvage': {
-		level: -26.8,
-		lufs: -22.4,
-		peak: -0.6,
-		urls: ['/assets/shared/audio/workshop.salvage.0d03c075.webm']
+		level: -28.8,
+		lufs: -24.4,
+		peak: -1.3,
+		urls: ['/assets/shared/audio/workshop.salvage.b8e774e8.webm']
 	},
 	'piton.hammer': {
 		level: -25.7,
 		lufs: -23.8,
 		peak: -1.2,
 		urls: ['/assets/shared/audio/piton.hammer.27867e60.webm']
+	},
+	'rubble.break': {
+		level: -20.7,
+		lufs: -18.8,
+		peak: -1.9,
+		urls: ['/assets/shared/audio/rubble.break.69d7429e.webm']
+	},
+	'fire.burn': {
+		level: -42.5,
+		lufs: -40,
+		peak: -1.4,
+		urls: ['/assets/shared/audio/fire.burn.a75bfcb5.webm']
+	},
+	'item.break': {
+		level: -27.5,
+		lufs: -24.4,
+		peak: -1.3,
+		urls: ['/assets/shared/audio/item.break.b8e774e8.webm']
 	},
 	'item.pickup': {
 		level: -26.8,
@@ -452,6 +660,12 @@ export const AUDIO_LEVELS: Record<
 		lufs: -13.9,
 		peak: -0.7,
 		urls: ['/assets/shared/audio/item.drop.a7b2b67d.webm']
+	},
+	'omen.drone': {
+		level: -26.3,
+		lufs: -21.9,
+		peak: -1.3,
+		urls: ['/assets/shared/audio/omen.drone.235ddb9c.webm']
 	},
 	'inventory.drop': {
 		level: -30.7,
@@ -470,6 +684,12 @@ export const AUDIO_LEVELS: Record<
 			'/assets/shared/audio/inventory.rummage-4.75040aa6.webm'
 		]
 	},
+	'crate.stuck': {
+		level: -25.1,
+		lufs: -20.7,
+		peak: -1.6,
+		urls: ['/assets/shared/audio/crate.stuck.fe5086f5.webm']
+	},
 	'key.unlock': {
 		level: -27,
 		lufs: -23.9,
@@ -477,10 +697,16 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/key.unlock.624f38af.webm']
 	},
 	'crowbar.pry': {
-		level: -22,
-		lufs: -19.5,
-		peak: -1.4,
-		urls: ['/assets/shared/audio/crowbar.pry.1de6e61d.webm']
+		level: -18.8,
+		lufs: -16.3,
+		peak: -0.2,
+		urls: ['/assets/shared/audio/crowbar.pry.2869a338.webm']
+	},
+	'crowbar.swing': {
+		level: -21.3,
+		lufs: -18.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/crowbar.swing.b57b2db9.webm']
 	},
 	'crowbar.rocks': {
 		level: -21.5,
@@ -494,11 +720,23 @@ export const AUDIO_LEVELS: Record<
 		peak: -1.7,
 		urls: ['/assets/shared/audio/crate.open.a51fed17.webm']
 	},
+	'door.unbar': {
+		level: -22,
+		lufs: -21.1,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/door.unbar.8703dc6a.webm']
+	},
 	'door.open': {
 		level: -21.1,
 		lufs: -21.1,
 		peak: -0.6,
 		urls: ['/assets/shared/audio/door.open.b67a0599.webm']
+	},
+	'gate.mausoleum': {
+		level: -21.5,
+		lufs: -20.6,
+		peak: -1.3,
+		urls: ['/assets/shared/audio/gate.mausoleum.01b138f4.webm']
 	},
 	'door.slam': {
 		level: -21.1,
@@ -511,6 +749,90 @@ export const AUDIO_LEVELS: Record<
 		lufs: -26,
 		peak: -1.4,
 		urls: ['/assets/shared/audio/corpse.search.37952a69.webm']
+	},
+	'lootable.niche': {
+		level: -30.2,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.bones': {
+		level: -27.3,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.lid': {
+		level: -26.1,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.chest': {
+		level: -27.9,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.locker': {
+		level: -29.4,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.satchel': {
+		level: -31.1,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.offering.pick': {
+		level: -32.2,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.cabinet': {
+		level: -30.2,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.nest': {
+		level: -28.6,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.cocoon': {
+		level: -29.4,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.brick': {
+		level: -30.2,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.cache': {
+		level: -31.1,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.font': {
+		level: -32.2,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
+	},
+	'lootable.alcove': {
+		level: -27.9,
+		lufs: -24.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/loot.open.fcab6494.webm']
 	},
 	'chalk.draw': {
 		level: -26,
@@ -525,16 +847,16 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/chalk.abbadf00.webm']
 	},
 	'rope.tension': {
-		level: -28.4,
-		lufs: -23.2,
-		peak: -1.3,
-		urls: ['/assets/shared/audio/rope.tension.a37433b9.webm']
+		level: -27.5,
+		lufs: -22.3,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/rope.tension.108a9b4c.webm']
 	},
 	'rope.grab': {
-		level: -31.2,
-		lufs: -23.2,
-		peak: -1.3,
-		urls: ['/assets/shared/audio/rope.tension.a37433b9.webm']
+		level: -30.3,
+		lufs: -22.3,
+		peak: -1.1,
+		urls: ['/assets/shared/audio/rope.tension.108a9b4c.webm']
 	},
 	'rope.tie': {
 		level: -37.8,
@@ -542,11 +864,35 @@ export const AUDIO_LEVELS: Record<
 		peak: -1.6,
 		urls: ['/assets/shared/audio/rope.tie.d484b77c.webm']
 	},
+	'fall.land': {
+		level: -21.5,
+		lufs: -20.6,
+		peak: -0.7,
+		urls: ['/assets/shared/audio/fall.land.f859502a.webm']
+	},
+	'fall.land.hard': {
+		level: -15.3,
+		lufs: -15.3,
+		peak: -0.5,
+		urls: ['/assets/shared/audio/fall.land.hard.0754f0d8.webm']
+	},
 	'condition.hobble': {
 		level: -19.9,
 		lufs: -16.8,
 		peak: -1,
 		urls: ['/assets/shared/audio/grunt.4447fd0e.webm']
+	},
+	'map.open': {
+		level: -31.1,
+		lufs: -22,
+		peak: -3,
+		urls: ['/assets/shared/audio/map.open.eacdacc8.webm']
+	},
+	'map.close': {
+		level: -32.5,
+		lufs: -22,
+		peak: -3,
+		urls: ['/assets/shared/audio/map.close.eacdacc8.webm']
 	},
 	'map.sketch': {
 		level: -28.3,
@@ -613,6 +959,12 @@ export const AUDIO_LEVELS: Record<
 		lufs: -15.5,
 		peak: -0.7,
 		urls: ['/assets/shared/audio/loot.found.f3e3d2e3.webm']
+	},
+	'shop.buy': {
+		level: -23.3,
+		lufs: -18.9,
+		peak: -2.1,
+		urls: ['/assets/shared/audio/shop.buy.9096d9c6.webm']
 	},
 	'fontaine.greeting': {
 		level: -19.7,
@@ -691,11 +1043,29 @@ export const AUDIO_LEVELS: Record<
 		peak: -2.9,
 		urls: ['/assets/shared/audio/shop.sell.33abee2f.webm']
 	},
+	'clue.sting': {
+		level: -26.2,
+		lufs: -20.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/clue.sting.f3f4393b.webm']
+	},
+	'rite.perform': {
+		level: -16.7,
+		lufs: -14.8,
+		peak: -0.7,
+		urls: ['/assets/shared/audio/rite.perform.3c713df4.webm']
+	},
 	'rite.resolve': {
 		level: -19.8,
 		lufs: -17.9,
 		peak: -1.7,
 		urls: ['/assets/shared/audio/fight.won.ba6cdb2d.webm']
+	},
+	'underwater.drone': {
+		level: -30.7,
+		lufs: -21.6,
+		peak: -1,
+		urls: ['/assets/shared/audio/underwater.drone.bc1f906a.webm']
 	},
 	'manifest.windup': {
 		level: -19,
@@ -715,6 +1085,12 @@ export const AUDIO_LEVELS: Record<
 		peak: -0.7,
 		urls: ['/assets/shared/audio/manifest.attack.5bd8a89f.webm']
 	},
+	'manifest.ray': {
+		level: -19.9,
+		lufs: -18,
+		peak: -1.6,
+		urls: ['/assets/shared/audio/manifest.ray.c8d29c66.webm']
+	},
 	'manifest.rush': {
 		level: -21.6,
 		lufs: -19.7,
@@ -732,6 +1108,12 @@ export const AUDIO_LEVELS: Record<
 		lufs: -33.9,
 		peak: -3.5,
 		urls: ['/assets/shared/audio/headlamp.off.738f6bf7.webm']
+	},
+	'player.hurt': {
+		level: -20.8,
+		lufs: -18.9,
+		peak: -1.3,
+		urls: ['/assets/shared/audio/player.hurt.30098812.webm']
 	},
 	'battery.charged': {
 		level: -21.5,
@@ -756,6 +1138,27 @@ export const AUDIO_LEVELS: Record<
 		lufs: -18.5,
 		peak: -0.2,
 		urls: ['/assets/shared/audio/defense.torn.f49422b0.webm']
+	},
+	heartbeat: {
+		level: -25.1,
+		lufs: -23.2,
+		peak: -0.8,
+		urls: ['/assets/shared/audio/heartbeat.41e4ea4f.webm']
+	},
+	whisper: {
+		level: -26.9,
+		lufs: -20.9,
+		peak: -0.5,
+		urls: [
+			'/assets/shared/audio/whisper-1.58eea905.webm',
+			'/assets/shared/audio/whisper-2.9cf87330.webm',
+			'/assets/shared/audio/whisper-3.2de23aec.webm',
+			'/assets/shared/audio/whisper-4.394c69c3.webm',
+			'/assets/shared/audio/whisper-5.bac88068.webm',
+			'/assets/shared/audio/whisper-6.1bec0c86.webm',
+			'/assets/shared/audio/whisper-7.5af71cf3.webm',
+			'/assets/shared/audio/whisper-8.a5562814.webm'
+		]
 	},
 	'headlamp.on': {
 		level: -32.2,

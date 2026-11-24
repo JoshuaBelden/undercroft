@@ -24,7 +24,7 @@ Everything in the map that is searched for loot: crates, the dead, locked trunks
 - `size`: across (along the wall), high, deep (out from the wall), in metres. `solid`: in the collision world (crates, chests, lockers) or stepped over (bodies, bone piles, nests). `lookHeight`: where its middle is looked at, if not half its height.
 - `slots` on the loot screen.
 - `open`: its ways of opening (below). `sealed`: some are sealed, and open only other ways.
-- `noise`: how far (m) its first opening is heard; `lootNoise`: each thing taken out of it or put in. `sound`: played as it is first opened (a `lootable.*` sound, silent until recorded).
+- `noise`: how far (m) its first opening is heard; `lootNoise`: each thing taken out of it or put in. `sound`: played as it is first opened (a `lootable.*` sound; for now every one plays the shared `loot.open` recording, until each has its own).
 - `loot`, `rarity` and `prize`: what it holds (below). `lid`: a part of its model that swings up when it is opened (the crate's).
 - `catches` (bites, poison, creatures coming out), `meter` (the alcove's), `hidden` (the stash, until noticed) and `fill` (the font): see [world.md](world.md).
 
@@ -114,7 +114,7 @@ Not every item has a model to lie on the floor as (materials, treasure). Dropped
 
 ## Adding a kind
 
-1. Add its id to `LootableId` and its `LootableDef` to `LOOTABLES`: name, flavor, size, ways, noise, table, counts. A sound for it in `sounds.ts` (silent until it is recorded).
+1. Add its id to `LootableId` and its `LootableDef` to `LOOTABLES`: name, flavor, size, ways, noise, table, counts. A sound for it in `sounds.ts` (`file: 'loot.open'` until it has its own recording).
 2. Place it: a `lootable-<id>-<n>` marker in the pieces it belongs in (or, for now, a weight in a kit entry's `lootables`).
 3. Its model: in `art/export/props/`, built into `static/assets/shared/props/`, and its `model` set. Until then it is a box, and its planned model is in `src/lib/content/planned.ts`.
 4. A help line for it, and anything new about opening it (a new tool: a field on the item, and a case in `hasTool`).

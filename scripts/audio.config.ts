@@ -169,8 +169,8 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	// Worn protection torn apart.
 	{ id: 'defense.torn', file: 'velcro.wav' },
 	{ id: 'creature.hurt', file: 'witch-growl.mp3' },
-	// A rope taking a climber's weight (played as they go up or down it).
-	{ id: 'rope.tension', file: 'sfx_rope_tension.mp3' },
+	// A rope taking a climber's weight (played as they go up or down it, and as they take hold).
+	{ id: 'rope.tension', file: 'rope.climb.mp3' },
 	// Knotting a rope to an anchor, untying it, coiling it up.
 	// The recording runs 13.7 s; tying takes a few seconds, so only its start.
 	{ id: 'rope.tie', file: 'sfx_rope_tying.mp3', crop: { start: 0, length: 3.5 } },
@@ -239,5 +239,85 @@ export const AUDIO_SOURCES: AudioSource[] = [
 			'fontaine.voice.3.wav',
 			'fontaine.voice.4.wav'
 		]
+	},
+	// Every lootable opening, for now (each gets its own later).
+	{ id: 'loot.open', file: 'loot.open.mp3' },
+	// Throwing and what lands (the throwing knives and the knife share the knife's).
+	{ id: 'brick.throw', file: 'brick.throw.mp3' },
+	{ id: 'brick.land', file: 'brick.land.mp3' },
+	{ id: 'brick.break', file: 'brick.break.mp3' },
+	{ id: 'knife.throw', file: 'kinfe.throw.mp3' },
+	{ id: 'knife.land', file: 'knife.land.mp3' },
+	{ id: 'pebble.land', file: 'pebble.land.mp3' },
+	// Hits.
+	{ id: 'melee.hit', file: 'melee.hit.mp3' },
+	{ id: 'melee.hit.creature', file: 'melee.hit.creature.mp3' },
+	{ id: 'club.hit', file: 'club.hit.mp3' },
+	{ id: 'crossbow.hit', file: 'crossbow.hit.mp3' },
+	{ id: 'pickaxe.hit', file: 'pickaxe.hit.mp3' },
+	{ id: 'sledge.hit', file: 'sledge.hit.mp3' },
+	{ id: 'spear.hit', file: 'spear.hit.mp3' },
+	{ id: 'rubble.break', file: 'rubble.break.mp3' },
+	{ id: 'derringer.shot', file: 'derringer.shot.mp3' },
+	{ id: 'derringer.reload', file: 'derringer.reload.mp3' },
+	// Items.
+	{ id: 'item.break', file: 'item.break.mp3' },
+	{ id: 'compass.open', file: 'compass.open.mp3' },
+	{ id: 'glowstick.crack', file: 'glowstick.crack.mp3' },
+	{ id: 'salt.pour', file: 'salt.pour.mp3' },
+	{ id: 'tarot.draw', file: 'tarot.draw.mp3' },
+	{ id: 'fire.burn', file: 'fire.burn.mp3' },
+	// Lighting an oil bottle's rag, as the throw is drawn back.
+	{ id: 'oilbottle.light', file: 'oilBottle.light.mp3' },
+	{ id: 'doll.phantom', file: 'doll.phantom.mp3' },
+	{ id: 'map.open', file: 'map.open.mp3' },
+	{ id: 'map.close', file: 'map.close.mp3' },
+	{ id: 'shop.buy', file: 'shop.buy.mp3' },
+	// The world.
+	{ id: 'crate.stuck', file: 'crate.stuck.mp3' },
+	{ id: 'door.unbar', file: 'door.unbar.mp3' },
+	{ id: 'gate.mausoleum', file: 'gate.mausoleum.mp3' },
+	{ id: 'surveyor.share', file: 'surveyor.share.mp3' },
+	{ id: 'clue.sting', file: 'clue.sting.mp3' },
+	{ id: 'rite.perform', file: 'rite.perform.mp3' },
+	// The explorer: hurt, and landing from a fall.
+	{ id: 'player.hurt', file: 'player.hurt.mp3' },
+	{ id: 'fall.land', file: 'fall.land.mp3' },
+	{ id: 'fall.land.hard', file: 'fall.land.hard.mp3' },
+	// Creatures. The dwellers' are long takes of many steps and murmurs: one variant each.
+	{ id: 'rat.squeak', file: 'rat.squeak.mp3' },
+	{ id: 'spider.hiss', file: 'spider.hiss.mp3' },
+	{ id: 'spider.die', file: 'spider.die.mp3' },
+	{ id: 'spider.giant.hiss', file: 'spider.giant.hiss.mp3' },
+	{ id: 'spider.giant.die', file: 'spider.giant.die.mp3' },
+	{
+		id: 'dweller.step',
+		file: 'dweller.step.mp3',
+		slice: { minGap: 0.3, maxLength: 0.5, threshold: 0.3, maxClips: 8 }
+	},
+	{
+		id: 'dweller.murmur',
+		file: 'dweller.murmur.mp3',
+		slice: { minGap: 1.5, maxLength: 3, threshold: 0.3, maxClips: 6 },
+		rate: 22050
+	},
+	// The Affliction: its ray, and the drone heard once at three quarters.
+	{ id: 'manifest.ray', file: 'manifest.ray.mp3' },
+	{ id: 'omen.drone', file: 'omen.drone.mp3', rate: 22050 },
+	// Low sanity and omens: whispers close by, a few seconds each.
+	{
+		id: 'whisper',
+		file: 'whisper.mp3',
+		slice: { minGap: 1.5, maxLength: 3, threshold: 0.3, maxClips: 8 },
+		rate: 22050
+	},
+	// Loops: the heartbeat (sped up as fear rises) and the drone with your head under water.
+	{ id: 'heartbeat', file: 'heartbeat.mp3', loopCrossfade: 0.5, keepSilence: true },
+	{
+		id: 'underwater.drone',
+		file: 'underwater.drone.mp3',
+		loopCrossfade: 1,
+		keepSilence: true,
+		rate: 22050
 	}
 ];

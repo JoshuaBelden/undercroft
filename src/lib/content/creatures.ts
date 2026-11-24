@@ -677,7 +677,7 @@ export const CREATURES: Record<string, CreatureDef> = {
 			burst: 'spider.giant.hiss',
 			attack: 'spider.giant.hiss',
 			hurt: 'spider.giant.hiss',
-			die: 'spider.die'
+			die: 'spider.giant.die'
 		},
 		// Only sometimes, and only ever one, somewhere far off.
 		spawn: {

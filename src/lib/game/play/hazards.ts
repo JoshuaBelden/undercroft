@@ -448,11 +448,13 @@ export class Hazards implements PlayFeature {
 	}
 
 	/**
-	 * Carrying something cursed (the porcelain doll), whispers come now and then from close by
-	 * (docs/dev/world.md#cursed-loot). Only you hear them.
+	 * Carrying something cursed (the porcelain doll), its phantom sound (or a whisper) comes now
+	 * and then from close by (docs/dev/world.md#cursed-loot). Only you hear it.
 	 */
 	private whisper(state: PlayerState, delta: number): void {
-		const cursed = allStacks(state.inventory).some((stack) => ITEMS[stack.item]?.cursed);
+		const cursed = allStacks(state.inventory)
+			.map((stack) => ITEMS[stack.item]?.cursed)
+			.find((curse) => curse !== undefined);
 		if (!cursed) {
 			this.untilWhisper = CURSE_WHISPER.first;
 			return;
@@ -463,7 +465,8 @@ export class Hazards implements PlayFeature {
 			CURSE_WHISPER.every[0] + Math.random() * (CURSE_WHISPER.every[1] - CURSE_WHISPER.every[0]);
 		const a = Math.random() * Math.PI * 2;
 		const [x, y, z] = state.position;
-		this.ctx.sounds.playAt('whisper', [x + Math.cos(a) * 1.5, y + 1.4, z + Math.sin(a) * 1.5], 0.8);
+		const sound = cursed.phantom ?? 'whisper';
+		this.ctx.sounds.playAt(sound, [x + Math.cos(a) * 1.5, y + 1.4, z + Math.sin(a) * 1.5], 0.8);
 	}
 
 	update(delta: number): void {
