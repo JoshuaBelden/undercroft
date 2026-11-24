@@ -575,4 +575,17 @@ describe('AfflictionDirector', () => {
 		expect(affliction.meter).toBe(meter);
 		expect(affliction.snapshot().calmed).toBe(true);
 	});
+
+	it('a training ground (no manifestation) takes a strobe and admin calls without throwing', () => {
+		const { affliction } = director('rumors');
+		expect(AFFLICTIONS.rumors.manifestation).toBeUndefined();
+		const lamp = lampOn(map.start);
+		expect(affliction.strobe(lamp.state)).toBe(false);
+		expect(affliction.stun()).toBe(false);
+		expect(affliction.hitBody()).toBeNull();
+		expect(affliction.damage(10)).toBe(false);
+		affliction.forceManifest([lamp]);
+		expect(affliction.manifested).toBe(false);
+		expect(run(affliction, 1, [lamp])).toEqual([]);
+	});
 });

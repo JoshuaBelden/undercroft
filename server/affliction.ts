@@ -284,8 +284,9 @@ export class AfflictionDirector {
 	 */
 	strobe(state: PlayerState): boolean {
 		const d = this.manifestation;
-		const m = this.spec;
+		// Nothing out (always so in a training ground, which has no manifestation): read no spec.
 		if (!d || d.state === 'banished' || d.state === 'vanished') return false;
+		const m = this.spec;
 		if (!m.vulnerable.includes('strobe')) return false;
 		if (lampIllumination(this.world, state, this.core(d)) < STROBE.light) return false;
 		return applyStatus(d.statuses, STROBE.causes, m.statuses);
