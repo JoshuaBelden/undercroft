@@ -68,12 +68,12 @@ describe('buildCatalog', () => {
 		expect(row(catalog, 'image', 'icon')?.status).toBe('unused');
 	});
 
-	it('a sound with no recording plays its synthesized stand-in', () => {
+	it('a sound with no recording built is missing, whether or not it names one', () => {
 		const content: CatalogContent = {
 			...GAME_CONTENT,
 			sounds: {
 				recorded: { file: 'rec', category: 'sfx', volume: 1 },
-				made: { synth: { kind: 'click' }, category: 'sfx', volume: 1 },
+				made: { category: 'sfx', volume: 1 },
 				silent: { file: 'unbuilt', category: 'sfx', volume: 1 }
 			},
 			audioFiles: { rec: ['/assets/shared/audio/rec.1.webm'], spare: ['/assets/x.webm'] },
@@ -85,9 +85,11 @@ describe('buildCatalog', () => {
 		);
 		expect(row(catalog, 'sound', 'recorded')?.status).toBe('ok');
 		expect(row(catalog, 'sound', 'recorded')?.level).toEqual({ lufs: -20, peak: -1, stale: true });
-		expect(row(catalog, 'sound', 'made')?.status).toBe('synthesized');
+		expect(row(catalog, 'sound', 'made')?.status).toBe('missing');
+		expect(row(catalog, 'sound', 'made')?.note).toBe('Needs recording: silent');
 		expect(row(catalog, 'sound', 'made')?.usedBy).toEqual(['sfx', 'a.ts']);
 		expect(row(catalog, 'sound', 'silent')?.status).toBe('missing');
+		expect(row(catalog, 'sound', 'silent')?.note).toBe("Recording unbuilt isn't built: silent");
 		expect(row(catalog, 'sound', 'recording: spare')?.status).toBe('unused');
 	});
 

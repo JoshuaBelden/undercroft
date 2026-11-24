@@ -107,10 +107,10 @@ They are never on the main route. After the side branches, the generator hangs `
 | ----------------------------- | ---------------------------------------------------------------- |
 | `rope.tension`                | Every 0.5 m anyone climbs (`sfx_rope_tension.mp3`)               |
 | `rope.grab`                   | Taking hold (the tension recording, higher)                      |
-| `rope.letgo`                  | Letting go or slipping off (synth)                               |
+| `rope.letgo`                  | Letting go or slipping off (not recorded yet)                    |
 | `rope.tie`                    | Tying, untying, gathering up (`sfx_rope_tying.mp3`, first 3.5 s) |
-| `rope.payout`                 | Every 2 m laid (synth)                                           |
-| `fall.land`, `fall.land.hard` | A fall that hurt (synth)                                         |
+| `rope.payout`                 | Every 2 m laid (not recorded yet)                                |
+| `fall.land`, `fall.land.hard` | A fall that hurt (not recorded yet)                              |
 | `condition.hobble`            | Your own hobbling fall (the grunt)                               |
 
 ## Body animation

@@ -118,11 +118,11 @@ Its other sounds, all through the sound bank:
 | Sound              | When                                                         | Source (for now)                             |
 | ------------------ | ------------------------------------------------------------ | -------------------------------------------- |
 | `manifest.cast`    | `casts` rose: the ray gathering                              | the attack recording, slowed (`rate` 0.7)    |
-| `manifest.ray`     | a `ray` event, at `from`: it strikes                         | synth `whoosh`, low                          |
-| `manifest.ray.hit` | a `ray` event, at `to`: where it struck                      | synth `crack`, low                           |
+| `manifest.ray`     | a `ray` event, at `from`: it strikes                         | not recorded yet: silent                     |
+| `manifest.ray.hit` | a `ray` event, at `to`: where it struck                      | not recorded yet: silent                     |
 | `lamp.snuffed`     | a `ray` event on you: your lamp gutters out                  | the headlamp-off click, slowed (`rate` 0.55) |
 | `manifest.rush`    | `rushing` became true: it charges                            | the witch's burst, deeper (`rate` 0.75)      |
-| `manifest.vanish`  | `state` became `vanished`                                    | synth `whisper`, low                         |
+| `manifest.vanish`  | `state` became `vanished`                                    | not recorded yet: silent                     |
 | `manifest.return`  | `state` left `vanished`: it is back (the figure jumps there) | the stun recording, slowed (`rate` 0.75)     |
 
 The ray is drawn by `RayEffects` (`src/lib/game/affliction/RayEffects.ts`), with no lights, so none of it counts toward the light budget. **The charge:** while `charge` is above 0, blue smoke (additive `Points` with a soft canvas-drawn puff) swirls in to its hands round a dark core that swells with the charge, and the figure turns to face `aim`. Its hands are its two hand bones (`mixamorigLeftHand`, `mixamorigRightHand`), or a guess in front of its chest without them. **The ray:** on a `ray` event, a dark beam (a thin near-black cylinder in a wider additive blue sheath) from its hands to `to`, with thin white streaks (1px `LineSegments`, laid out afresh every frame so they crackle) along it, so it shows even end-on to whoever it hits, gone in 0.5 s, and blue smoke along it that drifts off and fades over 1.1 s. Vanishing fades the figure out over 0.6 s, and back in where it returns.

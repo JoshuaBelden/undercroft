@@ -74,4 +74,4 @@ The weapons of the handoff are data on these mechanics (`src/lib/content/items/w
 
 ## Adding a behaviour
 
-Add a field to the item's spec, check it where the behaviour happens (`stepWeapon` for timing and what the player can do, `server/combat.ts` for what a hit does, `HazardSystem` for things that last in the map), give it a test item, a sound (with a `synth` until recorded) and a line here.
+Add a field to the item's spec, check it where the behaviour happens (`stepWeapon` for timing and what the player can do, `server/combat.ts` for what a hit does, `HazardSystem` for things that last in the map), give it a test item, a sound (silent, and listed as missing, until recorded) and a line here.

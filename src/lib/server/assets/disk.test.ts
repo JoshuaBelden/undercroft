@@ -73,7 +73,9 @@ describe('the repository', () => {
 			(r) =>
 				r.status === 'missing' &&
 				r.planned === undefined &&
-				(r.kind === 'model' || r.kind === 'piece' || r.kind === 'sound')
+				(r.kind === 'model' || r.kind === 'piece' || r.kind === 'sound') &&
+				// A sound not recorded yet is a to-do on the page, not a broken manifest.
+				!(r.kind === 'sound' && r.files.length === 0)
 		);
 		expect(missing.map((r) => `${r.kind} ${r.id}: ${r.note}`)).toEqual([]);
 	});

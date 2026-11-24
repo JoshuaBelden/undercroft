@@ -222,7 +222,7 @@ export function buildCatalog(
 		});
 	}
 
-	// Sounds: every SoundId, recorded or synthesized, and recordings no sound plays.
+	// Sounds: every SoundId, recorded or still to record, and recordings no sound plays.
 	const recordings = new Set<string>();
 	const sounds = Object.entries(content.sounds);
 	const soundUses = scanQuoted(
@@ -239,12 +239,10 @@ export function buildCatalog(
 		let status: AssetStatus = 'ok';
 		let note: string | undefined;
 		if (!urls.length) {
-			status = def.synth ? 'synthesized' : 'missing';
+			status = 'missing';
 			note = ids.length
-				? `Recording ${ids.join(', ')} isn't built${def.synth ? `: plays ${def.synth.kind}` : ''}`
-				: def.synth
-					? `Made in code: ${def.synth.kind}`
-					: 'No recording and nothing synthesized: silent';
+				? `Recording ${ids.join(', ')} isn't built: silent`
+				: 'Needs recording: silent';
 		} else if (gone.length) {
 			status = 'missing';
 			note = `${gone.length} of its files are gone`;
@@ -422,7 +420,7 @@ function scanQuoted(sources: AssetDisk['sources'], names: string[]): Map<string,
 function countRows(rows: AssetRow[]): AssetCatalog['counts'] {
 	const counts = {} as AssetCatalog['counts'];
 	for (const { id } of ASSET_KINDS) {
-		counts[id] = { ok: 0, missing: 0, placeholder: 0, synthesized: 0, unused: 0 };
+		counts[id] = { ok: 0, missing: 0, placeholder: 0, unused: 0 };
 	}
 	for (const row of rows) counts[row.kind][row.status]++;
 	return counts;

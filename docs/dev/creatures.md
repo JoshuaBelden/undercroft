@@ -277,9 +277,9 @@ It's deterministic from player state. Every client draws the creature with the s
 
 A snapshot whose `kind` changes (a dweller turning) gets the new kind's model. `scale` and `lift` are applied to the model.
 
-Each sound is the def's own (`sounds`) or the shared one (`creatureSound`); `Creatures.soundOf(id, which)` gives the hurt and die sounds for combat events. A `silent` def (the moth) plays none. The rats', spiders', dwellers' and surveyor's are synthesized placeholders (`squeak`, `skitter`, `shuffle`, `whisper`, `hiss`, `rustle`) until there are recordings.
+Each sound is the def's own (`sounds`) or the shared one (`creatureSound`); `Creatures.soundOf(id, which)` gives the hurt and die sounds for combat events. A `silent` def (the moth) plays none. The rats', spiders', dwellers' and surveyor's have no recordings yet, so they are silent.
 
-The witch's sounds always play, visible or not: `creature.step` while in a moving slot (`sfx_creature_footsteps`, sliced into single steps), `creature.burst` on entering `gait.burst` (the `jump-scare` recording; at most once every `BURST_SOUND_GAP` (8) seconds per creature, since a stalking creature bursts every few seconds and the clip is 5 s long), and `creature.attack` on entering an attack slot (`sfx_witch_attack`). `creature.breath` is the `sfx_witch_breathing` loop; `creature.die` is `sfx_witch_death`; `creature.hurt` is still synthesized.
+The witch's sounds always play, visible or not: `creature.step` while in a moving slot (`sfx_creature_footsteps`, sliced into single steps), `creature.burst` on entering `gait.burst` (the `jump-scare` recording; at most once every `BURST_SOUND_GAP` (8) seconds per creature, since a stalking creature bursts every few seconds and the clip is 5 s long), and `creature.attack` on entering an attack slot (`sfx_witch_attack`). `creature.breath` is the `sfx_witch_breathing` loop; `creature.die` is `sfx_witch_death`; `creature.hurt` is not recorded yet (silent).
 
 **Breathing**: `Creatures.listen(delta, listener)` (called each frame with the camera position) runs one `creature.breath` loop (`art/sfx/sfx_witch_breathing.mp3`) at `(1 − d / breath.range)²` for the nearest living creature that breathes (has `breath`), eased. It's heard through walls, so a creature close by gives itself away even when it can't be seen.
 
@@ -299,7 +299,7 @@ Each rig in the script lists its bones by job (spine, legs front to back, wings)
 
 1. Export the model (feet at the origin, animations included) to `art/export/creatures/<name>.glb` and run `pnpm asset:build`. Without clips, key some in `critters.py` (a new `RIGS` entry) or borrow them (`CLIP_DONORS`).
 2. Add a `CreatureDef` to `CREATURES`. `pnpm asset:build` prints the clip names in the file; map each one you want to a slot in `animations` and leave the rest out. Size it with `scale`/`lift` if the model isn't to scale.
-3. Give it a spawn rule (`scatter`, `attracted`, `lamp`), a `reach`, and its own `sounds` (synth placeholders in `content/audio/sounds.ts` until there are recordings).
+3. Give it a spawn rule (`scatter`, `attracted`, `lamp`), a `reach`, and its own `sounds` (in `content/audio/sounds.ts`; silent until there are recordings).
 4. Add a help topic for players.
 
 Behaviour beyond the shared states (a different perception, a ranged attack) goes in the director, keyed by def fields, not by kind name.

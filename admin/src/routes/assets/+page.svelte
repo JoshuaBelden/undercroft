@@ -19,13 +19,12 @@
 		ok: 'good',
 		missing: 'warn',
 		placeholder: 'info',
-		synthesized: 'info',
 		unused: ''
 	};
 	const KIND_NAME = Object.fromEntries(ASSET_KINDS.map((k) => [k.id, k.label.toLowerCase()]));
 	const STATUS_NAME = Object.fromEntries(ASSET_STATUSES.map((s) => [s.id, s.label]));
 
-	/** "27 sounds synthesized · 1 picture missing": everything that isn't OK. */
+	/** "27 sounds missing · 1 picture placeholder": everything that isn't OK. */
 	const summary = $derived(
 		ASSET_KINDS.flatMap(({ id }) =>
 			ASSET_STATUSES.filter((s) => s.id !== 'ok' && data.counts[id][s.id] > 0).map(

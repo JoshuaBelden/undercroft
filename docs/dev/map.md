@@ -68,7 +68,7 @@ The tab's own buttons are pills in the middle of the menu's header (`MapTools`):
 
 ## Sounds
 
-`map.open` and `map.close` (the notebook), `map.sketch` (the pencil: your own in your hands, others' where they stand; the `sfx_scribble` recording, `map.scribble`) and `map.show` (pages), in `src/lib/content/audio/sounds.ts`. The others are synthesized for now.
+`map.open` and `map.close` (the notebook), `map.sketch` (the pencil: your own in your hands, others' where they stand; the `sfx_scribble` recording, `map.scribble`) and `map.show` (pages), in `src/lib/content/audio/sounds.ts`. The others are not recorded yet (silent).
 
 ## Admin
 

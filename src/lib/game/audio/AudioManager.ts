@@ -174,7 +174,7 @@ export class AudioManager {
 		return refDistance / Math.max(refDistance, Math.min(d, MAX_DISTANCE));
 	}
 
-	/** The Web Audio context (created on first use); synthesized sounds are built against it. */
+	/** The Web Audio context (created on first use). */
 	get audioContext(): AudioContext {
 		return this.ensureContext();
 	}

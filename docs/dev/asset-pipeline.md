@@ -2,7 +2,7 @@
 
 Models are built in Blender, exported as glTF binary (`.glb`), and loaded with Three.js.
 
-To see what is built, what is still a placeholder or synthesized and what is missing, open the admin app's [Art & Assets page](admin.md#art-and-assets).
+To see what is built, what is still a placeholder and what is missing (every sound not recorded yet), open the admin app's [Art & Assets page](admin.md#art-and-assets).
 
 ## Conventions
 
@@ -161,7 +161,7 @@ Then run `pnpm asset:build`. Exports with no root empty named after the file (fo
 
 **The .blend file is the source of truth.** `kit.py` only bootstrapped the first pieces. Edit pieces by hand in Blender. `build_all()` never touches a collection that already exists. Regenerating one (`kit.build_angel_well(force=True)`) wipes its hand edits, so only do it deliberately. The only pnpm script that runs Blender is `pnpm asset:export`, and it never saves the .blend. `export_all()` and `pnpm asset:build` only read your work. Commit .blend changes to undercroft-art when they are done rather than after every save: each commit stores the whole file again in LFS.
 
-#To see what is built, what is still a placeholder or synthesized and what is missing, open the admin app's [Art & Assets page](admin.md#art-and-assets).
+#To see what is built, what is still a placeholder and what is missing (every sound not recorded yet), open the admin app's [Art & Assets page](admin.md#art-and-assets).
 
 ## Conventions
 
