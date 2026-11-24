@@ -169,16 +169,22 @@ export const AUDIO_SOURCES: AudioSource[] = [
 	// Worn protection torn apart.
 	{ id: 'defense.torn', file: 'velcro.wav' },
 	{ id: 'creature.hurt', file: 'witch-growl.mp3' },
-	// A rope taking a climber's weight (played as they go up or down it, and as they take hold).
-	{ id: 'rope.tension', file: 'rope.climb.mp3' },
+	// A rope taking a climber's weight (played as they go up or down it): one creak per variant.
+	{
+		id: 'rope.tension',
+		file: 'rope.tension.mp3',
+		slice: { minGap: 0.4, maxLength: 1.2, threshold: 0.3, maxClips: 8 }
+	},
+	// Taking hold of a rope.
+	{ id: 'rope.grab', file: 'rope.grab.mp3' },
 	// Knotting a rope to an anchor, untying it, coiling it up.
 	// The recording runs 13.7 s; tying takes a few seconds, so only its start.
 	{ id: 'rope.tie', file: 'sfx_rope_tying.mp3', crop: { start: 0, length: 3.5 } },
 	// Levering at a jammed crate or a wall with a crowbar (played as the prying starts; cut short
 	// when the prying stops).
 	{ id: 'crowbar.pry', file: 'sfx_metal_pry.mp3' },
-	// The crowbar's own swing: the recording is 1.6 s of swing and a second and a half of silence.
-	{ id: 'crowbar.swing', file: 'sfx_crowbar_attack.mp3', crop: { start: 0, length: 1.6 } },
+	// The crowbar's own swing.
+	{ id: 'crowbar.swing', file: 'crowbar.swing.mp3' },
 	// A false wall coming down under the crowbar.
 	{ id: 'crowbar.rocks', file: 'sfx_crowbar_rocks.mp3' },
 	// A key turning in a trunk's lock.

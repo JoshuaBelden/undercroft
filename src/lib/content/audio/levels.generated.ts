@@ -703,10 +703,10 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/crowbar.pry.2869a338.webm']
 	},
 	'crowbar.swing': {
-		level: -21.3,
-		lufs: -18.2,
-		peak: -0.8,
-		urls: ['/assets/shared/audio/crowbar.swing.b57b2db9.webm']
+		level: -22.3,
+		lufs: -19.2,
+		peak: -0.7,
+		urls: ['/assets/shared/audio/crowbar.swing.b0ee02a9.webm']
 	},
 	'crowbar.rocks': {
 		level: -21.5,
@@ -847,16 +847,25 @@ export const AUDIO_LEVELS: Record<
 		urls: ['/assets/shared/audio/chalk.abbadf00.webm']
 	},
 	'rope.tension': {
-		level: -27.5,
-		lufs: -22.3,
-		peak: -1.1,
-		urls: ['/assets/shared/audio/rope.tension.108a9b4c.webm']
+		level: -33.9,
+		lufs: -28.7,
+		peak: -1.3,
+		urls: [
+			'/assets/shared/audio/rope.tension-1.b247916b.webm',
+			'/assets/shared/audio/rope.tension-2.caa71b7b.webm',
+			'/assets/shared/audio/rope.tension-3.c6e7899e.webm',
+			'/assets/shared/audio/rope.tension-4.a5b114fc.webm',
+			'/assets/shared/audio/rope.tension-5.6e98aedd.webm',
+			'/assets/shared/audio/rope.tension-6.14c9c5ef.webm',
+			'/assets/shared/audio/rope.tension-7.b93eebc6.webm',
+			'/assets/shared/audio/rope.tension-8.9a2c872a.webm'
+		]
 	},
 	'rope.grab': {
-		level: -30.3,
-		lufs: -22.3,
-		peak: -1.1,
-		urls: ['/assets/shared/audio/rope.tension.108a9b4c.webm']
+		level: -30.4,
+		lufs: -22.4,
+		peak: -0.9,
+		urls: ['/assets/shared/audio/rope.grab.3e981c98.webm']
 	},
 	'rope.tie': {
 		level: -37.8,

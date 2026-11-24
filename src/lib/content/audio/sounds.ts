@@ -1091,10 +1091,9 @@ export const SOUNDS = {
 		captionOthers: true
 	},
 	'rope.grab': {
-		file: 'rope.tension',
+		file: 'rope.grab',
 		category: 'sfx',
 		volume: 0.4,
-		rate: 1.25,
 		variation: 0.1
 	},
 	/** Letting go of a rope, or slipping off it. */
