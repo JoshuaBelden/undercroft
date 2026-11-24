@@ -9,6 +9,8 @@ node_modules
 /build
 /admin/.svelte-kit
 /admin/build
+/wick/university/.svelte-kit
+/wick/university/build
 /desktop/dist
 /desktop/release
 /coverage

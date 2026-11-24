@@ -9,7 +9,7 @@
 	import { BUTTON, onMenuHold, onMenuMove, onMenuPress } from '#lib/game/input/menus.ts';
 	import { AudioManager } from '#lib/game/audio/AudioManager.ts';
 	import { SoundBank } from '#lib/game/audio/SoundBank.ts';
-	import { FadingLoop } from '#lib/game/audio/FadingLoop.ts';
+	import { FadingLoop } from '@wick/audio';
 	import { connection, start } from '#lib/game/net/connection.svelte.ts';
 	import { settings } from '#lib/settings/settings.svelte.ts';
 	import { toggleFullscreen, watchFullscreen } from '#lib/ui/fullscreen.svelte.ts';

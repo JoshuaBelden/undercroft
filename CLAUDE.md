@@ -4,6 +4,7 @@
 
 - Work items: GitHub Issues (https://github.com/JoshuaBelden/undercroft/issues)
 - Dev docs: `docs/dev/`
+- **WICK**, the engine being drawn out of Undercroft into `wick/`: `docs/wick-roadmap.md` is its plan and status (it overrides older notes; no issue per milestone). Work on it pauses between milestones; to pick it back up, follow its "How to resume".
 
 Before designing a gameplay feature, read its issue and the `docs/dev/` doc for each system it touches: they hold the design as it stands. Work in progress is the `Beta` milestone; post-beta ideas carry the `backlog` label. Stay inside the scope of the issue you're working on. Issues labelled `from-game` are bug reports filed by players from inside the game.
 
@@ -36,6 +37,7 @@ pnpm dev:all            # MongoDB, then site + game server + admin app together,
 pnpm dev                # SvelteKit client
 pnpm dev:server         # game server (watch mode)
 pnpm dev:admin          # admin app (admin/, port 5174; docs/dev/admin.md)
+pnpm university:dev     # the WICK University, the engine's docs and demos (wick/university, port 5175)
 pnpm desktop:dev        # desktop app: local site + game server + save, Steam co-op (docs/dev/hosting.md)
 pnpm desktop:build      # desktop app: desktop/release/win-unpacked + installer
 pnpm steam:upload       # SteamPipe build script; uploads only with --upload (docs/dev/desktop.md)
@@ -65,6 +67,7 @@ pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 - **Fix warnings, don't suppress them.** Ignore comments only when truly unavoidable, with a one-line reason next to them.
 - Run `pnpm check`, `pnpm lint` and `pnpm test` before considering any task complete. A change to shared or server logic comes with tests for it.
 - **Branches**: never commit to `main`. Each issue gets its own branch named `<issue-id>-<feature-name>` in kebab-case (`4-credits-cleanup`, `51-map-sketching`), and lands through a pull request to `main` whose description closes the issue (`Closes #4`).
+- **One feature at a time.** Never create more than one branch or open more than one PR. Work stays on the current feature's branch and PR until it's merged; don't split work into extra branches, stacked PRs, or parallel worktrees.
 
 ## Architecture rules
 
@@ -72,11 +75,12 @@ pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 - **Solo runs use the same server path** as co-op (one client connected). No separate single-player code path.
 - **Map generation is seeded and server-side.** The server picks the seed, generates the layout, and sends it to clients. Clients only build geometry from the layout they receive.
 - **Shared types** between client and server live in `src/lib/shared/`.
-- **Imports**: SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions (`#lib/game/Engine.ts`, `#lib/settings/settings.svelte.ts`). The server imports shared code by relative path with `.ts` extensions.
+- **Imports**: SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions (`#lib/game/Engine.ts`, `#lib/settings/settings.svelte.ts`). The server imports shared code by relative path with `.ts` extensions. WICK packages are imported by name (`@wick/audio`).
+- **WICK's boundary**: nothing in `wick/` imports anything outside `wick/` (no `#lib`, no relative path out); game content reaches WICK as parameters, passed in by a thin Undercroft bootstrap at the old path (`src/lib/game/audio/AudioManager.ts`). ESLint enforces it. A WICK package's change comes with its University chapter updated.
 - **Environment variables**: client-visible variables are declared in `src/env.ts` and read from `$app/env/public`. The server reads `process.env` via `server/config.ts`.
 - **Game content is data-driven.** Afflictions, Thralls, items, recipes, candle tiers, rooms, and loot tables are defined as data, not hardcoded in logic.
 - **Input**: never hardcode keys or buttons. All input, keyboard, mouse and controller, goes through the input map so bindings stay remappable. Every new action gets a controller button (or none) in `PAD_DEFAULTS` (see `docs/dev/controller.md`).
-- **Audio**: all sound goes through the audio manager (categories: master, music, ambience, SFX). No voice chat in the first beta.
+- **Audio**: all sound goes through the audio manager (WICK's `@wick/audio`, set up in `src/lib/game/audio/`; categories: master, music, ambience, SFX). No voice chat in the first beta.
 - **Never synthesize sounds in code.** Every sound is a recording. A new sound goes into `sounds.ts` with its `file` id and stays silent until the recording is built; the admin Art & Assets page lists it as missing so the user knows what to record. No procedural/placeholder audio (oscillators, noise buffers) as a stand-in.
 - **Settings**: all player settings go through the settings store and persist.
 - **Admin/debug tools** are gated behind dev mode or the admin role and never ship enabled to players.
@@ -102,6 +106,7 @@ desktop/        # desktop app (Electron + steamworks.js): the client in a window
 scripts/        # one-off tooling (asset generation)
 static/assets/  # .glb models, textures, audio (optimized, committed)
 art/            # raw art: .blend, 4K textures, raw exports (its own private repo, undercroft-art, in Git LFS; ignored here)
+wick/           # WICK, the engine: packages/<name> (@wick/<name>), university/ (docs + demos); its plan is docs/wick-roadmap.md
 docs/
   dev/          # developer docs, updated as features land
 ```

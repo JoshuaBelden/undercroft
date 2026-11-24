@@ -4,7 +4,7 @@ import {
 	type Action,
 	type Bindings
 } from '#lib/game/input/actions.ts';
-import type { AudioCategory } from '#lib/game/audio/AudioManager.ts';
+import type { AudioCategory } from '#lib/content/audio/categories.ts';
 import { SURVEY } from '#lib/content/map/survey.ts';
 import type { ItemSortOrder } from '#lib/ui/items.ts';
 

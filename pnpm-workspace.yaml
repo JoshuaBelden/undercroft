@@ -1,8 +1,10 @@
-# The game (this folder), the admin app (admin/, docs/dev/admin.md) and the desktop app
-# (desktop/, docs/dev/desktop.md).
+# The game (this folder), the admin app (admin/, docs/dev/admin.md), the desktop app
+# (desktop/, docs/dev/desktop.md) and WICK, the engine (wick/, docs/wick-roadmap.md).
 packages:
   - admin
   - desktop
+  - wick/packages/*
+  - wick/university
 engineStrict: true
 onlyBuiltDependencies:
   - electron

@@ -1,6 +1,6 @@
 import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 import { Manifestation } from '#lib/game/affliction/Manifestation.ts';
-import { FadingLoop } from '#lib/game/audio/FadingLoop.ts';
+import { FadingLoop } from '@wick/audio';
 import type { SoundId } from '#lib/content/audio/sounds.ts';
 import type { ManifestationSnapshot } from '#lib/shared/affliction/types.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
@@ -26,7 +26,7 @@ export class Affliction implements PlayFeature {
 	deadline = $state<number | null>(null);
 	private manifestation: Manifestation;
 	/** The fight music (`manifestation.music`), and which it is, once there is one to play. */
-	private fight: FadingLoop | null = null;
+	private fight: FadingLoop<SoundId> | null = null;
 	private fightId: SoundId | null = null;
 
 	constructor(private ctx: PlayContext) {
