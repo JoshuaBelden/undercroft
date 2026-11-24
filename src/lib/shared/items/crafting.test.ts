@@ -107,6 +107,8 @@ describe('the Workshop rules', () => {
 	it('salvage gives the materials; rope by the length', () => {
 		expect(salvageOf(newStack('crowbar'))).toEqual([{ item: 'metal', count: 2 }]);
 		expect(salvageOf(newStack('rope-pack'))).toEqual([{ item: 'rope-length', count: 20 }]);
+		// A rope length unpicks into twine, by the stack.
+		expect(salvageOf(newStack('rope-length', 3))).toEqual([{ item: 'twine', count: 6 }]);
 		expect(salvageOf(newStack('coins'))).toEqual([]);
 	});
 
