@@ -299,10 +299,20 @@ def mark_hidden(body):
 
 
 def strip_helpers(body):
-    """Delete MakeHuman's helper geometry and the masks that hid it."""
+    """
+    Delete MakeHuman's helper geometry (and the masks that hid it), keeping the shape keys. Not
+    MPFB's own delete_helpers: it rebuilds the mesh from its targets, which unbakes the body and
+    drops the face keys.
+    """
     bm = basemesh(body)
-    select_only(bm)
-    bpy.ops.mpfb.delete_helpers()
+    groups = {g.index for g in bm.vertex_groups if g.name in ("HelperGeometry", "JointCubes")}
+    mesh = bmesh.new()
+    mesh.from_mesh(bm.data)
+    deform = mesh.verts.layers.deform.active
+    helpers = [v for v in mesh.verts if any(i in v[deform] for i in groups)]
+    bmesh.ops.delete(mesh, geom=helpers, context="VERTS")
+    mesh.to_mesh(bm.data)
+    mesh.free()
     for mod in list(bm.modifiers):
         if mod.type == "MASK":
             bm.modifiers.remove(mod)

@@ -31,7 +31,10 @@
 	let target = 0;
 
 	$effect(() => {
-		body?.setLook($state.snapshot(look) as Look);
+		// Read the look first: behind `body?.`, nothing would be read before the body exists, and
+		// the effect would never run again.
+		const next = $state.snapshot(look) as Look;
+		body?.setLook(next);
 	});
 
 	onMount(() => {

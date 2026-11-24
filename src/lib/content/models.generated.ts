@@ -157,8 +157,8 @@ export const MODELS = {
 		bytes: 614724
 	},
 	'shared/player/female/body.glb': {
-		url: '/assets/shared/player/female/body.176df5bd.glb',
-		bytes: 981912
+		url: '/assets/shared/player/female/body.b3dbae1b.glb',
+		bytes: 779284
 	},
 	'shared/player/female/hair-afro.glb': {
 		url: '/assets/shared/player/female/hair-afro.587146bd.glb',
@@ -201,8 +201,8 @@ export const MODELS = {
 		bytes: 614928
 	},
 	'shared/player/male/body.glb': {
-		url: '/assets/shared/player/male/body.436cf429.glb',
-		bytes: 910696
+		url: '/assets/shared/player/male/body.edf4e073.glb',
+		bytes: 752004
 	},
 	'shared/player/male/hair-afro.glb': {
 		url: '/assets/shared/player/male/hair-afro.3ec09ca4.glb',
