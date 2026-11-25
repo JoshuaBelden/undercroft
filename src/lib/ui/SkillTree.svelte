@@ -12,7 +12,10 @@
 		type SkillDef
 	} from '#lib/content/progression.ts';
 	import { HOLD_TIME } from '#lib/game/input/hold.ts';
-	import { menu } from '#lib/game/input/menus.ts';
+	import { device } from '#lib/game/input/device.svelte.ts';
+	import { pads } from '#lib/game/input/gamepad.ts';
+	import type { PadButton } from '#lib/game/input/menus.ts';
+	import KeyCap from './KeyCap.svelte';
 	import type { ExplorerView } from '#lib/shared/account/types.ts';
 	import {
 		bonusAt,
@@ -33,8 +36,9 @@
 	 * each at the foot of its branch, its four skills tied to it by lines and rising to the
 	 * connector skill (not in the game yet: a "?"). A skill's ranks fill thirds of the ring round
 	 * it. Holding a skill (or a closed category) spends a point on it: the mouse or a finger held
-	 * on it, Enter or Space held, or the controller's X held with it focused. Every change is the
-	 * server's.
+	 * on it, Enter or Space held, or the controller's A held with it focused. Every change is the
+	 * server's. The page is driven by the dashboard's menu like every other: it has none of its own,
+	 * so B, LB/RB and the D-pad work here as everywhere else.
 	 */
 	interface Props {
 		explorer: ExplorerView;
@@ -59,20 +63,30 @@
 	const weapon = $derived(explorer.loadout.equipment.primary?.item ?? null);
 
 	/** A hold under way: what it spends on and when it began, and how far it has got (0..1). */
-	let hold = $state<{ key: string; target: SpendTarget; start: number } | null>(null);
+	let hold = $state<{
+		key: string;
+		target: SpendTarget;
+		start: number;
+		/** The controller button holding it, if it is one: let go, the hold ends. */
+		pad?: string;
+	} | null>(null);
 	let progress = $state(0);
 	let raf = 0;
 
 	const keyOf = (target: SpendTarget): string =>
 		'category' in target ? `category:${target.category}` : `skill:${target.skill}`;
 
-	function begin(target: SpendTarget): void {
+	function begin(target: SpendTarget, pad?: string): void {
 		if (locked || busy) return;
-		hold = { key: keyOf(target), target, start: performance.now() };
+		hold = { key: keyOf(target), target, start: performance.now(), pad };
 		progress = 0;
 		cancelAnimationFrame(raf);
 		const tick = (): void => {
 			if (!hold) return;
+			if (hold.pad && !pads.isDown(hold.pad)) {
+				end();
+				return;
+			}
 			progress = Math.min(1, (performance.now() - hold.start) / HOLD_TIME);
 			if (progress >= 1) {
 				const target = hold.target;
@@ -156,19 +170,24 @@
 		};
 	}
 
-	/** The controller's X held with a skill or category focused. */
-	function padHolding(button: 'x' | 'y', down: boolean): void {
-		if (button !== 'x') return;
-		if (!down) {
-			end();
-			return;
-		}
-		const focused = document.activeElement;
-		if (!(focused instanceof HTMLElement)) return;
-		const skill = focused.dataset.skill;
-		const cat = focused.dataset.category as SkillCategory | undefined;
-		if (skill) begin({ skill });
-		else if (cat) begin({ category: cat });
+	/**
+	 * The controller's A held on a focused skill or closed category. The dashboard's menu sends A to
+	 * the focused control first (`padpress`); taken here, it doesn't click, and the hold runs until
+	 * A comes up.
+	 */
+	function padHolds(root: HTMLElement) {
+		const press = (event: Event): void => {
+			const target = event.target;
+			if ((event as CustomEvent<PadButton>).detail !== 'a' || !(target instanceof HTMLElement))
+				return;
+			const skill = target.dataset.skill;
+			const category = target.dataset.category as SkillCategory | undefined;
+			if (!skill && !category) return;
+			event.preventDefault();
+			begin(skill ? { skill } : { category: category as SkillCategory }, 'PadA');
+		};
+		root.addEventListener('padpress', press);
+		return () => root.removeEventListener('padpress', press);
 	}
 
 	onMount(() => () => cancelAnimationFrame(raf));
@@ -203,7 +222,11 @@
 		`M ${x} ${y + 10} C ${x} ${y + 16}, 50 ${ROW.category - 16}, 50 ${ROW.category - 8}`;
 </script>
 
-<section class="skills" {@attach menu({ key: 'skills', holding: padHolding })}>
+{#snippet holdHint()}
+	{#if device.kind === 'pad'}Hold <KeyCap code="PadA" />{:else}Hold{/if}
+{/snippet}
+
+<section class="skills" {@attach padHolds}>
 	<header class="level">
 		<div class="numbers">
 			<span class="big">Level {level}</span>
@@ -258,7 +281,7 @@
 							aria-label={open
 								? `${skill.name}, rank ${rank} of ${MAX_RANK}. Hold to spend a point.`
 								: `A ${c.name} skill, not yet open`}
-							disabled={locked}
+							aria-disabled={locked}
 							aria-describedby={open && tipped === skill.id ? 'skill-tip' : undefined}
 							onpointerenter={() => (tipped = skill.id)}
 							onpointerleave={() => tipped === skill.id && (tipped = null)}
@@ -309,7 +332,9 @@
 								{:else}
 									<p class="muted">At its top rank.</p>
 								{/if}
-								{#if rank < MAX_RANK}<p class="muted hint">Hold to spend a point.</p>{/if}
+								{#if rank < MAX_RANK && !locked}<p class="muted hint">
+										{@render holdHint()} to spend a point.
+									</p>{/if}
 							</div>
 						{/if}
 					</div>
@@ -323,7 +348,7 @@
 						style:--hold={hold?.key === catKey ? progress : 0}
 						data-category={open ? undefined : c.id}
 						aria-label={open ? `${c.name}: open` : `${c.name}: hold to open for a point`}
-						disabled={locked && !open}
+						aria-disabled={locked && !open}
 						aria-describedby={tipped === catKey ? 'category-tip' : undefined}
 						onpointerenter={() => (tipped = catKey)}
 						onpointerleave={() => tipped === catKey && (tipped = null)}
@@ -343,7 +368,7 @@
 							{#if open}
 								<p class="muted">Open: each of its skills takes a point a rank.</p>
 							{:else}
-								<p class="muted hint">Hold to open it for a point.</p>
+								<p class="muted hint">{@render holdHint()} to open it for a point.</p>
 							{/if}
 						</div>
 					{/if}
