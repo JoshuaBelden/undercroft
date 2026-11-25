@@ -67,13 +67,13 @@ pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 - **Fix warnings, don't suppress them.** Ignore comments only when truly unavoidable, with a one-line reason next to them.
 - Run `pnpm check`, `pnpm lint` and `pnpm test` before considering any task complete. A change to shared or server logic comes with tests for it.
 - **Branches**: never commit to `main`. Each issue gets its own branch named `<issue-id>-<feature-name>` in kebab-case (`4-credits-cleanup`, `51-map-sketching`), and lands through a pull request to `main` whose description closes the issue (`Closes #4`).
-- **One feature at a time.** Never create more than one branch or open more than one PR. Work stays on the current feature's branch and PR until it's merged; don't split work into extra branches, stacked PRs, or parallel worktrees.
+- **Epics**: an epic issue gets a long-lived branch (`140-pivot`). Each of its issues branches off the epic branch and lands through a PR back into it; the epic branch merges to `main` when the epic is done. The pivot (`docs/handoff-pivot.md`) is epic #140.
+- **One feature at a time.** Never create more than one feature branch or open more than one feature PR. Work stays on the current feature's branch and PR until it's merged; don't split work into extra branches, stacked PRs, or parallel worktrees.
 
 ## Architecture rules
 
 - **Server is authoritative** for game state: positions, the Affliction meter, Thralls, items, loot, sanity, rite progress. Clients send inputs and render.
 - **Solo runs use the same server path** as co-op (one client connected). No separate single-player code path.
-- **Map generation is seeded and server-side.** The server picks the seed, generates the layout, and sends it to clients. Clients only build geometry from the layout they receive.
 - **Shared types** between client and server live in `src/lib/shared/`.
 - **Imports**: SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions (`#lib/game/Engine.ts`, `#lib/settings/settings.svelte.ts`). The server imports shared code by relative path with `.ts` extensions. WICK packages are imported by name (`@wick/audio`).
 - **WICK's boundary**: nothing in `wick/` imports anything outside `wick/` (no `#lib`, no relative path out); game content reaches WICK as parameters, passed in by a thin Undercroft bootstrap at the old path (`src/lib/game/audio/AudioManager.ts`). ESLint enforces it. A WICK package's change comes with its University chapter updated.
@@ -84,7 +84,7 @@ pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 - **Never synthesize sounds in code.** Every sound is a recording. A new sound goes into `sounds.ts` with its `file` id and stays silent until the recording is built; the admin Art & Assets page lists it as missing so the user knows what to record. No procedural/placeholder audio (oscillators, noise buffers) as a stand-in.
 - **Settings**: all player settings go through the settings store and persist.
 - **Admin/debug tools** are gated behind dev mode or the admin role and never ship enabled to players.
-- **Lighting budget**: lights are dynamic (procedural maps, no baked lighting). Respect the max active light count; candles, headlamps, torches, and glow sticks all count.
+- **Lighting is baked**: room lighting is baked into lightmaps in Blender; moving things are lit by light probes. The headlamp is the one dynamic light.
 
 ## Project structure
 
