@@ -5,7 +5,14 @@
 	import type { RoomFile } from '#lib/game/rooms/files.ts';
 	import type { RoomStats, RoomToggles, RoomViewMode } from '#lib/game/rooms/RoomViewer.ts';
 	import { settings } from '#lib/settings/settings.svelte.ts';
-	import { ROOM_MARKER_KINDS, type RoomManifest, type RoomMarker } from '#lib/shared/map/room.ts';
+	import {
+		ROOM_MARKER_KINDS,
+		soundOf,
+		type RoomManifest,
+		type RoomMarker
+	} from '#lib/shared/map/room.ts';
+	import { SOUNDS, type SoundDef } from '#lib/content/audio/sounds.ts';
+	import { AUDIO_FILES } from '#lib/content/audio/files.generated.ts';
 
 	/** The room viewer's side panel: the room, its toggles, its markers and its cost. */
 	interface Props {
@@ -61,6 +68,20 @@
 		).filter(([, markers]) => markers.length > 0)
 	);
 
+	/** The sounds the room's markers name, each recorded or not yet (silent until it is). */
+	const sounds = $derived.by(() => {
+		const ids = [
+			...new Set((manifest?.markers ?? []).filter((m) => m.kind === 'sound').map(soundOf))
+		].sort();
+		return ids.map((id) => {
+			const def = (SOUNDS as Record<string, SoundDef | undefined>)[id];
+			const files = def?.file === undefined ? [] : [def.file].flat();
+			const recorded =
+				files.length > 0 && files.every((file) => (AUDIO_FILES[file] ?? []).length > 0);
+			return { id, known: !!def, recorded };
+		});
+	});
+
 	/** Over the budget: shown in red. */
 	const over = $derived({
 		triangles: (stats?.triangles ?? 0) > ROOM_BUDGET.triangles,
@@ -90,7 +111,7 @@
 		<h1>{name}</h1>
 		{#if file}
 			<p class="muted">
-				{file.group === 'kit' ? 'Old kit piece' : 'Room'} · {(file.bytes / 1e6).toFixed(1)} MB
+				{(file.bytes / 1e6).toFixed(1)} MB
 				{#if flash}<span class="reloaded">· reloaded</span>{/if}
 			</p>
 		{/if}
@@ -185,6 +206,19 @@
 					</ul>
 				</details>
 			{/each}
+			{#if sounds.length}
+				<h3>Sounds</h3>
+				<ul>
+					{#each sounds as sound (sound.id)}
+						<li>
+							<span>{sound.id}</span>
+							<span class:problem={!sound.recorded} class="small">
+								{!sound.known ? 'not in sounds.ts' : sound.recorded ? 'recorded' : 'to record'}
+							</span>
+						</li>
+					{/each}
+				</ul>
+			{/if}
 			{#if manifest.warnings.length}
 				<h3 class="problem">Warnings</h3>
 				<ul class="warnings">

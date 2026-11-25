@@ -54,7 +54,7 @@
 		try {
 			const found = await findRoom(room);
 			if (!found) {
-				problem = `No room "${room}" in art/export/rooms or art/export`;
+				problem = `No room "${room}" in art/export/rooms`;
 				return;
 			}
 			const first = !file || file.name !== found.name;
@@ -108,7 +108,7 @@
 		viewer = new RoomViewer(canvas, labels, input);
 		const stopKeys = input.onPressed((action) => KEYS[action]?.());
 		const stopChanges = onRoomChanged((changed) => {
-			if (file && changed.name === file.name && changed.group === file.group) {
+			if (file && changed.name === file.name) {
 				void open(file.name, true);
 			}
 		});

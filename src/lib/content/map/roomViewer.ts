@@ -46,7 +46,8 @@ export const MARKER_COLOURS: Record<RoomMarkerKind, number> = {
 	lootable: 0x1e88e5,
 	door: 0xff7043,
 	gate: 0xbf360c,
-	spot: 0x9e9e9e
+	spot: 0x9e9e9e,
+	sound: 0xf06292
 };
 
 /** Collision boxes and volumes, drawn as outlines. */

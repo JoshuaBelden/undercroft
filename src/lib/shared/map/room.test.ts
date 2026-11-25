@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { buildCollisionWorld } from './collision.ts';
-import { baseName, markerKind, readRoom, roomPiece, yawOf, type RoomNode } from './room.ts';
+import {
+	baseName,
+	markerKind,
+	readRoom,
+	roomPiece,
+	soundOf,
+	yawOf,
+	type RoomNode
+} from './room.ts';
 import type { Quat } from './types.ts';
 
 /** A turn of `angle` radians about +Y. */
@@ -70,6 +78,37 @@ describe('room markers', () => {
 		expect(room.warnings[0]).toContain('lamp-target');
 		expect(room.warnings[1]).toContain('length');
 		expect(room.warnings[2]).toContain('names no lootable');
+	});
+});
+
+describe('locks, keys and sounds', () => {
+	it('keeps words from custom properties: a door locked with a key, and who holds it', () => {
+		const room = readRoom('storeroom', [
+			node('door-0', { extras: { key: 'key' } }),
+			node('lootable-corpse-0', { extras: { holds: 'key' } })
+		]);
+		expect(room.markers[0].text).toEqual({ key: 'key' });
+		expect(room.markers[1].text).toEqual({ holds: 'key' });
+		expect(room.warnings).toEqual([]);
+	});
+
+	it('warns about a key nothing holds, and items that do not exist', () => {
+		const room = readRoom('storeroom', [
+			node('door-0', { extras: { key: 'key' } }),
+			node('lootable-corpse-0', { extras: { holds: 'skeleton-key' } })
+		]);
+		expect(room.warnings).toEqual([
+			'lootable-corpse-0: holds names no item ("skeleton-key")',
+			'door-0 is locked with "key", which nothing holds'
+		]);
+	});
+
+	it('reads the sound a marker plays, and warns about one sounds.ts lacks', () => {
+		const room = readRoom('sewer', [node('sound-sewer.drip-1'), node('sound-sewer.gurgle-0')]);
+		expect(room.markers.map(soundOf)).toEqual(['sewer.drip', 'sewer.gurgle']);
+		expect(room.warnings).toEqual([
+			'sound-sewer.gurgle-0 names no sound in sounds.ts ("sewer.gurgle")'
+		]);
 	});
 });
 

@@ -1439,7 +1439,31 @@ export const SOUNDS = {
 		caption: 'whispering'
 	},
 	'headlamp.on': { file: 'headlamp.on', category: 'sfx', volume: 0.9 },
-	'headlamp.off': { file: 'headlamp.off', category: 'sfx', volume: 0.9 }
+	'headlamp.off': { file: 'headlamp.off', category: 'sfx', volume: 0.9 },
+
+	// The way in (#150): placed in the room by its sound-<id>-<n> markers (docs/dev/room-viewer.md#sounds).
+	// Not recorded yet, so silent; played in place once sound travels the tunnels (Phase 3).
+	/** Water running through the grate at the sewer's west end, and on beyond it: a loop. */
+	'sewer.flow': { file: 'sewer.flow', category: 'ambience', volume: 0.5 },
+	/** The draught whistling through the crack to the Storeroom: how a listening player finds it. */
+	'sewer.draught': {
+		file: 'sewer.draught',
+		category: 'ambience',
+		volume: 0.4,
+		caption: 'a draught whistles'
+	},
+	/** The street over the manhole: traffic and footsteps, muffled, down the shaft. */
+	'sewer.street': { file: 'sewer.street', category: 'ambience', volume: 0.35 },
+	/** A drip from the vault into the channel. */
+	'sewer.drip': { file: 'sewer.drip', category: 'ambience', volume: 0.3, variation: 0.15 },
+	/** The Storeroom's rotten timber shifting now and then. */
+	'storeroom.settle': {
+		file: 'storeroom.settle',
+		category: 'ambience',
+		volume: 0.35,
+		variation: 0.1,
+		caption: 'wood creaks'
+	}
 } satisfies Record<string, SoundDef>;
 
 export type SoundId = keyof typeof SOUNDS;
