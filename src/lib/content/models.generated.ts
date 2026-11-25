@@ -266,6 +266,10 @@ export const MODELS = {
 		url: '/assets/shared/props/door-double.a9f9a35a.glb',
 		bytes: 336280
 	},
+	'shared/props/door-simple-wood.glb': {
+		url: '/assets/shared/props/door-simple-wood.4a347b77.glb',
+		bytes: 60964
+	},
 	'shared/props/drop_box.glb': { url: '/assets/shared/props/drop_box.e72fc46b.glb', bytes: 348900 },
 	'shared/props/oath_carving.glb': {
 		url: '/assets/shared/props/oath_carving.c4e052bc.glb',

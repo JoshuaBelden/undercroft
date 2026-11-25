@@ -1,4 +1,5 @@
 import { SOUNDS } from '../../content/audio/sounds.ts';
+import { DOOR_TYPES, type DoorTypeId } from '../../content/doors.ts';
 import { ITEMS } from '../../content/items.ts';
 import { LOOTABLES, type LootableId } from '../../content/lootables.ts';
 import type { ColliderBox, PieceDef, Quat, Vec3, VolumeBox } from './types.ts';
@@ -152,6 +153,9 @@ export function readRoom(name: string, nodes: readonly RoomNode[]): RoomManifest
 		if (kind === 'sound' && !Object.hasOwn(SOUNDS, soundOf(marker))) {
 			manifest.warnings.push(`${label} names no sound in sounds.ts ("${soundOf(marker)}")`);
 		}
+		if (kind === 'door' && marker.text.type && !Object.hasOwn(DOOR_TYPES, marker.text.type)) {
+			manifest.warnings.push(`${label} names no door type (${Object.keys(DOOR_TYPES).join(', ')})`);
+		}
 		for (const prop of ['key', 'holds'] as const) {
 			const item = marker.text[prop];
 			if (item !== undefined && !Object.hasOwn(ITEMS, item)) {
@@ -256,6 +260,7 @@ export function roomPiece(manifest: RoomManifest): PieceDef {
 			yaw: m.yaw,
 			marker: m.label,
 			...(m.text.key && { key: m.text.key }),
+			...(m.text.type && { type: m.text.type as DoorTypeId }),
 			...(m.extras.width > 0 &&
 				m.extras.height > 0 && {
 					size: [m.extras.width, m.extras.height, DOOR_DEPTH] as Vec3

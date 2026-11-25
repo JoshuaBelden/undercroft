@@ -99,9 +99,11 @@ CRACK_PATH = [(17.0, -UP_W), (17.0, -3.0), (16.9, -3.9), (17.1, -4.9), (16.92, -
 STORE_X = (12.0, 23.0)  # 11 m...
 STORE_Y = (-14.8, -6.8)  # ...by 8 m
 STORE_H = 4.0
-DOOR = (14.0, 16.0)  # x: the doorway in its south wall...
-DOOR_H = 2.6
+STORE_DOOR = (14.4, 15.6)  # x: the doorway in its south wall, fitted to its door's frame...
+STORE_DOOR_H = 2.2  # (simple-wood-door: DOOR_TYPES in src/lib/content/doors.ts)
 DOOR_DEPTH = 0.4  # ...through stone this thick
+DOOR = (14.0, 16.0)  # x: the doorway at the foot of the stair, the double door's
+DOOR_H = 2.6
 SHELF_ROWS = ((-9.4, -8.8), (-12.6, -12.0))  # y of each row (front to back): aisles between and outside
 SHELF_UNITS = ((13.3, 15.6), (16.4, 18.7), (19.5, 21.8))  # x of each unit, with gaps to cross
 SHELF_TOP = 3.4
@@ -607,15 +609,15 @@ def storeroom(mb, coll, root):
     mb.face([(x0, y0, h), (x1, y0, h), (x1, y1, h), (x0, y1, h)], C, facing=(0, 0, -1))
     cx = (CRACK_X - CRACK_W / 2 - x0, CRACK_X + CRACK_W / 2 - x0)
     common.wall_with_hole(mb, (x0, y1), (x1, y1), 0, h, W, (0, -1, 0), [(cx[0], cx[1], 0, CRACK_H)])
-    common.wall_with_hole(mb, (x0, y0), (x1, y0), 0, h, W, (0, 1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)])
+    common.wall_with_hole(mb, (x0, y0), (x1, y0), 0, h, W, (0, 1, 0), [(STORE_DOOR[0] - x0, STORE_DOOR[1] - x0, 0, STORE_DOOR_H)])
     common.wall_with_hole(mb, (x0, y0), (x0, y1), 0, h, W, (1, 0, 0), [])
     common.wall_with_hole(mb, (x1, y0), (x1, y1), 0, h, W, (-1, 0, 0), [])
     # The doorway's depth: its sides, its lintel and its threshold.
     yd = y0 - DOOR_DEPTH
-    mb.face([(DOOR[0], yd, 0), (DOOR[0], y0, 0), (DOOR[0], y0, DOOR_H), (DOOR[0], yd, DOOR_H)], W, facing=(1, 0, 0))
-    mb.face([(DOOR[1], yd, 0), (DOOR[1], y0, 0), (DOOR[1], y0, DOOR_H), (DOOR[1], yd, DOOR_H)], W, facing=(-1, 0, 0))
-    mb.face([(DOOR[0], yd, DOOR_H), (DOOR[1], yd, DOOR_H), (DOOR[1], y0, DOOR_H), (DOOR[0], y0, DOOR_H)], W, facing=(0, 0, -1))
-    mb.face([(DOOR[0], yd, 0), (DOOR[1], yd, 0), (DOOR[1], y0, 0), (DOOR[0], y0, 0)], F, facing=(0, 0, 1))
+    mb.face([(STORE_DOOR[0], yd, 0), (STORE_DOOR[0], y0, 0), (STORE_DOOR[0], y0, STORE_DOOR_H), (STORE_DOOR[0], yd, STORE_DOOR_H)], W, facing=(1, 0, 0))
+    mb.face([(STORE_DOOR[1], yd, 0), (STORE_DOOR[1], y0, 0), (STORE_DOOR[1], y0, STORE_DOOR_H), (STORE_DOOR[1], yd, STORE_DOOR_H)], W, facing=(-1, 0, 0))
+    mb.face([(STORE_DOOR[0], yd, STORE_DOOR_H), (STORE_DOOR[1], yd, STORE_DOOR_H), (STORE_DOOR[1], y0, STORE_DOOR_H), (STORE_DOOR[0], y0, STORE_DOOR_H)], W, facing=(0, 0, -1))
+    mb.face([(STORE_DOOR[0], yd, 0), (STORE_DOOR[1], yd, 0), (STORE_DOOR[1], y0, 0), (STORE_DOOR[0], y0, 0)], F, facing=(0, 0, 1))
 
     common.col_span(coll, root, "col-store-floor", (x0, y0, -0.3), (x1, y1, 0.0))
     common.col_span(coll, root, "col-store-ceiling", (x0, y0, h), (x1, y1, h + 0.4))
@@ -625,10 +627,10 @@ def storeroom(mb, coll, root):
     common.col_span(coll, root, "col-store-n-0", (x0, y1, 0), (c0, y1 + WALL_T, h))
     common.col_span(coll, root, "col-store-n-1", (c1, y1, 0), (x1, y1 + WALL_T, h))
     common.col_span(coll, root, "col-store-n-2", (c0, y1, CRACK_H), (c1, y1 + WALL_T, h))
-    common.col_span(coll, root, "col-store-s-0", (x0, yd, 0), (DOOR[0], y0, h))
-    common.col_span(coll, root, "col-store-s-1", (DOOR[1], yd, 0), (x1, y0, h))
-    common.col_span(coll, root, "col-store-s-2", (DOOR[0], yd, DOOR_H), (DOOR[1], y0, h))
-    common.col_span(coll, root, "col-doorway-floor", (DOOR[0], yd, -0.3), (DOOR[1], y0, 0.0))
+    common.col_span(coll, root, "col-store-s-0", (x0, yd, 0), (STORE_DOOR[0], y0, h))
+    common.col_span(coll, root, "col-store-s-1", (STORE_DOOR[1], yd, 0), (x1, y0, h))
+    common.col_span(coll, root, "col-store-s-2", (STORE_DOOR[0], yd, STORE_DOOR_H), (STORE_DOOR[1], y0, h))
+    common.col_span(coll, root, "col-doorway-floor", (STORE_DOOR[0], yd, -0.3), (STORE_DOOR[1], y0, 0.0))
 
     rng = random.Random(11)
     for r, (ry0, ry1) in enumerate(SHELF_ROWS):
@@ -654,7 +656,7 @@ def stair(mb, coll, root):
     # The Storeroom's stone, floor and boarded ceiling, carried on down.
     W, F, C = "mat-storeroom-wall", "mat-storeroom-floor", "mat-storeroom-ceiling"
     # The wall around the doorway, seen from the stair side.
-    common.wall_with_hole(mb, (x0, yd), (x1, yd), 0, HEADROOM, W, (0, -1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)])
+    common.wall_with_hole(mb, (x0, yd), (x1, yd), 0, HEADROOM, W, (0, -1, 0), [(STORE_DOOR[0] - x0, STORE_DOOR[1] - x0, 0, STORE_DOOR_H)])
     # Floors: the landings and the steps.
     mb.face([(x0, STAIR_TOP, 0), (x1, STAIR_TOP, 0), (x1, yd, 0), (x0, yd, 0)], F, facing=(0, 0, 1))
     mb.face([(x0, STAIR_END, -DROP), (x1, STAIR_END, -DROP), (x1, STAIR_FOOT, -DROP), (x0, STAIR_FOOT, -DROP)], F, facing=(0, 0, 1))
@@ -663,24 +665,22 @@ def stair(mb, coll, root):
         z_hi, z_lo = -k * RISE_H, -(k + 1) * RISE_H
         mb.face([(x0, y, z_lo), (x1, y, z_lo), (x1, y, z_hi), (x0, y, z_hi)], F, facing=(0, -1, 0))
         mb.face([(x0, y - TREAD, z_lo), (x1, y - TREAD, z_lo), (x1, y, z_lo), (x0, y, z_lo)], F, facing=(0, 0, 1))
-    # Ceiling: flat over each landing, sloping with the flight.
-    top, foot = HEADROOM, HEADROOM - DROP
-    mb.face([(x0, STAIR_TOP, top), (x1, STAIR_TOP, top), (x1, yd, top), (x0, yd, top)], C, facing=(0, 0, -1))
-    mb.face([(x0, STAIR_FOOT, foot), (x1, STAIR_FOOT, foot), (x1, STAIR_TOP, top), (x0, STAIR_TOP, top)], C, facing=(0, 0, -1))
-    mb.face([(x0, STAIR_END, foot), (x1, STAIR_END, foot), (x1, STAIR_FOOT, foot), (x0, STAIR_FOOT, foot)], C, facing=(0, 0, -1))
+    # Ceiling: flat across the top, so the space opens up overhead as you go down.
+    top = HEADROOM
+    mb.face([(x0, STAIR_END, top), (x1, STAIR_END, top), (x1, yd, top), (x0, yd, top)], C, facing=(0, 0, -1))
     # Side walls: their foot runs under the treads (through the bottom of each riser), so no gap
     # shows between a step and the wall.
     last_riser = STAIR_TOP - (RISERS - 1) * TREAD
     outline = [
         (yd, 0), (STAIR_TOP, 0), (STAIR_TOP, -RISE_H), (last_riser, -DROP), (STAIR_END, -DROP),
-        (STAIR_END, foot), (STAIR_FOOT, foot), (STAIR_TOP, top), (yd, top),
+        (STAIR_END, top), (yd, top),
     ]
     mb.face([(x0, y, z) for y, z in outline], W, facing=(1, 0, 0))
     mb.face([(x1, y, z) for y, z in outline], W, facing=(-1, 0, 0))
     # The far end, round the next door: where the Parish Walk joins. Until it does, dark stone
     # just behind the doorway stands in for it.
     common.wall_with_hole(
-        mb, (x0, STAIR_END), (x1, STAIR_END), -DROP, foot, W, (0, 1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)]
+        mb, (x0, STAIR_END), (x1, STAIR_END), -DROP, top, W, (0, 1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)]
     )
     behind = STAIR_END - DOOR_DEPTH
     mb.face(
@@ -698,9 +698,9 @@ def stair(mb, coll, root):
     common.col(coll, root, "col-stair-ramp", ((x0 + x1) / 2, cy, cz), (x1 - x0, length, 0.3), pitch=math.atan2(DROP, run))
     common.col_span(coll, root, "col-stair-w", (x0 - WALL_T, STAIR_END, -DROP), (x0, yd, HEADROOM))
     common.col_span(coll, root, "col-stair-e", (x1, STAIR_END, -DROP), (x1 + WALL_T, yd, HEADROOM))
-    common.col_span(coll, root, "col-stair-ceiling", (x0, STAIR_TOP, top), (x1, yd, top + 0.4))
+    common.col_span(coll, root, "col-stair-ceiling", (x0, STAIR_END, top), (x1, yd, top + 0.4))
     # Until the Parish Walk is joined on, nothing is past the next door: a wall stands in for it.
-    common.col_span(coll, root, "col-seam-0", (x0, STAIR_END - WALL_T, -DROP), (x1, STAIR_END, foot))
+    common.col_span(coll, root, "col-seam-0", (x0, STAIR_END - WALL_T, -DROP), (x1, STAIR_END, top))
 
 
 def markers(coll, root, frames):
@@ -714,14 +714,16 @@ def markers(coll, root, frames):
     # rope.md): grab it at the foot, climb, and LADDER_EXIT up you are out.
     m("rope-0", (0.0, LADDER_Y, LADDER_TOP), length=LADDER_TOP, exit=LADDER_EXIT, ladder=1)
     # The Storeroom's door, locked until opened with the key: the explorer who got this far and no
-    # further lies by it, the key on them.
+    # further lies between the shelves, the key on them.
     (x0, x1), (y0, y1) = STORE_X, STORE_Y
     door_x = (DOOR[0] + DOOR[1]) / 2
-    size = {"width": DOOR[1] - DOOR[0], "height": DOOR_H}  # a door of its own size, not the double door
-    m("door-0", (door_x, y0 - DOOR_DEPTH / 2, 0.0), toward=(0, 1), key="key", **size)
+    size = {"width": DOOR[1] - DOOR[0], "height": DOOR_H}  # the double door, fitted to its doorway
+    # A plank door that swings out of the Storeroom (its +Y, the room side, points in).
+    store_x = (STORE_DOOR[0] + STORE_DOOR[1]) / 2
+    m("door-0", (store_x, y0 - DOOR_DEPTH / 2, 0.0), toward=(0, 1), key="key", type="simple-wood-door")
     m("door-1", (door_x, STAIR_END, -DROP), toward=(0, 1), **size)
     m("socket-door-0", (door_x, STAIR_END - DOOR_DEPTH - 0.05, -DROP))
-    m("lootable-corpse-0", (door_x + 1.6, y0 + 0.9, 0.0), toward=(0, -1), holds="key")
+    m("lootable-corpse-0", (15.2, -10.7, 0.0), toward=(0, 1), holds="key")  # the middle aisle
     m("lootable-crate-0", (18.1, -10.8, 0.0), toward=(0, 1))  # the middle aisle
     m("lootable-crate-1", (17.9, y1 - 0.8, 0.0), toward=(0, 1))  # by the crack
     m("lootable-crate-2", (x0 + 1.3, y0 + 0.6, 0.0), toward=(0, -1))  # by the door

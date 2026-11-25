@@ -5,6 +5,7 @@ import { UNDER_PARISH } from '../../content/map/under-parish.ts';
 import { addItem, emptyInventory } from '../items/inventory.ts';
 import { doorSeconds } from '../items/lootables.ts';
 import { buildCollisionWorld } from './collision.ts';
+import { doorSize } from './doors.ts';
 import { fixedLayout, MAP_PIECES, sealedDoors } from './fixed.ts';
 import { buildNav } from './nav.ts';
 import { spawnPoint } from './points.ts';
@@ -24,10 +25,12 @@ describe('the fixed map', () => {
 		expect(layout.crates.filter((c) => c.holds === 'key')).toHaveLength(1);
 	});
 
-	it('locks the Storeroom door with the key, sized to its doorway, and seals the seam', () => {
+	it('locks the Storeroom door with the key, a plank door fitted to its doorway, and seals the seam', () => {
 		const keyed = layout.doors.filter((d) => d.key === 'key');
 		expect(keyed).toHaveLength(1);
-		expect(keyed[0].size?.[0]).toBeCloseTo(2);
+		// A plank door of its own, fitted to its doorway.
+		expect(keyed[0].type).toBe('simple-wood-door');
+		expect(doorSize(keyed[0])[0]).toBeCloseTo(1.2);
 		const sealed = sealedDoors(layout);
 		expect(sealed).toHaveLength(1);
 		expect(layout.doors.find((d) => d.id === sealed[0])?.marker).toBe('door-1');

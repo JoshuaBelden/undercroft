@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { DOORS, GATES } from '#lib/content/doors.ts';
-import { modelUrl } from '#lib/content/models.ts';
+import { DOOR_TYPES, DOORS, GATES } from '#lib/content/doors.ts';
 import { loadModel } from '#lib/game/assets.ts';
 import { closeDoor, openDoor, type CollisionWorld } from '#lib/shared/map/collision.ts';
 import type { DoorPlacement } from '#lib/shared/map/types.ts';
@@ -17,7 +16,6 @@ interface Shown {
 	open: number;
 }
 
-const MODEL = modelUrl('shared/props/door-double.glb');
 /** Share of the opening spent lifting the bar before the leaves move. */
 const BAR_SHARE = 0.2;
 /** How far (m) the bar is lifted in that time. */
@@ -68,13 +66,15 @@ export class Doors {
 				this.pose(this.shown.get(placement.id)!);
 				continue;
 			}
-			void loadModel(MODEL).then((model) => {
+			// Its kind of door (DOOR_TYPES), the double door if it names none.
+			const type = DOOR_TYPES[placement.type ?? 'double'];
+			void loadModel(type.model).then((model) => {
 				if (id !== this.buildId) return;
 				model.position.set(...placement.position);
 				model.rotation.y = placement.yaw;
-				// A door of its own size (a fixed room's doorway): the double door, fitted to it,
-				// until rooms have doors of their own.
-				if (placement.size) {
+				// The double door in a doorway of its own size: fitted to it. A door of a type is
+				// made for its doorway.
+				if (placement.size && !placement.type) {
 					model.scale.set(placement.size[0] / DOORS.size[0], placement.size[1] / DOORS.size[1], 1);
 				}
 				model.traverse((node) => {
@@ -139,6 +139,8 @@ export class Doors {
 	}
 
 	private pose(shown: Shown): void {
+		// A door with no bar swings from the start; one with a bar lifts it off first.
+		const share = shown.bar ? BAR_SHARE : 0;
 		const bar = Math.min(1, shown.open / BAR_SHARE);
 		if (shown.bar) {
 			// Lifted up and off: gone before the leaves move, so it never hangs across the doorway
@@ -146,7 +148,7 @@ export class Doors {
 			shown.bar.position.y = shown.barY + bar * BAR_LIFT;
 			shown.bar.visible = shown.open < BAR_SHARE;
 		}
-		const t = Math.max(0, (shown.open - BAR_SHARE) / (1 - BAR_SHARE));
+		const t = Math.max(0, (shown.open - share) / (1 - share));
 		// Heavy: slow to start, then swinging to rest.
 		const swing = t * t * (3 - 2 * t) * DOORS.swing;
 		// The room side is -Z in the model; the leaves swing away from it, toward +Z. The left leaf

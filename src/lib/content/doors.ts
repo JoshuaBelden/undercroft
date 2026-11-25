@@ -1,3 +1,5 @@
+import { modelUrl } from './models.ts';
+
 /**
  * The double doors: one at the top of every long stair (`stairs-deep`), just behind the
  * extraction room's gate, and the one way into the final room (`gloaming-chapel`). Shut and barred until someone holds interact on it; then it
@@ -17,6 +19,34 @@ export const DOORS = {
 	swing: Math.PI * 0.47,
 	swingSeconds: 1.6
 };
+
+/** A kind of door a door marker can name (`type = "<id>"`): its model, its size, how it opens. */
+export interface DoorType {
+	/** The prop the game stands in the doorway (built by scripts/blender/map/doors.py). */
+	model: string;
+	/** Its collision box while shut: across, high, deep (m). The doorway it fits. */
+	size: [number, number, number];
+	/** A bar across it the game lifts off before the leaves move (`door-bar` in the model). */
+	barred: boolean;
+}
+
+/**
+ * The kinds of door (docs/dev/fixed-map.md#doors). A door marker with no `type` is the double door
+ * (`double`), fitted to its doorway by its `width` and `height`. Each model has its leaves as
+ * `door-leaf-l` (hinged at -X) and `door-leaf-r` (at +X), swinging away from the room side.
+ */
+export const DOOR_TYPES = {
+	/** Two painted, iron-strapped leaves and a bar across them (the long stair's, the chapel's). */
+	double: { model: modelUrl('shared/props/door-double.glb'), size: DOORS.size, barred: true },
+	/** A plank door in a timber frame, hung on its left, an iron thumb latch on the room side. */
+	'simple-wood-door': {
+		model: modelUrl('shared/props/door-simple-wood.glb'),
+		size: [1.2, 2.2, 0.2],
+		barred: false
+	}
+} satisfies Record<string, DoorType>;
+
+export type DoorTypeId = keyof typeof DOOR_TYPES;
 
 /**
  * Locked iron gates (gate-* markers: the Family Mausoleum's). A door that a key opens (carried,

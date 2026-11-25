@@ -103,6 +103,15 @@ describe('locks, keys and sounds', () => {
 		]);
 	});
 
+	it('keeps a door its type, and warns about a type there is no such door of', () => {
+		const room = readRoom('store', [
+			node('door-0', { extras: { type: 'simple-wood-door' } }),
+			node('door-1', { extras: { type: 'portcullis' } })
+		]);
+		expect(roomPiece(room).doors[0].type).toBe('simple-wood-door');
+		expect(room.warnings).toEqual(['door-1 names no door type (double, simple-wood-door)']);
+	});
+
 	it('reads the sound a marker plays, and warns about one sounds.ts lacks', () => {
 		const room = readRoom('sewer', [node('sound-sewer.drip-1'), node('sound-sewer.gurgle-0')]);
 		expect(room.markers.map(soundOf)).toEqual(['sewer.drip', 'sewer.gurgle']);

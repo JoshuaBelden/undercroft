@@ -47,7 +47,7 @@ Rooms are lit by baking: the light falling on every surface is worked out once i
 
 Custom properties on markers say what a name can't:
 
-- `door-<n>` with `key = "<item>"`: locked until opened with that item (the Storeroom's door, `key`).
+- `door-<n>` with `type = "<door>"`: the kind of door (`DOOR_TYPES`, [fixed-map.md](fixed-map.md#doors); none: the double door, fitted by `width` and `height`). With `key = "<item>"`: locked until opened with that item (the Storeroom's door, `key`).
 - `lootable-<type>-<n>` with `holds = "<item>"`: that lootable always holds it (the Storeroom's crate with the key).
 - A ladder is a `rope-<n>` at its top (its `length` down to the floor, `exit` for a way out, `ladder = 1`): it climbs as a rope does ([rope.md](rope.md#climbing)), so the way out of the Sewer is climbed, not walked onto. The room viewer's walk climbs it too.
 - `sound-<id>-<n>`: the sound `<id>` from `sounds.ts` plays there (`sound-sewer.drip-1` plays `sewer.drip`).

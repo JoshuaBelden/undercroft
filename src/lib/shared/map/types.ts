@@ -5,6 +5,7 @@
  * Distances are metres. The grid is CELL x CELL horizontally and LEVEL_HEIGHT vertically.
  */
 
+import type { DoorTypeId } from '../../content/doors.ts';
 import type { LootableId } from '../../content/lootables.ts';
 
 export type Vec3 = [number, number, number];
@@ -62,6 +63,8 @@ export interface DoorMarker extends CrateMarker {
 	size?: Vec3;
 	/** Its marker's name in its room (door-0), for map data to refer to it by. */
 	marker?: string;
+	/** Its kind (DOOR_TYPES): its model and size. None: the double door. */
+	type?: DoorTypeId;
 }
 
 /** A rope hanging straight down from `top` (rope-* markers), in piece space. See docs/dev/rope.md. */
@@ -277,6 +280,8 @@ export interface DoorPlacement {
 	size?: Vec3;
 	/** Its marker's name in its room (door-0): map data names doors by it. */
 	marker?: string;
+	/** Its kind (DOOR_TYPES): its model and size. None: the double door. */
+	type?: DoorTypeId;
 }
 
 /**

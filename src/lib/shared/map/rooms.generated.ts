@@ -4,8 +4,8 @@ import type { RoomDef } from './types.ts';
 export const ROOMS: Record<string, RoomDef> = {
 	sewer: {
 		name: 'sewer',
-		url: '/assets/shared/rooms/sewer.a74bc3fa.gltf',
-		bytes: 5988222,
+		url: '/assets/shared/rooms/sewer.2536f96d.gltf',
+		bytes: 5988038,
 		footprint: [0, 0],
 		levels: 1,
 		sockets: [],
@@ -27,14 +27,14 @@ export const ROOMS: Record<string, RoomDef> = {
 		crates: [],
 		lootables: [
 			{ type: 'bonePile', position: [23.1486, 0, -0.3324], yaw: -1.971 },
-			{ type: 'corpse', position: [16.6, 0, 13.9], yaw: -3.1416, holds: 'key' },
+			{ type: 'corpse', position: [15.2, 0, 10.7], yaw: 0, holds: 'key' },
 			{ type: 'crate', position: [18.1, 0, 10.8], yaw: 0 },
 			{ type: 'crate', position: [17.9, 0, 7.6], yaw: 0 },
 			{ type: 'crate', position: [13.3, 0, 14.2], yaw: -3.1416 },
 			{ type: 'crate', position: [14.4, 0, 7.3], yaw: 0 }
 		],
 		doors: [
-			{ position: [15, 0, 15], yaw: 0, marker: 'door-0', key: 'key', size: [2, 2.6, 0.2] },
+			{ position: [15, 0, 15], yaw: 0, marker: 'door-0', key: 'key', type: 'simple-wood-door' },
 			{ position: [15, -4, 25.9], yaw: 0, marker: 'door-1', size: [2, 2.6, 0.2] }
 		],
 		gates: [],
@@ -254,7 +254,7 @@ export const ROOMS: Record<string, RoomDef> = {
 				halfExtents: [0.275, 0.2, 0.5],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
-			{ center: [15, -0.15, 15], halfExtents: [1, 0.15, 0.2], rotation: [0, 0, 0, 1] },
+			{ center: [15, -0.15, 15], halfExtents: [0.6, 0.15, 0.2], rotation: [0, 0, 0, 1] },
 			{
 				center: [-27.2294, 2, 2.6994],
 				halfExtents: [0.25, 2.2, 3],
@@ -270,7 +270,7 @@ export const ROOMS: Record<string, RoomDef> = {
 			{ center: [0, 5.8858, -0.35], halfExtents: [0.6, 2.6142, 0.25], rotation: [0, 0, 0, 1] },
 			{ center: [0, 8.25, -1.2], halfExtents: [0.6, 0.25, 0.6], rotation: [0, 0, 0, 1] },
 			{ center: [-0.85, 5.8858, -1.2], halfExtents: [0.25, 2.6142, 1.1], rotation: [0, 0, 0, 1] },
-			{ center: [15, -2.4, 26.15], halfExtents: [1.5, 1.6, 0.25], rotation: [0, 0, 0, 1] },
+			{ center: [15, -0.4, 26.15], halfExtents: [1.5, 3.6, 0.25], rotation: [0, 0, 0, 1] },
 			{ center: [14.45, 1.7, 9.1], halfExtents: [1.15, 1.7, 0.3], rotation: [0, 0, 0, 1] },
 			{ center: [17.55, 1.7, 9.1], halfExtents: [1.15, 1.7, 0.3], rotation: [0, 0, 0, 1] },
 			{ center: [20.65, 1.7, 9.1], halfExtents: [1.15, 1.7, 0.3], rotation: [0, 0, 0, 1] },
@@ -278,7 +278,7 @@ export const ROOMS: Record<string, RoomDef> = {
 			{ center: [17.55, 1.7, 12.3], halfExtents: [1.15, 1.7, 0.3], rotation: [0, 0, 0, 1] },
 			{ center: [20.65, 1.7, 12.3], halfExtents: [1.15, 1.7, 0.3], rotation: [0, 0, 0, 1] },
 			{ center: [15, -4.15, 24.65], halfExtents: [1.5, 0.15, 1.25], rotation: [0, 0, 0, 1] },
-			{ center: [15, 3.4, 16.1], halfExtents: [1.5, 0.2, 0.9], rotation: [0, 0, 0, 1] },
+			{ center: [15, 3.4, 20.55], halfExtents: [1.5, 0.2, 5.35], rotation: [0, 0, 0, 1] },
 			{ center: [16.75, -0.4, 20.55], halfExtents: [0.25, 3.6, 5.35], rotation: [0, 0, 0, 1] },
 			{
 				center: [15, -2, 20.2],
@@ -293,9 +293,9 @@ export const ROOMS: Record<string, RoomDef> = {
 			{ center: [14.225, 2, 6.55], halfExtents: [2.225, 2, 0.25], rotation: [0, 0, 0, 1] },
 			{ center: [20.275, 2, 6.55], halfExtents: [2.725, 2, 0.25], rotation: [0, 0, 0, 1] },
 			{ center: [17, 3.2, 6.55], halfExtents: [0.55, 0.8, 0.25], rotation: [0, 0, 0, 1] },
-			{ center: [13, 2, 15], halfExtents: [1, 2, 0.2], rotation: [0, 0, 0, 1] },
-			{ center: [19.5, 2, 15], halfExtents: [3.5, 2, 0.2], rotation: [0, 0, 0, 1] },
-			{ center: [15, 3.3, 15], halfExtents: [1, 0.7, 0.2], rotation: [0, 0, 0, 1] },
+			{ center: [13.2, 2, 15], halfExtents: [1.2, 2, 0.2], rotation: [0, 0, 0, 1] },
+			{ center: [19.3, 2, 15], halfExtents: [3.7, 2, 0.2], rotation: [0, 0, 0, 1] },
+			{ center: [15, 3.1, 15], halfExtents: [0.6, 0.9, 0.2], rotation: [0, 0, 0, 1] },
 			{ center: [11.75, 2, 10.8], halfExtents: [0.25, 2, 4], rotation: [0, 0, 0, 1] },
 			{ center: [-24, 4.2, 1.3], halfExtents: [3.5696, 0.2, 2.5], rotation: [0, 0.203, 0, 0.9792] },
 			{ center: [-10.95, 4.2, 0], halfExtents: [10.35, 0.2, 2.5], rotation: [0, 0, 0, 1] },
@@ -409,8 +409,8 @@ export const ROOMS: Record<string, RoomDef> = {
 				rotation: [0, -0.203, 0, 0.9792]
 			}
 		],
-		triangles: 40199,
-		lightmap: { url: '/assets/shared/rooms/sewer.lightmap.1e6e1d0e.webp', bytes: 16266 },
+		triangles: 40191,
+		lightmap: { url: '/assets/shared/rooms/sewer.lightmap.720f3645.webp', bytes: 15350 },
 		sounds: [
 			{ id: 'sewer.drip', position: [5, 3.6, -0.6] },
 			{ id: 'sewer.drip', position: [-8, 3.6, 0.6] },

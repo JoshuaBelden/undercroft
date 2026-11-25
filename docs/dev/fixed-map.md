@@ -41,11 +41,24 @@ The marker names are the kit's ([asset-pipeline.md](asset-pipeline.md#convention
 
 - **Spawns** face the way their marker faces (`PieceDef.spawnYaws`).
 - **Lootables** with `holds` always hold that item (`CratePlacement.holds`): the crate is never jammed or locked, and the item is put back whenever the crates are filled again, unless it is still in there.
-- **Doors** carry their marker's name, and with `width`/`height` their own size, not the double door's (`DoorPlacement.size`, used by the collision box and the model, which is the double door scaled to fit until rooms have doors of their own).
+- **Doors** carry their marker's name and their kind, `type` (see [Doors](#doors)). With no type, a door is the double door, fitted to its doorway by `width` and `height` (`DoorPlacement.size`).
 - **Locked doors** (`key`): `doorSeconds` (`src/lib/shared/items/lootables.ts`) opens them only for someone carrying that item, in `GATES.keySeconds`; opening one uses the item up. The client's prompt says what it needs.
 - **Sealed doors** (the map's `sealed`) are barred (`Doors.bar`): they rattle and won't open, "(it won't open)".
 - **Ladders** are ropes (`rope-<n>` with `ladder = 1`, and `exit` for a way out): climbed as a rope is, drawn by the room's model, so `HangingRopes` leaves them out.
 - **Sounds** are listed in `RoomDef.sounds`, for sound along the tunnels (Phase 3) to play.
+
+## Doors
+
+Each kind of door is data, `DOOR_TYPES` in `src/lib/content/doors.ts`: its model, its size (the collision box while shut, and the doorway it fits) and whether it has a bar to lift before it opens. A door marker names its kind with `type = "<id>"`; one with none is the double door.
+
+| Type               | What                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| `double`           | Two painted, iron-strapped leaves and a bar across them (the generator's stairs, the chapel)         |
+| `simple-wood-door` | A plank door in a timber frame (1.2 × 2.2 m), hung on its left, an iron thumb latch: the Storeroom's |
+
+The models are built by `scripts/blender/map/doors.py` into `art/blender/props/doors.blend` and exported as props (`art/export/props/<door>.glb`, then `pnpm asset:build`). The conventions are the double door's: the origin on the floor in the middle of the doorway, the room side +Y (the door marker's +Y points into the room), each leaf its own object (`door-leaf-l` hinged at -X, `door-leaf-r` at +X) swinging away from the room side, a bar as `door-bar`. The frame is part of the model, so the room's doorway is cut to the frame's outside.
+
+**A new kind of door:** build it in `doors.py` (a function in `DOORS`), export, `pnpm asset:build`, add it to `DOOR_TYPES`, and name it on a door marker. The room build warns about a type there is no such door of.
 
 ## The server
 

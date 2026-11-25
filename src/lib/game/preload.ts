@@ -1,6 +1,7 @@
 import { AFFLICTIONS } from '#lib/content/afflictions.ts';
 import { AUDIO_BYTES, AUDIO_FILES } from '#lib/content/audio/files.generated.ts';
 import { CREATURES } from '#lib/content/creatures.ts';
+import { DOOR_TYPES } from '#lib/content/doors.ts';
 import { ITEMS } from '#lib/content/items.ts';
 import { modelBytes, modelUrl } from '#lib/content/models.ts';
 import { explorerFiles, PLAYER_MODEL } from '#lib/content/player/model.ts';
@@ -74,7 +75,7 @@ function sharedModels(): Task[] {
 		...models([
 			modelUrl('shared/props/crate.glb'),
 			modelUrl('shared/props/corpse.glb'),
-			modelUrl('shared/props/door-double.glb'),
+			...Object.values(DOOR_TYPES).map((type) => type.model),
 			...Object.values(ITEMS).flatMap((item) => (item.model ? [item.model] : []))
 		])
 	];
