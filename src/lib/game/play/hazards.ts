@@ -16,13 +16,24 @@ import type { PlayerState } from '#lib/shared/player/types.ts';
 import type { Aim, PlayContext, PlayFeature, Prompt, TickMessage } from './feature.ts';
 import { keyPrompt } from './prompt.ts';
 
-/** A fire's light: warm, close, and only lit near enough to matter (it counts in the light budget). */
-const FIRE_LIGHT = { color: 0xff8a3a, intensity: 6, distance: 7, decay: 2, near: 22 };
 /**
- * A glow stick's light: green, small, fading over its last `fade` share; only the `lit` nearest
- * the camera are lit at all, so a floor full of them stays in the light budget.
+ * A fire's light: warm, close, `above` its patch, and only lit near enough to matter; the `lit`
+ * nearest the camera get one (it counts in the light budget).
  */
-const GLOW_LIGHT = { intensity: 2.5, decay: 2, near: 25, lit: 4, fade: 0.2 };
+const FIRE_LIGHT = {
+	color: 0xff8a3a,
+	intensity: 6,
+	distance: 7,
+	decay: 2,
+	near: 22,
+	lit: 2,
+	above: 0.8
+};
+/**
+ * A glow stick's light: green, small, `above` the stick, fading over its last `fade` share; only
+ * the `lit` nearest the camera are lit at all, so a floor full of them stays in the light budget.
+ */
+const GLOW_LIGHT = { intensity: 2.5, decay: 2, near: 25, lit: 4, fade: 0.2, above: 0.25 };
 /** Whispers round a cursed thing's carrier: the first after this long, then every so often (s). */
 const CURSE_WHISPER = { first: 6, every: [14, 30] as [number, number] };
 /** The throw arc: how often it is worked out again (s), and its look. */
@@ -36,13 +47,20 @@ const ARC = { every: 1 / 30, color: 0xe6dccb, opacity: 0.35 };
  */
 export class Hazards implements PlayFeature {
 	private root = new THREE.Group();
-	private fires = new Map<string, { group: THREE.Group; light: THREE.PointLight }>();
+	private fires = new Map<string, { group: THREE.Group; phase: number }>();
 	private snares = new Map<string, THREE.Object3D>();
 	private wards = new Map<string, THREE.Object3D>();
-	private glows = new Map<
-		string,
-		{ group: THREE.Group; light: THREE.PointLight; left: number; seconds: number }
-	>();
+	private glows = new Map<string, Glow>();
+	/**
+	 * The lights fires and glow sticks share, the nearest of them lit each frame. They are made
+	 * once and stay in the scene, dark when there is nothing to light: adding or taking away a light
+	 * changes the scene's light count, and Three.js recompiles every material for it, a hitch of a
+	 * second or more each time a glow stick landed or a fire caught.
+	 */
+	private fireLights: THREE.PointLight[] = [];
+	private glowLights: THREE.PointLight[] = [];
+	/** Fires made so far: each one's flicker phase, so two fires don't flicker together. */
+	private firesMade = 0;
 	private baits = new Map<string, THREE.Object3D>();
 	private charges = new Map<string, THREE.Object3D>();
 	private tripwires = new Map<string, THREE.Object3D>();
@@ -81,6 +99,21 @@ export class Hazards implements PlayFeature {
 		);
 		this.mark.visible = false;
 		this.root.add(this.arc, this.mark);
+		for (let i = 0; i < FIRE_LIGHT.lit; i++) {
+			const light = new THREE.PointLight(
+				FIRE_LIGHT.color,
+				0,
+				FIRE_LIGHT.distance,
+				FIRE_LIGHT.decay
+			);
+			this.fireLights.push(light);
+			this.root.add(light);
+		}
+		for (let i = 0; i < GLOW_LIGHT.lit; i++) {
+			const light = new THREE.PointLight(0xffffff, 0, 7, GLOW_LIGHT.decay);
+			this.glowLights.push(light);
+			this.root.add(light);
+		}
 	}
 
 	mapLoaded(_layout: MapLayout, world: CollisionWorld): void {
@@ -171,13 +204,8 @@ export class Hazards implements PlayFeature {
 		);
 	}
 
-	/** A glow stick lying lit: a small green stick and its light. */
-	private glow(
-		item: string,
-		position: Vec3,
-		left: number,
-		seconds: number
-	): { group: THREE.Group; light: THREE.PointLight; left: number; seconds: number } {
+	/** A glow stick lying lit: a small green stick (its light is one of `glowLights`, if near). */
+	private glow(item: string, position: Vec3, left: number, seconds: number): Glow {
 		const spec = ITEMS[item]?.throwable?.glow;
 		const color = spec?.color ?? 0x7dff8a;
 		const group = new THREE.Group();
@@ -187,11 +215,9 @@ export class Hazards implements PlayFeature {
 			new THREE.MeshBasicMaterial({ color })
 		);
 		stick.position.y = 0.02;
-		const light = new THREE.PointLight(color, 0, spec?.range ?? 7, GLOW_LIGHT.decay);
-		light.position.y = 0.25;
-		group.add(stick, light);
+		group.add(stick);
 		this.root.add(group);
-		return { group, light, left, seconds };
+		return { group, color, range: spec?.range ?? 7, left, seconds };
 	}
 
 	/**
@@ -247,8 +273,8 @@ export class Hazards implements PlayFeature {
 		return group;
 	}
 
-	/** A fire: a low flame over its patch and a light, that flickers. */
-	private fire(position: Vec3, radius: number): { group: THREE.Group; light: THREE.PointLight } {
+	/** A fire: a low flame over its patch (its light is one of `fireLights`, if near). */
+	private fire(position: Vec3, radius: number): { group: THREE.Group; phase: number } {
 		const group = new THREE.Group();
 		group.position.set(...position);
 		const flame = new THREE.Mesh(
@@ -273,11 +299,9 @@ export class Hazards implements PlayFeature {
 			})
 		);
 		patch.position.y = 0.02;
-		const light = new THREE.PointLight(FIRE_LIGHT.color, 0, FIRE_LIGHT.distance, FIRE_LIGHT.decay);
-		light.position.y = 0.8;
-		group.add(flame, patch, light);
+		group.add(flame, patch);
 		this.root.add(group);
-		return { group, light };
+		return { group, phase: this.firesMade++ };
 	}
 
 	/** A snare set on the floor (or bait thrown down): its item's model, or a small box till it has one. */
@@ -472,24 +496,36 @@ export class Hazards implements PlayFeature {
 	update(delta: number): void {
 		this.time += delta;
 		const camera = this.ctx.engine.camera.position;
-		let k = 0;
-		for (const { group, light } of this.fires.values()) {
-			// Only near the camera does it light anything, so far fires cost no light.
-			const near = group.position.distanceTo(camera) < FIRE_LIGHT.near;
+		// Fires: the nearest few in reach get the fire lights, so far fires cost no light.
+		const fires = nearest(this.fires.values(), camera, FIRE_LIGHT.near);
+		this.fireLights.forEach((light, i) => {
+			const fire = fires[i];
+			if (!fire) {
+				light.intensity = 0;
+				return;
+			}
+			const k = fire.phase;
 			const flicker =
 				0.75 + 0.25 * Math.sin(this.time * 17 + k * 2.3) * Math.sin(this.time * 7.1 + k);
-			light.intensity = near ? FIRE_LIGHT.intensity * flicker : 0;
-			k++;
-		}
-		// Glow sticks: the nearest few lit, fading as they run out.
-		const glows = [...this.glows.values()]
-			.map((glow) => ({ glow, d: glow.group.position.distanceTo(camera) }))
-			.sort((x, y) => x.d - y.d);
-		glows.forEach(({ glow, d }, i) => {
-			glow.left = Math.max(0, glow.left - delta);
+			light.position.copy(fire.group.position);
+			light.position.y += FIRE_LIGHT.above;
+			light.intensity = FIRE_LIGHT.intensity * flicker;
+		});
+		// Glow sticks: all run down; the nearest few get the glow lights, fading as they run out.
+		for (const glow of this.glows.values()) glow.left = Math.max(0, glow.left - delta);
+		const glows = nearest(this.glows.values(), camera, GLOW_LIGHT.near);
+		this.glowLights.forEach((light, i) => {
+			const glow = glows[i];
+			if (!glow) {
+				light.intensity = 0;
+				return;
+			}
 			const fade = Math.min(1, glow.left / (glow.seconds * GLOW_LIGHT.fade));
-			glow.light.intensity =
-				i < GLOW_LIGHT.lit && d < GLOW_LIGHT.near ? GLOW_LIGHT.intensity * fade : 0;
+			light.position.copy(glow.group.position);
+			light.position.y += GLOW_LIGHT.above;
+			light.color.set(glow.color);
+			light.distance = glow.range;
+			light.intensity = GLOW_LIGHT.intensity * fade;
 		});
 	}
 
@@ -514,6 +550,28 @@ export class Hazards implements PlayFeature {
 		(this.mark.material as THREE.Material).dispose();
 		this.root.removeFromParent();
 	}
+}
+
+/** A glow stick lying lit, as shown: what its light looks like, and how long it has left (s). */
+interface Glow {
+	group: THREE.Group;
+	color: number;
+	range: number;
+	left: number;
+	seconds: number;
+}
+
+/** Those of `shown` within `reach` of `camera`, nearest first. */
+function nearest<S extends { group: THREE.Object3D }>(
+	shown: Iterable<S>,
+	camera: THREE.Vector3,
+	reach: number
+): S[] {
+	return [...shown]
+		.map((item) => ({ item, d: item.group.position.distanceTo(camera) }))
+		.filter(({ d }) => d < reach)
+		.sort((x, y) => x.d - y.d)
+		.map(({ item }) => item);
 }
 
 /** Make `shown` match `wanted` by id: build what is new, take away what is gone. */

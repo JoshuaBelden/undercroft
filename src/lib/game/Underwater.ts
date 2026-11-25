@@ -19,7 +19,14 @@ export class Underwater {
 	private readonly fog = new THREE.FogExp2(COLOR, 0);
 	private amount = 0;
 
-	constructor(private scene: THREE.Scene) {}
+	/**
+	 * The fog stays on the scene for good, at zero density (no fog at all) when clear. Putting fog
+	 * on or taking it off makes Three.js recompile every material, a hitch of a second or more on
+	 * every dip under the water and every rise out of it.
+	 */
+	constructor(private scene: THREE.Scene) {
+		scene.fog = this.fog;
+	}
 
 	/** True when `camera` (world space) is under a water surface. */
 	static below(world: CollisionWorld | null, camera: Vec3): boolean {
@@ -36,18 +43,13 @@ export class Underwater {
 			target > this.amount
 				? Math.min(target, this.amount + step)
 				: Math.max(target, this.amount - step);
-		if (this.amount > 0) {
-			this.fog.density = DENSITY * this.amount;
-			this.scene.fog = this.fog;
-		} else if (this.scene.fog === this.fog) {
-			this.scene.fog = null;
-		}
+		this.fog.density = DENSITY * this.amount;
 		return this.amount;
 	}
 
 	/** Back to clear at once (leaving the map, map view). */
 	reset(): void {
 		this.amount = 0;
-		if (this.scene.fog === this.fog) this.scene.fog = null;
+		this.fog.density = 0;
 	}
 }
