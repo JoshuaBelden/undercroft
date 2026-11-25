@@ -1,6 +1,7 @@
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { roomViewer } from './scripts/vite-rooms.ts';
 
 export default defineConfig({
 	plugins: [
@@ -12,6 +13,8 @@ export default defineConfig({
 			},
 
 			adapter: adapter()
-		})
+		}),
+		// Dev only: the room viewer's files, straight from Blender's exports (docs/dev/room-viewer.md).
+		roomViewer()
 	]
 });
