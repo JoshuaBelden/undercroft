@@ -463,12 +463,33 @@ export class Hazards implements PlayFeature {
 			const { points, landing } = flightPath(this.world, origin, direction, spec.speed, spec.lift);
 			// The first stretch is in front of the eye: leave it out, so the line isn't in your face.
 			const shown = points.slice(Math.min(3, points.length - 1));
-			this.arc.geometry.setFromPoints(shown.map((p) => new THREE.Vector3(...p)));
+			this.drawArc(shown);
 			if (landing) this.mark.position.set(landing[0], landing[1] + 0.03, landing[2]);
 			this.mark.userData.landed = !!landing;
 		}
 		this.arc.visible = true;
 		this.mark.visible = !!this.mark.userData.landed;
+	}
+
+	/**
+	 * The arc's line through `points`. A filled geometry's buffer never grows (`setFromPoints`
+	 * cuts a longer arc short, with a warning each time, and a shorter one leaves the old tail
+	 * drawn), so the arc keeps a buffer of its own, made bigger when it must, and draws only what
+	 * is in use.
+	 */
+	private drawArc(points: Vec3[]): void {
+		let position = this.arc.geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+		if (!position || position.count < points.length) {
+			this.arc.geometry.dispose();
+			this.arc.geometry = new THREE.BufferGeometry();
+			position = new THREE.BufferAttribute(new Float32Array(points.length * 2 * 3), 3);
+			position.setUsage(THREE.DynamicDrawUsage);
+			this.arc.geometry.setAttribute('position', position);
+		}
+		const geometry = this.arc.geometry;
+		points.forEach((p, i) => position.setXYZ(i, p[0], p[1], p[2]));
+		position.needsUpdate = true;
+		geometry.setDrawRange(0, points.length);
 	}
 
 	/**
