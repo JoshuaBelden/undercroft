@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { UNDER_PARISH } from '../../content/map/under-parish.ts';
 import { addItem, emptyInventory } from '../items/inventory.ts';
 import { doorSeconds } from '../items/lootables.ts';
@@ -37,6 +39,20 @@ describe('the fixed map', () => {
 		expect(doorSeconds(door, inv)).toBeNull();
 		addItem(inv, { item: 'key', count: 1 });
 		expect(doorSeconds(door, inv)).toBeGreaterThan(0);
+	});
+
+	it('ships each lit room with the UV set its lightmap goes on', () => {
+		for (const room of Object.values(MAP_PIECES)) {
+			if (!room.lightmap) continue;
+			const file = path.join(process.cwd(), 'static', room.url);
+			const gltf = JSON.parse(readFileSync(file, 'utf8')) as {
+				meshes: { primitives: { attributes: Record<string, number> }[] }[];
+			};
+			const uv1 = gltf.meshes.some((mesh) =>
+				mesh.primitives.some((primitive) => 'TEXCOORD_1' in primitive.attributes)
+			);
+			expect(uv1, `${room.name} has a lightmap but no TEXCOORD_1`).toBe(true);
+		}
 	});
 
 	it('has the ladder out as a climbable rope with an exit, drawn by the room', () => {

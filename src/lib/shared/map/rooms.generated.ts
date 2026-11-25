@@ -4,8 +4,8 @@ import type { RoomDef } from './types.ts';
 export const ROOMS: Record<string, RoomDef> = {
 	sewer: {
 		name: 'sewer',
-		url: '/assets/shared/rooms/sewer.7d7235e5.gltf',
-		bytes: 5672857,
+		url: '/assets/shared/rooms/sewer.a74bc3fa.gltf',
+		bytes: 5988222,
 		footprint: [0, 0],
 		levels: 1,
 		sockets: [],

@@ -172,7 +172,9 @@ async function buildRoom(io: NodeIO, file: string): Promise<RoomDef> {
 			resize: [TEXTURE_SIZE, TEXTURE_SIZE],
 			quality: 85
 		}),
-		prune(),
+		// Keep every attribute: the lightmap's UV set (TEXCOORD_1) looks unused to prune, the
+		// lightmap being a file of its own the game puts on it.
+		prune({ keepAttributes: true }),
 		meshopt(MESHOPT)
 	);
 	const { url, bytes } = await writeRoom(io, doc, name);
