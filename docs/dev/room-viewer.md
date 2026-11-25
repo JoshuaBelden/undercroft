@@ -43,12 +43,13 @@ Rooms are lit by baking: the light falling on every surface is worked out once i
 - **Faces laid over each other** (a ragged edge over a wall, a trim over another) need a gap between them, a few millimetres: two faces in one plane shade, and bake, black.
 - **In the game**, the material's colour is multiplied by it: Three.js's `lightMap` on the second UV, at an intensity of pi (`LIGHTMAP_INTENSITY`), because Three.js treats a lightmap as irradiance and divides it by pi in its shading. The headlamp still lights everything as a real light, on top.
 
-### Locks, keys and sounds
+### Ladders, locks, keys and sounds
 
 Custom properties on markers say what a name can't:
 
 - `door-<n>` with `key = "<item>"`: locked until opened with that item (the Storeroom's door, `key`).
-- `lootable-<type>-<n>` with `holds = "<item>"`: that lootable always holds it (the dead explorer with the key).
+- `lootable-<type>-<n>` with `holds = "<item>"`: that lootable always holds it (the Storeroom's crate with the key).
+- A ladder is a `rope-<n>` at its top (its `length` down to the floor, `exit` for a way out, `ladder = 1`): it climbs as a rope does ([rope.md](rope.md#climbing)), so the way out of the Sewer is climbed, not walked onto. The room viewer's walk climbs it too.
 - `sound-<id>-<n>`: the sound `<id>` from `sounds.ts` plays there (`sound-sewer.drip-1` plays `sewer.drip`).
 
 A room's sounds are registered in `sounds.ts` like any other, with the `file` id they will have, and stay silent until they are recorded; the admin Art & Assets page lists them as missing, which makes it the recording list. The markers say where they play; playing them there comes with sound along the tunnels (Phase 3, [#144](https://github.com/JoshuaBelden/undercroft/issues/144)). Locks working in a run needs the server to know rooms (Phase 1, [#142](https://github.com/JoshuaBelden/undercroft/issues/142)).

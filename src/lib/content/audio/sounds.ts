@@ -1452,18 +1452,8 @@ export const SOUNDS = {
 		volume: 0.4,
 		caption: 'a draught whistles'
 	},
-	/** The street over the manhole: traffic and footsteps, muffled, down the shaft. */
-	'sewer.street': { file: 'sewer.street', category: 'ambience', volume: 0.35 },
-	/** A drip from the vault into the channel. */
-	'sewer.drip': { file: 'sewer.drip', category: 'ambience', volume: 0.3, variation: 0.15 },
-	/** The Storeroom's rotten timber shifting now and then. */
-	'storeroom.settle': {
-		file: 'storeroom.settle',
-		category: 'ambience',
-		volume: 0.35,
-		variation: 0.1,
-		caption: 'wood creaks'
-	}
+	/** A drip from the vault into the channel. One sound, placed at each sound-sewer.drip-<n>. */
+	'sewer.drip': { file: 'sewer.drip', category: 'ambience', volume: 0.3, variation: 0.15 }
 } satisfies Record<string, SoundDef>;
 
 export type SoundId = keyof typeof SOUNDS;

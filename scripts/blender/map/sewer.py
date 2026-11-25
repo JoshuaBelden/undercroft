@@ -80,6 +80,9 @@ SURFACE = 8.0
 MANHOLE = ((-0.6, 0.6), (-1.8, -0.6))  # x, lateral
 TUBES = [((-12.4, -11.6), (-0.4, 0.4)), ((8.6, 9.4), (-0.4, 0.4))]
 TUBE_GRATE = APEX + 1.0  # the grate set across each tube
+LADDER_Y = -MANHOLE[1][0] - 0.14  # the rungs, standing off the manhole's north side
+LADDER_TOP = SURFACE - 0.2
+LADDER_EXIT = 6.0  # climbed this far (feet), you are out at the street
 DAYLIGHT = {"manhole": (1800, 45), "tube": (500, 30)}  # bake lamps: watts, spread (degrees)
 
 # The crack: a squeeze from the channel's south wall to the Storeroom, standing, side-on.
@@ -185,6 +188,7 @@ def build():
     for (x0, x1), (a, b) in holes:
         tube(mb, x0, x1, a, b, grate=(x0, x1) != MANHOLE[0])
     rungs(mb, -MANHOLE[1][0], 0.3, SURFACE - 0.2)
+    manhole_cols(coll, root)
     collapse(mb, coll, root, frames)
     crack(mb, coll, root)
     crack_mouth(mb)
@@ -236,9 +240,20 @@ def tunnel(mb, coll, root, frames, rings):
 
         box(f"col-walkway-{i}", -LOW_W, WALKWAY_EDGE, CHANNEL - 0.3, 0.0)
         box(f"col-channel-{i}", WALKWAY_EDGE, LOW_W, CHANNEL - 0.3, CHANNEL)
-        # The vault: over the middle, and lower towards the walls.
-        box(f"col-vault-{i}", -UP_W, UP_W, APEX, APEX + 0.4)
-        box(f"col-vault-n-{i}", -UP_W, -0.65 * UP_W, SPRING + 0.35 * RISE, APEX + 0.4)
+        # The vault: over the middle, and lower towards the walls. Over the ladder it is open, so
+        # a climber goes on up the manhole.
+        (mx0, mx1), (ma, mb_) = MANHOLE
+        if i == 1:
+            m0, m1 = mx0 - x0, mx1 - x0
+            for k, (s0, s1) in enumerate(((None, m0), (m1, None))):
+                box(f"col-vault-{i}-{k}", -UP_W, UP_W, APEX, APEX + 0.4, s0, s1)
+                box(f"col-vault-n-{i}-{k}", -UP_W, -0.65 * UP_W, SPRING + 0.35 * RISE, APEX + 0.4, s0, s1)
+            box(f"col-vault-{i}-2", mb_, UP_W, APEX, APEX + 0.4, m0, m1)
+            box(f"col-vault-{i}-3", -UP_W, ma, APEX, APEX + 0.4, m0, m1)
+            box(f"col-vault-n-{i}-2", -UP_W, ma, SPRING + 0.35 * RISE, APEX + 0.4, m0, m1)
+        else:
+            box(f"col-vault-{i}", -UP_W, UP_W, APEX, APEX + 0.4)
+            box(f"col-vault-n-{i}", -UP_W, -0.65 * UP_W, SPRING + 0.35 * RISE, APEX + 0.4)
         box(f"col-vault-s-{i}", 0.65 * UP_W, UP_W, SPRING + 0.35 * RISE, APEX + 0.4)
         # The brick walls up to the ledge (their tops are the ledges), the cement above.
         box(f"col-brick-n-{i}", -LOW_W - WALL_T, -LOW_W, 0.0, LEDGE_Z)
@@ -300,6 +315,18 @@ def tube(mb, x0, x1, a, b, grate):
         while x < x1 - 0.05:
             mb.box((x - 0.02, -b, z - 0.05), (x + 0.02, -a, z), "mat-iron")
             x += 0.1
+
+
+def manhole_cols(coll, root):
+    """The manhole's sides, from the vault up to the street, for the climb up the ladder."""
+    (x0, x1), (a, b) = MANHOLE
+    y0, y1 = -b, -a
+    z0, z1 = vault_z(a) - 0.3, SURFACE + 0.5
+    common.col_span(coll, root, "col-manhole-w", (x0 - WALL_T, y0 - WALL_T, z0), (x0, y1 + WALL_T, z1))
+    common.col_span(coll, root, "col-manhole-e", (x1, y0 - WALL_T, z0), (x1 + WALL_T, y1 + WALL_T, z1))
+    common.col_span(coll, root, "col-manhole-n", (x0, y1, z0), (x1, y1 + WALL_T, z1))
+    common.col_span(coll, root, "col-manhole-s", (x0, y0 - WALL_T, z0), (x1, y0, z1))
+    common.col_span(coll, root, "col-manhole-top", (x0, y0, SURFACE), (x1, y1, z1))
 
 
 def rungs(mb, wall_y, z0, z1, half_w=0.22, step=0.3):
@@ -681,39 +708,31 @@ def markers(coll, root, frames):
     # Spawns on the walkway either side of the ladder, facing it.
     for k, x in enumerate((-1.2, 1.2, -2.2, 2.2)):
         m(f"spawn-{k}", (x, WALKWAY_Y, 0.0), toward=(-x, 0.4))
-    # The way you came in, always open: the foot of the ladder.
-    m("extract-0", (0.0, WALKWAY_Y, 0.0))
-    # The Storeroom's door, locked until opened with the key; one of the dead holds it.
+    # The way you came in, always open: up the ladder. It climbs like a rope (rope-<n>, docs/dev/
+    # rope.md): grab it at the foot, climb, and LADDER_EXIT up you are out.
+    m("rope-0", (0.0, LADDER_Y, LADDER_TOP), length=LADDER_TOP, exit=LADDER_EXIT, ladder=1)
+    # The Storeroom's door, locked until opened with the key; one of the crates holds it.
     (x0, x1), (y0, y1) = STORE_X, STORE_Y
     door_x = (DOOR[0] + DOOR[1]) / 2
     m("door-0", (door_x, y0 - DOOR_DEPTH / 2, 0.0), toward=(0, 1), key="key")
     m("door-1", (door_x, STAIR_END, -DROP), toward=(0, 1))
     m("socket-door-0", (door_x, STAIR_END - DOOR_DEPTH - 0.05, -DROP))
-    m("lootable-corpse-0", (18.1, -10.8, 0.0), toward=(0, 1), holds="key")  # the middle aisle
-    m("lootable-corpse-1", (17.9, y1 - 0.8, 0.0), toward=(0, 1))  # fell in from the crack
-    m("lootable-corpse-2", (x0 + 1.3, y0 + 0.6, 0.0), toward=(0, -1))  # by the door
-    m("lootable-crate-0", (14.4, y1 - 0.5, 0.0), toward=(0, 1))
-    # Rats: in the dark either side, and at the collapse.
-    m("creature-0", (-15.0, WALKWAY_Y, 0.0))
-    m("creature-1", (11.0, WALKWAY_Y, 0.0))
+    m("lootable-crate-0", (18.1, -10.8, 0.0), toward=(0, 1), holds="key")  # the middle aisle
+    m("lootable-crate-1", (17.9, y1 - 0.8, 0.0), toward=(0, 1))  # by the crack
+    m("lootable-crate-2", (x0 + 1.3, y0 + 0.6, 0.0), toward=(0, -1))  # by the door
+    m("lootable-crate-3", (14.4, y1 - 0.5, 0.0), toward=(0, 1))
     end, side, _ = frames[-1]
     side = side.normalized()
     back = (frames[-2][0] - end).normalized()
-    m("creature-2", tuple(end + back * 5.6 + side * -WALKWAY_Y))
     m("lootable-ratNest-0", tuple(end + back * 4.7 + side * -WALKWAY_Y), toward=tuple(back.xy * -1))
-    m("rubble-0", tuple(end + back * 4.4 + side * 0.8 + Vector((0, 0, CHANNEL))))
     grate, grate_side, _ = next(f for f in frames if abs(f[2] - GRATE_AT) < 1e-3)
     satchel = grate + (frames[0][0] - grate).normalized() * -1.0 + grate_side.normalized() * -WALKWAY_Y
     m("lootable-satchel-0", tuple(satchel), toward=tuple(grate_side.xy * -1))
     # Sounds (sound-<id>-<n>): what the room needs recorded. Silent until it is.
     m("sound-sewer.flow-0", tuple(grate + Vector((0, 0, 0.3))))
     m("sound-sewer.draught-0", (CRACK_X, -LOW_W - 0.1, 1.2))
-    m("sound-sewer.street-0", (0.0, 1.2, SURFACE - 0.5))
-    for k, ((tx0, tx1), _) in enumerate(TUBES):
-        m(f"sound-sewer.street-{k + 1}", ((tx0 + tx1) / 2, 0.0, SURFACE - 0.5))
     m("sound-sewer.drip-0", (5.0, 0.6, 3.6))
     m("sound-sewer.drip-1", (-8.0, -0.6, 3.6))
-    m("sound-storeroom.settle-0", ((x0 + x1) / 2, (y0 + y1) / 2, STORE_H - 0.5))
 
 
 def lights(coll, root):
