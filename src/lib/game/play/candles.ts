@@ -1,5 +1,5 @@
 import { Candles as CandleModels } from '#lib/game/map/Candles.ts';
-import { PIECES } from '#lib/shared/map/pieces.generated.ts';
+import { MAP_PIECES } from '#lib/shared/map/fixed.ts';
 import type { MapLayout } from '#lib/shared/map/types.ts';
 import type { PlayContext, PlayFeature } from './feature.ts';
 
@@ -15,7 +15,7 @@ export class Candles implements PlayFeature {
 	}
 
 	mapLoaded(layout: MapLayout): void {
-		this.models.build(layout, PIECES);
+		this.models.build(layout, MAP_PIECES);
 	}
 
 	update(delta: number): void {

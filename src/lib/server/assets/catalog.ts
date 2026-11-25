@@ -11,6 +11,7 @@ import { PLANNED_ASSETS, type PlannedAsset } from '../../content/planned.ts';
 import { bodyPaths, PLAYER_MODEL, wearPath } from '../../content/player/model.ts';
 import { BODIES, WEAR, type BodyId, type WearId } from '../../content/player/wardrobe.ts';
 import { PIECES } from '../../shared/map/pieces.generated.ts';
+import { ROOMS } from '../../shared/map/rooms.generated.ts';
 import {
 	ASSET_KINDS,
 	type AssetCatalog,
@@ -42,6 +43,8 @@ export interface AssetDisk {
 /** The content the catalog reads. Defaults to the game's; tests pass their own. */
 export interface CatalogContent {
 	models: Record<string, { url: string; bytes: number }>;
+	/** The fixed map's rooms: each model, and its lightmap. */
+	rooms?: Record<string, { url: string; lightmap: { url: string } | null }>;
 	pieces: Record<string, { url: string }>;
 	images: Record<string, string>;
 	audioFiles: Record<string, string[]>;
@@ -62,6 +65,7 @@ export interface CatalogContent {
 export const GAME_CONTENT: CatalogContent = {
 	models: MODELS,
 	pieces: PIECES,
+	rooms: ROOMS,
 	images: IMAGE_URLS,
 	audioFiles: AUDIO_FILES,
 	audioLevels: AUDIO_LEVELS,
@@ -189,6 +193,29 @@ export function buildCatalog(
 			bytes: 0,
 			status: item.placeholder ? 'placeholder' : 'missing',
 			note: item.placeholder ? 'No model: drawn as a box' : 'No model and no placeholder box'
+		});
+	}
+
+	// The fixed map's rooms (docs/dev/fixed-map.md): each model with its textures, and its lightmap.
+	for (const [name, room] of Object.entries(content.rooms ?? {})) {
+		const files = [
+			...withDependencies(assetPath(room.url)),
+			...(room.lightmap ? [assetPath(room.lightmap.url)] : [])
+		];
+		for (const each of files) used.add(each);
+		const gone = files.filter((each) => !present(each));
+		rows.push({
+			kind: 'piece',
+			id: `room: ${name}`,
+			usedBy: ['The fixed map'],
+			files: files.map((each) => `/assets/${each}`),
+			bytes: files.reduce((sum, each) => sum + size(each), 0),
+			status: gone.length ? 'missing' : 'ok',
+			note: gone.length
+				? `Missing ${gone.join(', ')}`
+				: room.lightmap
+					? undefined
+					: 'No lightmap baked'
 		});
 	}
 

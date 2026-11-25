@@ -3,7 +3,7 @@ import { MAP_KIT } from '#lib/content/map/kit.ts';
 import type { OmenStage } from '#lib/content/afflictions.ts';
 import type { CollisionWorld } from '#lib/shared/map/collision.ts';
 import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
-import { PIECES } from '#lib/shared/map/pieces.generated.ts';
+import { MAP_PIECES } from '#lib/shared/map/fixed.ts';
 import type { Acoustics, MapLayout, Vec3 } from '#lib/shared/map/types.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 import type { AudioManager, SoundHandle } from './AudioManager.ts';
@@ -40,7 +40,7 @@ export class Ambience {
 		this.world = world;
 		this.acoustics = {};
 		for (const placement of layout.placements) {
-			const piece = PIECES[placement.piece];
+			const piece = MAP_PIECES[placement.piece];
 			const kind = MAP_KIT[placement.piece]?.acoustics;
 			if (!piece || !kind) continue;
 			for (const [x, z, level] of occupiedCells(piece, placement)) {

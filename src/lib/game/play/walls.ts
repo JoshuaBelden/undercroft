@@ -7,7 +7,7 @@ import { loadModel } from '#lib/game/assets.ts';
 import { held, heldWorking } from '#lib/shared/items/inventory.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
 import { openDoor, type CollisionWorld } from '#lib/shared/map/collision.ts';
-import { PIECES } from '#lib/shared/map/pieces.generated.ts';
+import { MAP_PIECES } from '#lib/shared/map/fixed.ts';
 import type { MapLayout, WallPlacement } from '#lib/shared/map/types.ts';
 import { lookedAtPrySpot, prySpots, wallSpots, type PrySpot } from '#lib/shared/map/walls.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
@@ -54,12 +54,12 @@ export class Walls implements PlayFeature {
 	mapLoaded(layout: MapLayout, world: CollisionWorld): void {
 		this.clear();
 		this.world = world;
-		this.spots = prySpots(layout, PIECES, MAP_KIT);
+		this.spots = prySpots(layout, MAP_PIECES, MAP_KIT);
 		this.rubble = wallSpots(layout, 'rubble');
 		this.webSpots = wallSpots(layout, 'web');
 		const id = this.buildId;
 		for (const wall of layout.walls ?? []) {
-			const def = PIECES[wall.piece];
+			const def = MAP_PIECES[wall.piece];
 			if (!def) continue;
 			if (wall.kind === 'web') {
 				this.webs.add(wall.id);

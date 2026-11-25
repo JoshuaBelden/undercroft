@@ -72,6 +72,11 @@ export class Doors {
 				if (id !== this.buildId) return;
 				model.position.set(...placement.position);
 				model.rotation.y = placement.yaw;
+				// A door of its own size (a fixed room's doorway): the double door, fitted to it,
+				// until rooms have doors of their own.
+				if (placement.size) {
+					model.scale.set(placement.size[0] / DOORS.size[0], placement.size[1] / DOORS.size[1], 1);
+				}
 				model.traverse((node) => {
 					if (node instanceof THREE.Mesh) {
 						node.castShadow = true;

@@ -52,7 +52,7 @@
 	import { resolve } from '$app/paths';
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { buildCollisionWorld, segmentHit } from '#lib/shared/map/collision.ts';
-	import { PIECES } from '#lib/shared/map/pieces.generated.ts';
+	import { MAP_PIECES } from '#lib/shared/map/fixed.ts';
 	import { roomPoints, testPoints } from '#lib/shared/map/points.ts';
 	import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
 	import { nearExtract } from '#lib/shared/player/simulate.ts';
@@ -616,7 +616,7 @@
 			inRoom = null;
 			layout.placements.forEach((placement, index) => {
 				const title = MAP_KIT[placement.piece]?.title;
-				const piece = PIECES[placement.piece];
+				const piece = MAP_PIECES[placement.piece];
 				if (piece) {
 					for (const [x, z, level] of occupiedCells(piece, placement)) {
 						cellTiers[cellKey(x, z, level)] = placement.tier;
@@ -629,8 +629,8 @@
 				}
 			});
 			rooms = [
-				...roomPoints(layout, PIECES, MAP_KIT),
-				...testPoints(layout, PIECES),
+				...roomPoints(layout, MAP_PIECES, MAP_KIT),
+				...testPoints(layout, MAP_PIECES),
 				// Only the server knows these (server/systems/cheats.ts).
 				{ name: 'stuck-crate' },
 				{ name: 'tomb' },
@@ -653,10 +653,10 @@
 					requestAnimationFrame(() => requestAnimationFrame(() => reveal()));
 				})
 				.catch((error) => console.error('Map load failed', error));
-			const grid = mapDebugGrid(layout, PIECES, MAP_KIT);
+			const grid = mapDebugGrid(layout, MAP_PIECES, MAP_KIT);
 			debugGrid.build(grid);
 			mapCounts = grid.counts;
-			const world = buildCollisionWorld(layout, PIECES);
+			const world = buildCollisionWorld(layout, MAP_PIECES);
 			player.setWorld(world);
 			for (const feature of list) feature.mapLoaded?.(layout, world);
 			ambience.setMap(layout, world);

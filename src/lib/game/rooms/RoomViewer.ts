@@ -27,6 +27,7 @@ import {
 import type { PlayerState, Stance } from '#lib/shared/player/types.ts';
 import type { RoomFile } from './files.ts';
 import { buildOverlays, type RoomOverlays } from './overlays.ts';
+import { applyLightmap, asLightmap } from './roomModel.ts';
 
 /**
  * The room viewer (dev): one room, straight from its Blender export, to fly round or walk with the
@@ -66,13 +67,6 @@ export interface RoomView {
 	pitch: number;
 	mode: RoomViewMode;
 }
-
-/**
- * A lightmap holds what Blender's diffuse bake (light only, no colour) gives: the surface's colour
- * is multiplied by it. Three.js treats a lightmap as irradiance, which its Lambert shading divides
- * by pi, so it is scaled back up by pi to match (docs/dev/room-viewer.md#lightmaps).
- */
-export const LIGHTMAP_INTENSITY = Math.PI;
 
 const DT = 1 / SIM_RATE;
 const MAX_STEPS = 10;
@@ -166,7 +160,10 @@ export class RoomViewer {
 		const id = ++this.loadId;
 		const [gltf, lightmap] = await Promise.all([
 			loader.loadAsync(file.url),
-			file.lightmap ? textureLoader.loadAsync(file.lightmap) : Promise.resolve(null)
+			// Not cached: a re-export brings a new one.
+			file.lightmap
+				? textureLoader.loadAsync(file.lightmap).then(asLightmap)
+				: Promise.resolve(null)
 		]);
 		if (id !== this.loadId) {
 			lightmap?.dispose();
@@ -183,12 +180,7 @@ export class RoomViewer {
 		this.manifest = manifest;
 		this.engine.scene.add(room);
 
-		if (lightmap) {
-			lightmap.flipY = false;
-			lightmap.channel = 1;
-			lightmap.colorSpace = THREE.SRGBColorSpace;
-			this.lightmap = lightmap;
-		}
+		this.lightmap = lightmap;
 		this.roomStats = measure(room);
 		this.lightmapInfo = lightmap ? lightmapStats(room, lightmap) : null;
 
@@ -322,17 +314,7 @@ export class RoomViewer {
 		this.ambient.visible = t.fullbright;
 		this.hemisphere.visible = t.fullbright;
 		this.headlamp.visible = t.headlamp;
-		const lightmap = t.lightmap ? this.lightmap : null;
-		this.room?.traverse((object) => {
-			if (!(object instanceof THREE.Mesh) || !object.geometry.getAttribute('uv1')) return;
-			for (const material of materials(object)) {
-				if (!(material instanceof THREE.MeshStandardMaterial)) continue;
-				if (material.lightMap === lightmap) continue;
-				material.lightMap = lightmap;
-				material.lightMapIntensity = LIGHTMAP_INTENSITY;
-				material.needsUpdate = true;
-			}
-		});
+		if (this.room) applyLightmap(this.room, t.lightmap ? this.lightmap : null);
 	}
 
 	private nextStance(): void {

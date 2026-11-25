@@ -1,10 +1,10 @@
-import { DOORS } from '#lib/content/doors.ts';
-import { gateSeconds } from '#lib/shared/items/lootables.ts';
+import { ITEMS } from '#lib/content/items.ts';
+import { doorSeconds } from '#lib/shared/items/lootables.ts';
 import { Doors as DoorModels } from '#lib/game/map/Doors.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
 import type { CollisionWorld } from '#lib/shared/map/collision.ts';
 import { lookedAtDoor } from '#lib/shared/map/doors.ts';
-import type { MapLayout } from '#lib/shared/map/types.ts';
+import type { DoorPlacement, MapLayout } from '#lib/shared/map/types.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
 import type { Aim, PlayContext, PlayFeature, Prompt, TickMessage } from './feature.ts';
 import { keyPrompt } from './prompt.ts';
@@ -19,8 +19,8 @@ export class Doors implements PlayFeature {
 	private models = new DoorModels();
 	/** The shut door interact would open, if any (floor items and crates first). */
 	private aimedAt: string | null = null;
-	/** Whether that is a locked gate. */
-	private gate = false;
+	/** That door: a gate, a locked door (its key), or an ordinary one. */
+	private door: DoorPlacement | null = null;
 	/** Doors barred from the far side, as the tick last said. */
 	private barred = new Set<string>();
 
@@ -77,31 +77,31 @@ export class Doors implements PlayFeature {
 					)
 				: null;
 		this.aimedAt = door?.id ?? null;
-		this.gate = door?.kind === 'gate';
+		this.door = door ?? null;
 		return !!this.aimedAt;
 	}
 
 	prompt(state: PlayerState): Prompt | null {
 		if (!this.aimedAt) return null;
+		const door = this.door;
 		if (this.barred.has(this.aimedAt)) {
 			return {
 				...keyPrompt('interact', 'to try the door'),
-				after: '(barred from the far side)',
+				// A fixed map's seam (a room not built yet) just won't; the Gloaming's is barred.
+				after: door?.marker ? "(it won't open)" : '(barred from the far side)',
 				blocked: true
 			};
 		}
-		if (this.gate) {
-			const seconds = gateSeconds(state.inventory);
-			if (seconds === null) {
-				return {
-					...keyPrompt('interact', 'to unlock the gate'),
-					after: '(needs a key or lockpicks)',
-					blocked: true
-				};
-			}
-			return keyPrompt('interact', 'to unlock the gate', state.unbarring / seconds);
+		const seconds = door ? doorSeconds(door, state.inventory) : null;
+		const verb = door?.key || door?.kind === 'gate' ? 'to unlock' : 'to open';
+		const what = door?.kind === 'gate' ? 'the gate' : 'the door';
+		if (seconds === null) {
+			const needs = door?.key
+				? `(locked: needs a ${(ITEMS[door.key]?.name ?? door.key).toLowerCase()})`
+				: '(needs a key or lockpicks)';
+			return { ...keyPrompt('interact', `${verb} ${what}`), after: needs, blocked: true };
 		}
-		return keyPrompt('interact', 'to open the door', state.unbarring / DOORS.openSeconds);
+		return keyPrompt('interact', `${verb} ${what}`, state.unbarring / seconds);
 	}
 
 	update(delta: number): void {

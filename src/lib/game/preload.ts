@@ -6,8 +6,9 @@ import { modelBytes, modelUrl } from '#lib/content/models.ts';
 import { explorerFiles, PLAYER_MODEL } from '#lib/content/player/model.ts';
 import type { AudioManager } from '#lib/game/audio/AudioManager.ts';
 import { loadClips, warmCharacter, warmModel } from '#lib/game/assets.ts';
-import { PIECES } from '#lib/shared/map/pieces.generated.ts';
-import type { MapLayout, PieceDef } from '#lib/shared/map/types.ts';
+import { loadLightmap } from '#lib/game/rooms/roomModel.ts';
+import { MAP_PIECES } from '#lib/shared/map/fixed.ts';
+import type { MapLayout, RoomDef } from '#lib/shared/map/types.ts';
 
 /**
  * Loads assets ahead of time so nothing pops in mid-run (late footsteps, a creature drawn
@@ -79,18 +80,22 @@ function sharedModels(): Task[] {
 	];
 }
 
-const pieceTasks = (pieces: PieceDef[]): Task[] =>
-	pieces.map((piece) => ({ bytes: piece.bytes, load: () => warmModel(piece.url) }));
+/** A room: its model and its lightmap (its `bytes` counts both). */
+const roomTasks = (rooms: RoomDef[]): Task[] =>
+	rooms.map((room) => ({
+		bytes: room.bytes,
+		load: () =>
+			Promise.all([warmModel(room.url), room.lightmap ? loadLightmap(room.lightmap.url) : null])
+	}));
 
 const SOUND_URLS = [...new Set(Object.values(AUDIO_FILES).flat())];
 
 /** Hub: warm the caches with everything shared, at low priority. */
 export function prefetchCore(onProgress: (progress: LoadProgress) => void): Promise<void> {
-	const pieces = Object.values(PIECES).filter((piece) => !piece.url.includes('/afflictions/'));
 	return run(
 		[
 			...sharedModels(),
-			...pieceTasks(pieces),
+			...roomTasks(Object.values(MAP_PIECES)),
 			...SOUND_URLS.map((url) => ({
 				bytes: AUDIO_BYTES[url] ?? 0,
 				load: () => fetch(url, { priority: 'low' }).then((response) => response.arrayBuffer())
@@ -106,13 +111,13 @@ export function preloadRun(
 	audio: AudioManager,
 	onProgress: (progress: LoadProgress) => void
 ): Promise<void> {
-	const pieces = [...new Set(layout.placements.map((p) => p.piece))].flatMap((name) =>
-		PIECES[name] ? [PIECES[name]] : []
+	const rooms = [...new Set(layout.placements.map((p) => p.piece))].flatMap((name) =>
+		MAP_PIECES[name] ? [MAP_PIECES[name]] : []
 	);
 	const body = layout.affliction ? AFFLICTIONS[layout.affliction]?.manifestation?.body : undefined;
 	return run(
 		[
-			...pieceTasks(pieces),
+			...roomTasks(rooms),
 			...sharedModels(),
 			...characters(body ? [body.model] : []),
 			...SOUND_URLS.map((url) => ({ bytes: AUDIO_BYTES[url] ?? 0, load: () => audio.load(url) }))

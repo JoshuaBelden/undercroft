@@ -3,7 +3,7 @@ import { AFFLICTIONS, type TrainingSpec } from '#lib/content/afflictions.ts';
 import { ALERT } from '#lib/content/alerts.ts';
 import { raise } from '#lib/game/alerts.svelte.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
-import { PIECES } from '#lib/shared/map/pieces.generated.ts';
+import { MAP_PIECES } from '#lib/shared/map/fixed.ts';
 import { worldSpots } from '#lib/shared/map/spots.ts';
 import type { MapLayout, Vec3 } from '#lib/shared/map/types.ts';
 import type { PlayerState } from '#lib/shared/player/types.ts';
@@ -49,7 +49,7 @@ export class Training implements PlayFeature {
 		this.clear();
 		this.spec = (layout.affliction && AFFLICTIONS[layout.affliction]?.training) || null;
 		if (!this.spec) return;
-		const spots = worldSpots(layout, PIECES);
+		const spots = worldSpots(layout, MAP_PIECES);
 		this.steps = this.spec.steps.map((step) => ({
 			position: step.spot ? (spots.find((s) => s.name === step.spot)?.position ?? null) : null,
 			radius: step.radius,

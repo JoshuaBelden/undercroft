@@ -1,7 +1,7 @@
 import { MAP_KIT } from '#lib/content/map/kit.ts';
 import { SURVEY } from '#lib/content/map/survey.ts';
 import { LEVEL_HEIGHT, cellKey } from '#lib/shared/map/grid.ts';
-import { PIECES } from '#lib/shared/map/pieces.generated.ts';
+import { MAP_PIECES } from '#lib/shared/map/fixed.ts';
 import { carriesSurvey, cellAt, surveyMap, type SurveyMap } from '#lib/shared/map/survey.ts';
 import type { GameEvent } from '#lib/shared/items/types.ts';
 import type { MapLayout } from '#lib/shared/map/types.ts';
@@ -41,7 +41,7 @@ export class Survey implements PlayFeature {
 
 	mapLoaded(layout: MapLayout): void {
 		// What was drawn of a map that is gone is no use; the server sends what there is.
-		this.map = surveyMap(layout, PIECES, MAP_KIT);
+		this.map = surveyMap(layout, MAP_PIECES, MAP_KIT);
 		this.drawn = new SvelteSet();
 	}
 

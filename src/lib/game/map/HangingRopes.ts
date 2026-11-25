@@ -76,7 +76,8 @@ export class HangingRopes {
 
 	/** Match the ropes in the world: add new ones, drop removed ones (an untied rope). */
 	sync(world: CollisionWorld | null): void {
-		const lines = world?.ropes ?? [];
+		// A ladder (a fixed room's, climbed as a rope) is in the room's model: nothing to draw.
+		const lines = (world?.ropes ?? []).filter((line) => !line.ladder);
 		const ids = new Set(lines.map((l) => l.id));
 		for (const [id, chain] of this.chains) {
 			if (!ids.has(id)) this.remove(id, chain);
