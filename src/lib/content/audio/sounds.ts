@@ -1445,13 +1445,6 @@ export const SOUNDS = {
 	// Not recorded yet, so silent; played in place once sound travels the tunnels (Phase 3).
 	/** Water running through the grate at the sewer's west end, and on beyond it: a loop. */
 	'sewer.flow': { file: 'sewer.flow', category: 'ambience', volume: 0.5 },
-	/** The draught whistling through the crack to the Storeroom: how a listening player finds it. */
-	'sewer.draught': {
-		file: 'sewer.draught',
-		category: 'ambience',
-		volume: 0.4,
-		caption: 'a draught whistles'
-	},
 	/** A drip from the vault into the channel. One sound, placed at each sound-sewer.drip-<n>. */
 	'sewer.drip': { file: 'sewer.drip', category: 'ambience', volume: 0.3, variation: 0.15 }
 } satisfies Record<string, SoundDef>;

@@ -730,7 +730,6 @@ def markers(coll, root, frames):
     m("lootable-satchel-0", tuple(satchel), toward=tuple(grate_side.xy * -1))
     # Sounds (sound-<id>-<n>): what the room needs recorded. Silent until it is.
     m("sound-sewer.flow-0", tuple(grate + Vector((0, 0, 0.3))))
-    m("sound-sewer.draught-0", (CRACK_X, -LOW_W - 0.1, 1.2))
     m("sound-sewer.drip-0", (5.0, 0.6, 3.6))
     m("sound-sewer.drip-1", (-8.0, -0.6, 3.6))
 
