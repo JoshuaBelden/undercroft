@@ -67,7 +67,7 @@ pnpm deploy:release     # ship git HEAD to the droplet (docs/dev/deployment.md)
 - **Fix warnings, don't suppress them.** Ignore comments only when truly unavoidable, with a one-line reason next to them.
 - Run `pnpm check`, `pnpm lint` and `pnpm test` before considering any task complete. A change to shared or server logic comes with tests for it.
 - **Branches**: never commit to `main`. Each issue gets its own branch named `<issue-id>-<feature-name>` in kebab-case (`4-credits-cleanup`, `51-map-sketching`), and lands through a pull request to `main` whose description closes the issue (`Closes #4`).
-- **Epics**: an epic issue gets a long-lived branch (`140-pivot`). Each of its issues branches off the epic branch and lands through a PR back into it; the epic branch merges to `main` when the epic is done. The pivot (`docs/handoff-pivot.md`) is epic #140.
+- **Epics**: an epic issue gets a long-lived branch named `<issue-id>-epic-<name>` (`140-epic-pivot`). Each of its issues branches off the epic branch and merges straight back into it, with no pull request; close the issue by hand when it's merged. The epic branch lands in `main` through a pull request when the epic is done. The pivot (`docs/handoff-pivot.md`) is epic #140.
 - **One feature at a time.** Never create more than one feature branch or open more than one feature PR. Work stays on the current feature's branch and PR until it's merged; don't split work into extra branches, stacked PRs, or parallel worktrees.
 
 ## Architecture rules
