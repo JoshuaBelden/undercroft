@@ -1,4 +1,4 @@
-import { GATES } from '../../content/doors.ts';
+import { DOORS, GATES } from '../../content/doors.ts';
 import { ITEMS, type ItemDef } from '../../content/items.ts';
 import {
 	LOOTABLES,
@@ -127,6 +127,17 @@ export function flavorOf(def: LootableDef, id: string): string {
 	let hash = 0;
 	for (const char of id) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) | 0;
 	return def.flavor[Math.abs(hash) % def.flavor.length] ?? '';
+}
+
+/**
+ * Seconds a door takes to open with what is carried, or null if it won't open for them: a locked
+ * door (`key`) only with that item, a gate with any key or lockpicks, any other door by hand.
+ */
+export function doorSeconds(door: { kind?: 'gate'; key?: string }, inv: Inventory): number | null {
+	if (door.key)
+		return allStacks(inv).some((stack) => stack.item === door.key) ? GATES.keySeconds : null;
+	if (door.kind === 'gate') return gateSeconds(inv);
+	return DOORS.openSeconds;
 }
 
 /** Seconds a gate takes with what is carried: a key (fast), lockpicks in the hand, or null. */

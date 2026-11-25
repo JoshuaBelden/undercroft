@@ -6,8 +6,8 @@ import {
 	type CollisionWorld
 } from './collision.ts';
 import { doorBox } from './doors.ts';
-import { CELL, LEVEL_HEIGHT, occupiedCells } from './grid.ts';
-import type { MapLayout, PieceDef, Vec3 } from './types.ts';
+import { CELL, LEVEL_HEIGHT, occupiedCells, toWorld } from './grid.ts';
+import type { MapLayout, PieceDef, Placement, Vec3 } from './types.ts';
 import type { Stance } from '../player/types.ts';
 
 /**
@@ -95,9 +95,16 @@ export function buildNav(
 	world = { ...world, openDoors: new Set(layout.doors.map((door) => door.id)) };
 	const grid: NavGrid = { points: [], columns: new Map(), closed: new Set() };
 	const seen = new Set<string>();
+	const sampled = new Set<string>();
 	for (const placement of layout.placements) {
 		const piece = pieces[placement.piece];
 		if (!piece) continue;
+		// A fixed room has no cells: the same lattice over its bounds, every floor in each column
+		// (the walkway, the Storeroom, the foot of a stair below them).
+		if (piece.bounds) {
+			sampleBounds(grid, world, placement, piece.bounds, sampled);
+			continue;
+		}
 		for (const [cx, cz, level] of occupiedCells(piece, placement)) {
 			const cellKey = `${cx},${cz},${level}`;
 			if (seen.has(cellKey)) continue;
@@ -145,6 +152,37 @@ export function buildNav(
 	markDoorways(nav, layout);
 	for (const door of layout.doors) if (!shut.openDoors.has(door.id)) nav.closed.add(door.id);
 	return nav;
+}
+
+/** Every lattice column over a fixed room's bounds (in the map), from its top down to its floor. */
+function sampleBounds(
+	grid: NavGrid,
+	world: CollisionWorld,
+	placement: Placement,
+	[lo, hi]: [Vec3, Vec3],
+	sampled: Set<string>
+): void {
+	const a = toWorld(placement, lo);
+	const b = toWorld(placement, hi);
+	const x0 = lattice(Math.min(a[0], b[0]));
+	const x1 = lattice(Math.max(a[0], b[0]));
+	const z0 = lattice(Math.min(a[2], b[2]));
+	const z1 = lattice(Math.max(a[2], b[2]));
+	for (let ix = x0; ix <= x1; ix++) {
+		for (let iz = z0; iz <= z1; iz++) {
+			const key = columnKey(ix, iz);
+			if (sampled.has(key)) continue;
+			sampled.add(key);
+			addColumn(
+				grid,
+				world,
+				ix * SPACING,
+				iz * SPACING,
+				Math.max(a[1], b[1]),
+				Math.min(a[1], b[1]) - 0.5
+			);
+		}
+	}
 }
 
 /** Tag the points in each doorway (within a body's reach of the shut door) with its id. */

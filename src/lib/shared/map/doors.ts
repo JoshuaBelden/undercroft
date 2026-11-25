@@ -1,7 +1,7 @@
 import { DOORS, GATES } from '../../content/doors.ts';
 import { segmentHit, type CollisionWorld } from './collision.ts';
 import { LEVEL_HEIGHT, cellKey, occupiedCells, toWorld, worldCell } from './grid.ts';
-import type { DoorPlacement, MapLayout, PieceDef, Vec3 } from './types.ts';
+import type { DoorMarker, DoorPlacement, MapLayout, PieceDef, Vec3 } from './types.ts';
 
 /**
  * Doors (between levels, and into the final room), and which level of the map a place is on. See
@@ -18,7 +18,7 @@ export function placeDoors(layout: MapLayout, pieces: Record<string, PieceDef>):
 	const doors: DoorPlacement[] = [];
 	for (const placement of layout.placements) {
 		const def = pieces[placement.piece];
-		const markers = [
+		const markers: { marker: DoorMarker; gate: boolean }[] = [
 			...(def?.doors ?? []).map((marker) => ({ marker, gate: false })),
 			...(def?.gates ?? []).map((marker) => ({ marker, gate: true }))
 		];
@@ -29,7 +29,10 @@ export function placeDoors(layout: MapLayout, pieces: Record<string, PieceDef>):
 				position: toWorld(placement, marker.position).map(round) as Vec3,
 				yaw: round(marker.yaw + (placement.rotation * Math.PI) / 2),
 				tier: placement.tier,
-				...(gate ? { kind: 'gate' as const } : {})
+				...(gate ? { kind: 'gate' as const } : {}),
+				...(marker.key ? { key: marker.key } : {}),
+				...(marker.size ? { size: marker.size } : {}),
+				...(marker.marker ? { marker: marker.marker } : {})
 			});
 		}
 	}
@@ -37,17 +40,22 @@ export function placeDoors(layout: MapLayout, pieces: Record<string, PieceDef>):
 }
 
 /** A door's solid box while shut: centre, half extents, and its turn about +Y. */
-export function doorBox(door: Pick<DoorPlacement, 'position' | 'yaw' | 'kind'>): {
+export function doorBox(door: Pick<DoorPlacement, 'position' | 'yaw' | 'kind' | 'size'>): {
 	center: Vec3;
 	half: Vec3;
 	yaw: number;
 } {
-	const [w, h, d] = door.kind === 'gate' ? GATES.size : DOORS.size;
+	const [w, h, d] = doorSize(door);
 	return {
 		center: [door.position[0], door.position[1] + h / 2, door.position[2]],
 		half: [w / 2, h / 2, d / 2],
 		yaw: door.yaw
 	};
+}
+
+/** A door's collision box (across, high, deep): its own, a gate's, or the double door's. */
+export function doorSize(door: Pick<DoorPlacement, 'kind' | 'size'>): Vec3 {
+	return door.size ?? (door.kind === 'gate' ? GATES.size : DOORS.size);
 }
 
 /** Where the ray from `eye` along `look` (unit) enters the door's box, or null if it misses. */

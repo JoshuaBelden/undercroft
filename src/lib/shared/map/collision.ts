@@ -50,6 +50,8 @@ export interface RopeLine {
 	 */
 	knot?: Vec3;
 	lip?: Vec3;
+	/** A ladder in the room's model, climbed as a rope: nothing to draw (RopeMarker.ladder). */
+	ladder?: boolean;
 }
 
 /**
@@ -185,7 +187,8 @@ export function buildCollisionWorld(
 				id: `map-${world.ropes.length}`,
 				top,
 				bottom: top[1] - rope.length,
-				...(rope.exit !== undefined && { exitY: top[1] - rope.length + rope.exit })
+				...(rope.exit !== undefined && { exitY: top[1] - rope.length + rope.exit }),
+				...(rope.ladder && { ladder: true })
 			});
 		}
 		for (const anchor of piece.anchors) {
@@ -233,7 +236,7 @@ export function buildCollisionWorld(
 	// Doors between levels are solid until opened (openDoor).
 	for (const door of layout.doors) {
 		// The same box as doorBox (doors.ts), which imports this file.
-		const [w, h, d] = door.kind === 'gate' ? GATES.size : DOORS.size;
+		const [w, h, d] = door.size ?? (door.kind === 'gate' ? GATES.size : DOORS.size);
 		const center: Vec3 = [door.position[0], door.position[1] + h / 2, door.position[2]];
 		const half: Vec3 = [w / 2, h / 2, d / 2];
 		const q: Quat = [0, Math.sin(door.yaw / 2), 0, Math.cos(door.yaw / 2)];

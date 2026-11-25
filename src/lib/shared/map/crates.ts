@@ -108,6 +108,36 @@ export function placeCrates(
 	return crates;
 }
 
+/**
+ * A fixed map's lootables (docs/dev/fixed-map.md): one at every crate and lootable marker its
+ * rooms have, as placed by hand. Nothing is rolled away, turned into another kind or kept from the
+ * start (the generator's placeCrates did all three); a lootable no tool opens yet still has none.
+ * A marker's `holds` goes with its crate: what it always holds (the Storeroom's key).
+ */
+export function roomCrates(layout: MapLayout, pieces: Record<string, PieceDef>): CratePlacement[] {
+	const crates: CratePlacement[] = [];
+	for (const placement of layout.placements) {
+		const piece = pieces[placement.piece];
+		const markers = [
+			...(piece?.crates ?? []).map((marker) => ({ ...marker, type: undefined, holds: undefined })),
+			...(piece?.lootables ?? [])
+		];
+		for (const marker of markers) {
+			if (marker.type && !openable(LOOTABLES[marker.type])) continue;
+			crates.push({
+				id: `c${crates.length + 1}`,
+				position: toWorld(placement, marker.position).map(round) as Vec3,
+				yaw: round(marker.yaw + (placement.rotation * Math.PI) / 2),
+				tier: placement.tier,
+				piece: placement.piece,
+				...(marker.type && marker.type !== 'crate' ? { kind: marker.type } : {}),
+				...(marker.holds ? { holds: marker.holds } : {})
+			});
+		}
+	}
+	return crates;
+}
+
 /** Move a crate out from its wall by the difference in depth, for a lootable of this kind. */
 function push(crate: CratePlacement, type: LootableId): void {
 	const out = LOOTABLES[type].size[2] / 2 - CRATE_DEPTH / 2;

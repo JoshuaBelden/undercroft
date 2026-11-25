@@ -19,9 +19,18 @@ export function spawnPoint(
 	index = 0
 ): { position: Vec3; yaw: number } {
 	const start = layout.placements[0];
-	const spawns = pieces[start.piece]?.spawns ?? [];
+	const piece = pieces[start.piece];
+	const spawns = piece?.spawns ?? [];
 	const local: Vec3 = spawns.length ? spawns[index % spawns.length] : [0, 0, 0];
 	const position = toWorld(start, local);
+	// A fixed room's spawn says which way it faces.
+	const facing = piece?.spawnYaws?.[index % spawns.length];
+	if (facing !== undefined) {
+		return {
+			position: [position[0], position[1] + 0.05, position[2]],
+			yaw: facing + (start.rotation * Math.PI) / 2
+		};
+	}
 	let [dx, dz] = [start.position[0] - position[0], start.position[2] - position[2]];
 	if (Math.hypot(dx, dz) < 0.1) [dx, dz] = rotateXZ([1, 0], start.rotation);
 	return { position: [position[0], position[1] + 0.05, position[2]], yaw: Math.atan2(-dx, -dz) };

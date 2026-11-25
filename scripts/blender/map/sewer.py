@@ -89,9 +89,11 @@ DAYLIGHT = {"manhole": (1800, 45), "tube": (500, 30)}  # bake lamps: watts, spre
 CRACK_X = 17.0
 CRACK_W = 1.1  # its mouth, the cut (its ragged edges come in up to 0.2 m each side)
 CRACK_H = 2.4
-CRACK_MIN = 0.72  # never narrower (the player's capsule is 0.6 across)
+CRACK_MIN = 0.8  # never narrower (the capsule is 0.6 across, and the nav grid's 0.5 m lattice has to thread it)
 # Straight for its first and last half metre: square-cut sleeves where it meets each wall.
-CRACK_PATH = [(17.0, -UP_W), (17.0, -3.0), (16.85, -3.9), (17.15, -4.9), (16.9, -5.9), (17.0, -6.3), (17.0, -6.55), (17.0, -6.8)]
+# Its middle wanders no more than 0.1 m off x = 17: the walls are ragged, the way through straight
+# enough for the nav grid (0.5 m lattice) to follow.
+CRACK_PATH = [(17.0, -UP_W), (17.0, -3.0), (16.9, -3.9), (17.1, -4.9), (16.92, -5.9), (17.0, -6.3), (17.0, -6.55), (17.0, -6.8)]
 
 # The Storeroom
 STORE_X = (12.0, 23.0)  # 11 m...

@@ -4,8 +4,8 @@ import type { RoomDef } from './types.ts';
 export const ROOMS: Record<string, RoomDef> = {
 	sewer: {
 		name: 'sewer',
-		url: '/assets/shared/rooms/sewer.950958b0.gltf',
-		bytes: 5674351,
+		url: '/assets/shared/rooms/sewer.7d7235e5.gltf',
+		bytes: 5672857,
 		footprint: [0, 0],
 		levels: 1,
 		sockets: [],
@@ -114,144 +114,144 @@ export const ROOMS: Record<string, RoomDef> = {
 				rotation: [0, 0.98, 0, 0.1988]
 			},
 			{
-				center: [17.61, 1.2, 2.75],
+				center: [17.65, 1.2, 2.75],
 				halfExtents: [0.25, 1.4, 0.25],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
-				center: [16.39, 1.2, 2.75],
+				center: [16.35, 1.2, 2.75],
 				halfExtents: [0.25, 1.4, 0.25],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
-				center: [17.5267, 1.2, 3.5503],
-				halfExtents: [0.4562, 1.4, 0.25],
-				rotation: [0, -0.763, 0, 0.6464]
+				center: [17.596, 1.2, 3.5218],
+				halfExtents: [0.4528, 1.4, 0.25],
+				rotation: [0, -0.7451, 0, 0.6669]
 			},
 			{
-				center: [16.3233, 1.2, 3.3497],
-				halfExtents: [0.4562, 1.4, 0.25],
-				rotation: [0, -0.763, 0, 0.6464]
+				center: [16.304, 1.2, 3.3782],
+				halfExtents: [0.4528, 1.4, 0.25],
+				rotation: [0, -0.7451, 0, 0.6669]
 			},
 			{
-				center: [17.5843, 1.2, 4.2247],
-				halfExtents: [0.522, 1.4, 0.25],
-				rotation: [0, -0.5969, 0, 0.8023]
+				center: [17.6374, 1.2, 4.2725],
+				halfExtents: [0.5099, 1.4, 0.25],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
-				center: [16.4157, 1.2, 4.5753],
-				halfExtents: [0.522, 1.4, 0.25],
-				rotation: [0, -0.5969, 0, 0.8023]
+				center: [16.3626, 1.2, 4.5275],
+				halfExtents: [0.5099, 1.4, 0.25],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
-				center: [17.6168, 1.2, 5.5479],
-				halfExtents: [0.5154, 1.4, 0.25],
-				rotation: [0, -0.7882, 0, 0.6154]
+				center: [17.6497, 1.2, 5.5151],
+				halfExtents: [0.508, 1.4, 0.25],
+				rotation: [0, -0.7672, 0, 0.6414]
 			},
 			{
-				center: [16.4332, 1.2, 5.2521],
-				halfExtents: [0.5154, 1.4, 0.25],
-				rotation: [0, -0.7882, 0, 0.6154]
+				center: [16.3703, 1.2, 5.2849],
+				halfExtents: [0.508, 1.4, 0.25],
+				rotation: [0, -0.7672, 0, 0.6414]
 			},
 			{
-				center: [17.5418, 1.2, 5.9521],
-				halfExtents: [0.2062, 1.4, 0.25],
-				rotation: [0, -0.6154, 0, 0.7882]
+				center: [17.5974, 1.2, 5.9725],
+				halfExtents: [0.204, 1.4, 0.25],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
-				center: [16.3582, 1.2, 6.2479],
-				halfExtents: [0.2062, 1.4, 0.25],
-				rotation: [0, -0.6154, 0, 0.7882]
+				center: [16.3226, 1.2, 6.2275],
+				halfExtents: [0.204, 1.4, 0.25],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
-				center: [17.61, 1.2, 6.425],
+				center: [17.65, 1.2, 6.425],
 				halfExtents: [0.125, 1.4, 0.25],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
-				center: [16.39, 1.2, 6.425],
+				center: [16.35, 1.2, 6.425],
 				halfExtents: [0.125, 1.4, 0.25],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
-				center: [17.61, 1.2, 6.675],
+				center: [17.65, 1.2, 6.675],
 				halfExtents: [0.125, 1.4, 0.25],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
-				center: [16.39, 1.2, 6.675],
+				center: [16.35, 1.2, 6.675],
 				halfExtents: [0.125, 1.4, 0.25],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
 				center: [17, -0.15, 2.75],
-				halfExtents: [0.4, 0.15, 0.56],
+				halfExtents: [0.4, 0.15, 0.6],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
-				center: [16.925, -0.15, 3.45],
-				halfExtents: [0.6062, 0.15, 0.56],
-				rotation: [0, -0.763, 0, 0.6464]
+				center: [16.95, -0.15, 3.45],
+				halfExtents: [0.6028, 0.15, 0.6],
+				rotation: [0, -0.7451, 0, 0.6669]
 			},
 			{
 				center: [17, -0.15, 4.4],
-				halfExtents: [0.672, 0.15, 0.56],
-				rotation: [0, -0.5969, 0, 0.8023]
+				halfExtents: [0.6599, 0.15, 0.6],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
-				center: [17.025, -0.15, 5.4],
-				halfExtents: [0.6654, 0.15, 0.56],
-				rotation: [0, -0.7882, 0, 0.6154]
+				center: [17.01, -0.15, 5.4],
+				halfExtents: [0.658, 0.15, 0.6],
+				rotation: [0, -0.7672, 0, 0.6414]
 			},
 			{
-				center: [16.95, -0.15, 6.1],
-				halfExtents: [0.3562, 0.15, 0.56],
-				rotation: [0, -0.6154, 0, 0.7882]
+				center: [16.96, -0.15, 6.1],
+				halfExtents: [0.354, 0.15, 0.6],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
 				center: [17, -0.15, 6.425],
-				halfExtents: [0.275, 0.15, 0.56],
+				halfExtents: [0.275, 0.15, 0.6],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
 				center: [17, -0.15, 6.675],
-				halfExtents: [0.275, 0.15, 0.56],
+				halfExtents: [0.275, 0.15, 0.6],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{ center: [17, -0.15, 2.25], halfExtents: [0.55, 0.15, 0.25], rotation: [0, 0, 0, 1] },
 			{
 				center: [17, 2.264, 2.75],
-				halfExtents: [0.4, 0.2, 0.46],
+				halfExtents: [0.4, 0.2, 0.5],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
-				center: [16.925, 2.264, 3.45],
-				halfExtents: [0.6062, 0.2, 0.46],
-				rotation: [0, -0.763, 0, 0.6464]
+				center: [16.95, 2.264, 3.45],
+				halfExtents: [0.6028, 0.2, 0.5],
+				rotation: [0, -0.7451, 0, 0.6669]
 			},
 			{
 				center: [17, 2.264, 4.4],
-				halfExtents: [0.672, 0.2, 0.46],
-				rotation: [0, -0.5969, 0, 0.8023]
+				halfExtents: [0.6599, 0.2, 0.5],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
-				center: [17.025, 2.264, 5.4],
-				halfExtents: [0.6654, 0.2, 0.46],
-				rotation: [0, -0.7882, 0, 0.6154]
+				center: [17.01, 2.264, 5.4],
+				halfExtents: [0.658, 0.2, 0.5],
+				rotation: [0, -0.7672, 0, 0.6414]
 			},
 			{
-				center: [16.95, 2.264, 6.1],
-				halfExtents: [0.3562, 0.2, 0.46],
-				rotation: [0, -0.6154, 0, 0.7882]
+				center: [16.96, 2.264, 6.1],
+				halfExtents: [0.354, 0.2, 0.5],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
 				center: [17, 2.264, 6.425],
-				halfExtents: [0.275, 0.2, 0.46],
+				halfExtents: [0.275, 0.2, 0.5],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{
 				center: [17, 2.264, 6.675],
-				halfExtents: [0.275, 0.2, 0.46],
+				halfExtents: [0.275, 0.2, 0.5],
 				rotation: [0, -0.7071, 0, 0.7071]
 			},
 			{ center: [15, -0.15, 15], halfExtents: [1, 0.15, 0.2], rotation: [0, 0, 0, 1] },
@@ -356,27 +356,27 @@ export const ROOMS: Record<string, RoomDef> = {
 			},
 			{
 				kind: 'squeeze',
-				center: [16.925, 1.2, 3.45],
-				halfExtents: [0.4562, 1.2, 0.65],
-				rotation: [0, -0.763, 0, 0.6464]
+				center: [16.95, 1.2, 3.45],
+				halfExtents: [0.4528, 1.2, 0.65],
+				rotation: [0, -0.7451, 0, 0.6669]
 			},
 			{
 				kind: 'squeeze',
 				center: [17, 1.2, 4.4],
-				halfExtents: [0.522, 1.2, 0.65],
-				rotation: [0, -0.5969, 0, 0.8023]
+				halfExtents: [0.5099, 1.2, 0.65],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
 				kind: 'squeeze',
-				center: [17.025, 1.2, 5.4],
-				halfExtents: [0.5154, 1.2, 0.65],
-				rotation: [0, -0.7882, 0, 0.6154]
+				center: [17.01, 1.2, 5.4],
+				halfExtents: [0.508, 1.2, 0.65],
+				rotation: [0, -0.7672, 0, 0.6414]
 			},
 			{
 				kind: 'squeeze',
-				center: [16.95, 1.2, 6.1],
-				halfExtents: [0.2062, 1.2, 0.65],
-				rotation: [0, -0.6154, 0, 0.7882]
+				center: [16.96, 1.2, 6.1],
+				halfExtents: [0.204, 1.2, 0.65],
+				rotation: [0, -0.634, 0, 0.7733]
 			},
 			{
 				kind: 'squeeze',
@@ -410,7 +410,7 @@ export const ROOMS: Record<string, RoomDef> = {
 			}
 		],
 		triangles: 40199,
-		lightmap: { url: '/assets/shared/rooms/sewer.lightmap.25d65568.webp', bytes: 17748 },
+		lightmap: { url: '/assets/shared/rooms/sewer.lightmap.c997c3ff.webp', bytes: 16266 },
 		sounds: [
 			{ id: 'sewer.drip', position: [5, 3.6, -0.6] },
 			{ id: 'sewer.drip', position: [-8, 3.6, 0.6] },

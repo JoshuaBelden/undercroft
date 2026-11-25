@@ -251,6 +251,8 @@ export interface CratePlacement {
 	piece?: string;
 	/** The level of the map it is on (its piece's tier): what it can hold depends on it. */
 	tier: number;
+	/** An item it always holds (LootableMarker.holds): never jammed, never pushed out. */
+	holds?: string;
 }
 
 /**
