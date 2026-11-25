@@ -6,6 +6,7 @@ exists: from then on the .blend is the source, edited by hand) and exports
 art/export/rooms/sewer.glb. Headless:
 
     blender -b --factory-startup -P scripts/blender/map/sewer.py            # build, save, export
+    blender -b --factory-startup -P scripts/blender/map/sewer.py -- --force # rebuild over hand edits
     blender -b art/blender/rooms/sewer.blend -P scripts/blender/map/sewer.py -- --export
 
 Layout, Blender axes (+Y north, Z up, metres). The tunnel runs west to east along y = 0, its floor
@@ -48,16 +49,18 @@ common.add_materials(
 )
 
 # The tunnel
-HALF_W = 1.8  # walls at 1.8 m either side of the middle: 3.6 m wide
-SPRING = 2.0  # vertical walls to here (the ladder's bay is this high), then the vault...
-RISE = 0.9  # ...rising this much more (apex 2.9 m over the walkway)
+HALF_W = 2.0  # walls at 2 m either side of the middle: 4 m wide
+SPRING = 2.6  # vertical walls to here (the ladder's bay is this high), then the vault...
+RISE = 1.4  # ...rising this much more (apex 4 m over the walkway)
 WALKWAY_EDGE = -0.4  # lateral, from the middle (+ is south): the walkway is north of this
 CHANNEL = -0.35  # the channel's floor: under a step (MOVEMENT.stepHeight 0.4), waded
 WATER = -0.05  # the water's surface: 0.3 m deep
 PATH = [(-27.0, -2.6), (-21.0, 0.0), (21.0, 0.0), (27.0, -2.6)]
 BEND = math.hypot(6.0, 2.6)  # length of each end's bend, before x = -21 and after x = 21
 GRATE_AT = 2.5  # m along the tunnel from its west end
+WALKWAY_Y = (HALF_W - WALKWAY_EDGE) / 2  # the walkway's middle (north is +y)
 WALL_T = 0.5  # collision walls' thickness
+WALL_TOP = SPRING + 0.4  # and the walls' height, into the foot of the vault
 
 # The ladder's shaft, off the north wall at x = 0
 SHAFT = (-0.6, 0.6)  # x
@@ -69,20 +72,20 @@ CRACK = (16.5, 17.5)  # x
 CRACK_H = 1.0  # crawl only (MOVEMENT crawl height 0.7, crouch 1.2)
 
 # The Storeroom
-STORE_X = (13.0, 21.0)
-STORE_Y = (-10.8, -4.8)
-STORE_H = 3.0
-DOOR = (14.2, 15.8)  # x: the doorway in its south wall
-DOOR_H = 2.2
+STORE_X = (12.0, 23.0)  # 11 m...
+STORE_Y = (-12.8, -4.8)  # ...by 8 m
+STORE_H = 4.0
+DOOR = (14.0, 16.0)  # x: the doorway in its south wall
+DOOR_H = 2.6
 
 # The First Stair, south from the door
-STAIR_X = (14.0, 16.0)
-STAIR_TOP = -12.3  # y: the top landing runs from the door to here
-RISERS, RISE_H, TREAD = 16, 0.2, 0.3
+STAIR_X = (13.5, 16.5)  # 3 m wide
+STAIR_TOP = STORE_Y[0] - 1.8  # y: the top landing runs from the door to here
+RISERS, RISE_H, TREAD = 20, 0.2, 0.32
 STAIR_FOOT = STAIR_TOP - RISERS * TREAD  # y of the last riser
-STAIR_END = STAIR_FOOT - 2.0  # the bottom landing, to the next door
-DROP = RISERS * RISE_H
-HEADROOM = 2.4
+STAIR_END = STAIR_FOOT - 2.5  # the bottom landing, to the next door
+DROP = RISERS * RISE_H  # 4 m down
+HEADROOM = 3.2
 
 
 def along(s):
@@ -187,8 +190,8 @@ def tunnel(mb, coll, root, frames, rings):
         box(f"col-channel-{i}", WALKWAY_EDGE, HALF_W, CHANNEL - 0.3, CHANNEL)
         # The vault: over the middle, and lower towards the walls (kept off the shaft, north of them).
         box(f"col-vault-{i}", -HALF_W, HALF_W, SPRING + RISE, SPRING + RISE + 0.4)
-        box(f"col-vault-n-{i}", -HALF_W, -1.2, 2.3, SPRING + RISE + 0.4)
-        box(f"col-vault-s-{i}", 1.2, HALF_W, 2.3, SPRING + RISE + 0.4)
+        box(f"col-vault-n-{i}", -HALF_W, -0.65 * HALF_W, SPRING + 0.35 * RISE, SPRING + RISE + 0.4)
+        box(f"col-vault-s-{i}", 0.65 * HALF_W, HALF_W, SPRING + 0.35 * RISE, SPRING + RISE + 0.4)
         vol = kit.vol_box(coll, root, f"vol-water-{i}", (-0.5, -0.5, -0.5), (0.5, 0.5, 0.5))
         mid = a + d / 2 + side * ((WALKWAY_EDGE + HALF_W) / 2)
         vol.location = (mid.x, mid.y, (CHANNEL + WATER) / 2)
@@ -199,14 +202,14 @@ def tunnel(mb, coll, root, frames, rings):
             n0, n1 = SHAFT[0] - x0, SHAFT[1] - x0
             c0, c1 = CRACK[0] - x0, CRACK[1] - x0
             # Over the bay, nothing: the shaft goes up from it.
-            box("col-wall-n-mid-0", -HALF_W - WALL_T, -HALF_W, 0.0, 2.4, None, n0)
-            box("col-wall-n-mid-1", -HALF_W - WALL_T, -HALF_W, 0.0, 2.4, n1, None)
-            box("col-wall-s-mid-0", HALF_W, HALF_W + WALL_T, CHANNEL, 2.4, None, c0)
-            box("col-wall-s-mid-1", HALF_W, HALF_W + WALL_T, CHANNEL, 2.4, c1, None)
-            box("col-wall-s-mid-2", HALF_W, HALF_W + WALL_T, CRACK_H, 2.4, c0, c1)
+            box("col-wall-n-mid-0", -HALF_W - WALL_T, -HALF_W, 0.0, WALL_TOP, None, n0)
+            box("col-wall-n-mid-1", -HALF_W - WALL_T, -HALF_W, 0.0, WALL_TOP, n1, None)
+            box("col-wall-s-mid-0", HALF_W, HALF_W + WALL_T, CHANNEL, WALL_TOP, None, c0)
+            box("col-wall-s-mid-1", HALF_W, HALF_W + WALL_T, CHANNEL, WALL_TOP, c1, None)
+            box("col-wall-s-mid-2", HALF_W, HALF_W + WALL_T, CRACK_H, WALL_TOP, c0, c1)
         else:
-            box(f"col-wall-n-{i}", -HALF_W - WALL_T, -HALF_W, 0.0, 2.4)
-            box(f"col-wall-s-{i}", HALF_W, HALF_W + WALL_T, CHANNEL, 2.4)
+            box(f"col-wall-n-{i}", -HALF_W - WALL_T, -HALF_W, 0.0, WALL_TOP)
+            box(f"col-wall-s-{i}", HALF_W, HALF_W + WALL_T, CHANNEL, WALL_TOP)
     # The grate and the two ends.
     gyaw = math.atan2(fwd.y, fwd.x)
     common.col(coll, root, "col-grate", (o.x, o.y, 1.2), (0.1, 2 * HALF_W, 3.2), yaw=gyaw)
@@ -316,11 +319,11 @@ def storeroom(mb, coll, root):
         mb.box(lo, hi, "mat-timber", skip={"-z"})
         common.col_span(coll, root, name, lo, hi)
     # Oil drums in a cluster, and coffin boards stacked against the north wall.
-    for k, (x, y) in enumerate(((19.4, -9.9), (18.7, -10.1), (19.2, -9.2))):
+    for k, (x, y) in enumerate(((x1 - 1.6, y0 + 0.9), (x1 - 2.3, y0 + 0.7), (x1 - 1.8, y0 + 1.6))):
         lo, hi = (x - 0.3, y - 0.3, 0), (x + 0.3, y + 0.3, 0.9)
         mb.box(lo, hi, "mat-drum", skip={"-z"})
         common.col_span(coll, root, f"col-drum-{k}", lo, hi)
-    lo, hi = (13.8, y1 - 0.5, 0), (15.6, y1 - 0.1, 0.6)
+    lo, hi = (x0 + 0.8, y1 - 0.5, 0), (x0 + 2.6, y1 - 0.1, 0.6)
     mb.box(lo, hi, "mat-timber", skip={"-z"})
     common.col_span(coll, root, "col-boards", lo, hi)
 
@@ -376,20 +379,21 @@ def markers(coll, root, frames):
 
     # Spawns on the walkway either side of the ladder's bay, facing it.
     for k, x in enumerate((-1.2, 1.2, -2.2, 2.2)):
-        m(f"spawn-{k}", (x, 1.1, 0.0), toward=(-x, 1.2))
+        m(f"spawn-{k}", (x, WALKWAY_Y, 0.0), toward=(-x, 1.2))
     # The way you came in, always open: the foot of the ladder.
     m("extract-0", (0.0, HALF_W + 0.45, 0.0))
     # The Storeroom's door, locked until opened with the key; one of the dead holds it.
     m("door-0", ((DOOR[0] + DOOR[1]) / 2, STORE_Y[0], 0.0), toward=(0, 1), key="key")
     m("door-1", ((DOOR[0] + DOOR[1]) / 2, STAIR_END, -DROP), toward=(0, 1))
     m("socket-door-0", ((DOOR[0] + DOOR[1]) / 2, STAIR_END - 0.25, -DROP))
-    m("lootable-corpse-0", (18.6, -5.4, 0.0), toward=(0, 1), holds="key")
-    m("lootable-corpse-1", (16.0, -7.2, 0.0), toward=(-1, 0))
-    m("lootable-corpse-2", (14.2, -10.2, 0.0), toward=(0, -1))
-    m("lootable-crate-0", (20.0, -5.6, 0.0), toward=(1, 0))
+    (x0, x1), (y0, y1) = STORE_X, STORE_Y
+    m("lootable-corpse-0", (18.8, y1 - 0.6, 0.0), toward=(0, 1), holds="key")
+    m("lootable-corpse-1", (16.2, -8.0, 0.0), toward=(-1, 0))
+    m("lootable-corpse-2", (x0 + 1.2, y0 + 0.6, 0.0), toward=(0, -1))
+    m("lootable-crate-0", (x1 - 1.0, y1 - 0.8, 0.0), toward=(1, 0))
     # Rats: in the dark either side, and at the collapse.
-    m("creature-0", (-15.0, 1.1, 0.0))
-    m("creature-1", (11.0, 1.1, 0.0))
+    m("creature-0", (-15.0, WALKWAY_Y, 0.0))
+    m("creature-1", (11.0, WALKWAY_Y, 0.0))
     end, end_lat, _ = frames[-1]
     back = (frames[-2][0] - end).normalized()
     nest = end + back * 2.8 + end_lat * -1.1
@@ -405,12 +409,16 @@ def markers(coll, root, frames):
     m("sound-sewer.street-0", (0.0, HALF_W + 0.5, SHAFT_TOP - 0.5))
     m("sound-sewer.drip-0", (8.0, 0.6, 2.6))
     m("sound-sewer.drip-1", (-12.0, -0.6, 2.6))
-    m("sound-storeroom.settle-0", (17.0, -7.8, 2.5))
+    m("sound-storeroom.settle-0", ((x0 + x1) / 2, (y0 + y1) / 2, STORE_H - 0.5))
 
 
 def main():
     args = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     if "--export" not in args:
+        blend = os.path.join(common.BLEND_DIR, NAME + ".blend")
+        if os.path.exists(blend) and "--force" not in args:
+            # Its hand edits would be lost: rebuild only on purpose.
+            raise SystemExit(f"{os.path.relpath(blend, common.REPO)} exists: export it (-- --export), or rebuild with -- --force")
         build()
         print("  " + os.path.relpath(common.save_blend(NAME), common.REPO))
     print("  " + os.path.relpath(common.export_room(NAME), common.REPO))
