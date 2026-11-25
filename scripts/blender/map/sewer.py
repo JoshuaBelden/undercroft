@@ -775,10 +775,19 @@ def main():
     if "--bake" in args or "--export" not in args:
         import bpy
 
-        path, peak = common.bake_lightmap(
-            bpy.data.objects[NAME + "-mesh"], os.path.join(common.EXPORT_DIR, NAME + ".lightmap.png")
-        )
+        mesh = bpy.data.objects[NAME + "-mesh"]
+        path, peak = common.bake_lightmap(mesh, os.path.join(common.EXPORT_DIR, NAME + ".lightmap.png"))
         print(f"  {os.path.relpath(path, common.REPO)} (brightest {peak:.2f})")
+        # The light probes, from the lightmap just baked: what lights anything that moves.
+        import time
+
+        import probes
+
+        started = time.time()
+        lamps = [o for o in bpy.data.objects if o.type == "LIGHT" and o.name.startswith("bake-")]
+        probe_path = os.path.join(common.EXPORT_DIR, NAME + ".probes.bin")
+        inside, total = probes.bake_probes(mesh, bpy.data.images[mesh.name + "-lightmap"], lamps, probe_path)
+        print(f"  {os.path.relpath(probe_path, common.REPO)}: {inside} of {total} probes in the room, {time.time() - started:.0f} s")
     if "--export" not in args:
         print("  " + os.path.relpath(common.save_blend(NAME), common.REPO))
     print("  " + os.path.relpath(common.export_room(NAME), common.REPO))

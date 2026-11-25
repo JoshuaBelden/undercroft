@@ -25,7 +25,7 @@ For now the map is a single room, the way in (#150): the Sewer, the crack, the S
 1. Its nodes are read with the room viewer's `readRoom`. Any warning fails the build: an unknown marker, a key nothing holds, a sound not in `sounds.ts`.
 2. Its markers, colliders and volumes go into `ROOMS` (as a `RoomDef`: a `PieceDef` with its lightmap and its sounds), and out of the model.
 3. The model is deduplicated, welded, its textures turned to WebP at 1024 px, and meshopt-compressed with both UV maps, to `static/assets/shared/rooms/<room>.<hash>.gltf` (its textures in `textures/` beside it).
-4. Its lightmap (`<room>.lightmap.png`) becomes a near-lossless WebP.
+4. Its lightmap (`<room>.lightmap.png`) becomes a near-lossless WebP, and its light probes (`<room>.probes.bin`) a hashed copy.
 
 The output is cleared first and the names are content-hashed, so an unchanged room keeps its files. `pnpm asset:build` runs it too. Commit `rooms.generated.ts` and the built files.
 
@@ -63,6 +63,16 @@ The models are built by `scripts/blender/map/doors.py` into `art/blender/props/d
 ## The server
 
 `Session` lays out `fixedLayout(seed)` (a test can ask for the generator, below). `populateFixed` fills it: its crates (`Crates`, with what each holds), its seams barred. Nothing is scattered: what is in the map is what its rooms put there. There are no creatures yet (Phase 4: `creatures.quiet`), and no Affliction is laid on the map (Phase 7: the Affliction is calmed, so nothing is summoned). `regenerate` (admin) lays the same map out again with a new seed: new loot.
+
+## Light probes
+
+A room's lightmap lights its own surfaces. Anything that moves (an explorer, a crate, a door's leaves, a dropped thing, creatures to come) isn't in it, and would be black away from the headlamp. Light probes light them: a grid through the room, each the light reaching that point from every way.
+
+- **Baked** with the lightmap (`scripts/blender/map/probes.py`, called from the room's script after `bake_lightmap`): a probe every 1.5 m across and 1 m up (`PROBE_SPACING`), those inside the rock left out (from inside the room, every way out meets a face from its front). The bake's lamps are added straight: each one's radiance (its power over its area and pi) over the solid angle it fills, as much of it as the probe can see (five points across it, so a grate or a shaft's walls shade it in part): an opening is a few hundredths of the sky, too little for rays to find. Then 96 rays gather what the surfaces give back: the lightmap where each lands, times the surface's average colour. The probes in the rock are filled from their neighbours, so blending near a wall doesn't pull in black. About 40 seconds for the way in. Saved as `<room>.probes.bin`.
+- **Stored** as order-1 spherical harmonics of radiance (four coefficients of red, green and blue: the first four of Three.js's light probe), little-endian float32 after a short header (`src/lib/shared/map/probes.ts`, `readProbes`).
+- **Sampled** (`sampleProbes`) where a thing stands: the eight probes round it, blended by nearness; and turned into the light falling on each side of it (`irradiance`, Three.js's own sum).
+- **In the game**, `ProbeLight` (`src/lib/game/rooms/probeLight.ts`) looks through the scene every half a second and teaches each lit material that isn't a room's (one with no lightmap) to take the probes: a few lines added to its shader put their irradiance in with its other light. Before each is drawn, it samples the probes at its position. Light only, no shadows; the headlamp still lights everything as a real light. Rooms placed by the map are moved, not turned, for now.
+- **Tuning**: `PROBES.gain` (`src/lib/content/map/probes.ts`): the lightmap clips at 1 where the daylight is strongest, the probes don't, so they are turned down to sit alongside it.
 
 ## The nav grid
 

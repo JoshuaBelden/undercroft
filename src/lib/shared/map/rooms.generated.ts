@@ -5,7 +5,7 @@ export const ROOMS: Record<string, RoomDef> = {
 	sewer: {
 		name: 'sewer',
 		url: '/assets/shared/rooms/sewer.2536f96d.gltf',
-		bytes: 5988038,
+		bytes: 6499128,
 		footprint: [0, 0],
 		levels: 1,
 		sockets: [],
@@ -410,7 +410,8 @@ export const ROOMS: Record<string, RoomDef> = {
 			}
 		],
 		triangles: 40191,
-		lightmap: { url: '/assets/shared/rooms/sewer.lightmap.720f3645.webp', bytes: 15350 },
+		lightmap: { url: '/assets/shared/rooms/sewer.lightmap.bf14bd0c.webp', bytes: 15348 },
+		probes: { url: '/assets/shared/rooms/sewer.probes.3b147f11.bin', bytes: 511092 },
 		sounds: [
 			{ id: 'sewer.drip', position: [5, 3.6, -0.6] },
 			{ id: 'sewer.drip', position: [-8, 3.6, 0.6] },

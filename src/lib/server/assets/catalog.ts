@@ -44,7 +44,10 @@ export interface AssetDisk {
 export interface CatalogContent {
 	models: Record<string, { url: string; bytes: number }>;
 	/** The fixed map's rooms: each model, and its lightmap. */
-	rooms?: Record<string, { url: string; lightmap: { url: string } | null }>;
+	rooms?: Record<
+		string,
+		{ url: string; lightmap: { url: string } | null; probes?: { url: string } | null }
+	>;
 	pieces: Record<string, { url: string }>;
 	images: Record<string, string>;
 	audioFiles: Record<string, string[]>;
@@ -196,11 +199,13 @@ export function buildCatalog(
 		});
 	}
 
-	// The fixed map's rooms (docs/dev/fixed-map.md): each model with its textures, and its lightmap.
+	// The fixed map's rooms (docs/dev/fixed-map.md): each model with its textures, its lightmap and
+	// its light probes.
 	for (const [name, room] of Object.entries(content.rooms ?? {})) {
 		const files = [
 			...withDependencies(assetPath(room.url)),
-			...(room.lightmap ? [assetPath(room.lightmap.url)] : [])
+			...(room.lightmap ? [assetPath(room.lightmap.url)] : []),
+			...(room.probes ? [assetPath(room.probes.url)] : [])
 		];
 		for (const each of files) used.add(each);
 		const gone = files.filter((each) => !present(each));

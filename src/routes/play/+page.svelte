@@ -53,6 +53,7 @@
 	import { loadAccount, session } from '#lib/account/account.svelte.ts';
 	import { buildCollisionWorld, segmentHit } from '#lib/shared/map/collision.ts';
 	import { MAP_PIECES } from '#lib/shared/map/fixed.ts';
+	import { loadProbes, ProbeLight } from '#lib/game/rooms/probeLight.ts';
 	import { roomPoints, testPoints } from '#lib/shared/map/points.ts';
 	import { LEVEL_HEIGHT, cellKey, occupiedCells, worldCell } from '#lib/shared/map/grid.ts';
 	import { nearExtract } from '#lib/shared/player/simulate.ts';
@@ -380,6 +381,9 @@
 
 		const map = new MapRenderer();
 		engine.scene.add(map.root);
+		// The rooms' baked light, for everything that moves (docs/dev/fixed-map.md#light-probes).
+		const probeLight = new ProbeLight();
+		engine.onUpdate((delta) => probeLight.update(engine.scene, delta));
 		const remote = new RemotePlayers();
 		engine.scene.add(remote.root);
 		// Near-black: the headlamp is the light. The debug light only shows in map view.
@@ -643,7 +647,8 @@
 				preloadRun(layout, audio, (progress) => {
 					if (id === loadId) loading = progress;
 				}),
-				map.build(layout)
+				map.build(layout),
+				lightRooms(layout, id)
 			])
 				.finally(() => {
 					if (id !== loadId) return;
@@ -672,9 +677,23 @@
 		/** The inventory last shown, as JSON: the screen only updates when it changes. */
 		let shownInventory = '';
 
+		/** The probes of the map's rooms, each where its room stands, once they are in. */
+		async function lightRooms(layout: MapLayout, id: number): Promise<void> {
+			const rooms = await Promise.all(
+				layout.placements.flatMap((placement) => {
+					const probes = MAP_PIECES[placement.piece]?.probes;
+					return probes
+						? [loadProbes(probes.url).then((grid) => ({ grid, position: placement.position }))]
+						: [];
+				})
+			);
+			if (id === loadId) probeLight.setRooms(rooms);
+		}
+
 		/** Back on the surface: drop everything that belonged to the expedition. */
 		function endExpedition(): void {
 			expedition = false;
+			probeLight.clear();
 			if (freecam) setFreecam(false);
 			loadId++;
 			loading = null;

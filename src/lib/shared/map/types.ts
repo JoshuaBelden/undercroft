@@ -334,6 +334,8 @@ export interface TaskPlacement {
 export interface RoomDef extends PieceDef {
 	/** Its baked light (on the model's second UV), and its download size. */
 	lightmap: { url: string; bytes: number } | null;
+	/** Its light probes (shared/map/probes.ts): what lights anything that moves in it. */
+	probes: { url: string; bytes: number } | null;
 	/** Where its sound-<id>-<n> markers place each sound, in room space. */
 	sounds: { id: string; position: Vec3 }[];
 }

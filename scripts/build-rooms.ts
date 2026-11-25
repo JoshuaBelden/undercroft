@@ -2,7 +2,8 @@
  * The fixed map's rooms, from Blender's exports to what the game ships (docs/dev/fixed-map.md):
  *
  *   art/export/rooms/<room>.glb (+ <room>.lightmap.png)
- *     -> static/assets/shared/rooms/<room>.<hash>.gltf + .bin, textures/, <room>.lightmap.<hash>.webp
+ *     -> static/assets/shared/rooms/<room>.<hash>.gltf + .bin, textures/, <room>.lightmap.<hash>.webp,
+ *        <room>.probes.<hash>.bin (its light probes)
  *     -> src/lib/shared/map/rooms.generated.ts (ROOMS: every room's markers, colliders, volumes,
  *        sounds and file URLs; the server reads this and never a model)
  *
@@ -127,6 +128,16 @@ async function writeRoom(
 	return { url: `${URL_ROOT}/${DIR}/${file}`, bytes: bytes + gltf.length };
 }
 
+/** The light probes (scripts/blender/map/probes.py), as they are: a content-hashed copy. */
+function writeProbes(name: string): RoomDef['probes'] {
+	const source = path.join(SOURCE, `${name}.probes.bin`);
+	if (!existsSync(source)) return null;
+	const data = readFileSync(source);
+	const file = hashedName(`${name}.probes.bin`, data);
+	writeFileSync(path.join(OUT, file), data);
+	return { url: `${URL_ROOT}/${DIR}/${file}`, bytes: data.byteLength };
+}
+
 /** The lightmap as WebP: near-lossless, so its gradients don't band. */
 async function writeLightmap(name: string): Promise<RoomDef['lightmap']> {
 	const source = path.join(SOURCE, `${name}.lightmap.png`);
@@ -179,16 +190,18 @@ async function buildRoom(io: NodeIO, file: string): Promise<RoomDef> {
 	);
 	const { url, bytes } = await writeRoom(io, doc, name);
 	const lightmap = await writeLightmap(name);
+	const probes = writeProbes(name);
 	const raw = (statSync(file).size / 1e6).toFixed(1);
 	console.log(
-		`  ${name}: ${tris} tris, ${manifest.markers.length} markers, ${manifest.colliders.length} colliders, ${raw} MB -> ${(bytes / 1e6).toFixed(1)} MB${lightmap ? ` + lightmap ${(lightmap.bytes / 1e3).toFixed(0)} KB` : ''}`
+		`  ${name}: ${tris} tris, ${manifest.markers.length} markers, ${manifest.colliders.length} colliders, ${raw} MB -> ${(bytes / 1e6).toFixed(1)} MB${lightmap ? ` + lightmap ${(lightmap.bytes / 1e3).toFixed(0)} KB` : ''}${probes ? ` + probes ${(probes.bytes / 1e3).toFixed(0)} KB` : ''}`
 	);
 	return {
 		...roomPiece(manifest),
 		url,
-		bytes: bytes + (lightmap?.bytes ?? 0),
+		bytes: bytes + (lightmap?.bytes ?? 0) + (probes?.bytes ?? 0),
 		triangles: tris,
 		lightmap,
+		probes,
 		sounds: manifest.markers
 			.filter((m) => m.kind === 'sound')
 			.map((m) => ({ id: soundOf(m), position: m.position }))
