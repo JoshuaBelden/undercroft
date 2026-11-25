@@ -63,7 +63,30 @@ export const ACTIONS = {
 	toggleStats: { label: 'Performance stats', category: 'Interface', defaults: ['F3'] },
 	toggleAdmin: { label: 'Admin panel (dev)', category: 'Interface', defaults: ['F10'] },
 	// Dev only: fly the camera through the map, fully lit, with the debug grid (docs/dev/admin.md).
-	toggleFreecam: { label: 'Free camera (dev)', category: 'Interface', defaults: ['F9'] }
+	toggleFreecam: { label: 'Free camera (dev)', category: 'Interface', defaults: ['F9'] },
+
+	// The room viewer (dev, /dev/room; docs/dev/room-viewer.md). Heard only there.
+	roomWalk: {
+		label: 'Room viewer: fly or walk (dev)',
+		category: 'Room viewer',
+		defaults: ['KeyV']
+	},
+	roomColliders: {
+		label: 'Room viewer: collision boxes (dev)',
+		category: 'Room viewer',
+		defaults: ['KeyK']
+	},
+	roomMarkers: { label: 'Room viewer: markers (dev)', category: 'Room viewer', defaults: ['KeyN'] },
+	roomLightmap: {
+		label: 'Room viewer: lightmap (dev)',
+		category: 'Room viewer',
+		defaults: ['KeyL']
+	},
+	roomFullbright: {
+		label: 'Room viewer: even light (dev)',
+		category: 'Room viewer',
+		defaults: ['KeyB']
+	}
 } as const satisfies Record<string, ActionDefinition>;
 
 export interface ActionDefinition {
@@ -124,7 +147,13 @@ export const PAD_DEFAULTS: Record<Action, readonly string[]> = {
 	toggleRitePanel: ['PadR3'],
 	toggleStats: [],
 	toggleAdmin: [],
-	toggleFreecam: []
+	toggleFreecam: [],
+	// The room viewer's toggles: its panel's buttons (a dev tool, on a desk with a mouse).
+	roomWalk: [],
+	roomColliders: [],
+	roomMarkers: [],
+	roomLightmap: [],
+	roomFullbright: []
 };
 
 export function defaultPadBindings(): Bindings {
