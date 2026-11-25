@@ -116,7 +116,8 @@ export interface SessionContext {
 	 */
 	discover(player: Player, item: string, source: string): void;
 	down(player: Player): void;
-	revive(player: Player): void;
+	/** Up off the floor, with at least `to` sanity (SANITY.reviveTo by default: a revive by hand). */
+	revive(player: Player, to?: number): void;
 	/** Not down, not in water, not climbing, not busy with something else in the hands. */
 	canUseHands(player: Player): boolean;
 	/** The nearest spot to `position` a standing player fits. */

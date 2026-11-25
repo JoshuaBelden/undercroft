@@ -129,10 +129,13 @@ export class Vitals implements PlayFeature {
 			};
 		}
 		if (this.downedNearby(state)) {
-			if (quickWith(state.inventory, 'revive') < 0) {
-				return { prompt: 'No smelling salts to hand', progress: 0 };
-			}
-			return keyPrompt('interact', 'to revive', state.reviving / SANITY.reviveSeconds);
+			// By hand always; smelling salts to hand bring them round stronger (and are used).
+			const salts = quickWith(state.inventory, 'revive') >= 0;
+			return keyPrompt(
+				'interact',
+				salts ? 'Revive explorer with smelling salts' : 'Revive explorer',
+				state.reviving / SANITY.reviveSeconds
+			);
 		}
 		return null;
 	}

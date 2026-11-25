@@ -9,8 +9,10 @@ export const SANITY = {
 	/** Per second while a creature is visible to you (half-light) within this range. */
 	seeingDrain: 1.5,
 	seeingRange: 12,
-	/** Sanity after being revived (by a teammate or your own smelling salts). */
-	reviveTo: 35,
+	/** Sanity after a teammate revives you by hand, with nothing but a shake and a word. */
+	reviveTo: 20,
+	/** Sanity after smelling salts bring you round (a teammate's, or your own when alone). */
+	saltsReviveTo: 80,
 	/** Seconds to hold revive on a downed teammate. */
 	reviveSeconds: 3,
 	reviveRange: 1.5,

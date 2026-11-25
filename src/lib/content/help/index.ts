@@ -390,9 +390,9 @@ If there is nothing to wait for, hold {action:climb} for a moment to surrender. 
 		id: 'reviving',
 		title: 'Reviving',
 		category: 'Surviving',
-		body: `Smelling salts bring someone back from being down.
+		body: `If a teammate is down, go to them and hold {action:interact}. It takes a few seconds. By hand they come back shaken, with little sanity left.
 
-If a teammate is down, go to them and hold {action:interact}. It takes a few seconds and uses one of your salts. They come back shaken, with little sanity left.
+With smelling salts to hand, one is used and they come back far steadier.
 
 If no one can reach you, because you're alone or everyone else is down too, you use your own salts. Without salts, and without help, you won't get up again.
 

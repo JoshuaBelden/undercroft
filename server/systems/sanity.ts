@@ -25,7 +25,7 @@ const VIEW_HALF_ANGLE = 0.9;
 
 /**
  * Sanity (docs/dev/player.md): darkness and seeing creatures wear it down. At 0 a player is
- * down, and a teammate holding interact with smelling salts revives them.
+ * down, and a teammate holding interact by them revives them (better with smelling salts).
  */
 export class SanitySystem implements SessionSystem {
 	constructor(private ctx: SessionContext) {}
@@ -86,9 +86,10 @@ export class SanitySystem implements SessionSystem {
 	}
 
 	/**
-	 * Holding interact next to a downed teammate, with something that revives (smelling salts) in
-	 * a quick-use slot, revives them. When nobody is able to help (solo, or everyone else is
-	 * down), a downed player's own are used.
+	 * Holding interact next to a downed teammate revives them: by hand they get up with a little
+	 * sanity (SANITY.reviveTo); with something that revives (smelling salts) in a quick-use slot,
+	 * one is used and they get up with much more (saltsReviveTo). When nobody is able to help
+	 * (solo, or everyone else is down), a downed player's own salts are used.
 	 */
 	private revives(): void {
 		const ctx = this.ctx;
@@ -97,7 +98,7 @@ export class SanitySystem implements SessionSystem {
 		for (const reviver of players) {
 			const s = reviver.state;
 			const patient =
-				!s.downed && !s.dead && quickWith(s.inventory, 'revive') >= 0 && reviver.lastInput?.interact
+				!s.downed && !s.dead && reviver.lastInput?.interact
 					? players.find(
 							(p) =>
 								p !== reviver &&
@@ -117,9 +118,10 @@ export class SanitySystem implements SessionSystem {
 			s.reviving += TICK_DT;
 			if (s.reviving >= SANITY.reviveSeconds) {
 				s.reviving = 0;
-				spendQuick(s.inventory, quickWith(s.inventory, 'revive'));
-				ctx.revive(patient);
-				log.info(`${reviver.name} revived ${patient.name}`);
+				const salts = quickWith(s.inventory, 'revive');
+				if (salts >= 0) spendQuick(s.inventory, salts);
+				ctx.revive(patient, salts >= 0 ? SANITY.saltsReviveTo : SANITY.reviveTo);
+				log.info(`${reviver.name} revived ${patient.name}${salts >= 0 ? ' with salts' : ''}`);
 			}
 		}
 		for (const player of players) {
@@ -129,7 +131,7 @@ export class SanitySystem implements SessionSystem {
 			if (salts < 0) continue;
 			if (able.some((p) => p !== player)) continue;
 			spendQuick(s.inventory, salts);
-			ctx.revive(player);
+			ctx.revive(player, SANITY.saltsReviveTo);
 		}
 	}
 
