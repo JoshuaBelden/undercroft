@@ -36,8 +36,9 @@ blender -b art/blender/rooms/sewer.blend -P scripts/blender/map/sewer.py -- --ex
 Rooms are lit by baking: the light falling on every surface is worked out once in Blender and painted into a texture, so the game draws it for the cost of a texture lookup (the handoff's [Light: baked](../handoff-pivot.md#light-baked-decided)).
 
 - **The second UV map**, `Lightmap` (`common.lightmap_uv`, Smart UV Project): every face its own place on the page, with a margin so light doesn't bleed between faces. The first UV map stays the textures'. Both are exported (`TEXCOORD_0`, `TEXCOORD_1`).
-- **What lights it**: the room's own lights (the Sewer's `bake-daylight`, an area lamp under the manhole shining down), emissive surfaces (`mat-daylight`), and nothing else: the world is black underground. The lights are in the .blend to tune by hand, and never exported.
+- **What lights it**: the room's own lights (the Sewer's `bake-daylight-*`: an area lamp just under the manhole and under each light tube, shining down; their watts and spread are `DAYLIGHT` in `sewer.py`), emissive surfaces (`mat-daylight`), and nothing else: the world is black underground. The lights are in the .blend to tune by hand, and never exported.
 - **The bake** (`common.bake_lightmap`): Cycles, Diffuse with direct and indirect light and no colour, 1024 px and 1024 samples, saved as `art/export/rooms/<room>.lightmap.png`. It takes about 20 seconds for the way in. Light over 1 clips in the PNG: the bake prints its brightest value; keep the lamps under it except where a surface should burn white.
+- **Faces laid over each other** (a ragged edge over a wall, a trim over another) need a gap between them, a few millimetres: two faces in one plane shade, and bake, black.
 - **In the game**, the material's colour is multiplied by it: Three.js's `lightMap` on the second UV, at an intensity of pi (`LIGHTMAP_INTENSITY`), because Three.js treats a lightmap as irradiance and divides it by pi in its shading. The headlamp still lights everything as a real light, on top.
 
 ### Locks, keys and sounds

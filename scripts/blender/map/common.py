@@ -97,13 +97,15 @@ def col_span(coll, root, name, lo, hi):
     return kit.col_box(coll, root, name, lo, hi)
 
 
-def sweep(mb, profile, frames, skip=lambda ring, seg: False):
+def sweep(mb, profile, frames, skip=lambda ring, seg: False, profiles=None):
     """Extrude a closed cross-section along frames, faces pointing into the passage.
 
     profile: [(lateral, z, material)], each point starting a segment that runs to the next (the
     last runs back to the first). Lateral is to the right of the way the frames run. `skip(ring,
     seg)` leaves out the quad between rings `ring` and `ring + 1` on segment `seg`: a hole in a
-    wall, for a doorway or a shaft.
+    wall, for a doorway or a shaft. `profiles`: one [(lateral, z)] per frame, the same number of
+    points as `profile` (whose materials they keep), for a cross-section that changes as it goes
+    (a crack, narrowing and widening).
     """
     up = Vector((0, 0, 1))
     n = len(profile)
@@ -112,7 +114,8 @@ def sweep(mb, profile, frames, skip=lambda ring, seg: False):
         (x0, z0, _), (x1, z1, _) = profile[j], profile[(j + 1) % n]
         lengths.append(lengths[-1] + math.hypot(x1 - x0, z1 - z0))
     axis_z = sum(z for _, z, _ in profile) / n
-    rings = [[o + lat * x + up * z for x, z, _ in profile] for o, lat, _ in frames]
+    shapes = profiles or [[(x, z) for x, z, _ in profile]] * len(frames)
+    rings = [[o + lat * x + up * z for x, z in shapes[i]] for i, (o, lat, _) in enumerate(frames)]
     for i in range(len(frames) - 1):
         o0, _, d0 = frames[i]
         o1, _, d1 = frames[i + 1]
