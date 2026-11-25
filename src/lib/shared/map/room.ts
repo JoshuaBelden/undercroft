@@ -177,6 +177,47 @@ export function soundOf(marker: RoomMarker): string {
 	return marker.label.slice('sound-'.length).replace(/-\d+$/, '');
 }
 
+/** A door's depth (m) when its marker gives its width and height (`width`, `height` extras). */
+const DOOR_DEPTH = 0.2;
+
+/** The box round a room's colliders (each box's corners, turned): where its nav grid is sampled. */
+export function boundsOf(colliders: readonly ColliderBox[]): [Vec3, Vec3] | undefined {
+	if (colliders.length === 0) return undefined;
+	const lo: Vec3 = [Infinity, Infinity, Infinity];
+	const hi: Vec3 = [-Infinity, -Infinity, -Infinity];
+	for (const box of colliders) {
+		for (const sx of [-1, 1]) {
+			for (const sy of [-1, 1]) {
+				for (const sz of [-1, 1]) {
+					const corner = rotate(box.rotation, [
+						sx * box.halfExtents[0],
+						sy * box.halfExtents[1],
+						sz * box.halfExtents[2]
+					]);
+					for (let a = 0; a < 3; a++) {
+						lo[a] = Math.min(lo[a], box.center[a] + corner[a]);
+						hi[a] = Math.max(hi[a], box.center[a] + corner[a]);
+					}
+				}
+			}
+		}
+	}
+	return [lo, hi];
+}
+
+/** A vector turned by a quaternion. */
+function rotate([x, y, z, w]: Quat, [vx, vy, vz]: Vec3): Vec3 {
+	// t = 2 q×v; v' = v + w t + q×t
+	const tx = 2 * (y * vz - z * vy);
+	const ty = 2 * (z * vx - x * vz);
+	const tz = 2 * (x * vy - y * vx);
+	return [
+		vx + w * tx + (y * tz - z * ty),
+		vy + w * ty + (z * tx - x * tz),
+		vz + w * tz + (x * ty - y * tx)
+	];
+}
+
 /**
  * The room as a map piece, to walk it with the game's own collision and movement: its colliders,
  * volumes, ropes and anchors, and every marker the piece format has. It isn't on the generator's
@@ -195,6 +236,8 @@ export function roomPiece(manifest: RoomManifest): PieceDef {
 		levels: 1,
 		sockets: [],
 		spawns: points('spawn'),
+		spawnYaws: of('spawn').map((m) => m.yaw),
+		bounds: boundsOf(manifest.colliders),
 		creatures: points('creature'),
 		extracts: points('extract'),
 		rites: points('rite'),
@@ -205,9 +248,19 @@ export function roomPiece(manifest: RoomManifest): PieceDef {
 			.map((m) => ({
 				type: m.label.split('-')[1] as LootableId,
 				position: m.position,
-				yaw: m.yaw
+				yaw: m.yaw,
+				...(m.text.holds && { holds: m.text.holds })
 			})),
-		doors: placed('door'),
+		doors: of('door').map((m) => ({
+			position: m.position,
+			yaw: m.yaw,
+			marker: m.label,
+			...(m.text.key && { key: m.text.key }),
+			...(m.extras.width > 0 &&
+				m.extras.height > 0 && {
+					size: [m.extras.width, m.extras.height, DOOR_DEPTH] as Vec3
+				})
+		})),
 		gates: placed('gate'),
 		spots: of('spot').map((m) => ({
 			name: m.label.slice('spot-'.length),
@@ -220,7 +273,8 @@ export function roomPiece(manifest: RoomManifest): PieceDef {
 			.map((m) => ({
 				top: m.position,
 				length: m.extras.length,
-				...(m.extras.exit > 0 && m.extras.exit < m.extras.length && { exit: m.extras.exit })
+				...(m.extras.exit > 0 && m.extras.exit < m.extras.length && { exit: m.extras.exit }),
+				...(m.extras.ladder > 0 && { ladder: true })
 			})),
 		anchors: of('anchor').map((m) => ({
 			position: m.position,

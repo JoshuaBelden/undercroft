@@ -50,6 +50,18 @@ export interface CrateMarker {
 /** A lootable-<type>-<n> marker: a crate marker for one kind of lootable (docs/dev/lootables.md). */
 export interface LootableMarker extends CrateMarker {
 	type: LootableId;
+	/** An item it always holds, whatever else it rolls (the Storeroom's crate and its key). */
+	holds?: string;
+}
+
+/** A door-* marker: a doorway, and what a door of its own needs (docs/dev/fixed-map.md#doors). */
+export interface DoorMarker extends CrateMarker {
+	/** Locked: opened only with this item, which it uses up. */
+	key?: string;
+	/** Its collision box (across, high, deep, m), when not the double door's (DOORS.size). */
+	size?: Vec3;
+	/** Its marker's name in its room (door-0), for map data to refer to it by. */
+	marker?: string;
 }
 
 /** A rope hanging straight down from `top` (rope-* markers), in piece space. See docs/dev/rope.md. */
@@ -59,6 +71,8 @@ export interface RopeMarker {
 	length: number;
 	/** An extraction rope: climbing this far up from its foot gets you out of the catacomb. */
 	exit?: number;
+	/** A ladder, climbed like a rope: the room's model draws it, so no rope is drawn. */
+	ladder?: boolean;
 }
 
 /**
@@ -89,6 +103,10 @@ export interface PieceDef {
 	levels: number;
 	sockets: PieceSocket[];
 	spawns: Vec3[];
+	/** Which way each spawn faces (radians about +Y), when its marker says (a fixed room's do). */
+	spawnYaws?: number[];
+	/** A fixed room's extent, from its colliders: where its nav grid is sampled (no cells). */
+	bounds?: [Vec3, Vec3];
 	/** Where creatures may start (creature-* markers). */
 	creatures: Vec3[];
 	extracts: Vec3[];
@@ -110,7 +128,7 @@ export interface PieceDef {
 	 * Doors (door-* markers): floor centre of the doorway. At yaw 0 the room side is north (-Z);
 	 * the leaves swing away from it. Every one is a door between levels (see DOORS).
 	 */
-	doors: CrateMarker[];
+	doors: DoorMarker[];
 	/** Locked iron gates (gate-* markers), placed like doors (see GATES). */
 	gates?: CrateMarker[];
 	/** Named places (spot-<name> markers): where Rumors puts things and tells its steps. */
@@ -251,6 +269,12 @@ export interface DoorPlacement {
 	tier: number;
 	/** A locked iron gate (a gate-* marker): a key or lockpicks open it (see GATES). */
 	kind?: 'gate';
+	/** A locked door: opened only with this item, which it uses up (DoorMarker.key). */
+	key?: string;
+	/** Its collision box, when not DOORS.size (DoorMarker.size). */
+	size?: Vec3;
+	/** Its marker's name in its room (door-0): map data names doors by it. */
+	marker?: string;
 }
 
 /**
@@ -293,4 +317,16 @@ export interface TaskPlacement {
 	id: string;
 	position: Vec3;
 	yaw: number;
+}
+
+/**
+ * A fixed map's room, built from art/export/rooms by `pnpm asset:rooms` (rooms.generated.ts): a
+ * piece the collision, doors, crates and ropes read as they read the generator's, with its baked
+ * lightmap and its sounds. See docs/dev/fixed-map.md.
+ */
+export interface RoomDef extends PieceDef {
+	/** Its baked light (on the model's second UV), and its download size. */
+	lightmap: { url: string; bytes: number } | null;
+	/** Where its sound-<id>-<n> markers place each sound, in room space. */
+	sounds: { id: string; position: Vec3 }[];
 }

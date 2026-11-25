@@ -36,6 +36,7 @@
 		"asset:dev": "tsx scripts/make-dev-asset.ts",
 		"asset:export": "tsx scripts/export-map.ts",
 		"asset:build": "tsx scripts/build-assets.ts",
+		"asset:rooms": "tsx scripts/build-rooms.ts",
 		"asset:audio": "tsx scripts/build-audio.ts",
 		"asset:images": "tsx scripts/build-images.ts",
 		"asset:levels": "tsx scripts/audio-levels.ts",

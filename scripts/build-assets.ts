@@ -32,6 +32,7 @@ import * as prettier from 'prettier';
 import sharp from 'sharp';
 import { dropAnimations, mergeClips, skeletonMismatch, skeletonOnly } from './clips.ts';
 import { boneFrames, CLIP_DONORS, LIMB_ALIGNMENT, retargetClips } from './retarget.ts';
+import { buildRooms } from './build-rooms.ts';
 import { contentHash, hashedName } from './hashed.ts';
 import { ITEM_FRAMES, type Axis, type ItemFrame } from './items.config.ts';
 import { LOOTABLES, type LootableId } from '../src/lib/content/lootables.ts';
@@ -964,6 +965,8 @@ async function main(): Promise<void> {
 	await buildItems(io);
 	await buildProps(io);
 	await writeModelManifest();
+	// The fixed map's rooms (scripts/build-rooms.ts, also `pnpm asset:rooms` on its own).
+	await buildRooms();
 	const textureDir = path.join(ASSET_DIR, TEXTURE_DIR);
 	const textures = readdirSync(textureDir);
 	const textureBytes = textures.reduce(

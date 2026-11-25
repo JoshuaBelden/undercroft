@@ -714,8 +714,9 @@ def markers(coll, root, frames):
     # The Storeroom's door, locked until opened with the key; one of the crates holds it.
     (x0, x1), (y0, y1) = STORE_X, STORE_Y
     door_x = (DOOR[0] + DOOR[1]) / 2
-    m("door-0", (door_x, y0 - DOOR_DEPTH / 2, 0.0), toward=(0, 1), key="key")
-    m("door-1", (door_x, STAIR_END, -DROP), toward=(0, 1))
+    size = {"width": DOOR[1] - DOOR[0], "height": DOOR_H}  # a door of its own size, not the double door
+    m("door-0", (door_x, y0 - DOOR_DEPTH / 2, 0.0), toward=(0, 1), key="key", **size)
+    m("door-1", (door_x, STAIR_END, -DROP), toward=(0, 1), **size)
     m("socket-door-0", (door_x, STAIR_END - DOOR_DEPTH - 0.05, -DROP))
     m("lootable-crate-0", (18.1, -10.8, 0.0), toward=(0, 1), holds="key")  # the middle aisle
     m("lootable-crate-1", (17.9, y1 - 0.8, 0.0), toward=(0, 1))  # by the crack

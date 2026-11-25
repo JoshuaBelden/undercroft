@@ -112,6 +112,32 @@ describe('locks, keys and sounds', () => {
 	});
 });
 
+describe('what a room tells the game', () => {
+	it('keeps a door its key and size, a crate what it holds, a ladder and the spawns facing', () => {
+		const piece = roomPiece(
+			readRoom('store', [
+				node('spawn-0', { rotation: aboutY(Math.PI / 2) }),
+				node('door-0', { extras: { key: 'key', width: 2, height: 2.6 } }),
+				node('door-1'),
+				node('lootable-crate-0', { extras: { holds: 'key' } }),
+				node('rope-0', { position: [0, 7.8, 0], extras: { length: 7.8, exit: 6, ladder: 1 } }),
+				node('col-floor', { position: [0, -0.1, 0], scale: [10, 0.2, 8], mesh: true })
+			])
+		);
+		expect(piece.spawnYaws?.[0]).toBeCloseTo(Math.PI / 2);
+		expect(piece.doors).toEqual([
+			{ position: [0, 0, 0], yaw: 0, marker: 'door-0', key: 'key', size: [2, 2.6, 0.2] },
+			{ position: [0, 0, 0], yaw: 0, marker: 'door-1' }
+		]);
+		expect(piece.lootables).toMatchObject([{ type: 'crate', holds: 'key' }]);
+		expect(piece.ropes).toEqual([{ top: [0, 7.8, 0], length: 7.8, exit: 6, ladder: true }]);
+		expect(piece.bounds).toEqual([
+			[-5, -0.2, -4],
+			[5, 0, 4]
+		]);
+	});
+});
+
 describe('a room as a piece', () => {
 	it('can be walked: its colliders, ropes and spawns are in the collision world', () => {
 		const room = readRoom('cellar', [
