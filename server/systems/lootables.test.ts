@@ -10,7 +10,9 @@ import type { Inventory } from '../../src/lib/shared/player/types.ts';
 
 /** Opening lootables of every kind (docs/dev/lootables.md). */
 
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+
+const open = useSessions({ generated: true });
 
 /**
  * A session (on the first of these seeds that has one) and a diver standing in front of a

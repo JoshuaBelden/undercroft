@@ -13,7 +13,8 @@ import { HAND } from '../../src/lib/shared/player/types.ts';
 import { useSessions, Diver, kit } from '../testing/harness.ts';
 
 const SEED = 1;
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+const open = useSessions({ generated: true });
 const OPEN_SECONDS = LOOTABLES.crate.open[0].seconds;
 const PRY_SECONDS = LOOTABLES.crate.sealed!.open[0].seconds;
 

@@ -26,7 +26,8 @@ afterAll(() => removeTestItems());
 afterEach(() => vi.restoreAllMocks());
 
 const SEED = 2;
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+const open = useSessions({ generated: true });
 
 function quiet(): Session {
 	const session = open(SEED);

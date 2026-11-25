@@ -13,7 +13,7 @@ const SEED = 1;
 
 let sessions: Session[] = [];
 function open(seed = SEED): Session {
-	const session = newSession(seed);
+	const session = newSession(seed, {}, 'gloaming', { generated: true });
 	sessions.push(session);
 	return session;
 }

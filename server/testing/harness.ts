@@ -76,15 +76,25 @@ export function fakeTime(): void {
 	});
 }
 
+/**
+ * Where a test's expedition goes: the fixed map (the default), or `generated`, a map from the
+ * retired generator, for tests of what the fixed map has no room for yet (creatures, the
+ * Affliction, kinds of lootable no room has). See docs/dev/fixed-map.md#tests.
+ */
+export interface SessionOptions {
+	generated?: boolean;
+}
+
 /** A new expedition on a known map: `Session` picks its seed with Math.random. */
 export function newSession(
 	seed: number,
 	hooks: SessionHooks = {},
-	affliction = 'gloaming'
+	affliction = 'gloaming',
+	options: SessionOptions = {}
 ): Session {
 	const random = vi.spyOn(Math, 'random').mockReturnValue(seed / 4294967296);
 	try {
-		return new Session(affliction, hooks);
+		return new Session(affliction, hooks, options);
 	} finally {
 		random.mockRestore();
 	}
@@ -94,7 +104,10 @@ export function newSession(
  * Sessions for a test file: call at the top of the file. Time is faked and dev mode is on for
  * each test, and every session the returned `open` makes is stopped after it.
  */
-export function useSessions(): (...args: Parameters<typeof newSession>) => Session {
+export function useSessions(
+	/** Every session the file makes: `{ generated: true }` for a file of generated-map tests. */
+	defaults: SessionOptions = {}
+): (...args: Parameters<typeof newSession>) => Session {
 	let sessions: Session[] = [];
 	beforeEach(() => {
 		fakeTime();
@@ -106,8 +119,8 @@ export function useSessions(): (...args: Parameters<typeof newSession>) => Sessi
 		vi.useRealTimers();
 		config.devMode = false;
 	});
-	return (...args) => {
-		const session = newSession(...args);
+	return (seed, hooks, affliction, options) => {
+		const session = newSession(seed, hooks, affliction, { ...defaults, ...options });
 		sessions.push(session);
 		return session;
 	};
@@ -173,7 +186,22 @@ export class Diver {
 	 * chapel, off the creatures' nav grid).
 	 */
 	descend(): void {
-		this.put(entryPoint(this.session['world'], this.session['layout'], PIECES));
+		this.put(entryPoint(this.session['world'], this.session['layout'], this.session.pieces));
+	}
+
+	/**
+	 * Get out the fixed map's way: stand at the foot of its extraction rope (the Sewer's ladder),
+	 * grab it and climb until out. On the walkway side of it, looking at it.
+	 */
+	climbOut(seconds = 20): void {
+		const rope = this.session.world.ropes.find((r) => r.exitY !== undefined);
+		if (!rope) throw new Error('No way out to climb in this map');
+		const [x, , z] = rope.top;
+		this.put(this.session.freeSpot([x, rope.bottom + 0.05, z + 0.45]));
+		const look = this.lookAt([x, rope.bottom + 1.2, z]);
+		this.hold(look, 0.2);
+		this.press({ ...look, interact: true });
+		this.hold({ ...look, moveZ: 1 }, seconds);
 	}
 
 	/**

@@ -59,6 +59,8 @@ export class Crates {
 	private tier = new Map<string, number>();
 	/** How far each crate is from the start along the floor (m). */
 	private fromStart = new Map<string, number>();
+	/** What each crate always holds (CratePlacement.holds), put back whenever it is filled. */
+	private holds = new Map<string, string>();
 	/** Counts fills, so refilling (admin) gives something new. */
 	private fills = 0;
 	/**
@@ -91,10 +93,14 @@ export class Crates {
 		const jams = new Rng(seed ^ 0x7a33ed);
 		// How full each font is: its own stream too.
 		const fillRng = new Rng(seed ^ 0xf0a7);
-		for (const { id, position, kind, tier } of placements) {
+		for (const { id, position, kind, tier, holds } of placements) {
 			const seal = lootableOf({ kind }).sealed;
 			const roll = jams.next();
-			const lock = seal && roll < seal.chance ? (seal.hidden ? 'jammed' : 'locked') : null;
+			// One that holds something (the Storeroom's key) is never sealed: nothing may stand in
+			// the way of what it is there for.
+			const lock =
+				!holds && seal && roll < seal.chance ? (seal.hidden ? 'jammed' : 'locked') : null;
+			if (holds) this.holds.set(id, holds);
 			const d = along.get(id);
 			const [lo, hi] = span.get(tier) ?? [0, 0];
 			this.depth.set(id, d !== undefined && hi > lo ? (d - lo) / (hi - lo) : 0);
@@ -182,6 +188,11 @@ export class Crates {
 			crate.slots = crate.slots.map((_, index) => left[index] ?? null);
 			crate.hidden = new Set(left.map((_, index) => index));
 			for (const stack of kept.get(crate) ?? []) this.put(crate, stack);
+			// What it always holds, unless it is still in there.
+			const holds = this.holds.get(crate.id);
+			if (holds && !crate.slots.some((stack) => stack?.item === holds)) {
+				this.put(crate, newStack(holds));
+			}
 		}
 	}
 

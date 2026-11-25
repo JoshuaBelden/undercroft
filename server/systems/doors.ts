@@ -1,7 +1,7 @@
 import { AFFLICTIONS } from '../../src/lib/content/afflictions.ts';
 import { DOORS, GATES } from '../../src/lib/content/doors.ts';
 import { allStacks, held, removeItem } from '../../src/lib/shared/items/inventory.ts';
-import { gateSeconds, firstKey } from '../../src/lib/shared/items/lootables.ts';
+import { doorSeconds, firstKey } from '../../src/lib/shared/items/lootables.ts';
 import type { DoorPlacement, Vec3 } from '../../src/lib/shared/map/types.ts';
 import { aimRay } from '../../src/lib/shared/items/weapons.ts';
 import { doorBox } from '../../src/lib/shared/map/doors.ts';
@@ -81,7 +81,8 @@ export class DoorSystem implements SessionSystem {
 			s.unbarring += TICK_DT;
 			if (s.unbarring < seconds) continue;
 			s.unbarring = 0;
-			if (door.kind === 'gate') this.unlock(s.inventory);
+			if (door.key) removeItem(s.inventory, door.key, 1);
+			else if (door.kind === 'gate') this.unlock(s.inventory);
 			if (!ctx.doors.open(door.id)) continue;
 			ctx.events.push({
 				kind: 'doorOpen',
@@ -110,11 +111,13 @@ export class DoorSystem implements SessionSystem {
 		return barred.door.id;
 	}
 
-	/** Seconds it takes this player to open it, or null if they can't (barred; a gate, no key or picks). */
+	/**
+	 * Seconds it takes this player to open it, or null if they can't: barred, a locked door without
+	 * its key, a gate without a key or picks (doorSeconds, which the client's prompt uses too).
+	 */
 	private takes(door: DoorPlacement, inv: Parameters<typeof allStacks>[0]): number | null {
 		if (this.ctx.doors.isBarred(door.id)) return null;
-		if (door.kind !== 'gate') return DOORS.openSeconds;
-		return gateSeconds(inv);
+		return doorSeconds(door, inv);
 	}
 
 	/** A gate opened: a key is used up, or else a pick may snap. */

@@ -5,7 +5,8 @@ import type { Session } from '../session.ts';
 import { Diver, kit, useSessions } from '../testing/harness.ts';
 
 const SEED = 1;
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+const open = useSessions({ generated: true });
 
 /** The surveyor: there is always exactly one. */
 function surveyor(session: Session) {

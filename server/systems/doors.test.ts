@@ -10,7 +10,8 @@ import type { Session } from '../session.ts';
 import { useSessions, Diver } from '../testing/harness.ts';
 
 const SEED = 1;
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+const open = useSessions({ generated: true });
 
 describe('doors between levels', () => {
 	/** Stand a diver on the room side of the first door, a little back, looking at it. */

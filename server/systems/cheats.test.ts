@@ -4,7 +4,9 @@ import { testPoints } from '../../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import { Diver, useSessions } from '../testing/harness.ts';
 
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+
+const open = useSessions({ generated: true });
 
 function flat(a: Vec3, b: Vec3): number {
 	return Math.hypot(a[0] - b[0], a[2] - b[2]);

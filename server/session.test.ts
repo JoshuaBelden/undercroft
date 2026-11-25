@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
 import { EXPEDITION } from '../src/lib/content/expedition.ts';
-import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { SANITY } from '../src/lib/content/player/sanity.ts';
 import { unsealExtracts } from '../src/lib/shared/map/collision.ts';
-import { PIECES } from '../src/lib/shared/map/pieces.generated.ts';
-import { entryPoint, roomPoints, spawnPoint } from '../src/lib/shared/map/points.ts';
+import { entryPoint, spawnPoint } from '../src/lib/shared/map/points.ts';
 import type { Vec3 } from '../src/lib/shared/map/types.ts';
 import { config } from './config.ts';
 import type { Session } from './session.ts';
@@ -19,6 +17,11 @@ function wayOut(session: Session): Vec3 {
 }
 
 const SEED = 1;
+/**
+ * The Gloaming and his rite, and the generator's start room: on a generated map, until
+ * Afflictions are laid on the fixed one (Phase 7; docs/dev/fixed-map.md#tests).
+ */
+const GENERATED = { generated: true };
 const RITE = HINTED_RITE;
 const GLOAMING_RITE = AFFLICTIONS.gloaming.rite;
 afterEach(() => {
@@ -41,27 +44,22 @@ describe('joining and leaving', () => {
 		// The floor items go out once, then only when they change.
 		expect(ticks[0].items).toBeDefined();
 		expect(ticks.at(-1)!.items).toBeUndefined();
-		const spawn = spawnPoint(session.layout, PIECES).position;
+		const spawn = spawnPoint(session.layout, session.pieces).position;
 		const away = Math.hypot(diver.state.position[0] - spawn[0], diver.state.position[2] - spawn[2]);
 		expect(away).toBeLessThan(3);
 		expect(session.playerCount).toBe(1);
 		expect(session.afflictionId).toBe('gloaming');
 	});
 
-	it('a full party starts side by side, each on their own spot, facing the pit', () => {
+	it('a full party starts side by side on the walkway, each on their own spot, facing its way', () => {
 		const session = open(SEED);
 		const divers = [0, 1, 2, 3].map(() => new Diver(session));
 		for (const [i, diver] of divers.entries()) {
-			const spawn = spawnPoint(session.layout, PIECES, i);
+			const spawn = spawnPoint(session.layout, session.pieces, i);
 			expect(diver.state.position[0]).toBeCloseTo(spawn.position[0], 1);
 			expect(diver.state.position[2]).toBeCloseTo(spawn.position[2], 1);
-			expect(diver.state.yaw).toBeCloseTo(spawn.yaw);
-			// Facing the middle of the room: where the pit and its rope are.
-			const start = session.layout.placements[0].position;
-			const ahead = [-Math.sin(spawn.yaw), -Math.cos(spawn.yaw)];
-			const toMiddle = [start[0] - spawn.position[0], start[2] - spawn.position[2]];
-			const along = (ahead[0] * toMiddle[0] + ahead[1] * toMiddle[1]) / Math.hypot(...toMiddle);
-			expect(along).toBeCloseTo(1);
+			// Facing the way its marker faces.
+			expect(diver.state.yaw).toBeCloseTo(session.pieces.sewer.spawnYaws![i]);
 			for (const other of divers.slice(i + 1)) {
 				const apart = Math.hypot(
 					diver.state.position[0] - other.state.position[0],
@@ -72,15 +70,14 @@ describe('joining and leaving', () => {
 		}
 	});
 
-	it('the start room is no way out: the nearest is at the end of level 1', () => {
+	it('the way in is the way out: the ladder players came down, climbed back up', () => {
 		const session = open(SEED);
 		const start = session.layout.placements[0];
-		expect(PIECES[start.piece].extracts).toEqual([]);
-		expect(PIECES[start.piece].ropes).toEqual([]);
+		expect(session.pieces[start.piece].ropes.filter((r) => r.exit !== undefined)).toHaveLength(1);
 	});
 
-	it('the way down is the rope on the pit lip: off its end unhurt, and no way back up it', () => {
-		const session = open(SEED);
+	it('the generator’s start: the way down is the rope on the pit lip, and no way back up it', () => {
+		const session = open(SEED, {}, 'gloaming', { generated: true });
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		const rope = session['world'].ropes.find((r) => r.hangsFree)!;
@@ -96,7 +93,7 @@ describe('joining and leaving', () => {
 		for (let i = 0; i < 40 && diver.state.climbing; i++) diver.hold({ moveZ: -1 }, 0.5);
 		diver.hold({}, 1);
 		expect(diver.state.climbing).toBeNull();
-		const foot = entryPoint(session['world'], session.layout, PIECES);
+		const foot = entryPoint(session['world'], session.layout, session.pieces);
 		expect(diver.state.position[1]).toBeCloseTo(foot[1] - 0.05, 1);
 		expect(diver.state.sanity).toBe(SANITY.max);
 		expect(diver.state.conditions).toEqual([]);
@@ -111,11 +108,14 @@ describe('joining and leaving', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);
 		const start = session.layout.placements[0].piece;
-		const foot = entryPoint(session['world'], session.layout, PIECES);
+		const foot = entryPoint(session['world'], session.layout, session.pieces);
 		session.admin(diver.id, { kind: 'teleport', room: `${start}-foot` });
 		expect(diver.state.position[1]).toBeCloseTo(foot[1], 0);
 		session.admin(diver.id, { kind: 'teleport', room: start });
-		expect(diver.state.position[1]).toBeCloseTo(spawnPoint(session.layout, PIECES).position[1], 0);
+		expect(diver.state.position[1]).toBeCloseTo(
+			spawnPoint(session.layout, session.pieces).position[1],
+			0
+		);
 	});
 
 	it('falls back to the default Affliction for an unknown one', () => {
@@ -170,8 +170,8 @@ describe('input', () => {
 		const diver = new Diver(session);
 		diver.hold({}, 0.5);
 		const before = [...diver.state.position];
-		// Along the chapel's wall: straight ahead is the pit, a step away.
-		diver.hold({ moveZ: 1, yaw: diver.state.yaw + Math.PI / 2 }, 1);
+		// East along the walkway.
+		diver.hold({ moveZ: 1, yaw: -Math.PI / 2 }, 1);
 		const moved = Math.hypot(
 			diver.state.position[0] - before[0],
 			diver.state.position[2] - before[2]
@@ -208,15 +208,11 @@ describe('input', () => {
 });
 
 describe('getting out', () => {
-	it('holding interact at an extraction point climbs out with what is carried', () => {
+	it('climbing the ladder out takes what is carried', () => {
 		const left = vi.fn();
 		const session = open(SEED, { onPlayerLeft: left });
 		const diver = new Diver(session, 'A', kit(['coins', 7]));
-		session.admin(diver.id, { kind: 'clearCreatures' });
-		const point = wayOut(session);
-		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
-		diver.hold({}, 0.5);
-		diver.hold({ interact: true }, 4);
+		diver.climbOut();
 		const out = diver.socket.last('extracted')!;
 		expect(out.carried).toEqual([{ item: 'coins', count: 7 }]);
 		expect(left).toHaveBeenCalledWith('explorer-A', expect.objectContaining({}));
@@ -284,8 +280,8 @@ describe('getting out', () => {
 		expect(diver.state.conditions).toEqual([]);
 	});
 
-	it("can't climb out with the menu open: the hands are on it", () => {
-		const session = open(SEED);
+	it("can't hold out at an extraction point with the menu open: the hands are on it", () => {
+		const session = open(SEED, {}, 'gloaming', GENERATED);
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'clearCreatures' });
 		const point = wayOut(session);
@@ -309,7 +305,7 @@ describe('getting out', () => {
 		const resolved = vi.fn();
 		// A rite resolved by banishing alone (the Gloaming's wants his lantern laid: rite.test.ts).
 		AFFLICTIONS.gloaming.rite = HINTED_RITE;
-		const session = open(SEED, { onResolved: resolved });
+		const session = open(SEED, { onResolved: resolved }, 'gloaming', GENERATED);
 		const a = new Diver(session, 'A');
 		const b = new Diver(session, 'B');
 		session.admin(a.id, { kind: 'manifest' });
@@ -340,18 +336,14 @@ describe('achievements', () => {
 	it('getting out alive alone earns the first extraction, not the co-op one', () => {
 		const session = open(SEED);
 		const diver = new Diver(session, 'A');
-		session.admin(diver.id, { kind: 'clearCreatures' });
-		const point = wayOut(session);
-		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
-		diver.hold({}, 0.5);
-		diver.hold({ interact: true }, 4);
+		diver.climbOut();
 		expect(diver.socket.last('extracted')).toBeDefined();
 		expect(earned(diver)).toEqual(['FIRST_EXTRACTION']);
 	});
 
 	it('a banishing earns it for everyone still down there, who then still have to get out', () => {
 		AFFLICTIONS.gloaming.rite = HINTED_RITE;
-		const session = open(SEED);
+		const session = open(SEED, {}, 'gloaming', GENERATED);
 		const a = new Diver(session, 'A');
 		const b = new Diver(session, 'B');
 		session.admin(a.id, { kind: 'manifest' });
@@ -375,7 +367,7 @@ describe('achievements', () => {
 
 	it('performing the rite earns it for everyone still down there', () => {
 		AFFLICTIONS.gloaming.rite = HINTED_RITE;
-		const session = open(SEED);
+		const session = open(SEED, {}, 'gloaming', GENERATED);
 		const stacks = RITE.requirements.map((r): [string, number] => [r.item, r.count]);
 		const performer = new Diver(session, 'A', kit(...stacks));
 		const other = new Diver(session, 'B');
@@ -402,7 +394,8 @@ describe('admin commands', () => {
 	});
 
 	it('set the player flags, the meter, the clock and the items', () => {
-		const session = open(SEED);
+		// The meter is the Gloaming's: on a generated map, where he is.
+		const session = open(SEED, {}, 'gloaming', GENERATED);
 		const diver = new Diver(session, 'A', kit(['revolver']));
 		for (const kind of ['noclip', 'infiniteStamina', 'infiniteBattery', 'godMode'] as const) {
 			session.admin(diver.id, { kind, enabled: true });
@@ -466,12 +459,10 @@ describe('admin commands', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);
 		session.admin(diver.id, { kind: 'clearCreatures' });
-		const room = roomPoints(session['layout'], PIECES, MAP_KIT).find(
-			(r) => MAP_KIT[r.name]?.role === 'major'
-		)!;
-		const [x, y, z] = room.position;
-		// The camera a few metres over the room's floor: the eyes go there, then the body falls.
-		session.admin(diver.id, { kind: 'teleportTo', position: [x, y + 4, z] });
+		// Over the walkway where players start.
+		const [x, y, z] = spawnPoint(session.layout, session.pieces).position;
+		// The camera a few metres over the floor (under the vault): the eyes go there, then the body falls.
+		session.admin(diver.id, { kind: 'teleportTo', position: [x, y + 3, z] });
 		expect(Math.hypot(diver.state.position[0] - x, diver.state.position[2] - z)).toBeLessThan(3);
 		expect(diver.state.position[1]).toBeGreaterThan(y + 1);
 		diver.hold({}, 2);
@@ -507,7 +498,7 @@ describe('admin commands', () => {
 		session.admin(diver.id, { kind: 'regenerate', seed: 99 });
 		expect(session.seed).toBe(99);
 		expect(diver.socket.last('map')!.layout.seed).toBe(99);
-		const spawn = spawnPoint(session.layout, PIECES).position;
+		const spawn = spawnPoint(session.layout, session.pieces).position;
 		expect(
 			Math.hypot(diver.state.position[0] - spawn[0], diver.state.position[2] - spawn[2])
 		).toBeLessThan(3);

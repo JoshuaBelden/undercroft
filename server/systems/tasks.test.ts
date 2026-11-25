@@ -11,7 +11,9 @@ import { Diver, useSessions } from '../testing/harness.ts';
 
 /** Room tasks, the barred stair and the charge (docs/dev/quests.md). */
 
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+
+const open = useSessions({ generated: true });
 
 function quiet(): Session {
 	const session = open(1);

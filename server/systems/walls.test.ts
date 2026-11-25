@@ -8,7 +8,9 @@ import { HAND } from '../../src/lib/shared/player/types.ts';
 import type { Session } from '../session.ts';
 import { Diver, kit, useSessions } from '../testing/harness.ts';
 
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+
+const open = useSessions({ generated: true });
 
 /** A session whose map has a false wall (seed 1's has three). */
 function withWall(): Session {

@@ -9,7 +9,8 @@ import type { Session } from '../session.ts';
 import { useSessions, kit, Diver } from '../testing/harness.ts';
 
 const SEED = 1;
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+const open = useSessions({ generated: true });
 
 /** The middle of the first living creature's body. */
 function creatureChest(session: Session): Vec3 {

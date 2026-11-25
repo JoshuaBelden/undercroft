@@ -32,7 +32,8 @@ import {
 	rubbleSites,
 	spawnPoint
 } from '../src/lib/shared/map/points.ts';
-import type { MapLayout, Vec3 } from '../src/lib/shared/map/types.ts';
+import type { MapLayout, PieceDef, Vec3 } from '../src/lib/shared/map/types.ts';
+import { fixedLayout, MAP_PIECES, sealedDoors } from '../src/lib/shared/map/fixed.ts';
 import { headlampOutput } from '../src/lib/shared/player/headlamp.ts';
 import { createPlayerState, sanitizeFrame, stepPlayer } from '../src/lib/shared/player/simulate.ts';
 import type {
@@ -76,7 +77,8 @@ const MAX_QUEUE = SIM_RATE * 2;
 const MAX_FRAMES_PER_MESSAGE = 30;
 
 /**
- * The map for a seed: the layout, and which of its crate markers have a crate. `require`: rooms
+ * The retired generator's map for a seed (only for tests of creatures, until they live in the
+ * fixed map's rooms): the layout, and which of its crate markers have a crate. `require`: rooms
  * it must have (those of the party's room tasks, docs/dev/quests.md#room-tasks).
  */
 function generate(seed: number, affliction: string, require: string[] = []): MapLayout {
@@ -137,6 +139,13 @@ export class Session implements SessionContext {
 	seed = randomSeed();
 	/** Authoritative map layout, sent to clients in `welcome`. */
 	layout!: MapLayout;
+	/** What the map is built of: the fixed map's rooms (MAP_PIECES), or the generator's pieces. */
+	readonly pieces: Record<string, PieceDef>;
+	/**
+	 * A generated map (the retired generator), not the fixed one: for tests of creatures and the
+	 * Affliction, which have no rooms of their own yet (docs/dev/fixed-map.md).
+	 */
+	private readonly generated: boolean;
 	// Everything built from the map: set by `build`, from the constructor and `regenerate`.
 	world!: CollisionWorld;
 	nav!: NavGrid;
@@ -183,23 +192,28 @@ export class Session implements SessionContext {
 	/** `affliction` is the one the party's host chose (key into AFFLICTIONS). */
 	constructor(
 		private chosen: string,
-		readonly hooks: SessionHooks = {}
+		readonly hooks: SessionHooks = {},
+		options: { generated?: boolean } = {}
 	) {
 		if (!AFFLICTIONS[chosen]) this.chosen = DEFAULT_AFFLICTION.id;
+		this.generated = options.generated ?? false;
+		this.pieces = this.generated ? PIECES : MAP_PIECES;
 		this.build(this.seed);
 	}
 
-	/** Generate the map for a seed (with the chosen Affliction's own pieces) and fill it. */
+	/** Lay out the map (the fixed map; a generated one in tests) and fill it. */
 	private build(seed: number): void {
-		this.layout = generate(seed, this.chosen, this.systems.tasks.wantedRooms);
-		this.world = buildCollisionWorld(this.layout, PIECES);
+		this.layout = this.generated
+			? generate(seed, this.chosen, this.systems.tasks.wantedRooms)
+			: fixedLayout(seed);
+		this.world = buildCollisionWorld(this.layout, this.pieces);
 		this.nav = this.buildNav();
 		this.doors = new Doors(this.world, this.nav, this.layout.doors);
-		this.tiers = tierCells(this.layout, PIECES);
+		this.tiers = tierCells(this.layout, this.pieces);
 		this.creatures = new CreatureDirector(
 			this.world,
 			this.nav,
-			creatureSpawns(this.layout, PIECES),
+			creatureSpawns(this.layout, this.pieces),
 			seed
 		);
 		this.items = new WorldItems(this.world);
@@ -211,7 +225,10 @@ export class Session implements SessionContext {
 			this.seed,
 			this.chosen
 		);
-		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, PIECES);
+		// The fixed map has no creatures yet (Phase 4), nor Afflictions laid on it (Phase 7): nothing
+		// for one to summon or set loose.
+		if (!this.generated) this.affliction.calmed = true;
+		this.rite = new RiteDirector(this.affliction.def.rite, this.layout, this.pieces);
 		this.populate();
 		for (const system of this.ordered) system.mapBuilt?.();
 	}
@@ -219,7 +236,11 @@ export class Session implements SessionContext {
 	/** Creatures and loose items for the current map. */
 	private populate(): void {
 		// Measured from where the catacombs begin: the foot of the start room's rope.
-		const start = entryPoint(this.world, this.layout, PIECES);
+		const start = entryPoint(this.world, this.layout, this.pieces);
+		if (!this.generated) {
+			this.populateFixed(start);
+			return;
+		}
 		const training = this.affliction.def.training;
 		if (training) {
 			this.populateTraining(start);
@@ -228,7 +249,7 @@ export class Session implements SessionContext {
 		this.creatures.populate(start, (p) => tierAt(this.tiers, p));
 		const cells = new Set<string>();
 		for (const placement of this.layout.placements) {
-			const piece = PIECES[placement.piece];
+			const piece = this.pieces[placement.piece];
 			if (!piece) continue;
 			for (const [x, z, level] of occupiedCells(piece, placement)) cells.add(`${x},${z},${level}`);
 		}
@@ -240,13 +261,13 @@ export class Session implements SessionContext {
 			this.seed,
 			this.layout.doors.filter((door) => door.kind === 'gate').length
 		);
-		this.items.scatter(this.nav, this.seed, start, rubbleSites(this.layout, PIECES));
+		this.items.scatter(this.nav, this.seed, start, rubbleSites(this.layout, this.pieces));
 		this.items.scatterLoot(this.nav, this.seed, start, cells.size);
 		scatterRite(
 			this.affliction.def.rite,
 			{
 				layout: this.layout,
-				pieces: PIECES,
+				pieces: this.pieces,
 				kit: MAP_KIT,
 				world: this.world,
 				nav: this.nav,
@@ -257,6 +278,23 @@ export class Session implements SessionContext {
 			this.crates,
 			this.withheld
 		);
+	}
+
+	/**
+	 * The fixed map: a lootable at every marker (what each always holds in it), its seams sealed.
+	 * No creatures yet, and nothing scattered: what is in it is what its rooms put there.
+	 */
+	private populateFixed(start: Vec3): void {
+		this.creatures.quiet = true;
+		this.crates = new Crates(
+			this.world,
+			this.layout.crates,
+			this.nav,
+			start,
+			this.seed,
+			this.layout.doors.filter((door) => door.kind === 'gate').length
+		);
+		for (const id of sealedDoors(this.layout)) this.doors.bar(id);
 	}
 
 	/** A first time through the tutorial: its crates and things hold what they teach with. */
@@ -270,13 +308,13 @@ export class Session implements SessionContext {
 	private populateTraining(start: Vec3): void {
 		const training = this.affliction.def.training!;
 		this.creatures.quiet = true;
-		const spots = worldSpots(this.layout, PIECES);
+		const spots = worldSpots(this.layout, this.pieces);
 		for (const dummy of training.dummies) {
 			const spot = spots.find((s) => s.name === dummy.spot);
 			if (spot) this.creatures.placeDummy(spot.position, spot.yaw, dummy.track);
 		}
 		this.crates = new Crates(this.world, this.layout.crates, this.nav, start, this.seed, 0);
-		this.items.scatter(this.nav, this.seed, start, rubbleSites(this.layout, PIECES));
+		this.items.scatter(this.nav, this.seed, start, rubbleSites(this.layout, this.pieces));
 		this.stockTraining();
 	}
 
@@ -292,7 +330,7 @@ export class Session implements SessionContext {
 			);
 			crate.hidden = new Set(crate.slots.flatMap((s, k) => (s ? [k] : [])));
 		});
-		const spots = worldSpots(this.layout, PIECES);
+		const spots = worldSpots(this.layout, this.pieces);
 		for (const thing of training.floor) {
 			const spot = spots.find((s) => s.name === thing.spot);
 			if (!spot) continue;
@@ -605,8 +643,8 @@ export class Session implements SessionContext {
 		const nav = buildNav(
 			this.world,
 			this.layout,
-			PIECES,
-			entryPoint(this.world, this.layout, PIECES)
+			this.pieces,
+			entryPoint(this.world, this.layout, this.pieces)
 		);
 		log.info(
 			`Nav grid: ${nav.points.length} points in ${Math.round(performance.now() - started)} ms`
@@ -616,7 +654,7 @@ export class Session implements SessionContext {
 
 	/** A new body at the start room's spawn `index` (one each, in the order players joined). */
 	private spawnState(inventory: Inventory, index: number): PlayerState {
-		const spawn = spawnPoint(this.layout, PIECES, index);
+		const spawn = spawnPoint(this.layout, this.pieces, index);
 		return createPlayerState(this.freeSpot(spawn.position), spawn.yaw, inventory);
 	}
 

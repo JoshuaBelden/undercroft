@@ -11,7 +11,9 @@ import { Diver, kit, useSessions } from '../testing/harness.ts';
 
 /** Rumors, the training ground (docs/dev/rumors.md): its map, dummies, tutorial and rules. */
 
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+
+const open = useSessions({ generated: true });
 const SPEC = AFFLICTIONS.rumors.training!;
 
 function rumors(hooks = {}): Session {

@@ -10,7 +10,8 @@ import { HINTED_RITE, useRite } from '../testing/rites.ts';
 
 const SEED = 1;
 const RITE = HINTED_RITE;
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+const open = useSessions({ generated: true });
 
 describe('a rite of carried things and hints', () => {
 	useRite(HINTED_RITE);

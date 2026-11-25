@@ -37,7 +37,9 @@ afterAll(() => {
 	for (const [id, def] of Object.entries(ADDED)) if (ITEMS[id] === def) delete ITEMS[id];
 });
 
-const open = useSessions();
+// On a generated map: the fixed map has no room for what these test yet (docs/dev/fixed-map.md#tests).
+
+const open = useSessions({ generated: true });
 const FILL = LOOTABLES.font.fill!;
 
 /** A map with a font (the gloaming chapel has one, the vestry and drowned chapel too). */

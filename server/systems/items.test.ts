@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ITEMS } from '../../src/lib/content/items.ts';
 import { TAROT } from '../../src/lib/content/tarot.ts';
 import { carriedCount, newStack } from '../../src/lib/shared/items/inventory.ts';
-import { unsealExtracts } from '../../src/lib/shared/map/collision.ts';
 import type { Vec3 } from '../../src/lib/shared/map/types.ts';
 import { applyCondition, hasCondition } from '../../src/lib/shared/player/conditions.ts';
 import { HAND } from '../../src/lib/shared/player/types.ts';
@@ -172,11 +171,7 @@ describe('the end of a run', () => {
 	it('bait doesn’t keep: gone once you are out', () => {
 		const session = quiet();
 		const diver = new Diver(session, 'A', kit(['bait', 2], ['coins', 3]));
-		unsealExtracts(session.world);
-		const point = session.world.extracts[0];
-		diver.put(session['freeSpot']([point[0], point[1] - 0.3, point[2]]));
-		diver.hold({}, 0.5);
-		diver.hold({ interact: true }, 4);
+		diver.climbOut();
 		const out = diver.socket.last('extracted')!;
 		expect(out.carried).toEqual([{ item: 'coins', count: 3 }]);
 	});
