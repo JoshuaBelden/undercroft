@@ -48,16 +48,26 @@ describe('down, dead and revived', () => {
 		expect(patient.state.sanity).toBe(SANITY.reviveTo);
 	});
 
-	it('a teammate with salts revives a downed player stronger, using one', () => {
+	it('a teammate with salts revives a downed player quicker and stronger, using one', () => {
 		const session = open(SEED);
 		const helper = new Diver(session, 'A', kit(['salts']));
 		const patient = new Diver(session, 'B');
 		patient.put(helper.state.position);
 		session.admin(patient.id, { kind: 'setSanity', value: 0 });
-		helper.hold({ interact: true }, SANITY.reviveSeconds + 0.5);
+		helper.hold({ interact: true }, SANITY.saltsReviveSeconds + 0.2);
 		expect(patient.state.downed).toBe(false);
 		expect(patient.state.sanity).toBe(SANITY.saltsReviveTo);
 		expect(helper.state.inventory.quick[0]).toBeNull();
+	});
+
+	it('by hand, a revive takes longer than with salts', () => {
+		const session = open(SEED);
+		const helper = new Diver(session, 'A');
+		const patient = new Diver(session, 'B');
+		patient.put(helper.state.position);
+		session.admin(patient.id, { kind: 'setSanity', value: 0 });
+		helper.hold({ interact: true }, SANITY.saltsReviveSeconds + 0.2);
+		expect(patient.state.downed).toBe(true);
 	});
 
 	it('letting go of interact before the revive is done starts it over', () => {

@@ -13,14 +13,21 @@ export const SANITY = {
 	reviveTo: 20,
 	/** Sanity after smelling salts bring you round (a teammate's, or your own when alone). */
 	saltsReviveTo: 80,
-	/** Seconds to hold revive on a downed teammate. */
+	/** Seconds to hold revive on a downed teammate, by hand. */
 	reviveSeconds: 3,
+	/** Seconds to hold it with smelling salts to hand: a sniff and they're up. */
+	saltsReviveSeconds: 1,
 	reviveRange: 1.5,
 	/** Seconds a downed player lasts before dying. */
 	bleedOut: 60,
 	/** Seconds a downed player holds climb to give up and die at once. */
 	surrenderSeconds: 1
 };
+
+/** How long a revive is held: quicker with smelling salts to hand. */
+export function reviveSeconds(salts: boolean): number {
+	return salts ? SANITY.saltsReviveSeconds : SANITY.reviveSeconds;
+}
 
 /**
  * Using what is in your hand on a teammate (bandaging them, changing their lamp's battery): hold

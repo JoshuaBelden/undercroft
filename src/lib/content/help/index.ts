@@ -392,7 +392,7 @@ If there is nothing to wait for, hold {action:climb} for a moment to surrender. 
 		category: 'Surviving',
 		body: `If a teammate is down, go to them and hold {action:interact}. It takes a few seconds. By hand they come back shaken, with little sanity left.
 
-With smelling salts to hand, one is used and they come back far steadier.
+With smelling salts to hand it is much quicker: one is used and they come back far steadier.
 
 If no one can reach you, because you're alone or everyone else is down too, you use your own salts. Without salts, and without help, you won't get up again.
 

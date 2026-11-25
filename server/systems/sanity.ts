@@ -1,5 +1,5 @@
 import { CREATURES } from '../../src/lib/content/creatures.ts';
-import { SANITY } from '../../src/lib/content/player/sanity.ts';
+import { reviveSeconds, SANITY } from '../../src/lib/content/player/sanity.ts';
 import { segmentBlocked } from '../../src/lib/shared/map/collision.ts';
 import {
 	creatureLight,
@@ -116,9 +116,9 @@ export class SanitySystem implements SessionSystem {
 				continue;
 			}
 			s.reviving += TICK_DT;
-			if (s.reviving >= SANITY.reviveSeconds) {
+			const salts = quickWith(s.inventory, 'revive');
+			if (s.reviving >= reviveSeconds(salts >= 0)) {
 				s.reviving = 0;
-				const salts = quickWith(s.inventory, 'revive');
 				if (salts >= 0) spendQuick(s.inventory, salts);
 				ctx.revive(patient, salts >= 0 ? SANITY.saltsReviveTo : SANITY.reviveTo);
 				log.info(`${reviver.name} revived ${patient.name}${salts >= 0 ? ' with salts' : ''}`);
