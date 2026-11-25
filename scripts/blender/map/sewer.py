@@ -713,24 +713,24 @@ def markers(coll, root, frames):
     # The way you came in, always open: up the ladder. It climbs like a rope (rope-<n>, docs/dev/
     # rope.md): grab it at the foot, climb, and LADDER_EXIT up you are out.
     m("rope-0", (0.0, LADDER_Y, LADDER_TOP), length=LADDER_TOP, exit=LADDER_EXIT, ladder=1)
-    # The Storeroom's door, locked until opened with the key; one of the crates holds it.
+    # The Storeroom's door, locked until opened with the key: the explorer who got this far and no
+    # further lies by it, the key on them.
     (x0, x1), (y0, y1) = STORE_X, STORE_Y
     door_x = (DOOR[0] + DOOR[1]) / 2
     size = {"width": DOOR[1] - DOOR[0], "height": DOOR_H}  # a door of its own size, not the double door
     m("door-0", (door_x, y0 - DOOR_DEPTH / 2, 0.0), toward=(0, 1), key="key", **size)
     m("door-1", (door_x, STAIR_END, -DROP), toward=(0, 1), **size)
     m("socket-door-0", (door_x, STAIR_END - DOOR_DEPTH - 0.05, -DROP))
-    m("lootable-crate-0", (18.1, -10.8, 0.0), toward=(0, 1), holds="key")  # the middle aisle
+    m("lootable-corpse-0", (door_x + 1.6, y0 + 0.9, 0.0), toward=(0, -1), holds="key")
+    m("lootable-crate-0", (18.1, -10.8, 0.0), toward=(0, 1))  # the middle aisle
     m("lootable-crate-1", (17.9, y1 - 0.8, 0.0), toward=(0, 1))  # by the crack
     m("lootable-crate-2", (x0 + 1.3, y0 + 0.6, 0.0), toward=(0, -1))  # by the door
     m("lootable-crate-3", (14.4, y1 - 0.5, 0.0), toward=(0, 1))
     end, side, _ = frames[-1]
     side = side.normalized()
     back = (frames[-2][0] - end).normalized()
-    m("lootable-ratNest-0", tuple(end + back * 4.7 + side * -WALKWAY_Y), toward=tuple(back.xy * -1))
-    grate, grate_side, _ = next(f for f in frames if abs(f[2] - GRATE_AT) < 1e-3)
-    satchel = grate + (frames[0][0] - grate).normalized() * -1.0 + grate_side.normalized() * -WALKWAY_Y
-    m("lootable-satchel-0", tuple(satchel), toward=tuple(grate_side.xy * -1))
+    m("lootable-bonePile-0", tuple(end + back * 4.7 + side * -WALKWAY_Y), toward=tuple(back.xy * -1))
+    grate, _, _ = next(f for f in frames if abs(f[2] - GRATE_AT) < 1e-3)
     # Sounds (sound-<id>-<n>): what the room needs recorded. Silent until it is.
     m("sound-sewer.flow-0", tuple(grate + Vector((0, 0, 0.3))))
     m("sound-sewer.drip-0", (5.0, 0.6, 3.6))

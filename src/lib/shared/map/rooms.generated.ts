@@ -26,12 +26,12 @@ export const ROOMS: Record<string, RoomDef> = {
 		altars: [],
 		crates: [],
 		lootables: [
-			{ type: 'crate', position: [18.1, 0, 10.8], yaw: 0, holds: 'key' },
+			{ type: 'bonePile', position: [23.1486, 0, -0.3324], yaw: -1.971 },
+			{ type: 'corpse', position: [16.6, 0, 13.9], yaw: -3.1416, holds: 'key' },
+			{ type: 'crate', position: [18.1, 0, 10.8], yaw: 0 },
 			{ type: 'crate', position: [17.9, 0, 7.6], yaw: 0 },
 			{ type: 'crate', position: [13.3, 0, 14.2], yaw: -3.1416 },
-			{ type: 'crate', position: [14.4, 0, 7.3], yaw: 0 },
-			{ type: 'ratNest', position: [23.1486, 0, -0.3324], yaw: -1.971 },
-			{ type: 'satchel', position: [-24.2657, 0, 0.1073], yaw: 0.4089 }
+			{ type: 'crate', position: [14.4, 0, 7.3], yaw: 0 }
 		],
 		doors: [
 			{ position: [15, 0, 15], yaw: 0, marker: 'door-0', key: 'key', size: [2, 2.6, 0.2] },
@@ -410,7 +410,7 @@ export const ROOMS: Record<string, RoomDef> = {
 			}
 		],
 		triangles: 40199,
-		lightmap: { url: '/assets/shared/rooms/sewer.lightmap.c997c3ff.webp', bytes: 16266 },
+		lightmap: { url: '/assets/shared/rooms/sewer.lightmap.1e6e1d0e.webp', bytes: 16266 },
 		sounds: [
 			{ id: 'sewer.drip', position: [5, 3.6, -0.6] },
 			{ id: 'sewer.drip', position: [-8, 3.6, 0.6] },

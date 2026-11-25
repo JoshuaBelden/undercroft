@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { GATES } from '../src/lib/content/doors.ts';
 import { CRATES } from '../src/lib/content/loot.ts';
-import { LOOTABLES } from '../src/lib/content/lootables.ts';
 import { carriedCount } from '../src/lib/shared/items/inventory.ts';
+import { lootableOf } from '../src/lib/shared/items/lootables.ts';
 import { crateCentre } from '../src/lib/shared/map/crates.ts';
 import { doorBox } from '../src/lib/shared/map/doors.ts';
 import { spawnPoint } from '../src/lib/shared/map/points.ts';
@@ -19,7 +19,7 @@ import { Diver, useSessions } from './testing/harness.ts';
 const SEED = 1;
 const open = useSessions();
 
-/** Stand in front of the crate that holds `item`, looking at it, and open it. */
+/** Stand in front of the lootable that holds `item` (a crate, a body), looking at it, and open it. */
 function openCrateHolding(session: Session, diver: Diver, item: string): void {
 	const placement = session.layout.crates.find((c) => c.holds === item)!;
 	const crate = session['crates'].list().find(({ crate }) => crate.id === placement.id)!.crate;
@@ -31,7 +31,7 @@ function openCrateHolding(session: Session, diver: Diver, item: string): void {
 	diver.put(session.freeSpot(front));
 	diver.hold({}, 0.3);
 	const look = diver.lookAt(crateCentre(crate));
-	diver.hold({ ...look, interact: true }, LOOTABLES.crate.open[0].seconds + 0.2);
+	diver.hold({ ...look, interact: true }, lootableOf(crate).open[0].seconds + 0.2);
 	expect(diver.player.crate).toBe(crate.id);
 	diver.hold(look, CRATES.revealSeconds * 9);
 }
@@ -80,13 +80,16 @@ describe('the way in, played', () => {
 		expect(session['doors'].isOpen(door.id)).toBe(false);
 	});
 
-	it('the key from its crate opens the door, and is used up; the seam stays shut; the ladder gets you out', () => {
+	it('the key from the body by the door opens it, and is used up; the seam stays shut; the ladder gets you out', () => {
 		const session = open(SEED);
 		const diver = new Diver(session);
 
 		openCrateHolding(session, diver, 'key');
 		take(session, diver, 'key');
 		expect(carriedCount(diver.state.inventory, 'key')).toBe(1);
+		// Done with the body: put its screen away (it lies by the door, still in reach).
+		session.closeCrate(diver.id);
+		diver.hold({}, 0.1);
 
 		const door = session.layout.doors.find((d) => d.key === 'key')!;
 		tryDoor(session, diver, door, GATES.keySeconds + 0.5);
@@ -103,7 +106,7 @@ describe('the way in, played', () => {
 		expect(session.ended).toBe(true);
 	});
 
-	it('the key is in its crate every time the crates are filled again', () => {
+	it('the key is on the body every time the lootables are filled again', () => {
 		const session = open(SEED);
 		const crateId = session.layout.crates.find((c) => c.holds === 'key')!.id;
 		const crate = () => session['crates'].list().find(({ crate }) => crate.id === crateId)!.crate;
