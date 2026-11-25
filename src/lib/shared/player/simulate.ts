@@ -567,16 +567,22 @@ export function tendSeconds(s: PlayerState): number | null {
 	return null;
 }
 
-/** The extraction point within reach of the player, if any. */
+/**
+ * The extraction point within reach of the player, if any. Downed, the foot of an extraction rope
+ * counts too: they can't climb it, so the levels' extraction rooms (whose only way out is a rope)
+ * would have none they could reach. They drag themselves to it and hold interact, as at a door.
+ */
 export function nearExtract(world: CollisionWorld, s: PlayerState): Vec3 | null {
 	const [x, y, z] = s.position;
-	for (const point of world.extracts) {
-		if (
-			Math.hypot(point[0] - x, point[2] - z) <= EXPEDITION.extractRadius &&
-			Math.abs(point[1] - y) <= EXPEDITION.extractHeight
-		) {
-			return point;
-		}
+	const within = (point: Vec3): boolean =>
+		Math.hypot(point[0] - x, point[2] - z) <= EXPEDITION.extractRadius &&
+		Math.abs(point[1] - y) <= EXPEDITION.extractHeight;
+	for (const point of world.extracts) if (within(point)) return point;
+	if (!s.downed) return null;
+	for (const rope of world.ropes) {
+		if (rope.exitY === undefined || rope.hangsFree) continue;
+		const foot: Vec3 = [rope.top[0], rope.bottom, rope.top[2]];
+		if (within(foot)) return foot;
 	}
 	return null;
 }

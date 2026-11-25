@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AFFLICTIONS } from '../src/lib/content/afflictions.ts';
+import { EXPEDITION } from '../src/lib/content/expedition.ts';
 import { MAP_KIT } from '../src/lib/content/map/kit.ts';
 import { SANITY } from '../src/lib/content/player/sanity.ts';
 import { unsealExtracts } from '../src/lib/shared/map/collision.ts';
@@ -236,6 +237,31 @@ describe('getting out', () => {
 		expect(diver.state.climbing?.rope).toBe(rope.id);
 		diver.hold({ moveZ: 1 }, 14);
 		expect(diver.socket.last('extracted')!.carried).toEqual([{ item: 'coins', count: 3 }]);
+	});
+
+	it('downed at the foot of an extraction rope, holding interact gets you out', () => {
+		const session = open(SEED);
+		const diver = new Diver(session, 'A', kit(['coins', 3]));
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const rope = session['world'].ropes.find((r) => r.exitY !== undefined)!;
+		diver.put([rope.top[0] + 0.4, rope.bottom + 0.05, rope.top[2]], Math.PI / 2);
+		session.admin(diver.id, { kind: 'setSanity', value: 0 });
+		expect(diver.state.downed).toBe(true);
+		diver.hold({}, 0.3);
+		diver.hold({ interact: true }, EXPEDITION.extractSeconds + 0.5);
+		expect(diver.socket.last('extracted')!.carried).toEqual([{ item: 'coins', count: 3 }]);
+	});
+
+	it('standing at the foot of an extraction rope, interact takes hold of it, not the hold out', () => {
+		const session = open(SEED);
+		const diver = new Diver(session);
+		session.admin(diver.id, { kind: 'clearCreatures' });
+		const rope = session['world'].ropes.find((r) => r.exitY !== undefined)!;
+		diver.put([rope.top[0] + 0.4, rope.bottom + 0.05, rope.top[2]], Math.PI / 2);
+		diver.hold({}, 0.3);
+		diver.hold({ interact: true }, EXPEDITION.extractSeconds + 0.5);
+		expect(diver.state.climbing?.rope).toBe(rope.id);
+		expect(diver.socket.last('extracted')).toBeUndefined();
 	});
 
 	it('a long fall hurts, hobbles and is heard', () => {

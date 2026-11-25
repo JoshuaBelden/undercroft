@@ -113,7 +113,7 @@ The extraction rooms' way out is a rope going up into the dark (`rope_anchor` in
 
 **How:** it runs in the shared simulation, so the client predicts the progress bar and the server decides.
 
-- **Up a rope:** take hold with `climb` and climb. When the feet reach the rope's `exitY`, `state.extracted` is set (`stepClimb`). The prompt says "[W] to climb out", its pill filling with how far up you are. A downed player can't climb, so the chapel's ladder is the only way out they can crawl to.
+- **Up a rope:** take hold with `climb` and climb. When the feet reach the rope's `exitY`, `state.extracted` is set (`stepClimb`). The prompt says "[W] to climb out", its pill filling with how far up you are. A downed player can't climb, so for them the foot of an extraction rope is a hold like the door's: `nearExtract` counts it (within `extractRadius` of the rope, `extractHeight` of its `bottom`) only while `downed`, and they drag themselves there and hold `interact`. Standing, interact at the rope's foot still takes hold of it.
 - **At the door:** holding `interact` (E) while standing still, grounded and not swimming, within `extractRadius` (horizontal) and `extractHeight` of a point, adds to `state.extracting`.
 - Moving, letting go or mantling resets it to 0.
 - At `extractSeconds` (3 s), `state.extracted` is set. The server stops simulating that player and finishes the extraction.
