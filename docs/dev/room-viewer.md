@@ -23,11 +23,22 @@ A room follows the kit's conventions ([asset-pipeline.md](asset-pipeline.md#conv
 Each room has a build script in `scripts/blender/map/` (the first is `sewer.py`, the way in, [#150](https://github.com/JoshuaBelden/undercroft/issues/150)). It builds the grey box into a new `art/blender/rooms/<room>.blend`, saves it and exports it, and refuses to replace a .blend that exists: from then on the .blend is the source, edited by hand, and the script only exports it. Headless, without opening Blender:
 
 ```
-blender -b --factory-startup -P scripts/blender/map/sewer.py                # build, save, export
-blender -b art/blender/rooms/sewer.blend -P scripts/blender/map/sewer.py -- --export
+blender -b --factory-startup -P scripts/blender/map/sewer.py                # build, bake, save, export
+blender -b --factory-startup -P scripts/blender/map/sewer.py -- --force     # rebuild over hand edits
+blender -b art/blender/rooms/sewer.blend -P scripts/blender/map/sewer.py -- --bake    # bake again, save, export
+blender -b art/blender/rooms/sewer.blend -P scripts/blender/map/sewer.py -- --export  # export only
 ```
 
-`common.py` has what every room shares: the root and markers (turned to face a way), collision boxes, a cross-section swept along a path with holes left for doorways, walls with holes, saving and exporting. Grey-box materials are flat colours named by use (`mat-sewer-wall`), so texturing a room is a change to its materials, not its geometry.
+`common.py` has what every room shares: the root and markers (turned to face a way), collision boxes, a cross-section swept along a path with holes left for doorways, walls with holes, the lightmap's UV and bake, saving and exporting. Materials are named by use (`mat-sewer-wall`) and map to a texture set in `art/textures` (the room script's `add_materials`), so a better texture is a change there, not to the geometry. The export carries textures at 1024 px, the size the game ships map textures at, so the viewer shows what players will see.
+
+### Lightmaps
+
+Rooms are lit by baking: the light falling on every surface is worked out once in Blender and painted into a texture, so the game draws it for the cost of a texture lookup (the handoff's [Light: baked](../handoff-pivot.md#light-baked-decided)).
+
+- **The second UV map**, `Lightmap` (`common.lightmap_uv`, Smart UV Project): every face its own place on the page, with a margin so light doesn't bleed between faces. The first UV map stays the textures'. Both are exported (`TEXCOORD_0`, `TEXCOORD_1`).
+- **What lights it**: the room's own lights (the Sewer's `bake-daylight`, an area lamp under the manhole shining down), emissive surfaces (`mat-daylight`), and nothing else: the world is black underground. The lights are in the .blend to tune by hand, and never exported.
+- **The bake** (`common.bake_lightmap`): Cycles, Diffuse with direct and indirect light and no colour, 1024 px and 1024 samples, saved as `art/export/rooms/<room>.lightmap.png`. It takes about 20 seconds for the way in. Light over 1 clips in the PNG: the bake prints its brightest value; keep the lamps under it except where a surface should burn white.
+- **In the game**, the material's colour is multiplied by it: Three.js's `lightMap` on the second UV, at an intensity of pi (`LIGHTMAP_INTENSITY`), because Three.js treats a lightmap as irradiance and divides it by pi in its shading. The headlamp still lights everything as a real light, on top.
 
 ### Locks, keys and sounds
 
@@ -57,9 +68,9 @@ A room's sounds are registered in `sounds.ts` like any other, with the `file` id
 | Even light      | B   | An ambient and sky light, for a room with nothing baked yet |
 | Headlamp        | –   | A light on the camera, about the game's headlamp at full    |
 
-A room with a lightmap opens with it on and the even light off; one without, the other way round.
+A room with a lightmap opens with it and the headlamp on and the even light off, as a player would see it; one without, with the even light only.
 
-**Cost**, against `ROOM_BUDGET` (`src/lib/content/map/roomViewer.ts`), red when over: triangles, draw calls, the textures' count and GPU memory (with mipmaps), the lightmap's size and texels per metre (its pixels over the surface area that carries a second UV; the handoff's aim is 10 to 16), and the frame rate. The numbers are a starting point, to be tuned as the first rooms are built. The raw export's textures are full size (4K), so texture memory reads higher here than in the game, where the build shrinks them.
+**Cost**, against `ROOM_BUDGET` (`src/lib/content/map/roomViewer.ts`), red when over: triangles, draw calls, the textures' count and GPU memory (with mipmaps), the lightmap's size and texels per metre (its pixels over the surface area that carries a second UV; the handoff's aim is 10 to 16), and the frame rate. The numbers are a starting point, to be tuned as the first rooms are built.
 
 **Where you were** is kept per room in the browser (`localStorage`, `undercroft.roomViewer.views`), so a room opens where you left it. A room never opened before starts at its first spawn, or over its middle.
 

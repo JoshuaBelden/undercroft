@@ -63,7 +63,12 @@
 			manifest = await viewer.load(found);
 			hasLightmap = viewer.hasLightmap;
 			if (first) {
-				viewer.setToggles({ lightmap: hasLightmap, fullbright: !hasLightmap });
+				// A baked room is dark away from its lamps: see it as a player would, by the headlamp.
+				viewer.setToggles({
+					lightmap: hasLightmap,
+					fullbright: !hasLightmap,
+					headlamp: hasLightmap
+				});
 				viewer.restore(savedViews()[found.name] ?? viewer.startView());
 			}
 			if (again) reloadedAt = performance.now();

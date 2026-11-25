@@ -67,6 +67,13 @@ export interface RoomView {
 	mode: RoomViewMode;
 }
 
+/**
+ * A lightmap holds what Blender's diffuse bake (light only, no colour) gives: the surface's colour
+ * is multiplied by it. Three.js treats a lightmap as irradiance, which its Lambert shading divides
+ * by pi, so it is scaled back up by pi to match (docs/dev/room-viewer.md#lightmaps).
+ */
+export const LIGHTMAP_INTENSITY = Math.PI;
+
 const DT = 1 / SIM_RATE;
 const MAX_STEPS = 10;
 const STANCES: Stance[] = ['stand', 'crouch', 'crawl'];
@@ -322,6 +329,7 @@ export class RoomViewer {
 				if (!(material instanceof THREE.MeshStandardMaterial)) continue;
 				if (material.lightMap === lightmap) continue;
 				material.lightMap = lightmap;
+				material.lightMapIntensity = LIGHTMAP_INTENSITY;
 				material.needsUpdate = true;
 			}
 		});

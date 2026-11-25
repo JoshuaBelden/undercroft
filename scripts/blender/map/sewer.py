@@ -8,6 +8,7 @@ art/export/rooms/sewer.glb. Headless:
     blender -b --factory-startup -P scripts/blender/map/sewer.py            # build, save, export
     blender -b --factory-startup -P scripts/blender/map/sewer.py -- --force # rebuild over hand edits
     blender -b art/blender/rooms/sewer.blend -P scripts/blender/map/sewer.py -- --export
+    blender -b art/blender/rooms/sewer.blend -P scripts/blender/map/sewer.py -- --bake   # bake the light again, save, export
 
 Layout, Blender axes (+Y north, Z up, metres). The tunnel runs west to east along y = 0, its floor
 (the walkway) at z = 0, with a bend down to the south near each end:
@@ -31,20 +32,21 @@ from common import kit  # noqa: E402
 
 NAME = "sewer"
 
+# Texture sets already in art/textures (ambientCG), metres per repeat. The names say what each
+# surface is, so a better set later is a change here.
 common.add_materials(
     {
-        "mat-sewer-wall": {"color": (0.42, 0.42, 0.40), "roughness": 0.9},
-        "mat-sewer-walkway": {"color": (0.55, 0.54, 0.50), "roughness": 0.9},
-        "mat-sewer-channel": {"color": (0.24, 0.24, 0.22), "roughness": 0.7},
-        "mat-sewer-end": {"color": (0.01, 0.01, 0.01), "roughness": 1.0},
-        "mat-iron": {"color": (0.18, 0.12, 0.09), "roughness": 0.6},
-        "mat-storeroom-wall": {"color": (0.45, 0.30, 0.24), "roughness": 0.9},
-        "mat-storeroom-floor": {"color": (0.30, 0.26, 0.22), "roughness": 0.9},
-        "mat-timber": {"color": (0.33, 0.24, 0.16), "roughness": 0.85},
-        "mat-drum": {"color": (0.22, 0.26, 0.20), "roughness": 0.6},
-        "mat-stair": {"color": (0.50, 0.47, 0.42), "roughness": 0.9},
-        "mat-rubble": {"color": (0.36, 0.35, 0.33), "roughness": 1.0},
-        "mat-ladder": {"color": (0.15, 0.10, 0.07), "roughness": 0.6},
+        "mat-sewer-wall": {"set": "Road015C", "tile": 3.0},  # cast cement
+        "mat-sewer-walkway": {"set": "Road015C", "tile": 2.0},
+        "mat-sewer-channel": {"set": "Rock061", "tile": 2.0},  # worn by the water
+        "mat-sewer-end": {"color": (0.01, 0.01, 0.01), "roughness": 1.0},  # on into the dark
+        "mat-iron": {"set": "Metal047A", "tile": 0.5},
+        "mat-storeroom-wall": {"set": "Bricks073C", "tile": 1.5},
+        "mat-storeroom-floor": {"set": "PavingStones127", "tile": 2.0},
+        "mat-timber": {"set": "Planks025A", "tile": 1.0},
+        "mat-drum": {"set": "Metal056B", "tile": 1.0},
+        "mat-stair": {"set": "PavingStones127", "tile": 1.5},
+        "mat-rubble": {"set": "Rock061", "tile": 1.5},
     }
 )
 
@@ -66,6 +68,8 @@ WALL_TOP = SPRING + 0.4  # and the walls' height, into the foot of the vault
 SHAFT = (-0.6, 0.6)  # x
 SHAFT_Y = (HALF_W, HALF_W + 1.0)
 SHAFT_TOP = 8.0  # the street
+DAYLIGHT_W = 700  # the bake's daylight down it (W): a bright pool at its foot
+DAYLIGHT_SPREAD = 30  # degrees: mostly straight down
 
 # The crack, in the south wall at x = 17: a crawl south to the Storeroom
 CRACK = (16.5, 17.5)  # x
@@ -140,9 +144,29 @@ def build():
     crack(mb, coll, root)
     storeroom(mb, coll, root)
     stair(mb, coll, root)
-    mb.finish(coll, root)
+    common.lightmap_uv(mb.finish(coll, root))
     markers(coll, root, frames)
+    lights(coll, root)
     return coll
+
+
+def lights(coll, root):
+    """What the bake is lit by (never exported: the game's light is the lightmap). Daylight down
+    the manhole: a lamp the size of the shaft just under the cover, shining down. Everything else
+    in the way in is dark: the headlamp's to light."""
+    import bpy
+
+    data = bpy.data.lights.new("bake-daylight", "AREA")
+    data.shape = "RECTANGLE"
+    data.size, data.size_y = SHAFT[1] - SHAFT[0], SHAFT_Y[1] - SHAFT_Y[0]
+    data.energy = DAYLIGHT_W
+    # Narrow: the light comes down the shaft from the sky, not sideways into its walls.
+    data.spread = math.radians(DAYLIGHT_SPREAD)
+    data.color = (1.0, 0.96, 0.88)
+    lamp = bpy.data.objects.new("bake-daylight", data)
+    lamp.location = (0.0, (SHAFT_Y[0] + SHAFT_Y[1]) / 2, SHAFT_TOP - 0.1)
+    coll.objects.link(lamp)
+    lamp.parent = root
 
 
 def tunnel(mb, coll, root, frames, rings):
@@ -349,16 +373,27 @@ def stair(mb, coll, root):
     mb.face([(x0, STAIR_FOOT, foot), (x1, STAIR_FOOT, foot), (x1, STAIR_TOP, top), (x0, STAIR_TOP, top)], S, facing=(0, 0, -1))
     mb.face([(x0, STAIR_END, foot), (x1, STAIR_END, foot), (x1, STAIR_FOOT, foot), (x0, STAIR_FOOT, foot)], S, facing=(0, 0, -1))
     # Side walls, following the floor and the ceiling.
+    # The walls' foot runs under the treads (through the bottom of each riser), so no gap shows
+    # between a step and the wall.
+    last_riser = STAIR_TOP - (RISERS - 1) * TREAD
     outline = [
-        (y_door, 0), (STAIR_TOP, 0), (STAIR_FOOT, -DROP), (STAIR_END, -DROP),
+        (y_door, 0), (STAIR_TOP, 0), (STAIR_TOP, -RISE_H), (last_riser, -DROP), (STAIR_END, -DROP),
         (STAIR_END, foot), (STAIR_FOOT, foot), (STAIR_TOP, top), (y_door, top),
     ]
     mb.face([(x0, y, z) for y, z in outline], S, facing=(1, 0, 0))
     mb.face([(x1, y, z) for y, z in outline], S, facing=(-1, 0, 0))
-    # The far end, round the next door: where the Parish Walk joins.
+    # The far end, round the next door: where the Parish Walk joins. Until it does, dark stone
+    # just behind the doorway stands in for it.
     common.wall_with_hole(
         mb, (x0, STAIR_END), (x1, STAIR_END), -DROP, foot, S, (0, 1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)]
     )
+    behind = STAIR_END - 0.3
+    mb.face(
+        [(DOOR[0], behind, -DROP), (DOOR[1], behind, -DROP), (DOOR[1], behind, -DROP + DOOR_H), (DOOR[0], behind, -DROP + DOOR_H)],
+        "mat-sewer-end",
+        facing=(0, 1, 0),
+    )
+    common.inward_box(mb, (DOOR[0], behind, -DROP), (DOOR[1], STAIR_END, -DROP + DOOR_H), S, skip={"+y", "-y"})
 
     common.col_span(coll, root, "col-stair-top", (x0, STAIR_TOP, -0.3), (x1, y_door, 0.0))
     common.col_span(coll, root, "col-stair-bottom", (x0, STAIR_END, -DROP - 0.3), (x1, STAIR_FOOT, -DROP))
@@ -414,12 +449,20 @@ def markers(coll, root, frames):
 
 def main():
     args = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
-    if "--export" not in args:
+    if "--export" not in args and "--bake" not in args:
         blend = os.path.join(common.BLEND_DIR, NAME + ".blend")
         if os.path.exists(blend) and "--force" not in args:
             # Its hand edits would be lost: rebuild only on purpose.
             raise SystemExit(f"{os.path.relpath(blend, common.REPO)} exists: export it (-- --export), or rebuild with -- --force")
         build()
+    if "--bake" in args or "--export" not in args:
+        import bpy
+
+        path, peak = common.bake_lightmap(
+            bpy.data.objects[NAME + "-mesh"], os.path.join(common.EXPORT_DIR, NAME + ".lightmap.png")
+        )
+        print(f"  {os.path.relpath(path, common.REPO)} (brightest {peak})")
+    if "--export" not in args:
         print("  " + os.path.relpath(common.save_blend(NAME), common.REPO))
     print("  " + os.path.relpath(common.export_room(NAME), common.REPO))
 

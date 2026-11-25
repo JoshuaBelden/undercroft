@@ -214,8 +214,84 @@ def save_blend(name):
     return path
 
 
+LIGHTMAP_UV = "Lightmap"
+# Textures at the size the game ships them (`pnpm asset:build`'s map pieces): the export is small
+# and the room viewer shows what players will see.
+EXPORT_TEXTURE = 1024
+
+
+def lightmap_uv(obj, margin=0.004):
+    """A second UV map for the baked light: every face its own place on the page (Smart UV
+    Project), apart enough that light doesn't bleed between them. The first stays the textures'."""
+    mesh = obj.data
+    if LIGHTMAP_UV not in mesh.uv_layers:
+        mesh.uv_layers.new(name=LIGHTMAP_UV)
+    mesh.uv_layers.active = mesh.uv_layers[LIGHTMAP_UV]
+    mesh.uv_layers[0].active_render = True
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=math.radians(50), island_margin=margin, area_weight=1.0)
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+
+def bake_lightmap(obj, path, size=1024, samples=1024):
+    """Bake the light falling on `obj` (direct and bounced, without its colour) into its
+    lightmap UV, and save it as a PNG at `path`. The game multiplies it by each surface's colour
+    (Three.js `lightMap`, docs/dev/room-viewer.md#lightmaps). Lights, emissive surfaces and the
+    world light it; colliders and markers don't render, so they don't shade it."""
+    scene = bpy.context.scene
+    scene.render.engine = "CYCLES"
+    scene.cycles.samples = samples
+    # No sky: underground, the only light is the room's own lamps and glowing surfaces.
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("underground")
+    scene.world.use_nodes = True
+    background = next(n for n in scene.world.node_tree.nodes if n.type == "BACKGROUND")
+    background.inputs["Strength"].default_value = 0.0
+    scene.cycles.use_denoising = False
+    scene.render.bake.margin = 8
+    image = bpy.data.images.get(obj.name + "-lightmap") or bpy.data.images.new(
+        obj.name + "-lightmap", size, size, float_buffer=True
+    )
+    if tuple(image.size) != (size, size):
+        image.scale(size, size)
+    mesh = obj.data
+    mesh.uv_layers.active = mesh.uv_layers[LIGHTMAP_UV]
+    added = []
+    for mat in mesh.materials:
+        nodes = mat.node_tree.nodes
+        node = nodes.new("ShaderNodeTexImage")
+        node.image = image
+        nodes.active = node
+        added.append((mat, node))
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, use_clear=True)
+    for mat, node in added:
+        mat.node_tree.nodes.remove(node)
+    mesh.uv_layers.active = mesh.uv_layers[0]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    image.filepath_raw = path
+    image.file_format = "PNG"
+    image.save()
+    pixels = image.pixels[:]
+    # The brightest light (not alpha): over 1 is clipped in the PNG, so keep the bake under it.
+    peak = max(max(pixels[0::4]), max(pixels[1::4]), max(pixels[2::4]))
+    return path, peak
+
+
 def export_room(name):
-    """art/export/rooms/<room>.glb, with custom properties as extras (rope lengths, keys...)."""
+    """art/export/rooms/<room>.glb, with custom properties as extras (rope lengths, keys...) and
+    both UV maps (textures, then the lightmap's)."""
+    for image in bpy.data.images:
+        w, h = image.size
+        if image.source == "FILE" and max(w, h) > EXPORT_TEXTURE:
+            # Only in this session: the .blend keeps the full-size files it points at.
+            image.scale(min(w, EXPORT_TEXTURE), min(h, EXPORT_TEXTURE))
     os.makedirs(EXPORT_DIR, exist_ok=True)
     layer = kit._find_layer_collection(bpy.context.view_layer.layer_collection, name)
     bpy.context.view_layer.active_layer_collection = layer
