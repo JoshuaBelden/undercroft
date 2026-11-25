@@ -47,7 +47,7 @@ common.add_materials(
         "mat-sewer-water": {"color": (0.035, 0.04, 0.03), "roughness": 0.08},  # still, black, opaque
         "mat-sewer-end": {"color": (0.01, 0.01, 0.01), "roughness": 1.0},  # on into the dark
         "mat-crack": {"set": "Rock061", "tile": 1.5},
-        "mat-iron": {"set": "Metal047A", "tile": 0.5, "metallic": 0.15},  # rusted: dull, not shining
+        "mat-iron": {"set": "MetalPlates013", "tile": 0.5, "metallic": 0.15},  # dark weathered iron, dull
         "mat-rubble": {"set": "Rock061", "tile": 1.5},
         "mat-storeroom-wall": {"set": "PavingStones127", "tile": 1.5},  # dressed stone
         "mat-storeroom-floor": {"set": "Tiles093", "tile": 2.0},
