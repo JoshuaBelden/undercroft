@@ -963,12 +963,12 @@ export class Session implements SessionContext {
 		log.info(`Player ${player.name} is down`);
 	}
 
-	revive(player: Player): void {
+	revive(player: Player, to: number = SANITY.reviveTo): void {
 		const s = player.state;
 		s.downed = false;
 		s.downedTime = 0;
 		s.surrendering = 0;
-		s.sanity = Math.max(s.sanity, SANITY.reviveTo);
+		s.sanity = Math.max(s.sanity, to);
 	}
 
 	broadcast(message: ServerMessage): void {

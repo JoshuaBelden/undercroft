@@ -1,7 +1,7 @@
 import { DEFAULT_HEADLAMP } from '#lib/content/items/headlamps.ts';
 import { ITEMS } from '#lib/content/items.ts';
 import { CRAFT } from '#lib/content/recipes.ts';
-import { SANITY } from '#lib/content/player/sanity.ts';
+import { reviveSeconds, SANITY } from '#lib/content/player/sanity.ts';
 import type { SoundHandle } from '#lib/game/audio/AudioManager.ts';
 import { rumble } from '#lib/game/input/gamepad.ts';
 import { quickWith, shieldOf } from '#lib/shared/items/inventory.ts';
@@ -128,23 +128,27 @@ export class Vitals implements PlayFeature {
 				progress: state.crafting / (CRAFT.field.seconds * state.mods.craftTime)
 			};
 		}
-		if (this.downedNearby(state)) {
-			if (quickWith(state.inventory, 'revive') < 0) {
-				return { prompt: 'No smelling salts to hand', progress: 0 };
-			}
-			return keyPrompt('interact', 'to revive', state.reviving / SANITY.reviveSeconds);
+		const downed = this.downedNearby(state);
+		if (downed) {
+			// By hand always; smelling salts to hand bring them round quicker and stronger (and are used).
+			const salts = quickWith(state.inventory, 'revive') >= 0;
+			return keyPrompt(
+				'interact',
+				salts ? `Revive ${downed.name} with smelling salts` : `Revive ${downed.name}`,
+				state.reviving / reviveSeconds(salts)
+			);
 		}
 		return null;
 	}
 
 	/** A downed teammate within reach, if any. */
-	private downedNearby(state: PlayerState): PlayerState | null {
-		for (const other of this.ctx.remote.states()) {
-			if (!other.downed || other.dead) continue;
+	private downedNearby(state: PlayerState): { name: string; state: PlayerState } | null {
+		for (const other of this.ctx.remote.players()) {
+			if (!other.state.downed || other.state.dead) continue;
 			const d = Math.hypot(
-				other.position[0] - state.position[0],
-				other.position[1] - state.position[1],
-				other.position[2] - state.position[2]
+				other.state.position[0] - state.position[0],
+				other.state.position[1] - state.position[1],
+				other.state.position[2] - state.position[2]
 			);
 			if (d <= SANITY.reviveRange) return other;
 		}

@@ -25,18 +25,61 @@ describe('down, dead and revived', () => {
 		session.admin(diver.id, { kind: 'setSanity', value: 0 });
 		diver.hold({}, 4);
 		expect(diver.state.downed).toBe(false);
-		expect(diver.state.sanity).toBeGreaterThanOrEqual(SANITY.reviveTo);
+		expect(diver.state.sanity).toBe(SANITY.saltsReviveTo);
 		expect(diver.state.inventory.quick[0]).toBeNull();
 	});
 
-	it('a teammate with salts revives a downed player by holding interact', () => {
+	it('a downed player alone without salts stays down', () => {
 		const session = open(SEED);
-		const helper = new Diver(session, 'A', kit(['salts']));
+		const diver = new Diver(session, 'A');
+		session.admin(diver.id, { kind: 'setSanity', value: 0 });
+		diver.hold({}, 4);
+		expect(diver.state.downed).toBe(true);
+	});
+
+	it('a teammate revives a downed player by hand, holding interact, with a little sanity', () => {
+		const session = open(SEED);
+		const helper = new Diver(session, 'A');
 		const patient = new Diver(session, 'B');
 		patient.put(helper.state.position);
 		session.admin(patient.id, { kind: 'setSanity', value: 0 });
 		helper.hold({ interact: true }, SANITY.reviveSeconds + 0.5);
 		expect(patient.state.downed).toBe(false);
+		expect(patient.state.sanity).toBe(SANITY.reviveTo);
+	});
+
+	it('a teammate with salts revives a downed player quicker and stronger, using one', () => {
+		const session = open(SEED);
+		const helper = new Diver(session, 'A', kit(['salts']));
+		const patient = new Diver(session, 'B');
+		patient.put(helper.state.position);
+		session.admin(patient.id, { kind: 'setSanity', value: 0 });
+		helper.hold({ interact: true }, SANITY.saltsReviveSeconds + 0.2);
+		expect(patient.state.downed).toBe(false);
+		expect(patient.state.sanity).toBe(SANITY.saltsReviveTo);
+		expect(helper.state.inventory.quick[0]).toBeNull();
+	});
+
+	it('by hand, a revive takes longer than with salts', () => {
+		const session = open(SEED);
+		const helper = new Diver(session, 'A');
+		const patient = new Diver(session, 'B');
+		patient.put(helper.state.position);
+		session.admin(patient.id, { kind: 'setSanity', value: 0 });
+		helper.hold({ interact: true }, SANITY.saltsReviveSeconds + 0.2);
+		expect(patient.state.downed).toBe(true);
+	});
+
+	it('letting go of interact before the revive is done starts it over', () => {
+		const session = open(SEED);
+		const helper = new Diver(session, 'A');
+		const patient = new Diver(session, 'B');
+		patient.put(helper.state.position);
+		session.admin(patient.id, { kind: 'setSanity', value: 0 });
+		helper.hold({ interact: true }, SANITY.reviveSeconds / 2);
+		helper.hold({}, 0.2);
+		helper.hold({ interact: true }, SANITY.reviveSeconds / 2);
+		expect(patient.state.downed).toBe(true);
 	});
 
 	it('admin sanity brings a downed player back up', () => {

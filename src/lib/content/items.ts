@@ -325,7 +325,7 @@ export interface ItemDef {
 	heal?: HealSpec;
 	/** Held in the hand, attack puts it in the headlamp (batteries). */
 	charge?: ChargeSpec;
-	/** Brings a downed player round (smelling salts), from a quick-use slot. */
+	/** From a quick-use slot: a revive brings them round steadier, and alone you use your own (smelling salts). */
 	revive?: boolean;
 	/** Draws marks on walls from the quick-use slot (see docs/dev/marks.md). */
 	chalk?: ChalkSpec;

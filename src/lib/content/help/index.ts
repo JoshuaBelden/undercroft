@@ -312,7 +312,7 @@ Every 1000 experience is a level, up to 60, and every level is a skill point. Th
 		category: 'The surface',
 		body: `Once you reach level 1, your level shows in a round button beside your avatar at the top of the dashboard: it opens the Skills page. Three categories sit at the bottom: Nerve (the dark and the mind), Grit (the fight and the body) and Craft (the hands and the route). Opening one costs a point and shows its four skills. Each skill has three ranks, a point each, and each rank does more. Pointing at a skill shows what it does now and at the next rank, in the game's own numbers.
 
-Hold a skill (or a closed category) to spend a point on it: the mouse button, a finger, Enter, or {button:PadX} on a controller with it focused. A quick press does nothing, so a point is never spent by accident.
+Hold a skill (or a closed category) to spend a point on it: the mouse button, a finger, Enter, or {button:PadA} on a controller with it focused. A quick press does nothing, so a point is never spent by accident.
 
 Sixty levels won't buy everything, so choose. Respec puts every point back to spend again, for coin. Skills change nothing while you are ready to descend or underground; what you have when you go down is what you take.`
 	},
@@ -390,9 +390,9 @@ If there is nothing to wait for, hold {action:climb} for a moment to surrender. 
 		id: 'reviving',
 		title: 'Reviving',
 		category: 'Surviving',
-		body: `Smelling salts bring someone back from being down.
+		body: `If a teammate is down, go to them and hold {action:interact}. It takes a few seconds. By hand they come back shaken, with little sanity left.
 
-If a teammate is down, go to them and hold {action:interact}. It takes a few seconds and uses one of your salts. They come back shaken, with little sanity left.
+With smelling salts to hand it is much quicker: one is used and they come back far steadier.
 
 If no one can reach you, because you're alone or everyone else is down too, you use your own salts. Without salts, and without help, you won't get up again.
 

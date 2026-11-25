@@ -32,6 +32,8 @@ Flow:
 
 **Light budget:** `LIGHT_BUDGET` caps active dynamic lights (ambient excluded). The stats overlay shows the count and turns red when over budget. Every candle, headlamp, torch and glow stick counts. The candles standing in the start room share one light, which fades to nothing (and stops counting) once you've gone on (see [map-generation.md](map-generation.md#candles)). Short flashes borrow a light that already exists rather than adding one: a gunshot lights the shooter's headlamp (see [items.md](items.md#client)).
 
+**Never change the light count mid-run.** Three.js compiles the number of lights (and whether there is fog, and how many lights cast shadows) into every material's shader, so adding a light, removing one, hiding one (`visible = false`) or toggling `castShadow` recompiles every material in the level: a freeze of a second or more. Make lights once and dim them to zero intensity instead. Fires and glow sticks share a fixed pool in `Hazards` (`src/lib/game/play/hazards.ts`: `FIRE_LIGHT.lit` and `GLOW_LIGHT.lit`), handed to the nearest each frame; headlamps go dark rather than hidden; the underwater fog stays on at zero density.
+
 ## Input
 
 Code never reads raw keys. Every input is an action in `actions.ts`:
