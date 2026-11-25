@@ -149,8 +149,11 @@ def get_material(name):
         rough = tex("Roughness", "Non-Color", 0)
         if rough:
             nt.links.new(rough.outputs["Color"], bsdf.inputs["Roughness"])
-        metal = tex("Metalness", "Non-Color", -300)
-        if metal:
+        # A set's metalness map, unless the spec says how metallic it is (rusted iron: barely).
+        metal = tex("Metalness", "Non-Color", -300) if "metallic" not in spec else None
+        if "metallic" in spec:
+            bsdf.inputs["Metallic"].default_value = spec["metallic"]
+        elif metal:
             nt.links.new(metal.outputs["Color"], bsdf.inputs["Metallic"])
         else:
             bsdf.inputs["Metallic"].default_value = 0.0

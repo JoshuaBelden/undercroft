@@ -1,3 +1,5 @@
+import { SOUNDS } from '../../content/audio/sounds.ts';
+import { ITEMS } from '../../content/items.ts';
 import { LOOTABLES, type LootableId } from '../../content/lootables.ts';
 import type { ColliderBox, PieceDef, Quat, Vec3, VolumeBox } from './types.ts';
 
@@ -24,7 +26,9 @@ export const ROOM_MARKER_KINDS = [
 	'lootable',
 	'door',
 	'gate',
-	'spot'
+	'spot',
+	// sound-<id>-<n>: a sound from sounds.ts playing there (sound-sewer.drip-0).
+	'sound'
 ] as const;
 
 export type RoomMarkerKind = (typeof ROOM_MARKER_KINDS)[number];
@@ -48,8 +52,10 @@ export interface RoomMarker {
 	position: Vec3;
 	/** Turn about +Y (radians) of its local -Z (Blender's +Y): at 0 it faces north (-Z). */
 	yaw: number;
-	/** Custom properties that mean something for its kind (a rope's `length`). */
+	/** Custom properties that mean something for its kind: numbers (a rope's `length`)... */
 	extras: Record<string, number>;
+	/** ...and words: a locked door's `key`, the item a lootable always `holds`. */
+	text: Record<string, string>;
 }
 
 export interface RoomManifest {
@@ -81,6 +87,15 @@ export function yawOf(rotation: Quat): number {
 	const fx = -2 * (x * z + w * y);
 	const fz = -(1 - 2 * (x * x + y * y));
 	return Math.atan2(-fx, -fz);
+}
+
+/** Words from a node's custom properties (`key = "key"`), numbers left to `numbers`. */
+function texts(extras: Record<string, unknown>): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const [key, value] of Object.entries(extras)) {
+		if (typeof value === 'string' && !Number.isFinite(Number(value))) out[key] = value;
+	}
+	return out;
 }
 
 /** Numbers from a node's custom properties, the rest dropped. */
@@ -125,7 +140,8 @@ export function readRoom(name: string, nodes: readonly RoomNode[]): RoomManifest
 			label,
 			position: [...node.position],
 			yaw: yawOf(node.rotation),
-			extras: numbers(node.extras)
+			extras: numbers(node.extras),
+			text: texts(node.extras)
 		};
 		if (kind === 'rope' && !(marker.extras.length > 0)) {
 			manifest.warnings.push(`${label} needs a length property (m)`);
@@ -133,9 +149,32 @@ export function readRoom(name: string, nodes: readonly RoomNode[]): RoomManifest
 		if (kind === 'lootable' && !Object.hasOwn(LOOTABLES, label.split('-')[1] ?? '')) {
 			manifest.warnings.push(`${label} names no lootable (${Object.keys(LOOTABLES).join(', ')})`);
 		}
+		if (kind === 'sound' && !Object.hasOwn(SOUNDS, soundOf(marker))) {
+			manifest.warnings.push(`${label} names no sound in sounds.ts ("${soundOf(marker)}")`);
+		}
+		for (const prop of ['key', 'holds'] as const) {
+			const item = marker.text[prop];
+			if (item !== undefined && !Object.hasOwn(ITEMS, item)) {
+				manifest.warnings.push(`${label}: ${prop} names no item ("${item}")`);
+			}
+		}
 		manifest.markers.push(marker);
 	}
+	// A locked door's key has to be somewhere in the room (for now: one room is the whole map).
+	const held = new Set(manifest.markers.map((m) => m.text.holds).filter(Boolean));
+	for (const door of manifest.markers.filter((m) => m.text.key)) {
+		if (!held.has(door.text.key)) {
+			manifest.warnings.push(
+				`${door.label} is locked with "${door.text.key}", which nothing holds`
+			);
+		}
+	}
 	return manifest;
+}
+
+/** The sound a `sound-<id>-<n>` marker plays: `sound-sewer.drip-1` plays `sewer.drip`. */
+export function soundOf(marker: RoomMarker): string {
+	return marker.label.slice('sound-'.length).replace(/-\d+$/, '');
 }
 
 /**

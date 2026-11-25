@@ -85,6 +85,14 @@ export const AUDIO_FILES: Record<string, string[]> = {
 		'/assets/shared/audio/ambience.creak-5.d93ea7c5.webm'
 	],
 	'ambience.lap': ['/assets/shared/audio/ambience.lap.271ecddf.webm'],
+	'sewer.flow': ['/assets/shared/audio/sewer.flow.9d114b32.webm'],
+	'sewer.drip': [
+		'/assets/shared/audio/sewer.drip-1.aaaef646.webm',
+		'/assets/shared/audio/sewer.drip-2.3bc55c9b.webm',
+		'/assets/shared/audio/sewer.drip-3.e37e40d9.webm',
+		'/assets/shared/audio/sewer.drip-4.21df63dc.webm',
+		'/assets/shared/audio/sewer.drip-5.29765416.webm'
+	],
 	'ambience.creepy': [
 		'/assets/shared/audio/ambience.creepy-1.6f7b8ec6.webm',
 		'/assets/shared/audio/ambience.creepy-2.a7277e45.webm'
@@ -314,6 +322,12 @@ export const AUDIO_BYTES: Record<string, number> = {
 	'/assets/shared/audio/ambience.creak-4.ed3909b7.webm': 23096,
 	'/assets/shared/audio/ambience.creak-5.d93ea7c5.webm': 13602,
 	'/assets/shared/audio/ambience.lap.271ecddf.webm': 72263,
+	'/assets/shared/audio/sewer.flow.9d114b32.webm': 219283,
+	'/assets/shared/audio/sewer.drip-1.aaaef646.webm': 5699,
+	'/assets/shared/audio/sewer.drip-2.3bc55c9b.webm': 5345,
+	'/assets/shared/audio/sewer.drip-3.e37e40d9.webm': 5662,
+	'/assets/shared/audio/sewer.drip-4.21df63dc.webm': 5256,
+	'/assets/shared/audio/sewer.drip-5.29765416.webm': 5872,
 	'/assets/shared/audio/ambience.creepy-1.6f7b8ec6.webm': 13821,
 	'/assets/shared/audio/ambience.creepy-2.a7277e45.webm': 68410,
 	'/assets/shared/audio/ambience.dashboard.ae54e4b6.webm': 801049,

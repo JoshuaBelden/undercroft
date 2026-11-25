@@ -1439,7 +1439,14 @@ export const SOUNDS = {
 		caption: 'whispering'
 	},
 	'headlamp.on': { file: 'headlamp.on', category: 'sfx', volume: 0.9 },
-	'headlamp.off': { file: 'headlamp.off', category: 'sfx', volume: 0.9 }
+	'headlamp.off': { file: 'headlamp.off', category: 'sfx', volume: 0.9 },
+
+	// The way in (#150): placed in the room by its sound-<id>-<n> markers (docs/dev/room-viewer.md#sounds).
+	// Not recorded yet, so silent; played in place once sound travels the tunnels (Phase 3).
+	/** Water running through the grate at the sewer's west end, and on beyond it: a loop. */
+	'sewer.flow': { file: 'sewer.flow', category: 'ambience', volume: 0.5 },
+	/** A drip from the vault into the channel. One sound, placed at each sound-sewer.drip-<n>. */
+	'sewer.drip': { file: 'sewer.drip', category: 'ambience', volume: 0.3, variation: 0.15 }
 } satisfies Record<string, SoundDef>;
 
 export type SoundId = keyof typeof SOUNDS;

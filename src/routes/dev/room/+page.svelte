@@ -21,21 +21,6 @@
 		return onRoomChanged(() => void refresh());
 	});
 
-	const groups = $derived([
-		{
-			id: 'rooms',
-			title: 'Rooms',
-			note: 'art/export/rooms/<room>.glb',
-			list: rooms.filter((r) => r.group === 'rooms')
-		},
-		{
-			id: 'kit',
-			title: 'Old kit (reference)',
-			note: 'art/export/<piece>.glb',
-			list: rooms.filter((r) => r.group === 'kit')
-		}
-	]);
-
 	const when = (ms: number) => new Date(ms).toLocaleString();
 </script>
 
@@ -50,27 +35,25 @@
 	{#if problem}
 		<p class="problem">{problem}. The room viewer needs <code>pnpm dev</code>.</p>
 	{/if}
-	{#each groups as group (group.id)}
-		<section>
-			<h2>{group.title} <span class="muted">{group.note}</span></h2>
-			{#if group.list.length === 0}
-				<p class="muted">None yet.</p>
-			{:else}
-				<ul>
-					{#each group.list as room (room.group + room.name)}
-						<li>
-							<a href={resolve('/dev/room/[room]', { room: room.name })}>{room.name}</a>
-							<span class="muted">
-								{(room.bytes / 1e6).toFixed(1)} MB · {when(room.changed)}{room.lightmap
-									? ' · lightmap'
-									: ''}
-							</span>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
-	{/each}
+	<section>
+		<h2>Rooms <span class="muted">art/export/rooms/&lt;room&gt;.glb</span></h2>
+		{#if rooms.length === 0}
+			<p class="muted">None exported yet.</p>
+		{:else}
+			<ul>
+				{#each rooms as room (room.name)}
+					<li>
+						<a href={resolve('/dev/room/[room]', { room: room.name })}>{room.name}</a>
+						<span class="muted">
+							{(room.bytes / 1e6).toFixed(1)} MB · {when(room.changed)}{room.lightmap
+								? ' · lightmap'
+								: ''}
+						</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
 </main>
 
 <style>
