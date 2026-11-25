@@ -89,6 +89,7 @@ export class Creatures {
 	private breath: SoundHandle | null = null;
 	private breathStarting = false;
 	private breathLevel = 0;
+	private disposed = false;
 
 	constructor(private sounds: SoundBank) {
 		this.root.name = 'creatures';
@@ -191,12 +192,17 @@ export class Creatures {
 		if (this.breathLevel < 0.005) this.breathLevel = 0;
 		if (this.breathLevel > 0 && !this.breath && !this.breathStarting) {
 			this.breathStarting = true;
-			void this.sounds.loop('creature.breath').then((handle) => (this.breath = handle));
+			void this.sounds.loop('creature.breath').then((handle) => {
+				// Put away while it loaded: stop it as it arrives.
+				if (this.disposed) handle.stop();
+				else this.breath = handle;
+			});
 		}
 		this.breath?.setVolume(this.breathLevel);
 	}
 
 	dispose(): void {
+		this.disposed = true;
 		for (const entry of this.entries.values()) this.remove(entry);
 		this.entries.clear();
 		this.markerGeometry.dispose();

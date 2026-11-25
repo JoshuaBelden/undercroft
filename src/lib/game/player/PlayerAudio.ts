@@ -35,6 +35,7 @@ export class PlayerAudio {
 	private breathSlow: SoundHandle | null = null;
 	private breathFast: SoundHandle | null = null;
 	private breathStarting = false;
+	private disposed = false;
 	private ray = new THREE.Raycaster();
 	private down = new THREE.Vector3(0, -1, 0);
 	private origin = new THREE.Vector3();
@@ -47,11 +48,23 @@ export class PlayerAudio {
 	}
 
 	update(state: PlayerState | null, unlocked: boolean): void {
-		if (!state) return;
+		// No body (out of the catacombs, on the results): no breathing. Without this the loops
+		// kept the volume they last had, so climbing out winded panted on through the results.
+		if (!state) {
+			this.breathSlow?.setVolume(0);
+			this.breathFast?.setVolume(0);
+			return;
+		}
 		if (unlocked && !this.breathStarting) {
 			this.breathStarting = true;
-			void this.sounds.loop('breath.slow').then((handle) => (this.breathSlow = handle));
-			void this.sounds.loop('breath.fast').then((handle) => (this.breathFast = handle));
+			void this.sounds.loop('breath.slow').then((handle) => {
+				if (this.disposed) handle.stop();
+				else this.breathSlow = handle;
+			});
+			void this.sounds.loop('breath.fast').then((handle) => {
+				if (this.disposed) handle.stop();
+				else this.breathFast = handle;
+			});
 		}
 		this.updateBreath(state);
 
@@ -149,6 +162,8 @@ export class PlayerAudio {
 	}
 
 	dispose(): void {
+		// A loop still loading stops as it arrives.
+		this.disposed = true;
 		this.breathSlow?.stop();
 		this.breathFast?.stop();
 		this.breathSlow = null;
