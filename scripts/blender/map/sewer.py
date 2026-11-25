@@ -52,11 +52,9 @@ common.add_materials(
         "mat-storeroom-wall": {"set": "PavingStones127", "tile": 1.5},  # dressed stone
         "mat-storeroom-floor": {"set": "Tiles093", "tile": 2.0},
         "mat-storeroom-ceiling": {"set": "Planks025A", "tile": 1.5},  # boards over the joists
-        "mat-shelf": {"set": "Metal056B", "tile": 1.0},
+        "mat-shelf": {"set": "Metal062C", "tile": 1.0},  # the frame
+        "mat-shelf-board": {"set": "Wood035", "tile": 1.0},
         "mat-timber": {"set": "Planks025A", "tile": 1.0},
-        "mat-drum": {"set": "Metal056B", "tile": 1.0},
-        "mat-stair": {"set": "PavingStones127", "tile": 1.5},
-        "mat-stair-ceiling": {"set": "Rock061", "tile": 2.0},
     }
 )
 
@@ -102,6 +100,7 @@ SHELF_ROWS = ((-9.4, -8.8), (-12.6, -12.0))  # y of each row (front to back): ai
 SHELF_UNITS = ((13.3, 15.6), (16.4, 18.7), (19.5, 21.8))  # x of each unit, with gaps to cross
 SHELF_TOP = 3.4
 SHELF_LEVELS = (0.15, 0.85, 1.55, 2.25, 2.95)
+PILE = (1.2, 1.0)  # the most a corner's pile of boxes reaches out along each wall
 
 # The First Stair, south from the door
 STAIR_X = (13.5, 16.5)  # 3 m wide
@@ -487,28 +486,39 @@ def crack(mb, coll, root):
     common.col_span(coll, root, "col-crack-mouth", (x0, -UP_W, -0.3), (x1, -LOW_W, 0.0))
 
 
-def cylinder(mb, cx, cy, r, h, mat, sides=14):
-    pts = [(cx + r * math.cos(2 * math.pi * k / sides), cy + r * math.sin(2 * math.pi * k / sides)) for k in range(sides)]
-    for k in range(sides):
-        (ax, ay), (bx, by) = pts[k], pts[(k + 1) % sides]
-        mb.face([(ax, ay, 0), (bx, by, 0), (bx, by, h), (ax, ay, h)], mat, facing=((ax + bx) / 2 - cx, (ay + by) / 2 - cy, 0), smooth=True)
-    mb.face([(x, y, h) for x, y in pts], mat, facing=(0, 0, 1))
-    # Hoops round the drum.
-    for z in (0.25 * h, 0.75 * h):
-        for k in range(sides):
-            (ax, ay), (bx, by) = pts[k], pts[(k + 1) % sides]
-            o = 1.04
-            mb.face(
-                [(cx + (ax - cx) * o, cy + (ay - cy) * o, z - 0.02), (cx + (bx - cx) * o, cy + (by - cy) * o, z - 0.02),
-                 (cx + (bx - cx) * o, cy + (by - cy) * o, z + 0.02), (cx + (ax - cx) * o, cy + (ay - cy) * o, z + 0.02)],
-                mat, facing=((ax + bx) / 2 - cx, (ay + by) / 2 - cy, 0),
-            )
+def box_stack(mb, coll, root, name, corner_x, corner_y, toward_x, toward_y, rng):
+    """Wooden boxes piled in a corner (out from it along `toward`): a few on the floor, smaller
+    ones on top, kept within PILE so the walk round the shelf rows stays open. One collision box
+    round the pile."""
+    reach_x, reach_y = 0.0, 0.0
+    x = 0.1
+    while x < PILE[0] - 0.4:
+        w, d, h = rng.uniform(0.45, 0.7), rng.uniform(0.45, 0.7), rng.uniform(0.4, 0.65)
+        w = min(w, PILE[0] - x)
+        y = 0.1
+        while y < PILE[1] - 0.4:
+            d = min(d, PILE[1] - y)
+            bx, by = corner_x + toward_x * x, corner_y + toward_y * y
+            lo = (min(bx, bx + toward_x * w), min(by, by + toward_y * d), 0.0)
+            hi = (max(bx, bx + toward_x * w), max(by, by + toward_y * d), h)
+            mb.box(lo, hi, "mat-timber", skip={"-z"})
+            if rng.random() < 0.6:
+                inset = rng.uniform(0.03, 0.1)
+                top = h + rng.uniform(0.25, 0.45)
+                mb.box((lo[0] + inset, lo[1] + inset, h), (hi[0] - inset, hi[1] - inset, top), "mat-timber", skip={"-z"})
+            reach_x, reach_y = max(reach_x, x + w), max(reach_y, y + d)
+            y += d + rng.uniform(0.02, 0.1)
+        x += w + rng.uniform(0.02, 0.1)
+    xs = sorted((corner_x, corner_x + toward_x * reach_x))
+    ys = sorted((corner_y, corner_y + toward_y * reach_y))
+    common.col_span(coll, root, name, (xs[0], ys[0], 0.0), (xs[1], ys[1], 1.1))
 
 
 def shelf_unit(mb, x0, x1, y0, y1, rng):
-    """A standing steel shelf: angle posts at the corners, a plate with a turned-down lip at each
-    level, X braces across each end, and a few boxes left on it."""
-    M = "mat-shelf"
+    """A standing shelf: a steel frame (angle posts at the corners, a rail along the front and back
+    under each level, X braces across each end), wooden boards to stand things on, and a few
+    boxes left on them."""
+    M, B = "mat-shelf", "mat-shelf-board"
     post = 0.05
     for px in (x0, x1 - post):
         for py in (y0, y1 - post):
@@ -516,9 +526,9 @@ def shelf_unit(mb, x0, x1, y0, y1, rng):
             mb.box((px, py, 0), (px + post, py + 0.008, SHELF_TOP), M)
             mb.box((px, py, 0), (px + 0.008, py + post, SHELF_TOP), M)
     for z in (*SHELF_LEVELS, SHELF_TOP - 0.03):
-        mb.box((x0, y0, z), (x1, y1, z + 0.02), M)
-        mb.box((x0, y0, z - 0.06), (x1, y0 + 0.012, z), M, skip={"+z"})
-        mb.box((x0, y1 - 0.012, z - 0.06), (x1, y1, z), M, skip={"+z"})
+        mb.box((x0 + 0.01, y0 + 0.012, z), (x1 - 0.01, y1 - 0.012, z + 0.025), B)
+        mb.box((x0, y0, z - 0.06), (x1, y0 + 0.012, z + 0.01), M, skip={"+z"})
+        mb.box((x0, y1 - 0.012, z - 0.06), (x1, y1, z + 0.01), M, skip={"+z"})
     for x in (x0 + 0.02, x1 - 0.02):
         common_bar(mb, (x, y0 + 0.02, 0.1), (x, y1 - 0.02, SHELF_TOP - 0.1), (1, 0, 0), 0.02, M)
         common_bar(mb, (x, y1 - 0.02, 0.1), (x, y0 + 0.02, SHELF_TOP - 0.1), (1, 0, 0), 0.02, M)
@@ -528,13 +538,13 @@ def shelf_unit(mb, x0, x1, y0, y1, rng):
             w, d, h = rng.uniform(0.25, 0.55), rng.uniform(0.25, y1 - y0 - 0.1), rng.uniform(0.15, 0.45)
             if rng.random() < 0.6 and x + w < x1 - 0.05:
                 y = rng.uniform(y0 + 0.03, y1 - d - 0.03)
-                mb.box((x, y, z + 0.02), (x + w, y + d, z + 0.02 + h), "mat-timber", skip={"-z"})
+                mb.box((x, y, z + 0.025), (x + w, y + d, z + 0.025 + h), "mat-timber", skip={"-z"})
             x += w + rng.uniform(0.05, 0.5)
 
 
 def storeroom(mb, coll, root):
-    """Dressed stone, a boarded ceiling, two rows of tall steel shelves; drums and boards in the
-    corners. The doorway goes through a thick wall to the First Stair."""
+    """Dressed stone, a boarded ceiling, two rows of tall shelves; in the
+    corners: wooden boxes and coffin boards. The doorway goes through a thick wall to the First Stair."""
     (x0, x1), (y0, y1), h = STORE_X, STORE_Y, STORE_H
     W, F, C = "mat-storeroom-wall", "mat-storeroom-floor", "mat-storeroom-ceiling"
     mb.face([(x0, y0, 0), (x1, y0, 0), (x1, y1, 0), (x0, y1, 0)], F, facing=(0, 0, 1))
@@ -549,7 +559,7 @@ def storeroom(mb, coll, root):
     mb.face([(DOOR[0], yd, 0), (DOOR[0], y0, 0), (DOOR[0], y0, DOOR_H), (DOOR[0], yd, DOOR_H)], W, facing=(1, 0, 0))
     mb.face([(DOOR[1], yd, 0), (DOOR[1], y0, 0), (DOOR[1], y0, DOOR_H), (DOOR[1], yd, DOOR_H)], W, facing=(-1, 0, 0))
     mb.face([(DOOR[0], yd, DOOR_H), (DOOR[1], yd, DOOR_H), (DOOR[1], y0, DOOR_H), (DOOR[0], y0, DOOR_H)], W, facing=(0, 0, -1))
-    mb.face([(DOOR[0], yd, 0), (DOOR[1], yd, 0), (DOOR[1], y0, 0), (DOOR[0], y0, 0)], "mat-stair", facing=(0, 0, 1))
+    mb.face([(DOOR[0], yd, 0), (DOOR[1], yd, 0), (DOOR[1], y0, 0), (DOOR[0], y0, 0)], F, facing=(0, 0, 1))
 
     common.col_span(coll, root, "col-store-floor", (x0, y0, -0.3), (x1, y1, 0.0))
     common.col_span(coll, root, "col-store-ceiling", (x0, y0, h), (x1, y1, h + 0.4))
@@ -570,10 +580,9 @@ def storeroom(mb, coll, root):
         for u, (ux0, ux1) in enumerate(SHELF_UNITS):
             shelf_unit(mb, ux0, ux1, lo, hi, rng)
             common.col_span(coll, root, f"col-shelf-{r}-{u}", (ux0, lo, 0), (ux1, hi, SHELF_TOP))
-    # Oil drums, a few to a corner.
-    for k, (x, y) in enumerate(((x0 + 0.5, y1 - 0.5), (x0 + 1.15, y1 - 0.45), (x1 - 0.5, y1 - 0.55), (x1 - 0.5, y0 + 0.5), (x1 - 1.15, y0 + 0.45), (x1 - 0.55, y0 + 1.1))):
-        cylinder(mb, x, y, 0.29, 0.88, "mat-drum")
-        common.col_span(coll, root, f"col-drum-{k}", (x - 0.3, y - 0.3, 0), (x + 0.3, y + 0.3, 0.88))
+    # Wooden boxes, like the shelves', stacked in three of the corners.
+    for k, (x, y, toward_x, toward_y) in enumerate(((x0, y1, 1, -1), (x1, y1, -1, -1), (x1, y0, -1, 1))):
+        box_stack(mb, coll, root, f"col-boxes-{k}", x, y, toward_x, toward_y, rng)
     # Coffin boards, stacked flat along the west wall in the south-west corner.
     for k in range(6):
         z = k * 0.035
@@ -586,17 +595,18 @@ def stair(mb, coll, root):
     """The First Stair: a top landing past the doorway, a flight down, a landing to the next door."""
     (x0, x1) = STAIR_X
     yd = STAIR_START
-    S, C = "mat-stair", "mat-stair-ceiling"
+    # The Storeroom's stone, floor and boarded ceiling, carried on down.
+    W, F, C = "mat-storeroom-wall", "mat-storeroom-floor", "mat-storeroom-ceiling"
     # The wall around the doorway, seen from the stair side.
-    common.wall_with_hole(mb, (x0, yd), (x1, yd), 0, HEADROOM, S, (0, -1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)])
+    common.wall_with_hole(mb, (x0, yd), (x1, yd), 0, HEADROOM, W, (0, -1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)])
     # Floors: the landings and the steps.
-    mb.face([(x0, STAIR_TOP, 0), (x1, STAIR_TOP, 0), (x1, yd, 0), (x0, yd, 0)], S, facing=(0, 0, 1))
-    mb.face([(x0, STAIR_END, -DROP), (x1, STAIR_END, -DROP), (x1, STAIR_FOOT, -DROP), (x0, STAIR_FOOT, -DROP)], S, facing=(0, 0, 1))
+    mb.face([(x0, STAIR_TOP, 0), (x1, STAIR_TOP, 0), (x1, yd, 0), (x0, yd, 0)], F, facing=(0, 0, 1))
+    mb.face([(x0, STAIR_END, -DROP), (x1, STAIR_END, -DROP), (x1, STAIR_FOOT, -DROP), (x0, STAIR_FOOT, -DROP)], F, facing=(0, 0, 1))
     for k in range(RISERS):
         y = STAIR_TOP - k * TREAD
         z_hi, z_lo = -k * RISE_H, -(k + 1) * RISE_H
-        mb.face([(x0, y, z_lo), (x1, y, z_lo), (x1, y, z_hi), (x0, y, z_hi)], S, facing=(0, -1, 0))
-        mb.face([(x0, y - TREAD, z_lo), (x1, y - TREAD, z_lo), (x1, y, z_lo), (x0, y, z_lo)], S, facing=(0, 0, 1))
+        mb.face([(x0, y, z_lo), (x1, y, z_lo), (x1, y, z_hi), (x0, y, z_hi)], F, facing=(0, -1, 0))
+        mb.face([(x0, y - TREAD, z_lo), (x1, y - TREAD, z_lo), (x1, y, z_lo), (x0, y, z_lo)], F, facing=(0, 0, 1))
     # Ceiling: flat over each landing, sloping with the flight.
     top, foot = HEADROOM, HEADROOM - DROP
     mb.face([(x0, STAIR_TOP, top), (x1, STAIR_TOP, top), (x1, yd, top), (x0, yd, top)], C, facing=(0, 0, -1))
@@ -609,12 +619,12 @@ def stair(mb, coll, root):
         (yd, 0), (STAIR_TOP, 0), (STAIR_TOP, -RISE_H), (last_riser, -DROP), (STAIR_END, -DROP),
         (STAIR_END, foot), (STAIR_FOOT, foot), (STAIR_TOP, top), (yd, top),
     ]
-    mb.face([(x0, y, z) for y, z in outline], S, facing=(1, 0, 0))
-    mb.face([(x1, y, z) for y, z in outline], S, facing=(-1, 0, 0))
+    mb.face([(x0, y, z) for y, z in outline], W, facing=(1, 0, 0))
+    mb.face([(x1, y, z) for y, z in outline], W, facing=(-1, 0, 0))
     # The far end, round the next door: where the Parish Walk joins. Until it does, dark stone
     # just behind the doorway stands in for it.
     common.wall_with_hole(
-        mb, (x0, STAIR_END), (x1, STAIR_END), -DROP, foot, S, (0, 1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)]
+        mb, (x0, STAIR_END), (x1, STAIR_END), -DROP, foot, W, (0, 1, 0), [(DOOR[0] - x0, DOOR[1] - x0, 0, DOOR_H)]
     )
     behind = STAIR_END - DOOR_DEPTH
     mb.face(
@@ -622,7 +632,7 @@ def stair(mb, coll, root):
         "mat-sewer-end",
         facing=(0, 1, 0),
     )
-    common.inward_box(mb, (DOOR[0], behind, -DROP), (DOOR[1], STAIR_END, -DROP + DOOR_H), S, skip={"+y", "-y"})
+    common.inward_box(mb, (DOOR[0], behind, -DROP), (DOOR[1], STAIR_END, -DROP + DOOR_H), W, skip={"+y", "-y"})
 
     common.col_span(coll, root, "col-stair-top", (x0, STAIR_TOP, -0.3), (x1, yd, 0.0))
     common.col_span(coll, root, "col-stair-bottom", (x0, STAIR_END, -DROP - 0.3), (x1, STAIR_FOOT, -DROP))
@@ -655,7 +665,7 @@ def markers(coll, root, frames):
     m("lootable-corpse-0", (18.1, -10.8, 0.0), toward=(0, 1), holds="key")  # the middle aisle
     m("lootable-corpse-1", (17.9, y1 - 0.8, 0.0), toward=(0, 1))  # fell in from the crack
     m("lootable-corpse-2", (x0 + 1.3, y0 + 0.6, 0.0), toward=(0, -1))  # by the door
-    m("lootable-crate-0", (x1 - 0.5, -8.0, 0.0), toward=(1, 0))
+    m("lootable-crate-0", (14.4, y1 - 0.5, 0.0), toward=(0, 1))
     # Rats: in the dark either side, and at the collapse.
     m("creature-0", (-15.0, WALKWAY_Y, 0.0))
     m("creature-1", (11.0, WALKWAY_Y, 0.0))
