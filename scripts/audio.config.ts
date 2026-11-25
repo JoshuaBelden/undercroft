@@ -127,6 +127,21 @@ export const AUDIO_SOURCES: AudioSource[] = [
 		keepSilence: true,
 		rate: 22050
 	},
+	// The way in (#150). The water through the sewer's grate: half a minute of it, looped.
+	{
+		id: 'sewer.flow',
+		file: 'sewer.flow.mp3',
+		crop: { start: 30, length: 30 },
+		loopCrossfade: 2,
+		keepSilence: true,
+		rate: 22050
+	},
+	// Drips from its vault, one file each.
+	{
+		id: 'sewer.drip',
+		file: 'sewer.drip.mp3',
+		slice: { minGap: 0.4, maxLength: 0.8, threshold: 0.3, maxClips: 8 }
+	},
 	{
 		id: 'ambience.creepy',
 		file: ['creepy_ambience_1.wav', 'creepy_ambience_2.wav'],

@@ -1180,5 +1180,23 @@ export const AUDIO_LEVELS: Record<
 		lufs: -33.9,
 		peak: -3.5,
 		urls: ['/assets/shared/audio/headlamp.off.738f6bf7.webm']
+	},
+	'sewer.flow': {
+		level: -27.6,
+		lufs: -21.6,
+		peak: -0.6,
+		urls: ['/assets/shared/audio/sewer.flow.9d114b32.webm']
+	},
+	'sewer.drip': {
+		level: -39.9,
+		lufs: -29.5,
+		peak: -0.4,
+		urls: [
+			'/assets/shared/audio/sewer.drip-1.aaaef646.webm',
+			'/assets/shared/audio/sewer.drip-2.3bc55c9b.webm',
+			'/assets/shared/audio/sewer.drip-3.e37e40d9.webm',
+			'/assets/shared/audio/sewer.drip-4.21df63dc.webm',
+			'/assets/shared/audio/sewer.drip-5.29765416.webm'
+		]
 	}
 };
