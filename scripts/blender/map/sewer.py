@@ -47,7 +47,7 @@ common.add_materials(
         "mat-sewer-water": {"color": (0.035, 0.04, 0.03), "roughness": 0.08},  # still, black, opaque
         "mat-sewer-end": {"color": (0.01, 0.01, 0.01), "roughness": 1.0},  # on into the dark
         "mat-crack": {"set": "Rock061", "tile": 1.5},
-        "mat-iron": {"set": "Metal047A", "tile": 0.5},
+        "mat-iron": {"set": "Metal047A", "tile": 0.5, "metallic": 0.15},  # rusted: dull, not shining
         "mat-rubble": {"set": "Rock061", "tile": 1.5},
         "mat-storeroom-wall": {"set": "PavingStones127", "tile": 1.5},  # dressed stone
         "mat-storeroom-floor": {"set": "Tiles093", "tile": 2.0},
@@ -87,7 +87,8 @@ CRACK_X = 17.0
 CRACK_W = 1.1  # its mouth, the cut (its ragged edges come in up to 0.2 m each side)
 CRACK_H = 2.4
 CRACK_MIN = 0.72  # never narrower (the player's capsule is 0.6 across)
-CRACK_PATH = [(17.0, -UP_W), (17.0, -3.0), (16.85, -3.9), (17.15, -4.9), (16.9, -5.9), (17.0, -6.35), (17.0, -6.8)]
+# Straight for its first and last half metre: square-cut sleeves where it meets each wall.
+CRACK_PATH = [(17.0, -UP_W), (17.0, -3.0), (16.85, -3.9), (17.15, -4.9), (16.9, -5.9), (17.0, -6.3), (17.0, -6.55), (17.0, -6.8)]
 
 # The Storeroom
 STORE_X = (12.0, 23.0)  # 11 m...
@@ -344,10 +345,11 @@ def collapse(mb, coll, root, frames):
         # At this height the heap reaches this far out from the end wall.
         reach = depth * (1 - z / APEX) ** 0.7
         half = UP_W if z >= LEDGE_Z else LOW_W
-        for layer in (0.0, 0.7):
+        for layer, grow in ((0.0, 1.0), (0.7, 1.0), (1.5, 1.8)):
+            # The third layer: bigger rocks inside the heap, filling it out behind the face.
             lat = -half + rng.uniform(0.1, 0.5) * size
             while lat < half:
-                s = size * rng.uniform(0.6, 1.4)
+                s = size * grow * rng.uniform(0.6, 1.4)
                 base = max(z + rng.uniform(-0.2, 0.15) * size, floor_at(lat))
                 if base < vault_z(lat) - s * 0.2:
                     dist = reach - layer * size + rng.uniform(-0.3, 0.3) * size
@@ -356,6 +358,29 @@ def collapse(mb, coll, root, frames):
         z += size * 0.5
         size = max(0.22, size * 0.82)
     print(f"  collapse: {rocks} rocks")
+    # And behind all of it, a solid core of rock filling the tunnel from the floor to the vault, so
+    # no gap between rocks shows the end wall.
+    rows = []
+    z = CHANNEL
+    while True:
+        reach = max(0.3, depth * (1 - max(0.0, z) / APEX) ** 0.7 - 1.1)
+        if z > SPRING:
+            half = UP_W * math.sqrt(max(0.0, 1 - ((z - SPRING) / RISE) ** 2))
+        else:
+            half = UP_W if z >= LEDGE_Z else LOW_W
+        row = []
+        for k in range(9):
+            lat = -half + 2 * half * k / 8
+            p = end + back * reach + side * lat
+            row.append(Vector((p.x, p.y, z)))
+        rows.append(row)
+        if z >= APEX:
+            break
+        z = min(APEX, z + 0.35)
+    for lower, upper in zip(rows, rows[1:]):
+        for k in range(8):
+            quad = [lower[k], lower[k + 1], upper[k + 1], upper[k]]
+            mb.face(quad, "mat-rubble", facing=back)
     near = end + back * 1.5
     common.col(coll, root, "col-collapse", (near.x, near.y, APEX / 2), (3.4, 2 * UP_W + 1, APEX + 0.4), yaw=math.atan2(back.y, back.x))
     foot = end + back * 3.6
@@ -428,7 +453,9 @@ def crack_profiles(frames):
     shapes = []
     for i in range(len(frames)):
         h = CRACK_H
-        if i == 0 or i == len(frames) - 1:
+        # The two rings at each end square-cut: a short sleeve, so the ragged split's faces that
+        # turn away from someone looking in have the sleeve behind them, not empty rock.
+        if i <= 1 or i >= len(frames) - 2:
             w = CRACK_W / 2
             shapes.append([(-w, 0), (-w, 0.3 * h), (-w, 0.6 * h), (-w, h), (0, h), (w, h), (w, 0.6 * h), (w, 0.3 * h), (w, 0)])
             continue

@@ -113,13 +113,12 @@ def sweep(mb, profile, frames, skip=lambda ring, seg: False, profiles=None):
     for j in range(n):
         (x0, z0, _), (x1, z1, _) = profile[j], profile[(j + 1) % n]
         lengths.append(lengths[-1] + math.hypot(x1 - x0, z1 - z0))
-    axis_z = sum(z for _, z, _ in profile) / n
     shapes = profiles or [[(x, z) for x, z, _ in profile]] * len(frames)
     rings = [[o + lat * x + up * z for x, z in shapes[i]] for i, (o, lat, _) in enumerate(frames)]
     for i in range(len(frames) - 1):
-        o0, _, d0 = frames[i]
-        o1, _, d1 = frames[i + 1]
-        axis = (o0 + o1) / 2 + up * axis_z
+        _, lat0, d0 = frames[i]
+        _, _, d1 = frames[i + 1]
+        inward = inward_normals(shapes[i])
         for j in range(n):
             if skip(i, j):
                 continue
@@ -127,15 +126,31 @@ def sweep(mb, profile, frames, skip=lambda ring, seg: False, profiles=None):
             mat = profile[j][2]
             tile = kit.tile_of(mat)
             quad = [rings[i][j], rings[i][k], rings[i + 1][k], rings[i + 1][j]]
-            centre = sum(quad, Vector()) / 4
+            nx, nz = inward[j]
             uvs = [
                 (d0 / tile, lengths[j] / tile),
                 (d0 / tile, lengths[j + 1] / tile),
                 (d1 / tile, lengths[j + 1] / tile),
                 (d1 / tile, lengths[j] / tile),
             ]
-            mb.face(quad, mat, facing=axis - centre, uvs=uvs)
+            mb.face(quad, mat, facing=lat0.normalized() * nx + up * nz, uvs=uvs)
     return rings
+
+
+def inward_normals(shape):
+    """Each segment of a closed cross-section [(lateral, z)], its normal pointing into the inside:
+    from the way the outline winds, so it holds for any shape, however ragged (a guess from the
+    middle points some faces of a concave outline the wrong way, and the game draws only fronts)."""
+    n = len(shape)
+    area = sum(shape[j][0] * shape[(j + 1) % n][1] - shape[(j + 1) % n][0] * shape[j][1] for j in range(n))
+    turn = 1 if area > 0 else -1  # counter-clockwise: the inside is on each edge's left
+    normals = []
+    for j in range(n):
+        (x0, z0), (x1, z1) = shape[j], shape[(j + 1) % n]
+        dx, dz = x1 - x0, z1 - z0
+        length = math.hypot(dx, dz) or 1.0
+        normals.append((-dz * turn / length, dx * turn / length))
+    return normals
 
 
 def polyline_frames(points, breaks=(), step=1.0):
@@ -169,11 +184,13 @@ def _frame_at(pts, s):
             p = pts[i].lerp(pts[i + 1], t)
             fwd = (pts[i + 1] - pts[i]).normalized()
             # On a corner, the mitre: halfway between the two directions, longer to keep the width.
-            if t >= 1.0 - 1e-6 and i + 2 < len(pts):
+            # Within a millimetre of a corner is on it (the distances are rounded): mitred, or its
+            # ring crosses the next and the faces between come out backwards.
+            if s - at >= seg - 1e-3 and i + 2 < len(pts):
                 nxt = (pts[i + 2] - pts[i + 1]).normalized()
                 mid = (fwd + nxt).normalized()
                 lateral = mid.cross(up).normalized() / max(0.5, fwd.dot(mid))
-            elif t <= 1e-6 and i > 0:
+            elif s - at <= 1e-3 and i > 0:
                 prv = (pts[i] - pts[i - 1]).normalized()
                 mid = (prv + fwd).normalized()
                 lateral = mid.cross(up).normalized() / max(0.5, fwd.dot(mid))
